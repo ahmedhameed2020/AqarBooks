@@ -1,0 +1,153 @@
+"use server";
+
+import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import type { ActionResult } from "@/lib/actions/platform";
+
+const createDueTypeSchema = z.object({
+  organizationId: z.string().uuid(),
+  nameAr: z.string().min(1).max(200),
+  nameEn: z.string().min(1).max(200),
+  defaultRevenueAccountId: z.string().uuid(),
+});
+
+export async function createDueTypeAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = createDueTypeSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    nameAr: formData.get("nameAr"),
+    nameEn: formData.get("nameEn"),
+    defaultRevenueAccountId: formData.get("defaultRevenueAccountId"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("due_types").insert({
+    organization_id: parsed.data.organizationId,
+    name_ar: parsed.data.nameAr,
+    name_en: parsed.data.nameEn,
+    default_revenue_account_id: parsed.data.defaultRevenueAccountId,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/finance/dues", "page");
+  return { ok: true };
+}
+
+const issueDueSchema = z.object({
+  organizationId: z.string().uuid(),
+  resortId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  dueTypeId: z.string().uuid(),
+  receivableAccountId: z.string().uuid(),
+  amount: z.coerce.number().positive(),
+  issueDate: z.string().min(1),
+  dueDate: z.string().min(1),
+  description: z.string().max(500).optional(),
+  fiscalPeriodId: z.string().uuid(),
+});
+
+export async function issueDueAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = issueDueSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    resortId: formData.get("resortId"),
+    unitId: formData.get("unitId"),
+    dueTypeId: formData.get("dueTypeId"),
+    receivableAccountId: formData.get("receivableAccountId"),
+    amount: formData.get("amount"),
+    issueDate: formData.get("issueDate"),
+    dueDate: formData.get("dueDate"),
+    description: formData.get("description") || undefined,
+    fiscalPeriodId: formData.get("fiscalPeriodId"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("issue_due", {
+    p_organization_id: parsed.data.organizationId,
+    p_resort_id: parsed.data.resortId,
+    p_unit_id: parsed.data.unitId,
+    p_due_type_id: parsed.data.dueTypeId,
+    p_receivable_account_id: parsed.data.receivableAccountId,
+    p_amount: parsed.data.amount,
+    p_issue_date: parsed.data.issueDate,
+    p_due_date: parsed.data.dueDate,
+    p_description: parsed.data.description ?? null,
+    p_fiscal_period_id: parsed.data.fiscalPeriodId,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/finance/dues", "page");
+  return { ok: true };
+}
+
+const allocationSchema = z.object({
+  due_id: z.string().uuid(),
+  amount: z.number().positive(),
+});
+
+const recordPaymentSchema = z.object({
+  organizationId: z.string().uuid(),
+  resortId: z.string().uuid(),
+  memberId: z.string().uuid().optional(),
+  unitId: z.string().uuid().optional(),
+  amount: z.coerce.number().positive(),
+  method: z.enum(["CASH", "BANK_TRANSFER", "CHEQUE", "OTHER"]),
+  paymentDate: z.string().min(1),
+  depositAccountId: z.string().uuid(),
+  fiscalPeriodId: z.string().uuid(),
+  allocations: z.array(allocationSchema).min(1),
+});
+
+export async function recordPaymentAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  let allocationsRaw: unknown;
+  try {
+    allocationsRaw = JSON.parse(String(formData.get("allocations") ?? "[]"));
+  } catch {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  const parsed = recordPaymentSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    resortId: formData.get("resortId"),
+    memberId: formData.get("memberId") || undefined,
+    unitId: formData.get("unitId") || undefined,
+    amount: formData.get("amount"),
+    method: formData.get("method"),
+    paymentDate: formData.get("paymentDate"),
+    depositAccountId: formData.get("depositAccountId"),
+    fiscalPeriodId: formData.get("fiscalPeriodId"),
+    allocations: allocationsRaw,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_payment", {
+    p_organization_id: parsed.data.organizationId,
+    p_resort_id: parsed.data.resortId,
+    p_member_id: parsed.data.memberId ?? null,
+    p_unit_id: parsed.data.unitId ?? null,
+    p_amount: parsed.data.amount,
+    p_method: parsed.data.method,
+    p_payment_date: parsed.data.paymentDate,
+    p_deposit_account_id: parsed.data.depositAccountId,
+    p_fiscal_period_id: parsed.data.fiscalPeriodId,
+    p_allocations: parsed.data.allocations,
+    p_idempotency_key: randomUUID(),
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/finance/payments", "page");
+  revalidatePath("/[locale]/finance/dues", "page");
+  return { ok: true };
+}

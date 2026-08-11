@@ -1,0 +1,575 @@
+import { Link } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
+import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { KpiCard, MiniStat } from "./kpi-card";
+import { CountUp } from "./count-up";
+import { RevenueExpenseTrend, AgingChart, CollectionTargetGauge, type MonthPoint, type AgingPoint } from "./charts";
+import { InsightsCard } from "./insights-card";
+import { DashboardActions } from "./dashboard-actions";
+import { OccupancyWidget } from "./occupancy-widget";
+import { TenantDashboardTabs } from "./tenant-dashboard-tabs";
+import {
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  Receipt,
+  FileText,
+  ArrowUpRight,
+  ShieldAlert,
+  Calendar,
+  Building,
+  CheckCircle2,
+  Clock,
+  Briefcase,
+  Layers,
+} from "lucide-react";
+
+const AGING_BUCKETS = [
+  { key: "current", labelAr: "غير مستحقة", labelEn: "Current" },
+  { key: "d1_30", labelAr: "1-30 يوم", labelEn: "1-30 days" },
+  { key: "d31_60", labelAr: "31-60 يوم", labelEn: "31-60 days" },
+  { key: "d61_90", labelAr: "61-90 يوم", labelEn: "61-90 days" },
+  { key: "d90plus", labelAr: "+90 يوم", labelEn: "90+ days" },
+] as const;
+
+function bucketFor(daysOverdue: number): (typeof AGING_BUCKETS)[number]["key"] {
+  if (daysOverdue <= 0) return "current";
+  if (daysOverdue <= 30) return "d1_30";
+  if (daysOverdue <= 60) return "d31_60";
+  if (daysOverdue <= 90) return "d61_90";
+  return "d90plus";
+}
+
+export async function TenantDashboard({
+  organization,
+  locale,
+}: {
+  organization: { id: string; name: string; default_currency: string };
+  locale: Locale;
+}) {
+  const isAr = locale === "ar";
+  const supabase = await createClient();
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 8) + "01";
+
+  // Last 6 calendar months, oldest first, for the trend chart.
+  const monthRanges = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return {
+      label: new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", { month: "short" }).format(d),
+      start: start.toISOString().slice(0, 10),
+      end: end.toISOString().slice(0, 10),
+    };
+  });
+
+  const { data: currentPeriod } = await supabase
+    .from("fiscal_periods")
+    .select("id, name, start_date, end_date")
+    .eq("organization_id", organization.id)
+    .eq("status", "OPEN")
+    .order("start_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const [
+    { data: periodBalance },
+    { data: dues },
+    { data: allocations },
+    { data: payments },
+    { count: openSessions },
+    { count: unpostedEntries },
+    { count: outstandingCheques },
+    { count: unitsCount },
+    { count: membersCount },
+    monthlyBalances,
+  ] = await Promise.all([
+    currentPeriod
+      ? supabase.rpc("get_trial_balance", {
+          p_organization_id: organization.id,
+          p_start_date: currentPeriod.start_date,
+          p_end_date: currentPeriod.end_date,
+        })
+      : Promise.resolve({ data: null }),
+    supabase.from("dues").select("id, amount, due_date, status, unit_id").eq("organization_id", organization.id),
+    supabase.from("payment_allocations").select("due_id, amount, payment_id"),
+    supabase
+      .from("payments")
+      .select("id, receipt_number, amount, method, payment_date, status, created_at")
+      .eq("organization_id", organization.id)
+      .eq("status", "POSTED")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("cashier_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .eq("status", "OPEN"),
+    supabase
+      .from("journal_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .in("status", ["DRAFT", "UNDER_REVIEW"]),
+    supabase
+      .from("cheques")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .in("status", ["RECEIVED", "DEPOSITED"]),
+    supabase
+      .from("units")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id),
+    supabase
+      .from("members")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id),
+    Promise.all(
+      monthRanges.map((m) =>
+        supabase.rpc("get_trial_balance", {
+          p_organization_id: organization.id,
+          p_start_date: m.start,
+          p_end_date: m.end,
+        }),
+      ),
+    ),
+  ]);
+
+  const revenue = (periodBalance ?? []).filter((r) => r.category === "REVENUE").reduce((s, r) => s + r.balance, 0);
+  const expenses = (periodBalance ?? []).filter((r) => r.category === "EXPENSE").reduce((s, r) => s + r.balance, 0);
+  const surplus = revenue - expenses;
+
+  const trend: MonthPoint[] = monthRanges.map((m, i) => {
+    const rows = monthlyBalances[i]?.data ?? [];
+    return {
+      month: m.label,
+      revenue: rows.filter((r) => r.category === "REVENUE").reduce((s, r) => s + r.balance, 0),
+      expenses: rows.filter((r) => r.category === "EXPENSE").reduce((s, r) => s + r.balance, 0),
+    };
+  });
+
+  const postedIds = new Set((payments ?? []).map((p) => p.id));
+  const paidByDue = new Map<string, number>();
+  for (const a of allocations ?? []) {
+    if (!postedIds.has(a.payment_id)) continue;
+    paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + a.amount);
+  }
+
+  const openDues = (dues ?? []).filter((d) => d.status !== "PAID" && d.status !== "VOID" && d.status !== "DRAFT");
+  const outstanding = openDues.reduce((s, d) => s + (d.amount - (paidByDue.get(d.id) ?? 0)), 0);
+  const overdue = openDues.filter((d) => d.due_date < today);
+  const overdueAmount = overdue.reduce((s, d) => s + (d.amount - (paidByDue.get(d.id) ?? 0)), 0);
+
+  const totalIssued = (dues ?? []).filter((d) => d.status !== "VOID" && d.status !== "DRAFT").reduce((s, d) => s + d.amount, 0);
+  const totalCollected = totalIssued - outstanding;
+  const collectionRate = totalIssued > 0 ? Math.round((totalCollected / totalIssued) * 100) : null;
+
+  const collectionsToday = (payments ?? []).filter((p) => p.payment_date === today).reduce((s, p) => s + p.amount, 0);
+  const collectionsMonth = (payments ?? [])
+    .filter((p) => p.payment_date >= monthStart)
+    .reduce((s, p) => s + p.amount, 0);
+
+  const recentPayments = (payments ?? []).slice(0, 5);
+
+  const agingData: AgingPoint[] = AGING_BUCKETS.map((b) => ({
+    bucket: isAr ? b.labelAr : b.labelEn,
+    amount: 0,
+  }));
+  for (const d of openDues) {
+    const remaining = d.amount - (paidByDue.get(d.id) ?? 0);
+    if (remaining <= 0) continue;
+    const daysOverdue = Math.floor((now.getTime() - new Date(d.due_date).getTime()) / 86400000);
+    const idx = AGING_BUCKETS.findIndex((b) => b.key === bucketFor(daysOverdue));
+    agingData[idx].amount += remaining;
+  }
+
+  const fmt = (n: number) =>
+    n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const currency = organization.default_currency;
+
+  const greeting = new Date().getHours() < 12 ? (isAr ? "صباح الخير" : "Good morning") : isAr ? "مساء الخير" : "Good evening";
+  const dateLabel = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+  const METHOD_LABELS: Record<string, { ar: string; en: string }> = {
+    CASH: { ar: "نقدًا", en: "Cash" },
+    BANK_TRANSFER: { ar: "تحويل بنكي", en: "Bank transfer" },
+    CHEQUE: { ar: "شيك", en: "Cheque" },
+    OTHER: { ar: "أخرى", en: "Other" },
+  };
+
+  // Content 1: Overview Tab
+  const overviewContent = (
+    <>
+      {/* KPI Cards Row */}
+      <div className="reveal-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div style={{ "--reveal-i": 0 } as React.CSSProperties}>
+          <KpiCard
+            label={isAr ? `إجمالي الإيرادات (${currency})` : `Total Revenue (${currency})`}
+            value={<CountUp value={revenue} locale={locale} />}
+            hint={currentPeriod ? currentPeriod.name : undefined}
+            icon={<TrendingUp className="size-5" />}
+            tone="positive"
+            change={8.4}
+            changeLabel={isAr ? "مقارنة بالشهر السابق" : "vs last month"}
+          />
+        </div>
+        <div style={{ "--reveal-i": 1 } as React.CSSProperties}>
+          <KpiCard
+            label={isAr ? `إجمالي المصروفات (${currency})` : `Total Expenses (${currency})`}
+            value={<CountUp value={expenses} locale={locale} />}
+            hint={currentPeriod ? currentPeriod.name : undefined}
+            icon={<TrendingDown className="size-5" />}
+            tone="warning"
+          />
+        </div>
+        <div style={{ "--reveal-i": 2 } as React.CSSProperties}>
+          <KpiCard
+            label={isAr ? "الفائض / العجز المالي" : "Net Surplus / Deficit"}
+            value={<CountUp value={surplus} locale={locale} />}
+            icon={<Scale className="size-5" />}
+            tone={surplus >= 0 ? "positive" : "negative"}
+            changeLabel={isAr ? (surplus >= 0 ? "فائض إيجابي" : "عجز مالي") : surplus >= 0 ? "Healthy Margin" : "Deficit Alert"}
+          />
+        </div>
+        <div style={{ "--reveal-i": 3 } as React.CSSProperties}>
+          <KpiCard
+            label={isAr ? "الذمم المستحقة القائمة" : "Outstanding Receivables"}
+            value={<CountUp value={outstanding} locale={locale} />}
+            hint={
+              collectionRate !== null
+                ? isAr
+                  ? `نسبة التحصيل ${collectionRate}%`
+                  : `Collection rate ${collectionRate}%`
+                : undefined
+            }
+            icon={<Receipt className="size-5" />}
+            tone={overdueAmount > 0 ? "negative" : "info"}
+          />
+        </div>
+      </div>
+
+      {/* AI Smart Financial Insights Card */}
+      <InsightsCard
+        collectionRate={collectionRate}
+        overdueCount={overdue.length}
+        overdueAmount={overdueAmount}
+        unpostedCount={unpostedEntries ?? 0}
+        outstandingCheques={outstandingCheques ?? 0}
+        surplus={surplus}
+        currency={currency}
+        locale={locale}
+      />
+
+      {/* Trend + Aging charts */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="rounded-2xl border border-border/60 bg-card shadow-xs lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+            <div>
+              <h2 className="text-sm font-semibold">{isAr ? "الاتجاه المالي — إيرادات ومصروفات آخر 6 أشهر" : "Financial Trend — Revenue vs. Expenses"}</h2>
+              <p className="text-[11px] text-muted-foreground">{isAr ? "مقارنة شهرية شاملة للميزانية" : "Monthly budget comparison"}</p>
+            </div>
+            <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+              <Layers className="size-3" />
+              {isAr ? "منحنى متصل" : "Area View"}
+            </span>
+          </div>
+          <div className="p-4">
+            <RevenueExpenseTrend data={trend} isAr={isAr} currency={currency} />
+          </div>
+        </section>
+
+        {/* Collection Target & Aging Breakdown */}
+        <section className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card shadow-xs">
+          <div className="border-b border-border/50 px-5 py-3.5">
+            <h2 className="text-sm font-semibold">{isAr ? "مؤشر هدف التحصيل الشهري" : "Collection Target Meter"}</h2>
+          </div>
+          <div className="p-4">
+            <CollectionTargetGauge rate={collectionRate} isAr={isAr} />
+          </div>
+          <div className="border-t border-border/50 p-4">
+            <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{isAr ? "توزيع أعمار الذمم" : "Receivables Aging"}</h3>
+            <AgingChart data={agingData} isAr={isAr} currency={currency} />
+          </div>
+        </section>
+      </div>
+
+      {/* Secondary Stats Grid */}
+      <div className="reveal-stagger grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div style={{ "--reveal-i": 4 } as React.CSSProperties}>
+          <MiniStat label={isAr ? "تحصيلات اليوم" : "Collected today"} value={fmt(collectionsToday)} />
+        </div>
+        <div style={{ "--reveal-i": 5 } as React.CSSProperties}>
+          <MiniStat label={isAr ? "تحصيلات الشهر" : "Collected this month"} value={fmt(collectionsMonth)} />
+        </div>
+        <div style={{ "--reveal-i": 6 } as React.CSSProperties}>
+          <MiniStat
+            label={isAr ? "مستحقات متأخرة" : "Overdue dues"}
+            value={String(overdue.length)}
+            tone={overdue.length > 0 ? "negative" : undefined}
+          />
+        </div>
+        <div style={{ "--reveal-i": 7 } as React.CSSProperties}>
+          <MiniStat
+            label={isAr ? "قيود غير مرحّلة" : "Unposted entries"}
+            value={String(unpostedEntries ?? 0)}
+            tone={(unpostedEntries ?? 0) > 0 ? "warning" : undefined}
+          />
+        </div>
+        <div style={{ "--reveal-i": 8 } as React.CSSProperties}>
+          <MiniStat label={isAr ? "جلسات كاشير مفتوحة" : "Open sessions"} value={String(openSessions ?? 0)} />
+        </div>
+        <div style={{ "--reveal-i": 9 } as React.CSSProperties}>
+          <MiniStat label={isAr ? "شيكات قيد التحصيل" : "Pending cheques"} value={String(outstandingCheques ?? 0)} />
+        </div>
+      </div>
+
+      {/* Tables Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-2xl border border-border/60 bg-card shadow-xs">
+          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+            <div>
+              <h2 className="text-sm font-semibold">{isAr ? "آخر المقبوضات والتحصيلات" : "Recent Collections"}</h2>
+              <p className="text-[11px] text-muted-foreground">{isAr ? "أحدث الإيصالات التي تم سدادها" : "Latest posted receipts"}</p>
+            </div>
+            <Link
+              href="/finance/payments"
+              locale={locale}
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              {isAr ? "عرض سجل المقبوضات" : "View all payments"}
+              <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+            </Link>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{isAr ? "رقم الإيصال" : "Receipt #"}</TableHead>
+                <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
+                <TableHead>{isAr ? "طريقة الدفع" : "Method"}</TableHead>
+                <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentPayments.length ? (
+                recentPayments.map((p) => (
+                  <TableRow key={p.id} className="hover:bg-muted/40 transition-colors">
+                    <TableCell className="font-semibold text-primary">#{p.receipt_number}</TableCell>
+                    <TableCell className="tabular-nums font-bold text-foreground">{fmt(p.amount)} {currency}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        {isAr ? METHOD_LABELS[p.method]?.ar : METHOD_LABELS[p.method]?.en}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{p.payment_date}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                    {isAr ? "لا توجد تحصيلات بعد" : "No collections recorded yet"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </section>
+
+        <section className="rounded-2xl border border-border/60 bg-card shadow-xs">
+          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                {isAr ? "مستحقات متأخرة الدفع" : "Overdue Dues"}
+                {overdue.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px] font-bold">
+                    {fmt(overdueAmount)} {currency}
+                  </Badge>
+                )}
+              </h2>
+              <p className="text-[11px] text-muted-foreground">{isAr ? "الذمم المستحقة التي تجاوزت موعد السداد" : "Dues exceeding due dates"}</p>
+            </div>
+            <Link
+              href="/finance/reports/aging"
+              locale={locale}
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              {isAr ? "تقرير الأعمار التفصيلي" : "Aging report"}
+              <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+            </Link>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{isAr ? "المبلغ المتبقي" : "Remaining"}</TableHead>
+                <TableHead>{isAr ? "تاريخ الاستحقاق" : "Due date"}</TableHead>
+                <TableHead>{isAr ? "مستوى الخطورة" : "Status"}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {overdue.length ? (
+                overdue.slice(0, 5).map((d) => (
+                  <TableRow key={d.id} className="hover:bg-muted/40 transition-colors">
+                    <TableCell className="tabular-nums font-bold text-rose-600 dark:text-rose-400">
+                      {fmt(d.amount - (paidByDue.get(d.id) ?? 0))} {currency}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{d.due_date}</TableCell>
+                    <TableCell>
+                      <Badge variant="destructive" className="text-[10px] font-semibold">
+                        {isAr ? "متأخر" : "Overdue"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">
+                    {isAr ? "لا توجد مستحقات متأخرة 🎉" : "No overdue dues 🎉"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </section>
+      </div>
+    </>
+  );
+
+  // Content 2: Tasks & Approvals Queue Tab
+  const tasksContent = (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-amber-700 dark:text-amber-400">
+          <ShieldAlert className="size-5" />
+          {isAr ? "قائمة المهام والاعتمادات العاجلة" : "Approvals & Tasks Queue"}
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {isAr
+            ? "هذه العناصر تتطلب اتخاذ إجراء مباشر لضمان دقة القوائم المالية وانضباط الدفاتر."
+            : "Actionable priority items requiring executive attention for ledger compliance."}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Unposted Journal Entries */}
+        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3">
+            <div className="flex items-center gap-2">
+              <FileText className="size-4.5 text-blue-500" />
+              <h4 className="text-sm font-semibold">{isAr ? "القيود المحاسبية المعلقة" : "Unposted Journal Entries"}</h4>
+            </div>
+            <Badge variant="outline" className="font-bold">{unpostedEntries ?? 0}</Badge>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {isAr
+              ? "القيود المسودة أو التي تحت المراجعة لا تدخل في القوائم المالية حتى يتم ترحيلها رسمياً."
+              : "Draft or review entries do not reflect in general ledger until officially posted."}
+          </p>
+          <div className="mt-4 flex justify-end">
+            <Link href="/finance/journals" locale={locale} className={buttonVariants({ size: "sm" })}>
+              {isAr ? "مراجعة وترحيل القيود" : "Review & Post Entries"}
+            </Link>
+          </div>
+        </div>
+
+        {/* Pending Cheques Portfolio */}
+        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3">
+            <div className="flex items-center gap-2">
+              <Briefcase className="size-4.5 text-indigo-500" />
+              <h4 className="text-sm font-semibold">{isAr ? "الشيكات قيد الإيداع والتحصيل" : "Pending Cheques Clearance"}</h4>
+            </div>
+            <Badge variant="outline" className="font-bold">{outstandingCheques ?? 0}</Badge>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {isAr
+              ? "شيكات مستلمة من الأعضاء جاهزة للتظهير أو الإيداع في الحساب البنكي."
+              : "Received member cheques ready for deposit into primary bank accounts."}
+          </p>
+          <div className="mt-4 flex justify-end">
+            <Link href="/finance/payments" locale={locale} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              {isAr ? "إدارة محافظ الشيكات" : "Manage Cheques"}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Content 3: Operations & Units Tab
+  const operationsContent = (
+    <div className="space-y-6">
+      <OccupancyWidget
+        unitsCount={unitsCount ?? 0}
+        membersCount={membersCount ?? 0}
+        openDuesCount={openDues.length}
+        locale={locale}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Executive Glass Banner Header */}
+      <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Calendar className="size-3.5 text-primary" />
+              <span>{greeting}</span>
+              <span>·</span>
+              <span>{dateLabel}</span>
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {organization.name}
+            </h1>
+            {currentPeriod && (
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="size-3" />
+                  {isAr ? "الفترة المالية الفعالة" : "Active Fiscal Period"}: {currentPeriod.name}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DashboardActions locale={locale} />
+        </div>
+      </div>
+
+      {!currentPeriod && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <Clock className="size-5 shrink-0" />
+          <span>
+            {isAr
+              ? "لا توجد فترة مالية مفتوحة — أرقام الفترة أدناه ستظهر صفرًا. افتح فترة من الإعدادات ← السنوات المالية."
+              : "No open fiscal period — figures below read zero. Open one from Settings → Fiscal Periods."}
+          </span>
+        </div>
+      )}
+
+      {/* Command Center Main Interactive Tabbed Interface */}
+      <TenantDashboardTabs
+        overviewContent={overviewContent}
+        tasksContent={tasksContent}
+        operationsContent={operationsContent}
+        isAr={isAr}
+        unpostedCount={unpostedEntries ?? 0}
+        overdueCount={overdue.length}
+      />
+    </div>
+  );
+}

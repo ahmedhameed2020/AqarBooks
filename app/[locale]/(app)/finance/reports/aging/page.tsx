@@ -1,0 +1,129 @@
+import { setRequestLocale } from "next-intl/server";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { createClient } from "@/lib/supabase/server";
+import type { Locale } from "@/i18n/routing";
+
+const BUCKETS = [
+  { key: "current", labelAr: "غير مستحقة", labelEn: "Current" },
+  { key: "d1_30", labelAr: "1-30 يوم", labelEn: "1-30 days" },
+  { key: "d31_60", labelAr: "31-60 يوم", labelEn: "31-60 days" },
+  { key: "d61_90", labelAr: "61-90 يوم", labelEn: "61-90 days" },
+  { key: "d90plus", labelAr: "أكثر من 90 يوم", labelEn: "90+ days" },
+] as const;
+
+function bucketFor(daysOverdue: number): (typeof BUCKETS)[number]["key"] {
+  if (daysOverdue <= 0) return "current";
+  if (daysOverdue <= 30) return "d1_30";
+  if (daysOverdue <= 60) return "d31_60";
+  if (daysOverdue <= 90) return "d61_90";
+  return "d90plus";
+}
+
+export default async function AgingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale as Locale);
+  const isAr = locale === "ar";
+
+  const user = await getCurrentUser();
+  const organization = user ? await getPrimaryOrganization(user.id) : null;
+  if (!organization) return null;
+
+  const supabase = await createClient();
+  const [{ data: dues }, { data: allocations }, { data: postedPayments }, { data: units }] = await Promise.all([
+    supabase
+      .from("dues")
+      .select("id, unit_id, amount, due_date, status")
+      .eq("organization_id", organization.id)
+      .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"]),
+    supabase.from("payment_allocations").select("due_id, amount, payment_id"),
+    supabase.from("payments").select("id").eq("organization_id", organization.id).eq("status", "POSTED"),
+    supabase.from("units").select("id, code").eq("organization_id", organization.id),
+  ]);
+
+  const postedIds = new Set((postedPayments ?? []).map((p) => p.id));
+  const paidByDue = new Map<string, number>();
+  for (const a of allocations ?? []) {
+    if (!postedIds.has(a.payment_id)) continue;
+    paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + a.amount);
+  }
+  const unitCodeById = new Map((units ?? []).map((u) => [u.id, u.code]));
+
+  const today = new Date();
+  const rows = (dues ?? [])
+    .map((d) => {
+      const remaining = d.amount - (paidByDue.get(d.id) ?? 0);
+      const daysOverdue = Math.floor((today.getTime() - new Date(d.due_date).getTime()) / 86400000);
+      return { ...d, remaining, bucket: bucketFor(daysOverdue), unitCode: unitCodeById.get(d.unit_id) ?? d.unit_id };
+    })
+    .filter((r) => r.remaining > 0);
+
+  const totalsByBucket = new Map<string, number>();
+  for (const r of rows) {
+    totalsByBucket.set(r.bucket, (totalsByBucket.get(r.bucket) ?? 0) + r.remaining);
+  }
+  const grandTotal = rows.reduce((s, r) => s + r.remaining, 0);
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-semibold">{isAr ? "أعمار الديون" : "Receivables Aging"}</h1>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {BUCKETS.map((b) => (
+          <div key={b.key} className="rounded-lg border p-3">
+            <p className="text-xs text-muted-foreground">{isAr ? b.labelAr : b.labelEn}</p>
+            <p className="text-lg font-semibold tabular-nums">{(totalsByBucket.get(b.key) ?? 0).toFixed(2)}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{isAr ? "الوحدة" : "Unit"}</TableHead>
+              <TableHead>{isAr ? "المتبقي" : "Remaining"}</TableHead>
+              <TableHead>{isAr ? "الاستحقاق" : "Due date"}</TableHead>
+              <TableHead>{isAr ? "الفئة" : "Bucket"}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length ? (
+              rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{r.unitCode}</TableCell>
+                  <TableCell>{r.remaining.toFixed(2)}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.due_date}</TableCell>
+                  <TableCell>{isAr ? BUCKETS.find((b) => b.key === r.bucket)?.labelAr : BUCKETS.find((b) => b.key === r.bucket)?.labelEn}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  {isAr ? "لا توجد ذمم مستحقة" : "No outstanding receivables"}
+                </TableCell>
+              </TableRow>
+            )}
+            <TableRow className="font-semibold">
+              <TableCell>{isAr ? "الإجمالي" : "Total"}</TableCell>
+              <TableCell>{grandTotal.toFixed(2)}</TableCell>
+              <TableCell colSpan={2} />
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
