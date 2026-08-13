@@ -1,9 +1,23 @@
 # Owner Portal & Online Payments — Design Spec
 
-**Date:** 2026-08-14
+**Date:** 2026-08-14 (revised after review)
 **Area:** New route group `app/[locale]/(portal)/`, new `lib/payments/` provider layer, new webhook routes, schema additions
 **Type:** New feature (P0 gap from system review)
-**Status:** Approved (design), pending implementation plan
+**Status:** Approved (design, v2), pending implementation plan
+
+## Revision note
+
+This is a revision of the original 2026-08-14 draft after a security/accounting
+review. The overall direction (separate `(portal)` route group, provider
+abstraction, webhook-confirmed payments) is unchanged. What changed: the invite
+mechanism now uses Supabase's server-side admin invite APIs instead of open
+`signUp`; the transaction table gained integrity fields and a separate
+allocations table; `record_online_payment` is specified as an atomic,
+lock-ordered, idempotent-replay function that shares accounting logic with
+`record_payment` instead of duplicating it; webhook handling gained explicit
+replay/timing/logging rules; and the work is now split into five independently
+shippable phases, with **no online payment shipping until phases 1–2 are done
+and tested**.
 
 ## Goal
 
@@ -17,48 +31,68 @@ data.
 
 **In scope**
 
-- `members.user_id` link + invitation flow (email via existing Supabase auth email
-  system, and a manual WhatsApp share link using the same invite token).
+- `members.user_id` link + invitation flow (email via Supabase's server-side admin
+  invite APIs, and a manual WhatsApp share link built from the same one-time token).
 - New `(portal)` route group: dashboard, statement, dues (with selection), payment
   history, owned units — read access to the owner's own data only.
 - Online payment: owner selects one or more open dues, pays via Paymob or Fawry
-  (both, behind a provider abstraction), confirmed via webhook.
-- New tables: `member_invitations`, `online_payment_transactions`.
-- New SQL function `record_online_payment` (separate from `record_payment`, no
-  `has_permission` check — trusts a webhook-verified transaction instead).
-- New RLS policies scoped to `members.user_id = auth.uid()`.
+  (both, behind a provider abstraction), confirmed via webhook only.
+- New tables: `member_invitations`, `online_payment_transactions`,
+  `online_payment_transaction_allocations`.
+- New SQL function `record_online_payment` (separate from `record_payment`'s
+  permission gate, but sharing its accounting logic via an internal helper).
+- New RLS policies scoped to `members.user_id = auth.uid()`, via a
+  `current_member_id()` helper — no client-supplied `organization_id`/`resort_id`
+  is ever trusted; both are derived server-side from the authenticated member.
 - Provider abstraction (`lib/payments/provider.ts`) with `paymob.ts` and `fawry.ts`
-  implementations, built against placeholder/sandbox env vars (no real merchant
-  credentials available yet).
+  adapters, each with its own signature-verification logic and payload fixtures,
+  built against placeholder/sandbox env vars (no real merchant credentials
+  available yet).
 
 **Out of scope**
 
-- Any change to existing staff RLS policies, `record_payment`, or the `(app)` route
-  group's permission model.
+- Any change to existing staff RLS policies, `record_payment`'s permission model,
+  or the `(app)` route group.
 - WhatsApp Business API / automated messaging (this spec only adds a manual
   `wa.me` deep-link the staff member clicks and sends themselves).
 - Real Paymob/Fawry merchant onboarding — env vars are placeholders until the user
-  supplies real credentials.
-- Partial/custom-amount payment (owner pays exactly the sum of the dues they
-  select; no free-amount input).
+  supplies real credentials; the exact Paymob integration path (there are several)
+  and the exact Fawry product/API are pinned in Phase 3, not assumed here.
+- Partial/custom-amount payment. Payment is all-or-nothing against the owner's
+  selected dues — see "Settlement race policy" below.
 - Bank reconciliation, WhatsApp reminders, lease management — tracked separately
   in the system-review roadmap.
 
-## Decisions (locked during brainstorming)
+## Decisions (locked during brainstorming, reconfirmed in review)
 
-1. **V1 includes online payment**, not view-only — user explicitly rejected the
-   read-only-first option.
-2. **Both Paymob and Fawry**, via a shared provider interface, built now.
+1. **V1 includes online payment**, but ships in phases — read-only portal first
+   (Phase 1), payment only after RLS/schema are built and isolation-tested
+   (Phases 2–5).
+2. **Both Paymob and Fawry**, via a shared provider interface, each with its own
+   adapter and independently verified signature logic.
 3. **Sandbox/placeholder credentials** — build the full flow, read keys from env,
-   real keys added later without code changes.
-4. **Login model:** email invite + password (reuses existing Supabase Auth email
-   flow already used for staff register/verify/reset — no new email infra).
-   **Plus:** a manual WhatsApp share option using the same invite token, since no
-   WhatsApp Business API integration exists yet.
-5. **Payment selection UX:** owner checks specific open dues (not "pay full
-   balance" and not a free-amount field); total is computed from the selection.
+   real keys added later without code changes. Base URLs and API versions are
+   also env-driven (`PAYMOB_BASE_URL`, `FAWRY_BASE_URL`, `PAYMOB_API_VERSION`,
+   `FAWRY_API_VERSION`) so pinning the real integration path later doesn't
+   require a redeploy of application code.
+4. **Login model:** invite created and delivered server-side via Supabase's admin
+   invite APIs, not client-side `signUp`. **Plus:** a manual WhatsApp share option
+   carrying the same one-time link.
+5. **Payment selection UX:** owner checks specific open dues; total is computed
+   from the selection. All-or-nothing settlement (see below) — no silent partial
+   payment.
 
 ## Identity & Invitation Flow
+
+### Why not client-side `signUp`
+
+The original draft had the owner's password-set step call `supabase.auth.signUp`
+directly. That path lets any caller create/claim an auth user for an arbitrary
+email with no server-side control over which `members` row it attaches to. The
+revised flow moves both invite creation *and* invite delivery server-side, using
+Supabase's admin APIs (`auth.admin.generateLink` / `inviteUserByEmail`), and
+performs the `members.user_id` link inside a single transaction that re-verifies
+the token server-side — the client never gets to assert "I am member X."
 
 ### Schema
 
@@ -71,12 +105,13 @@ create table public.member_invitations (
   organization_id uuid not null references public.organizations (id) on delete cascade,
   member_id uuid not null references public.members (id) on delete cascade,
   email text not null,
-  token_hash text not null,        -- sha256 of the raw token; raw token never stored
+  token_hash text not null,        -- sha256 of the raw token; raw token never stored or logged
   status text not null default 'pending'
     check (status in ('pending', 'accepted', 'expired', 'revoked')),
   expires_at timestamptz not null,
   invited_by uuid not null references auth.users (id),
   accepted_at timestamptz,
+  accepted_user_id uuid references auth.users (id),
   created_at timestamptz not null default now()
 );
 
@@ -84,48 +119,121 @@ create unique index idx_member_invitations_pending_per_member
   on public.member_invitations (member_id) where status = 'pending';
 ```
 
-- Invitation validity: 72 hours.
-- One pending invitation per member at a time (re-inviting revokes the previous one).
+- Invitation validity: 72 hours from creation, enforced both at accept-time and
+  by a periodic sweep that flips expired `pending` rows to `expired`.
+- One pending invitation per member at a time — creating a new one first sets any
+  existing `pending` row for that member to `revoked` (same transaction).
+- The raw token is a cryptographically random value generated server-side; only
+  its SHA-256 hash is persisted. It is never written to logs, analytics, or
+  `platform_audit_logs`'s `safe_change_summary` — only a redacted marker
+  (`invitation_id`) is.
 
 ### Flow
 
-1. Staff with a new `members.portal.invite` permission opens a member's profile and
-   clicks **"دعوة للبوابة"**.
-2. Server action (`lib/actions/member-portal.ts`) creates a `member_invitations` row,
-   generates a raw token, stores only its hash, and builds the accept-invite URL
-   (`/portal/accept-invite?token=...`).
-3. A dialog then offers two independent send actions, both using the same link:
-   - **Email:** uses `createAdminClient()` (existing service-role client) to send via
-     Supabase's configured email system (same delivery path as
-     `signUpAction`/verify-email).
-   - **WhatsApp (manual):** opens `https://wa.me/<member.phone>?text=<encoded message
-     with the link>` in a new tab; staff reviews and sends it themselves from their
-     own WhatsApp. Requires the member to already have a phone number on file (falls
-     back to email-only if not).
-4. Owner opens the link, sets a password (`supabase.auth.signUp` under the hood,
-   or `updateUser` if already provisioned), the accept-invite handler verifies the
-   token hash + expiry, marks the invitation `accepted`, and sets
-   `members.user_id`.
-5. Expired/used tokens show a clear error with a "request a new invite" path (staff
-   re-triggers step 2).
+1. Staff with a new `members.portal.invite` permission opens a member's profile
+   and clicks **"دعوة للبوابة"**.
+2. Server action (`lib/actions/member-portal.ts`, using `createAdminClient()`)
+   revokes any existing pending invitation for this member, creates a new
+   `member_invitations` row, and generates the invite link via Supabase's admin
+   API against `member.email` (the invited email is fixed to what's on file —
+   staff cannot redirect the invite to an arbitrary address from the UI).
+3. A dialog then offers two independent send actions, both carrying the same link:
+   - **Email:** delivered directly by Supabase's admin invite call (same
+     delivery path already used for staff account emails) — no separate SMTP
+     integration needed.
+   - **WhatsApp (manual):** opens `https://wa.me/<member.phone>?text=<encoded
+     message with the link>` in a new tab; staff reviews and sends it themselves.
+     Requires a phone number on file; falls back to email-only otherwise. The
+     token in the URL is one-time and 72h-lived exactly as the email link is —
+     no separate, looser token is minted for this path.
+4. Owner opens the link and lands on `/portal/accept-invite`. The handler:
+   - Hashes the presented token and looks up a `pending`, non-expired
+     `member_invitations` row by hash.
+   - Confirms the authenticated Supabase session's email matches the
+     invitation's `email` (Supabase's invite-link flow authenticates the browser
+     as that invited user before redirecting back).
+   - In one transaction: sets the owner's password (`auth.updateUser`), sets
+     `members.user_id = auth.uid()` **only if `members.user_id` is currently
+     null** (prevents re-linking an already-claimed member), marks the
+     invitation `accepted` with `accepted_user_id`.
+   - Any mismatch (wrong session email, member already linked to a different
+     user, token not found/expired/revoked) aborts with no partial state change
+     and a clear Arabic error + "اطلب دعوة جديدة" path.
+5. `members.user_id` is immutable through this flow once set — changing it after
+   the fact (e.g. re-assigning portal access) is an explicit admin-only action,
+   not implemented in this feature; out of scope for V1.
 
 ## Portal Route Group
 
 `app/[locale]/(portal)/` — fully separate from `(app)`:
 
-- `layout.tsx`: resolves the current user, looks up `members` by `user_id`; if none,
-  redirect to `/portal/login` (a portal-specific login page, separate from staff
-  `/auth/login` but reusing the same `signInPassword` call). Renders a lightweight
-  sidebar (no admin/finance/platform nav).
+- `layout.tsx`: resolves the current user, looks up `members` by `user_id`; if
+  none, redirect to `/portal/login` (a portal-specific login page, separate from
+  staff `/auth/login`). Renders a lightweight sidebar (no admin/finance/platform
+  nav).
 - `page.tsx` (dashboard): current balance, last 5 movements, quick links.
 - `statement/page.tsx`: reuses `getMemberStatementData` (already exists, already
-  does the tenant + member check) rendered for the owner's own `member.id`, with
+  does the tenant + member check), scoped to the owner's own `member.id`, with
   the existing PDF export.
 - `dues/page.tsx`: list of open dues (`status in ('PENDING','PARTIALLY_PAID')`)
   with checkboxes, running total, and a "ادفع الآن" button.
-- `payments/page.tsx`: payment history (POSTED + pending online transactions) with
-  receipt PDF links (reuses `payment-receipt-pdf.ts`).
+- `payments/page.tsx`: payment history (only `payments` rows that are POSTED —
+  see "when a payment appears" below) with receipt PDF links (reuses
+  `payment-receipt-pdf.ts`).
 - `units/page.tsx`: owned units (from `unit_ownerships`).
+
+All portal queries resolve `organization_id`/`resort_id`/`member_id` **server-side
+from the authenticated `members` row**, never from a client-supplied parameter —
+this is enforced both in the RLS policies (below) and in the server actions
+themselves (defense in depth), since a bug in one layer must not be enough to
+cross a tenant boundary.
+
+## RLS Design
+
+A single helper centralizes the identity lookup so every policy is written the
+same, testable way:
+
+```sql
+create or replace function public.current_member_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id from public.members where user_id = auth.uid();
+$$;
+```
+
+Policies (additive only — nothing existing on these tables is modified):
+
+- `members`: owner can `select` where `id = current_member_id()`.
+- `unit_ownerships`: owner can `select` where `member_id = current_member_id()`.
+- `units`: owner can `select` where `id in (select unit_id from unit_ownerships
+  where member_id = current_member_id())`.
+- `dues`: owner can `select` where `member_id = current_member_id()` **or**
+  `unit_id in (owner's units)` — matching however `dues` already associates to a
+  member/unit today; confirmed against the existing `dues` schema during Phase 1
+  implementation, not assumed here.
+- `payments`, `payment_allocations`: owner can `select` their own via the same
+  `member_id`/`unit_id` → `current_member_id()` chain, restricted to `payments`
+  rows with `status = 'POSTED'`.
+- `online_payment_transactions`: owner can `select` own; `insert` own (with
+  `member_id` forced to `current_member_id()` at the RLS level via `with check`,
+  not merely trusted from the insert payload); no owner-facing `update` policy —
+  updates happen only via the service-role webhook path, which bypasses RLS
+  after signature verification.
+- `online_payment_transaction_allocations`: owner can `select` via join to their
+  own transactions.
+- `member_invitations`: no owner-facing policy at all — staff-only via existing
+  organization-membership RLS; the accept-invite handler itself runs through
+  `createAdminClient()` (service role) since the invitee isn't linked yet at that
+  point.
+
+Every new policy gets a pgTAP test in Phase 1/2 proving: (a) the intended access
+works, (b) a different owner (or a plain staff member with no `members.user_id`)
+is denied, and (c) denial holds even when the other owner's UUIDs are known and
+passed explicitly — RLS, not obscurity, is what's being tested.
 
 ## Online Payment Flow
 
@@ -137,51 +245,174 @@ create table public.online_payment_transactions (
   organization_id uuid not null references public.organizations (id) on delete cascade,
   resort_id uuid not null references public.resorts (id) on delete cascade,
   member_id uuid not null references public.members (id) on delete cascade,
+  client_request_id text not null,     -- generated once client-side, forwarded unchanged on retry
   provider text not null check (provider in ('PAYMOB', 'FAWRY')),
-  provider_reference text,            -- set once the provider returns a session/order id
+  provider_reference text,             -- set once the provider returns a session/order id
+  provider_payload jsonb,              -- last raw provider response/event, for audit (redacted of secrets)
   amount numeric(19,4) not null check (amount > 0),
-  allocations jsonb not null,         -- [{due_id, amount}, ...] chosen by the owner
   status text not null default 'PENDING'
     check (status in ('PENDING', 'PAID', 'FAILED', 'EXPIRED')),
-  payment_id uuid references public.payments (id), -- set on success
+  failure_code text,
+  failure_message text,
+  payment_id uuid references public.payments (id),
+  webhook_event_id text,               -- provider's event/notification id, for replay dedup
+  webhook_received_at timestamptz,
+  paid_at timestamptz,
+  failed_at timestamptz,
+  expires_at timestamptz not null,     -- checkout session TTL; stale PENDING rows past this are swept to EXPIRED
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+create unique index idx_online_txn_client_request
+  on public.online_payment_transactions (organization_id, client_request_id);
+
 create unique index idx_online_txn_provider_ref
   on public.online_payment_transactions (provider, provider_reference)
   where provider_reference is not null;
+
+create unique index idx_online_txn_webhook_event
+  on public.online_payment_transactions (provider, webhook_event_id)
+  where webhook_event_id is not null;
+
+-- amount/allocations/provider/member/org are immutable once the transaction
+-- leaves PENDING (checkout already created against the original amount).
+create or replace function public.forbid_online_txn_mutation_after_pending()
+returns trigger language plpgsql as $$
+begin
+  if old.status <> 'PENDING' and (
+    new.amount <> old.amount or
+    new.organization_id <> old.organization_id or
+    new.member_id <> old.member_id or
+    new.provider <> old.provider
+  ) then
+    raise exception 'ONLINE_TXN_IMMUTABLE: cannot modify a settled transaction' using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_online_txn_immutable
+  before update on public.online_payment_transactions
+  for each row execute function public.forbid_online_txn_mutation_after_pending();
+
+create table public.online_payment_transaction_allocations (
+  id uuid primary key default gen_random_uuid(),
+  transaction_id uuid not null references public.online_payment_transactions (id) on delete cascade,
+  due_id uuid not null references public.dues (id),
+  amount numeric(19,4) not null check (amount > 0),
+  created_at timestamptz not null default now(),
+  unique (transaction_id, due_id)
+);
 ```
+
+`allocations` moved out of `jsonb` and into a proper child table for reporting
+and audit; the transaction row keeps `amount` as the sum, checked against the
+allocation rows at creation time (application-level check, mirrored by a pgTAP
+test — a DB-level `CHECK` across tables isn't expressible directly, so this is
+enforced at the point of insert inside the same server action/transaction that
+creates both rows).
 
 ### Steps
 
-1. Owner selects dues on `/portal/dues`, picks a provider, clicks pay.
-2. Server action validates the dues belong to this member/org and are still open,
-   inserts a `PENDING` `online_payment_transactions` row, then calls
-   `lib/payments/provider.ts`'s `createCheckoutSession(provider, transaction)` —
-   which dispatches to `paymob.ts` or `fawry.ts`. Each returns a redirect URL (or,
-   for Fawry's reference-code flow, a payment code to display) and the
-   `provider_reference`, which is written back onto the transaction row.
-3. Owner is redirected to the provider's hosted payment page (or shown the Fawry
-   reference code) and pays there — card data never touches ResortOS.
+1. Owner selects dues on `/portal/dues`, picks a provider, clicks pay. The client
+   generates a `client_request_id` (random UUID) once and keeps it fixed across
+   any retry of the same submit (network drop, double-click) — mirrors the
+   existing `idempotency_key` pattern already used by `record_payment` callers.
+2. Server action validates the dues belong to `current_member_id()` and are
+   still open (re-checked against live `dues` state, not client-cached data),
+   inserts a `PENDING` `online_payment_transactions` row (`organization_id`/
+   `resort_id`/`member_id` all derived server-side, never taken from the
+   client) plus its `online_payment_transaction_allocations`, then calls
+   `lib/payments/provider.ts`'s `createCheckoutSession(provider, transaction)`.
+   If a row with the same `(organization_id, client_request_id)` already exists,
+   that existing row is reused instead of creating a duplicate checkout.
+3. Owner is redirected to the provider's hosted payment page (or shown Fawry's
+   reference code) and pays there — card data never touches ResortOS. **The
+   redirect-back page is informational only** — it never marks anything paid; it
+   polls `online_payment_transactions.status` and shows "بانتظار تأكيد الدفع"
+   until the webhook lands, or the final state once it has.
 4. Provider calls back to `app/api/webhooks/paymob/route.ts` or
-   `.../fawry/route.ts`. Each handler:
-   - Verifies the provider's signature (Paymob HMAC, Fawry security-key hash) using
-     placeholder secrets from env.
-   - Looks up the transaction by `provider_reference`.
-   - On success, calls `record_online_payment(p_transaction_id)` via the
-     **service-role** client (webhook has no user session).
-   - On failure/expiry, marks the transaction `FAILED`/`EXPIRED`.
-5. `record_online_payment` (new SQL function, `security definer`) re-validates the
-   transaction is `PENDING`, re-checks the dues still have remaining balance,
-   builds the same journal-entry + payment_allocations + due-status-update logic
-   `record_payment` already uses (factored so both call a shared internal helper
-   rather than duplicating the accounting logic), sets `payments.idempotency_key =
-   'online:' || transaction_id` so a re-delivered webhook is a no-op, and stamps
-   `online_payment_transactions.status = 'PAID'` + `payment_id`.
-6. Owner's `/portal/payments` page shows the new payment once posted; if they're
-   still on the provider's redirect-back page, that page polls transaction status
-   and shows success/failure.
+   `.../fawry/route.ts`. Each handler, in order:
+   - Reads the **raw** request body (required for signature verification —
+     framework body-parsing must not run first).
+   - Verifies the provider's signature using a constant-time comparison
+     (`crypto.timingSafeEqual` or equivalent) against secrets from env. A
+     failed check returns `401` immediately, changes no state, and logs the
+     failure without the raw payload.
+   - Rejects a structurally invalid payload with `400` before any lookup.
+   - Deduplicates on `(provider, webhook_event_id)`: if already recorded, `200`
+     no-op — protects against provider retries and event replay.
+   - Looks up the transaction by `provider_reference`. **Never reveals via
+     status code or timing whether a given reference exists** — an unmatched
+     reference and an internal error both return a generic `200`-with-logged-
+     warning (providers commonly retry on non-2xx, so this also prevents a
+     misconfigured/attacker-guessed reference from becoming a retry amplifier).
+   - On a verified success event, calls `record_online_payment(p_transaction_id,
+     p_webhook_event_id, p_provider_payload)` via the **service-role** client.
+   - On a verified failure/expiry event, updates the transaction to
+     `FAILED`/`EXPIRED` with `failure_code`/`failure_message` from the payload.
+   - Uses an HTTP timeout on any outbound call the handler itself makes (e.g. a
+     confirmatory GET back to the provider, if the integration path requires
+     one) and treats provider-side timeouts as "unconfirmed," never as success.
+5. `record_online_payment` (new SQL function, `security definer`) is atomic and
+   safely re-playable:
+   ```text
+   select transaction FOR UPDATE
+   if status = 'PAID': return existing payment_id (idempotent replay, not an error)
+   if status not in ('PENDING'): raise (can't post a FAILED/EXPIRED transaction)
+   lock the target dues FOR UPDATE, in a fixed order (e.g. by due_id) to avoid
+     deadlocking against concurrent staff-side record_payment calls
+   re-check each due's remaining balance against its allocation amount
+   if ANY allocation no longer fits (see "Settlement race policy" below):
+     mark transaction FAILED with failure_code = 'DUE_SETTLED_ELSEWHERE', return error
+   else:
+     call the SAME internal accounting helper record_payment uses (extracted in
+       this phase so both call it — no duplicated journal/allocation logic)
+     set payments.idempotency_key from a column, not string concatenation, e.g.
+       a UNIQUE (organization_id, source, source_id) shape shared with the
+       existing idempotency_key column, guaranteed at the DB level by a unique
+       index — not merely a code convention
+     insert online_payment_transaction rows' due status updates
+     set online_payment_transactions.status = 'PAID', payment_id, paid_at,
+       webhook_event_id, webhook_received_at = now()
+     write platform_audit_logs entry
+     return payment_id
+   ```
+   The `record_payment`/`record_online_payment` shared accounting core is a new
+   internal function (e.g. `public.post_payment_internal(...)`) that takes
+   already-validated inputs (org, resort, member, unit, amount, method, date,
+   deposit account, fiscal period, allocations, idempotency key, cashier session
+   or null) and does the journal-entry + `payments` insert + allocation +
+   due-status work. `record_payment` keeps its `has_permission` check and then
+   calls the internal helper; `record_online_payment` does its own
+   transaction/webhook-specific checks and then calls the same helper. Neither
+   duplicates the accounting logic.
+6. Owner's `/portal/payments` page only ever shows `payments` rows with
+   `status = 'POSTED'` — i.e. a payment becomes visible in the portal at exactly
+   the same moment it's real, never earlier (no "pending" payment rows are
+   surfaced as if they were postings).
+
+### Settlement race policy
+
+Scenario: owner selects dues A and B; before the webhook lands, someone else
+(staff, or another payment) settles A first.
+
+**Decision:** all-or-nothing. `record_online_payment` requires every allocation
+in the transaction to still fit against its due's current remaining balance. If
+even one no longer fits, **no payment is created at all** — the whole
+transaction is marked `FAILED` with `failure_code = 'DUE_SETTLED_ELSEWHERE'` and
+a message identifying which due. The owner sees a clear explanation on
+`/portal/payments` ("تم سداد أحد الاستحقاقات المختارة من مصدر آخر قبل تأكيد
+دفعتك — لم يُخصم أي مبلغ, يرجى إعادة المحاولة") and can re-select and retry.
+Money was never actually captured by the provider until the owner completed
+checkout, so this only rejects *recording* a payment whose allocations are now
+stale — it does not touch already-settled provider funds; provider-side refund
+handling for this edge case is a Phase 4 implementation detail to confirm
+against each provider's actual settlement timing, not assumed here. Partial
+settlement (posting whatever still fits) is explicitly rejected as a design —
+it would silently pay less than the owner authorized and complicate refund
+semantics; it can be revisited later as an explicit, opt-in policy if needed.
 
 ### Provider abstraction
 
@@ -191,59 +422,175 @@ export interface PaymentProvider {
   createCheckoutSession(txn: OnlinePaymentTransaction): Promise<{
     providerReference: string;
     redirectUrl?: string;   // Paymob: iframe/checkout URL
-    referenceCode?: string; // Fawry: pay-at-outlet code
+    referenceCode?: string; // Fawry: pay-at-outlet / reference code
   }>;
-  verifyWebhookSignature(payload: unknown, headers: Headers): boolean;
-  parseWebhookEvent(payload: unknown): { providerReference: string; status: "PAID" | "FAILED" };
+  verifyWebhookSignature(rawBody: Buffer, headers: Headers): boolean; // constant-time compare
+  parseWebhookEvent(rawBody: Buffer): {
+    providerReference: string;
+    webhookEventId: string;
+    status: "PAID" | "FAILED";
+    failureCode?: string;
+    failureMessage?: string;
+  };
 }
 ```
 
-`paymob.ts` and `fawry.ts` each implement this against env vars
-(`PAYMOB_API_KEY`, `PAYMOB_INTEGRATION_ID_CARD`, `PAYMOB_HMAC_SECRET`,
-`FAWRY_MERCHANT_CODE`, `FAWRY_SECURITY_KEY`) — all placeholder values until real
-credentials exist. No behavior depends on the values being real; the flow is
-fully exercised with fake keys against each provider's sandbox base URL.
+`paymob.ts` and `fawry.ts` each implement this independently — **no shared
+"generic HMAC" helper that both lean on**, since the two providers' signature
+construction (field selection, ordering, hash algorithm) differ and don't share
+implementation without risking a subtly-wrong verification for one of them.
+Each adapter ships with its own recorded sample payload fixtures (success,
+failure, tampered-signature) used in its Vitest suite. Env vars:
+`PAYMOB_API_KEY`, `PAYMOB_INTEGRATION_ID_CARD`, `PAYMOB_HMAC_SECRET`,
+`PAYMOB_BASE_URL`, `PAYMOB_API_VERSION`, `FAWRY_MERCHANT_CODE`,
+`FAWRY_SECURITY_KEY`, `FAWRY_BASE_URL`, `FAWRY_API_VERSION` — all placeholders
+until real credentials exist; none of these are ever sent to the client bundle
+(server-only module, enforced by the existing `server-only` package already used
+elsewhere in `lib/`).
 
-## Security (RLS)
-
-New policies, additive only — nothing existing is modified:
-
-- `members`: owner can `select` their own row (`user_id = auth.uid()`).
-- `dues`, `payments`, `payment_allocations`, `units`, `unit_ownerships`: owner can
-  `select` rows where `member_id`/`unit_id` resolve back to their own `members.id`.
-- `online_payment_transactions`: owner can `select`/`insert` their own; `update`
-  reserved for the service-role webhook path only (no owner-facing update policy).
-- `member_invitations`: no owner-facing policy — staff-only via existing
-  organization-membership RLS, service-role for the accept-invite handler.
-- Webhook routes use `createAdminClient()` (service role, bypasses RLS) strictly
-  after signature verification — never trust an unverified payload.
+Which exact Paymob integration path (there are several: Intention API, the
+older Auth/Order/Payment-Key flow, etc.) and which exact Fawry product
+(Hosted Checkout vs. reference-code/pay-at-outlet) get used is **pinned during
+Phase 3**, once sandbox access is available — this spec commits to the
+interface shape above, not to a specific upstream endpoint set, since the two
+differ enough in request/response shape that guessing now risks a rewrite.
 
 ## Error Handling
 
-- Invite: expired/revoked/already-accepted token → explicit Arabic error + "اطلب
-  دعوة جديدة" messaging; no silent failures.
-- Payment creation: due already paid by someone else between page load and
-  submit → re-validate server-side, reject with `DUE_ALREADY_SETTLED` before
-  calling the provider.
-- Webhook signature failure → 401, logged, transaction untouched (prevents
-  spoofed "paid" callbacks).
-- Webhook for unknown `provider_reference` → 404, logged (defensive; shouldn't
-  happen if step 2 always writes the reference first).
-- Double webhook delivery → idempotency key makes the second call a no-op returning
-  the same `payment_id`.
-- Provider timeout/redirect abandoned → transaction stays `PENDING`; a scheduled
-  cleanup (or lazy check on next portal visit) marks stale `PENDING` rows past a
-  TTL as `EXPIRED` so owners aren't shown a payment stuck forever.
+- Invite: expired/revoked/already-accepted/mismatched-email token → explicit
+  Arabic error + "اطلب دعوة جديدة" path; no partial state (either the whole
+  accept transaction commits or nothing changes).
+- Payment creation: due already settled between page load and submit →
+  re-validated server-side before a checkout session is even created, rejected
+  with `DUE_ALREADY_SETTLED` (distinct from the post-webhook race case above,
+  which is caught later in `record_online_payment`).
+- Webhook signature failure → `401`, logged without raw payload, no state
+  change.
+- Webhook for unmatched `provider_reference` → generic `200` + internal warning
+  log only (see "never reveals via status code or timing" above).
+- Duplicate webhook delivery (retry or genuine replay) → deduped on
+  `(provider, webhook_event_id)` before reaching `record_online_payment`;
+  `record_online_payment` itself is additionally idempotent on transaction
+  status as a second layer.
+- Settlement race (allocations no longer fit) → `FAILED` with
+  `failure_code = 'DUE_SETTLED_ELSEWHERE'`, no payment created; see policy
+  above.
+- Provider timeout / abandoned redirect → transaction stays `PENDING` until
+  `expires_at`; a sweep (cron or lazy check on next portal visit) flips stale
+  `PENDING` rows past `expires_at` to `EXPIRED`.
 
 ## Testing
 
-- **pgTAP:** RLS isolation (owner A cannot see owner B's dues/payments/units);
-  `record_online_payment` idempotency (same transaction id posted twice → one
-  payment); `record_online_payment` rejects a transaction whose dues no longer
-  have remaining balance.
-- **Vitest:** provider abstraction unit tests (signature verification for both
-  providers, event parsing) using recorded sample payloads; server actions for
-  invite creation and accept-invite token validation.
-- **Playwright:** full path — staff invites an owner → owner accepts invite and
-  sets password → owner logs into `/portal` → selects dues → completes a mocked
-  provider checkout → payment appears in history with a downloadable receipt.
+- **pgTAP:**
+  - RLS isolation for every new/extended policy: intended access works; a
+    different owner is denied even when passing the other owner's real UUIDs;
+    a staff member with no `members.user_id` is denied entirely.
+  - `current_member_id()` returns null (not an error) for a non-member user.
+  - `record_online_payment` idempotent replay: same transaction posted twice
+    (simulating a duplicate webhook past the event-id dedup layer) returns the
+    same `payment_id`, creates exactly one `payments` row, one journal entry.
+  - `record_online_payment` settlement race: a due settled between transaction
+    creation and webhook arrival causes `FAILED` + zero payments created, not a
+    partial payment.
+  - `online_payment_transactions` immutability trigger: mutating `amount` on a
+    non-`PENDING` row raises.
+  - Balance invariant: every journal entry `record_online_payment` produces is
+    balanced (debits = credits) — reuse the existing financial-suite balance
+    assertions already applied to `record_payment`.
+- **Vitest:**
+  - Provider adapters: signature verification (valid, tampered, wrong-secret)
+    and event parsing for both Paymob and Fawry, against recorded fixtures.
+  - Webhook route handlers: raw-body handling, 400 on malformed payload, 401 on
+    bad signature, 200-no-op on duplicate event id, 200-generic on unmatched
+    reference.
+  - Invite server actions: token hashing, expiry, revoke-on-reinvite,
+    email-mismatch rejection at accept time.
+- **Playwright:**
+  - Full path: staff invites an owner → owner accepts invite and sets password
+    → owner logs into `/portal` → selects dues → completes a mocked provider
+    checkout → webhook (simulated) → payment appears in history with a
+    downloadable receipt.
+  - Double-webhook-delivery scenario shows exactly one payment.
+  - Settlement-race scenario (due paid by staff mid-flow) shows the owner a
+    clear failure, not a wrong/partial payment.
+
+## Acceptance Criteria
+
+- An owner in Resort A cannot see Resort B's data even when the exact UUIDs are
+  known and passed directly (query param tampering, devtools, etc.).
+- A user with no `members.user_id` cannot reach any `/portal/*` page.
+- An expired, already-used, or revoked invitation token does not work.
+- Accepting an invitation can never link `members.user_id` to a different
+  member than the one invited, and never re-links an already-claimed member.
+- An unsigned or badly-signed webhook changes no database state.
+- A duplicate webhook delivery (same event id) results in exactly one payment,
+  not two, and returns the same `payment_id` both times.
+- A provider "success" event for a `provider_reference` that doesn't exist in
+  `online_payment_transactions` creates no payment.
+- A transaction's `amount`/`allocations`/`provider`/`member_id`/`organization_id`
+  cannot be changed once it has left `PENDING`.
+- The online payment path never checks or uses staff `has_permission` grants —
+  it is authorized purely by the owner's own identity and the transaction's
+  webhook-verified state.
+- Any failure between creating the `payments` row and finishing the rest of
+  `record_online_payment`'s work rolls back completely (single DB transaction;
+  no partially-posted payment).
+- A payment never appears on `/portal/payments` before it is `POSTED` — the
+  portal never shows a `PENDING` transaction as if it were a completed payment.
+
+## Phased Implementation Plan
+
+Each phase ships and is tested independently; **online payment (Phases 3–5)
+does not start until Phases 1–2 are merged and their pgTAP suites pass.**
+
+### Phase 1 — Portal, read-only
+
+- `members.user_id`, `member_invitations`, invite creation/send (email +
+  manual WhatsApp link), accept-invite flow.
+- `(portal)` layout, guard, login page.
+- Dashboard, statement, dues (list only, no payment action yet), payments
+  history (existing POSTED payments only), units pages.
+- `current_member_id()` helper + RLS for `members`, `unit_ownerships`, `units`,
+  `dues`, `payments`, `payment_allocations`.
+- pgTAP isolation tests for all of the above.
+- No payment capability exists yet — nothing to exploit even if this phase
+  ships alone.
+
+### Phase 2 — Transaction data model
+
+- `online_payment_transactions`, `online_payment_transaction_allocations`.
+- `client_request_id`, `provider_reference`, `webhook_event_id` unique
+  constraints; immutability trigger.
+- RLS for both new tables.
+- `expires_at` + sweep job for stale `PENDING` rows.
+- pgTAP: constraint/uniqueness tests, immutability trigger test, RLS tests.
+- Still no live provider calls — transactions can be created and inspected but
+  nothing sends money anywhere yet.
+
+### Phase 3 — Provider adapters
+
+- `PaymentProvider` interface, `paymob.ts`, `fawry.ts` adapters, pinned against
+  actual sandbox behavior once accessible.
+- Recorded fixtures per provider (success/failure/tampered-signature payloads).
+- Vitest suites per adapter (signature verification, event parsing, checkout
+  session creation against sandbox).
+- Timeout and error-mapping behavior for each adapter.
+
+### Phase 4 — Webhook + `record_online_payment`
+
+- `app/api/webhooks/paymob/route.ts`, `.../fawry/route.ts`: raw-body
+  signature verification, replay/dedup, generic responses for unmatched
+  references, structured logging without sensitive payloads.
+- `post_payment_internal` extracted from `record_payment` and reused by both
+  `record_payment` and the new `record_online_payment`.
+- `record_online_payment`: locking, idempotent replay, settlement-race
+  handling, audit logging.
+- pgTAP: idempotent replay, settlement race, balance invariant.
+
+### Phase 5 — Full payment UI + end-to-end
+
+- Dues selection + "ادفع الآن" checkout initiation on `/portal/dues`.
+- Redirect/reference-code display, polling for status.
+- Receipt display once `POSTED`.
+- Playwright: full happy path, double-webhook scenario, settlement-race
+  scenario.
