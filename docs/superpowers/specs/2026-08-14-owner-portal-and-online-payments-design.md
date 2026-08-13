@@ -57,7 +57,7 @@ data.
   `wa.me` deep-link the staff member clicks and sends themselves).
 - Real Paymob/Fawry merchant onboarding — env vars are placeholders until the user
   supplies real credentials; the exact Paymob integration path (there are several)
-  and the exact Fawry product/API are pinned in Phase 3, not assumed here.
+  and the exact Fawry product/API are pinned in Phase 4, not assumed here.
 - Partial/custom-amount payment. Payment is all-or-nothing against the owner's
   selected dues — see "Settlement race policy" below.
 - Bank reconciliation, WhatsApp reminders, lease management — tracked separately
@@ -146,19 +146,37 @@ create unique index idx_member_invitations_pending_per_member
      Requires a phone number on file; falls back to email-only otherwise. The
      token in the URL is one-time and 72h-lived exactly as the email link is —
      no separate, looser token is minted for this path.
-4. Owner opens the link and lands on `/portal/accept-invite`. The handler:
-   - Hashes the presented token and looks up a `pending`, non-expired
-     `member_invitations` row by hash.
-   - Confirms the authenticated Supabase session's email matches the
-     invitation's `email` (Supabase's invite-link flow authenticates the browser
-     as that invited user before redirecting back).
-   - In one transaction: sets the owner's password (`auth.updateUser`), sets
-     `members.user_id = auth.uid()` **only if `members.user_id` is currently
-     null** (prevents re-linking an already-claimed member), marks the
-     invitation `accepted` with `accepted_user_id`.
-   - Any mismatch (wrong session email, member already linked to a different
-     user, token not found/expired/revoked) aborts with no partial state change
-     and a clear Arabic error + "اطلب دعوة جديدة" path.
+4. Owner opens the link and lands on `/portal/accept-invite`. **This step spans
+   two systems that do not share a transaction** — Supabase's Auth admin API
+   (creates/confirms the `auth.users` row and the session) and Postgres (links
+   `members.user_id`) — so the design does not claim a single atomic operation
+   across both. Instead:
+   - The Admin API call that creates/confirms the invited auth user happens
+     first. At this point the auth user exists but is **not yet usable** — no
+     `members` row points at it.
+   - The handler then calls a dedicated Postgres RPC,
+     `accept_member_invitation(p_token uuid)`, run as the now-authenticated
+     invitee (`auth.uid()` is this new user). This RPC, in one Postgres
+     transaction: hashes the token, looks up a `pending`, non-expired
+     `member_invitations` row by hash, confirms the invitation's `email`
+     matches `auth.jwt() ->> 'email'` (server-verified, not a client-supplied
+     value), sets `members.user_id = auth.uid()` **only if `members.user_id`
+     is currently null**, and marks the invitation `accepted` with
+     `accepted_user_id = auth.uid()`.
+   - Any mismatch (wrong email, member already linked to a different user,
+     token not found/expired/revoked) makes the RPC raise, and the Postgres
+     side changes nothing.
+   - **Compensating policy for the gap between the two calls:** until the RPC
+     succeeds, the auth user is linked to no `members` row and therefore fails
+     the `(portal)` layout's guard on every route — it is inert, not merely
+     "linked but powerless." If the RPC fails or the owner abandons the flow
+     before calling it, the auth user is left in this inert state; a periodic
+     sweep (same job that expires stale invitations) also disables
+     (`auth.admin.updateUserById({ ban_duration: ... })`, or deletes if never
+     used) any auth user whose invite expired without a successful RPC call.
+     This is a best-effort cleanup, not a correctness requirement — the guard
+     alone is what keeps an unlinked auth user from doing anything, in every
+     case, immediately.
 5. `members.user_id` is immutable through this flow once set — changing it after
    the fact (e.g. re-assigning portal access) is an explicit admin-only action,
    not implemented in this feature; out of scope for V1.
@@ -205,6 +223,30 @@ as $$
 $$;
 ```
 
+`current_member_id()` takes **no parameters** — it derives everything from
+`auth.uid()` and nothing else, so there is no argument shape that would let a
+caller ask "what if I were member X." Its contract:
+
+- `stable`, `security definer`, `set search_path = public` (pinned, not
+  inherited from the caller's session, so it can't be redirected by a hostile
+  `search_path`).
+- `members.user_id` already has a `unique` constraint (added above), so the
+  underlying query structurally cannot return more than one row regardless of
+  data state.
+- An unlinked/staff-only user (`auth.uid()` matches no `members.user_id`)
+  returns `NULL`, not an error — every policy that calls it therefore denies
+  access via `NULL = <anything>` evaluating to unknown/false, rather than the
+  policy needing its own special-case.
+- Every RLS policy below calls this and only this to resolve identity — none
+  of them accept or trust an `organization_id`, `resort_id`, or `member_id`
+  read from the row/request being evaluated as an *alternate* path to
+  authorization; those columns are used only to join, never to authorize.
+- Phase 1 pgTAP coverage: called as a linked owner (returns their id), called
+  as a staff user with no `members.user_id` (returns `NULL`), called as an
+  unauthenticated role (returns `NULL`), and one test per policy confirming no
+  policy has a fallback branch that authorizes via a client-supplied id when
+  `current_member_id()` is `NULL`.
+
 Policies (additive only — nothing existing on these tables is modified):
 
 - `members`: owner can `select` where `id = current_member_id()`.
@@ -213,7 +255,7 @@ Policies (additive only — nothing existing on these tables is modified):
   where member_id = current_member_id())`.
 - `dues`: owner can `select` where `member_id = current_member_id()` **or**
   `unit_id in (owner's units)` — matching however `dues` already associates to a
-  member/unit today; confirmed against the existing `dues` schema during Phase 1
+  member/unit today; confirmed against the existing `dues` schema during Phase 2
   implementation, not assumed here.
 - `payments`, `payment_allocations`: owner can `select` their own via the same
   `member_id`/`unit_id` → `current_member_id()` chain, restricted to `payments`
@@ -345,9 +387,18 @@ creates both rows).
      no-op — protects against provider retries and event replay.
    - Looks up the transaction by `provider_reference`. **Never reveals via
      status code or timing whether a given reference exists** — an unmatched
-     reference and an internal error both return a generic `200`-with-logged-
-     warning (providers commonly retry on non-2xx, so this also prevents a
-     misconfigured/attacker-guessed reference from becoming a retry amplifier).
+     reference and an internal error both return a generic `200` to the
+     provider (providers commonly retry on non-2xx, so this also prevents a
+     misconfigured/attacker-guessed reference from becoming a retry
+     amplifier). Internally, an unmatched reference is still logged — just not
+     leaked in the response — with a structured record containing
+     `event = 'unknown_reference'`, `provider`, `webhook_event_id`, and
+     `signature_verified = true` (this log entry only fires *after* signature
+     verification passed, so it's meaningful evidence rather than attacker
+     noise). A signature failure keeps returning `401` and is logged
+     separately with `event = 'signature_invalid'`, `provider`, and a hash of
+     the payload rather than the raw payload — never the full body if it may
+     carry cardholder or otherwise sensitive data.
    - On a verified success event, calls `record_online_payment(p_transaction_id,
      p_webhook_event_id, p_provider_payload)` via the **service-role** client.
    - On a verified failure/expiry event, updates the transaction to
@@ -380,14 +431,47 @@ creates both rows).
      return payment_id
    ```
    The `record_payment`/`record_online_payment` shared accounting core is a new
-   internal function (e.g. `public.post_payment_internal(...)`) that takes
-   already-validated inputs (org, resort, member, unit, amount, method, date,
-   deposit account, fiscal period, allocations, idempotency key, cashier session
-   or null) and does the journal-entry + `payments` insert + allocation +
-   due-status work. `record_payment` keeps its `has_permission` check and then
-   calls the internal helper; `record_online_payment` does its own
-   transaction/webhook-specific checks and then calls the same helper. Neither
-   duplicates the accounting logic.
+   internal function, `public.post_payment_internal(...)`, that is **not a
+   callable API** — it is an implementation detail shared by the two RPCs that
+   already did their own authorization:
+   ```sql
+   revoke execute on function public.post_payment_internal from public;
+   revoke execute on function public.post_payment_internal from authenticated;
+   revoke execute on function public.post_payment_internal from anon;
+   -- left executable only by the function owner / other security definer
+   -- functions that call it directly (record_payment, record_online_payment).
+   ```
+   It takes **already-validated** inputs only — org, resort, member, unit,
+   amount, method, date, deposit account, fiscal period, allocations,
+   idempotency key, cashier session or null — and trusts none of them as an
+   authorization signal itself; by the time it's called, `record_payment` has
+   already checked `has_permission` and `record_online_payment` has already
+   confirmed the transaction's webhook-verified `PENDING` state, so
+   `post_payment_internal` only does the accounting work: journal-entry
+   creation/posting, the `payments` insert, `payment_allocations` inserts, and
+   due-status updates — locking the target dues `FOR UPDATE` in a fixed order
+   (e.g. sorted by `due_id`) so concurrent callers (a staff cashier posting
+   against the same due at the same moment as a webhook) serialize instead of
+   deadlocking. It returns a single structured result both callers can rely on:
+   ```sql
+   -- returns:
+   --   payment_id        uuid
+   --   allocated_amount  numeric(19,4)  -- sum actually allocated
+   --   unallocated_amount numeric(19,4) -- always 0 today (full allocation is
+   --                                       required by both callers), kept as
+   --                                       an explicit field rather than an
+   --                                       implicit assumption, so a future
+   --                                       partial-allocation caller doesn't
+   --                                       have to guess the contract
+   --   affected_due_ids  uuid[]
+   ```
+   `record_payment` keeps its `has_permission` check and then calls the
+   internal helper; `record_online_payment` does its own transaction/webhook-
+   specific checks (including the settlement-race check below) and then calls
+   the same helper. Neither duplicates the accounting logic, and neither is
+   the security boundary that matters — `post_payment_internal`'s `revoke`s are
+   what make it impossible to reach the accounting core by any path that
+   skips both callers' checks.
 6. Owner's `/portal/payments` page only ever shows `payments` rows with
    `status = 'POSTED'` — i.e. a payment becomes visible in the portal at exactly
    the same moment it's real, never earlier (no "pending" payment rows are
@@ -451,7 +535,7 @@ elsewhere in `lib/`).
 Which exact Paymob integration path (there are several: Intention API, the
 older Auth/Order/Payment-Key flow, etc.) and which exact Fawry product
 (Hosted Checkout vs. reference-code/pay-at-outlet) get used is **pinned during
-Phase 3**, once sandbox access is available — this spec commits to the
+Phase 4**, once sandbox access is available — this spec commits to the
 interface shape above, not to a specific upstream endpoint set, since the two
 differ enough in request/response shape that guessing now risks a rewrite.
 
@@ -540,57 +624,92 @@ differ enough in request/response shape that guessing now risks a rewrite.
 
 ## Phased Implementation Plan
 
-Each phase ships and is tested independently; **online payment (Phases 3–5)
-does not start until Phases 1–2 are merged and their pgTAP suites pass.**
+Each phase ships and is tested independently. **Online payment (Phases 3–5)
+does not start until Phases 1–2 are merged and their test suites pass** — Phase
+2's exit gate specifically includes confirming isolation in an actual browser
+session, not only via pgTAP.
 
-### Phase 1 — Portal, read-only
+### Phase 1 — Identity, invites, login
 
-- `members.user_id`, `member_invitations`, invite creation/send (email +
-  manual WhatsApp link), accept-invite flow.
-- `(portal)` layout, guard, login page.
-- Dashboard, statement, dues (list only, no payment action yet), payments
-  history (existing POSTED payments only), units pages.
-- `current_member_id()` helper + RLS for `members`, `unit_ownerships`, `units`,
-  `dues`, `payments`, `payment_allocations`.
-- pgTAP isolation tests for all of the above.
-- No payment capability exists yet — nothing to exploit even if this phase
-  ships alone.
+- `members.user_id`, `member_invitations`.
+- Invite creation/revoke-on-reinvite, `accept_member_invitation` RPC, email
+  send + manual WhatsApp link, the auth-user/Postgres linking flow and its
+  compensating cleanup sweep (see "Identity & Invitation Flow" above).
+- `current_member_id()` helper.
+- `(portal)` layout guard and login page (guard alone is what makes an
+  inert/unlinked auth user powerless, per the compensating policy above).
+- pgTAP: invitation token lifecycle (expiry, revoke, reuse rejection),
+  `current_member_id()` contract tests, RLS on `members` itself.
 
-### Phase 2 — Transaction data model
+**Exit gate:** RLS isolation tests and invite-token tests green.
+
+### Phase 2 — Portal read-only pages
+
+- Dashboard, statement (`getMemberStatementData` reused), dues (list only, no
+  payment action yet), payments history (existing `POSTED` payments only),
+  units pages.
+- RLS for `unit_ownerships`, `units`, `dues`, `payments`, `payment_allocations`,
+  all via `current_member_id()`.
+- Receipt PDF access scoped to the owner's own payments only.
+- pgTAP: isolation tests for every policy added this phase (own access works,
+  a different owner is denied with real UUIDs, a non-member is denied).
+- Playwright: log in as an owner in a real browser session and confirm only
+  that owner's dues/payments/units/statement are visible — this is the
+  "owner sees only own data in browser" check, not just an RLS unit test.
+
+**Exit gate:** owner sees only their own data in an actual browser session
+(Playwright), on top of green pgTAP isolation tests. No payment capability
+exists through the end of this phase — there is nothing to exploit even if
+work stopped here.
+
+### Phase 3 — Transaction data model
 
 - `online_payment_transactions`, `online_payment_transaction_allocations`.
 - `client_request_id`, `provider_reference`, `webhook_event_id` unique
-  constraints; immutability trigger.
+  constraints; immutable-after-`PENDING` trigger.
 - RLS for both new tables.
 - `expires_at` + sweep job for stale `PENDING` rows.
-- pgTAP: constraint/uniqueness tests, immutability trigger test, RLS tests.
+- pgTAP: constraint/uniqueness tests, immutability-trigger test (including an
+  attempted allocation-tampering update being rejected), invalid state
+  transition tests (e.g. `PAID` → `PENDING`), RLS tests.
 - Still no live provider calls — transactions can be created and inspected but
   nothing sends money anywhere yet.
 
-### Phase 3 — Provider adapters
+**Exit gate:** invalid state transitions and allocation-tampering attempts are
+rejected by the schema/trigger layer, proven by pgTAP — not by application
+code discipline alone.
 
+### Phase 4 — Accounting core + provider adapters
+
+- `post_payment_internal` extracted from `record_payment`'s existing logic
+  (with the `revoke execute` lockdown), reused by both `record_payment` and
+  the new `record_online_payment`.
+- `record_online_payment`: locking (fixed due order), idempotent replay,
+  settlement-race handling, audit logging.
 - `PaymentProvider` interface, `paymob.ts`, `fawry.ts` adapters, pinned against
-  actual sandbox behavior once accessible.
-- Recorded fixtures per provider (success/failure/tampered-signature payloads).
-- Vitest suites per adapter (signature verification, event parsing, checkout
-  session creation against sandbox).
-- Timeout and error-mapping behavior for each adapter.
+  actual sandbox behavior once accessible, each with its own recorded fixtures
+  (success/failure/tampered-signature) and Vitest suite.
+- pgTAP: idempotent replay, settlement race, balance invariant (every journal
+  entry produced is debit = credit).
 
-### Phase 4 — Webhook + `record_online_payment`
+**Exit gate:** provider signature fixtures green for both adapters, and
+`record_online_payment`'s RPC test suite (replay, settlement race, balance
+invariant) green.
 
-- `app/api/webhooks/paymob/route.ts`, `.../fawry/route.ts`: raw-body
-  signature verification, replay/dedup, generic responses for unmatched
-  references, structured logging without sensitive payloads.
-- `post_payment_internal` extracted from `record_payment` and reused by both
-  `record_payment` and the new `record_online_payment`.
-- `record_online_payment`: locking, idempotent replay, settlement-race
-  handling, audit logging.
-- pgTAP: idempotent replay, settlement race, balance invariant.
+### Phase 5 — Webhooks + payment UI + end-to-end
 
-### Phase 5 — Full payment UI + end-to-end
-
+- `app/api/webhooks/paymob/route.ts`, `.../fawry/route.ts`: raw-body signature
+  verification, replay/dedup on `webhook_event_id`, generic responses for
+  unmatched references with internal-only structured logging, no sensitive
+  payload logging.
 - Dues selection + "ادفع الآن" checkout initiation on `/portal/dues`.
 - Redirect/reference-code display, polling for status.
 - Receipt display once `POSTED`.
-- Playwright: full happy path, double-webhook scenario, settlement-race
-  scenario.
+- Playwright: full happy path; double-webhook-delivery scenario shows exactly
+  one payment; settlement-race scenario (due paid by staff mid-flow) shows a
+  clear failure with no partial payment; a stale/expired transaction retried
+  by the owner starts a fresh checkout cleanly.
+
+**Exit gate:** double-webhook, stale-due, retry, and all-or-nothing settlement
+tests all green — this is the gate for calling online payment done, not just
+"the happy path works."
