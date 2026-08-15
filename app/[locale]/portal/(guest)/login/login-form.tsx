@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { signIn, type SignInState } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
 
-export function LoginForm({ locale }: { locale: Locale }) {
+export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspended?: boolean }) {
   const isAr = locale === "ar";
   const boundSignIn = signIn.bind(null, locale, "/portal");
   const [state, formAction, isPending] = useActionState<SignInState, FormData>(boundSignIn, { error: null });
@@ -15,6 +15,13 @@ export function LoginForm({ locale }: { locale: Locale }) {
   return (
     <form action={formAction} className="space-y-4 rounded-3xl border border-border bg-background p-8 shadow-sm">
       <h1 className="text-lg font-bold text-foreground">{isAr ? "بوابة الملاك" : "Owner Portal"}</h1>
+      {orgSuspended && (
+        <p className="text-xs font-bold text-destructive">
+          {isAr
+            ? "تم تعليق حساب مؤسستكم حاليًا، يرجى التواصل مع الدعم"
+            : "Your organization's account is currently suspended, please contact support"}
+        </p>
+      )}
       <div className="space-y-1.5">
         <Label>{isAr ? "البريد الإلكتروني" : "Email"}</Label>
         <Input type="email" name="email" required autoComplete="email" />

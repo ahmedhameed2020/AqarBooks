@@ -20,9 +20,22 @@ export default async function PortalMemberLayout({ children }: { children: React
     .maybeSingle();
 
   if (!member) {
-    // Session exists (e.g. a staff account, or an invite whose linking RPC
-    // never completed) but no members row points at it -- inert by design,
-    // see the spec's "compensating policy" note.
+    // Session exists but no members row was visible through
+    // members_select_self. This now has two distinct causes (checkpoint 2
+    // hardening added an organization_is_active check to that policy):
+    //   1. genuinely no members row for this user (staff account, or an
+    //      invite whose linking RPC never completed) -- current_member_id()
+    //      (SECURITY DEFINER, bypasses RLS) also returns NULL.
+    //   2. a real member row exists but its org is SUSPENDED/ARCHIVED --
+    //      current_member_id() still resolves it (it only checks
+    //      members.user_id = auth.uid()), even though the RLS-gated select
+    //      above returned nothing.
+    // We distinguish them so a suspended/archived owner isn't misattributed
+    // as "not a member".
+    const { data: resolvedMemberId } = await supabase.rpc("current_member_id");
+    if (resolvedMemberId) {
+      redirect("/portal/login?reason=org_suspended");
+    }
     redirect("/portal/login");
   }
 

@@ -27,11 +27,15 @@ export async function createMemberInvitationAction(
   if (!user) return { ok: false, error: "unauthenticated" };
 
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   // Lazy sweep: expire anything stale before minting a new invitation, so a
   // long-abandoned pending row never blocks (or confusingly coexists with)
-  // a fresh one.
-  const { error: sweepError } = await supabase.rpc("expire_stale_member_invitations");
+  // a fresh one. This is a global, unscoped sweep across every tenant, so
+  // (checkpoint 2 hardening) it's restricted at the DB level to
+  // service_role -- called here via the admin client rather than the
+  // regular per-request client.
+  const { error: sweepError } = await adminClient.rpc("expire_stale_member_invitations");
   if (sweepError) {
     console.error("[createMemberInvitationAction] expire_stale_member_invitations failed:", sweepError.message);
   }
@@ -48,8 +52,6 @@ export async function createMemberInvitationAction(
   const redirectTo =
     `${SITE_URL}/${parsed.data.locale}/portal/accept-invite` +
     `?invitation=${data.invitation_id}&t=${data.raw_token}`;
-
-  const adminClient = createAdminClient();
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email: data.member_email,
