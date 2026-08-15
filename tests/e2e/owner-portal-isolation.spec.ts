@@ -157,6 +157,13 @@ test("two owners in a browser each see only their own unit", async ({ browser })
   await contextA.close();
   await contextB.close();
 
-  await admin.rpc("set_organization_status", { p_organization_id: ownerA.orgId, p_status: "ARCHIVED", p_reason: "e2e cleanup" });
-  await admin.rpc("set_organization_status", { p_organization_id: ownerB.orgId, p_status: "ARCHIVED", p_reason: "e2e cleanup" });
+  // set_organization_status is security definer but self-gates on
+  // is_platform_admin(auth.uid()) -- auth.uid() is null under the
+  // service-role client, so calling it here silently fails (42501) and
+  // never archives anything, leaving orphaned ACTIVE test orgs behind on
+  // every run. Update the status directly instead: the service-role client
+  // already bypasses RLS, so the RPC's permission gate isn't buying
+  // anything for a throwaway test fixture teardown.
+  await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", ownerA.orgId);
+  await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", ownerB.orgId);
 });

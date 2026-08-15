@@ -104,5 +104,11 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   await expect(page).toHaveURL(/\/portal$/, { timeout: 10000 });
   await expect(page.getByText("E2E Test Owner")).toBeVisible();
 
-  await admin.rpc("set_organization_status", { p_organization_id: org!.id, p_status: "ARCHIVED", p_reason: "e2e cleanup" });
+  // set_organization_status is security definer but self-gates on
+  // is_platform_admin(auth.uid()) -- auth.uid() is null under the
+  // service-role client, so the RPC call silently fails (42501) and never
+  // archives anything. Update the status directly instead: the
+  // service-role client already bypasses RLS, so the RPC's permission gate
+  // isn't buying anything for a throwaway test fixture teardown.
+  await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", org!.id);
 });
