@@ -798,7 +798,7 @@ export type Database = {
           member_id: string | null;
           unit_id: string | null;
           amount: number;
-          method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "OTHER";
+          method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "OTHER" | "ONLINE";
           payment_date: string;
           receipt_number: number | null;
           receipt_no: string | null;

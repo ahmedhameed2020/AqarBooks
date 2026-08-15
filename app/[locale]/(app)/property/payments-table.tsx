@@ -15,6 +15,7 @@ const METHOD_LABELS: Record<string, { ar: string; en: string }> = {
   BANK_TRANSFER: { ar: "تحويل بنكي", en: "Bank transfer" },
   CHEQUE: { ar: "شيك", en: "Cheque" },
   OTHER: { ar: "أخرى", en: "Other" },
+  ONLINE: { ar: "دفع إلكتروني", en: "Online Payment" },
 };
 
 const RECORD_LIMIT = 50;
