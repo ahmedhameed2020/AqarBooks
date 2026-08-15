@@ -415,6 +415,7 @@ export type Database = {
           is_company: boolean;
           email: string | null;
           phone: string | null;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -423,6 +424,7 @@ export type Database = {
           is_company?: boolean;
           email?: string | null;
           phone?: string | null;
+          user_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
