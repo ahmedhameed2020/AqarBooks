@@ -23,12 +23,12 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
         </p>
       )}
       <div className="space-y-1.5">
-        <Label>{isAr ? "البريد الإلكتروني" : "Email"}</Label>
-        <Input type="email" name="email" required autoComplete="email" />
+        <Label htmlFor="portal-login-email">{isAr ? "البريد الإلكتروني" : "Email"}</Label>
+        <Input id="portal-login-email" type="email" name="email" required autoComplete="email" />
       </div>
       <div className="space-y-1.5">
-        <Label>{isAr ? "كلمة المرور" : "Password"}</Label>
-        <Input type="password" name="password" required autoComplete="current-password" />
+        <Label htmlFor="portal-login-password">{isAr ? "كلمة المرور" : "Password"}</Label>
+        <Input id="portal-login-password" type="password" name="password" required autoComplete="current-password" />
       </div>
       {state.error && (
         <p className="text-xs font-bold text-destructive">
