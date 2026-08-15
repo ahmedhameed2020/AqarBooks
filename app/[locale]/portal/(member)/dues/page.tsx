@@ -45,11 +45,12 @@ export default async function PortalDuesPage({
   // current dues status check constraint (DRAFT, ISSUED, PARTIALLY_PAID,
   // PAID, OVERDUE, VOID) -- ISSUED/PARTIALLY_PAID/OVERDUE are the "open"
   // (still owed) statuses.
-  const { data: duesData } = await supabase
+  const { data: duesData, error: duesError } = await supabase
     .from("dues")
     .select("id, amount, issue_date, due_date, description, status, units(code)")
     .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"])
     .order("due_date", { ascending: true });
+  if (duesError) console.error("[PortalDuesPage] dues query failed:", duesError.message);
 
   const dues = (duesData ?? []) as unknown as DueDbRow[];
   const totalOpen = dues.reduce((sum, d) => sum + Number(d.amount), 0);

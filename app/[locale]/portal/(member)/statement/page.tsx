@@ -47,7 +47,7 @@ export default async function PortalStatementPage({
   // explicit .eq() on payments below is defense in depth, not the actual
   // boundary. dues has no member_id column; its RLS scoping goes through the
   // unit-ownership chain instead, so there is no equivalent .eq() to add here.
-  const [{ data: duesData }, { data: paymentsData }] = await Promise.all([
+  const [{ data: duesData, error: duesError }, { data: paymentsData, error: paymentsError }] = await Promise.all([
     supabase
       .from("dues")
       .select("id, amount, issue_date, due_date, description, status, units(code)")
@@ -58,6 +58,8 @@ export default async function PortalStatementPage({
       .eq("member_id", member.id)
       .order("payment_date", { ascending: false }),
   ]);
+  if (duesError) console.error("[PortalStatementPage] dues query failed:", duesError.message);
+  if (paymentsError) console.error("[PortalStatementPage] payments query failed:", paymentsError.message);
 
   const allDues = (duesData ?? []) as unknown as DueDbRow[];
   const payments = (paymentsData ?? []) as unknown as PaymentDbRow[];
