@@ -876,6 +876,10 @@ export type Database = {
       };
     };
     Functions: {
+      current_member_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string | null;
+      };
       create_member_invitation: {
         Args: { p_member_id: string };
         Returns: {

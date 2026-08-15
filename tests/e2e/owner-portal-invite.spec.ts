@@ -95,7 +95,7 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   });
   expect(linkError).toBeNull();
 
-  await page.goto(linkData!.properties.action_link);
+  await page.goto(linkData!.properties!.action_link);
   await expect(page.getByRole("heading", { name: /تعيين كلمة مرور|Set your password/ })).toBeVisible({ timeout: 10000 });
 
   await page.getByLabel(/كلمة المرور|Password/).fill("TestPassword123!");
