@@ -16,7 +16,7 @@
  * authenticated TENANT_OWNER staff session instead.
  */
 import { test, expect } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
@@ -27,7 +27,7 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const OWNER_PASSWORD = "TestPassword123!";
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
-async function setUpOwnerWithData(admin: ReturnType<typeof createClient>, label: string) {
+async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
   const { data: org, error: orgError } = await admin
     .from("organizations")
     .insert({
