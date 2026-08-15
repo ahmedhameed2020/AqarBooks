@@ -5,6 +5,15 @@
 type OrgStatus = "TRIAL" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 type SubscriptionStatus = "ACTIVE" | "CANCELED" | "PAST_DUE";
 type PlanKey = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+type OrgEntityType =
+  | "DEVELOPER"
+  | "FACILITY_MANAGEMENT"
+  | "OWNERS_ASSOCIATION"
+  | "INDIVIDUAL_OWNER"
+  | "TOURIST_RESORT"
+  | "TOURIST_VILLAGE"
+  | "RESIDENTIAL_COMPOUND"
+  | "OTHER";
 
 export type Database = {
   public: {
@@ -16,6 +25,14 @@ export type Database = {
           slug: string;
           status: OrgStatus;
           default_currency: string;
+          entity_type: OrgEntityType | null;
+          entity_type_custom_label: string | null;
+          address: string | null;
+          governorate: string | null;
+          city: string | null;
+          phone: string | null;
+          email: string | null;
+          tax_id: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -27,6 +44,14 @@ export type Database = {
           slug: string;
           status?: OrgStatus;
           default_currency?: string;
+          entity_type?: OrgEntityType | null;
+          entity_type_custom_label?: string | null;
+          address?: string | null;
+          governorate?: string | null;
+          city?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          tax_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
@@ -38,6 +63,10 @@ export type Database = {
           name: string;
           code: string;
           timezone: string;
+          address: string | null;
+          governorate: string | null;
+          phone: string | null;
+          email: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -47,6 +76,10 @@ export type Database = {
           name: string;
           code: string;
           timezone?: string;
+          address?: string | null;
+          governorate?: string | null;
+          phone?: string | null;
+          email?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["resorts"]["Row"]>;
         Relationships: [];
@@ -390,6 +423,8 @@ export type Database = {
           area: number | null;
           is_active: boolean;
           custom_type_label: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
         };
         Insert: {
           id?: string;
@@ -403,6 +438,8 @@ export type Database = {
           area?: number | null;
           is_active?: boolean;
           custom_type_label?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["units"]["Row"]>;
         Relationships: [];
@@ -427,6 +464,186 @@ export type Database = {
           user_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
+        Relationships: [];
+      };
+      member_tags: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          color: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          color?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_tags"]["Row"]>;
+        Relationships: [];
+      };
+      member_tag_assignments: {
+        Row: {
+          member_id: string;
+          tag_id: string;
+          organization_id: string;
+          created_at: string;
+        };
+        Insert: {
+          member_id: string;
+          tag_id: string;
+          organization_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_tag_assignments"]["Row"]>;
+        Relationships: [];
+      };
+      member_saved_filters: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by: string | null;
+          name: string;
+          query: Record<string, string>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by?: string | null;
+          name: string;
+          query?: Record<string, string>;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_saved_filters"]["Row"]>;
+        Relationships: [];
+      };
+      member_activity_log: {
+        Row: {
+          id: string;
+          organization_id: string;
+          member_id: string;
+          actor_id: string | null;
+          type: "note" | "call" | "whatsapp_reminder" | "email_reminder";
+          body: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          member_id: string;
+          actor_id?: string | null;
+          type: "note" | "call" | "whatsapp_reminder" | "email_reminder";
+          body?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_activity_log"]["Row"]>;
+        Relationships: [];
+      };
+      member_phones: {
+        Row: {
+          id: string;
+          organization_id: string;
+          member_id: string;
+          phone_number: string;
+          normalized_phone: string;
+          label: "PERSONAL" | "WORK" | "WHATSAPP" | "HOME" | "OTHER";
+          is_primary: boolean;
+          can_receive_whatsapp: boolean;
+          is_verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          member_id: string;
+          phone_number: string;
+          normalized_phone: string;
+          label?: "PERSONAL" | "WORK" | "WHATSAPP" | "HOME" | "OTHER";
+          is_primary?: boolean;
+          can_receive_whatsapp?: boolean;
+          is_verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_phones"]["Row"]>;
+        Relationships: [];
+      };
+      member_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          member_id: string;
+          file_path: string;
+          file_name: string;
+          file_size: number | null;
+          mime_type: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          member_id: string;
+          file_path: string;
+          file_name: string;
+          file_size?: number | null;
+          mime_type?: string | null;
+          uploaded_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_documents"]["Row"]>;
+        Relationships: [];
+      };
+      supplier_invoice_attachments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          invoice_id: string;
+          file_path: string;
+          file_name: string;
+          file_size: number | null;
+          mime_type: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          invoice_id: string;
+          file_path: string;
+          file_name: string;
+          file_size?: number | null;
+          mime_type?: string | null;
+          uploaded_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["supplier_invoice_attachments"]["Row"]>;
+        Relationships: [];
+      };
+      property_import_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          resort_id: string | null;
+          import_kind: "units" | "members";
+          imported_rows: number;
+          skipped_rows: number;
+          allow_partial: boolean;
+          failures: { row?: number; error?: string }[];
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          resort_id?: string | null;
+          import_kind: "units" | "members";
+          imported_rows: number;
+          skipped_rows: number;
+          allow_partial: boolean;
+          failures?: { row?: number; error?: string }[];
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["property_import_logs"]["Row"]>;
         Relationships: [];
       };
       unit_ownerships: {
@@ -473,6 +690,86 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["due_types"]["Row"]>;
         Relationships: [];
       };
+      due_schedules: {
+        Row: {
+          id: string;
+          organization_id: string;
+          resort_id: string;
+          name: string;
+          description_ar: string | null;
+          description_en: string | null;
+          due_type_id: string;
+          receivable_account_id: string;
+          amount: number;
+          amount_by_unit_type: Record<string, number> | null;
+          frequency: "MONTHLY" | "YEARLY";
+          day_of_month: number;
+          month_of_year: number | null;
+          scope: Record<string, unknown>;
+          due_offset_days: number;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          resort_id: string;
+          name: string;
+          description_ar?: string | null;
+          description_en?: string | null;
+          due_type_id: string;
+          receivable_account_id: string;
+          amount: number;
+          amount_by_unit_type?: Record<string, number> | null;
+          frequency: "MONTHLY" | "YEARLY";
+          day_of_month?: number;
+          month_of_year?: number | null;
+          scope?: Record<string, unknown>;
+          due_offset_days?: number;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["due_schedules"]["Insert"]>;
+        Relationships: [];
+      };
+      due_generation_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          schedule_id: string;
+          period: string;
+          generated_units_count: number;
+          total_amount: number;
+          generated_by: string | null;
+          generated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      financial_audit_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          resort_id: string | null;
+          actor_user_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          request_id: string | null;
+          occurred_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          metadata: Record<string, unknown>;
+          previous_hash: string | null;
+          event_hash: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       dues: {
         Row: {
           id: string;
@@ -497,27 +794,65 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          resort_id: string | null;
           member_id: string | null;
           unit_id: string | null;
           amount: number;
           method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "OTHER";
           payment_date: string;
           receipt_number: number | null;
-          deposit_account_id: string;
+          receipt_no: string | null;
+          memo: string | null;
+          unallocated_amount: number;
+          deposit_account_id: string | null;
           journal_entry_id: string | null;
           idempotency_key: string | null;
           status: "POSTED" | "REVERSED";
+          created_by: string | null;
           created_at: string;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          reversal_reason: string | null;
         };
         Insert: never;
         Update: never;
         Relationships: [];
       };
       payment_allocations: {
-        Row: { id: string; payment_id: string; due_id: string; amount: number };
+        Row: {
+          id: string;
+          payment_id: string;
+          due_id: string;
+          amount: number;
+          reversed_at: string | null;
+          reversed_by: string | null;
+        };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      budgets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          fiscal_period_id: string;
+          account_id: string;
+          amount: number;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          fiscal_period_id: string;
+          account_id: string;
+          amount: number;
+          created_by?: string | null;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["budgets"]["Row"]>;
         Relationships: [];
       };
       cashboxes: {
@@ -646,6 +981,12 @@ export type Database = {
           name: string;
           contact_email: string | null;
           contact_phone: string | null;
+          secondary_phone: string | null;
+          contact_person: string | null;
+          tax_number: string | null;
+          commercial_registry: string | null;
+          address: string | null;
+          bank_account_details: string | null;
           payable_account_id: string;
           is_active: boolean;
         };
@@ -655,6 +996,12 @@ export type Database = {
           name: string;
           contact_email?: string | null;
           contact_phone?: string | null;
+          secondary_phone?: string | null;
+          contact_person?: string | null;
+          tax_number?: string | null;
+          commercial_registry?: string | null;
+          address?: string | null;
+          bank_account_details?: string | null;
           payable_account_id: string;
           is_active?: boolean;
         };
@@ -726,10 +1073,21 @@ export type Database = {
           expense_account_id: string;
           payable_account_id: string;
           amount: number;
+          net_amount: number;
+          discount_amount: number;
+          vat_rate: number;
+          vat_amount: number;
+          vat_account_id: string | null;
+          wht_rate: number;
+          wht_amount: number;
+          wht_account_id: string | null;
           invoice_date: string;
           due_date: string;
           status: "POSTED" | "PARTIALLY_PAID" | "PAID" | "CANCELLED";
           journal_entry_id: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          reversal_reason: string | null;
           created_at: string;
         };
         Insert: never;
@@ -743,11 +1101,17 @@ export type Database = {
           resort_id: string;
           supplier_id: string;
           amount: number;
+          wht_amount: number;
+          wht_account_id: string | null;
           method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "OTHER";
           payment_date: string;
           voucher_number: number | null;
           payment_account_id: string;
           journal_entry_id: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          reversal_reason: string | null;
+          created_by: string | null;
           created_at: string;
         };
         Insert: never;
@@ -755,7 +1119,14 @@ export type Database = {
         Relationships: [];
       };
       supplier_payment_allocations: {
-        Row: { id: string; payment_id: string; invoice_id: string; amount: number };
+        Row: {
+          id: string;
+          payment_id: string;
+          invoice_id: string;
+          amount: number;
+          reversed_at: string | null;
+          reversed_by: string | null;
+        };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -772,6 +1143,8 @@ export type Database = {
           payment_account_id: string;
           voucher_number: number | null;
           journal_entry_id: string | null;
+          cashier_session_id: string | null;
+          created_by: string | null;
           created_at: string;
         };
         Insert: never;
@@ -848,13 +1221,14 @@ export type Database = {
           zone_name_en: string | null;
           owner_id: string | null;
           owner_name: string | null;
-          owner_phone: string | null;
           occupancy_status: "OCCUPIED" | "VACANT";
           total_due: number;
           total_paid: number;
           balance: number;
           has_arrears: boolean;
           custom_type_label: string | null;
+          owner_phone: string | null;
+          archived_at: string | null;
         };
         Relationships: [];
       };
@@ -879,6 +1253,13 @@ export type Database = {
       current_member_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
+      };
+      get_own_organization_display: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          name: string;
+          default_currency: string;
+        }[];
       };
       create_member_invitation: {
         Args: { p_member_id: string };
@@ -945,8 +1326,51 @@ export type Database = {
           p_name: string;
           p_code: string;
           p_timezone: string | null;
+          p_address?: string | null;
+          p_governorate?: string | null;
+          p_phone?: string | null;
+          p_email?: string | null;
         };
         Returns: string;
+      };
+      update_resort: {
+        Args: {
+          p_resort_id: string;
+          p_name: string;
+          p_code: string;
+          p_timezone: string | null;
+          p_address?: string | null;
+          p_governorate?: string | null;
+          p_phone?: string | null;
+          p_email?: string | null;
+        };
+        Returns: undefined;
+      };
+      delete_resort: {
+        Args: { p_resort_id: string };
+        Returns: undefined;
+      };
+      update_unit: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+          p_code: string;
+          p_unit_type: string;
+          p_custom_type_label?: string | null;
+          p_building_id?: string | null;
+          p_zone_id?: string | null;
+          p_floor_number?: number | null;
+          p_area?: number | null;
+        };
+        Returns: undefined;
+      };
+      archive_unit: {
+        Args: { p_organization_id: string; p_unit_id: string; p_reason?: string | null };
+        Returns: undefined;
+      };
+      restore_unit: {
+        Args: { p_organization_id: string; p_unit_id: string };
+        Returns: undefined;
       };
       add_organization_member: {
         Args: { p_organization_id: string; p_user_id: string; p_role_key: string };
@@ -1035,6 +1459,10 @@ export type Database = {
         };
         Returns: string;
       };
+      create_cashbox: {
+        Args: { p_organization_id: string; p_resort_id: string; p_name: string; p_gl_account_id: string };
+        Returns: string;
+      };
       open_cashier_session: {
         Args: {
           p_organization_id: string;
@@ -1046,11 +1474,30 @@ export type Database = {
       };
       close_cashier_session: {
         Args: { p_session_id: string; p_actual_closing_balance: number };
-        Returns: undefined;
+        Returns: {
+          expected_closing_balance: number;
+          actual_closing_balance: number;
+          variance: number;
+        };
       };
       reconcile_cashier_session: {
         Args: { p_session_id: string; p_note: string | null };
         Returns: undefined;
+      };
+      create_bank: {
+        Args: { p_organization_id: string; p_name_ar: string; p_name_en: string };
+        Returns: string;
+      };
+      create_bank_account: {
+        Args: {
+          p_organization_id: string;
+          p_resort_id: string;
+          p_bank_id: string;
+          p_account_name: string;
+          p_account_number: string;
+          p_gl_account_id: string;
+        };
+        Returns: string;
       };
       record_incoming_cheque: {
         Args: {
@@ -1119,7 +1566,12 @@ export type Database = {
           p_purchase_order_id: string | null;
           p_invoice_number: string;
           p_expense_account_id: string;
-          p_amount: number;
+          p_net_amount: number;
+          p_discount_amount: number;
+          p_vat_rate: number;
+          p_vat_account_id: string | null;
+          p_wht_rate: number;
+          p_wht_account_id: string | null;
           p_invoice_date: string;
           p_due_date: string;
           p_fiscal_period_id: string;
@@ -1139,6 +1591,24 @@ export type Database = {
           p_allocations: unknown;
           p_idempotency_key: string | null;
           p_cashier_session_id?: string | null;
+        };
+        Returns: string;
+      };
+      cancel_supplier_invoice: {
+        Args: {
+          p_organization_id: string;
+          p_invoice_id: string;
+          p_fiscal_period_id: string;
+          p_reason: string;
+        };
+        Returns: string;
+      };
+      void_supplier_payment: {
+        Args: {
+          p_organization_id: string;
+          p_payment_id: string;
+          p_fiscal_period_id: string;
+          p_reason: string;
         };
         Returns: string;
       };
@@ -1173,6 +1643,21 @@ export type Database = {
           running_balance: number;
         }[];
       };
+      link_unit_ownership: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+          p_member_id: string;
+          p_share_percentage: number;
+          p_is_primary_contact?: boolean;
+          p_start_date?: string;
+          p_end_date?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          ownership_id: string;
+        };
+      };
       record_expense: {
         Args: {
           p_organization_id: string;
@@ -1186,6 +1671,12 @@ export type Database = {
           p_cashier_session_id?: string | null;
         };
         Returns: string;
+      };
+      get_journal_entry_for_view: {
+        Args: {
+          p_entry_id: string;
+        };
+        Returns: Database["public"]["Tables"]["journal_entries"]["Row"];
       };
     };
   };
