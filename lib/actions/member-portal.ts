@@ -31,13 +31,17 @@ export async function createMemberInvitationAction(
   // Lazy sweep: expire anything stale before minting a new invitation, so a
   // long-abandoned pending row never blocks (or confusingly coexists with)
   // a fresh one.
-  await supabase.rpc("expire_stale_member_invitations");
+  const { error: sweepError } = await supabase.rpc("expire_stale_member_invitations");
+  if (sweepError) {
+    console.error("[createMemberInvitationAction] expire_stale_member_invitations failed:", sweepError.message);
+  }
 
   const { data, error } = await supabase
     .rpc("create_member_invitation", { p_member_id: parsed.data.memberId })
     .single();
 
   if (error || !data) {
+    console.error("[createMemberInvitationAction] create_member_invitation failed:", error?.message);
     return { ok: false, error: error?.message ?? "invitation_failed" };
   }
 
@@ -53,6 +57,7 @@ export async function createMemberInvitationAction(
   });
 
   if (linkError || !linkData) {
+    console.error("[createMemberInvitationAction] generateLink failed:", linkError?.message);
     return { ok: false, error: linkError?.message ?? "link_generation_failed" };
   }
 
