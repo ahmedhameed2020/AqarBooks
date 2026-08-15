@@ -1,0 +1,37 @@
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+#
+# A string used to distinguish different Supabase projects on the same host.
+# This is a local CLI label only -- it does NOT select which remote project
+# gets deployed to. That happens at link/push time via the project ref:
+#   supabase link --project-ref ataslxkcflxuilpgyepm
+project_id = "resortos"
+
+# Auth email templates -- the only configuration this file currently manages.
+# Each template is a self-contained, email-client-safe HTML file under
+# ./supabase/templates/. Supabase has no include/partial mechanism, so the
+# six files intentionally repeat the same structural scaffold.
+
+[auth.email.template.confirmation]
+subject = "Confirm your email | تأكيد بريدك الإلكتروني"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.invite]
+subject = "You're invited to AqarBooks | تمت دعوتك إلى AqarBooks"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password | إعادة تعيين كلمة المرور"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Sign in to AqarBooks | تسجيل الدخول إلى AqarBooks"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email | تأكيد بريدك الإلكتروني الجديد"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.reauthentication]
+subject = "Your verification code | رمز التحقق الخاص بك"
+content_path = "./supabase/templates/reauthentication.html"
