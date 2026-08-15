@@ -134,7 +134,7 @@ begin
       (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
     values
       (v_org_a, v_resort_a, v_member_b, 'creq-a-spoof', 'PAYMOB', 500, now() + interval '30 minutes');
-  exception when others then
+  exception when sqlstate '42501' then
     v_error_caught := true;
   end;
   v_pass := v_error_caught;
@@ -164,7 +164,7 @@ begin
   v_error_caught := false;
   begin
     update public.online_payment_transactions set amount = 1 where id = v_txn_a;
-  exception when others then
+  exception when sqlstate '22023' then
     v_error_caught := true;
   end;
   v_pass := v_error_caught;
@@ -174,7 +174,7 @@ begin
   v_error_caught := false;
   begin
     update public.online_payment_transactions set provider = 'FAWRY' where id = v_txn_a;
-  exception when others then
+  exception when sqlstate '22023' then
     v_error_caught := true;
   end;
   v_pass := v_error_caught;
@@ -184,7 +184,7 @@ begin
   v_error_caught := false;
   begin
     update public.online_payment_transactions set status = 'PENDING' where id = v_txn_a;
-  exception when others then
+  exception when sqlstate '22023' then
     v_error_caught := true;
   end;
   v_pass := v_error_caught;
@@ -244,7 +244,7 @@ begin
   v_error_caught := false;
   begin
     perform public.expire_stale_online_payment_transactions();
-  exception when others then
+  exception when sqlstate '42501' then
     v_error_caught := true;
   end;
   v_pass := v_error_caught;
