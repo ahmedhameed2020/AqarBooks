@@ -23,6 +23,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 test("owner accepts an invite and reaches the portal dashboard", async ({ page }) => {
   test.setTimeout(60_000);
@@ -87,7 +88,7 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
     .single<{ invitation_id: string; raw_token: string; member_email: string; member_phone: string | null }>();
   expect(invitationError, `create_member_invitation failed: ${invitationError?.message}`).toBeNull();
 
-  const redirectTo = `http://localhost:3000/ar/portal/accept-invite?invitation=${invitation!.invitation_id}&t=${invitation!.raw_token}`;
+  const redirectTo = `${baseURL}/ar/portal/accept-invite?invitation=${invitation!.invitation_id}&t=${invitation!.raw_token}`;
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "invite",
     email,
