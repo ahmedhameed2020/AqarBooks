@@ -5,26 +5,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
-
-// Row shape for the embedded units(code) join -- lib/supabase/types.ts is
-// hand-maintained with empty Relationships arrays, so the typed client can't
-// express this embed cleanly. Mirrors the DueDbRow pattern used on
-// /finance/dues and /portal/statement.
-type DueDbRow = {
-  id: string;
-  amount: number;
-  issue_date: string;
-  due_date: string;
-  description: string | null;
-  status: string;
-  units: { code: string } | null;
-};
-
-const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
-  ISSUED: { ar: "مستحق", en: "Issued" },
-  PARTIALLY_PAID: { ar: "مدفوع جزئيًا", en: "Partially paid" },
-  OVERDUE: { ar: "متأخر", en: "Overdue" },
-};
+import { STATUS_LABELS, type DueDbRow } from "@/lib/portal/row-types";
 
 export default async function PortalDuesPage({
   params,

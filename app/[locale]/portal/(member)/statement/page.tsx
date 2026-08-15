@@ -4,29 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
-
-// Row shapes for the embedded units(code) join -- lib/supabase/types.ts is
-// hand-maintained with empty Relationships arrays, so the typed client can't
-// express this embed cleanly. Mirrors the DueDbRow pattern used on
-// /finance/dues (app/[locale]/(app)/finance/dues/page.tsx).
-type DueDbRow = {
-  id: string;
-  amount: number;
-  issue_date: string;
-  due_date: string;
-  description: string | null;
-  status: string;
-  units: { code: string } | null;
-};
-
-type PaymentDbRow = {
-  id: string;
-  amount: number;
-  payment_date: string;
-  method: string;
-  receipt_no: string | null;
-  receipt_number: number | null;
-};
+import type { DueDbRow, PaymentDbRow } from "@/lib/portal/row-types";
 
 export default async function PortalStatementPage({
   params,

@@ -5,24 +5,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Money } from "@/components/money";
 import { PortalPrintReceiptButton } from "./portal-print-receipt-button";
 import type { Locale } from "@/i18n/routing";
-
-// Row shape for payments -- mirrors PaymentDbRow in /portal/statement
-// (app/[locale]/portal/(member)/statement/page.tsx).
-type PaymentDbRow = {
-  id: string;
-  amount: number;
-  payment_date: string;
-  method: string;
-  receipt_no: string | null;
-  receipt_number: number | null;
-};
-
-const METHOD_LABELS: Record<string, { ar: string; en: string }> = {
-  CASH: { ar: "نقدًا", en: "Cash" },
-  BANK_TRANSFER: { ar: "تحويل بنكي", en: "Bank transfer" },
-  CHEQUE: { ar: "شيك", en: "Cheque" },
-  OTHER: { ar: "أخرى", en: "Other" },
-};
+import { METHOD_LABELS, type PaymentDbRow } from "@/lib/portal/row-types";
 
 export default async function PortalPaymentsPage({
   params,
