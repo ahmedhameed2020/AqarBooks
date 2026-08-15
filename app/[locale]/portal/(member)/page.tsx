@@ -84,6 +84,13 @@ export default async function PortalDashboardPage({
         <Link href="/portal/units" locale={locale as Locale} className="text-sm font-medium text-primary underline">
           {isAr ? "عرض وحداتي" : "View units"}
         </Link>
+        <Link
+          href="/portal/payments"
+          locale={locale as Locale}
+          className="text-sm font-medium text-primary underline"
+        >
+          {isAr ? "عرض المدفوعات" : "View payments"}
+        </Link>
       </div>
     </div>
   );

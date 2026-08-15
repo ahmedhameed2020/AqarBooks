@@ -5,7 +5,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
-import { unitTypeLabel, type UnitType } from "@/app/[locale]/(app)/property/unit-helpers";
+import { unitTypeLabel, type UnitType } from "@/lib/units/unit-type-labels";
 
 type PortalUnitRow = {
   id: string;
