@@ -9,11 +9,13 @@ declare
   v_org_id uuid;
   v_resort_id uuid;
   v_asset_account_id uuid;
+  v_asset_account_id2 uuid;
   v_liability_account_id uuid;
   v_group_account_id uuid;
   v_inactive_account_id uuid;
   v_wrong_org_account_id uuid;
   v_other_org_id uuid;
+  v_other_org_resort_id uuid;
   v_error_caught boolean;
 begin
   -- Setup: one org, one resort, and accounts covering every rejection path.
@@ -29,9 +31,21 @@ begin
   values (v_org_id, 'Test Resort', 'TR' || substr(md5(clock_timestamp()::text), 1, 8))
   returning id into v_resort_id;
 
+  -- A resort that belongs to the OTHER org -- used to prove resort_id must
+  -- belong to organization_id, independently of whether the clearing
+  -- account itself is valid.
+  insert into public.resorts (organization_id, name, code)
+  values (v_other_org_id, 'Other Org Resort', 'OR' || substr(md5(clock_timestamp()::text), 1, 8))
+  returning id into v_other_org_resort_id;
+
   insert into public.chart_of_accounts (organization_id, code, name_ar, name_en, category, normal_balance, is_group, is_active)
   values (v_org_id, 'TEST-ASSET-' || clock_timestamp()::text, 'أصل تجريبي', 'Test Asset', 'ASSET', 'DEBIT', false, true)
   returning id into v_asset_account_id;
+
+  -- A second valid ASSET account in the same org -- used for the uniqueness check.
+  insert into public.chart_of_accounts (organization_id, code, name_ar, name_en, category, normal_balance, is_group, is_active)
+  values (v_org_id, 'TEST-ASSET2-' || clock_timestamp()::text, 'أصل تجريبي ٢', 'Test Asset 2', 'ASSET', 'DEBIT', false, true)
+  returning id into v_asset_account_id2;
 
   insert into public.chart_of_accounts (organization_id, code, name_ar, name_en, category, normal_balance, is_group, is_active)
   values (v_org_id, 'TEST-LIAB-' || clock_timestamp()::text, 'التزام تجريبي', 'Test Liability', 'LIABILITY', 'CREDIT', false, true)
@@ -49,13 +63,24 @@ begin
   values (v_other_org_id, 'TEST-OTHERORG-' || clock_timestamp()::text, 'حساب كيان آخر', 'Other Org Account', 'ASSET', 'DEBIT', false, true)
   returning id into v_wrong_org_account_id;
 
-  -- 1. Valid ASSET, non-group, active, same-org account -> succeeds.
+  -- 1. Valid ASSET, non-group, active, same-org account, resort belongs to
+  --    the same org -> succeeds.
   insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
   values (v_org_id, v_resort_id, v_asset_account_id);
   assert (select count(*) from public.organization_finance_settings where organization_id = v_org_id and resort_id = v_resort_id) = 1,
     'FAIL: valid clearing account config should have been accepted';
 
-  -- 2. LIABILITY account -> rejected.
+  -- 2. unique(organization_id, resort_id) -> a second row for the same
+  --    (org, resort) pair is rejected, even with an otherwise-valid account.
+  v_error_caught := false;
+  begin
+    insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+    values (v_org_id, v_resort_id, v_asset_account_id2);
+  exception when sqlstate '23505' then v_error_caught := true;
+  end;
+  assert v_error_caught, 'FAIL: duplicate (organization_id, resort_id) should have been rejected by the unique constraint';
+
+  -- 3. LIABILITY account -> rejected.
   v_error_caught := false;
   begin
     update public.organization_finance_settings
@@ -65,7 +90,7 @@ begin
   end;
   assert v_error_caught, 'FAIL: LIABILITY account should have been rejected';
 
-  -- 3. Group account -> rejected.
+  -- 4. Group account -> rejected.
   v_error_caught := false;
   begin
     update public.organization_finance_settings
@@ -75,7 +100,7 @@ begin
   end;
   assert v_error_caught, 'FAIL: group account should have been rejected';
 
-  -- 4. Inactive account -> rejected.
+  -- 5. Inactive account -> rejected.
   v_error_caught := false;
   begin
     update public.organization_finance_settings
@@ -85,7 +110,7 @@ begin
   end;
   assert v_error_caught, 'FAIL: inactive account should have been rejected';
 
-  -- 5. Cross-organization account -> rejected.
+  -- 6. Cross-organization account -> rejected.
   v_error_caught := false;
   begin
     update public.organization_finance_settings
@@ -95,7 +120,20 @@ begin
   end;
   assert v_error_caught, 'FAIL: cross-org account should have been rejected';
 
-  -- 6. authenticated (no finance.accounts.manage) cannot write -> denied.
+  -- 7. resort_id belongs to a DIFFERENT organization than organization_id ->
+  --    rejected, even though the account itself is perfectly valid for
+  --    organization_id. Closes the gap found in code review: the original
+  --    trigger validated the account's org/resort against the row but never
+  --    validated that the row's own resort_id belongs to its organization_id.
+  v_error_caught := false;
+  begin
+    insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+    values (v_org_id, v_other_org_resort_id, v_asset_account_id);
+  exception when sqlstate '22023' then v_error_caught := true;
+  end;
+  assert v_error_caught, 'FAIL: resort belonging to a different organization should have been rejected';
+
+  -- 8. authenticated (no finance.accounts.manage) cannot write -> denied.
   -- Two valid denial paths exist and either proves the property under test:
   -- (a) sqlstate 42501 from organization_finance_settings' own RLS WITH CHECK, or
   -- (b) sqlstate 22023 CLEARING_ACCOUNT_NOT_IN_ORGANIZATION from the BEFORE INSERT
@@ -117,12 +155,14 @@ begin
   assert v_error_caught, 'FAIL: authenticated without finance.accounts.manage should not be able to insert';
 
   -- Cleanup -- unconditional, matches this repo's established test-residue pattern.
-  -- platform_audit_logs has no ON DELETE CASCADE on organization_id, and the
-  -- attempted authenticated-role insert above (step 6) is audit-logged, so it
-  -- must be cleared before organizations can be deleted.
+  -- platform_audit_logs has no ON DELETE CASCADE on organization_id. It's not
+  -- organization_finance_settings that populates it (that table has no audit
+  -- trigger at all) -- it's the chart_of_accounts rows inserted above during
+  -- setup, each of which fires log_coa_change and writes an audit row. Those
+  -- must be cleared before the organizations can be deleted.
   delete from public.organization_finance_settings where organization_id in (v_org_id, v_other_org_id);
   delete from public.chart_of_accounts where organization_id in (v_org_id, v_other_org_id);
-  delete from public.resorts where organization_id = v_org_id;
+  delete from public.resorts where organization_id in (v_org_id, v_other_org_id);
   delete from public.platform_audit_logs where organization_id in (v_org_id, v_other_org_id);
   delete from public.organizations where id in (v_org_id, v_other_org_id);
 
