@@ -65,8 +65,15 @@ export default async function PortalStatementPage({
       .order("payment_date", { ascending: false }),
   ]);
 
-  const dues = (duesData ?? []) as unknown as DueDbRow[];
+  const allDues = (duesData ?? []) as unknown as DueDbRow[];
   const payments = (paymentsData ?? []) as unknown as PaymentDbRow[];
+
+  // dues_select_own (Task 10) is intentionally full-history and does not
+  // filter status -- VOID'd dues are visible alongside live ones. A voided
+  // due was never a real obligation, so it must not count toward the total
+  // or appear as a debit in the movements list. PAID/ISSUED/OVERDUE/
+  // PARTIALLY_PAID/DRAFT dues are all real obligations and stay included.
+  const dues = allDues.filter((d) => d.status !== "VOID");
 
   const totalDue = dues.reduce((sum, d) => sum + Number(d.amount), 0);
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
