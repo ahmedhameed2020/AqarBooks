@@ -207,9 +207,29 @@ describe("record_online_payment concurrent replay", () => {
     // these must be unique per test run, not the plan's literal
     // "concurrent-a"/"concurrent-b" (confirmed live: those collide with a
     // previous run's rows and fail with 23505 on a re-run).
+    //
+    // Promise.all fires both requests without awaiting either first, and the
+    // function does substantial work between acquiring the row lock and
+    // committing (clearing-account lookup, fiscal-period lookup, per-due
+    // locking), so true overlap in the database is empirically very likely
+    // -- but Promise.all alone doesn't structurally guarantee simultaneous
+    // execution; treat this as strong evidence, not deterministic proof, of
+    // the locking behavior.
+    type RecordOnlinePaymentResult = {
+      status: string;
+      payment_id: string | null;
+      failure_code: string | null;
+      failure_message: string | null;
+    };
     const [resultA, resultB] = await Promise.all([
-      clientA.rpc("record_online_payment", { p_transaction_id: transactionId, p_webhook_event_id: `concurrent-a-${runSuffix}` }).single(),
-      clientB.rpc("record_online_payment", { p_transaction_id: transactionId, p_webhook_event_id: `concurrent-b-${runSuffix}` }).single(),
+      clientA
+        .rpc("record_online_payment", { p_transaction_id: transactionId, p_webhook_event_id: `concurrent-a-${runSuffix}` })
+        .returns<RecordOnlinePaymentResult[]>()
+        .single(),
+      clientB
+        .rpc("record_online_payment", { p_transaction_id: transactionId, p_webhook_event_id: `concurrent-b-${runSuffix}` })
+        .returns<RecordOnlinePaymentResult[]>()
+        .single(),
     ]);
 
     expect(resultA.error).toBeNull();
