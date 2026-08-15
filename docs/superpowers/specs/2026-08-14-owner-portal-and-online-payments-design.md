@@ -708,6 +708,43 @@ work stopped here.
 rejected by the schema/trigger layer, proven by pgTAP — not by application
 code discipline alone.
 
+**Status: complete (2026-08-15).** `online_payment_transactions` +
+`online_payment_transaction_allocations` shipped with the immutability trigger
+strengthened beyond this section's original scope per explicit project-owner
+acceptance criteria: it also guards `resort_id` (not just
+`organization_id`/`member_id`/`provider`/`amount`) and enforces that status
+transitions are one-directional out of `PENDING` generally (not just the
+narrower "immutable after PENDING" framing above) — so `PAID → PENDING` and
+any other backward/lateral move from a terminal state is rejected, not only
+identity/amount tampering. RLS mirrors the `current_member_id()` +
+`organization_is_active()` pattern from Phase 2's Task 10: owner can
+select/insert their own rows on both tables, no owner-facing update/delete
+policy exists on either (all status transitions are meant to be
+server-controlled, via a future service-role webhook path). The expiry sweep
+(`expire_stale_online_payment_transactions()`) is `service_role`-only from its
+first migration — deliberately hardened at birth rather than repeating Phase
+1's mistake (`expire_stale_member_invitations()` shipped open to
+`authenticated` and needed a post-hoc Checkpoint 2 fix).
+
+`supabase/tests/phase_owner_portal_transaction_integrity.sql` proves all of
+the above live and twice-idempotently: RLS isolation (including INSERT
+spoofing rejection via the `with check` clause), the immutability trigger
+(identity/amount freeze + the PAID→PENDING transition block specifically),
+all three unique constraints, and the expiry sweep's selectivity (flips only
+stale `PENDING` rows, never touches `PAID`/future-`expires_at` rows) and its
+`service_role`-only access. A Task 5 exit-gate regression pass also caught and
+fixed one real, unrelated latent bug in `tests/e2e/owner-portal-invite.spec.ts`
+(a Playwright strict-mode violation introduced when Phase 2's Task 14 added a
+dashboard heading containing the same test member's name as a pre-existing
+non-exact `getByText` assertion — never actually re-verified passing since
+Task 14 landed).
+
+No provider, webhook, checkout, or `record_online_payment` code exists yet —
+per the project owner's explicit instruction, Phase 4 requires its own
+separate plan, reviewed before any code is written, given it's where real
+money-movement logic (`post_payment_internal`, transaction locking,
+all-or-nothing settlement) begins.
+
 ### Phase 4 — Accounting core + provider adapters
 
 - `post_payment_internal` extracted from `record_payment`'s existing logic
