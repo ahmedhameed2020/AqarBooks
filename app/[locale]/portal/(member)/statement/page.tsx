@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
 
@@ -37,17 +38,10 @@ export default async function PortalStatementPage({
   const isAr = locale === "ar";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/portal/login");
+  const ctx = await getPortalMemberContext();
+  if (ctx.status !== "ok") redirect("/portal/login");
 
-  const { data: member } = await supabase
-    .from("members")
-    .select("id, organization_id")
-    .eq("user_id", user!.id)
-    .maybeSingle();
-  if (!member) redirect("/portal/login");
+  const { member } = ctx;
 
   // RLS (Task 10) already restricts these to the member's own rows -- the
   // explicit .eq() on payments below is defense in depth, not the actual
