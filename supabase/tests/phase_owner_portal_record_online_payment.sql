@@ -58,6 +58,7 @@ declare
   v_txn_no_period_id uuid;
   v_txn_missing_clearing_id uuid;
   v_txn_ownership_id uuid;
+  v_txn_out_of_scope_id uuid;
 
   -- Scratch
   v_result record;
@@ -355,6 +356,43 @@ begin
   assert v_payment_count = 0, format('FAIL scenario 6: expected zero payments against the not-owned due, got %s', v_payment_count);
 
   raise notice 'SCENARIO 6 (ownership check): PASS';
+
+  -----------------------------------------------------------------------
+  -- SCENARIO 6B: cross-org/cross-resort due -- a transaction scoped to
+  -- org A allocates against a due that belongs to org B entirely (not
+  -- just a different resort within org A). Distinct failure branch from
+  -- scenario 6's ownership check: this one trips on
+  -- v_due.organization_id/resort_id <> v_txn.organization_id/resort_id,
+  -- before the ownership check ever runs. v_due_b_id is untouched here --
+  -- scenario 4 failed at the OPEN_PERIOD_REQUIRED check, before its due
+  -- loop ever ran, so it's still a clean ISSUED due to reuse.
+  -----------------------------------------------------------------------
+  insert into public.online_payment_transactions
+    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+  values
+    (v_org_id, v_resort_id, v_member_id, 'rop-outofscope-' || v_run_suffix, 'PAYMOB', 250, now() + interval '30 minutes')
+  returning id into v_txn_out_of_scope_id;
+
+  insert into public.online_payment_transaction_allocations (transaction_id, due_id, amount)
+  values (v_txn_out_of_scope_id, v_due_b_id, 250);
+
+  select * into v_result from public.record_online_payment(v_txn_out_of_scope_id, 'evt-outofscope-' || v_run_suffix);
+  assert v_result.status = 'FAILED', format('FAIL scenario 6B: expected status FAILED, got %s', v_result.status);
+  assert v_result.failure_code = 'DUE_OUT_OF_SCOPE', format('FAIL scenario 6B: expected failure_code DUE_OUT_OF_SCOPE, got %s', v_result.failure_code);
+  assert v_result.payment_id is null, 'FAIL scenario 6B: expected no payment_id on failure';
+
+  -- Fresh, separate select -- same rigor as scenario 3/4: proves the
+  -- FAILED status actually persisted, not just what the RETURN QUERY row
+  -- happened to say.
+  select status into v_txn_status from public.online_payment_transactions where id = v_txn_out_of_scope_id;
+  assert v_txn_status = 'FAILED', format('FAIL scenario 6B: transaction row status did not persist as FAILED, got %s', v_txn_status);
+
+  select count(*) into v_payment_count
+  from public.payment_allocations pa join public.payments p on p.id = pa.payment_id
+  where pa.due_id = v_due_b_id and p.status = 'POSTED';
+  assert v_payment_count = 0, format('FAIL scenario 6B: expected zero payments against the out-of-scope due, got %s', v_payment_count);
+
+  raise notice 'SCENARIO 6B (due out of scope, cross-org): PASS';
 
   -----------------------------------------------------------------------
   -- SCENARIO 7: privilege check -- authenticated must be denied at the
