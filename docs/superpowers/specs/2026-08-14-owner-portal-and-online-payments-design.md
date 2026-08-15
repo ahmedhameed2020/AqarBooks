@@ -629,6 +629,35 @@ does not start until Phases 1–2 are merged and their test suites pass** — Ph
 2's exit gate specifically includes confirming isolation in an actual browser
 session, not only via pgTAP.
 
+### Phase 1–2 status: complete, Checkpoint 4 passed (2026-08-15)
+
+Phases 1 and 2 (Tasks 1–15, plus a Checkpoint 2 security review after Phase 1)
+are implemented, committed on `fix/units-excel-export`, and verified against
+the live Supabase project (`ataslxkcflxuilpgyepm`). Checkpoint 4's full
+verification suite passed:
+
+- `npx tsc --noEmit` — clean.
+- `npm run test:sql`, `test:financial`, `test:suppliers`,
+  `test:payment-idempotency`, `test:member-portal` — all green.
+- Full `npx playwright test` (90 specs) — 87 passed. The 3 failures are
+  accounted for, none are portal regressions:
+  - **`REG-011` (en/ar)** in `tests/e2e/finance-isolation-and-locale.spec.ts` —
+    a pre-existing, unrelated Playwright strict-mode selector collision in the
+    staff cashier UI test (`getByRole('option', {name: /656.00/})` matches two
+    elements). Predates this feature; no code in this feature touches the
+    cashier due-selection UI this test exercises. **Known, not fixed as part
+    of this feature** — tracked here so it isn't mistaken for a portal
+    regression in a future run.
+  - The third failure (`owner-portal-invite.spec.ts`, `ERR_CONNECTION_REFUSED`)
+    was an artifact of running the full suite on port 3100 to route around an
+    unrelated local service occupying port 3000 — not a code defect. Fixed for
+    portability (the test no longer hardcodes port 3000) and independently
+    re-verified passing multiple times.
+- `npm run build` — succeeds, all portal routes registered.
+
+Two-owner, two-organization browser-level isolation is proven end-to-end
+(`tests/e2e/owner-portal-isolation.spec.ts`), not only via pgTAP.
+
 ### Phase 1 — Identity, invites, login
 
 - `members.user_id`, `member_invitations`.
