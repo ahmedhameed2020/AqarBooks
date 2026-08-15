@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { generatePaymentReceiptPdf } from "@/lib/reports/payment-receipt-pdf";
 import { getOwnPaymentReceiptAction } from "@/lib/actions/member-portal-receipts";
+import { formErrorMessage } from "@/lib/actions/error-messages";
 
 // Portal-side mirror of PrintReceiptRowButton
 // (app/[locale]/(app)/finance/payments/print-receipt-button.tsx) -- fetches
@@ -29,12 +30,9 @@ export function PortalPrintReceiptButton({
 
   function handleClick() {
     startTransition(async () => {
-      const res = await getOwnPaymentReceiptAction(paymentId);
+      const res = await getOwnPaymentReceiptAction(paymentId, isAr ? "ar" : "en");
       if (!res.ok) {
-        toast.add({
-          title: isAr ? "تعذّر تحميل بيانات الإيصال" : "Could not load receipt data",
-          type: "error",
-        });
+        toast.add({ title: formErrorMessage(res.error, isAr), type: "error" });
         return;
       }
       const win = generatePaymentReceiptPdf(

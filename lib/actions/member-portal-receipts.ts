@@ -26,7 +26,10 @@ export type OwnPaymentReceiptResult =
 // getPortalMemberContext() + an explicit member_id scope, defense-in-depth
 // on top of payments_select_own / payment_allocations_select_own RLS
 // (Task 10).
-export async function getOwnPaymentReceiptAction(paymentId: string): Promise<OwnPaymentReceiptResult> {
+export async function getOwnPaymentReceiptAction(
+  paymentId: string,
+  locale: "ar" | "en",
+): Promise<OwnPaymentReceiptResult> {
   const ctx = await getPortalMemberContext();
   if (ctx.status !== "ok") return { ok: false, error: "unauthenticated" };
   const { member } = ctx;
@@ -55,7 +58,7 @@ export async function getOwnPaymentReceiptAction(paymentId: string): Promise<Own
 
   const allocations: PaymentReceiptAllocation[] = (allocRows ?? []).map((a: any) => ({
     unitCode: a.dues?.units?.code ?? "",
-    description: a.dues?.due_types?.name_ar ?? "",
+    description: (locale === "ar" ? a.dues?.due_types?.name_ar : a.dues?.due_types?.name_en) ?? "",
     dueDate: a.dues?.due_date ?? "",
     allocatedAmount: Number(a.amount),
   }));
