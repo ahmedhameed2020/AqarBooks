@@ -171,8 +171,16 @@ export function AcceptInviteClient({
     <form onSubmit={handleSetPassword} className="space-y-4 rounded-3xl border border-border bg-background p-8 shadow-sm">
       <h1 className="text-lg font-bold text-foreground">{isAr ? "تعيين كلمة مرور" : "Set your password"}</h1>
       <div className="space-y-1.5">
-        <Label>{isAr ? "كلمة المرور" : "Password"}</Label>
-        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
+        <Label htmlFor="password">{isAr ? "كلمة المرور" : "Password"}</Label>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+          autoComplete="new-password"
+        />
       </div>
       {error && <p className="text-xs font-bold text-destructive">{error}</p>}
       <Button type="submit" disabled={step === "linking" || step === "done"} className="w-full">
