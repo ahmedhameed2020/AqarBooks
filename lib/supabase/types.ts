@@ -874,6 +874,23 @@ export type Database = {
       };
     };
     Functions: {
+      create_member_invitation: {
+        Args: { p_member_id: string };
+        Returns: {
+          invitation_id: string;
+          raw_token: string;
+          member_email: string;
+          member_phone: string | null;
+        }[];
+      };
+      accept_member_invitation: {
+        Args: { p_invitation_id: string; p_token: string };
+        Returns: string;
+      };
+      expire_stale_member_invitations: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       is_platform_admin: { Args: { p_user_id: string }; Returns: boolean };
       is_org_member: {
         Args: { p_user_id: string; p_organization_id: string };

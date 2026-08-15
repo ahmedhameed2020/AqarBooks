@@ -15,13 +15,23 @@ import { cn } from "@/lib/utils";
 import { Money } from "@/components/money";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "../../dashboard/kpi-card";
 import { UnitBalanceBadge } from "../../property/unit-balance-badge";
 import { DuesTable } from "../../property/dues-table";
 import { PaymentsTable } from "../../property/payments-table";
-import { BackButton } from "../../property/back-button";
+import { BackToMembersButton } from "./back-to-members-button";
+import { AddMemberDialog } from "../add-member-dialog";
+import { MemberStatementDialog } from "./member-statement-dialog";
+import { SendReminderDialog } from "../send-reminder-dialog";
+import { InviteToPortalDialog } from "./invite-to-portal-dialog";
+import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+import { MemberTags } from "./member-tags";
+import { MemberActivity, type ActivityEntry } from "./member-activity";
+import { MemberDocuments, type MemberDocument } from "./member-documents";
 
 export default async function MemberDetailPage({
   params,
@@ -50,6 +60,15 @@ export default async function MemberDetailPage({
     .maybeSingle();
 
   if (!member) notFound();
+
+  const canManage = await hasPermission(organization.id, "property.members.manage");
+
+  const { data: memberPhones } = await supabase
+    .from("member_phones")
+    .select("id, phone_number, label, is_primary, can_receive_whatsapp")
+    .eq("member_id", member.id)
+    .eq("organization_id", organization.id)
+    .order("is_primary", { ascending: false });
 
   const currency = organization.default_currency;
   const today = new Date().toISOString().slice(0, 10);
@@ -95,15 +114,128 @@ export default async function MemberDetailPage({
   const totalPaid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const lastPayment = (payments ?? [])[0] ?? null;
 
+  const [{ data: allTags }, { data: tagAssignments }, { data: activityRows }, { data: documentRows }, { data: allUnits }] = await Promise.all([
+    supabase.from("member_tags").select("id, name").eq("organization_id", organization.id).order("name"),
+    supabase.from("member_tag_assignments").select("tag_id").eq("member_id", memberId),
+    supabase
+      .from("member_activity_log")
+      .select("id, type, body, created_at, actor_id")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("member_documents")
+      .select("id, file_name, file_size, file_path, created_at")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false }),
+    supabase.from("units_with_financials").select("id, code, building_name_ar, building_name_en").eq("organization_id", organization.id).order("code"),
+  ]);
+
+  const actorIds = [...new Set((activityRows ?? []).map((a) => a.actor_id).filter((id): id is string => Boolean(id)))];
+  const { data: actorProfiles } = actorIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", actorIds)
+    : { data: [] };
+  const actorNameById = new Map((actorProfiles ?? []).map((p) => [p.id, p.full_name]));
+
+  const activityEntries: ActivityEntry[] = (activityRows ?? []).map((a) => ({
+    id: a.id,
+    type: a.type,
+    body: a.body,
+    createdAt: a.created_at,
+    actorName: a.actor_id ? (actorNameById.get(a.actor_id) ?? null) : null,
+  }));
+
+  const documents: MemberDocument[] = (documentRows ?? []).map((d) => ({
+    id: d.id,
+    fileName: d.file_name,
+    fileSize: d.file_size,
+    filePath: d.file_path,
+    createdAt: d.created_at,
+  }));
+
   return (
     <main className="space-y-6 p-6">
-      <BackButton locale={locale} />
+      <BackToMembersButton locale={locale} />
 
-      <div>
-        <h1 className="text-xl font-semibold">{member.full_name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {[member.email, member.phone].filter(Boolean).join(" · ") || (isAr ? "بلا بيانات تواصل" : "No contact info")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">{member.full_name}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {member.email && <span>{member.email}</span>}
+            {(memberPhones ?? []).length > 0 ? (
+              (memberPhones ?? []).map((p) => (
+                <span
+                  key={p.id}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs ${
+                    p.is_primary ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground"
+                  }`}
+                  dir="ltr"
+                >
+                  <span>{p.phone_number}</span>
+                  <span className="text-[10px] uppercase text-muted-foreground/70">({p.label})</span>
+                  {p.can_receive_whatsapp && <span className="text-[10px] text-emerald-500 font-bold">WA</span>}
+                </span>
+              ))
+            ) : (
+              member.phone && <span dir="ltr">{member.phone}</span>
+            )}
+            {!member.email && (!memberPhones || memberPhones.length === 0) && !member.phone && (
+              <span>{isAr ? "بلا بيانات تواصل" : "No contact info"}</span>
+            )}
+          </div>
+          <MemberTags
+            memberId={member.id}
+            organizationId={organization.id}
+            allTags={allTags ?? []}
+            assignedTagIds={(tagAssignments ?? []).map((t) => t.tag_id)}
+            locale={locale}
+            canManage={canManage}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {canManage && (
+            <AddMemberDialog
+              organizationId={organization.id}
+              members={[{ id: member.id, full_name: member.full_name, phone: member.phone }]}
+              units={(allUnits ?? []).map((u) => ({
+                id: u.id,
+                code: u.code,
+                building_name_ar: u.building_name_ar,
+                building_name_en: u.building_name_en,
+              }))}
+              locale={locale}
+              defaultTab="ownership"
+              defaultMemberId={member.id}
+            />
+          )}
+          <SendReminderDialog
+            memberId={member.id}
+            organizationId={organization.id}
+            memberName={member.full_name}
+            phone={member.phone}
+            email={member.email}
+            balance={totalBalance}
+            currency={currency}
+            locale={locale}
+            trigger={
+              <Button variant="outline" size="sm">
+                <MessageCircle className="size-3.5" />
+                {isAr ? "تذكير" : "Remind"}
+              </Button>
+            }
+          />
+          <MemberStatementDialog
+            memberId={member.id}
+            memberName={member.full_name}
+            locale={locale}
+          />
+          <InviteToPortalDialog
+            memberId={member.id}
+            memberName={member.full_name}
+            locale={locale}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -199,6 +331,30 @@ export default async function MemberDetailPage({
         <h2 className="text-sm font-semibold">{isAr ? "سجل الدفعات" : "Payments history"}</h2>
         <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
       </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">{isAr ? "الملاحظات والنشاط" : "Notes & activity"}</h2>
+          <MemberActivity
+            memberId={member.id}
+            organizationId={organization.id}
+            entries={activityEntries}
+            locale={locale}
+            canManage={canManage}
+          />
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">{isAr ? "المستندات" : "Documents"}</h2>
+          <MemberDocuments
+            memberId={member.id}
+            organizationId={organization.id}
+            documents={documents}
+            locale={locale}
+            canManage={canManage}
+          />
+        </section>
+      </div>
     </main>
   );
 }
