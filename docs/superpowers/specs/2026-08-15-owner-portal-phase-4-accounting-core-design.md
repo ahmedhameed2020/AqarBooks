@@ -82,6 +82,8 @@ All four probes return `42501 permission denied` (403 for the authenticated sess
 
 All failures above are pre-existing and unrelated to Phase 4's `post_payment_internal`/`record_online_payment`/`organization_finance_settings`/`ONLINE`-method work, which is itself 100% SQL/migration-only (zero `app/`/`lib/` files touched except the one-line `METHOD_LABELS` addition cited above). Phase 4 is closed; Phase 5 (Paymob/Fawry/webhooks) may now be discussed.
 
+**Explicit baseline separation (per project-owner requirement, 2026-08-16):** Phase 4's own changes are type-safe — `npx tsc --noEmit` on the Phase 4 commit range alone (`93a940b`..`1de4983`) introduces zero new type errors. The repository's current baseline carries exactly one pre-existing `tsc`/`build` failure, sourced entirely from in-progress, uncommitted member-CRM work (`app/[locale]/(app)/members/page.tsx` and its untracked siblings) that predates and is unrelated to Phase 4. This distinction is recorded here explicitly so a future `tsc`/`build` run's single failure is never mistaken for a Phase 4 regression, and so it isn't silently "fixed" by editing unrelated CRM code as a side effect of a future phase.
+
 ## Finalized decisions (project-owner review, 2026-08-15)
 
 These resolve the four open questions in §"Open questions" below and supersede that section's recommendations wherever they conflict with it. Real schema facts (not assumptions) grounding these decisions:
