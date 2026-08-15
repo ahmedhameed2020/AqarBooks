@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
