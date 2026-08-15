@@ -103,7 +103,14 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   await page.getByRole("button", { name: /تفعيل الحساب|Activate account/ }).click();
 
   await expect(page).toHaveURL(/\/portal$/, { timeout: 10000 });
-  await expect(page.getByText("E2E Test Owner")).toBeVisible();
+  // exact: true, not a plain substring match -- Task 14's real dashboard
+  // added an h1 ("مرحبًا، E2E Test Owner") and a route-announcer div that
+  // both contain this name as a substring alongside the sidebar's exact
+  // "E2E Test Owner" <p>, so a non-exact getByText resolves to 3 elements
+  // (Playwright strict-mode violation). The sidebar's exact match is the
+  // one that actually proves the member link succeeded (PortalShell only
+  // renders it once getPortalMemberContext() resolves a real member row).
+  await expect(page.getByText("E2E Test Owner", { exact: true })).toBeVisible();
 
   // set_organization_status is security definer but self-gates on
   // is_platform_admin(auth.uid()) -- auth.uid() is null under the
