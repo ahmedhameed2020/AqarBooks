@@ -18,6 +18,12 @@ security definer
 set search_path = public
 as $$
   with expired as (
+    -- failed_at doubles as "left PENDING for a non-PAID terminal state"
+    -- rather than adding a third timestamp column -- failure_code/
+    -- failure_message stay null here since a plain timeout has no provider
+    -- failure code to record, distinguishing it from a provider-reported
+    -- failure (which would set failure_code/failure_message alongside
+    -- failed_at via the future webhook path, not this sweep).
     update public.online_payment_transactions
     set status = 'EXPIRED', failed_at = now()
     where status = 'PENDING' and expires_at < now()
