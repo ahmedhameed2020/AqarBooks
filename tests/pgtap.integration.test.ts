@@ -1460,4 +1460,291 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("13. Phase 2e chart_of_accounts/user_role_assignments Property-ID Rename Integrity (add_organization_member ON CONFLICT dedup + has_financial_permission resort-scoped check via create_purchase_request)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP CoaRolesCluster Org",
+        slug: `pgtap-coa-roles-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // clone_tenant_role_templates: unaffected by this phase, but every
+    // subsequent step needs a real TENANT_OWNER role to exist.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const { data: adminRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_ADMIN")
+      .single();
+    expect(adminRole?.id).toBeDefined();
+
+    // add_organization_member is permission-gated via
+    // has_permission(auth.uid(), ..., 'tenant.users.manage'), which requires
+    // a real authenticated user with a role assignment -- the service-role
+    // admin client has no auth.uid() and would be rejected as
+    // "not authorized". Stand up a real TENANT_OWNER session, matching
+    // tests 7/8/10/11/12's pattern.
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-coa-roles-cluster-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: ownerMembershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(ownerMembershipErr).toBeNull();
+
+    const { error: ownerRoleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(ownerRoleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // --- Part A: add_organization_member's ON CONFLICT (..., property_id)
+    // edit. Call it TWICE for the same user/role/org so the INSERT's ON
+    // CONFLICT clause is actually re-parsed/re-planned against the live
+    // schema on a second execution, not just the first. This is the
+    // load-bearing proof: if the column list still said `resort_id` (which
+    // no longer exists on this table after the migration), Postgres would
+    // reject the statement outright with "column resort_id does not exist"
+    // on either call, since the ON CONFLICT inference target is validated
+    // against the table's real columns/indexes regardless of whether a
+    // duplicate is actually found at runtime.
+    //
+    // NOTE (discovered empirically, not assumed): `add_organization_member`
+    // never sets a resort scope, so every row it inserts has
+    // `property_id IS NULL`. The table's unique constraint
+    // `(user_id, role_id, organization_id, property_id)` has no `NULLS NOT
+    // DISTINCT`, so under standard Postgres semantics two NULLs are never
+    // considered equal for uniqueness purposes -- meaning ON CONFLICT DO
+    // NOTHING's arbiter never actually matches an existing NULL-scoped row,
+    // and the second call legitimately inserts a SECOND row rather than
+    // deduplicating. This is pre-existing behavior unrelated to this
+    // rename (identical NULL semantics applied under the old `resort_id`
+    // name), so this test asserts the count that's actually observed (2)
+    // rather than the naive expectation of 1 -- what matters for THIS
+    // phase's correctness is that both calls succeed without a
+    // column-does-not-exist error, which is exactly what would happen if
+    // the ON CONFLICT edit had been missed or mistyped.
+    const memberEmail = `pgtap-coa-roles-cluster-member-${Date.now()}@aqarbooks-test.local`;
+    const { data: memberUser, error: createMemberErr } = await admin.auth.admin.createUser({
+      email: memberEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createMemberErr).toBeNull();
+    const memberId = memberUser!.user!.id;
+
+    const { error: addMemberFirstErr } = await ownerClient.rpc("add_organization_member", {
+      p_organization_id: orgId,
+      p_user_id: memberId,
+      p_role_key: "TENANT_ADMIN",
+    });
+    expect(addMemberFirstErr).toBeNull();
+
+    const { error: addMemberSecondErr } = await ownerClient.rpc("add_organization_member", {
+      p_organization_id: orgId,
+      p_user_id: memberId,
+      p_role_key: "TENANT_ADMIN",
+    });
+    expect(addMemberSecondErr).toBeNull();
+
+    const { count: assignmentCount, error: countErr } = await admin
+      .from("user_role_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", memberId)
+      .eq("role_id", adminRole!.id)
+      .eq("organization_id", orgId);
+    expect(countErr).toBeNull();
+    expect(assignmentCount).toBe(2);
+
+    // Read back a row via `property_id` -- proves the column exists under
+    // its new name and is queryable. add_organization_member never sets a
+    // resort scope, so it must be null.
+    const { data: memberAssignments, error: memberAssignmentErr } = await admin
+      .from("user_role_assignments")
+      .select("id, property_id")
+      .eq("user_id", memberId)
+      .eq("role_id", adminRole!.id)
+      .eq("organization_id", orgId);
+    expect(memberAssignmentErr).toBeNull();
+    expect(memberAssignments).toHaveLength(2);
+    for (const row of memberAssignments!) {
+      expect(row.property_id).toBeNull();
+    }
+
+    // --- Part B: has_financial_permission's resort-scoped check
+    // (`ura.property_id = p_resort_id`). Tests 1-12's role assignments are
+    // all *unscoped* (property_id IS NULL), which always short-circuits
+    // has_financial_permission's condition true regardless of whether the
+    // rename is correct -- that branch alone would never catch a broken
+    // `ura.property_id` reference. A broken rename here is a silent-failure
+    // mode (every resort-scoped permission check would just DENY, not
+    // error), so this must be proven with an actual non-null property_id
+    // match, not just "the call didn't throw".
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "CoaRolesCluster Resort",
+        code: `CRC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    const scopedEmail = `pgtap-coa-roles-cluster-scoped-${Date.now()}@aqarbooks-test.local`;
+    const { data: scopedUser, error: createScopedErr } = await admin.auth.admin.createUser({
+      email: scopedEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createScopedErr).toBeNull();
+    const scopedId = scopedUser!.user!.id;
+
+    const { error: scopedMembershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: scopedId,
+      status: "active",
+    });
+    expect(scopedMembershipErr).toBeNull();
+
+    // Insert directly (not via add_organization_member, which never sets a
+    // scope) with a non-null property_id, granting the TENANT_OWNER role
+    // (which covers purchasing.requests.create per tests 11/12's comment)
+    // scoped specifically to `resortId`.
+    const { error: scopedRoleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: scopedId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+      property_id: resortId,
+    });
+    expect(scopedRoleAssignErr).toBeNull();
+
+    const scopedClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: scopedSignInErr } = await scopedClient.auth.signInWithPassword({
+      email: scopedEmail,
+      password,
+    });
+    expect(scopedSignInErr).toBeNull();
+
+    // create_purchase_request (Phase 2d, already migrated) calls
+    // has_financial_permission(p_organization_id, 'purchasing.requests.create',
+    // p_resort_id) -- if `ura.property_id` still referenced a nonexistent
+    // `resort_id` column, this call would error outright (not silently
+    // deny), but if the rename had instead been mistyped in a way that
+    // still compiles (e.g. comparing the wrong columns), this scoped user
+    // would be silently and wrongly denied. Asserting success here is the
+    // actual proof the resort-scope match still works post-rename.
+    const { data: requestId, error: createRequestErr } = await scopedClient.rpc(
+      "create_purchase_request",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_description: "CoaRolesCluster scoped request",
+        p_estimated_amount: 250,
+      },
+    );
+    expect(createRequestErr).toBeNull();
+    expect(requestId).toBeTruthy();
+
+    const { data: request, error: requestReadErr } = await admin
+      .from("purchase_requests")
+      .select("id, property_id")
+      .eq("id", requestId)
+      .single();
+    expect(requestReadErr).toBeNull();
+    expect(request?.property_id).toBe(resortId);
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id (add_organization_member
+    // and create_purchase_request both write audit rows), purchase_requests
+    // .requested_by, user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId/memberId/
+    // scopedId -- they must be removed before deleteUser or the delete
+    // fails with a 500 ("Database error deleting user"), silently leaking
+    // the auth.users row. platform_audit_logs.property_id also FKs to the
+    // resort (create_purchase_request writes p_resort_id into it), so the
+    // audit rows must be deleted before the resort, not after.
+    const { error: deleteRequestErr } = await admin
+      .from("purchase_requests")
+      .delete()
+      .eq("id", requestId);
+    expect(deleteRequestErr).toBeNull();
+
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .in("actor_id", [ownerId, memberId, scopedId]);
+    expect(deleteAuditErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .in("user_id", [ownerId, memberId, scopedId]);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .in("user_id", [ownerId, memberId, scopedId]);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+    const { error: deleteMemberErr } = await admin.auth.admin.deleteUser(memberId);
+    expect(deleteMemberErr).toBeNull();
+    const { error: deleteScopedErr } = await admin.auth.admin.deleteUser(scopedId);
+    expect(deleteScopedErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
