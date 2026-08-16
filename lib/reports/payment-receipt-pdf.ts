@@ -1,4 +1,5 @@
 import { METHOD_LABELS } from "@/lib/portal/row-types";
+import { escapeHtml } from "@/lib/reports/html-escape";
 
 // Mirrors app/[locale]/(app)/property/unit-pdf-report.ts's pattern: build an
 // HTML string, wrap it in a same-origin Blob URL (never a cross-origin
@@ -60,11 +61,32 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
   const methodMeta = METHOD_LABELS[method];
   const methodLabel = methodMeta ? (isAr ? methodMeta.ar : methodMeta.en) : method;
 
+  // Escape every user-supplied string field before interpolation below --
+  // organizationName/resortName/currency (org config), receiptNo/paymentDate
+  // (formatted but still string data), memberName/memo/createdByName (free
+  // text), and allocation unitCode/description/dueDate. Numbers (via fmt)
+  // and the hardcoded ar/en literal strings never need escaping.
+  const safeOrganizationName = escapeHtml(organizationName);
+  const safeResortName = escapeHtml(resortName);
+  const safeCurrency = escapeHtml(currency);
+  const safeReceiptNo = escapeHtml(receiptNo);
+  const safePaymentDate = escapeHtml(paymentDate);
+  const safeMemberName = escapeHtml(memberName);
+  const safeMethodLabel = escapeHtml(methodLabel);
+  const safeMemo = memo ? escapeHtml(memo) : null;
+  const safeCreatedByName = createdByName ? escapeHtml(createdByName) : null;
+  const safeAllocations = allocations.map((a) => ({
+    ...a,
+    unitCode: escapeHtml(a.unitCode),
+    description: escapeHtml(a.description),
+    dueDate: escapeHtml(a.dueDate),
+  }));
+
   const html = `<!DOCTYPE html>
 <html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}">
 <head>
   <meta charset="utf-8">
-  <title>${isAr ? `إيصال دفع ${receiptNo}` : `Payment Receipt ${receiptNo}`}</title>
+  <title>${isAr ? `إيصال دفع ${safeReceiptNo}` : `Payment Receipt ${safeReceiptNo}`}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -244,30 +266,30 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
 
   <div class="report-header">
     <div class="org-brand">
-      <div class="logo-badge">${organizationName.slice(0, 1).toUpperCase()}</div>
+      <div class="logo-badge">${escapeHtml(organizationName.slice(0, 1).toUpperCase())}</div>
       <div>
-        <div class="org-name">${organizationName}</div>
-        <div class="resort-title">${resortName ? (isAr ? `${resortName} · إيصال دفع` : `${resortName} · Payment Receipt`) : isAr ? "إيصال دفع" : "Payment Receipt"}</div>
+        <div class="org-name">${safeOrganizationName}</div>
+        <div class="resort-title">${safeResortName ? (isAr ? `${safeResortName} · إيصال دفع` : `${safeResortName} · Payment Receipt`) : isAr ? "إيصال دفع" : "Payment Receipt"}</div>
       </div>
     </div>
     <div class="meta-info">
       <div>${isAr ? "تاريخ الطباعة:" : "Printed:"} <strong>${dateLabel}</strong></div>
-      <div>${isAr ? "رقم الإيصال:" : "Receipt No:"} <strong>${receiptNo || "—"}</strong></div>
+      <div>${isAr ? "رقم الإيصال:" : "Receipt No:"} <strong>${safeReceiptNo || "—"}</strong></div>
       <div>ResortOS Owner Portal</div>
     </div>
   </div>
 
   <div class="kpi-grid">
     <div class="kpi-box">
-      <div class="kpi-label">${isAr ? `المبلغ المدفوع (${currency})` : `Amount Paid (${currency})`}</div>
+      <div class="kpi-label">${isAr ? `المبلغ المدفوع (${safeCurrency})` : `Amount Paid (${safeCurrency})`}</div>
       <div class="kpi-value success">${fmt(amount)}</div>
     </div>
     <div class="kpi-box">
       <div class="kpi-label">${isAr ? "طريقة الدفع" : "Payment Method"}</div>
-      <div class="kpi-value">${methodLabel}</div>
+      <div class="kpi-value">${safeMethodLabel}</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">${isAr ? `مبلغ غير مخصص (${currency})` : `Unallocated (${currency})`}</div>
+      <div class="kpi-label">${isAr ? `مبلغ غير مخصص (${safeCurrency})` : `Unallocated (${safeCurrency})`}</div>
       <div class="kpi-value">${fmt(unallocatedAmount)}</div>
     </div>
   </div>
@@ -275,28 +297,28 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
   <div class="info-grid">
     <div class="info-row">
       <span class="label">${isAr ? "اسم المالك" : "Owner Name"}</span>
-      <span class="value">${memberName || "—"}</span>
+      <span class="value">${safeMemberName || "—"}</span>
     </div>
     <div class="info-row">
       <span class="label">${isAr ? "تاريخ الدفع" : "Payment Date"}</span>
-      <span class="value">${paymentDate || "—"}</span>
+      <span class="value">${safePaymentDate || "—"}</span>
     </div>
     <div class="info-row">
       <span class="label">${isAr ? "ملاحظات" : "Memo"}</span>
-      <span class="value">${memo || "—"}</span>
+      <span class="value">${safeMemo || "—"}</span>
     </div>
     ${
-      createdByName
+      safeCreatedByName
         ? `<div class="info-row">
       <span class="label">${isAr ? "تم الإصدار بواسطة" : "Issued By"}</span>
-      <span class="value">${createdByName}</span>
+      <span class="value">${safeCreatedByName}</span>
     </div>`
         : ""
     }
   </div>
 
   ${
-    allocations.length === 0
+    safeAllocations.length === 0
       ? `<div class="no-allocations">${isAr ? "لا توجد تخصيصات لهذا الدفع." : "No allocations for this payment."}</div>`
       : `<table class="report-table">
     <thead>
@@ -305,11 +327,11 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
         <th>${isAr ? "رقم/رمز الوحدة" : "Unit Code"}</th>
         <th>${isAr ? "الوصف" : "Description"}</th>
         <th>${isAr ? "تاريخ الاستحقاق" : "Due Date"}</th>
-        <th>${isAr ? `المبلغ المخصص (${currency})` : `Allocated (${currency})`}</th>
+        <th>${isAr ? `المبلغ المخصص (${safeCurrency})` : `Allocated (${safeCurrency})`}</th>
       </tr>
     </thead>
     <tbody>
-      ${allocations
+      ${safeAllocations
         .map(
           (a, i) => `
         <tr>
@@ -350,7 +372,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
   // Create same-origin Blob URL to guarantee 100% security & zero cross-origin frame errors
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
+  const win = window.open(url, "_blank", "noopener");
   if (!win) {
     window.location.href = url;
   }

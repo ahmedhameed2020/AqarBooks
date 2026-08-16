@@ -44,7 +44,7 @@ export async function getOwnPaymentReceiptAction(
     .maybeSingle();
   if (paymentErr) {
     console.error("[getOwnPaymentReceiptAction] payment query failed:", paymentErr.message);
-    return { ok: false, error: paymentErr.message };
+    return { ok: false, error: "query_failed" };
   }
   if (!payment) return { ok: false, error: "not_found" };
 

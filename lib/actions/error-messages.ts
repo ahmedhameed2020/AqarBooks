@@ -14,6 +14,10 @@ const ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
     ar: "تعذر العثور على العنصر المطلوب.",
     en: "The requested item could not be found.",
   },
+  query_failed: {
+    ar: "حدث خطأ أثناء تحميل البيانات، يرجى المحاولة مرة أخرى.",
+    en: "Something went wrong loading this data. Please try again.",
+  },
 };
 
 const GENERIC_FALLBACK = {
