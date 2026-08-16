@@ -211,4 +211,83 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("7. Phase 2a Resorts-View Compatibility Shim Integrity (auto-updatable view)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ResortsViewShim Org",
+        slug: `pgtap-resorts-view-shim-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // INSERT through the `resorts` compatibility view -- exercises the
+    // actual auto-updatable-view INSERT path (translates to the
+    // underlying `properties` table), not just a raw SELECT.
+    const { data: viewInsert, error: viewInsertErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "Shim Test Resort",
+        code: `SHIM-${Date.now()}`,
+      })
+      .select("id, name, property_type")
+      .single();
+
+    expect(viewInsertErr).toBeNull();
+    expect(viewInsert?.id).toBeTruthy();
+    expect(viewInsert?.property_type).toBe("resort");
+    const resortId = viewInsert!.id;
+
+    // The same row must also be visible directly on the renamed table.
+    const { data: viaTable, error: tableSelectErr } = await admin
+      .from("properties")
+      .select("id, name")
+      .eq("id", resortId)
+      .single();
+
+    expect(tableSelectErr).toBeNull();
+    expect(viaTable?.id).toBe(resortId);
+    expect(viaTable?.name).toBe("Shim Test Resort");
+
+    // UPDATE through the `resorts` compatibility view -- exercises the
+    // auto-updatable-view UPDATE path.
+    const { error: viewUpdateErr } = await admin
+      .from("resorts")
+      .update({ name: "Shim Test Resort (renamed)" })
+      .eq("id", resortId);
+
+    expect(viewUpdateErr).toBeNull();
+
+    const { data: afterUpdate } = await admin
+      .from("properties")
+      .select("name")
+      .eq("id", resortId)
+      .single();
+
+    expect(afterUpdate?.name).toBe("Shim Test Resort (renamed)");
+
+    // DELETE through the `resorts` compatibility view -- exercises the
+    // auto-updatable-view DELETE path, and confirms it's gone from the
+    // underlying table too (not just hidden from the view).
+    const { error: viewDeleteErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(viewDeleteErr).toBeNull();
+
+    const { data: afterDelete, error: afterDeleteErr } = await admin
+      .from("properties")
+      .select("id")
+      .eq("id", resortId)
+      .maybeSingle();
+
+    expect(afterDeleteErr).toBeNull();
+    expect(afterDelete).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
