@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { redirect, Link } from "@/i18n/navigation";
-import { Wallet, Building2, CircleCheck, Clock3 } from "lucide-react";
+import { ArrowRight, Wallet, Building2, CircleCheck, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -25,16 +25,18 @@ import { PaymentsTable } from "../../property/payments-table";
 import { AddMemberDialog } from "../add-member-dialog";
 import { SendReminderDialog } from "../send-reminder-dialog";
 import { InviteToPortalDialog } from "./invite-to-portal-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
-// TODO: `./back-to-members-button`, `./member-statement-dialog`, `./member-tags`,
-// `./member-activity`, and `./member-documents` were referenced here but never
-// implemented -- confirmed via `git log --all` that no commit on any branch
-// in this repo ever added these files. This is member-CRM scope (tags,
-// activity log, document uploads, PDF statement, a dedicated back button),
-// which is out of scope for the current baseline cleanup. The imports and
-// their JSX usage below were removed pending that feature; see git history
-// for `app/[locale]/(app)/members/[memberId]/page.tsx`.
+// TODO: `./member-statement-dialog`, `./member-tags`, `./member-activity`,
+// and `./member-documents` were referenced here but never implemented --
+// confirmed via `git log --all` that no commit on any branch in this repo
+// ever added these files. This is member-CRM scope (tags, activity log,
+// document uploads, PDF statement), which is out of scope for the current
+// baseline cleanup. The imports and their JSX usage below were removed
+// pending that feature; see git history for
+// `app/[locale]/(app)/members/[memberId]/page.tsx`.
+// (`./back-to-members-button` was also removed here, but replaced with a
+// plain Link below -- back-navigation isn't CRM scope.)
 
 export default async function MemberDetailPage({
   params,
@@ -130,7 +132,14 @@ export default async function MemberDetailPage({
 
   return (
     <main className="space-y-6 p-6">
-      {/* TODO: BackToMembersButton was never implemented -- removed, see top-of-file TODO. */}
+      <Link
+        href="/members"
+        locale={locale}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+        {isAr ? "رجوع للأعضاء" : "Back to members"}
+      </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
