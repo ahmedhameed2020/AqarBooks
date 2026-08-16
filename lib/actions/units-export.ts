@@ -30,7 +30,7 @@ export async function exportUnitsCsvAction(filters: {
     .from("units_with_financials")
     .select("*")
     .eq("organization_id", organization.id)
-    .eq("resort_id", filters.resortId);
+    .eq("property_id", filters.resortId);
 
   if (filters.q) {
     const term = filters.q.replace(/"/g, "");
