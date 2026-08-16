@@ -38,6 +38,7 @@ export type Database = {
           name: string;
           code: string;
           timezone: string;
+          property_type: string;
           created_at: string;
           updated_at: string;
         };
@@ -47,6 +48,7 @@ export type Database = {
           name: string;
           code: string;
           timezone?: string;
+          property_type?: string;
         };
         Update: Partial<Database["public"]["Tables"]["resorts"]["Row"]>;
         Relationships: [];
