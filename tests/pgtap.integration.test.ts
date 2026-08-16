@@ -374,10 +374,24 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(outsiderSelect).toEqual([]);
 
     // Cleanup.
+    const outsiderId = outsiderUser!.user!.id;
     await admin.from("resorts").delete().eq("id", resortId);
     await admin.from("resorts").delete().eq("id", ownerResortId);
-    await admin.auth.admin.deleteUser(outsiderUser!.user!.id);
-    await admin.auth.admin.deleteUser(ownerId);
+
+    // Foreign keys from platform_audit_logs.actor_id, user_role_assignments,
+    // and organization_memberships still reference these auth users -- they
+    // must be removed before deleteUser or the delete fails with a 500
+    // ("Database error deleting user"), silently leaking the auth.users row.
+    await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
+    await admin.from("platform_audit_logs").delete().eq("actor_id", outsiderId);
+    await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
+    await admin.from("organization_memberships").delete().eq("user_id", ownerId);
+
+    const { error: deleteOutsiderErr } = await admin.auth.admin.deleteUser(outsiderId);
+    expect(deleteOutsiderErr).toBeNull();
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
 
@@ -569,7 +583,19 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(afterRestore?.is_active).toBe(true);
 
     // Cleanup.
-    await admin.auth.admin.deleteUser(ownerId);
+    // Foreign keys from platform_audit_logs.actor_id, units.created_by/
+    // units.archived_by, user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId -- they must
+    // be removed before deleteUser or the delete fails with a 500
+    // ("Database error deleting user"), silently leaking the auth.users row.
+    await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
+    await admin.from("units").delete().eq("id", unitId);
+    await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
+    await admin.from("organization_memberships").delete().eq("user_id", ownerId);
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
 });
