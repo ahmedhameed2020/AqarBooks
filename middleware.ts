@@ -14,7 +14,10 @@ function isProtectedPath(pathname: string) {
   return PROTECTED_SEGMENTS.includes(segments[1] ?? "");
 }
 
-export async function proxy(request: NextRequest) {
+// Named `middleware` (not Next 16's `proxy`) on purpose: `proxy.*` is pinned to
+// the Node.js runtime by `next build`, and @opennextjs/cloudflare only supports
+// edge middleware. See docs/deployment.md for the full rationale.
+export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
 
   const supabase = createServerClient<Database>(
