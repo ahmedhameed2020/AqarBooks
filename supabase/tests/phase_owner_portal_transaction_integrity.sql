@@ -82,7 +82,7 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_a, 'اشتراك', 'Dues', v_revenue_a) returning id into v_due_type_a;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_a, v_resort_a, 'PTA-101', 'VILLA') returning id into v_unit_a;
 
   -- issue_dues() -> has_financial_permission() requires an ACTIVE

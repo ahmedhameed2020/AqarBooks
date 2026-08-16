@@ -94,7 +94,7 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_a, 'صيانة', 'Maintenance', v_revenue_a) returning id into v_due_type_a;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_a, v_resort_a, 'PDA-1', 'VILLA') returning id into v_unit_a;
 
   insert into public.members (organization_id, full_name, user_id)
@@ -163,7 +163,7 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_c, 'صيانة', 'Maintenance', v_revenue_c) returning id into v_due_type_c;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_c, v_resort_c, 'PDC-1', 'VILLA') returning id into v_unit_c;
 
   insert into public.members (organization_id, full_name, user_id)

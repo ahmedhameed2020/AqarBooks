@@ -108,10 +108,10 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_id, 'اشتراك', 'Dues', v_receivable_account_id) returning id into v_due_type_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort_id, 'ROP-U1-' || clock_timestamp()::text, 'VILLA') returning id into v_unit_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort_id, 'ROP-U2-' || clock_timestamp()::text, 'VILLA') returning id into v_unit_unowned_id;
   -- v_unit_unowned_id deliberately gets NO unit_ownerships row for
   -- v_member_id -- scenario 6.
@@ -168,7 +168,7 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org2_id, 'اشتراك', 'Dues', v_receivable_account_b_id) returning id into v_due_type_b_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org2_id, v_resort_b_id, 'ROP-B-U1-' || clock_timestamp()::text, 'VILLA') returning id into v_unit_b_id;
 
   insert into public.members (organization_id, full_name)

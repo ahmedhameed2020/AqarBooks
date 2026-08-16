@@ -93,13 +93,13 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_id, 'اشتراك', 'Dues', v_asset_account_id) returning id into v_due_type_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort1_id, 'P5C-U1-' || v_run_suffix, 'VILLA') returning id into v_unit1_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort2_id, 'P5C-U2-' || v_run_suffix, 'VILLA') returning id into v_unit2_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort1_id, 'P5C-U3-' || v_run_suffix, 'VILLA') returning id into v_unit_unowned_id;
   -- v_unit_unowned_id deliberately gets NO unit_ownerships row for
   -- v_member_id -- scenario 3.
