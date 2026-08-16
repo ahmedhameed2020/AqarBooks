@@ -59,6 +59,7 @@ declare
   v_due_cross_b_id uuid; -- resort2, ISSUED, owned -- scenario 2
   v_due_unowned_id uuid; -- resort1, ISSUED, NOT owned -- scenario 3
   v_due_paid_id uuid;    -- resort1, PAID, owned -- scenario 4
+  v_due_double_id uuid;  -- resort1, ISSUED, owned -- scenario 8 (double-booking)
 
   v_result record;
   v_txn_count_before integer;
@@ -132,6 +133,10 @@ begin
   insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 200, current_date, current_date + 30, 'PAID')
   returning id into v_due_paid_id;
+
+  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 150, current_date, current_date + 30, 'ISSUED')
+  returning id into v_due_double_id;
 
   raise notice 'phase_owner_portal_checkout_transaction.sql: fixtures ready (org=%, member=%)', v_org_id, v_member_id;
 
@@ -326,6 +331,83 @@ begin
   raise notice 'SCENARIO 6 (PAYMOB provider rejected, atomic): PASS';
 
   -----------------------------------------------------------------------
+  -- SCENARIO 7: empty array (array[]::uuid[]) rejected with
+  -- NO_DUES_SELECTED (sqlstate 22023). array_length() of an empty array is
+  -- NULL in Postgres, so this hits the same `p_due_ids is null or
+  -- array_length(p_due_ids, 1) is null` guard as a NULL array. Atomicity
+  -- proof as above.
+  -----------------------------------------------------------------------
+  select count(*) into v_txn_count_before from public.online_payment_transactions where organization_id = v_org_id;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_user::text, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+
+  v_error_caught := false;
+  v_sqlstate := null;
+  begin
+    perform public.create_online_payment_checkout_transaction(array[]::uuid[], 'FAWRY');
+  exception when others then
+    v_error_caught := true;
+    get stacked diagnostics v_sqlstate = returned_sqlstate;
+  end;
+
+  reset role;
+
+  assert v_error_caught and v_sqlstate = '22023',
+    format('FAIL scenario 7: expected sqlstate 22023 (NO_DUES_SELECTED), got error_caught=%s sqlstate=%s', v_error_caught, v_sqlstate);
+
+  select count(*) into v_txn_count_after from public.online_payment_transactions where organization_id = v_org_id;
+  assert v_txn_count_after = v_txn_count_before,
+    format('FAIL scenario 7: expected no new transaction row, before=%s after=%s', v_txn_count_before, v_txn_count_after);
+
+  raise notice 'SCENARIO 7 (empty due array rejected, atomic): PASS';
+
+  -----------------------------------------------------------------------
+  -- SCENARIO 8: double-booking guard -- two sequential checkout calls for
+  -- the SAME due. The first succeeds; the second must be rejected with
+  -- DUE_HAS_PENDING_CHECKOUT (sqlstate 22023), and a fresh select must show
+  -- exactly ONE transaction+allocation pair for this due, not two.
+  -----------------------------------------------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_user::text, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+
+  select * into v_result from public.create_online_payment_checkout_transaction(array[v_due_double_id], 'FAWRY');
+
+  reset role;
+
+  assert v_result.transaction_id is not null, 'FAIL scenario 8 setup: first call for v_due_double_id should have succeeded';
+
+  select count(*) into v_txn_count_before from public.online_payment_transactions where organization_id = v_org_id;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_owner_user::text, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+
+  v_error_caught := false;
+  v_sqlstate := null;
+  begin
+    perform public.create_online_payment_checkout_transaction(array[v_due_double_id], 'FAWRY');
+  exception when others then
+    v_error_caught := true;
+    get stacked diagnostics v_sqlstate = returned_sqlstate;
+  end;
+
+  reset role;
+
+  assert v_error_caught and v_sqlstate = '22023',
+    format('FAIL scenario 8: expected sqlstate 22023 (DUE_HAS_PENDING_CHECKOUT) on the second call, got error_caught=%s sqlstate=%s', v_error_caught, v_sqlstate);
+
+  select count(*) into v_txn_count_after from public.online_payment_transactions where organization_id = v_org_id;
+  assert v_txn_count_after = v_txn_count_before,
+    format('FAIL scenario 8: expected no new transaction row from the rejected second call, before=%s after=%s', v_txn_count_before, v_txn_count_after);
+
+  -- Fresh, separate select -- proves exactly one transaction+allocation
+  -- pair exists for this due, not two (the bug this fix closes).
+  select count(*) into v_alloc_count from public.online_payment_transaction_allocations where due_id = v_due_double_id;
+  assert v_alloc_count = 1, format('FAIL scenario 8: expected exactly 1 allocation row for v_due_double_id, got %s', v_alloc_count);
+
+  raise notice 'SCENARIO 8 (double-booking rejected, only 1 transaction+allocation pair exists): PASS';
+
+  -----------------------------------------------------------------------
   -- Cleanup -- unconditional, matches this repo's established
   -- never-hard-delete convention (see phase_owner_portal_record_online_payment.sql
   -- for the identical rationale: this script's dues are real receivable
@@ -339,5 +421,5 @@ begin
   update public.members set user_id = null where id = v_member_id;
   perform public.set_organization_status(v_org_id, 'ARCHIVED', 'phase_owner_portal_checkout_transaction test cleanup');
 
-  raise notice 'phase_owner_portal_checkout_transaction.sql: all 6 SQL scenarios passed (atomicity property additionally verified inline in scenarios 2-6), cleanup complete';
+  raise notice 'phase_owner_portal_checkout_transaction.sql: all 8 SQL scenarios passed (atomicity property additionally verified inline in scenarios 2-8), cleanup complete';
 end $$;
