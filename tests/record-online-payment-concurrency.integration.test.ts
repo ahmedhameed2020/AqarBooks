@@ -138,7 +138,7 @@ describe("record_online_payment concurrent replay", () => {
 
     const { data: unit, error: unitErr } = await admin
       .from("units")
-      .insert({ organization_id: orgId, resort_id: resortId, code: `CONC-U1-${runSuffix}`, unit_type: "VILLA" })
+      .insert({ organization_id: orgId, property_id: resortId, code: `CONC-U1-${runSuffix}`, unit_type: "VILLA" })
       .select("id")
       .single();
     expect(unitErr).toBeNull();

@@ -106,7 +106,7 @@ async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
   const unitCode = `UNIT-${label}`;
   const { data: unit, error: unitError } = await admin
     .from("units")
-    .insert({ organization_id: org!.id, resort_id: resort, code: unitCode, unit_type: "VILLA" })
+    .insert({ organization_id: org!.id, property_id: resort, code: unitCode, unit_type: "VILLA" })
     .select("id")
     .single();
   expect(unitError, `unit insert failed: ${unitError?.message}`).toBeNull();
