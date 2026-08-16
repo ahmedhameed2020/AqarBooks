@@ -599,7 +599,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
 
-  it("10. Phase 2b-3 platform_audit_logs Property-ID Rename Integrity (create_resort end-to-end via RPC)", async () => {
+  it("9. Phase 2b-3 platform_audit_logs Property-ID Rename Integrity (create_resort end-to-end via RPC)", async () => {
     const { data: org } = await admin
       .from("organizations")
       .insert({
@@ -706,8 +706,6 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // error deleting user"), silently leaking the auth.users row.
     await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
     await admin.from("resorts").delete().eq("id", resortId);
-    await admin.from("units").delete().eq("created_by", ownerId);
-    await admin.from("units").delete().eq("archived_by", ownerId);
     await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
     await admin.from("organization_memberships").delete().eq("user_id", ownerId);
 
