@@ -62,12 +62,12 @@ export async function importPropertyCsvAction(
         .from("buildings")
         .select("id, code")
         .eq("organization_id", organization.id)
-        .eq("resort_id", resortId),
+        .eq("property_id", resortId),
       supabase
         .from("zones")
         .select("id, code")
         .eq("organization_id", organization.id)
-        .eq("resort_id", resortId),
+        .eq("property_id", resortId),
       supabase
         .from("members")
         .select("id, email, phone")

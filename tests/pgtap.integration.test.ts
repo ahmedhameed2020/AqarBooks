@@ -211,4 +211,507 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("7. Phase 2a Resorts-View Compatibility Shim Integrity (auto-updatable view + real-user RLS)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ResortsViewShim Org",
+        slug: `pgtap-resorts-view-shim-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // --- Part A: auto-updatable-view mechanics (service-role client) ---
+
+    const { data: viewInsert, error: viewInsertErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "Shim Test Resort",
+        code: `SHIM-${Date.now()}`,
+      })
+      .select("id, name, property_type")
+      .single();
+
+    expect(viewInsertErr).toBeNull();
+    expect(viewInsert?.id).toBeTruthy();
+    expect(viewInsert?.property_type).toBe("resort");
+    const resortId = viewInsert!.id;
+
+    const { data: viaTable, error: tableSelectErr } = await admin
+      .from("properties")
+      .select("id, name")
+      .eq("id", resortId)
+      .single();
+
+    expect(tableSelectErr).toBeNull();
+    expect(viaTable?.id).toBe(resortId);
+    expect(viaTable?.name).toBe("Shim Test Resort");
+
+    const { error: viewUpdateErr } = await admin
+      .from("resorts")
+      .update({ name: "Shim Test Resort (renamed)" })
+      .eq("id", resortId);
+
+    expect(viewUpdateErr).toBeNull();
+
+    const { data: afterUpdate } = await admin
+      .from("properties")
+      .select("name")
+      .eq("id", resortId)
+      .single();
+
+    expect(afterUpdate?.name).toBe("Shim Test Resort (renamed)");
+
+    // --- Part B: RLS is correctly enforced through the view for a real
+    // (non-service-role) session, not just bypassed like the admin client
+    // above. This is the part that actually justifies the migration
+    // comment's claim.
+
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-resorts-view-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // Positive case: the org owner (has tenant.settings.manage via RLS's
+    // resorts_manage policy) can INSERT through the `resorts` view under
+    // their own real session -- this only works if RLS is evaluated
+    // correctly against the view, not just the underlying table.
+    const { data: ownerInsert, error: ownerInsertErr } = await ownerClient
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "RLS Owner Resort",
+        code: `RLS-OWNER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(ownerInsertErr).toBeNull();
+    expect(ownerInsert?.id).toBeTruthy();
+    const ownerResortId = ownerInsert!.id;
+
+    // Negative case: an unrelated user with no membership/role in this
+    // organization must be blocked by RLS's resorts_select_member policy
+    // when querying through the view -- proves the view isn't accidentally
+    // more permissive than the underlying table (RLS SELECT policies
+    // filter rows rather than raising errors, so we assert an empty result,
+    // not an error).
+    const outsiderEmail = `pgtap-resorts-view-outsider-${Date.now()}@aqarbooks-test.local`;
+    const { data: outsiderUser, error: createOutsiderErr } = await admin.auth.admin.createUser({
+      email: outsiderEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOutsiderErr).toBeNull();
+
+    const outsiderClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: outsiderSignInErr } = await outsiderClient.auth.signInWithPassword({
+      email: outsiderEmail,
+      password,
+    });
+    expect(outsiderSignInErr).toBeNull();
+
+    const { data: outsiderSelect, error: outsiderSelectErr } = await outsiderClient
+      .from("resorts")
+      .select("id")
+      .eq("id", ownerResortId);
+
+    expect(outsiderSelectErr).toBeNull();
+    expect(outsiderSelect).toEqual([]);
+
+    // Cleanup.
+    const outsiderId = outsiderUser!.user!.id;
+    await admin.from("resorts").delete().eq("id", resortId);
+    await admin.from("resorts").delete().eq("id", ownerResortId);
+
+    // Foreign keys from platform_audit_logs.actor_id, user_role_assignments,
+    // and organization_memberships still reference these auth users -- they
+    // must be removed before deleteUser or the delete fails with a 500
+    // ("Database error deleting user"), silently leaking the auth.users row.
+    await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
+    await admin.from("platform_audit_logs").delete().eq("actor_id", outsiderId);
+    await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
+    await admin.from("organization_memberships").delete().eq("user_id", ownerId);
+
+    const { error: deleteOutsiderErr } = await admin.auth.admin.deleteUser(outsiderId);
+    expect(deleteOutsiderErr).toBeNull();
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
+
+  it("8. Phase 2b-1 Property-ID Cluster Rename Integrity (zones/buildings/units end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP PropertyIdCluster Org",
+        slug: `pgtap-property-id-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // A resort row: this table is unaffected by this migration.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "PropertyIdCluster Resort",
+        code: `PIC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // Zone and building created directly with `property_id` -- this proves
+    // the column rename on zones/buildings applied. If the column were
+    // still `resort_id`, this insert would fail (strict mode) or the row
+    // would never be found scoped by `property_id` on read-back.
+    const { data: zone, error: zoneErr } = await admin
+      .from("zones")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        name_ar: "منطقة اختبار",
+        name_en: "Test Zone",
+      })
+      .select("id, property_id")
+      .single();
+
+    expect(zoneErr).toBeNull();
+    expect(zone?.property_id).toBe(resortId);
+    const zoneId = zone!.id;
+
+    const { data: building, error: buildingErr } = await admin
+      .from("buildings")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: `BLD-${Date.now()}`,
+        name_ar: "مبنى اختبار",
+        name_en: "Test Building",
+      })
+      .select("id, property_id")
+      .single();
+
+    expect(buildingErr).toBeNull();
+    expect(building?.property_id).toBe(resortId);
+    const buildingId = building!.id;
+
+    // import_property_csv / archive_unit / restore_unit are all
+    // permission-gated via has_permission(auth.uid(), ...), which requires
+    // a real authenticated user with a role assignment -- the service-role
+    // admin client has no auth.uid() and would be rejected as
+    // "not authorized". Stand up a real TENANT_OWNER session, matching
+    // test 7's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-property-id-cluster-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // The RPC parameter is still named `p_resort_id` (unchanged in this
+    // phase) but must map onto the renamed `property_id` column
+    // underneath -- this is exactly the surgical edit this test is meant
+    // to catch if missed.
+    const unitCode = `UNIT-PIC-${Date.now()}`;
+    const { data: importResult, error: importErr } = await ownerClient.rpc(
+      "import_property_csv",
+      {
+        p_organization_id: orgId,
+        p_import_kind: "units",
+        p_resort_id: resortId,
+        p_rows: [
+          {
+            code: unitCode,
+            unit_type: "APARTMENT",
+            building_id: buildingId,
+            zone_id: zoneId,
+          },
+        ],
+      },
+    );
+
+    expect(importErr).toBeNull();
+    expect(importResult?.imported_rows).toBe(1);
+
+    const { data: importedUnit, error: importedUnitErr } = await admin
+      .from("units")
+      .select("id, property_id, code, is_active")
+      .eq("organization_id", orgId)
+      .eq("code", unitCode)
+      .single();
+
+    expect(importedUnitErr).toBeNull();
+    expect(importedUnit?.property_id).toBe(resortId);
+    expect(importedUnit?.code).toBe(unitCode);
+    expect(importedUnit?.is_active).toBe(true);
+    const unitId = importedUnit!.id;
+
+    // archive_unit
+    const { error: archiveErr } = await ownerClient.rpc("archive_unit", {
+      p_organization_id: orgId,
+      p_unit_id: unitId,
+      p_reason: "pgTAP property-id-cluster test",
+    });
+    expect(archiveErr).toBeNull();
+
+    const { data: afterArchive, error: afterArchiveErr } = await admin
+      .from("units")
+      .select("is_active")
+      .eq("id", unitId)
+      .single();
+    expect(afterArchiveErr).toBeNull();
+    expect(afterArchive?.is_active).toBe(false);
+
+    // restore_unit
+    const { error: restoreErr } = await ownerClient.rpc("restore_unit", {
+      p_organization_id: orgId,
+      p_unit_id: unitId,
+    });
+    expect(restoreErr).toBeNull();
+
+    const { data: afterRestore, error: afterRestoreErr } = await admin
+      .from("units")
+      .select("is_active")
+      .eq("id", unitId)
+      .single();
+    expect(afterRestoreErr).toBeNull();
+    expect(afterRestore?.is_active).toBe(true);
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id, units.created_by/
+    // units.archived_by, user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId -- they must
+    // be removed before deleteUser or the delete fails with a 500
+    // ("Database error deleting user"), silently leaking the auth.users row.
+    await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
+    await admin.from("units").delete().eq("id", unitId);
+    await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
+    await admin.from("organization_memberships").delete().eq("user_id", ownerId);
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
+
+  it("9. Phase 2b-3 platform_audit_logs Property-ID Rename Integrity (create_resort end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP AuditLogsPropertyId Org",
+        slug: `pgtap-audit-logs-property-id-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // create_resort is permission-gated via has_permission(auth.uid(), ...,
+    // 'tenant.settings.manage'), which requires a real authenticated user
+    // with a role assignment -- the service-role admin client has no
+    // auth.uid() and would be rejected as "not authorized". Stand up a real
+    // TENANT_OWNER session, matching tests 7/8's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-audit-logs-property-id-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // create_resort inserts into platform_audit_logs with the renamed
+    // property_id column -- if the column were still resort_id (or the
+    // function's INSERT column list hadn't been updated), this call would
+    // fail with "column resort_id does not exist" / "column property_id of
+    // relation platform_audit_logs does not exist".
+    const resortCode = `AUDIT-PIC-${Date.now()}`;
+    const { data: resortId, error: createResortErr } = await ownerClient.rpc("create_resort", {
+      p_organization_id: orgId,
+      p_name: "AuditLogs PropertyId Resort",
+      p_code: resortCode,
+      p_timezone: "Africa/Cairo",
+    });
+
+    expect(createResortErr).toBeNull();
+    expect(resortId).toBeTruthy();
+
+    // Read the resulting platform_audit_logs row directly to prove both
+    // that the INSERT succeeded against the renamed column and that the
+    // value landed correctly.
+    const { data: auditLog, error: auditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "resort")
+      .eq("entity_id", resortId)
+      .eq("action", "resort.created")
+      .single();
+
+    expect(auditLogErr).toBeNull();
+    expect(auditLog?.property_id).toBe(resortId);
+    expect(auditLog?.action).toBe("resort.created");
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id, resorts.created_by/
+    // updated_by, user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId -- they must
+    // be removed before deleteUser or the delete fails with a 500 ("Database
+    // error deleting user"), silently leaking the auth.users row.
+    await admin.from("platform_audit_logs").delete().eq("actor_id", ownerId);
+    await admin.from("resorts").delete().eq("id", resortId);
+    await admin.from("user_role_assignments").delete().eq("user_id", ownerId);
+    await admin.from("organization_memberships").delete().eq("user_id", ownerId);
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });

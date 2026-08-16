@@ -53,6 +53,38 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["resorts"]["Row"]>;
         Relationships: [];
       };
+      properties: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone: string;
+          property_type: string;
+          address: string | null;
+          governorate: string | null;
+          phone: string | null;
+          email: string | null;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone?: string;
+          property_type?: string;
+          address?: string | null;
+          governorate?: string | null;
+          phone?: string | null;
+          email?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["properties"]["Row"]>;
+        Relationships: [];
+      };
       plans: {
         Row: {
           id: string;
@@ -168,7 +200,7 @@ export type Database = {
           id: string;
           actor_id: string | null;
           organization_id: string | null;
-          resort_id: string | null;
+          property_id: string | null;
           action: string;
           entity_type: string;
           entity_id: string | null;
@@ -180,7 +212,7 @@ export type Database = {
           id?: string;
           actor_id?: string | null;
           organization_id?: string | null;
-          resort_id?: string | null;
+          property_id?: string | null;
           action: string;
           entity_type: string;
           entity_id?: string | null;
@@ -352,8 +384,8 @@ export type Database = {
         Relationships: [];
       };
       zones: {
-        Row: { id: string; organization_id: string; resort_id: string; name_ar: string; name_en: string };
-        Insert: { id?: string; organization_id: string; resort_id: string; name_ar: string; name_en: string };
+        Row: { id: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
+        Insert: { id?: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
         Update: Partial<Database["public"]["Tables"]["zones"]["Row"]>;
         Relationships: [];
       };
@@ -361,7 +393,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           zone_id: string | null;
           code: string;
           name_ar: string;
@@ -370,7 +402,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           zone_id?: string | null;
           code: string;
           name_ar: string;
@@ -383,7 +415,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id: string | null;
           zone_id: string | null;
           code: string;
@@ -396,7 +428,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id?: string | null;
           zone_id?: string | null;
           code: string;
@@ -834,7 +866,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id: string | null;
           zone_id: string | null;
           code: string;
