@@ -1105,4 +1105,359 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("12. Phase 2d Purchasing Cluster Property-ID Rename Integrity (create_purchase_request/decide_purchase_request/post_supplier_invoice/cancel_supplier_invoice end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP PurchasingClusterPropertyId Org",
+        slug: `pgtap-purchasing-cluster-property-id-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // create_fiscal_year / set_fiscal_period_status / create_purchase_request
+    // / decide_purchase_request / post_supplier_invoice /
+    // cancel_supplier_invoice are all permission-gated via
+    // has_financial_permission/has_permission(auth.uid(), ...), which
+    // requires a real authenticated user with a role assignment -- the
+    // service-role admin client has no auth.uid() and would be rejected as
+    // "not authorized". Stand up a real TENANT_OWNER session up front,
+    // matching tests 7/8/10/11's pattern. TENANT_OWNER is granted
+    // "everything except platform.* permissions" (see
+    // 20260810000012_phase2_seed.sql), which covers finance.periods.manage,
+    // purchasing.requests.create, purchasing.orders.approve,
+    // finance.entries.create, finance.suppliers.void, and finance.entries.post
+    // all at once.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-purchasing-cluster-property-id-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // Chart of accounts: needed for the supplier's payable account and the
+    // invoice's expense account. chart_of_accounts has no RLS write policy
+    // gating these direct inserts (clone_chart_of_accounts_template is the
+    // permission-gated RPC path; a direct admin insert is simpler here and
+    // matches test 11's pattern for its cashbox GL account).
+    const { data: payableAcc, error: payableAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `2100-${Date.now()}`,
+        name_ar: "ذمم الموردين الدائنة اختبار",
+        name_en: "Test Accounts Payable",
+        category: "LIABILITY",
+        normal_balance: "CREDIT",
+      })
+      .select("id")
+      .single();
+    expect(payableAccErr).toBeNull();
+
+    const { data: expenseAcc, error: expenseAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `5200-${Date.now()}`,
+        name_ar: "الصيانة والتشغيل اختبار",
+        name_en: "Test Maintenance & Operations",
+        category: "EXPENSE",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(expenseAccErr).toBeNull();
+
+    // An OPEN fiscal period: post_supplier_invoice/cancel_supplier_invoice
+    // both post real journal entries via create_journal_entry_internal +
+    // post_journal_entry_internal, which require an OPEN period covering
+    // the entry date.
+    const { data: yearId, error: yearErr } = await ownerClient.rpc("create_fiscal_year", {
+      p_organization_id: orgId,
+      p_name: "2026",
+      p_start_date: "2026-01-01",
+      p_end_date: "2026-12-31",
+    });
+    expect(yearErr).toBeNull();
+
+    // cancel_supplier_invoice posts its reversing entry with entry_date =
+    // current_date (the real wall-clock date), not the invoice's own date --
+    // so the period picked here must cover *today*, not just the year's
+    // first period, or post_journal_entry_internal's "entry date does not
+    // belong to the selected period" check fails on the cancellation.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: period, error: periodErr } = await admin
+      .from("fiscal_periods")
+      .select("id")
+      .eq("fiscal_year_id", yearId)
+      .lte("start_date", todayIso)
+      .gte("end_date", todayIso)
+      .single();
+    expect(periodErr).toBeNull();
+    const periodId = period!.id;
+
+    const { error: openPeriodErr } = await ownerClient.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodId,
+      p_status: "OPEN",
+      p_reason: "pgTAP purchasing-cluster setup",
+    });
+    expect(openPeriodErr).toBeNull();
+
+    // A resort row: create_purchase_request/post_supplier_invoice both
+    // require the resort to belong to the same organization.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "PurchasingClusterPropertyId Resort",
+        code: `PCPI-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // A supplier row: post_supplier_invoice looks up suppliers.payable_account_id.
+    const { data: supplier, error: supplierErr } = await admin
+      .from("suppliers")
+      .insert({
+        organization_id: orgId,
+        name: "PurchasingClusterPropertyId Supplier",
+        payable_account_id: payableAcc!.id,
+      })
+      .select("id")
+      .single();
+
+    expect(supplierErr).toBeNull();
+    const supplierId = supplier!.id;
+
+    // create_purchase_request: its RPC parameter is still named
+    // `p_resort_id` (unchanged in this phase) but must land in the renamed
+    // `property_id` column of `purchase_requests` -- this is exactly the
+    // INSERT-column-list edit this test is meant to catch if missed.
+    const { data: requestId, error: createRequestErr } = await ownerClient.rpc(
+      "create_purchase_request",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_description: "PurchasingClusterPropertyId Request",
+        p_estimated_amount: 1000,
+      },
+    );
+
+    expect(createRequestErr).toBeNull();
+    expect(requestId).toBeTruthy();
+
+    const { data: request, error: requestReadErr } = await admin
+      .from("purchase_requests")
+      .select("id, property_id")
+      .eq("id", requestId)
+      .single();
+
+    expect(requestReadErr).toBeNull();
+    expect(request?.property_id).toBe(resortId);
+
+    // decide_purchase_request: proves the single-occurrence row-typed-variable
+    // field-access edit (v_request.property_id, formerly v_request.resort_id)
+    // works -- if it didn't, this call would fail with a hard Postgres error
+    // since purchase_requests.resort_id no longer exists.
+    const { error: decideErr } = await ownerClient.rpc("decide_purchase_request", {
+      p_request_id: requestId,
+      p_approve: true,
+      p_reason: "pgTAP approval",
+    });
+
+    expect(decideErr).toBeNull();
+
+    const { data: decideAuditLog, error: decideAuditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "purchase_request")
+      .eq("entity_id", requestId)
+      .eq("action", "purchase_request.approved")
+      .single();
+
+    expect(decideAuditLogErr).toBeNull();
+    expect(decideAuditLog?.property_id).toBe(resortId);
+
+    // post_supplier_invoice: another INSERT-column-list edit, this time on
+    // `supplier_invoices`. No purchase order is attached (p_purchase_order_id
+    // is null) to keep setup minimal -- this path is independently valid per
+    // the function body.
+    const invoiceNumber = `INV-PCPI-${Date.now()}`;
+    const { data: invoiceId, error: postInvoiceErr } = await ownerClient.rpc(
+      "post_supplier_invoice",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_supplier_id: supplierId,
+        p_purchase_order_id: null,
+        p_invoice_number: invoiceNumber,
+        p_expense_account_id: expenseAcc!.id,
+        p_net_amount: 500,
+        p_discount_amount: 0,
+        p_vat_rate: 0,
+        p_vat_account_id: null,
+        p_wht_rate: 0,
+        p_wht_account_id: null,
+        p_invoice_date: todayIso,
+        p_due_date: todayIso,
+        p_fiscal_period_id: periodId,
+      },
+    );
+
+    expect(postInvoiceErr).toBeNull();
+    expect(invoiceId).toBeTruthy();
+
+    const { data: invoice, error: invoiceReadErr } = await admin
+      .from("supplier_invoices")
+      .select("id, property_id")
+      .eq("id", invoiceId)
+      .single();
+
+    expect(invoiceReadErr).toBeNull();
+    expect(invoice?.property_id).toBe(resortId);
+
+    // cancel_supplier_invoice: the highest-risk edit shape in this cluster --
+    // v_invoice.property_id (formerly v_invoice.resort_id) is read THREE
+    // times in this one function body (has_financial_permission argument,
+    // create_journal_entry_internal argument, and the platform_audit_logs
+    // value). If even one of the three occurrences had been missed, this
+    // call would fail with a hard Postgres error since
+    // supplier_invoices.resort_id no longer exists.
+    const { error: cancelErr } = await ownerClient.rpc("cancel_supplier_invoice", {
+      p_organization_id: orgId,
+      p_invoice_id: invoiceId,
+      p_fiscal_period_id: periodId,
+      p_reason: "pgTAP cancellation",
+    });
+
+    expect(cancelErr).toBeNull();
+
+    const { data: cancelAuditLog, error: cancelAuditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "supplier_invoice")
+      .eq("entity_id", invoiceId)
+      .eq("action", "supplier_invoice.cancelled")
+      .single();
+
+    expect(cancelAuditLogErr).toBeNull();
+    expect(cancelAuditLog?.property_id).toBe(resortId);
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id, purchase_requests
+    // (requested_by/approved_by), supplier_invoices (created_by/reversed_by),
+    // journal_entries.created_by, user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId -- they must
+    // be removed before deleteUser or the delete fails with a 500 ("Database
+    // error deleting user"), silently leaking the auth.users row.
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("actor_id", ownerId);
+    expect(deleteAuditErr).toBeNull();
+
+    // supplier_invoices.journal_entry_id references journal_entries, so the
+    // invoice must be deleted before its journal entry.
+    const { error: deleteInvoiceErr } = await admin
+      .from("supplier_invoices")
+      .delete()
+      .eq("id", invoiceId);
+    expect(deleteInvoiceErr).toBeNull();
+
+    // journal_entry_lines.journal_entry_id has ON DELETE CASCADE, so
+    // deleting the parent journal_entries rows below removes their lines
+    // automatically.
+    const { error: deleteJournalEntriesErr } = await admin
+      .from("journal_entries")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteJournalEntriesErr).toBeNull();
+
+    const { error: deleteRequestErr } = await admin
+      .from("purchase_requests")
+      .delete()
+      .eq("id", requestId);
+    expect(deleteRequestErr).toBeNull();
+
+    const { error: deleteSupplierErr } = await admin
+      .from("suppliers")
+      .delete()
+      .eq("id", supplierId);
+    expect(deleteSupplierErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    // The payable/expense GL accounts are not deleted here: they've been
+    // posted to by the journal entries above, so `chart_of_accounts.is_used`
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_FORBIDDEN)
+    // -- the same reason test 1's cashAcc/revAcc are left in place. They stay
+    // attached to the archived org below, consistent with that precedent.
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });

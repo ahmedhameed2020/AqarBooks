@@ -717,7 +717,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           description: string;
           estimated_amount: number;
           status: "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -733,7 +733,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           purchase_request_id: string | null;
           order_number: number | null;
@@ -751,7 +751,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           purchase_order_id: string | null;
           invoice_number: string;
@@ -772,7 +772,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           amount: number;
           method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "OTHER";
