@@ -359,7 +359,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { auth: { persistSession: false } },
     );
-    await outsiderClient.auth.signInWithPassword({ email: outsiderEmail, password });
+    const { error: outsiderSignInErr } = await outsiderClient.auth.signInWithPassword({
+      email: outsiderEmail,
+      password,
+    });
+    expect(outsiderSignInErr).toBeNull();
 
     const { data: outsiderSelect, error: outsiderSelectErr } = await outsiderClient
       .from("resorts")
