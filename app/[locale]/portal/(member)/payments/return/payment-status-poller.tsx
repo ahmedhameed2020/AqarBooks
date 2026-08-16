@@ -14,34 +14,55 @@ const MAX_POLLS = 20; // ~1 minute budget
 export function PaymentStatusPoller({
   transactionId,
   initialStatus,
+  locale,
 }: {
   transactionId: string;
   initialStatus: string;
+  locale: string;
 }) {
+  const isAr = locale === "ar";
   const [status, setStatus] = useState(initialStatus);
   const [pollCount, setPollCount] = useState(0);
 
   useEffect(() => {
     if (status !== "PENDING" || pollCount >= MAX_POLLS) return;
     const timer = setTimeout(async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("online_payment_transactions")
-        .select("status")
-        .eq("id", transactionId)
-        .single();
-      if (data) setStatus(data.status);
-      setPollCount((n) => n + 1);
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("online_payment_transactions")
+          .select("status")
+          .eq("id", transactionId)
+          .single();
+        if (data) setStatus(data.status);
+      } catch {
+        // transient read failure -- still counts toward the poll budget
+        // below, will retry on the next tick rather than freezing here
+      } finally {
+        setPollCount((n) => n + 1);
+      }
     }, POLL_INTERVAL_MS);
     return () => clearTimeout(timer);
   }, [status, pollCount, transactionId]);
 
-  if (status === "PAID") return <div>تم الدفع بنجاح</div>;
+  if (status === "PAID") {
+    return <div>{isAr ? "تم الدفع بنجاح" : "Payment successful"}</div>;
+  }
   if (status === "FAILED" || status === "EXPIRED") {
-    return <div>لم تكتمل عملية الدفع، يرجى المحاولة مرة أخرى</div>;
+    return (
+      <div>
+        {isAr ? "لم تكتمل عملية الدفع، يرجى المحاولة مرة أخرى" : "Payment did not complete, please try again"}
+      </div>
+    );
   }
   if (pollCount >= MAX_POLLS) {
-    return <div>لا تزال المعاملة قيد المعالجة، يرجى مراجعة صفحة المدفوعات لاحقًا</div>;
+    return (
+      <div>
+        {isAr
+          ? "لا تزال المعاملة قيد المعالجة، يرجى مراجعة صفحة المدفوعات لاحقًا"
+          : "Still processing, please check the payments page later"}
+      </div>
+    );
   }
-  return <div>جارٍ التحقق من حالة الدفع...</div>;
+  return <div>{isAr ? "جارٍ التحقق من حالة الدفع..." : "Checking payment status..."}</div>;
 }

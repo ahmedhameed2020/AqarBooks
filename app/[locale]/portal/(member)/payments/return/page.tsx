@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { PaymentStatusPoller } from "./payment-status-poller";
 
 export default async function PaymentReturnPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ txn?: string }>;
 }) {
+  const { locale } = await params;
   const { txn } = await searchParams;
 
   // getPortalMemberContext() returns a discriminated union
@@ -41,5 +44,5 @@ export default async function PaymentReturnPage({
   // Initial server-rendered state is itself derived from the DB row, never
   // from any ?status=/?success= query param the provider's redirect might
   // have appended -- those are read by nothing in this file.
-  return <PaymentStatusPoller transactionId={transaction.id} initialStatus={transaction.status} />;
+  return <PaymentStatusPoller transactionId={transaction.id} initialStatus={transaction.status} locale={locale} />;
 }

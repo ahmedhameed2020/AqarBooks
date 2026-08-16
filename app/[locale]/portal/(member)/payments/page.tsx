@@ -31,18 +31,22 @@ export default async function PortalPaymentsPage({
   // expire_stale_online_payment_transactions() is service_role-only (Phase
   // 3 hardening, unlike the invitation sweep's original unguarded version),
   // so it's called via the admin client, never the per-request RLS-scoped
-  // client above. Best-effort: a failure here must never block the page.
+  // client above. Best-effort: a failure here must never block the page --
+  // run it alongside the page's real data fetches in the Promise.all below
+  // rather than awaiting it standalone first, so it doesn't add a serial
+  // round-trip to every load.
   const adminClient = createAdminClient();
-  const { error: sweepError } = await adminClient.rpc("expire_stale_online_payment_transactions");
-  if (sweepError) {
-    console.error("[PortalPaymentsPage] expire_stale_online_payment_transactions failed:", sweepError.message);
-  }
 
   // get_own_organization_display (SECURITY DEFINER RPC, Task 13) returns at
   // most one row for the caller's own org -- .maybeSingle() to match. No
   // resort lookup: a payment isn't tied to one resort from the portal
   // member's perspective in a way worth building for right now.
-  const [{ data: orgDisplay, error: orgError }, { data: paymentsData, error: paymentsError }] = await Promise.all([
+  const [
+    { error: sweepError },
+    { data: orgDisplay, error: orgError },
+    { data: paymentsData, error: paymentsError },
+  ] = await Promise.all([
+    adminClient.rpc("expire_stale_online_payment_transactions"),
     supabase.rpc("get_own_organization_display").maybeSingle(),
     supabase
       .from("payments")
@@ -50,6 +54,9 @@ export default async function PortalPaymentsPage({
       .eq("member_id", member.id)
       .order("payment_date", { ascending: false }),
   ]);
+  if (sweepError) {
+    console.error("[PortalPaymentsPage] expire_stale_online_payment_transactions failed:", sweepError.message);
+  }
   if (orgError) console.error("[PortalPaymentsPage] organization display query failed:", orgError.message);
   if (paymentsError) console.error("[PortalPaymentsPage] payments query failed:", paymentsError.message);
 
