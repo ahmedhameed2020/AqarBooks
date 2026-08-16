@@ -10,7 +10,7 @@ import { NextRequest } from "next/server";
 // itself (already proven in Phase 4's own suite).
 const mockMaybeSingle = vi.fn();
 const mockRpcSingle = vi.fn();
-const mockRpc = vi.fn(() => ({ single: mockRpcSingle }));
+const mockRpc = vi.fn((..._args: unknown[]) => ({ single: mockRpcSingle }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: mockMaybeSingle }) }) }) }),
