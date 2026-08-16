@@ -1,13 +1,31 @@
 -- Phase 2c of the resort -> property domain rename. Surgically updates the
 -- 6 functions (of 10 candidates referencing bank_accounts/cashboxes/
 -- cashier_sessions/cheques) that actually read the now-renamed resort_id
--- column -- either via a direct INSERT/SELECT column list against one of
--- the 4 treasury tables, or via a field access on a variable typed as one
--- of those tables' rowtype (e.g. v_session.resort_id where
--- v_session public.cashier_sessions). post_payment_internal, record_expense,
--- record_supplier_payment, and set_cheque_status all declare a treasury-
--- table-typed row variable but never read .resort_id off it -- confirmed
--- via full live-body reads, not left unchanged.
+-- column. Two distinct edit shapes appear in this cluster (new to this
+-- rename effort -- prior clusters only needed the first shape):
+--
+-- 1. Direct INSERT/SELECT column-list edits against one of the 4 treasury
+--    tables (create_cashbox, open_cashier_session, record_incoming_cheque).
+--
+-- 2. Row-typed-variable field-access edits: close_cashier_session and
+--    reconcile_cashier_session each declare `v_session public.cashier_sessions;`
+--    and read `v_session.resort_id` elsewhere in the body (as the *value*
+--    passed into platform_audit_logs' already-renamed `property_id` column
+--    -- only the source expression needed updating here, not the target
+--    column name again). clear_incoming_cheque has the same shape via
+--    `v_cheque public.cheques;` / `v_cheque.resort_id`, passed into
+--    record_payment(). This shape is riskier than an INSERT-list miss: since
+--    v_session/v_cheque's declared type is one of the 4 renamed tables,
+--    referencing the old field name after this migration raises a hard
+--    PL/pgSQL error ("record ... has no field ...") the next time the
+--    function runs -- not a silent data bug, but also not something a
+--    tsc/type-level check would catch, since this is plpgsql, not app code.
+--
+-- post_payment_internal, record_expense, record_supplier_payment, and
+-- set_cheque_status all declare a treasury-table-typed row variable but
+-- never read .resort_id off it anywhere in the body -- confirmed via full
+-- live-body reads (not regex alone, which over-matches these 4 as false
+-- positives), left unchanged.
 
 create or replace function public.clear_incoming_cheque(p_cheque_id uuid, p_clearing_date date, p_fiscal_period_id uuid, p_allocations jsonb)
  returns uuid
