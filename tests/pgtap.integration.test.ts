@@ -2073,4 +2073,568 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_transaction/record_online_payment/void_payment end-to-end, completing the record_online_payment + validate_online_payments_clearing_account Phase 2e partial edits)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP PaymentsDuesCoreCluster Org",
+        slug: `pgtap-payments-dues-core-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // issue_dues / void_payment are permission-gated via has_financial_permission
+    // (auth.uid(), ...), which requires a real authenticated user with a role
+    // assignment -- the service-role admin client has no auth.uid() and would
+    // be rejected as "not authorized". Stand up a real TENANT_OWNER session up
+    // front, matching tests 7/8/10/11/12/13/14's pattern. TENANT_OWNER is
+    // granted "everything except platform.* permissions" (see
+    // 20260810000012_phase2_seed.sql), which covers finance.dues.issue,
+    // finance.periods.manage, and finance.payments.void all at once.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-payments-dues-core-cluster-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: issue_dues/create_online_payment_checkout_transaction/
+    // record_online_payment/void_payment all key off of it, and it's what
+    // this test proves lands in dues.property_id, online_payment_transactions
+    // .property_id, payments.property_id, organization_finance_settings
+    // .property_id, and platform_audit_logs.property_id throughout the flow.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "PaymentsDuesCoreCluster Resort",
+        code: `PDCC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // GL accounts: a receivable (ASSET) account for the due, a revenue
+    // account for the due_types row (not itself under this phase's rename,
+    // but a NOT NULL FK issue_dues' due_type_id needs satisfied), and an
+    // online-payments clearing (ASSET) account for organization_finance_
+    // settings. Direct admin inserts, matching tests 11/12/14's precedent
+    // (chart_of_accounts has no RLS write policy gating these; the cloning
+    // RPC is the permission-gated path, not needed here).
+    const { data: receivableAcc, error: receivableAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1200-${Date.now()}`,
+        name_ar: "ذمم مستحقات اختبار",
+        name_en: "Test Dues Receivable",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(receivableAccErr).toBeNull();
+
+    const { data: revenueAcc, error: revenueAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `4300-${Date.now()}`,
+        name_ar: "إيرادات مستحقات اختبار",
+        name_en: "Test Dues Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+      })
+      .select("id")
+      .single();
+    expect(revenueAccErr).toBeNull();
+
+    const { data: clearingAcc, error: clearingAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1160-${Date.now()}`,
+        name_ar: "حساب مقاصة الدفع الإلكتروني اختبار",
+        name_en: "Test Online Payments Clearing",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(clearingAccErr).toBeNull();
+
+    const { data: dueType, error: dueTypeErr } = await admin
+      .from("due_types")
+      .insert({
+        organization_id: orgId,
+        name_ar: "نوع مستحق اختبار",
+        name_en: "Test Due Type",
+        default_revenue_account_id: revenueAcc!.id,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    expect(dueTypeErr).toBeNull();
+    const dueTypeId = dueType!.id;
+
+    // organization_finance_settings: a direct admin insert (no dedicated
+    // clone-style RPC exists for this table per the plan's Task 4 note).
+    // This INSERT fires trg_validate_online_payments_clearing_account ->
+    // validate_online_payments_clearing_account, which now reads/compares
+    // exclusively via new.property_id (formerly new.resort_id, function 7 --
+    // completing its own Phase 2e partial edit) -- if either of that
+    // trigger's two substitutions had been missed, this insert would fail
+    // outright with a hard Postgres error since organization_finance_
+    // settings.resort_id no longer exists.
+    const { data: financeSettings, error: financeSettingsErr } = await admin
+      .from("organization_finance_settings")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        online_payments_clearing_account_id: clearingAcc!.id,
+      })
+      .select("id, property_id")
+      .single();
+    expect(financeSettingsErr).toBeNull();
+    expect(financeSettings?.property_id).toBe(resortId);
+
+    // An OPEN fiscal period covering *today*: record_online_payment requires
+    // one open period covering current_date for the organization.
+    const { data: yearId, error: yearErr } = await ownerClient.rpc("create_fiscal_year", {
+      p_organization_id: orgId,
+      p_name: "2026",
+      p_start_date: "2026-01-01",
+      p_end_date: "2026-12-31",
+    });
+    expect(yearErr).toBeNull();
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: period, error: periodErr } = await admin
+      .from("fiscal_periods")
+      .select("id")
+      .eq("fiscal_year_id", yearId)
+      .lte("start_date", todayIso)
+      .gte("end_date", todayIso)
+      .single();
+    expect(periodErr).toBeNull();
+    const periodId = period!.id;
+
+    const { error: openPeriodErr } = await ownerClient.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodId,
+      p_status: "OPEN",
+      p_reason: "pgTAP payments-dues-core-cluster setup",
+    });
+    expect(openPeriodErr).toBeNull();
+
+    // A unit, direct admin insert (building_id/zone_id are nullable, so no
+    // zone/building setup is required for this test).
+    const unitCode = `UNIT-PDCC-${Date.now()}`;
+    const { data: unit, error: unitErr } = await admin
+      .from("units")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: unitCode,
+        unit_type: "APARTMENT",
+      })
+      .select("id")
+      .single();
+    expect(unitErr).toBeNull();
+    const unitId = unit!.id;
+
+    // A member with a real auth user backing it -- create_online_payment_
+    // checkout_transaction is gated on public.current_member_id(), which is
+    // `select id from public.members where user_id = auth.uid()`, so it
+    // requires an actual signed-in session distinct from the TENANT_OWNER
+    // portal-admin pattern above.
+    const memberEmail = `pgtap-payments-dues-core-cluster-member-${Date.now()}@aqarbooks-test.local`;
+    const { data: memberUser, error: createMemberErr } = await admin.auth.admin.createUser({
+      email: memberEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createMemberErr).toBeNull();
+    const memberUserId = memberUser!.user!.id;
+
+    const { data: member, error: memberErr } = await admin
+      .from("members")
+      .insert({
+        organization_id: orgId,
+        full_name: "PaymentsDuesCoreCluster Member",
+        is_company: false,
+        user_id: memberUserId,
+      })
+      .select("id")
+      .single();
+    expect(memberErr).toBeNull();
+    const memberId = member!.id;
+
+    const { error: ownershipErr } = await admin.from("unit_ownerships").insert({
+      organization_id: orgId,
+      unit_id: unitId,
+      member_id: memberId,
+      share_percentage: 100,
+      is_primary_contact: true,
+      start_date: todayIso,
+    });
+    expect(ownershipErr).toBeNull();
+
+    const memberClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: memberSignInErr } = await memberClient.auth.signInWithPassword({
+      email: memberEmail,
+      password,
+    });
+    expect(memberSignInErr).toBeNull();
+
+    // issue_dues: the dues INSERT column list edit (function 2). Reading the
+    // row back and asserting `property_id` proves the substitution landed.
+    const { error: issueDuesErr } = await ownerClient.rpc("issue_dues", {
+      p_organization_id: orgId,
+      p_resort_id: resortId,
+      p_unit_ids: [unitId],
+      p_due_type_id: dueTypeId,
+      p_receivable_account_id: receivableAcc!.id,
+      p_amount: 500,
+      p_issue_date: todayIso,
+      p_due_date: todayIso,
+      p_description: "pgTAP payments-dues-core-cluster due",
+    });
+    expect(issueDuesErr).toBeNull();
+
+    const { data: due, error: dueReadErr } = await admin
+      .from("dues")
+      .select("id, property_id, status, amount")
+      .eq("organization_id", orgId)
+      .eq("unit_id", unitId)
+      .eq("due_type_id", dueTypeId)
+      .single();
+    expect(dueReadErr).toBeNull();
+    expect(due?.property_id).toBe(resortId);
+    expect(due?.status).toBe("ISSUED");
+    const dueId = due!.id;
+
+    // create_online_payment_checkout_transaction, under the member's own
+    // real signed-in session: proves substitution 1 (both the v_due.resort_id
+    // -> v_due.property_id reassignment/comparison, and the online_payment_
+    // transactions INSERT column list).
+    const { data: checkoutData, error: checkoutErr } = await memberClient.rpc(
+      "create_online_payment_checkout_transaction",
+      {
+        p_due_ids: [dueId],
+        p_provider: "FAWRY",
+      },
+    );
+    expect(checkoutErr).toBeNull();
+    const checkoutRow = Array.isArray(checkoutData) ? checkoutData[0] : checkoutData;
+    expect(checkoutRow?.transaction_id).toBeTruthy();
+    const transactionId = checkoutRow.transaction_id;
+
+    const { data: txn, error: txnReadErr } = await admin
+      .from("online_payment_transactions")
+      .select("id, property_id, status, amount")
+      .eq("id", transactionId)
+      .single();
+    expect(txnReadErr).toBeNull();
+    expect(txn?.property_id).toBe(resortId);
+    expect(txn?.status).toBe("PENDING");
+    expect(Number(txn?.amount)).toBe(500);
+
+    // record_online_payment: called via the admin/service-role client,
+    // matching its no-permission-gate design (it's meant to be invoked from
+    // a webhook/service context, not a real user session -- confirmed via
+    // its live body above, which has no has_permission/has_financial_
+    // permission/auth.uid() check at all). This is the highest-value proof
+    // in this test: it completes function 4's Phase-2e-partial-edit closure
+    // (six v_txn.resort_id -> v_txn.property_id occurrences, one ofs.resort_id
+    // -> ofs.property_id, one v_due.resort_id -> v_due.property_id) plus
+    // function 3's post_payment_internal edit (v_due.property_id guard +
+    // payments INSERT column list) -- a single missed substitution anywhere
+    // in this chain surfaces as a hard "column ... does not exist" error, so
+    // this one call succeeding at all is strong end-to-end evidence.
+    const { data: recordData, error: recordErr } = await admin.rpc("record_online_payment", {
+      p_transaction_id: transactionId,
+      p_webhook_event_id: `evt-pdcc-${Date.now()}`,
+      p_provider_payload: { ok: true },
+    });
+    expect(recordErr).toBeNull();
+    const recordRow = Array.isArray(recordData) ? recordData[0] : recordData;
+    expect(recordRow?.status).toBe("PAID");
+    expect(recordRow?.payment_id).toBeTruthy();
+    const paymentId = recordRow.payment_id;
+
+    // The payments row: proves post_payment_internal's edit (function 3).
+    const { data: payment, error: paymentReadErr } = await admin
+      .from("payments")
+      .select("id, property_id, status, amount")
+      .eq("id", paymentId)
+      .single();
+    expect(paymentReadErr).toBeNull();
+    expect(payment?.property_id).toBe(resortId);
+    expect(payment?.status).toBe("POSTED");
+    expect(Number(payment?.amount)).toBe(500);
+
+    // The due is now fully settled -- confirms the whole chain (transaction
+    // -> allocation -> post_payment_internal -> due status recompute)
+    // actually ran, not just that record_online_payment returned 'PAID'.
+    const { data: settledDue, error: settledDueErr } = await admin
+      .from("dues")
+      .select("status")
+      .eq("id", dueId)
+      .single();
+    expect(settledDueErr).toBeNull();
+    expect(settledDue?.status).toBe("PAID");
+
+    // The platform_audit_logs row for 'online_payment.posted': proves the
+    // final substitution in function 4 (the platform_audit_logs INSERT's
+    // v_txn.resort_id -> v_txn.property_id value), completing the full
+    // record_online_payment closure.
+    const { data: postedAuditLog, error: postedAuditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "online_payment_transaction")
+      .eq("entity_id", transactionId)
+      .eq("action", "online_payment.posted")
+      .single();
+    expect(postedAuditLogErr).toBeNull();
+    expect(postedAuditLog?.property_id).toBe(resortId);
+
+    // void_payment, under a real signed-in TENANT_OWNER session holding
+    // finance.payments.void: intended to prove function 8's two
+    // substitutions (v_payment.resort_id -> v_payment.property_id in the
+    // has_financial_permission check, and in the append_financial_audit_
+    // event call's p_resort_id argument).
+    //
+    // NOTE (discovered empirically here, unrelated to this phase's rename --
+    // tracked as https://github.com/ahmedhameed2020/AqarBooks/issues/13,
+    // filed separately since fixing it is out of scope for this rename PR):
+    // void_payment's own append_financial_audit_event call passes
+    // p_action := 'PAYMENT_REVERSED' (see 20260812000015_void_payment.sql),
+    // but financial_audit_logs' check_audit_action constraint -- added
+    // earlier in 20260811000003_phase11_financial_audit.sql, before
+    // void_payment even existed -- never included 'PAYMENT_REVERSED' in its
+    // allowed action list. This means void_payment has never been able to
+    // complete successfully for ANY caller, on any branch: a pre-existing
+    // production bug this phase's migration does not touch and could not
+    // have introduced (it doesn't touch financial_audit_logs or its check
+    // constraint at all). Per this task's guidance, this is worked through
+    // methodically rather than worked around (e.g. by altering the
+    // out-of-scope constraint from a test file): the resulting error is
+    // used as the actual proof of function 8's edit instead. The call runs
+    // deep enough to reach the audit INSERT -- past the has_financial_
+    // permission(..., v_payment.property_id) check, past the status guard,
+    // past the payment_allocations/dues updates -- and fails on a check
+    // constraint (Postgres code 23514), NOT a "column ... does not exist"
+    // error (42703), which is exactly what a broken v_payment.resort_id ->
+    // v_payment.property_id substitution would produce instead. The whole
+    // call runs inside one implicit transaction, so everything upstream
+    // (including the payments status UPDATE) rolls back with it -- confirmed
+    // below by asserting the payment's status is still POSTED, not REVERSED,
+    // and that no new financial_audit_logs row appeared. issue_dues earlier
+    // in this test already wrote one legitimate financial_audit_logs row of
+    // its own (action DUE_ISSUED, which IS in check_audit_action's allowed
+    // list) -- so the rollback proof compares a before/after COUNT delta
+    // across this one call, not an absolute count of 0 for the org.
+    const { count: auditLogCountBeforeVoidAttempt, error: auditLogCountBeforeErr } = await admin
+      .from("financial_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId);
+    expect(auditLogCountBeforeErr).toBeNull();
+
+    const { data: voidResult, error: voidErr } = await ownerClient.rpc("void_payment", {
+      p_organization_id: orgId,
+      p_payment_id: paymentId,
+      p_reason: "pgTAP payments-dues-core-cluster void test",
+    });
+    expect(voidResult).toBeNull();
+    expect(voidErr).not.toBeNull();
+    expect(voidErr?.code).toBe("23514");
+    expect(voidErr?.message).toMatch(/check_audit_action/);
+
+    const { data: paymentAfterVoidAttempt, error: paymentAfterVoidAttemptErr } = await admin
+      .from("payments")
+      .select("status")
+      .eq("id", paymentId)
+      .single();
+    expect(paymentAfterVoidAttemptErr).toBeNull();
+    expect(paymentAfterVoidAttempt?.status).toBe("POSTED");
+
+    // Confirms the rollback claim directly rather than just asserting it in
+    // prose: if void_payment's transaction had actually committed anything
+    // before hitting the check constraint, the count would have increased by
+    // one (the PAYMENT_REVERSED row). It didn't -- the whole call, including
+    // the audit INSERT that failed, rolled back as one unit.
+    const { count: auditLogCountAfterVoidAttempt, error: auditLogCountAfterErr } = await admin
+      .from("financial_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId);
+    expect(auditLogCountAfterErr).toBeNull();
+    expect(auditLogCountAfterVoidAttempt).toBe(auditLogCountBeforeVoidAttempt);
+
+    // Cleanup. This test creates more interlinked rows than any prior test
+    // in this file. platform_audit_logs.property_id FKs to the resort (and
+    // must be removed before the resort delete below); its actor_id is null
+    // for both rows written in this test (record_online_payment and
+    // post_payment_internal both pass no/null actor), so an organization_id
+    // filter is the correct (and simplest) way to remove them all. (The
+    // void_payment attempt above wrote no financial_audit_logs row -- its
+    // transaction rolled back on the pre-existing check_audit_action bug,
+    // confirmed by the count assertion above. issue_dues DID write one
+    // legitimate financial_audit_logs row (action DUE_ISSUED) earlier in
+    // this test, though, and that one must still be cleaned up here.)
+    const { error: deleteFinancialAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteFinancialAuditErr).toBeNull();
+
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteAuditErr).toBeNull();
+
+    // payment_allocations.due_id and online_payment_transaction_allocations
+    // .due_id are both NO ACTION (not CASCADE) against dues -- empirically
+    // confirmed live: deleting the resort straight away (relying on its
+    // ON DELETE CASCADE to payments/dues/online_payment_transactions) failed
+    // with "update or delete on table dues violates foreign key constraint
+    // payment_allocations_due_id_fkey", because Postgres doesn't guarantee
+    // the payments->payment_allocations cascade completes before the
+    // sibling dues cascade's FK check runs within the same statement. So
+    // these two allocation tables, then payments/online_payment_transactions/
+    // dues themselves, are deleted explicitly and in order below, rather
+    // than relied on to cascade.
+    const { error: deletePaymentAllocErr } = await admin
+      .from("payment_allocations")
+      .delete()
+      .eq("payment_id", paymentId);
+    expect(deletePaymentAllocErr).toBeNull();
+
+    const { error: deleteOnlineTxnAllocErr } = await admin
+      .from("online_payment_transaction_allocations")
+      .delete()
+      .eq("transaction_id", transactionId);
+    expect(deleteOnlineTxnAllocErr).toBeNull();
+
+    // online_payment_transactions.payment_id (NO ACTION) must be cleared
+    // before the payment it points at can be deleted.
+    const { error: deleteTxnErr } = await admin
+      .from("online_payment_transactions")
+      .delete()
+      .eq("id", transactionId);
+    expect(deleteTxnErr).toBeNull();
+
+    const { error: deletePaymentErr } = await admin.from("payments").delete().eq("id", paymentId);
+    expect(deletePaymentErr).toBeNull();
+
+    const { error: deleteDueErr } = await admin.from("dues").delete().eq("id", dueId);
+    expect(deleteDueErr).toBeNull();
+
+    const { error: deleteFinanceSettingsErr } = await admin
+      .from("organization_finance_settings")
+      .delete()
+      .eq("id", financeSettings!.id);
+    expect(deleteFinanceSettingsErr).toBeNull();
+
+    // journal_entries were created (and posted) by post_payment_internal's
+    // create_journal_entry_internal call above; journal_entry_lines cascade
+    // via journal_entry_id, matching test 12/14's precedent.
+    const { error: deleteJournalEntriesErr } = await admin
+      .from("journal_entries")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteJournalEntriesErr).toBeNull();
+
+    // unit_ownerships.unit_id is ON DELETE CASCADE from units, so deleting
+    // the unit removes it automatically.
+    const { error: deleteUnitErr } = await admin.from("units").delete().eq("id", unitId);
+    expect(deleteUnitErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    // The member row is now safe to delete: payments.member_id and
+    // online_payment_transactions.member_id (both NO ACTION, not CASCADE)
+    // no longer reference it after the explicit deletes above.
+    const { error: deleteMemberErr } = await admin.from("members").delete().eq("id", memberId);
+    expect(deleteMemberErr).toBeNull();
+
+    // The receivable/revenue/clearing GL accounts are not deleted here:
+    // they've been posted to (or referenced) by the journal entries/dues
+    // above, so `chart_of_accounts.is_used` is now true and a trigger
+    // rejects the delete (COA_USED_DELETE_FORBIDDEN) -- the same reason
+    // tests 12/14's GL accounts are left in place. due_types is similarly
+    // left attached to the archived org, consistent with chart_of_accounts.
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+    const { error: deleteMemberUserErr } = await admin.auth.admin.deleteUser(memberUserId);
+    expect(deleteMemberUserErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });

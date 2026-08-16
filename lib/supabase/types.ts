@@ -509,7 +509,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           unit_id: string;
           due_type_id: string;
           receivable_account_id: string;
@@ -529,7 +529,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           member_id: string | null;
           unit_id: string | null;
           amount: number;
