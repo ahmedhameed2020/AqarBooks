@@ -1747,4 +1747,330 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("14. Phase 2f journal_entries Property-ID Rename Integrity (create_journal_entry/post_journal_entry/reverse_journal_entry end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP JournalEntriesCluster Org",
+        slug: `pgtap-journal-entries-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // create_journal_entry / post_journal_entry / reverse_journal_entry are
+    // all permission-gated via has_financial_permission/has_permission
+    // (auth.uid(), ...), which requires a real authenticated user with a
+    // role assignment -- the service-role admin client has no auth.uid()
+    // and would be rejected as "not authorized". Stand up a real
+    // TENANT_OWNER session up front, matching tests 7/8/10/11/12/13's
+    // pattern. TENANT_OWNER is granted "everything except platform.*
+    // permissions" (see 20260810000012_phase2_seed.sql), which covers
+    // finance.entries.create, finance.entries.post, and
+    // finance.entries.reverse all at once.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-journal-entries-cluster-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: create_journal_entry requires the resort (if any) to
+    // belong to the same organization, and its id is what this test proves
+    // lands in journal_entries.property_id / platform_audit_logs.property_id
+    // throughout the flow.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "JournalEntriesCluster Resort",
+        code: `JEC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // A debit/credit chart-of-accounts pair, direct inserts matching tests
+    // 11/12's pattern (chart_of_accounts has no RLS write policy gating
+    // these; clone_chart_of_accounts_template is the permission-gated RPC
+    // path, not needed here).
+    const { data: cashAcc, error: cashAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1000-${Date.now()}`,
+        name_ar: "نقدية اختبار",
+        name_en: "Test Cash",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(cashAccErr).toBeNull();
+
+    const { data: revenueAcc, error: revenueAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `4000-${Date.now()}`,
+        name_ar: "إيرادات اختبار",
+        name_en: "Test Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+      })
+      .select("id")
+      .single();
+    expect(revenueAccErr).toBeNull();
+
+    // An OPEN fiscal period covering *today*: both the original entry and
+    // its reversal (reversal date = today, matching test 12's precedent for
+    // cancel_supplier_invoice) must fall inside an open period.
+    const { data: yearId, error: yearErr } = await ownerClient.rpc("create_fiscal_year", {
+      p_organization_id: orgId,
+      p_name: "2026",
+      p_start_date: "2026-01-01",
+      p_end_date: "2026-12-31",
+    });
+    expect(yearErr).toBeNull();
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: period, error: periodErr } = await admin
+      .from("fiscal_periods")
+      .select("id")
+      .eq("fiscal_year_id", yearId)
+      .lte("start_date", todayIso)
+      .gte("end_date", todayIso)
+      .single();
+    expect(periodErr).toBeNull();
+    const periodId = period!.id;
+
+    const { error: openPeriodErr } = await ownerClient.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodId,
+      p_status: "OPEN",
+      p_reason: "pgTAP journal-entries-cluster setup",
+    });
+    expect(openPeriodErr).toBeNull();
+
+    // create_journal_entry (thin real-session-facing wrapper around
+    // create_journal_entry_internal, gated on finance.entries.create) with a
+    // balanced 2-line entry. Reading the row back and asserting
+    // `property_id` proves the INSERT-column-list edit in
+    // create_journal_entry_internal.
+    const idempotencyKey = `pgtap-jec-${Date.now()}`;
+    const { data: entryId, error: createEntryErr } = await ownerClient.rpc(
+      "create_journal_entry",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_fiscal_period_id: periodId,
+        p_entry_date: todayIso,
+        p_description: "JournalEntriesCluster test entry",
+        p_source_type: "JOURNAL_VOUCHER",
+        p_lines: [
+          { account_id: cashAcc!.id, debit: 100, credit: 0 },
+          { account_id: revenueAcc!.id, debit: 0, credit: 100 },
+        ],
+        p_idempotency_key: idempotencyKey,
+      },
+    );
+
+    expect(createEntryErr).toBeNull();
+    expect(entryId).toBeTruthy();
+
+    const { data: entry, error: entryReadErr } = await admin
+      .from("journal_entries")
+      .select("id, property_id, status")
+      .eq("id", entryId)
+      .single();
+
+    expect(entryReadErr).toBeNull();
+    expect(entry?.property_id).toBe(resortId);
+    expect(entry?.status).toBe("DRAFT");
+
+    // post_journal_entry (thin real-session-facing wrapper around
+    // post_journal_entry_internal, gated on finance.entries.post). Reading
+    // the resulting platform_audit_logs row proves the single-occurrence
+    // `v_entry.property_id` edit (formerly `v_entry.resort_id`) in
+    // post_journal_entry_internal.
+    const { error: postEntryErr } = await ownerClient.rpc("post_journal_entry", {
+      p_journal_entry_id: entryId,
+    });
+    expect(postEntryErr).toBeNull();
+
+    const { data: postedEntry, error: postedEntryErr } = await admin
+      .from("journal_entries")
+      .select("status")
+      .eq("id", entryId)
+      .single();
+    expect(postedEntryErr).toBeNull();
+    expect(postedEntry?.status).toBe("POSTED");
+
+    const { data: postedAuditLog, error: postedAuditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "journal_entry")
+      .eq("entity_id", entryId)
+      .eq("action", "journal_entry.posted")
+      .single();
+
+    expect(postedAuditLogErr).toBeNull();
+    expect(postedAuditLog?.property_id).toBe(resortId);
+
+    // reverse_journal_entry: the highest-risk edit shape in this phase --
+    // three substitutions split across two statement types within one
+    // function body: (a) the new reversal entry's INSERT column list, (b)
+    // `v_original.property_id` (formerly `v_original.resort_id`) read into
+    // that same INSERT's VALUES list, and (c) `v_original.property_id` read
+    // again as the value passed into platform_audit_logs. If any of the
+    // three had been missed, this call would fail with a hard Postgres
+    // error since journal_entries.resort_id no longer exists.
+    const { data: reversalEntryId, error: reverseErr } = await ownerClient.rpc(
+      "reverse_journal_entry",
+      {
+        p_journal_entry_id: entryId,
+        p_reversal_fiscal_period_id: periodId,
+        p_reversal_date: todayIso,
+        p_reason: "pgTAP reversal",
+      },
+    );
+
+    expect(reverseErr).toBeNull();
+    expect(reversalEntryId).toBeTruthy();
+
+    // Original entry is now REVERSED.
+    const { data: reversedOriginal, error: reversedOriginalErr } = await admin
+      .from("journal_entries")
+      .select("status")
+      .eq("id", entryId)
+      .single();
+    expect(reversedOriginalErr).toBeNull();
+    expect(reversedOriginal?.status).toBe("REVERSED");
+
+    // The NEW reversal entry: proves substitutions (a) and (b) -- the
+    // INSERT column list AND the `v_original.property_id` VALUES-list read.
+    const { data: reversalEntry, error: reversalEntryReadErr } = await admin
+      .from("journal_entries")
+      .select("id, property_id, status, reversed_entry_id")
+      .eq("id", reversalEntryId)
+      .single();
+
+    expect(reversalEntryReadErr).toBeNull();
+    expect(reversalEntry?.property_id).toBe(resortId);
+    expect(reversalEntry?.status).toBe("POSTED");
+    expect(reversalEntry?.reversed_entry_id).toBe(entryId);
+
+    // The reversal's platform_audit_logs row: proves substitution (c).
+    const { data: reversedAuditLog, error: reversedAuditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "journal_entry")
+      .eq("entity_id", entryId)
+      .eq("action", "journal_entry.reversed")
+      .single();
+
+    expect(reversedAuditLogErr).toBeNull();
+    expect(reversedAuditLog?.property_id).toBe(resortId);
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id/property_id,
+    // journal_entries.created_by/posted_by, user_role_assignments.user_id,
+    // and organization_memberships.user_id still reference ownerId/resortId
+    // -- they must be removed before deleteUser/the resort delete or the
+    // deletes fail (a 500 "Database error deleting user" for the auth user,
+    // or a dangling FK for the resort). platform_audit_logs.property_id FKs
+    // to the resort, so the audit rows must be deleted before the resort.
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("actor_id", ownerId);
+    expect(deleteAuditErr).toBeNull();
+
+    // journal_entry_lines.journal_entry_id has ON DELETE CASCADE, so
+    // deleting both journal_entries rows (original + reversal) in one
+    // statement removes their lines automatically. The reversal's
+    // reversed_entry_id self-references the original row also being
+    // deleted here -- Postgres defers this NO ACTION FK check to the end of
+    // the statement, so deleting both rows together in a single DELETE is
+    // safe (matches test 12's precedent of deleting all of an org's
+    // journal_entries in one statement).
+    const { error: deleteJournalEntriesErr } = await admin
+      .from("journal_entries")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteJournalEntriesErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    // The cash/revenue GL accounts are not deleted here: they've been
+    // posted to by the journal entries above, so `chart_of_accounts.is_used`
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_FORBIDDEN)
+    // -- the same reason test 12's payable/expense accounts are left in
+    // place. They stay attached to the archived org below, consistent with
+    // that precedent.
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
