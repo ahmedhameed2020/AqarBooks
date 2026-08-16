@@ -106,6 +106,7 @@ describe("webhook route handler (against fake adapter)", () => {
       "result_status",
       "provider_status",
       "error",
+      "error_type",
     ];
 
     for (const rawCall of consoleCalls) {

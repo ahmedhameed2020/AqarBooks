@@ -8,24 +8,38 @@ export function createWebhookRouteHandler(adapter: PaymentProviderAdapter) {
     const ctx = { rawBody, headers: Object.fromEntries(request.headers.entries()), url: request.url };
 
     let signatureValid = false;
+    let signatureErrorType: string | undefined;
     try {
       signatureValid = adapter.verifyWebhookSignature(ctx);
-    } catch {
+    } catch (err) {
       signatureValid = false;
+      signatureErrorType = err instanceof Error ? err.constructor.name : typeof err;
     }
 
     if (!signatureValid) {
-      console.error(JSON.stringify({ provider: adapter.providerId, signature_verified: false }));
+      console.error(
+        JSON.stringify({
+          provider: adapter.providerId,
+          signature_verified: false,
+          ...(signatureErrorType ? { error_type: signatureErrorType } : {}),
+        })
+      );
       return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
     }
 
     let parsed;
     try {
       parsed = adapter.parseWebhookPayload(ctx);
-    } catch {
+    } catch (err) {
       // Signed but unparseable -- ack so the provider doesn't retry-loop a
       // payload we can never successfully process; log for manual review.
-      console.error(JSON.stringify({ provider: adapter.providerId, parse_error: true }));
+      console.error(
+        JSON.stringify({
+          provider: adapter.providerId,
+          parse_error: true,
+          error_type: err instanceof Error ? err.constructor.name : typeof err,
+        })
+      );
       return NextResponse.json({}, { status: 200 });
     }
 
@@ -80,7 +94,7 @@ export function createWebhookRouteHandler(adapter: PaymentProviderAdapter) {
       JSON.stringify({
         provider: adapter.providerId,
         transaction_id: txn.id,
-        result_status: (result as { status?: string } | null)?.status,
+        result_status: result?.status,
       })
     );
     return NextResponse.json({}, { status: 200 });

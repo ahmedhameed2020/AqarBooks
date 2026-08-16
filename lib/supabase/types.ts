@@ -1307,6 +1307,15 @@ export type Database = {
           amount: number;
         }[];
       };
+      record_online_payment: {
+        Args: { p_transaction_id: string; p_webhook_event_id: string; p_provider_payload?: unknown };
+        Returns: {
+          status: string;
+          payment_id: string | null;
+          failure_code: string | null;
+          failure_message: string | null;
+        }[];
+      };
       get_own_organization_display: {
         Args: Record<PropertyKey, never>;
         Returns: {
