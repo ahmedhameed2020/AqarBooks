@@ -466,6 +466,52 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
       };
+      online_payment_transactions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          resort_id: string;
+          member_id: string;
+          client_request_id: string;
+          provider: "PAYMOB" | "FAWRY";
+          provider_reference: string | null;
+          provider_payload: unknown;
+          amount: number;
+          status: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+          failure_code: string | null;
+          failure_message: string | null;
+          payment_id: string | null;
+          webhook_event_id: string | null;
+          webhook_received_at: string | null;
+          paid_at: string | null;
+          failed_at: string | null;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          resort_id: string;
+          member_id: string;
+          client_request_id: string;
+          provider: "PAYMOB" | "FAWRY";
+          provider_reference?: string | null;
+          provider_payload?: unknown;
+          amount: number;
+          status?: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+          failure_code?: string | null;
+          failure_message?: string | null;
+          payment_id?: string | null;
+          webhook_event_id?: string | null;
+          webhook_received_at?: string | null;
+          paid_at?: string | null;
+          failed_at?: string | null;
+          expires_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["online_payment_transactions"]["Row"]>;
+        Relationships: [];
+      };
       member_tags: {
         Row: {
           id: string;
@@ -1253,6 +1299,13 @@ export type Database = {
       current_member_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
+      };
+      create_online_payment_checkout_transaction: {
+        Args: { p_due_ids: string[]; p_provider: string };
+        Returns: {
+          transaction_id: string;
+          amount: number;
+        }[];
       };
       get_own_organization_display: {
         Args: Record<PropertyKey, never>;
