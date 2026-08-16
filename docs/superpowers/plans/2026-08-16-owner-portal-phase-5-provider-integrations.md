@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wire real (sandbox-only) Paymob and Fawry checkout + webhook flows onto Phase 4's already-hardened accounting core (`record_online_payment`), with zero new accounting logic — this phase is entirely provider adapters, HTTP routes, and a checkout entry point that calls what Phase 4 already built and verified.
+**Goal:** Wire real (sandbox-only) Fawry checkout + webhook flow onto Phase 4's already-hardened accounting core (`record_online_payment`), with zero new accounting logic. Paymob's adapter ships as interface + contract-tests-only in this pass (see the updated provider-source policy below) — its production wiring is deferred until a real sandbox callback is available to verify against.
 
 **Architecture:** A normalized `PaymentProviderAdapter` interface (Task 1) isolates provider-specific request/response/signature shapes from a single shared webhook-route factory (Task 5) and checkout server action (Task 4). Each adapter is independently unit-testable against fixture payloads with no network calls. The webhook route's only job is: verify signature → parse → call `record_online_payment` (service-role) → respond. No allocation math, no due-status logic, no journal-entry code lives in this phase — that's all Phase 4, already shipped.
 
@@ -10,7 +10,9 @@
 
 **Design reference:** `docs/superpowers/specs/2026-08-16-owner-portal-phase-5-provider-integrations-design.md` — read before starting any task; this plan implements that design's decisions verbatim, including its explicit confidence caveats.
 
-**Provider-source policy (binding for this plan):** Fawry facts are high-confidence (directly fetched from `developer.fawrystaging.com`). Paymob's HMAC field order/algorithm is confirmed from Paymob's own official GitHub org repo (`github.com/PaymobAccept/Paymob-AI-Integration-Skill`) — the project owner explicitly accepted this as a sufficient primary source to proceed with real adapter code (2026-08-16 decision), given `developers.paymob.com` itself remained unreachable (Cloudflare 403) across every method tried (direct fetch, `.md` suffix, web.archive.org). Task 3 still opens with one more direct-docs attempt; if it succeeds, cross-check against it before finalizing; if it still fails, proceed on the GitHub-repo-confirmed facts as approved, with the mismatch-recovery note in Task 3's code comments treated as load-bearing, not decorative.
+**Provider-source policy (binding for this plan, revised 2026-08-16 after a second verification round):** Fawry facts are high-confidence (directly fetched from `developer.fawrystaging.com`). Paymob's HMAC field order/concatenation format is now **independently confirmed twice** directly from Paymob's own official GitHub org repo (`github.com/PaymobAccept/Paymob-AI-Integration-Skill` — verified genuinely exists and is genuinely owned by the real `PaymobAccept` org via a direct GitHub API check, `id: 60990886`, MIT-licensed, topics include `hmac`/`webhook`/`paymob`, 26 stargazers — an earlier, less careful check had wrongly claimed this repo didn't exist, which was itself wrong and was corrected by checking the GitHub API directly rather than trusting either automated claim). **However**, that same official document explicitly states its worked example provides only the concatenated input string "to validate your concatenation logic," NOT a computed HMAC-SHA512 output — it deliberately does not publish a (input, secret, expected-hash) known-answer triple. No source reachable in this project gives a complete, independently-verifiable KAT for Paymob's HMAC.
+
+**Given that gap, the project owner's explicit decision (2026-08-16): Paymob's real production adapter is NOT implemented in this plan.** Task 3 ships the field-order/concatenation logic (confidence: field order and format are solid; correctness of the resulting hash against Paymob's real implementation is unverified) behind the same `PaymentProviderAdapter` interface, covered only by self-generated fixture tests explicitly labeled as such (proving internal consistency, not vendor-verified correctness) — and it is **not wired into checkout or webhook routes** anywhere in this plan. Task 4/5/6/7 reference Fawry only. Re-enabling Paymob for production is a follow-up task, gated on either (a) real Paymob sandbox credentials producing one genuine signed callback to use as a true KAT, or (b) Paymob eventually publishing a complete worked example with expected output.
 
 **Explicitly OUT of scope for this plan:** production credentials (sandbox only throughout), any UI beyond the minimal checkout-trigger button and redirect/polling page needed to exercise the flow, refunds/chargebacks, any provider beyond Paymob/Fawry.
 
@@ -262,7 +264,7 @@ git commit -m "feat: add payment provider adapter contract, env validation, fake
 
 - [ ] **Step 1: Confirm the exact `orderStatus` enum values before mapping them**
 
-The design doc flags this explicitly unconfirmed: fetch `https://developer.fawrystaging.com/docs/payment-notifications/server-notification-v2` again and find a real example notification payload's `orderStatus` field values (expected candidates: `PAID`/`UNPAID`/`EXPIRED`, or similar — do not guess without seeing at least one documented example). Record what you find in this task's commit message or a code comment before writing `mapFawryStatus`.
+The design doc flags this explicitly unconfirmed: fetch `https://developer.fawrystaging.com/docs/payment-notifications/server-notification-v2` again and find a real example notification payload's `orderStatus` field values (expected candidates: `EXPIRED`/`CANCELLED`/similar, beyond the already-confirmed `PAID`/`UNPAID` — do not guess without seeing at least one documented example). Record what you find in this task's commit message or a code comment before writing `mapFawryStatus`. **Per the project owner's explicit decision (2026-08-16): do not add a new case to the FAILED branch for any value you can't cite a direct documented source for** — `mapFawryStatus`'s scaffold below already implements the required default behavior (unrecognized → `PENDING` + logged for review, never guessed into `FAILED`); this step's job is only to ADD confirmed cases, never to relax that default.
 
 - [ ] **Step 2: Write the adapter**
 
@@ -302,17 +304,26 @@ function buildNotificationSignatureInput(body: {
   return `${body.fawryRefNumber}${body.merchantRefNumber}${body.paymentAmount}${body.orderAmount}${body.orderStatus}${body.paymentMethod}${body.paymentRefNumber}${secureKey}`;
 }
 
-// TODO(Task 2, Step 1): confirmed live orderStatus values go here as a
-// code comment once found -- do not leave the switch below guessing.
+// Per project-owner decision (2026-08-16): only a status value we have
+// DIRECTLY CONFIRMED against Fawry's own docs/sandbox may map to FAILED --
+// an unrecognized value must never be silently classified as a definitive
+// failure (that would let record_online_payment mark a transaction FAILED
+// on a status we don't actually understand, which is exactly the kind of
+// silent misclassification a financial integration must not make). Only
+// "PAID" is confirmed SUCCESS and "UNPAID" confirmed PENDING as of Task 2's
+// Step 1 research. Add a genuinely-confirmed FAILED/EXPIRED/CANCELLED case
+// here ONLY after Task 2 Step 1 finds it documented with a real example --
+// until then, anything unrecognized stays PENDING and is logged loudly for
+// manual review, never guessed into FAILED.
 function mapFawryStatus(orderStatus: string): NormalizedWebhookStatus {
   switch (orderStatus) {
     case "PAID":
       return "SUCCESS";
     case "UNPAID":
-    case "PENDING":
       return "PENDING";
     default:
-      return "FAILED";
+      console.warn(JSON.stringify({ provider: "FAWRY", unrecognized_order_status: orderStatus, action: "treated_as_pending_pending_manual_review" }));
+      return "PENDING";
   }
 }
 
@@ -400,7 +411,7 @@ export const fawryAdapter: PaymentProviderAdapter = {
 
 ```typescript
 // tests/payments/fawry-adapter.test.ts
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import crypto from "node:crypto";
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
 import { runProviderContractTests } from "./provider-contract.test";
@@ -454,9 +465,16 @@ describe("Fawry adapter status mapping", () => {
     const parsed = fawryAdapter.parseWebhookPayload({ rawBody: buildFixtureNotification({ orderStatus: "UNPAID" }), headers: {}, url: "" });
     expect(parsed.status).toBe("PENDING");
   });
-  it("maps an unrecognized status to FAILED, not silently to SUCCESS", () => {
+  it("maps an unrecognized status to PENDING (never guesses FAILED), and logs it for manual review", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const parsed = fawryAdapter.parseWebhookPayload({ rawBody: buildFixtureNotification({ orderStatus: "SOME_UNKNOWN_VALUE" }), headers: {}, url: "" });
-    expect(parsed.status).toBe("FAILED");
+    expect(parsed.status).toBe("PENDING");
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("SOME_UNKNOWN_VALUE"));
+    warnSpy.mockRestore();
+  });
+  it("does NOT silently classify an unrecognized status as SUCCESS either", () => {
+    const parsed = fawryAdapter.parseWebhookPayload({ rawBody: buildFixtureNotification({ orderStatus: "SOME_UNKNOWN_VALUE" }), headers: {}, url: "" });
+    expect(parsed.status).not.toBe("SUCCESS");
   });
 });
 ```
@@ -471,17 +489,19 @@ git commit -m "feat: add Fawry payment provider adapter (sandbox)"
 
 ---
 
-### Task 3: Paymob adapter (real, sandbox) — gated on the source-verification note above
+### Task 3: Paymob adapter — INTERFACE + CONTRACT TESTS ONLY, not production, not wired into any route
+
+**Status decided 2026-08-16 (project owner):** two independent, verified reads of Paymob's own official GitHub repo (`PaymobAccept/Paymob-AI-Integration-Skill` — confirmed genuinely exists and is genuinely owned by the real `PaymobAccept` org via a direct GitHub API check after an earlier, incorrect claim that it didn't exist) confirm the HMAC field order/concatenation format below with high confidence. **But that same official document explicitly states its worked example provides the concatenated input string only, "to validate your concatenation logic" — it does NOT publish a computed hash output.** No source reachable in this project provides a complete (input, secret, expected-hash) known-answer triple for Paymob. Per the project owner's explicit decision, this task therefore ships the adapter's logic (confidence: field order/format solid; correctness of the resulting hash against Paymob's real implementation unverified) for contract-test coverage only — **it must not be called from `createOnlinePaymentCheckoutAction` (Task 4) or wired into any webhook route (Task 5) in this pass.** Re-enabling it for production is a follow-up task gated on either real Paymob sandbox credentials producing one genuine signed callback to use as a true KAT, or Paymob eventually publishing a complete worked example with expected output.
 
 **Files:**
 - Create: `lib/payments/providers/paymob.ts`
 - Test: `tests/payments/paymob-adapter.test.ts`
 
-- [ ] **Step 0: One more direct-docs attempt, then proceed on the approved GitHub source regardless of outcome**
+- [ ] **Step 0: One more direct-docs attempt (optional, does not change this task's not-production status either way)**
 
-Try fetching `https://developers.paymob.com/paymob-docs/developers/webhook-callbacks-and-hmac/hmac` directly one more time (network conditions/bot-detection can change between sessions). If it succeeds, cross-check every fact below against it and correct anything that differs, documenting the correction in a code comment with the live URL as the citation. If it still fails (403 or otherwise unreachable), proceed with the facts below exactly as approved by the project owner (2026-08-16) — do not re-block on this a second time.
+Try fetching `https://developers.paymob.com/paymob-docs/developers/webhook-callbacks-and-hmac/hmac` directly one more time (network conditions/bot-detection can change between sessions). If it succeeds AND it publishes a real (input, secret, expected-hash) example, that would be grounds to revisit the not-production decision above — flag it to the project owner rather than unilaterally re-enabling production wiring, since that's their call to make, not a default outcome of this step succeeding. If it still fails (403 or otherwise unreachable, as in every attempt so far), proceed with Step 1 as scoped — this step succeeding or failing does not block Step 1.
 
-- [ ] **Step 1: Write the adapter**
+- [ ] **Step 1: Write the adapter, with a runtime guard on `createCheckout` so accidental future wiring fails loudly**
 
 ```typescript
 // lib/payments/providers/paymob.ts
@@ -537,6 +557,20 @@ export const paymobAdapter: PaymentProviderAdapter = {
   providerId: "PAYMOB",
 
   async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+    // Deliberate runtime guard, not decorative: this adapter's HMAC
+    // verification has no vendor-published known-answer test to confirm
+    // it against (see Task 3's status note) -- calling this in production
+    // would post real checkout requests under a signature scheme we
+    // cannot yet prove matches Paymob's real implementation. Remove this
+    // guard ONLY as part of the explicit follow-up task that re-enables
+    // Paymob for production, never as an incidental part of an unrelated
+    // change.
+    throw new Error(
+      "PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION: HMAC field order is confirmed from Paymob's own GitHub repo, " +
+      "but no known-answer test vector (real input+secret+expected-hash) exists to verify correctness against. " +
+      "See docs/superpowers/plans/2026-08-16-owner-portal-phase-5-provider-integrations.md Task 3."
+    );
+    // eslint-disable-next-line no-unreachable -- kept for the follow-up task to delete this guard and start from real code, not a stub
     const env = getPaymentsEnv();
     const response = await fetch("https://accept.paymob.com/v1/intention/", {
       method: "POST",
@@ -609,6 +643,17 @@ export const paymobAdapter: PaymentProviderAdapter = {
 
 ```typescript
 // tests/payments/paymob-adapter.test.ts
+//
+// IMPORTANT LABELING NOTE (do not remove): the "expected" signature below
+// (`signFixture`) is computed with the SAME field-order/concatenation logic
+// under test -- this is a SELF-GENERATED fixture, not a vendor-verified
+// known-answer test. It proves internal consistency (the adapter's sign
+// and verify paths agree with each other) and correctly exercises the
+// valid/invalid/tampered contract-test cases, but it CANNOT catch a bug
+// that exists identically in both the adapter code and this test's
+// `signFixture` helper (e.g. a wrong field order both share). This is
+// exactly why Task 3 does not treat this suite as sufficient to enable
+// production use -- see the Task 3 status note above.
 import { describe, it, expect, beforeAll } from "vitest";
 import crypto from "node:crypto";
 import { paymobAdapter } from "@/lib/payments/providers/paymob";
@@ -701,8 +746,10 @@ describe("Paymob adapter redaction", () => {
 ```bash
 npx vitest run tests/payments/paymob-adapter.test.ts tests/payments/provider-contract.test.ts
 git add lib/payments/providers/paymob.ts tests/payments/paymob-adapter.test.ts
-git commit -m "feat: add Paymob payment provider adapter (sandbox, GitHub-source-confirmed HMAC)"
+git commit -m "feat: add Paymob adapter logic (contract-tests only, NOT wired to production -- see plan Task 3)"
 ```
+
+**Do not proceed to Task 4/5 assuming Paymob is available.** Task 4's checkout action and Task 5's webhook routes reference `fawryAdapter` only in this plan; if a future implementer is tempted to symmetrically add Paymob wiring "since the adapter already exists," that is exactly the mistake this status note and the `createCheckout` runtime guard exist to prevent.
 
 ---
 
@@ -746,8 +793,15 @@ begin
   if v_member_id is null then
     raise exception 'NOT_A_PORTAL_MEMBER: لست مسجّلاً كمالك في هذا النظام' using errcode = '42501';
   end if;
-  if p_provider not in ('PAYMOB', 'FAWRY') then
-    raise exception 'INVALID_PROVIDER: مزود الدفع غير معروف' using errcode = '22023';
+  -- PAYMOB intentionally excluded here, not just at the app layer -- Task 3
+  -- ships Paymob's adapter as contract-tests-only (no vendor-verified HMAC
+  -- known-answer test exists yet), so this RPC must not let a checkout
+  -- transaction be created for a provider whose signature verification is
+  -- unproven. Add 'PAYMOB' back to this list only as part of the explicit
+  -- follow-up task that re-enables it for production (see Task 3's status
+  -- note in the plan).
+  if p_provider not in ('FAWRY') then
+    raise exception 'INVALID_PROVIDER: مزود الدفع غير معروف أو غير مُفعّل حاليًا' using errcode = '22023';
   end if;
   if p_due_ids is null or array_length(p_due_ids, 1) is null then
     raise exception 'NO_DUES_SELECTED: يرجى اختيار استحقاق واحد على الأقل' using errcode = '22023';
@@ -822,11 +876,16 @@ import { z } from "zod";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { createClient } from "@/lib/supabase/server";
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
-import { paymobAdapter } from "@/lib/payments/providers/paymob";
+// paymobAdapter intentionally NOT imported here -- see Task 3's status
+// note. Wiring it in requires an explicit follow-up task, not just adding
+// an import here.
 
 const inputSchema = z.object({
   dueIds: z.array(z.string().uuid()).min(1),
-  provider: z.enum(["PAYMOB", "FAWRY"]),
+  // "PAYMOB" intentionally excluded from this enum -- Task 3 ships the
+  // adapter as contract-tests-only. Add it back only alongside the
+  // follow-up task that re-enables it for production.
+  provider: z.enum(["FAWRY"]),
 });
 
 export async function createOnlinePaymentCheckoutAction(input: unknown) {
@@ -852,7 +911,9 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
     return { error: "CHECKOUT_TRANSACTION_FAILED" as const, message: error?.message };
   }
 
-  const adapter = parsed.data.provider === "PAYMOB" ? paymobAdapter : fawryAdapter;
+  // Only FAWRY is wired -- parsed.data.provider is already narrowed to
+  // the "FAWRY" literal by inputSchema's z.enum(["FAWRY"]) above.
+  const adapter = fawryAdapter;
 
   let checkout;
   try {
@@ -897,8 +958,9 @@ git commit -m "feat: add atomic checkout-transaction RPC and server action"
 **Files:**
 - Create: `lib/payments/webhook-handler.ts`
 - Create: `app/api/webhooks/fawry/route.ts`
-- Create: `app/api/webhooks/paymob/route.ts`
 - Test: `tests/payments/webhook-handler.test.ts`
+
+**No `app/api/webhooks/paymob/route.ts` in this task.** The handler factory (Step 1) is written generically (works for any `PaymentProviderAdapter`, including a future Paymob route), but do not create the Paymob route file itself — creating it would put a live, publicly-reachable endpoint in front of an adapter whose signature verification has no known-answer test, meaning a request with a plausible-but-wrong signature might be harder to distinguish from a bug in our own verification than from an actual attack. Wiring `paymobAdapter` into a route is part of the same follow-up task that re-enables Task 3/4 for production.
 
 - [ ] **Step 1: Shared handler factory**
 
@@ -987,12 +1049,7 @@ import { fawryAdapter } from "@/lib/payments/providers/fawry";
 export const POST = createWebhookRouteHandler(fawryAdapter);
 ```
 
-```typescript
-// app/api/webhooks/paymob/route.ts
-import { createWebhookRouteHandler } from "@/lib/payments/webhook-handler";
-import { paymobAdapter } from "@/lib/payments/providers/paymob";
-export const POST = createWebhookRouteHandler(paymobAdapter);
-```
+(No corresponding `app/api/webhooks/paymob/route.ts` — see this task's header note.)
 
 - [ ] **Step 3: Handler tests against the fake adapter (no network, no real provider needed for this layer)**
 
@@ -1071,8 +1128,8 @@ describe("webhook route handler (against fake adapter)", () => {
 
 ```bash
 npx vitest run tests/payments/webhook-handler.test.ts
-git add lib/payments/webhook-handler.ts app/api/webhooks/fawry/route.ts app/api/webhooks/paymob/route.ts tests/payments/webhook-handler.test.ts
-git commit -m "feat: add webhook route handler factory and Fawry/Paymob webhook routes"
+git add lib/payments/webhook-handler.ts app/api/webhooks/fawry/route.ts tests/payments/webhook-handler.test.ts
+git commit -m "feat: add webhook route handler factory and Fawry webhook route (Paymob route deliberately not created -- see Task 3)"
 ```
 
 ---
@@ -1169,7 +1226,8 @@ git commit -m "feat: add payment return/polling page, wire expiry sweep"
 
 **Files:**
 - Create: `tests/e2e/owner-portal-online-payment-fawry.spec.ts`
-- Create: `tests/e2e/owner-portal-online-payment-paymob.spec.ts`
+
+**No Paymob e2e spec in this task** — Paymob has no production wiring to exercise end-to-end (Task 3/5).
 
 - [ ] **Step 1: Decide and implement the e2e mechanics**
 
@@ -1205,9 +1263,57 @@ test("owner pays a due via Fawry sandbox and sees it reflected in the portal", a
   // 6. Clean up fixtures (archive the org, matching Phase 1-4's established
   //    e2e cleanup convention).
 });
-```
 
-Mirror the same shape for Paymob in a second spec file, using `paymobAdapter`'s real HMAC signing against `PAYMOB_HMAC_SECRET` for the simulated webhook step.
+test("invalid webhook signature is rejected and never mutates the transaction", async ({ request }) => {
+  // Provision a fresh PENDING transaction, POST a Fawry-shaped notification
+  // with a corrupted messageSignature -> assert 401, then a SEPARATE
+  // subsequent read confirms the transaction row is untouched (still
+  // PENDING, no payment_id) -- same discipline as Phase 4's own tests.
+});
+
+test("duplicate webhook delivery does not create a second payment", async ({ request }) => {
+  // POST the same correctly-signed notification twice -> both 200, exactly
+  // one payments row, same payment_id both times.
+});
+
+test("webhook for an unknown merchantRefNumber returns a generic 200 with no distinguishing body", async ({ request }) => {
+  // Correctly-signed (against a real transaction's amount shape) but
+  // referencing a merchantRefNumber that doesn't exist -> 200, empty body,
+  // no 404/error that would reveal non-existence.
+});
+
+test("a due settled by a concurrent staff payment causes the online transaction to fail, not double-post", async ({ request }) => {
+  // Create a transaction with one allocation, settle that due via
+  // record_payment (staff path) before delivering the webhook -> webhook
+  // route calls record_online_payment, which returns FAILED/DUE_ALREADY_SETTLED
+  // (Phase 4 behavior) -- assert no second payment for that due.
+});
+
+test("member A cannot see or affect member B's online payment transaction", async ({ request }) => {
+  // Two members, two transactions. Member A's authenticated session
+  // (portal read path, RLS) cannot read member B's transaction row; the
+  // webhook route itself (service-role, no user session) is unaffected by
+  // either member's session -- confirm the route's DB lookup uses the
+  // admin client, not a user-session client, by construction (already true
+  // per webhook-handler.ts, re-confirm here end-to-end).
+});
+
+test("a checkout request mixing dues from two different resorts is rejected before any transaction is created", async ({ page }) => {
+  // Select dues from two resorts in one checkout attempt -> assert
+  // create_online_payment_checkout_transaction's CROSS_RESORT_NOT_ALLOWED
+  // error surfaces to the UI and no online_payment_transactions row exists
+  // afterward.
+});
+
+test("a transient network failure calling the provider does not leave a partial write", async ({ request }) => {
+  // Simulate createCheckout throwing (e.g. by pointing FAWRY_BASE_URL at an
+  // unreachable host for this one test) -> assert the
+  // online_payment_transactions row still exists as PENDING (Task 4's
+  // single-RPC design already created it atomically) with no orphaned
+  // allocations mismatch, and the server action surfaces
+  // PROVIDER_CHECKOUT_FAILED rather than a raw exception.
+});
+```
 
 - [ ] **Step 3: Full regression checkpoint**
 
@@ -1219,7 +1325,7 @@ npm run test:member-portal
 npm run test:all
 npx tsc --noEmit
 npm run build
-npx playwright test tests/e2e/owner-portal-online-payment-fawry.spec.ts tests/e2e/owner-portal-online-payment-paymob.spec.ts
+npx playwright test tests/e2e/owner-portal-online-payment-fawry.spec.ts
 ```
 
 Every non-advancement gate from the project owner's Phase 5 approval must be independently re-verified true at this checkpoint, not just assumed from earlier tasks: valid/invalid signature handling, unsigned webhook never mutating a row, duplicate webhook never double-posting, redirect never treated as proof, unknown reference never revealed, provider timeout never causing a non-atomic partial write (Task 4's single-RPC design structurally prevents this), `record_online_payment` replay returning the same `payment_id` (already proven in Phase 4, re-confirm the webhook route doesn't bypass it), owner-A/owner-B isolation, webhook route never depending on a user session, service-role never bypassing signature verification (the route's own code order — verify, then use service-role — is the enforcement, confirm by reading the committed `webhook-handler.ts` one more time at this checkpoint).
@@ -1227,14 +1333,15 @@ Every non-advancement gate from the project owner's Phase 5 approval must be ind
 - [ ] **Step 4: Commit**
 
 ```bash
-git add tests/e2e/owner-portal-online-payment-fawry.spec.ts tests/e2e/owner-portal-online-payment-paymob.spec.ts
-git commit -m "test: add end-to-end sandbox payment flow tests for Fawry and Paymob"
+git add tests/e2e/owner-portal-online-payment-fawry.spec.ts
+git commit -m "test: add end-to-end sandbox payment flow tests for Fawry (Paymob deferred, see Task 3)"
 ```
 
 ---
 
 ## Self-review notes
 
-- **Spec coverage:** every condition from the project owner's Phase 5 approval message is addressed: provider-specific API version cited (Task 2/3), documented/fixture payloads with confidence levels stated explicitly (Task 2 Step 1's live re-check requirement; Task 3's GitHub-source citation), valid/invalid signature tests (Task 1 Step 4's shared contract suite, reused by Task 2/3), tampered-payload test (same suite), redirect-not-proof (Task 6 Step 1's explicit no-query-param-trust design), no full sensitive payload logging (adapter-level `redactProviderPayload`, mandatory per-adapter, tested in Task 3 Step 2), timeout (`AbortSignal.timeout(15_000)` on every outbound provider call), webhook_event_id/provider reference (already Phase 3 columns, populated correctly per adapter), no existence-leak on unknown reference (Task 5 Step 1, tested in Task 5 Step 3), service-role-after-verification-only (Task 5's handler order, structurally enforced by code order not a runtime flag), no credentials in client bundle (Task 1's server-only env module, verified nowhere imported from a `"use client"` file), all-or-nothing and idempotent-replay (already Phase 4, re-verified not bypassed in Task 7's checkpoint).
-- **No placeholders:** every code block is complete and runnable as written, with the two genuinely-unresolved-at-plan-time facts (Fawry's exact `orderStatus` enum values, and whether one more Paymob docs attempt succeeds) each given an explicit, actionable first step rather than left vague.
-- **Type/signature consistency:** `WebhookRequestContext` is used identically across `types.ts`, `fake.ts`, `fawry.ts`, `paymob.ts`, and `webhook-handler.ts`. `NormalizedWebhookPayload`'s five fields are produced identically by both real adapters and consumed identically by the shared handler. `create_online_payment_checkout_transaction`'s `returns table (transaction_id uuid, amount numeric(19,4))` is read with matching field names (`data.transaction_id`, `data.amount`) in the server action.
+- **Spec coverage:** every condition from the project owner's Phase 5 approval message is addressed: provider-specific API version cited (Task 2/3), documented/fixture payloads with confidence levels stated explicitly (Task 2 Step 1's live re-check requirement; Task 3's now-twice-independently-verified GitHub-source citation, with its explicit no-vendor-KAT gap disclosed rather than papered over), valid/invalid signature tests (Task 1 Step 4's shared contract suite, reused by Task 2/3), tampered-payload test (same suite), redirect-not-proof (Task 6 Step 1's explicit no-query-param-trust design), no full sensitive payload logging (adapter-level `redactProviderPayload`, mandatory per-adapter, tested in Task 3 Step 2), timeout (`AbortSignal.timeout(15_000)` on every outbound provider call), webhook_event_id/provider reference (already Phase 3 columns, populated correctly per adapter), no existence-leak on unknown reference (Task 5 Step 1, tested in Task 5 Step 3), service-role-after-verification-only (Task 5's handler order, structurally enforced by code order not a runtime flag), no credentials in client bundle (Task 1's server-only env module, verified nowhere imported from a `"use client"` file), all-or-nothing and idempotent-replay (already Phase 4, re-verified not bypassed in Task 7's checkpoint), Fawry's unknown-status-never-guessed-to-FAILED requirement (`mapFawryStatus`'s default branch → `PENDING` + logged, tested explicitly in Task 2 Step 3), Paymob's stricter production bar (Task 3 ships contract-tests-only with a runtime guard preventing accidental production use, not wired into Task 4/5/7).
+- **No placeholders:** every code block is complete and runnable as written, with the remaining genuinely-unresolved-at-plan-time fact (Fawry's exact `EXPIRED`/`CANCELLED`-equivalent `orderStatus` values beyond the confirmed `PAID`/`UNPAID`) given an explicit, actionable first step rather than left vague or guessed. Paymob's HMAC field order is no longer "unresolved" (independently confirmed twice against a verified-genuine primary source) — what remains unresolved is a vendor-published expected-hash output to test against, which is a fundamentally different, harder gap that this plan resolves by scoping Paymob out of production rather than guessing.
+- **Type/signature consistency:** `WebhookRequestContext` is used identically across `types.ts`, `fake.ts`, `fawry.ts`, `paymob.ts`, and `webhook-handler.ts`. `NormalizedWebhookPayload`'s five fields are produced identically by both real adapters and consumed identically by the shared handler. `create_online_payment_checkout_transaction`'s `returns table (transaction_id uuid, amount numeric(19,4))` is read with matching field names (`data.transaction_id`, `data.amount`) in the server action. `provider: z.enum(["FAWRY"])` in the server action's input schema is consistent with `create_online_payment_checkout_transaction`'s SQL-level `if p_provider not in ('FAWRY')` check — both reject `PAYMOB` for the same stated reason, not just one layer of the two.
+- **A note on source verification for whoever picks up the Paymob follow-up task later:** during this plan's own revision, an automated research pass first reported the `PaymobAccept/Paymob-AI-Integration-Skill` repo as a confirmed primary source; a second, independent check then flatly claimed the repo didn't exist at all and refused to fabricate a quote rather than risk a false positive; a direct GitHub API call (`api.github.com/repos/PaymobAccept/Paymob-AI-Integration-Skill`) resolved the contradiction — the repo is real, genuinely owned by the real `PaymobAccept` org. Both automated claims were partially wrong in different directions (one overconfident, one a false negative). The lesson embedded in this plan: verify existence/content claims about external sources directly (a raw API/fetch call against the primary host) before either trusting or discarding them, rather than accepting either an AI research pass's confidence or another AI pass's skepticism at face value.
