@@ -2457,7 +2457,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // has_financial_permission check, and in the append_financial_audit_
     // event call's p_resort_id argument).
     //
-    // NOTE (discovered empirically here, unrelated to this phase's rename):
+    // NOTE (discovered empirically here, unrelated to this phase's rename --
+    // tracked as https://github.com/ahmedhameed2020/AqarBooks/issues/13,
+    // filed separately since fixing it is out of scope for this rename PR):
     // void_payment's own append_financial_audit_event call passes
     // p_action := 'PAYMENT_REVERSED' (see 20260812000015_void_payment.sql),
     // but financial_audit_logs' check_audit_action constraint -- added
@@ -2479,7 +2481,18 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // v_payment.property_id substitution would produce instead. The whole
     // call runs inside one implicit transaction, so everything upstream
     // (including the payments status UPDATE) rolls back with it -- confirmed
-    // below by asserting the payment's status is still POSTED, not REVERSED.
+    // below by asserting the payment's status is still POSTED, not REVERSED,
+    // and that no new financial_audit_logs row appeared. issue_dues earlier
+    // in this test already wrote one legitimate financial_audit_logs row of
+    // its own (action DUE_ISSUED, which IS in check_audit_action's allowed
+    // list) -- so the rollback proof compares a before/after COUNT delta
+    // across this one call, not an absolute count of 0 for the org.
+    const { count: auditLogCountBeforeVoidAttempt, error: auditLogCountBeforeErr } = await admin
+      .from("financial_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId);
+    expect(auditLogCountBeforeErr).toBeNull();
+
     const { data: voidResult, error: voidErr } = await ownerClient.rpc("void_payment", {
       p_organization_id: orgId,
       p_payment_id: paymentId,
@@ -2498,6 +2511,18 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(paymentAfterVoidAttemptErr).toBeNull();
     expect(paymentAfterVoidAttempt?.status).toBe("POSTED");
 
+    // Confirms the rollback claim directly rather than just asserting it in
+    // prose: if void_payment's transaction had actually committed anything
+    // before hitting the check constraint, the count would have increased by
+    // one (the PAYMENT_REVERSED row). It didn't -- the whole call, including
+    // the audit INSERT that failed, rolled back as one unit.
+    const { count: auditLogCountAfterVoidAttempt, error: auditLogCountAfterErr } = await admin
+      .from("financial_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId);
+    expect(auditLogCountAfterErr).toBeNull();
+    expect(auditLogCountAfterVoidAttempt).toBe(auditLogCountBeforeVoidAttempt);
+
     // Cleanup. This test creates more interlinked rows than any prior test
     // in this file. platform_audit_logs.property_id FKs to the resort (and
     // must be removed before the resort delete below); its actor_id is null
@@ -2505,8 +2530,16 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // post_payment_internal both pass no/null actor), so an organization_id
     // filter is the correct (and simplest) way to remove them all. (The
     // void_payment attempt above wrote no financial_audit_logs row -- its
-    // transaction rolled back on the pre-existing check_audit_action bug --
-    // so there is nothing to clean up there.)
+    // transaction rolled back on the pre-existing check_audit_action bug,
+    // confirmed by the count assertion above. issue_dues DID write one
+    // legitimate financial_audit_logs row (action DUE_ISSUED) earlier in
+    // this test, though, and that one must still be cleaned up here.)
+    const { error: deleteFinancialAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteFinancialAuditErr).toBeNull();
+
     const { error: deleteAuditErr } = await admin
       .from("platform_audit_logs")
       .delete()
