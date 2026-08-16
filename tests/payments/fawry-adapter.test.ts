@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 vi.mock("server-only", () => ({}));
 
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
-import { runProviderContractTests } from "./provider-contract.test";
+import { runProviderContractTests } from "./contract-test-helper";
 
 const TEST_SECURE_KEY = "test-fawry-secure-key";
 const TEST_MERCHANT_CODE = "TEST-MERCHANT-1";

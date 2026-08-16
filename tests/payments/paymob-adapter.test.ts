@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 vi.mock("server-only", () => ({}));
 
 import { paymobAdapter } from "@/lib/payments/providers/paymob";
-import { runProviderContractTests } from "./provider-contract.test";
+import { runProviderContractTests } from "./contract-test-helper";
 
 const TEST_HMAC_SECRET = "test-paymob-hmac-secret";
 
@@ -275,6 +275,11 @@ describe("Paymob adapter redaction", () => {
     const redacted = paymobAdapter.redactProviderPayload({ rawBody, headers: {}, url });
     const obj = (redacted as any).obj;
     expect(obj.source_data.pan).toBeUndefined();
+    // Stronger than checking the value is falsy: confirms `pan` is actually
+    // deleted (not merely set to `undefined`), so it isn't an own,
+    // enumerable property that could survive a non-JSON.stringify
+    // persistence/logging path (e.g. structuredClone).
+    expect(Object.keys(obj.source_data)).not.toContain("pan");
     // Other source_data fields are preserved -- this is a targeted
     // redaction, not a wholesale strip of the whole object.
     expect(obj.source_data.sub_type).toBe("MASTERCARD");

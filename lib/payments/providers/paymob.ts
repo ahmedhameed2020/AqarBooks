@@ -140,7 +140,9 @@ export const paymobAdapter: PaymentProviderAdapter = {
     const payload = JSON.parse(ctx.rawBody);
     const obj = payload.obj ?? payload;
     if (obj && typeof obj === "object" && "source_data" in obj && obj.source_data) {
-      obj.source_data = { ...obj.source_data, pan: undefined };
+      const sourceData = { ...obj.source_data };
+      delete sourceData.pan;
+      obj.source_data = sourceData;
     }
     return payload;
   },
