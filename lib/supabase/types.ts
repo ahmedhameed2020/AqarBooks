@@ -53,6 +53,28 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["resorts"]["Row"]>;
         Relationships: [];
       };
+      properties: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone: string;
+          property_type: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone?: string;
+          property_type?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["properties"]["Row"]>;
+        Relationships: [];
+      };
       plans: {
         Row: {
           id: string;
