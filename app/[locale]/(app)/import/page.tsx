@@ -45,12 +45,12 @@ export default async function ImportPage({
         supabase
           .from("buildings")
           .select("id, code, name_ar, name_en")
-          .eq("resort_id", selectedResortId)
+          .eq("property_id", selectedResortId)
           .order("code", { ascending: true }),
         supabase
           .from("zones")
           .select("id, name_ar, name_en")
-          .eq("resort_id", selectedResortId)
+          .eq("property_id", selectedResortId)
           .order("name_ar", { ascending: true }),
         supabase
           .from("members")
