@@ -61,8 +61,14 @@ export type Database = {
           code: string;
           timezone: string;
           property_type: string;
+          address: string | null;
+          governorate: string | null;
+          phone: string | null;
+          email: string | null;
           created_at: string;
           updated_at: string;
+          created_by: string | null;
+          updated_by: string | null;
         };
         Insert: {
           id?: string;
@@ -71,6 +77,10 @@ export type Database = {
           code: string;
           timezone?: string;
           property_type?: string;
+          address?: string | null;
+          governorate?: string | null;
+          phone?: string | null;
+          email?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["properties"]["Row"]>;
         Relationships: [];
