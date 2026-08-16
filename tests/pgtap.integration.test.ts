@@ -2638,4 +2638,388 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("16. Phase 2g Group 2 payment_provider_settings/expenses Property-ID Rename Integrity (record_expense/upsert_payment_provider_settings/get_payment_provider_credentials/list_payment_provider_settings/enable-disable_payment_provider/record_payment_provider_verification/validate_payment_provider_settings_scope end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ProviderSettingsExpensesCluster Org",
+        slug: `pgtap-provider-settings-expenses-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // record_expense/upsert_payment_provider_settings/enable_payment_provider/
+    // disable_payment_provider/record_payment_provider_verification are all
+    // permission-gated via has_permission/has_financial_permission
+    // (auth.uid(), ...), which requires a real authenticated user -- the
+    // service-role admin client has no auth.uid() and would be rejected.
+    // Stand up a real TENANT_OWNER session, matching test 15's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-provider-settings-expenses-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: record_expense and the payment-provider-settings RPCs
+    // all key off of it, and it's what this test proves lands in
+    // expenses.property_id and payment_provider_settings.property_id.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "ProviderSettingsExpensesCluster Resort",
+        code: `PSEC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    const { data: expenseAcc, error: expenseAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `5100-${Date.now()}`,
+        name_ar: "مصروفات اختبار",
+        name_en: "Test Expense",
+        category: "EXPENSE",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(expenseAccErr).toBeNull();
+
+    const { data: cashAcc, error: cashAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1110-${Date.now()}`,
+        name_ar: "نقدية اختبار",
+        name_en: "Test Cash",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(cashAccErr).toBeNull();
+
+    const { data: expenseCategory, error: expenseCategoryErr } = await admin
+      .from("expense_categories")
+      .insert({
+        organization_id: orgId,
+        name_ar: "فئة مصروفات اختبار",
+        name_en: "Test Expense Category",
+        default_expense_account_id: expenseAcc!.id,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    expect(expenseCategoryErr).toBeNull();
+
+    // An OPEN fiscal period covering *today*: record_expense's
+    // create_journal_entry_internal call requires one.
+    const { data: yearId, error: yearErr } = await ownerClient.rpc("create_fiscal_year", {
+      p_organization_id: orgId,
+      p_name: "2026",
+      p_start_date: "2026-01-01",
+      p_end_date: "2026-12-31",
+    });
+    expect(yearErr).toBeNull();
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: period, error: periodErr } = await admin
+      .from("fiscal_periods")
+      .select("id")
+      .eq("fiscal_year_id", yearId)
+      .lte("start_date", todayIso)
+      .gte("end_date", todayIso)
+      .single();
+    expect(periodErr).toBeNull();
+    const periodId = period!.id;
+
+    const { error: openPeriodErr } = await ownerClient.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodId,
+      p_status: "OPEN",
+      p_reason: "pgTAP provider-settings-expenses-cluster setup",
+    });
+    expect(openPeriodErr).toBeNull();
+
+    // --- record_expense: proves the INSERT column-list substitution ---
+    const { data: expenseId, error: recordExpenseErr } = await ownerClient.rpc("record_expense", {
+      p_organization_id: orgId,
+      p_resort_id: resortId,
+      p_expense_category_id: expenseCategory!.id,
+      p_description: "pgTAP test expense",
+      p_amount: 123.45,
+      p_expense_date: todayIso,
+      p_payment_account_id: cashAcc!.id,
+      p_fiscal_period_id: periodId,
+      p_cashier_session_id: null,
+    });
+    expect(recordExpenseErr).toBeNull();
+    expect(expenseId).toBeDefined();
+
+    const { data: expenseRow, error: expenseRowErr } = await admin
+      .from("expenses")
+      .select("id, property_id, organization_id, journal_entry_id")
+      .eq("id", expenseId)
+      .single();
+    expect(expenseRowErr).toBeNull();
+    expect(expenseRow?.property_id).toBe(resortId);
+    expect(expenseRow?.organization_id).toBe(orgId);
+    expect(expenseRow?.journal_entry_id).toBeDefined();
+
+    // --- upsert_payment_provider_settings: property-scoped + org-wide ---
+    const { data: scopedSettingsId, error: upsertScopedErr } = await ownerClient.rpc(
+      "upsert_payment_provider_settings",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+        p_merchant_identifier: "pgtap-merchant-scoped",
+        p_public_key: "pgtap-public-key-scoped",
+        p_api_key: "pgtap-api-key-scoped",
+        p_hmac_secret: "pgtap-hmac-secret-scoped",
+      },
+    );
+    expect(upsertScopedErr).toBeNull();
+    expect(scopedSettingsId).toBeDefined();
+
+    const { data: orgWideSettingsId, error: upsertOrgWideErr } = await ownerClient.rpc(
+      "upsert_payment_provider_settings",
+      {
+        p_organization_id: orgId,
+        p_resort_id: null,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+        p_merchant_identifier: "pgtap-merchant-org-wide",
+        p_public_key: "pgtap-public-key-org-wide",
+        p_api_key: "pgtap-api-key-org-wide",
+        p_hmac_secret: "pgtap-hmac-secret-org-wide",
+      },
+    );
+    expect(upsertOrgWideErr).toBeNull();
+    expect(orgWideSettingsId).toBeDefined();
+    expect(orgWideSettingsId).not.toBe(scopedSettingsId);
+
+    // --- list_payment_provider_settings: proves the RETURNS TABLE column
+    // rename (resort_id -> property_id) didn't break anything; there are
+    // zero app-code callers today, so this RPC call itself is the only
+    // proof this substitution is correct. ---
+    const { data: listedSettings, error: listErr } = await ownerClient.rpc(
+      "list_payment_provider_settings",
+      { p_organization_id: orgId },
+    );
+    expect(listErr).toBeNull();
+    expect(listedSettings).toHaveLength(2);
+    const scopedListed = listedSettings!.find((s: { id: string }) => s.id === scopedSettingsId);
+    const orgWideListed = listedSettings!.find((s: { id: string }) => s.id === orgWideSettingsId);
+    expect(scopedListed?.property_id).toBe(resortId);
+    expect(orgWideListed?.property_id).toBeNull();
+
+    // --- record_payment_provider_verification + enable_payment_provider ---
+    const { error: verifyErr } = await ownerClient.rpc("record_payment_provider_verification", {
+      p_settings_id: scopedSettingsId,
+      p_success: true,
+    });
+    expect(verifyErr).toBeNull();
+
+    const { error: enableErr } = await ownerClient.rpc("enable_payment_provider", {
+      p_settings_id: scopedSettingsId,
+    });
+    expect(enableErr).toBeNull();
+
+    // --- get_payment_provider_credentials: proves the lookup condition and
+    // ORDER BY substitutions -- the property-scoped (now enabled) row must
+    // be preferred over the org-wide row for this exact resort. ---
+    const { data: credentials, error: credentialsErr } = await admin.rpc(
+      "get_payment_provider_credentials",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+      },
+    );
+    expect(credentialsErr).toBeNull();
+    const credentialsRow = Array.isArray(credentials) ? credentials[0] : credentials;
+    expect(credentialsRow?.settings_id).toBe(scopedSettingsId);
+    expect(credentialsRow?.merchant_identifier).toBe("pgtap-merchant-scoped");
+    expect(credentialsRow?.api_key).toBe("pgtap-api-key-scoped");
+    expect(credentialsRow?.hmac_secret).toBe("pgtap-hmac-secret-scoped");
+
+    // --- disable_payment_provider ---
+    const { error: disableErr } = await ownerClient.rpc("disable_payment_provider", {
+      p_settings_id: scopedSettingsId,
+    });
+    expect(disableErr).toBeNull();
+
+    const { data: disabledRow, error: disabledRowErr } = await admin
+      .from("payment_provider_settings")
+      .select("status, enabled")
+      .eq("id", scopedSettingsId)
+      .single();
+    expect(disabledRowErr).toBeNull();
+    expect(disabledRow?.status).toBe("DISABLED");
+    expect(disabledRow?.enabled).toBe(false);
+
+    // --- validate_payment_provider_settings_scope trigger: a property_id
+    // that doesn't belong to this organization must be rejected. Uses
+    // PAYMOB/PRODUCTION deliberately avoided (enable_payment_provider
+    // blocks that combo) -- irrelevant here since upsert fails before any
+    // enable step is reached. A fresh provider/environment combo (PAYMOB/
+    // SANDBOX) avoids colliding with the FAWRY/SANDBOX rows above.
+    const { data: otherOrg } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ProviderSettingsExpensesCluster Other Org",
+        slug: `pgtap-provider-settings-expenses-other-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+    const { data: otherResort } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: otherOrg!.id,
+        name: "ProviderSettingsExpensesCluster Other Resort",
+        code: `PSEC-OTHER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    const { error: scopeViolationErr } = await ownerClient.rpc("upsert_payment_provider_settings", {
+      p_organization_id: orgId,
+      p_resort_id: otherResort!.id,
+      p_provider: "PAYMOB",
+      p_environment: "SANDBOX",
+      p_merchant_identifier: "pgtap-merchant-scope-violation",
+      p_public_key: "pgtap-public-key-scope-violation",
+      p_api_key: "pgtap-api-key-scope-violation",
+      p_hmac_secret: "pgtap-hmac-secret-scope-violation",
+    });
+    expect(scopeViolationErr).toBeDefined();
+    expect(scopeViolationErr?.message).toContain("RESORT_NOT_IN_ORGANIZATION");
+
+    // --- Cleanup (FK-safe order) ---
+    await admin.from("resorts").delete().eq("id", otherResort!.id);
+    await admin.from("organizations").delete().eq("id", otherOrg!.id);
+
+    // vault.secrets rows created by upsert_payment_provider_settings above
+    // are left in place: the `vault` schema isn't exposed via the REST API
+    // (by design, matching Supabase's default configuration), so they
+    // aren't reachable from this test client to delete. This is the same
+    // accepted-and-documented small leak pattern as chart_of_accounts rows
+    // being left behind elsewhere in this file (COA_USED_DELETE_FORBIDDEN)
+    // -- a handful of tiny encrypted, org-orphaned rows per test run, not
+    // wired to anything once payment_provider_settings is deleted below.
+    const { error: deleteScopedSettingsErr } = await admin
+      .from("payment_provider_settings")
+      .delete()
+      .eq("id", scopedSettingsId);
+    expect(deleteScopedSettingsErr).toBeNull();
+    const { error: deleteOrgWideSettingsErr } = await admin
+      .from("payment_provider_settings")
+      .delete()
+      .eq("id", orgWideSettingsId);
+    expect(deleteOrgWideSettingsErr).toBeNull();
+
+    const { error: deleteExpenseErr } = await admin.from("expenses").delete().eq("id", expenseId);
+    expect(deleteExpenseErr).toBeNull();
+
+    const { error: deleteJournalEntriesErr } = await admin
+      .from("journal_entries")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteJournalEntriesErr).toBeNull();
+
+    const { error: deleteExpenseCategoryErr } = await admin
+      .from("expense_categories")
+      .delete()
+      .eq("id", expenseCategory!.id);
+    expect(deleteExpenseCategoryErr).toBeNull();
+
+    // record_expense's 'expense.recorded' entry lands in platform_audit_logs
+    // .property_id, which FKs to the resort -- must be removed before the
+    // resort delete below, matching test 15's precedent.
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteAuditErr).toBeNull();
+
+    // The expense/cash GL accounts are not deleted: they've been posted to
+    // by record_expense's journal entry above, so chart_of_accounts.is_used
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_
+    // FORBIDDEN) -- matching test 15's precedent.
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
