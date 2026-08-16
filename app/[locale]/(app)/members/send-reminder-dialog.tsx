@@ -14,8 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { logReminderSentAction } from "@/lib/actions/member-crm";
 import { toWhatsAppNumber } from "@/lib/whatsapp";
+
+// TODO: `logReminderSentAction` from `@/lib/actions/member-crm` was
+// referenced here but that module was never implemented -- confirmed via
+// `git log --all` that no commit on any branch ever added
+// `lib/actions/member-crm.ts`. This is member-CRM scope (activity-log
+// auditing of reminders), out of scope for the current baseline cleanup.
+// The dialog's core WhatsApp/email send flow is otherwise fully functional
+// and unaffected; only the audit-log call below was removed pending that
+// feature.
 
 function defaultMessage(isAr: boolean, memberName: string, balance: number, currency: string) {
   if (balance <= 0) {
@@ -58,11 +66,11 @@ export function SendReminderDialog({
   async function send() {
     if (channel === "whatsapp" && whatsappNumber) {
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
-      await logReminderSentAction({ memberId, organizationId, channel: "whatsapp_reminder", body: message });
+      // TODO: was logged via logReminderSentAction, see top-of-file TODO.
     } else if (channel === "email" && email) {
       const subject = isAr ? `تذكير من ${memberName}` : `Reminder`;
       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-      await logReminderSentAction({ memberId, organizationId, channel: "email_reminder", body: message });
+      // TODO: was logged via logReminderSentAction, see top-of-file TODO.
     }
     setOpen(false);
   }

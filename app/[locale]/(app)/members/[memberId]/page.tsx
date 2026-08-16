@@ -22,16 +22,19 @@ import { KpiCard } from "../../dashboard/kpi-card";
 import { UnitBalanceBadge } from "../../property/unit-balance-badge";
 import { DuesTable } from "../../property/dues-table";
 import { PaymentsTable } from "../../property/payments-table";
-import { BackToMembersButton } from "./back-to-members-button";
 import { AddMemberDialog } from "../add-member-dialog";
-import { MemberStatementDialog } from "./member-statement-dialog";
 import { SendReminderDialog } from "../send-reminder-dialog";
 import { InviteToPortalDialog } from "./invite-to-portal-dialog";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
-import { MemberTags } from "./member-tags";
-import { MemberActivity, type ActivityEntry } from "./member-activity";
-import { MemberDocuments, type MemberDocument } from "./member-documents";
+// TODO: `./back-to-members-button`, `./member-statement-dialog`, `./member-tags`,
+// `./member-activity`, and `./member-documents` were referenced here but never
+// implemented -- confirmed via `git log --all` that no commit on any branch
+// in this repo ever added these files. This is member-CRM scope (tags,
+// activity log, document uploads, PDF statement, a dedicated back button),
+// which is out of scope for the current baseline cleanup. The imports and
+// their JSX usage below were removed pending that feature; see git history
+// for `app/[locale]/(app)/members/[memberId]/page.tsx`.
 
 export default async function MemberDetailPage({
   params,
@@ -114,48 +117,20 @@ export default async function MemberDetailPage({
   const totalPaid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const lastPayment = (payments ?? [])[0] ?? null;
 
-  const [{ data: allTags }, { data: tagAssignments }, { data: activityRows }, { data: documentRows }, { data: allUnits }] = await Promise.all([
-    supabase.from("member_tags").select("id, name").eq("organization_id", organization.id).order("name"),
-    supabase.from("member_tag_assignments").select("tag_id").eq("member_id", memberId),
-    supabase
-      .from("member_activity_log")
-      .select("id, type, body, created_at, actor_id")
-      .eq("member_id", memberId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("member_documents")
-      .select("id, file_name, file_size, file_path, created_at")
-      .eq("member_id", memberId)
-      .order("created_at", { ascending: false }),
-    supabase.from("units_with_financials").select("id, code, building_name_ar, building_name_en").eq("organization_id", organization.id).order("code"),
-  ]);
-
-  const actorIds = [...new Set((activityRows ?? []).map((a) => a.actor_id).filter((id): id is string => Boolean(id)))];
-  const { data: actorProfiles } = actorIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", actorIds)
-    : { data: [] };
-  const actorNameById = new Map((actorProfiles ?? []).map((p) => [p.id, p.full_name]));
-
-  const activityEntries: ActivityEntry[] = (activityRows ?? []).map((a) => ({
-    id: a.id,
-    type: a.type,
-    body: a.body,
-    createdAt: a.created_at,
-    actorName: a.actor_id ? (actorNameById.get(a.actor_id) ?? null) : null,
-  }));
-
-  const documents: MemberDocument[] = (documentRows ?? []).map((d) => ({
-    id: d.id,
-    fileName: d.file_name,
-    fileSize: d.file_size,
-    filePath: d.file_path,
-    createdAt: d.created_at,
-  }));
+  // TODO: this used to also fetch member_tags/member_tag_assignments,
+  // member_activity_log (+ actor profile names), and member_documents to
+  // feed MemberTags/MemberActivity/MemberDocuments below -- those components
+  // were never implemented (see the TODO near the top-of-file imports), so
+  // those queries were removed rather than left running for no consumer.
+  const { data: allUnits } = await supabase
+    .from("units_with_financials")
+    .select("id, code, building_name_ar, building_name_en")
+    .eq("organization_id", organization.id)
+    .order("code");
 
   return (
     <main className="space-y-6 p-6">
-      <BackToMembersButton locale={locale} />
+      {/* TODO: BackToMembersButton was never implemented -- removed, see top-of-file TODO. */}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
@@ -183,21 +158,14 @@ export default async function MemberDetailPage({
               <span>{isAr ? "بلا بيانات تواصل" : "No contact info"}</span>
             )}
           </div>
-          <MemberTags
-            memberId={member.id}
-            organizationId={organization.id}
-            allTags={allTags ?? []}
-            assignedTagIds={(tagAssignments ?? []).map((t) => t.tag_id)}
-            locale={locale}
-            canManage={canManage}
-          />
+          {/* TODO: MemberTags was never implemented -- removed, see top-of-file TODO. */}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <AddMemberDialog
               organizationId={organization.id}
-              members={[{ id: member.id, full_name: member.full_name, phone: member.phone }]}
+              members={[{ id: member.id, full_name: member.full_name }]}
               units={(allUnits ?? []).map((u) => ({
                 id: u.id,
                 code: u.code,
@@ -205,8 +173,15 @@ export default async function MemberDetailPage({
                 building_name_en: u.building_name_en,
               }))}
               locale={locale}
-              defaultTab="ownership"
-              defaultMemberId={member.id}
+              // TODO: AddMemberDialog has no `defaultTab`/`defaultMemberId`
+              // support (its tab always starts on "member" and
+              // LinkOwnershipForm's member picker always starts empty) --
+              // these props were passed here but never wired up anywhere,
+              // so opening this dialog from the member page doesn't
+              // actually preselect "Link ownership" + this member yet.
+              // Dropped rather than silently accepted as no-ops; wiring
+              // real default-tab/default-member support is member-CRM-
+              // adjacent UI work, out of scope for this baseline cleanup.
             />
           )}
           <SendReminderDialog
@@ -225,11 +200,7 @@ export default async function MemberDetailPage({
               </Button>
             }
           />
-          <MemberStatementDialog
-            memberId={member.id}
-            memberName={member.full_name}
-            locale={locale}
-          />
+          {/* TODO: MemberStatementDialog was never implemented -- removed, see top-of-file TODO. */}
           <InviteToPortalDialog
             memberId={member.id}
             memberName={member.full_name}
@@ -332,29 +303,11 @@ export default async function MemberDetailPage({
         <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold">{isAr ? "الملاحظات والنشاط" : "Notes & activity"}</h2>
-          <MemberActivity
-            memberId={member.id}
-            organizationId={organization.id}
-            entries={activityEntries}
-            locale={locale}
-            canManage={canManage}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold">{isAr ? "المستندات" : "Documents"}</h2>
-          <MemberDocuments
-            memberId={member.id}
-            organizationId={organization.id}
-            documents={documents}
-            locale={locale}
-            canManage={canManage}
-          />
-        </section>
-      </div>
+      {/*
+        TODO: "Notes & activity" (MemberActivity) and "Documents"
+        (MemberDocuments) were never implemented -- removed, see
+        top-of-file TODO.
+      */}
     </main>
   );
 }
