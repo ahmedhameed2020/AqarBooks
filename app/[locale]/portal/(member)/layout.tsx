@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { PortalShell } from "./portal-shell";
+import { Toaster } from "@/components/ui/toast";
 
 export default async function PortalMemberLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getPortalMemberContext();
@@ -23,8 +24,10 @@ export default async function PortalMemberLayout({ children }: { children: React
   const loc = (await getLocale()) as "ar" | "en";
 
   return (
-    <PortalShell locale={loc} memberName={member.full_name}>
-      {children}
-    </PortalShell>
+    <Toaster>
+      <PortalShell locale={loc} memberName={member.full_name}>
+        {children}
+      </PortalShell>
+    </Toaster>
   );
 }
