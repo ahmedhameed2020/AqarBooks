@@ -1340,6 +1340,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: number;
       };
+      expire_stale_online_payment_transactions: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       is_platform_admin: { Args: { p_user_id: string }; Returns: boolean };
       is_org_member: {
         Args: { p_user_id: string; p_organization_id: string };

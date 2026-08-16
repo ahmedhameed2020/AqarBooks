@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Money } from "@/components/money";
 import { PortalPrintReceiptButton } from "./portal-print-receipt-button";
@@ -21,6 +22,21 @@ export default async function PortalPaymentsPage({
   if (ctx.status !== "ok") redirect("/portal/login");
 
   const { member } = ctx;
+
+  // Lazy sweep: this page is where a member checks whether their online
+  // payment went through, so it's the most analogous portal-request
+  // touchpoint to expire any transaction that's been left PENDING past its
+  // expires_at -- same rationale as createMemberInvitationAction's sweep of
+  // expire_stale_member_invitations() in lib/actions/member-portal.ts.
+  // expire_stale_online_payment_transactions() is service_role-only (Phase
+  // 3 hardening, unlike the invitation sweep's original unguarded version),
+  // so it's called via the admin client, never the per-request RLS-scoped
+  // client above. Best-effort: a failure here must never block the page.
+  const adminClient = createAdminClient();
+  const { error: sweepError } = await adminClient.rpc("expire_stale_online_payment_transactions");
+  if (sweepError) {
+    console.error("[PortalPaymentsPage] expire_stale_online_payment_transactions failed:", sweepError.message);
+  }
 
   // get_own_organization_display (SECURITY DEFINER RPC, Task 13) returns at
   // most one row for the caller's own org -- .maybeSingle() to match. No
