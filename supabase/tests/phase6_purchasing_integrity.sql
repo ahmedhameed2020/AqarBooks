@@ -92,7 +92,7 @@ begin
   ---------------------------------------------------------------------
   -- TEST 3: posting a supplier invoice produces a balanced journal entry
   ---------------------------------------------------------------------
-  v_invoice_id := public.post_supplier_invoice(v_org_id, v_resort_id, v_supplier_id, v_po_id, 'INV-001', v_expense_id, 1000, '2026-01-06', '2026-02-05', v_period_open);
+  v_invoice_id := public.post_supplier_invoice(v_org_id, v_resort_id, v_supplier_id, v_po_id, 'INV-001', v_expense_id, 1000, 0, 0, null, 0, null, '2026-01-06', '2026-02-05', v_period_open);
   select sum(l.debit), sum(l.credit) into v_debit_total, v_credit_total
   from public.journal_entry_lines l
   join public.journal_entries je on je.id = l.journal_entry_id
@@ -134,7 +134,7 @@ begin
   ---------------------------------------------------------------------
   -- TEST 6: multi-invoice allocation in one payment
   ---------------------------------------------------------------------
-  v_invoice_id_2 := public.post_supplier_invoice(v_org_id, v_resort_id, v_supplier_id, null, 'INV-002', v_expense_id, 200, '2026-01-07', '2026-02-06', v_period_open);
+  v_invoice_id_2 := public.post_supplier_invoice(v_org_id, v_resort_id, v_supplier_id, null, 'INV-002', v_expense_id, 200, 0, 0, null, 0, null, '2026-01-07', '2026-02-06', v_period_open);
   v_payment_id_2 := public.record_supplier_payment(
     v_org_id, v_resort_id, v_supplier_id, 800, 'BANK_TRANSFER', '2026-01-12', v_cash_id, v_period_open,
     jsonb_build_array(

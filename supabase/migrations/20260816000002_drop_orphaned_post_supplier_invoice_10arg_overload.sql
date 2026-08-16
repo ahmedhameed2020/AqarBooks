@@ -1,0 +1,24 @@
+-- Drift-correction migration (2026-08-16): this DROP was already intended
+-- by 20260812000025_supplier_invoice_vat_wht.sql (line 56), which shipped
+-- with `drop function if exists public.post_supplier_invoice(uuid, uuid,
+-- uuid, uuid, text, uuid, numeric, date, date, uuid);` -- but that DROP
+-- never actually took effect on the live database (confirmed: the live
+-- project's applied-migrations history only tracks entries from the last
+-- two days, and this file predates that; most earlier schema state was
+-- applied via ad-hoc SQL-editor pastes that evidently skipped this line).
+--
+-- Impact assessed before running this: the orphaned 10-arg overload could
+-- not actually be exploited -- supplier_invoices.net_amount has been
+-- NOT NULL (no default) since 20260813000009_supplier_invoices_vat_wht_
+-- columns_backfill.sql, and the old function body never sets net_amount,
+-- so any call to it already fails with a not-null violation before an
+-- invoice row (or a lasting journal entry) could be created. No app code
+-- or wired-in test calls this signature -- only a standalone, not-CI-wired
+-- pgTAP script (supabase/tests/phase6_purchasing_integrity.sql) used
+-- positional args matching it.
+--
+-- This migration just finishes what 20260812000025 already intended, so
+-- only one post_supplier_invoice signature (the 15-arg VAT/WHT-aware one)
+-- remains callable.
+
+drop function if exists public.post_supplier_invoice(uuid, uuid, uuid, uuid, text, uuid, numeric, date, date, uuid);
