@@ -1316,6 +1316,60 @@ export type Database = {
           failure_message: string | null;
         }[];
       };
+      // service_role only -- see supabase/migrations/20260816170000_payment_provider_settings_schema.sql
+      // and .../20260816180000_payment_provider_settings_no_tenant_setting_distinction.sql.
+      get_payment_provider_credentials: {
+        Args: { p_organization_id: string; p_resort_id: string | null; p_provider: string; p_environment: string };
+        Returns: {
+          merchant_identifier: string;
+          public_key: string | null;
+          api_key: string;
+          hmac_secret: string;
+          settings_id: string;
+        }[];
+      };
+      upsert_payment_provider_settings: {
+        Args: {
+          p_organization_id: string;
+          p_resort_id: string | null;
+          p_provider: string;
+          p_environment: string;
+          p_merchant_identifier: string | null;
+          p_public_key: string | null;
+          p_api_key: string | null;
+          p_hmac_secret: string | null;
+        };
+        Returns: string;
+      };
+      record_payment_provider_verification: {
+        Args: { p_settings_id: string; p_success: boolean; p_error_message?: string | null };
+        Returns: undefined;
+      };
+      enable_payment_provider: {
+        Args: { p_settings_id: string };
+        Returns: undefined;
+      };
+      disable_payment_provider: {
+        Args: { p_settings_id: string };
+        Returns: undefined;
+      };
+      list_payment_provider_settings: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string;
+          resort_id: string | null;
+          provider: string;
+          environment: string;
+          merchant_identifier: string | null;
+          public_key: string | null;
+          has_api_key: boolean;
+          has_hmac_secret: boolean;
+          status: string;
+          enabled: boolean;
+          verified_at: string | null;
+          last_verification_error: string | null;
+        }[];
+      };
       get_own_organization_display: {
         Args: Record<PropertyKey, never>;
         Returns: {
