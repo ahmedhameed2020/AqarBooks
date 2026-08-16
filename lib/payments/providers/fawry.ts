@@ -17,19 +17,35 @@ function toTwoDecimals(amount: number): string {
   return amount.toFixed(2);
 }
 
+// This adapter never sends a saved customer profile ID or a forced/
+// pre-selected payment method with the reference-number checkout flow, so
+// both fields are always empty strings in the signature formula below --
+// named here (not left as bare `${""}${""}`) so a future reader doesn't
+// mistake them for leftover placeholders and "clean them up".
+const EMPTY_CUST_PROF_ID = "";
+const EMPTY_PAYMENT_METHOD = "";
+
 // Per developer.fawrystaging.com/docs/server-apis/create-payment-refno-apis:
 // merchantCode + merchantRefNum + merchant_cust_prof_id + payment_method + amount + secureKey.
-// merchant_cust_prof_id and payment_method are empty strings for this
-// reference-number checkout flow (no saved customer profile, no
-// forced/pre-selected payment method).
 function buildChargeRequestSignature(params: {
   merchantCode: string;
   merchantRefNum: string;
   amount: number;
   secureKey: string;
 }): string {
-  const concatenated = `${params.merchantCode}${params.merchantRefNum}${""}${""}${toTwoDecimals(params.amount)}${params.secureKey}`;
+  const concatenated = `${params.merchantCode}${params.merchantRefNum}${EMPTY_CUST_PROF_ID}${EMPTY_PAYMENT_METHOD}${toTwoDecimals(params.amount)}${params.secureKey}`;
   return sha256Hex(concatenated);
+}
+
+// Float-unsafe: `Math.round(parseFloat(decimalString) * 100)` can lose a
+// cent on inputs like "1.005" (parseFloat("1.005") * 100 === 100.49999999999999,
+// which rounds down to 100 instead of 101). Fawry's amounts are always
+// plain fixed-2-decimal strings, so parse the integer cents directly from
+// the string instead of going through float multiplication at all.
+function decimalStringToMinorUnits(decimalString: string): number {
+  const [wholePart, fractionalPart = ""] = decimalString.split(".");
+  const paddedFraction = (fractionalPart + "00").slice(0, 2);
+  return Number(wholePart) * 100 + Number(paddedFraction);
 }
 
 // Per developer.fawrystaging.com/docs/payment-notifications/server-notification-v2:
@@ -139,8 +155,12 @@ export const fawryAdapter: PaymentProviderAdapter = {
     }
 
     const result = await response.json();
+    const redirectUrl = result.nextAction?.redirectUrl ?? result.redirectUrl;
+    if (!redirectUrl || typeof redirectUrl !== "string") {
+      throw new Error(`FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL: ${JSON.stringify(result)}`);
+    }
     return {
-      redirectUrl: result.nextAction?.redirectUrl ?? result.redirectUrl,
+      redirectUrl,
       providerReference: result.referenceNumber ?? null,
     };
   },
@@ -151,7 +171,7 @@ export const fawryAdapter: PaymentProviderAdapter = {
       merchantOrderRef: body.merchantRefNumber,
       providerTransactionId: body.fawryRefNumber,
       status: mapFawryStatus(body.orderStatus),
-      amountMinor: Math.round(parseFloat(body.paymentAmount) * 100),
+      amountMinor: decimalStringToMinorUnits(body.paymentAmount),
       currency: "EGP",
       webhookEventId: body.fawryRefNumber,
     };

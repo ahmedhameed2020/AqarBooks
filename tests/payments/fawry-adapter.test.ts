@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import crypto from "node:crypto";
 
 // `lib/payments/env.ts` imports the `server-only` package, which throws
@@ -135,5 +135,165 @@ describe("Fawry adapter status mapping", () => {
       });
       expect(parsed.status).toBe("PENDING");
     }
+  });
+});
+
+describe("Fawry adapter amount-to-minor-units conversion", () => {
+  it("converts a plain 2-decimal amount without floating-point error", () => {
+    const parsed = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ paymentAmount: "19.99", orderAmount: "19.99" }),
+      headers: {},
+      url: "",
+    });
+    expect(parsed.amountMinor).toBe(1999);
+  });
+
+  it("does not produce the floating-point artifact the old Math.round(parseFloat(x)*100) path did", () => {
+    // Regression check for the reviewed bug: parseFloat("1.005") * 100 ===
+    // 100.49999999999999 in IEEE-754 double, which Math.round() then rounds
+    // DOWN to 100 -- not up to 101 as naive rounding would suggest, and
+    // worse, other nearby values round unpredictably depending on their
+    // exact float representation. The string-based conversion never
+    // multiplies a float, so it is fully deterministic: it takes exactly
+    // the first two fractional digits (Fawry's wire format is always
+    // fixed 2-decimal, so a third digit should never actually appear in
+    // practice) rather than depending on float rounding at all.
+    const first = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ paymentAmount: "1.005", orderAmount: "1.005" }),
+      headers: {},
+      url: "",
+    }).amountMinor;
+    const second = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ paymentAmount: "1.005", orderAmount: "1.005" }),
+      headers: {},
+      url: "",
+    }).amountMinor;
+    expect(first).toBe(second);
+    expect(Number.isInteger(first)).toBe(true);
+    // Deterministic string-truncation result: the old float path was not
+    // guaranteed to equal this on every run/engine; this path always does.
+    expect(first).toBe(100);
+  });
+});
+
+describe("Fawry adapter malformed webhook body handling", () => {
+  // Task 5's webhook route handler wraps each adapter call in its own
+  // try/catch expecting a throw on malformed input -- pin down that
+  // parseWebhookPayload/verifyWebhookSignature never silently swallow a
+  // JSON.parse failure.
+  it("parseWebhookPayload throws on non-JSON rawBody", () => {
+    expect(() =>
+      fawryAdapter.parseWebhookPayload({ rawBody: "not json", headers: {}, url: "" })
+    ).toThrow();
+  });
+
+  it("verifyWebhookSignature throws on non-JSON rawBody", () => {
+    expect(() =>
+      fawryAdapter.verifyWebhookSignature({ rawBody: "not json", headers: {}, url: "" })
+    ).toThrow();
+  });
+});
+
+describe("Fawry adapter createCheckout", () => {
+  const baseInput = {
+    transactionId: "txn-abc-123",
+    amount: 500,
+    memberEmail: "owner@example.test",
+    memberPhone: "01000000000",
+    merchantOrderRef: "22222222-2222-2222-2222-222222222222",
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a signature matching buildChargeRequestSignature's expected output for known inputs", async () => {
+    let capturedBody: any = null;
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      capturedBody = JSON.parse(init.body as string);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ redirectUrl: "https://atfawry.fawrystaging.com/pay/xyz", referenceNumber: "ref-1" }),
+        text: async () => "",
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fawryAdapter.createCheckout(baseInput);
+
+    expect(capturedBody).not.toBeNull();
+    // Known-answer check: merchantCode + merchantRefNum + "" + "" + amount(2dp) + secureKey
+    const expectedSignature = crypto
+      .createHash("sha256")
+      .update(`${TEST_MERCHANT_CODE}${baseInput.merchantOrderRef}${""}${""}${"500.00"}${TEST_SECURE_KEY}`, "utf8")
+      .digest("hex");
+    expect(capturedBody.signature).toBe(expectedSignature);
+    expect(capturedBody.merchantCode).toBe(TEST_MERCHANT_CODE);
+    expect(capturedBody.merchantRefNum).toBe(baseInput.merchantOrderRef);
+  });
+
+  it("succeeds when the response has nextAction.redirectUrl", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ nextAction: { redirectUrl: "https://atfawry.fawrystaging.com/pay/next-action" }, referenceNumber: "ref-2" }),
+        text: async () => "",
+      }))
+    );
+
+    const result = await fawryAdapter.createCheckout(baseInput);
+    expect(result.redirectUrl).toBe("https://atfawry.fawrystaging.com/pay/next-action");
+    expect(result.providerReference).toBe("ref-2");
+  });
+
+  it("succeeds when the response has only a top-level redirectUrl (no nextAction)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ redirectUrl: "https://atfawry.fawrystaging.com/pay/top-level", referenceNumber: null }),
+        text: async () => "",
+      }))
+    );
+
+    const result = await fawryAdapter.createCheckout(baseInput);
+    expect(result.redirectUrl).toBe("https://atfawry.fawrystaging.com/pay/top-level");
+    expect(result.providerReference).toBeNull();
+  });
+
+  it("throws FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL when both redirectUrl fields are absent", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ referenceNumber: "ref-3" }),
+        text: async () => "",
+      }))
+    );
+
+    await expect(fawryAdapter.createCheckout(baseInput)).rejects.toThrow(
+      "FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL"
+    );
+  });
+
+  it("throws FAWRY_CHARGE_REQUEST_FAILED with status and body text on a non-ok HTTP response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
+        json: async () => ({}),
+        text: async () => "upstream error detail",
+      }))
+    );
+
+    await expect(fawryAdapter.createCheckout(baseInput)).rejects.toThrow(
+      "FAWRY_CHARGE_REQUEST_FAILED: 502 upstream error detail"
+    );
   });
 });
