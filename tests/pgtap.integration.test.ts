@@ -598,4 +598,168 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("9. Phase 2b-2 Membership/Misc Cluster Rename Integrity (resort_memberships/document_sequences/cost_centers/projects property_id)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP MembershipMiscCluster Org",
+        slug: `pgtap-membership-misc-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // resort_memberships.user_id has a real FK to auth.users(id) ON DELETE
+    // CASCADE -- a fake/random UUID would fail the insert, so a real auth
+    // user is required here.
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const memberEmail = `pgtap-membership-misc-cluster-${Date.now()}@aqarbooks-test.local`;
+    const { data: memberUser, error: createMemberErr } = await admin.auth.admin.createUser({
+      email: memberEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createMemberErr).toBeNull();
+    const memberId = memberUser!.user!.id;
+
+    // A resort row the membership will point at.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "MembershipMiscCluster Resort",
+        code: `MMC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // A second resort with no membership row, to prove the negative case
+    // for is_resort_member below isn't accidentally always-true.
+    const { data: otherResort, error: otherResortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "MembershipMiscCluster Other Resort",
+        code: `MMC-OTHER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(otherResortErr).toBeNull();
+    const otherResortId = otherResort!.id;
+
+    // Insert into resort_memberships directly via `property_id` -- this
+    // alone proves the column rename applied. If the column were still
+    // `resort_id`, this insert would fail (strict mode).
+    const { data: membership, error: membershipInsertErr } = await admin
+      .from("resort_memberships")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        user_id: memberId,
+      })
+      .select("id, property_id")
+      .single();
+
+    expect(membershipInsertErr).toBeNull();
+    expect(membership?.property_id).toBe(resortId);
+
+    // is_resort_member: positive case (membership row exists for this
+    // resort) must return true.
+    const { data: isMemberTrue, error: isMemberTrueErr } = await admin.rpc("is_resort_member", {
+      p_user_id: memberId,
+      p_resort_id: resortId,
+    });
+    expect(isMemberTrueErr).toBeNull();
+    expect(isMemberTrue).toBe(true);
+
+    // is_resort_member: negative case (no membership row for the second
+    // resort) must return false -- proves the query isn't accidentally
+    // matching on user_id alone.
+    const { data: isMemberFalse, error: isMemberFalseErr } = await admin.rpc("is_resort_member", {
+      p_user_id: memberId,
+      p_resort_id: otherResortId,
+    });
+    expect(isMemberFalseErr).toBeNull();
+    expect(isMemberFalse).toBe(false);
+
+    // next_sequence_value: first call for a unique sequence_type seeds the
+    // document_sequences row (property_id column) at 1 and returns 1;
+    // second call increments it and returns 2.
+    const sequenceType = `phase2b2-test-${Date.now()}`;
+    const { data: seqFirst, error: seqFirstErr } = await admin.rpc("next_sequence_value", {
+      p_organization_id: orgId,
+      p_resort_id: null,
+      p_sequence_type: sequenceType,
+    });
+    expect(seqFirstErr).toBeNull();
+    expect(seqFirst).toBe(1);
+
+    const { data: seqSecond, error: seqSecondErr } = await admin.rpc("next_sequence_value", {
+      p_organization_id: orgId,
+      p_resort_id: null,
+      p_sequence_type: sequenceType,
+    });
+    expect(seqSecondErr).toBeNull();
+    expect(seqSecond).toBe(2);
+
+    // cost_centers: direct insert with `property_id`, code/name_ar/name_en
+    // are NOT NULL per the live schema.
+    const costCenterCode = `CC-PIC-${Date.now()}`;
+    const { data: costCenter, error: costCenterErr } = await admin
+      .from("cost_centers")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: costCenterCode,
+        name_ar: "مركز تكلفة اختبار",
+        name_en: "Test Cost Center",
+      })
+      .select("id, property_id, code")
+      .single();
+
+    expect(costCenterErr).toBeNull();
+    expect(costCenter?.property_id).toBe(resortId);
+    expect(costCenter?.code).toBe(costCenterCode);
+
+    // projects: same required columns as cost_centers.
+    const projectCode = `PRJ-PIC-${Date.now()}`;
+    const { data: project, error: projectErr } = await admin
+      .from("projects")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: projectCode,
+        name_ar: "مشروع اختبار",
+        name_en: "Test Project",
+      })
+      .select("id, property_id, code")
+      .single();
+
+    expect(projectErr).toBeNull();
+    expect(project?.property_id).toBe(resortId);
+    expect(project?.code).toBe(projectCode);
+
+    // Cleanup. is_resort_member and next_sequence_value are pure
+    // read/counter functions (verified via pg_get_functiondef) with no
+    // writes to platform_audit_logs, organization_memberships, or
+    // user_role_assignments -- unlike tests 7/8, this test's RPC calls
+    // create no such rows for memberId, so only the resort_memberships row
+    // itself needs removing before deleteUser (it also cascades via the
+    // user_id FK, but delete explicitly for clarity/determinism).
+    await admin.from("resort_memberships").delete().eq("id", membership!.id);
+
+    const { error: deleteMemberErr } = await admin.auth.admin.deleteUser(memberId);
+    expect(deleteMemberErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
