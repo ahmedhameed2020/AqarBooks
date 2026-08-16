@@ -2914,10 +2914,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // --- validate_payment_provider_settings_scope trigger: a property_id
     // that doesn't belong to this organization must be rejected. Uses
-    // PAYMOB/PRODUCTION deliberately avoided (enable_payment_provider
-    // blocks that combo) -- irrelevant here since upsert fails before any
-    // enable step is reached. A fresh provider/environment combo (PAYMOB/
-    // SANDBOX) avoids colliding with the FAWRY/SANDBOX rows above.
+    // PAYMOB/SANDBOX (not FAWRY/SANDBOX) purely to avoid colliding with the
+    // payment_provider_settings_unique_scope index against the rows created
+    // above -- PRODUCTION is avoided too, since enable_payment_provider
+    // blocks PAYMOB/PRODUCTION, though that's moot here since the upsert is
+    // expected to fail before any enable step is reached.
     const { data: otherOrg } = await admin
       .from("organizations")
       .insert({
