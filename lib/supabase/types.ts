@@ -165,7 +165,7 @@ export type Database = {
           user_id: string;
           role_id: string;
           organization_id: string | null;
-          resort_id: string | null;
+          property_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -173,7 +173,7 @@ export type Database = {
           user_id: string;
           role_id: string;
           organization_id?: string | null;
-          resort_id?: string | null;
+          property_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_role_assignments"]["Row"]>;
         Relationships: [];
@@ -270,7 +270,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -285,7 +285,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id?: string | null;
+          property_id?: string | null;
           code: string;
           name_ar: string;
           name_en: string;
