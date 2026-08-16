@@ -1,0 +1,30 @@
+-- Critical fix, found during testing of 20260817000001 (same PR, applied
+-- within minutes of the original migration -- this bug was never live
+-- long enough for a real request to exploit it, but the risk was real):
+--
+-- The `resorts` compatibility view created in 20260817000001 was missing
+-- `security_invoker = true`. Postgres views default to running with the
+-- privileges/identity of the VIEW OWNER, not the querying session's role
+-- -- which means every RLS policy on the renamed `properties` table (org
+-- membership checks, `has_permission` checks) was silently bypassed for
+-- ANY query that went through the `resorts` view name, regardless of who
+-- was actually asking. An integration test added in this same PR (see
+-- tests/pgtap.integration.test.ts, test 7) caught this directly: an
+-- unrelated user with zero membership in an organization was able to read
+-- a resort belonging to that organization purely by querying `resorts`
+-- instead of `properties`.
+--
+-- This was a real, live cross-tenant data exposure: 18 files across the
+-- app (app/[locale]/(app)/admin/resorts/page.tsx, finance/*, property/*,
+-- import/*, lib/actions/purchasing.ts, etc.) query `.from("resorts")`
+-- directly from authenticated server components/actions, relying on RLS
+-- alone for tenant scoping -- exactly the code path this bug broke.
+--
+-- `security_invoker = true` (available since Postgres 15; this project
+-- runs 17.6) makes the view evaluate as the querying role instead of the
+-- view owner, restoring correct RLS enforcement. Verified: PASS for an
+-- authorized org member, correctly-empty-result for an unrelated outsider
+-- (both via a real signed-in session, not the service-role client, which
+-- always bypasses RLS regardless of this setting).
+
+alter view public.resorts set (security_invoker = true);
