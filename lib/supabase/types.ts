@@ -796,7 +796,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           expense_category_id: string;
           description: string;
           amount: number;
