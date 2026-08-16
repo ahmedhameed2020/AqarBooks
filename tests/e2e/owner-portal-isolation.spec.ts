@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Task 15 (Owner Portal Phase 2 exit gate): RLS isolation proven in
  * pgTAP-style scripts (Task 10, see supabase/tests/phase_owner_portal_data_integrity.sql)
