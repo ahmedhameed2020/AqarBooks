@@ -217,29 +217,33 @@ Repository baseline errors: 19, unrelated (confirmed pre-existing, none in any P
 ```
 The 19 baseline errors: 9 from an unfinished member-CRM/receipt-PDF feature (`lib/actions/member-crm.ts`, `lib/reports/payment-receipt-pdf.ts`, `lib/actions/error-messages.ts`, and 5 sibling components under `app/[locale]/(app)/members/[memberId]/` — none of these files exist anywhere in this repo's git history), 8 from `vitest` not being a declared `devDependency` (resolved only via `npx`'s cache at runtime), 2 unrelated pre-existing type errors (`members/[memberId]/page.tsx`'s `phone` field, `lib/actions/purchasing.ts`'s `p_amount`). **Recommendation, not yet actioned**: before a production build is cut, either fix or explicitly isolate the member-CRM baseline errors — a `build` can currently succeed with transpile-only settings while a full `tsc --noEmit` is not clean, which is a real (if pre-existing) risk independent of Phase 5.
 
-**Known limitation, explicitly NOT resolved by this phase**: `/portal/payments` (the member-facing payment-history page) depends on the same missing member-CRM/receipt-PDF modules and **crashes the entire Next.js dev server process** when visited, not just that one route. Task 7's scenario 1 was adapted, with explicit project-owner approval, to verify payment visibility via a direct RLS-scoped database query through the member's own authenticated session (proving the same underlying guarantee: a real `ONLINE` payment, correctly amounted, visible under RLS to the paying member) rather than by rendering that page. **This substitution proves data correctness and isolation — it does NOT prove the page itself renders correctly, that receipt download works, or that the UI correctly displays every terminal transaction state (`PENDING`/`PAID`/`FAILED`/`EXPIRED`).** A separate, dedicated task is required before online payments can be considered complete from an end-user experience standpoint:
-1. Fix the missing member-CRM/receipt-PDF imports (or isolate `/portal/payments` from that dependency chain if it doesn't actually need it).
-2. Manually/E2E-verify `/portal/payments` renders correctly in a real browser.
-3. Verify receipt download for an `ONLINE`-method payment.
-4. Verify all four terminal/non-terminal transaction states (`PENDING`, `PAID`, `FAILED`, `EXPIRED`) display correctly on this page.
-5. Re-run the full online-payment scenario through the real UI end-to-end once the page is fixed, replacing Task 7's DB-check substitution with the originally-intended full-UI assertion.
+**`/portal/payments` — RESOLVED (2026-08-16, follow-up task).** The crash was traced precisely: only 2 of the originally-suspected 3 missing modules were ever real dependencies of this page (`lib/reports/payment-receipt-pdf.ts`, `lib/actions/error-messages.ts`) — the third, `lib/actions/member-crm`, was a red herring belonging to a wholly unrelated, still-unfixed staff-side feature (`app/[locale]/(app)/members/[memberId]/`) that shares zero code path with the member portal. Both real modules were built (the PDF generator mirrors the existing, working `unit-pdf-report.ts` blob/print pattern; the error mapper never leaks raw DB errors to the client). A second, independent crash was found and fixed in the same pass: the portal member layout had no `Toast.Provider`, so the receipt button's `useToast()` call threw on every render — fixed by wrapping the layout in `<Toaster>`, matching the staff-side layout's existing pattern. The payments page was also extended to query `online_payment_transactions` (member-scoped, RLS, `provider_payload` never selected) so `PENDING`/`FAILED`/`EXPIRED` states — previously invisible entirely — now render with appropriate bilingual messaging alongside the real `payments` list. A follow-up code review caught and closed two further gaps before this was considered done: missing HTML-escaping in both PDF generators (now shared via `lib/reports/html-escape.ts`, plus `noopener` added to both `window.open` calls) and a raw Postgres error string that was reaching the client wire format (`member-portal-receipts.ts` now returns a stable `"query_failed"` code instead).
 
-## Roadmap after Fawry (not yet started, listed for tracking only)
+All 5 items from the original follow-up list are now closed:
+1. ✅ Missing imports fixed (member-crm confirmed irrelevant, not built).
+2. ✅ `/portal/payments` verified rendering correctly in a real, independently-started dev server (both `/en` and `/ar`), confirmed not to crash the server on repeat requests.
+3. ✅ Receipt download verified working for an `ONLINE`-method payment, and verified BLOCKED for a different owner (`getOwnPaymentReceiptAction` returns `not_found`, not another member's data).
+4. ✅ All four states (`PENDING`, `PAID`, `FAILED`, `EXPIRED`) verified rendering correctly with real fixtures on both locales — only `PAID` shows a print-receipt button.
+5. ✅ Full regression re-run after the fix: `tests/payments` 53/53, `tsc --noEmit` unchanged at the Phase-5-unrelated baseline, `npm run build`'s only failure class confirmed to be the (still out-of-scope) `member-crm`/`members/[memberId]` gap — this fix actually *reduced* the build's error count by 2 (the two modules it built), not merely left it unchanged.
 
-1. Fix `/portal/payments` (above).
-2. This status section (marking the Fawry/Paymob split explicitly, done here).
-3. Clean up or explicitly document the `tsc` baseline in CI so a future contributor can distinguish a real regression from known baseline noise.
+**A related, unrelated-to-this-fix gap was also found and closed while re-running the full regression suite**: two TypeScript test fixtures (`tests/record-online-payment-concurrency.integration.test.ts`, `tests/e2e/owner-portal-isolation.spec.ts`) had the same `units.resort_id`→`property_id` fixture drift that the earlier SQL-fixture fix (`d8f2c86`) missed. Both fixed and independently re-verified passing.
+
+## Roadmap remaining (not yet started, listed for tracking only)
+
+1. ~~Fix `/portal/payments`~~ — done, see above.
+2. ~~This status section~~ — done.
+3. Clean up or explicitly document the `tsc` baseline in CI so a future contributor can distinguish a real regression from known baseline noise (the `member-crm`/`members/[memberId]` gap is still unresolved — it is a pre-existing, unrelated feature gap, not something Phase 5 owns, but it remains a real risk that `build` can succeed on transpile-only settings while `tsc --noEmit` is not clean).
 4. A dedicated Paymob verification plan: obtain a genuine known-answer HMAC test vector (real sandbox credentials producing one real signed callback, or Paymob eventually publishing a complete worked example with expected hash output) before any task re-enables `paymobAdapter.createCheckout` or wires a Paymob webhook route.
-5. Do not enable Paymob for production before step 4 succeeds — the `PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION` guard stays in place until then.
+5. Do not enable Paymob for production before step 4 succeeds — the `PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION` guard stays in place until then, and is confirmed to fire unconditionally (before any env var is even read), so it cannot be accidentally bypassed by a correctly-configured Paymob environment.
 
 ## Final approved status
 
 ```text
 Portal Phase 1-2:      complete
 Accounting Phase 4:    complete
-Fawry (Phase 5):        complete and verified
+Fawry (Phase 5):        complete and verified, including /portal/payments end-to-end
 Paymob (Phase 5):       production-blocked (contract-tests-only)
-Task 7:                 complete for Fawry, with the /portal/payments exception documented above
+Task 7:                 fully complete, including the real-UI payment-history verification
 ```
 
 ## Sources consulted for this design
