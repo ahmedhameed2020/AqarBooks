@@ -200,7 +200,7 @@ export type Database = {
           id: string;
           actor_id: string | null;
           organization_id: string | null;
-          resort_id: string | null;
+          property_id: string | null;
           action: string;
           entity_type: string;
           entity_id: string | null;
@@ -212,7 +212,7 @@ export type Database = {
           id?: string;
           actor_id?: string | null;
           organization_id?: string | null;
-          resort_id?: string | null;
+          property_id?: string | null;
           action: string;
           entity_type: string;
           entity_id?: string | null;
