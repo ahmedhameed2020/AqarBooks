@@ -10,15 +10,28 @@ import crypto from "node:crypto";
 vi.mock("server-only", () => ({}));
 
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
+import type { ProviderCredentials } from "@/lib/payments/providers/types";
 import { runProviderContractTests } from "./contract-test-helper";
 
 const TEST_SECURE_KEY = "test-fawry-secure-key";
 const TEST_MERCHANT_CODE = "TEST-MERCHANT-1";
+const TEST_BASE_URL = "https://atfawry.fawrystaging.com";
+
+// Built FROM the same beforeAll env values (not a second, divergent set of
+// test constants) -- this is the credentials object every test in this
+// file passes to the adapter now that it no longer reads env internally.
+const TEST_CREDENTIALS: ProviderCredentials = {
+  merchantIdentifier: TEST_MERCHANT_CODE,
+  publicKey: null,
+  apiKey: "",
+  hmacSecret: TEST_SECURE_KEY,
+  baseUrl: TEST_BASE_URL,
+};
 
 beforeAll(() => {
   process.env.FAWRY_MERCHANT_CODE = TEST_MERCHANT_CODE;
   process.env.FAWRY_SECURE_KEY = TEST_SECURE_KEY;
-  process.env.FAWRY_BASE_URL = "https://atfawry.fawrystaging.com";
+  process.env.FAWRY_BASE_URL = TEST_BASE_URL;
   process.env.PAYMOB_SECRET_KEY = "unused-in-this-file";
   process.env.PAYMOB_PUBLIC_KEY = "unused-in-this-file";
   process.env.PAYMOB_HMAC_SECRET = "unused-in-this-file";
@@ -57,6 +70,7 @@ runProviderContractTests("Fawry", fawryAdapter, {
   validHeaders: {},
   validUrl: "https://example.test/api/webhooks/fawry",
   expectedMerchantOrderRef: "22222222-2222-2222-2222-222222222222",
+  credentials: TEST_CREDENTIALS,
   // Fawry's signature lives in the body's `messageSignature` field, not in
   // headers or the URL -- corrupt it there, keeping the same length so we
   // are testing "wrong signature", not "malformed/short signature".
@@ -230,7 +244,7 @@ describe("Fawry adapter malformed webhook body handling", () => {
 
   it("verifyWebhookSignature throws on non-JSON rawBody", () => {
     expect(() =>
-      fawryAdapter.verifyWebhookSignature({ rawBody: "not json", headers: {}, url: "" })
+      fawryAdapter.verifyWebhookSignature({ rawBody: "not json", headers: {}, url: "" }, TEST_CREDENTIALS)
     ).toThrow();
   });
 });
@@ -261,7 +275,7 @@ describe("Fawry adapter createCheckout", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await fawryAdapter.createCheckout(baseInput);
+    await fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS);
 
     expect(capturedBody).not.toBeNull();
     // Known-answer check: merchantCode + merchantRefNum + "" + "" + amount(2dp) + secureKey
@@ -285,7 +299,7 @@ describe("Fawry adapter createCheckout", () => {
       }))
     );
 
-    const result = await fawryAdapter.createCheckout(baseInput);
+    const result = await fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS);
     expect(result.redirectUrl).toBe("https://atfawry.fawrystaging.com/pay/next-action");
     expect(result.providerReference).toBe("ref-2");
   });
@@ -301,7 +315,7 @@ describe("Fawry adapter createCheckout", () => {
       }))
     );
 
-    const result = await fawryAdapter.createCheckout(baseInput);
+    const result = await fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS);
     expect(result.redirectUrl).toBe("https://atfawry.fawrystaging.com/pay/top-level");
     expect(result.providerReference).toBeNull();
   });
@@ -317,7 +331,7 @@ describe("Fawry adapter createCheckout", () => {
       }))
     );
 
-    await expect(fawryAdapter.createCheckout(baseInput)).rejects.toThrow(
+    await expect(fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS)).rejects.toThrow(
       "FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL"
     );
   });
@@ -333,7 +347,7 @@ describe("Fawry adapter createCheckout", () => {
       }))
     );
 
-    await expect(fawryAdapter.createCheckout(baseInput)).rejects.toThrow(
+    await expect(fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS)).rejects.toThrow(
       "FAWRY_CHARGE_REQUEST_FAILED: 502 upstream error detail"
     );
   });

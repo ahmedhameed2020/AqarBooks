@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { PaymentProviderAdapter } from "@/lib/payments/providers/types";
+import type { PaymentProviderAdapter, ProviderCredentials } from "@/lib/payments/providers/types";
 
 // Deliberately NOT named `*.test.ts` -- vitest's test-file glob only matches
 // `*.test.ts`/`*.spec.ts` (see vitest.config.ts), so this helper is never
@@ -28,6 +28,7 @@ export function runProviderContractTests(
     validHeaders: Record<string, string>;
     validUrl: string;
     expectedMerchantOrderRef: string;
+    credentials: ProviderCredentials;
     corruptSignature: (ctx: {
       rawBody: string;
       headers: Record<string, string>;
@@ -39,19 +40,19 @@ export function runProviderContractTests(
   describe(`${name} provider contract`, () => {
     it("verifies a genuinely valid signature", () => {
       const ctx = { rawBody: fixtures.validWebhookBody, headers: fixtures.validHeaders, url: fixtures.validUrl };
-      expect(adapter.verifyWebhookSignature(ctx)).toBe(true);
+      expect(adapter.verifyWebhookSignature(ctx, fixtures.credentials)).toBe(true);
     });
 
     it("rejects a corrupted signature", () => {
       const validCtx = { rawBody: fixtures.validWebhookBody, headers: fixtures.validHeaders, url: fixtures.validUrl };
       const ctx = fixtures.corruptSignature(validCtx);
-      expect(adapter.verifyWebhookSignature(ctx)).toBe(false);
+      expect(adapter.verifyWebhookSignature(ctx, fixtures.credentials)).toBe(false);
     });
 
     it("rejects a tampered payload with the original (now-stale) signature", () => {
       const tamperedBody = fixtures.tamperPayload(fixtures.validWebhookBody);
       const ctx = { rawBody: tamperedBody, headers: fixtures.validHeaders, url: fixtures.validUrl };
-      expect(adapter.verifyWebhookSignature(ctx)).toBe(false);
+      expect(adapter.verifyWebhookSignature(ctx, fixtures.credentials)).toBe(false);
     });
 
     it("parses the merchant order reference correctly from a valid payload", () => {

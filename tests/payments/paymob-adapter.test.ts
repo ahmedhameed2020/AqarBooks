@@ -6,9 +6,20 @@ import crypto from "node:crypto";
 vi.mock("server-only", () => ({}));
 
 import { paymobAdapter } from "@/lib/payments/providers/paymob";
+import type { ProviderCredentials } from "@/lib/payments/providers/types";
 import { runProviderContractTests } from "./contract-test-helper";
 
 const TEST_HMAC_SECRET = "test-paymob-hmac-secret";
+const TEST_INTEGRATION_ID = "0";
+
+// Built FROM the same beforeAll env values, matching this file's existing
+// convention (see fawry-adapter.test.ts for the same pattern).
+const TEST_CREDENTIALS: ProviderCredentials = {
+  merchantIdentifier: TEST_INTEGRATION_ID,
+  publicKey: "unused-in-this-file",
+  apiKey: "unused-in-this-file",
+  hmacSecret: TEST_HMAC_SECRET,
+};
 
 beforeAll(() => {
   process.env.PAYMOB_SECRET_KEY = "unused-in-this-file";
@@ -120,6 +131,7 @@ runProviderContractTests("Paymob", paymobAdapter, {
   validHeaders: {},
   validUrl: validFixture.url,
   expectedMerchantOrderRef: "33333333-3333-3333-3333-333333333333",
+  credentials: TEST_CREDENTIALS,
   // Paymob's signature lives in the URL query string (`hmac`), not the
   // body or headers -- corrupt it there, keeping the same length so this
   // tests "wrong signature", not "malformed/short signature".
@@ -146,7 +158,7 @@ describe("Paymob adapter HMAC verification -- additional cases beyond the generi
     const tamperedObj = { ...obj, amount_cents: obj.amount_cents + 1 };
     const rawBody = JSON.stringify({ type: "TRANSACTION", obj: tamperedObj });
     const url = `https://example.test/api/webhooks/paymob?hmac=${hmac}`;
-    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url })).toBe(false);
+    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url }, TEST_CREDENTIALS)).toBe(false);
   });
 
   it("rejects the stale (pre-swap) signature for the generic contract suite's corruptSignature case, specifically via the URL query param", () => {
@@ -154,7 +166,7 @@ describe("Paymob adapter HMAC verification -- additional cases beyond the generi
     const corrupted = "0".repeat(128);
     url.searchParams.set("hmac", corrupted);
     expect(
-      paymobAdapter.verifyWebhookSignature({ rawBody: validFixture.rawBody, headers: {}, url: url.toString() })
+      paymobAdapter.verifyWebhookSignature({ rawBody: validFixture.rawBody, headers: {}, url: url.toString() }, TEST_CREDENTIALS)
     ).toBe(false);
   });
 
@@ -176,14 +188,14 @@ describe("Paymob adapter HMAC verification -- additional cases beyond the generi
     const rawBody = JSON.stringify({ type: "TRANSACTION", obj: swappedObj });
     const url = `https://example.test/api/webhooks/paymob?hmac=${oldSignature}`;
 
-    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url })).toBe(false);
+    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url }, TEST_CREDENTIALS)).toBe(false);
 
     // Sanity check: the freshly-recomputed signature for the swapped object
     // DOES validate against itself, confirming the rejection above is
     // specifically because of the swap (not some unrelated fixture bug).
     const newHmac = computeExpectedHmac(swappedObj as unknown as Record<string, unknown>, TEST_HMAC_SECRET);
     const newUrl = `https://example.test/api/webhooks/paymob?hmac=${newHmac}`;
-    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url: newUrl })).toBe(true);
+    expect(paymobAdapter.verifyWebhookSignature({ rawBody, headers: {}, url: newUrl }, TEST_CREDENTIALS)).toBe(true);
     expect(newHmac).not.toBe(oldSignature);
   });
 });
@@ -195,7 +207,7 @@ describe("Paymob adapter malformed/incomplete webhook handling", () => {
 
   it("verifyWebhookSignature throws (JSON.parse failure) on non-JSON rawBody, rather than crashing further downstream", () => {
     expect(() =>
-      paymobAdapter.verifyWebhookSignature({ rawBody: "not json", headers: {}, url: "https://example.test/x" })
+      paymobAdapter.verifyWebhookSignature({ rawBody: "not json", headers: {}, url: "https://example.test/x" }, TEST_CREDENTIALS)
     ).toThrow();
   });
 
@@ -205,7 +217,7 @@ describe("Paymob adapter malformed/incomplete webhook handling", () => {
         rawBody: validFixture.rawBody,
         headers: {},
         url: "https://example.test/api/webhooks/paymob",
-      })
+      }, TEST_CREDENTIALS)
     ).toBe(false);
   });
 
@@ -226,7 +238,7 @@ describe("Paymob adapter malformed/incomplete webhook handling", () => {
         rawBody: "{}",
         headers: {},
         url: `https://example.test/x?hmac=${"a".repeat(128)}`,
-      })
+      }, TEST_CREDENTIALS)
     ).toBe(false);
   });
 });
@@ -292,15 +304,44 @@ describe("Paymob adapter createCheckout guard", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     await expect(
-      paymobAdapter.createCheckout({
-        transactionId: "txn-1",
-        amount: 500,
-        memberEmail: "owner@example.test",
-        memberPhone: null,
-        merchantOrderRef: "33333333-3333-3333-3333-333333333333",
-      })
+      paymobAdapter.createCheckout(
+        {
+          transactionId: "txn-1",
+          amount: 500,
+          memberEmail: "owner@example.test",
+          memberPhone: null,
+          merchantOrderRef: "33333333-3333-3333-3333-333333333333",
+        },
+        TEST_CREDENTIALS
+      )
     ).rejects.toThrow("PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION");
     expect(fetchSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  // Required regression scenario 7 (project owner explicit requirement):
+  // the production guard must be completely unaffected by the credentials
+  // wiring in this task -- it throws unconditionally regardless of what
+  // credentials object is passed, including a fully "valid-looking" one
+  // that could plausibly resolve from a real, enabled tenant setting.
+  it("scenario 7: still throws unconditionally even with a fully valid-looking credentials object", async () => {
+    const plausibleRealLookingCredentials: ProviderCredentials = {
+      merchantIdentifier: "REAL-LOOKING-INTEGRATION-ID",
+      publicKey: "pk_live_looks_totally_real",
+      apiKey: "sk_live_looks_totally_real",
+      hmacSecret: "a_very_real_looking_hmac_secret",
+    };
+    await expect(
+      paymobAdapter.createCheckout(
+        {
+          transactionId: "txn-2",
+          amount: 1000,
+          memberEmail: "owner@example.test",
+          memberPhone: null,
+          merchantOrderRef: "33333333-3333-3333-3333-333333333333",
+        },
+        plausibleRealLookingCredentials
+      )
+    ).rejects.toThrow("PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION");
   });
 });

@@ -1,5 +1,20 @@
 export type ProviderId = "PAYMOB" | "FAWRY";
 
+export interface ProviderCredentials {
+  merchantIdentifier: string;
+  publicKey: string | null;
+  apiKey: string;
+  hmacSecret: string;
+  // Always populated by resolve-credentials.ts (both the tenant-settings
+  // path and the legacy-env fallback path) -- the adapter never falls back
+  // to reading env itself. Real per-environment (SANDBOX vs PRODUCTION)
+  // base-URL differentiation for Fawry is NOT implemented yet (see Part 3's
+  // note on the missing `environment` column on online_payment_transactions)
+  // -- today this is always the sandbox/staging URL, regardless of what a
+  // tenant's settings row says its `environment` is.
+  baseUrl?: string;
+}
+
 export interface CreateCheckoutInput {
   transactionId: string;
   amount: number; // EGP major units
@@ -50,9 +65,9 @@ export interface WebhookRequestContext {
 
 export interface PaymentProviderAdapter {
   readonly providerId: ProviderId;
-  createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult>;
-  parseWebhookPayload(ctx: WebhookRequestContext): NormalizedWebhookPayload;
-  verifyWebhookSignature(ctx: WebhookRequestContext): boolean;
+  createCheckout(input: CreateCheckoutInput, credentials: ProviderCredentials): Promise<CreateCheckoutResult>;
+  parseWebhookPayload(ctx: WebhookRequestContext): NormalizedWebhookPayload; // pure parsing, needs no credentials
+  verifyWebhookSignature(ctx: WebhookRequestContext, credentials: ProviderCredentials): boolean;
   // Returns a copy of the parsed payload with any sensitive fields (card
   // PAN, etc.) stripped before it's ever stored in
   // online_payment_transactions.provider_payload. Every adapter must

@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import { getPaymentsEnv } from "../env";
 import type {
   PaymentProviderAdapter,
   CreateCheckoutInput,
@@ -7,6 +6,7 @@ import type {
   NormalizedWebhookPayload,
   NormalizedWebhookStatus,
   WebhookRequestContext,
+  ProviderCredentials,
 } from "./types";
 
 // Confirmed from Paymob's own official GitHub org repo
@@ -92,7 +92,7 @@ function mapPaymobStatus(obj: {
 export const paymobAdapter: PaymentProviderAdapter = {
   providerId: "PAYMOB",
 
-  async createCheckout(_input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+  async createCheckout(_input: CreateCheckoutInput, _credentials: ProviderCredentials): Promise<CreateCheckoutResult> {
     // Deliberate runtime guard, not decorative: this adapter's HMAC
     // verification has no vendor-published known-answer test to confirm
     // it against (see Task 3's status note in the plan). Calling this in
@@ -102,7 +102,10 @@ export const paymobAdapter: PaymentProviderAdapter = {
     // signature scheme we cannot yet prove matches Paymob's real
     // implementation. Remove this guard ONLY as part of the explicit
     // follow-up task that re-enables Paymob for production, never as an
-    // incidental part of an unrelated change.
+    // incidental part of an unrelated change. This guard is unconditional
+    // and MUST remain the first statement in this function body regardless
+    // of what credentials object is passed in -- it does not matter how
+    // "valid-looking" _credentials is.
     throw new Error(
       "PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION: HMAC field order is confirmed from Paymob's own GitHub repo, " +
         "but no known-answer test vector (real input+secret+expected-hash) exists to verify correctness against. " +
@@ -125,11 +128,10 @@ export const paymobAdapter: PaymentProviderAdapter = {
     };
   },
 
-  verifyWebhookSignature(ctx: WebhookRequestContext): boolean {
-    const env = getPaymentsEnv();
+  verifyWebhookSignature(ctx: WebhookRequestContext, credentials: ProviderCredentials): boolean {
     const payload = JSON.parse(ctx.rawBody);
     const obj = payload.obj ?? payload;
-    const expected = computeHmac(obj, env.PAYMOB_HMAC_SECRET);
+    const expected = computeHmac(obj, credentials.hmacSecret);
     const url = new URL(ctx.url);
     const provided = (url.searchParams.get("hmac") ?? "").toLowerCase();
     if (provided.length !== expected.length) return false;

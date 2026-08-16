@@ -5,12 +5,18 @@ import type {
   CreateCheckoutResult,
   NormalizedWebhookPayload,
   WebhookRequestContext,
+  ProviderCredentials,
 } from "./types";
 
+// Kept as the default secret used across most existing fixtures, but no
+// longer read internally by the adapter -- verifyWebhookSignature now uses
+// whatever `credentials.hmacSecret` the caller passes in, which makes this
+// fake adapter flexible for tests that want to inject a specific secret
+// (e.g. simulating two different tenants' credentials).
 export const FAKE_PROVIDER_SECRET = "fake-provider-test-secret-do-not-use-in-real-code";
 
-export function signFakePayload(rawBody: string): string {
-  return crypto.createHmac("sha256", FAKE_PROVIDER_SECRET).update(rawBody, "utf8").digest("hex");
+export function signFakePayload(rawBody: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
 }
 
 type ProviderIdOrFake = "PAYMOB" | "FAWRY" | "FAKE";
@@ -25,7 +31,7 @@ export const fakeProviderAdapter: Omit<PaymentProviderAdapter, "providerId"> & {
   providerId: ProviderIdOrFake;
 } = {
   providerId: "FAKE" as const,
-  async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+  async createCheckout(input: CreateCheckoutInput, _credentials: ProviderCredentials): Promise<CreateCheckoutResult> {
     return {
       redirectUrl: `https://fake-provider.test/checkout?ref=${input.merchantOrderRef}`,
       providerReference: `fake-${input.transactionId}`,
@@ -48,8 +54,8 @@ export const fakeProviderAdapter: Omit<PaymentProviderAdapter, "providerId"> & {
       webhookEventId: body.webhookEventId,
     };
   },
-  verifyWebhookSignature(ctx: WebhookRequestContext): boolean {
-    const expected = signFakePayload(ctx.rawBody);
+  verifyWebhookSignature(ctx: WebhookRequestContext, credentials: ProviderCredentials): boolean {
+    const expected = signFakePayload(ctx.rawBody, credentials.hmacSecret);
     const provided = ctx.headers["x-fake-signature"] ?? "";
     if (provided.length !== expected.length) return false;
     return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));

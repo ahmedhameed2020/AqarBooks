@@ -1,14 +1,19 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentsEnv } from "./env";
-import type { ProviderId } from "./providers/types";
+import type { ProviderId, ProviderCredentials } from "./providers/types";
 
-export interface ProviderCredentials {
-  merchantIdentifier: string;
-  publicKey: string | null;
-  apiKey: string;
-  hmacSecret: string;
-}
+// Re-exported so existing importers of `ProviderCredentials` from this
+// module keep working -- the canonical definition now lives in
+// providers/types.ts (adapters import it from there), this module only
+// populates it.
+export type { ProviderCredentials } from "./providers/types";
+
+// Matches lib/payments/env.ts's FAWRY_BASE_URL default. Deliberately a
+// standalone literal (not read via getPaymentsEnv()) so that resolving a
+// TENANT's own configured credentials never depends on the transitional
+// legacy env vars being fully present -- see the baseUrl gap note below.
+const FAWRY_SANDBOX_BASE_URL = "https://atfawry.fawrystaging.com";
 
 // Thrown when a tenant HAS a setting row for this scope but it isn't
 // usable (not enabled, org inactive, etc.) -- callers must surface this
@@ -91,6 +96,12 @@ export async function resolveProviderCredentials(
     publicKey: data.public_key,
     apiKey: data.api_key,
     hmacSecret: data.hmac_secret,
+    // See ProviderCredentials.baseUrl's doc comment (providers/types.ts):
+    // online_payment_transactions has no `environment` column yet, so real
+    // per-environment base-URL differentiation is not implemented -- this
+    // is always the sandbox/staging URL regardless of what `environment`
+    // was requested or what the tenant's settings row says.
+    baseUrl: provider === "FAWRY" ? FAWRY_SANDBOX_BASE_URL : undefined,
   };
 }
 
@@ -121,6 +132,7 @@ function resolveLegacyEnvCredentials(provider: ProviderId): ProviderCredentials 
       publicKey: null,
       apiKey: "",
       hmacSecret: env.FAWRY_SECURE_KEY,
+      baseUrl: env.FAWRY_BASE_URL,
     };
   }
   return {

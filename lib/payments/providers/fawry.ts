@@ -7,6 +7,7 @@ import type {
   NormalizedWebhookPayload,
   NormalizedWebhookStatus,
   WebhookRequestContext,
+  ProviderCredentials,
 } from "./types";
 
 function sha256Hex(input: string): string {
@@ -136,20 +137,24 @@ function mapFawryStatus(orderStatus: string): NormalizedWebhookStatus {
 export const fawryAdapter: PaymentProviderAdapter = {
   providerId: "FAWRY",
 
-  async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+  async createCheckout(input: CreateCheckoutInput, credentials: ProviderCredentials): Promise<CreateCheckoutResult> {
+    // NEXT_PUBLIC_APP_URL is OUR application's own base URL (used to build
+    // returnUrl) -- not a provider credential, and unrelated to which
+    // tenant/provider is in use, so it keeps coming from getPaymentsEnv()
+    // rather than being routed through ProviderCredentials.
     const env = getPaymentsEnv();
     const signature = buildChargeRequestSignature({
-      merchantCode: env.FAWRY_MERCHANT_CODE,
+      merchantCode: credentials.merchantIdentifier,
       merchantRefNum: input.merchantOrderRef,
       amount: input.amount,
-      secureKey: env.FAWRY_SECURE_KEY,
+      secureKey: credentials.hmacSecret,
     });
 
-    const response = await fetch(`${env.FAWRY_BASE_URL}/ECommerceWeb/Fawry/payments/charge`, {
+    const response = await fetch(`${credentials.baseUrl}/ECommerceWeb/Fawry/payments/charge`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        merchantCode: env.FAWRY_MERCHANT_CODE,
+        merchantCode: credentials.merchantIdentifier,
         merchantRefNum: input.merchantOrderRef,
         customerMobile: input.memberPhone ?? "",
         customerEmail: input.memberEmail,
@@ -198,8 +203,7 @@ export const fawryAdapter: PaymentProviderAdapter = {
     };
   },
 
-  verifyWebhookSignature(ctx: WebhookRequestContext): boolean {
-    const env = getPaymentsEnv();
+  verifyWebhookSignature(ctx: WebhookRequestContext, credentials: ProviderCredentials): boolean {
     const body = JSON.parse(ctx.rawBody);
     const inputString = buildNotificationSignatureInput(
       {
@@ -211,7 +215,7 @@ export const fawryAdapter: PaymentProviderAdapter = {
         paymentMethod: body.paymentMethod,
         paymentRefNumber: body.paymentRefNumber,
       },
-      env.FAWRY_SECURE_KEY
+      credentials.hmacSecret
     );
     const expected = sha256Hex(inputString);
     const provided: string = body.messageSignature ?? "";
