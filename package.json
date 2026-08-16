@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts"
+    "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts",
+    "test:sql": "vitest run tests/pgtap.integration.test.ts",
+    "test:payment-idempotency": "vitest run tests/record-online-payment-concurrency.integration.test.ts",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -31,6 +35,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
