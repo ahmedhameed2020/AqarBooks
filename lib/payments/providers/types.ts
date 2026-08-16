@@ -13,12 +13,25 @@ export interface CreateCheckoutResult {
   providerReference: string | null;
 }
 
-export type NormalizedWebhookStatus = "SUCCESS" | "FAILED" | "PENDING";
+export type NormalizedWebhookStatus = "SUCCESS" | "FAILED" | "PENDING" | "EXPIRED";
 
 export interface NormalizedWebhookPayload {
   merchantOrderRef: string;
   providerTransactionId: string;
   status: NormalizedWebhookStatus;
+  // The RAW, unmodified status string exactly as the provider sent it (e.g.
+  // "REFUNDED", "UNPAID", or whatever a given provider's real wire value
+  // is) -- never derived or normalized. Several distinct raw provider
+  // statuses can legitimately bucket into the same coarse `status` above
+  // (e.g. Fawry's REFUNDED/PARTIAL_REFUNDED and a genuinely-unrecognized
+  // status both currently bucket to PENDING), and without this field that
+  // information is lost the moment the webhook is parsed. A future
+  // refund-handling policy (not built yet) needs to be able to distinguish
+  // "this was actually refunded" from "this is a status we don't recognize
+  // at all" by inspecting providerStatus, without requiring the coarse
+  // `status` enum to grow a new value for every possible raw provider
+  // state.
+  providerStatus: string;
   amountMinor: number;
   currency: string;
   webhookEventId: string;

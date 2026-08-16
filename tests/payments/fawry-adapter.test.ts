@@ -94,8 +94,8 @@ describe("Fawry adapter status mapping", () => {
     expect(parsed.status).toBe("PENDING");
   });
 
-  it("maps documented terminal-negative statuses (FAILED, CANCELED, EXPIRED) to FAILED", () => {
-    for (const orderStatus of ["FAILED", "CANCELED", "EXPIRED"]) {
+  it("maps documented terminal-negative statuses (FAILED, CANCELED) to FAILED", () => {
+    for (const orderStatus of ["FAILED", "CANCELED"]) {
       const parsed = fawryAdapter.parseWebhookPayload({
         rawBody: buildFixtureNotification({ orderStatus }),
         headers: {},
@@ -103,6 +103,17 @@ describe("Fawry adapter status mapping", () => {
       });
       expect(parsed.status).toBe("FAILED");
     }
+  });
+
+  it("maps EXPIRED to its own EXPIRED status, NOT FAILED", () => {
+    const parsed = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ orderStatus: "EXPIRED" }),
+      headers: {},
+      url: "",
+    });
+    expect(parsed.status).toBe("EXPIRED");
+    expect(parsed.status).not.toBe("FAILED");
+    expect(parsed.providerStatus).toBe("EXPIRED");
   });
 
   it("maps an unrecognized status to PENDING (never guesses FAILED), and logs it for manual review", () => {
@@ -135,6 +146,36 @@ describe("Fawry adapter status mapping", () => {
       });
       expect(parsed.status).toBe("PENDING");
     }
+  });
+
+  it("preserves the raw REFUNDED/PARTIAL_REFUNDED providerStatus even though status buckets to PENDING", () => {
+    for (const orderStatus of ["REFUNDED", "PARTIAL_REFUNDED"]) {
+      const parsed = fawryAdapter.parseWebhookPayload({
+        rawBody: buildFixtureNotification({ orderStatus }),
+        headers: {},
+        url: "",
+      });
+      expect(parsed.status).toBe("PENDING");
+      expect(parsed.providerStatus).toBe(orderStatus);
+    }
+  });
+
+  it("populates providerStatus with the raw value for the plain PAID/UNPAID cases too", () => {
+    const paid = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ orderStatus: "PAID" }),
+      headers: {},
+      url: "",
+    });
+    expect(paid.status).toBe("SUCCESS");
+    expect(paid.providerStatus).toBe("PAID");
+
+    const unpaid = fawryAdapter.parseWebhookPayload({
+      rawBody: buildFixtureNotification({ orderStatus: "UNPAID" }),
+      headers: {},
+      url: "",
+    });
+    expect(unpaid.status).toBe("PENDING");
+    expect(unpaid.providerStatus).toBe("UNPAID");
   });
 });
 

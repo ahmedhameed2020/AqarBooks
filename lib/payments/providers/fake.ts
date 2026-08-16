@@ -37,6 +37,12 @@ export const fakeProviderAdapter: Omit<PaymentProviderAdapter, "providerId"> & {
       merchantOrderRef: body.merchantOrderRef,
       providerTransactionId: body.providerTransactionId,
       status: body.status,
+      // The fake fixture body's `status` field already IS the normalized
+      // value -- there's no separate raw/normalized distinction in this
+      // simple fixture shape, so just mirror it. This adapter's job is only
+      // to satisfy the interface shape for contract testing, not to model
+      // a real provider's raw status vocabulary.
+      providerStatus: body.status,
       amountMinor: body.amountMinor,
       currency: body.currency ?? "EGP",
       webhookEventId: body.webhookEventId,

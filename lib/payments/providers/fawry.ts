@@ -91,22 +91,42 @@ function buildNotificationSignatureInput(
 // prohibits. They fall through to the PENDING default + logged warning
 // for manual review, same as any other unrecognized value. NEW similarly
 // falls through to the default (it is a pre-payment state, not a failure).
+//
+// EXPIRED gets its own NormalizedWebhookStatus value rather than bucketing
+// into FAILED: an expiration (payment window lapsed, never attempted or
+// completed) is a materially different event from a genuine payment
+// failure, and collapsing the two loses information downstream. FAILED
+// now covers only FAILED/CANCELED.
 function mapFawryStatus(orderStatus: string): NormalizedWebhookStatus {
   switch (orderStatus) {
     case "PAID":
       return "SUCCESS";
     case "UNPAID":
       return "PENDING";
+    case "EXPIRED":
+      return "EXPIRED";
     case "FAILED":
     case "CANCELED":
-    case "EXPIRED":
       return "FAILED";
     default:
+      // REFUNDED/PARTIAL_REFUNDED imply the payment previously SUCCEEDED --
+      // must never be conflated with FAILED (that would misclassify a paid
+      // transaction), and there is no reversal/refund settlement policy
+      // built yet, so they are excluded from the settlement path the same
+      // way a genuinely-unrecognized status is (bucketed to PENDING, never
+      // triggers record_online_payment -- see the webhook route design).
+      // The raw orderStatus is preserved on `providerStatus` below, so a
+      // future refund-handling feature can distinguish "actually refunded"
+      // from "genuinely unrecognized" by inspecting providerStatus, without
+      // this coarse status enum needing a new value for every provider
+      // string. Confirmed documented values as of this file's writing:
+      // NEW, PAID, CANCELED, REFUNDED, EXPIRED, PARTIAL_REFUNDED, FAILED
+      // (developer.fawrystaging.com/docs/payment-notifications/server-notification-v2).
       console.warn(
         JSON.stringify({
           provider: "FAWRY",
-          unrecognized_order_status: orderStatus,
-          action: "treated_as_pending_pending_manual_review",
+          unrecognized_or_reversal_order_status: orderStatus,
+          action: "treated_as_pending_excluded_from_settlement",
         })
       );
       return "PENDING";
@@ -171,6 +191,7 @@ export const fawryAdapter: PaymentProviderAdapter = {
       merchantOrderRef: body.merchantRefNumber,
       providerTransactionId: body.fawryRefNumber,
       status: mapFawryStatus(body.orderStatus),
+      providerStatus: body.orderStatus,
       amountMinor: decimalStringToMinorUnits(body.paymentAmount),
       currency: "EGP",
       webhookEventId: body.fawryRefNumber,
