@@ -28,6 +28,9 @@
 --      fallback when it doesn't.
 --   8. A different organization's member (with the permission in THEIR org)
 --      cannot see or modify another organization's settings rows.
+--   9. (code review fix) A member of a SUSPENDED organization cannot call
+--      upsert_payment_provider_settings -- organization_is_active() is
+--      checked inside the RPC itself, not just decoratively via RLS.
 do $$
 declare
   v_platform_admin uuid := 'b66490aa-a3a7-4005-add2-1112c660b0b4';
@@ -485,6 +488,32 @@ begin
   raise notice 'SCENARIO 8 (cross-org isolation, RLS + RPC-internal checks both hold): PASS';
 
   -----------------------------------------------------------------------
+  -- SCENARIO 9 (code review fix): a member of a SUSPENDED organization
+  -- cannot call upsert_payment_provider_settings -- organization_is_active()
+  -- is checked inside the RPC itself (SECURITY DEFINER bypasses RLS on its
+  -- own internal writes, so the RLS policy's organization_is_active clause
+  -- alone would be decorative here), same established pattern as
+  -- post_payment_internal.
+  -----------------------------------------------------------------------
+  perform set_config('request.jwt.claim.sub', v_platform_admin::text, true);
+  perform public.set_organization_status(v_org_a, 'SUSPENDED', 'phase_payment_provider_settings test: scenario 9 suspend');
+
+  perform set_config('request.jwt.claim.sub', v_user_a::text, true);
+  set local role authenticated;
+  v_error_caught := false;
+  begin
+    perform public.upsert_payment_provider_settings(v_org_a, null, 'FAWRY', 'SANDBOX', 'X', null, 'x', 'y');
+  exception when sqlstate '22023' then
+    v_error_caught := true;
+    get stacked diagnostics v_sqlerrm = message_text;
+    assert v_sqlerrm like 'ORGANIZATION_INACTIVE%', format('FAIL scenario 9: expected ORGANIZATION_INACTIVE, got %s', v_sqlerrm);
+  end;
+  reset role;
+  assert v_error_caught, 'FAIL scenario 9: upsert against a SUSPENDED organization should have been rejected';
+
+  raise notice 'SCENARIO 9 (organization_is_active enforced inside the RPC, not just via RLS): PASS';
+
+  -----------------------------------------------------------------------
   -- Cleanup -- unconditional, archive-only (never hard-delete), matches
   -- this repo's established convention. Idempotent across repeated runs
   -- because every unique value above (org slug, resort code, merchant
@@ -500,5 +529,5 @@ begin
   perform public.set_organization_status(v_org_a, 'ARCHIVED', 'phase_payment_provider_settings test cleanup');
   perform public.set_organization_status(v_org_b, 'ARCHIVED', 'phase_payment_provider_settings test cleanup');
 
-  raise notice 'phase_payment_provider_settings.sql: all 8 scenarios passed, cleanup complete';
+  raise notice 'phase_payment_provider_settings.sql: all 9 scenarios passed, cleanup complete';
 end $$;
