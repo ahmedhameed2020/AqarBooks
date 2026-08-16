@@ -28,7 +28,7 @@ export async function createCashboxAction(
   const supabase = await createClient();
   const { error } = await supabase.from("cashboxes").insert({
     organization_id: parsed.data.organizationId,
-    resort_id: parsed.data.resortId,
+    property_id: parsed.data.resortId,
     name: parsed.data.name,
     gl_account_id: parsed.data.glAccountId,
   });
@@ -173,7 +173,7 @@ export async function createBankAccountAction(
   const supabase = await createClient();
   const { error } = await supabase.from("bank_accounts").insert({
     organization_id: parsed.data.organizationId,
-    resort_id: parsed.data.resortId,
+    property_id: parsed.data.resortId,
     bank_id: parsed.data.bankId,
     account_name: parsed.data.accountName,
     account_number: parsed.data.accountNumber,
