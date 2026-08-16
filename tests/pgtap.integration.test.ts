@@ -878,4 +878,231 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("11. Phase 2c Treasury Cluster Property-ID Rename Integrity (create_cashbox/open_cashier_session/close_cashier_session end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP TreasuryClusterPropertyId Org",
+        slug: `pgtap-treasury-cluster-property-id-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // A resort row: cashbox/cashier-session creation both require the
+    // resort to belong to the same organization.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "TreasuryClusterPropertyId Resort",
+        code: `TCPI-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // create_cashbox requires an ASSET-category GL account.
+    const { data: glAccount, error: glAccountErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1000-${Date.now()}`,
+        name_ar: "حساب صندوق اختبار",
+        name_en: "Test Cashbox GL Account",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+
+    expect(glAccountErr).toBeNull();
+    const glAccountId = glAccount!.id;
+
+    // create_cashbox / open_cashier_session / close_cashier_session are all
+    // permission-gated via has_permission(auth.uid(), ...), which requires a
+    // real authenticated user with a role assignment -- the service-role
+    // admin client has no auth.uid() and would be rejected as
+    // "not authorized". Stand up a real TENANT_OWNER session, matching
+    // tests 7/8/10's pattern. TENANT_OWNER is granted "everything except
+    // platform.* permissions" (see 20260810000012_phase2_seed.sql), which
+    // covers finance.accounts.manage, cashier.sessions.open, and
+    // cashier.sessions.close all at once.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-treasury-cluster-property-id-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // create_cashbox: its RPC parameter is still named `p_resort_id`
+    // (unchanged in this phase) but must land in the renamed `property_id`
+    // column of `cashboxes` -- this is exactly the INSERT-column-list edit
+    // this test is meant to catch if missed.
+    const { data: cashboxId, error: createCashboxErr } = await ownerClient.rpc(
+      "create_cashbox",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_name: "TreasuryClusterPropertyId Cashbox",
+        p_gl_account_id: glAccountId,
+      },
+    );
+
+    expect(createCashboxErr).toBeNull();
+    expect(cashboxId).toBeTruthy();
+
+    const { data: cashbox, error: cashboxReadErr } = await admin
+      .from("cashboxes")
+      .select("id, property_id")
+      .eq("id", cashboxId)
+      .single();
+
+    expect(cashboxReadErr).toBeNull();
+    expect(cashbox?.property_id).toBe(resortId);
+
+    // open_cashier_session: proves both the SELECT-then-compare validation
+    // inside the function (which reads `cashboxes.property_id` to check it
+    // matches p_resort_id) and its own INSERT into the renamed
+    // `cashier_sessions.property_id` column.
+    const { data: sessionId, error: openSessionErr } = await ownerClient.rpc(
+      "open_cashier_session",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_cashbox_id: cashboxId,
+        p_opening_balance: 100,
+      },
+    );
+
+    expect(openSessionErr).toBeNull();
+    expect(sessionId).toBeTruthy();
+
+    const { data: session, error: sessionReadErr } = await admin
+      .from("cashier_sessions")
+      .select("id, property_id")
+      .eq("id", sessionId)
+      .single();
+
+    expect(sessionReadErr).toBeNull();
+    expect(session?.property_id).toBe(resortId);
+
+    // close_cashier_session: proves the row-typed-variable field-access edit
+    // (v_session.property_id, formerly v_session.resort_id) works -- if it
+    // didn't, this call would fail with a hard Postgres error since
+    // cashier_sessions.resort_id no longer exists.
+    const { error: closeSessionErr } = await ownerClient.rpc("close_cashier_session", {
+      p_session_id: sessionId,
+      p_actual_closing_balance: 100,
+    });
+
+    expect(closeSessionErr).toBeNull();
+
+    const { data: auditLog, error: auditLogErr } = await admin
+      .from("platform_audit_logs")
+      .select("id, property_id, action")
+      .eq("entity_type", "cashier_session")
+      .eq("entity_id", sessionId)
+      .eq("action", "cashier_session.closed")
+      .single();
+
+    expect(auditLogErr).toBeNull();
+    expect(auditLog?.property_id).toBe(resortId);
+
+    // Cleanup.
+    // Foreign keys from platform_audit_logs.actor_id, cashier_sessions
+    // (opened_by/closed_by), cashboxes (created implicitly by
+    // create_cashbox's audit log), user_role_assignments.user_id, and
+    // organization_memberships.user_id still reference ownerId -- they must
+    // be removed before deleteUser or the delete fails with a 500 ("Database
+    // error deleting user"), silently leaking the auth.users row.
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("actor_id", ownerId);
+    expect(deleteAuditErr).toBeNull();
+
+    const { error: deleteSessionErr } = await admin
+      .from("cashier_sessions")
+      .delete()
+      .eq("id", sessionId);
+    expect(deleteSessionErr).toBeNull();
+
+    const { error: deleteCashboxErr } = await admin.from("cashboxes").delete().eq("id", cashboxId);
+    expect(deleteCashboxErr).toBeNull();
+
+    const { error: deleteGlAccountErr } = await admin
+      .from("chart_of_accounts")
+      .delete()
+      .eq("id", glAccountId);
+    expect(deleteGlAccountErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
