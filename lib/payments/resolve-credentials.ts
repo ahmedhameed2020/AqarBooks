@@ -46,6 +46,18 @@ export class NoProviderCredentialsError extends Error {
 //     -> fall back to legacy env vars (getPaymentsEnv()), a TRANSITIONAL
 //        path only, to be removed once all tenants have real settings
 //        configured.
+/**
+ * Resolves usable payment-provider credentials for a given tenant scope.
+ *
+ * SECURITY: this function performs NO authorization of its own -- it uses
+ * the service-role admin client and calls a service-role-only RPC with no
+ * internal permission check (by design, matching record_online_payment's
+ * trust model: it's meant to be called only from already-authorized
+ * server-side contexts, e.g. a checkout/webhook flow that has already
+ * validated the organizationId/resortId it's passing in belong together
+ * and to the correct tenant). Callers MUST NOT pass organizationId/resortId
+ * derived from unvalidated client input.
+ */
 export async function resolveProviderCredentials(
   organizationId: string,
   resortId: string | null,
@@ -82,15 +94,26 @@ export async function resolveProviderCredentials(
   };
 }
 
-// TRANSITIONAL: legacy, single shared, env-var-based credentials -- the
-// pre-multi-tenant-settings configuration. Remove this function (and the
-// NO_TENANT_SETTING fallback branch above) once every tenant that needs
-// online payments has a real payment_provider_settings row. Throws
+// TODO: TRANSITIONAL -- legacy, single shared, env-var-based credentials,
+// the pre-multi-tenant-settings configuration. Delete this function (and
+// the NO_TENANT_SETTING fallback branch above) once every tenant that
+// needs online payments has a real payment_provider_settings row. Throws
 // whatever getPaymentsEnv() throws (PAYMENTS_ENV_INVALID) if the required
 // env vars are also absent -- let it propagate, don't swallow it into a
 // different error type, since its message already lists exactly which env
 // vars are missing.
 function resolveLegacyEnvCredentials(provider: ProviderId): ProviderCredentials {
+  // Observability for the transitional path: nothing else tracks when a
+  // tenant is still running on shared legacy credentials instead of their
+  // own configured settings, so this is the only signal available for
+  // deciding when it's safe to delete this function.
+  console.warn(
+    JSON.stringify({
+      event: "payment_provider_legacy_env_fallback_used",
+      provider,
+      note: "No tenant-specific payment_provider_settings row exists for this scope -- using transitional env-var credentials. This path should be removed once all tenants have real settings configured.",
+    }),
+  );
   const env = getPaymentsEnv();
   if (provider === "FAWRY") {
     return {

@@ -297,4 +297,25 @@ describe("resolveProviderCredentials (real Supabase, no mocks)", () => {
       vi.resetModules();
     }
   });
+
+  it("regression: a genuinely unrelated DB error does not false-positive match the NO_TENANT_SETTING prefix check and fall back to env", async () => {
+    // A malformed UUID makes Postgres reject the RPC call itself (invalid
+    // input syntax), producing an error message that has nothing to do with
+    // NO_TENANT_SETTING/PROVIDER_NOT_ENABLED. The resolver's fallback
+    // branch keys off `error.message?.startsWith("NO_TENANT_SETTING")` --
+    // this proves an unrelated error does not accidentally satisfy that
+    // check and silently return legacy env credentials instead of erroring.
+    await expect(resolveProviderCredentials("not-a-valid-uuid", null, "FAWRY", "SANDBOX")).rejects.toThrow(TenantProviderUnusableError);
+    try {
+      await resolveProviderCredentials("not-a-valid-uuid", null, "FAWRY", "SANDBOX");
+      throw new Error("expected resolveProviderCredentials to throw");
+    } catch (err) {
+      const e = err as TenantProviderUnusableErrorType;
+      expect(e.rpcError).not.toContain("NO_TENANT_SETTING");
+      // Must NOT be the env-fallback shape -- confirm no ProviderCredentials
+      // object (with the real env values) was silently returned instead.
+      expect(e).toBeInstanceOf(TenantProviderUnusableError);
+      expect(e.message).not.toContain(process.env.FAWRY_MERCHANT_CODE);
+    }
+  });
 });
