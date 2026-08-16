@@ -2,10 +2,10 @@ import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
-import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
-import { STATUS_LABELS, type DueDbRow } from "@/lib/portal/row-types";
+import type { DueDbRow } from "@/lib/portal/row-types";
+import { DuesCheckout } from "./dues-checkout";
 
 export default async function PortalDuesPage({
   params,
@@ -39,41 +39,13 @@ export default async function PortalDuesPage({
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-foreground">{isAr ? "المستحقات" : "Dues"}</h1>
-      <p className="text-xs text-muted-foreground">
-        {isAr
-          ? "الدفع الإلكتروني غير متاح بعد — سيُضاف قريبًا."
-          : "Online payment is not available yet — coming soon."}
-      </p>
       {dues.length > 0 && (
         <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 w-fit">
           <p className="text-xs font-bold text-primary">{isAr ? "إجمالي المستحقات المفتوحة" : "Total Open Dues"}</p>
           <Money amount={totalOpen} locale={locale} className="text-lg font-bold" />
         </div>
       )}
-      <div className="rounded-2xl border border-border bg-background divide-y divide-border">
-        {dues.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">{isAr ? "لا توجد مستحقات مفتوحة." : "No open dues."}</p>
-        )}
-        {dues.map((d) => {
-          const statusLabel = STATUS_LABELS[d.status];
-          return (
-            <div key={d.id} className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {d.description ?? (isAr ? "استحقاق" : "Due")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {d.units?.code ?? "-"} · {isAr ? "الاستحقاق" : "Due"} {d.due_date}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline">{statusLabel ? (isAr ? statusLabel.ar : statusLabel.en) : d.status}</Badge>
-                <Money amount={Number(d.amount)} locale={locale} className="font-bold" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <DuesCheckout dues={dues} locale={locale} />
     </div>
   );
 }
