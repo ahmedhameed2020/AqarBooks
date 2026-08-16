@@ -194,6 +194,54 @@ Mirroring Phase 4's testing discipline (pgTAP-equivalent + Vitest + a real two-c
 
 Once approved (with any corrections, especially around the flagged Paymob confidence gaps), the next step is a task-broken-down implementation plan (`docs/superpowers/plans/...`), executed the same way as Phase 4: implementer → spec-compliance review → code-quality review per task. The first task in that plan should be the Paymob live-docs re-verification pass (§"Source material") before any Paymob-specific code is written, since that's the one piece of this design resting on medium- rather than high-confidence facts.
 
+## Status: Phase 5 (Fawry) complete — Paymob production-blocked, project-owner approved (2026-08-16)
+
+```text
+Fawry: implemented and verified
+Paymob: contract-tests-only, production blocked
+```
+
+All 7 implementation tasks executed via subagent-driven development (implement → test → spec review → code review → checkpoint per task), plus one inserted prerequisite (a minimal checkout-trigger UI on the dues page, since no task in the original plan built the UI that calls `createOnlinePaymentCheckoutAction`). Final independent verification (a fresh dev server, a from-scratch Playwright run, fresh `tsc`/Vitest runs, fresh live SQL execution, and two hand-built live probes outside the test suite entirely) confirmed:
+
+- **8/8 Playwright e2e scenarios** pass in one sequential run (~1 minute): happy path, invalid signature rejected, duplicate webhook no double-post, unknown reference generic 200, concurrent-staff-settlement clean failure, cross-owner RLS isolation, cross-resort rejection, provider-failure no partial write.
+- **7/7 `phase_owner_portal_*.sql` suites** (34 assertions/scenarios) pass live against `ataslxkcflxuilpgyepm`.
+- **53/53 `tests/payments/*.test.ts` Vitest tests** pass.
+- **Two independent, non-Playwright-only proofs** of the highest-risk gates, verified live outside the e2e suite: a corrupted-signature webhook POSTed directly to `/api/webhooks/fawry` → `401`, transaction row unmutated on a fresh read; a real cross-resort checkout attempt via the actual RPC → rejected `22023 CROSS_RESORT_NOT_ALLOWED`, zero rows created. **These two checks must remain in CI as standalone assertions, not be treated as covered by Playwright alone** — Playwright's own scenarios 2 and 7 already encode them, but the project owner's explicit requirement is that they never become Playwright-only coverage; if the e2e suite is ever skipped/flaky in CI, these two properties must still be independently checked (e.g., kept as part of `tests/payments/webhook-handler.test.ts` and `supabase/tests/phase_owner_portal_checkout_transaction.sql`'s own scenario suites, which they already are).
+
+**Paymob production guard — explicitly verified to hold even under missing/malformed env vars**: `paymobAdapter.createCheckout`'s `throw new Error("PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION: ...")` is the unconditional first statement in the function body — it executes before `getPaymentsEnv()` is ever called, so the guard fires identically whether Paymob env vars are absent, malformed, or fully valid. There is no code path where a correctly-configured Paymob environment would bypass this guard; removing it requires an explicit, deliberate code change (the follow-up task noted below), not a configuration change.
+
+**Explicit tsc baseline separation** (matching the same discipline established for Phase 4):
+```text
+Phase 5-related tsc errors: 0
+Repository baseline errors: 19, unrelated (confirmed pre-existing, none in any Phase 5 file)
+```
+The 19 baseline errors: 9 from an unfinished member-CRM/receipt-PDF feature (`lib/actions/member-crm.ts`, `lib/reports/payment-receipt-pdf.ts`, `lib/actions/error-messages.ts`, and 5 sibling components under `app/[locale]/(app)/members/[memberId]/` — none of these files exist anywhere in this repo's git history), 8 from `vitest` not being a declared `devDependency` (resolved only via `npx`'s cache at runtime), 2 unrelated pre-existing type errors (`members/[memberId]/page.tsx`'s `phone` field, `lib/actions/purchasing.ts`'s `p_amount`). **Recommendation, not yet actioned**: before a production build is cut, either fix or explicitly isolate the member-CRM baseline errors — a `build` can currently succeed with transpile-only settings while a full `tsc --noEmit` is not clean, which is a real (if pre-existing) risk independent of Phase 5.
+
+**Known limitation, explicitly NOT resolved by this phase**: `/portal/payments` (the member-facing payment-history page) depends on the same missing member-CRM/receipt-PDF modules and **crashes the entire Next.js dev server process** when visited, not just that one route. Task 7's scenario 1 was adapted, with explicit project-owner approval, to verify payment visibility via a direct RLS-scoped database query through the member's own authenticated session (proving the same underlying guarantee: a real `ONLINE` payment, correctly amounted, visible under RLS to the paying member) rather than by rendering that page. **This substitution proves data correctness and isolation — it does NOT prove the page itself renders correctly, that receipt download works, or that the UI correctly displays every terminal transaction state (`PENDING`/`PAID`/`FAILED`/`EXPIRED`).** A separate, dedicated task is required before online payments can be considered complete from an end-user experience standpoint:
+1. Fix the missing member-CRM/receipt-PDF imports (or isolate `/portal/payments` from that dependency chain if it doesn't actually need it).
+2. Manually/E2E-verify `/portal/payments` renders correctly in a real browser.
+3. Verify receipt download for an `ONLINE`-method payment.
+4. Verify all four terminal/non-terminal transaction states (`PENDING`, `PAID`, `FAILED`, `EXPIRED`) display correctly on this page.
+5. Re-run the full online-payment scenario through the real UI end-to-end once the page is fixed, replacing Task 7's DB-check substitution with the originally-intended full-UI assertion.
+
+## Roadmap after Fawry (not yet started, listed for tracking only)
+
+1. Fix `/portal/payments` (above).
+2. This status section (marking the Fawry/Paymob split explicitly, done here).
+3. Clean up or explicitly document the `tsc` baseline in CI so a future contributor can distinguish a real regression from known baseline noise.
+4. A dedicated Paymob verification plan: obtain a genuine known-answer HMAC test vector (real sandbox credentials producing one real signed callback, or Paymob eventually publishing a complete worked example with expected hash output) before any task re-enables `paymobAdapter.createCheckout` or wires a Paymob webhook route.
+5. Do not enable Paymob for production before step 4 succeeds — the `PAYMOB_ADAPTER_NOT_ENABLED_FOR_PRODUCTION` guard stays in place until then.
+
+## Final approved status
+
+```text
+Portal Phase 1-2:      complete
+Accounting Phase 4:    complete
+Fawry (Phase 5):        complete and verified
+Paymob (Phase 5):       production-blocked (contract-tests-only)
+Task 7:                 complete for Fawry, with the /portal/payments exception documented above
+```
+
 ## Sources consulted for this design
 
 - https://developers.paymob.com/paymob-docs/integration-paths/apis
