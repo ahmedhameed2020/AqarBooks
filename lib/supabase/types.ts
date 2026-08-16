@@ -556,7 +556,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           gl_account_id: string;
           is_active: boolean;
@@ -564,7 +564,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           gl_account_id: string;
           is_active?: boolean;
@@ -576,7 +576,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           cashbox_id: string;
           opened_by: string;
           opening_balance: number;
@@ -617,7 +617,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_id: string;
           account_name: string;
           account_number: string;
@@ -627,7 +627,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_id: string;
           account_name: string;
           account_number: string;
@@ -641,7 +641,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_account_id: string;
           direction: "INCOMING" | "OUTGOING";
           cheque_number: string;
