@@ -165,7 +165,7 @@ export default async function PropertyPage({
     supabase
       .from("payments")
       .select("amount")
-      .eq("resort_id", resort.id)
+      .eq("property_id", resort.id)
       .eq("status", "POSTED")
       .gte("payment_date", monthStart),
   ]);
