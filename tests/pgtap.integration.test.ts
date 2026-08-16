@@ -211,4 +211,173 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("7. Phase 2a Resorts-View Compatibility Shim Integrity (auto-updatable view + real-user RLS)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ResortsViewShim Org",
+        slug: `pgtap-resorts-view-shim-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // --- Part A: auto-updatable-view mechanics (service-role client) ---
+
+    const { data: viewInsert, error: viewInsertErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "Shim Test Resort",
+        code: `SHIM-${Date.now()}`,
+      })
+      .select("id, name, property_type")
+      .single();
+
+    expect(viewInsertErr).toBeNull();
+    expect(viewInsert?.id).toBeTruthy();
+    expect(viewInsert?.property_type).toBe("resort");
+    const resortId = viewInsert!.id;
+
+    const { data: viaTable, error: tableSelectErr } = await admin
+      .from("properties")
+      .select("id, name")
+      .eq("id", resortId)
+      .single();
+
+    expect(tableSelectErr).toBeNull();
+    expect(viaTable?.id).toBe(resortId);
+    expect(viaTable?.name).toBe("Shim Test Resort");
+
+    const { error: viewUpdateErr } = await admin
+      .from("resorts")
+      .update({ name: "Shim Test Resort (renamed)" })
+      .eq("id", resortId);
+
+    expect(viewUpdateErr).toBeNull();
+
+    const { data: afterUpdate } = await admin
+      .from("properties")
+      .select("name")
+      .eq("id", resortId)
+      .single();
+
+    expect(afterUpdate?.name).toBe("Shim Test Resort (renamed)");
+
+    // --- Part B: RLS is correctly enforced through the view for a real
+    // (non-service-role) session, not just bypassed like the admin client
+    // above. This is the part that actually justifies the migration
+    // comment's claim.
+
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-resorts-view-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // Positive case: the org owner (has tenant.settings.manage via RLS's
+    // resorts_manage policy) can INSERT through the `resorts` view under
+    // their own real session -- this only works if RLS is evaluated
+    // correctly against the view, not just the underlying table.
+    const { data: ownerInsert, error: ownerInsertErr } = await ownerClient
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "RLS Owner Resort",
+        code: `RLS-OWNER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    expect(ownerInsertErr).toBeNull();
+    expect(ownerInsert?.id).toBeTruthy();
+    const ownerResortId = ownerInsert!.id;
+
+    // Negative case: an unrelated user with no membership/role in this
+    // organization must be blocked by RLS's resorts_select_member policy
+    // when querying through the view -- proves the view isn't accidentally
+    // more permissive than the underlying table (RLS SELECT policies
+    // filter rows rather than raising errors, so we assert an empty result,
+    // not an error).
+    const outsiderEmail = `pgtap-resorts-view-outsider-${Date.now()}@aqarbooks-test.local`;
+    const { data: outsiderUser, error: createOutsiderErr } = await admin.auth.admin.createUser({
+      email: outsiderEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOutsiderErr).toBeNull();
+
+    const outsiderClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: outsiderSignInErr } = await outsiderClient.auth.signInWithPassword({
+      email: outsiderEmail,
+      password,
+    });
+    expect(outsiderSignInErr).toBeNull();
+
+    const { data: outsiderSelect, error: outsiderSelectErr } = await outsiderClient
+      .from("resorts")
+      .select("id")
+      .eq("id", ownerResortId);
+
+    expect(outsiderSelectErr).toBeNull();
+    expect(outsiderSelect).toEqual([]);
+
+    // Cleanup.
+    await admin.from("resorts").delete().eq("id", resortId);
+    await admin.from("resorts").delete().eq("id", ownerResortId);
+    await admin.auth.admin.deleteUser(outsiderUser!.user!.id);
+    await admin.auth.admin.deleteUser(ownerId);
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
