@@ -28,7 +28,7 @@ const TAB_ICONS: Record<UnitTab, LucideIcon> = {
 // distinction without the tab bar competing with the page's real semantic
 // colors (settled/arrears, aging severity).
 const TAB_ACTIVE_ICON_COLOR: Record<UnitTab, string> = {
-  overview: "group-data-active:text-slate-600 dark:group-data-active:text-slate-300",
+  overview: "group-data-active:text-indigo-600 dark:group-data-active:text-indigo-400",
   financials: "group-data-active:text-blue-600 dark:group-data-active:text-blue-400",
   ownership: "group-data-active:text-violet-600 dark:group-data-active:text-violet-400",
   lease: "group-data-active:text-amber-600 dark:group-data-active:text-amber-400",
