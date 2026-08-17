@@ -128,6 +128,7 @@ export default async function AppShellLayout({
               icon: <Wallet className={ic} />,
               subItems: [
                 { href: "/finance/banks", labelAr: "البنوك", labelEn: "Banks" },
+                { href: "/finance/banks/reconciliation", labelAr: "المطابقة البنكية", labelEn: "Reconciliation" },
               ],
             },
             {

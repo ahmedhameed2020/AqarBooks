@@ -1096,6 +1096,68 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["bank_accounts"]["Row"]>;
         Relationships: [];
       };
+      bank_statements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          bank_account_id: string;
+          period_start: string;
+          period_end: string;
+          opening_balance: number;
+          closing_balance: number;
+          status: "DRAFT" | "RECONCILED";
+          reconciled_at: string | null;
+          reconciled_by: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          bank_account_id: string;
+          period_start: string;
+          period_end: string;
+          opening_balance: number;
+          closing_balance: number;
+          status?: "DRAFT" | "RECONCILED";
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["bank_statements"]["Row"]>;
+        Relationships: [];
+      };
+      bank_statement_lines: {
+        Row: {
+          id: string;
+          organization_id: string;
+          statement_id: string;
+          line_date: string;
+          description: string | null;
+          reference: string | null;
+          /** Signed from the account holder's view: positive = money in. */
+          amount: number;
+          matched_journal_entry_line_id: string | null;
+          match_type: "AUTO" | "MANUAL" | null;
+          matched_at: string | null;
+          matched_by: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          statement_id: string;
+          line_date: string;
+          description?: string | null;
+          reference?: string | null;
+          amount: number;
+          sort_order?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["bank_statement_lines"]["Row"]>;
+        Relationships: [];
+      };
       cheques: {
         Row: {
           id: string;
@@ -1504,8 +1566,10 @@ export type Database = {
         Returns: {
           invitation_id: string;
           raw_token: string;
-          member_email: string;
+          invite_email: string;
+          member_email: string | null;
           member_phone: string | null;
+          is_synthetic_email: boolean;
         }[];
       };
       accept_member_invitation: {
@@ -1926,6 +1990,43 @@ export type Database = {
       get_cash_position: {
         Args: { p_organization_id: string; p_as_of_date: string };
         Returns: number;
+      };
+      auto_match_bank_statement: {
+        Args: { p_statement_id: string; p_date_tolerance_days?: number };
+        Returns: { matched_count: number; ambiguous_count: number; unmatched_count: number }[];
+      };
+      get_bank_reconciliation_summary: {
+        Args: { p_statement_id: string };
+        Returns: {
+          book_balance: number;
+          closing_balance: number;
+          opening_balance: number;
+          unmatched_gl_total: number;
+          unmatched_statement_total: number;
+          unmatched_gl_count: number;
+          unmatched_statement_count: number;
+          difference: number;
+        }[];
+      };
+      get_bank_match_candidates: {
+        Args: { p_statement_line_id: string; p_date_tolerance_days?: number };
+        Returns: {
+          journal_entry_line_id: string;
+          entry_id: string;
+          entry_number: number | null;
+          entry_date: string;
+          description: string | null;
+          signed_amount: number;
+          date_distance: number;
+        }[];
+      };
+      finalize_bank_reconciliation: {
+        Args: { p_statement_id: string };
+        Returns: undefined;
+      };
+      reopen_bank_reconciliation: {
+        Args: { p_statement_id: string };
+        Returns: undefined;
       };
       get_cash_flow_statement: {
         Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
