@@ -14,7 +14,7 @@ import {
 import { recordPaymentAction } from "@/lib/actions/receivables";
 import type { ActionResult } from "@/lib/actions/platform";
 
-type DueOption = { id: string; label: string; remaining: number };
+type DueOption = { id: string; unitId: string; label: string; remaining: number };
 type Option = { id: string; label: string };
 
 type AllocationDraft = { key: number; due_id: string; amount: string };
@@ -28,6 +28,7 @@ export function RecordPaymentForm({
   depositAccounts,
   periods,
   locale,
+  preselectedUnitId,
 }: {
   organizationId: string;
   resortId: string;
@@ -36,10 +37,12 @@ export function RecordPaymentForm({
   depositAccounts: Option[];
   periods: Option[];
   locale: string;
+  preselectedUnitId?: string;
 }) {
   const isAr = locale === "ar";
+  const unitDues = preselectedUnitId ? dues.filter((d) => d.unitId === preselectedUnitId) : dues;
   const [allocations, setAllocations] = useState<AllocationDraft[]>([
-    { key: keySeq++, due_id: "", amount: "" },
+    { key: keySeq++, due_id: unitDues[0]?.id ?? "", amount: "" },
   ]);
   const [amount, setAmount] = useState("");
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
@@ -157,7 +160,7 @@ export function RecordPaymentForm({
               onChange={(e) => updateAllocation(allocation.key, { due_id: e.target.value })}
             >
               <option value="" />
-              {dues.map((d) => (
+              {unitDues.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.label} ({isAr ? "متبقي" : "remaining"}: {d.remaining.toFixed(2)})
                 </option>

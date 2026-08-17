@@ -24,6 +24,7 @@ export function IssueDueForm({
   receivableAccounts,
   periods,
   locale,
+  preselectedUnitId,
 }: {
   organizationId: string;
   resortId: string;
@@ -32,6 +33,7 @@ export function IssueDueForm({
   receivableAccounts: Option[];
   periods: Option[];
   locale: string;
+  preselectedUnitId?: string;
 }) {
   const isAr = locale === "ar";
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
@@ -45,7 +47,7 @@ export function IssueDueForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label htmlFor="unitId">{isAr ? "الوحدة" : "Unit"}</Label>
-        <Select name="unitId">
+        <Select name="unitId" defaultValue={preselectedUnitId}>
           <SelectTrigger id="unitId" className="w-full">
             <SelectValue />
           </SelectTrigger>

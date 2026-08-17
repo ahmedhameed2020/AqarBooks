@@ -26,10 +26,13 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 
 export default async function DuesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ unit?: string }>;
 }) {
   const { locale } = await params;
+  const { unit: unitParam } = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -93,6 +96,7 @@ export default async function DuesPage({
 
   const revenueAccounts = (accounts ?? []).filter((a) => a.category === "REVENUE");
   const assetAccounts = (accounts ?? []).filter((a) => a.category === "ASSET");
+  const preselectedUnitId = unitParam && (units ?? []).some((u) => u.id === unitParam) ? unitParam : undefined;
 
   return (
     <div className="space-y-6">
@@ -112,6 +116,7 @@ export default async function DuesPage({
           }))}
           periods={(periods ?? []).map((p) => ({ id: p.id, label: p.name }))}
           locale={locale}
+          preselectedUnitId={preselectedUnitId}
         />
       )}
 
