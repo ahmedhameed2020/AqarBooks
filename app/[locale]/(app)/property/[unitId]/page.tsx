@@ -1,19 +1,19 @@
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { Wallet, Receipt, CircleCheck, Clock3 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
-import { Money } from "@/components/money";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { KpiCard } from "../../dashboard/kpi-card";
-import { UnitBalanceBadge } from "../unit-balance-badge";
-import { OccupancyBadge, unitTypeLabel } from "../units-table";
-import { DuesTable } from "../dues-table";
-import { PaymentsTable } from "../payments-table";
-import { BackButton } from "../back-button";
+import { buildMonthlyFinancials } from "@/lib/property/unit-financials";
+import { computeAgingRows, totalsByBucket } from "@/lib/finance/aging";
+import { buildActivity, shapeOwnershipHistory } from "@/lib/property/unit-activity";
+import { UnitHeader } from "./unit-header";
+import { UnitDetailTabs } from "./unit-detail-tabs";
+import { TabOverview } from "./tab-overview";
+import { TabFinancials } from "./tab-financials";
+import { TabOwnership } from "./tab-ownership";
+import { TabActivity } from "./tab-activity";
 
 export default async function UnitDetailPage({
   params,
@@ -44,146 +44,162 @@ export default async function UnitDetailPage({
   if (!unit) notFound();
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: ownerships } = await supabase
+  const currency = organization.default_currency;
+
+  // units_with_financials lacks created_at, so fetch it from the base table.
+  const { data: unitMeta } = await supabase
+    .from("units")
+    .select("created_at")
+    .eq("id", unitId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  const registeredDate = unitMeta?.created_at ? unitMeta.created_at.slice(0, 10) : null;
+
+  // Full dues for this unit (chart + aging + activity + lastPayment).
+  const { data: dueRows } = await supabase
+    .from("dues")
+    .select("id, unit_id, amount, issue_date, due_date, status, due_type_id")
+    .eq("organization_id", organization.id)
+    .eq("unit_id", unitId);
+
+  const dueTypeIds = [...new Set((dueRows ?? []).map((d) => d.due_type_id))];
+  const { data: dueTypes } = dueTypeIds.length
+    ? await supabase.from("due_types").select("id, name_ar, name_en").in("id", dueTypeIds)
+    : { data: [] };
+  const dueTypeName = new Map((dueTypes ?? []).map((t) => [t.id, isAr ? t.name_ar : t.name_en]));
+
+  // Payments link to a unit only through payment_allocations -> dues.unit_id
+  // (payments.unit_id is always null in production).
+  const dueIds = (dueRows ?? []).map((d) => d.id);
+  const { data: allocRows } = dueIds.length
+    ? await supabase.from("payment_allocations").select("due_id, payment_id, amount").in("due_id", dueIds)
+    : { data: [] };
+  const allocPaymentIds = [...new Set((allocRows ?? []).map((a) => a.payment_id))];
+  const { data: postedPayRows } = allocPaymentIds.length
+    ? await supabase
+        .from("payments")
+        .select("id, amount, payment_date, method, status")
+        .eq("organization_id", organization.id)
+        .in("id", allocPaymentIds)
+        .eq("status", "POSTED")
+    : { data: [] };
+  const postedIds = new Set((postedPayRows ?? []).map((p) => p.id));
+  const payById = new Map((postedPayRows ?? []).map((p) => [p.id, p]));
+
+  const paidPerPayment = new Map<string, { amount: number; payment_date: string; method: string }>();
+  for (const a of allocRows ?? []) {
+    if (!postedIds.has(a.payment_id)) continue;
+    const p = payById.get(a.payment_id);
+    if (!p) continue;
+    const prev = paidPerPayment.get(a.payment_id);
+    paidPerPayment.set(a.payment_id, {
+      amount: (prev?.amount ?? 0) + a.amount,
+      payment_date: p.payment_date,
+      method: p.method,
+    });
+  }
+  const paidEvents = [...paidPerPayment.values()];
+  const lastPayment = paidEvents.length
+    ? paidEvents.reduce((latest, p) => (p.payment_date > latest.payment_date ? p : latest))
+    : null;
+
+  // Full ownership history (no active-only filter) -- current split, history
+  // timeline, and the overview's "current owner" card are all derived from it.
+  const { data: ownershipHistoryRows } = await supabase
     .from("unit_ownerships")
-    .select("member_id, share_percentage, is_primary_contact, end_date")
+    .select("member_id, share_percentage, is_primary_contact, start_date, end_date")
     .eq("organization_id", organization.id)
     .eq("unit_id", unitId)
-    .order("share_percentage", { ascending: false });
-
-  // payments.unit_id is always null in production data -- the "record
-  // payment" form has no unit field, only a member field. The only reliable
-  // unit-level link is payment_allocations -> dues.unit_id (see PaymentsTable
-  // for the full explanation), so "last payment" is derived the same way.
-  const { data: unitDues } = await supabase.from("dues").select("id").eq("organization_id", organization.id).eq("unit_id", unitId);
-  const unitDueIds = (unitDues ?? []).map((d) => d.id);
-  let lastPayment: { amount: number; payment_date: string } | null = null;
-  if (unitDueIds.length) {
-    const { data: allocations } = await supabase
-      .from("payment_allocations")
-      .select("payment_id, amount")
-      .in("due_id", unitDueIds);
-    const paymentIds = [...new Set((allocations ?? []).map((a) => a.payment_id))];
-    if (paymentIds.length) {
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("id, payment_date, status")
-        .eq("organization_id", organization.id)
-        .in("id", paymentIds)
-        .eq("status", "POSTED")
-        .order("payment_date", { ascending: false });
-      const latest = (payments ?? [])[0];
-      if (latest) {
-        const amount = (allocations ?? [])
-          .filter((a) => a.payment_id === latest.id)
-          .reduce((s, a) => s + a.amount, 0);
-        lastPayment = { amount, payment_date: latest.payment_date };
-      }
-    }
-  }
-
-  const activeOwnerships = (ownerships ?? []).filter((o) => !o.end_date || o.end_date >= today);
-  const memberIds = [...new Set(activeOwnerships.map((o) => o.member_id))];
-  const { data: members } = memberIds.length
-    ? await supabase.from("members").select("id, full_name, email, phone").in("id", memberIds)
+    .order("start_date", { ascending: false });
+  const historyMemberIds = [...new Set((ownershipHistoryRows ?? []).map((o) => o.member_id))];
+  const { data: historyMembers } = historyMemberIds.length
+    ? await supabase.from("members").select("id, full_name, phone").in("id", historyMemberIds)
     : { data: [] };
-  const memberById = new Map((members ?? []).map((m) => [m.id, m]));
+  const historyMemberName = new Map((historyMembers ?? []).map((m) => [m.id, m.full_name]));
+  const historyMemberPhone = new Map((historyMembers ?? []).map((m) => [m.id, m.phone]));
 
-  const currency = organization.default_currency;
+  const monthly = buildMonthlyFinancials(
+    (dueRows ?? []).map((d) => ({ issue_date: d.issue_date, due_date: d.due_date, amount: d.amount, status: d.status })),
+    paidEvents.map((p) => ({ payment_date: p.payment_date, amount: p.amount })),
+  );
+
+  const agingTotals = totalsByBucket(
+    computeAgingRows(
+      (dueRows ?? []).filter((d) => ["ISSUED", "PARTIALLY_PAID", "OVERDUE"].includes(d.status)),
+      (allocRows ?? []).map((a) => ({ due_id: a.due_id, payment_id: a.payment_id, amount: a.amount })),
+      postedIds,
+    ),
+  );
+
+  const activity = buildActivity(
+    unitMeta?.created_at ?? `${today}T00:00:00Z`,
+    (dueRows ?? []).map((d) => ({
+      issue_date: d.issue_date,
+      due_date: d.due_date,
+      amount: d.amount,
+      status: d.status,
+      type: dueTypeName.get(d.due_type_id) ?? "—",
+    })),
+    paidEvents,
+    (ownershipHistoryRows ?? []).map((o) => ({
+      start_date: o.start_date,
+      end_date: o.end_date,
+      member_name: historyMemberName.get(o.member_id) ?? "—",
+    })),
+    isAr,
+  );
+
+  const ownershipHistory = shapeOwnershipHistory(ownershipHistoryRows ?? [], historyMemberName, today);
+  const activeOwnerships = (ownershipHistoryRows ?? []).filter((o) => !o.end_date || o.end_date >= today);
+  const primary = activeOwnerships[0];
+  const overviewOwner = primary
+    ? {
+        id: primary.member_id,
+        name: historyMemberName.get(primary.member_id) ?? "—",
+        phone: historyMemberPhone.get(primary.member_id) ?? null,
+        share: primary.share_percentage,
+      }
+    : null;
 
   return (
     <main className="space-y-6 p-6">
-      <BackButton locale={locale} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{unit.code}</h1>
-        <UnitBalanceBadge balance={unit.balance} currency={currency} locale={locale} />
-        <OccupancyBadge status={unit.occupancy_status} locale={locale} />
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {[isAr ? unit.building_name_ar : unit.building_name_en, isAr ? unit.zone_name_ar : unit.zone_name_en]
-          .filter(Boolean)
-          .join(" · ") || (isAr ? "بدون مبنى/منطقة" : "No building/zone")}
-        {" · "}
-        {unitTypeLabel(unit, isAr)}
-      </p>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          label={isAr ? `الرصيد الحالي (${currency})` : `Current balance (${currency})`}
-          value={<Money amount={unit.balance} locale={locale} tone={unit.balance > 0 ? "negative" : "positive"} />}
-          icon={<Wallet className="size-4.5" />}
-          tone={unit.balance > 0 ? "negative" : "positive"}
-        />
-        <KpiCard
-          label={isAr ? `إجمالي المستحق (${currency})` : `Total due (${currency})`}
-          value={<Money amount={unit.total_due} locale={locale} />}
-          icon={<Receipt className="size-4.5" />}
-        />
-        <KpiCard
-          label={isAr ? `إجمالي المدفوع (${currency})` : `Total paid (${currency})`}
-          value={<Money amount={unit.total_paid} locale={locale} tone="positive" />}
-          icon={<CircleCheck className="size-4.5" />}
-          tone="positive"
-        />
-        <KpiCard
-          label={isAr ? "آخر دفعة" : "Last payment"}
-          value={lastPayment ? <Money amount={lastPayment.amount} currency={currency} locale={locale} /> : "—"}
-          hint={lastPayment?.payment_date}
-          icon={<Clock3 className="size-4.5" />}
-        />
-      </div>
-
-      <section className="rounded-xl border bg-card shadow-sm">
-        <div className="border-b px-5 py-3.5">
-          <h2 className="text-sm font-semibold">{isAr ? "المالك الحالي" : "Current owner"}</h2>
-        </div>
-        <div className="p-4">
-          {activeOwnerships.length ? (
-            <div className="space-y-3">
-              {activeOwnerships.map((o) => {
-                const member = memberById.get(o.member_id);
-                return (
-                  <div key={o.member_id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <div>
-                      {member ? (
-                        <Link href={`/members/${member.id}`} locale={locale} className="font-medium hover:underline">
-                          {member.full_name}
-                        </Link>
-                      ) : (
-                        <span className="font-medium">—</span>
-                      )}
-                      {o.is_primary_contact && (
-                        <span className="ms-2 text-xs text-muted-foreground">
-                          {isAr ? "(جهة الاتصال الأساسية)" : "(primary contact)"}
-                        </span>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {[member?.email, member?.phone].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    <span className="tabular-nums font-medium text-muted-foreground">{o.share_percentage}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              {isAr ? "لا يوجد مالك مسجّل" : "No owner on record"}
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">{isAr ? "سجل الاستحقاقات" : "Dues history"}</h2>
-        <DuesTable organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">{isAr ? "سجل الدفعات" : "Payments history"}</h2>
-        <PaymentsTable organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />
-      </section>
+      <UnitHeader
+        unit={unit}
+        locale={locale}
+        currency={currency}
+        registeredDate={registeredDate}
+        lastPayment={lastPayment}
+      />
+      <UnitDetailTabs
+        labels={{
+          overview: isAr ? "نظرة عامة" : "Overview",
+          financials: isAr ? "المالية" : "Financials",
+          ownership: isAr ? "الملكية" : "Ownership",
+          activity: isAr ? "النشاط" : "Activity",
+        }}
+        overview={
+          <TabOverview
+            unit={unit}
+            locale={locale}
+            currency={currency}
+            owner={overviewOwner}
+            registeredDate={registeredDate}
+            recentActivity={activity}
+          />
+        }
+        financials={
+          <TabFinancials
+            organizationId={organization.id}
+            unitId={unitId}
+            locale={locale}
+            currency={currency}
+            monthly={monthly}
+            agingTotals={agingTotals}
+          />
+        }
+        ownership={<TabOwnership history={ownershipHistory} locale={locale} />}
+        activity={<TabActivity events={activity} locale={locale} currency={currency} />}
+      />
     </main>
   );
 }

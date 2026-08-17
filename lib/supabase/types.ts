@@ -459,6 +459,8 @@ export type Database = {
           custom_type_label: string | null;
           archived_at: string | null;
           archived_by: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -474,6 +476,8 @@ export type Database = {
           custom_type_label?: string | null;
           archived_at?: string | null;
           archived_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["units"]["Row"]>;
         Relationships: [];
