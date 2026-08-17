@@ -52,5 +52,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // `i/` excluded alongside `api`: short invite/reminder redirect links
+  // (app/i/[slug]/route.ts) must resolve without a locale prefix, both to
+  // stay as short as possible and because they run before any session/
+  // locale context exists for the invitee.
+  matcher: ["/((?!api|i/|_next|_vercel|.*\\..*).*)"],
 };

@@ -1419,6 +1419,50 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["demo_leads"]["Row"]>;
         Relationships: [];
       };
+      member_invitations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          member_id: string;
+          email: string;
+          token_hash: string;
+          status: "pending" | "accepted" | "expired" | "revoked";
+          expires_at: string;
+          invited_by: string;
+          accepted_at: string | null;
+          accepted_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          member_id: string;
+          email: string;
+          token_hash: string;
+          status?: "pending" | "accepted" | "expired" | "revoked";
+          expires_at: string;
+          invited_by: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_invitations"]["Row"]>;
+        Relationships: [];
+      };
+      member_invitation_short_links: {
+        Row: {
+          slug: string;
+          invitation_id: string;
+          action_link: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          slug: string;
+          invitation_id: string;
+          action_link: string;
+          expires_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["member_invitation_short_links"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: {
       units_with_financials: {

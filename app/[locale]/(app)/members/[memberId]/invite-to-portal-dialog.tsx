@@ -66,7 +66,7 @@ export function InviteToPortalDialog({
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [link, setLink] = useState<{
-    actionLink: string;
+    shortLink: string;
     memberEmail: string | null;
     memberPhone: string | null;
     isSyntheticEmail: boolean;
@@ -81,7 +81,7 @@ export function InviteToPortalDialog({
         return;
       }
       setLink({
-        actionLink: res.actionLink,
+        shortLink: res.shortLink,
         memberEmail: res.memberEmail,
         memberPhone: res.memberPhone,
         isSyntheticEmail: res.isSyntheticEmail,
@@ -89,11 +89,11 @@ export function InviteToPortalDialog({
     });
   }
 
-  const whatsappUrl = link?.memberPhone ? buildWhatsAppUrl(link.memberPhone, inviteMessage(isAr, memberName, link.actionLink)) : null;
+  const whatsappUrl = link?.memberPhone ? buildWhatsAppUrl(link.memberPhone, inviteMessage(isAr, memberName, link.shortLink)) : null;
   // A synthetic placeholder email (no real email on file) can't receive
   // anything -- only offer the mailto button for a real, deliverable address.
   const mailtoUrl = link && link.memberEmail && !link.isSyntheticEmail
-    ? `mailto:${link.memberEmail}?subject=${encodeURIComponent(isAr ? "دعوة لبوابة الملاك" : "Owner Portal Invitation")}&body=${encodeURIComponent(inviteMessage(isAr, memberName, link.actionLink))}`
+    ? `mailto:${link.memberEmail}?subject=${encodeURIComponent(isAr ? "دعوة لبوابة الملاك" : "Owner Portal Invitation")}&body=${encodeURIComponent(inviteMessage(isAr, memberName, link.shortLink))}`
     : null;
 
   return (
