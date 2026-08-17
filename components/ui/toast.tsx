@@ -32,6 +32,12 @@ function ToastList() {
               <div className="min-w-0">
                 <ToastPrimitive.Title className="text-sm font-medium" />
                 <ToastPrimitive.Description className="text-xs text-muted-foreground" />
+                {toast.actionProps && (
+                  <ToastPrimitive.Action
+                    {...toast.actionProps}
+                    className="mt-1.5 text-xs font-medium text-primary outline-none hover:underline focus-visible:underline"
+                  />
+                )}
               </div>
             </div>
             <ToastPrimitive.Close className="absolute top-2 end-2 rounded-md p-1 text-muted-foreground opacity-70 outline-none transition-opacity hover:bg-muted hover:opacity-100">
