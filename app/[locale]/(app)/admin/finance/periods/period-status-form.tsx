@@ -23,7 +23,7 @@ export function PeriodStatusForm({ periodId }: { periodId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="fiscalPeriodId" value={periodId} />
-      <Select name="status" defaultValue="OPEN">
+      <Select name="status" defaultValue="OPEN" items={STATUSES.map((s) => ({ value: s, label: s }))}>
         <SelectTrigger size="sm" className="w-28">
           <SelectValue />
         </SelectTrigger>

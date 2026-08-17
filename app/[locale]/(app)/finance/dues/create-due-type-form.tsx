@@ -42,7 +42,10 @@ export function CreateDueTypeForm({
       </div>
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor="defaultRevenueAccountId">{isAr ? "حساب الإيراد" : "Revenue account"}</Label>
-        <Select name="defaultRevenueAccountId">
+        <Select
+          name="defaultRevenueAccountId"
+          items={revenueAccounts.map((a) => ({ value: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }))}
+        >
           <SelectTrigger id="defaultRevenueAccountId" className="w-full">
             <SelectValue />
           </SelectTrigger>

@@ -45,7 +45,7 @@ export function PostInvoiceForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label>{isAr ? "المورد" : "Supplier"}</Label>
-        <Select name="supplierId">
+        <Select name="supplierId" items={suppliers.map((s) => ({ value: s.id, label: s.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -64,7 +64,7 @@ export function PostInvoiceForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب المصروف" : "Expense account"}</Label>
-        <Select name="expenseAccountId">
+        <Select name="expenseAccountId" items={expenseAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -79,7 +79,7 @@ export function PostInvoiceForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-        <Select name="fiscalPeriodId">
+        <Select name="fiscalPeriodId" items={periods.map((p) => ({ value: p.id, label: p.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -114,7 +114,7 @@ export function PostInvoiceForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب ضريبة القيمة المضافة" : "VAT account"}</Label>
-        <Select name="vatAccountId">
+        <Select name="vatAccountId" items={liabilityAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder={isAr ? "مطلوب فقط إذا كانت النسبة أكبر من صفر" : "Required only if rate is above zero"} />
           </SelectTrigger>
@@ -133,7 +133,7 @@ export function PostInvoiceForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب الخصم تحت حساب الضريبة" : "WHT account"}</Label>
-        <Select name="whtAccountId">
+        <Select name="whtAccountId" items={liabilityAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder={isAr ? "مطلوب فقط إذا كانت النسبة أكبر من صفر" : "Required only if rate is above zero"} />
           </SelectTrigger>
@@ -211,7 +211,7 @@ export function RecordSupplierPaymentForm({
       <div className="grid gap-4 sm:grid-cols-4">
         <div className="space-y-2">
           <Label>{isAr ? "المورد" : "Supplier"}</Label>
-          <Select name="supplierId">
+          <Select name="supplierId" items={suppliers.map((s) => ({ value: s.id, label: s.label }))}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -226,7 +226,16 @@ export function RecordSupplierPaymentForm({
         </div>
         <div className="space-y-2">
           <Label>{isAr ? "طريقة الدفع" : "Method"}</Label>
-          <Select name="method" defaultValue="BANK_TRANSFER">
+          <Select
+            name="method"
+            defaultValue="BANK_TRANSFER"
+            items={[
+              { value: "CASH", label: isAr ? "نقدًا" : "Cash" },
+              { value: "BANK_TRANSFER", label: isAr ? "تحويل بنكي" : "Bank transfer" },
+              { value: "CHEQUE", label: isAr ? "شيك" : "Cheque" },
+              { value: "OTHER", label: isAr ? "أخرى" : "Other" },
+            ]}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -240,7 +249,7 @@ export function RecordSupplierPaymentForm({
         </div>
         <div className="space-y-2">
           <Label>{isAr ? "حساب الدفع" : "Payment account"}</Label>
-          <Select name="paymentAccountId">
+          <Select name="paymentAccountId" items={paymentAccounts.map((a) => ({ value: a.id, label: a.label }))}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -255,7 +264,7 @@ export function RecordSupplierPaymentForm({
         </div>
         <div className="space-y-2">
           <Label>{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-          <Select name="fiscalPeriodId">
+          <Select name="fiscalPeriodId" items={periods.map((p) => ({ value: p.id, label: p.label }))}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

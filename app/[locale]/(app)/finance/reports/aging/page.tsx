@@ -12,22 +12,12 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-
-const BUCKETS = [
-  { key: "current", labelAr: "غير مستحقة", labelEn: "Current" },
-  { key: "d1_30", labelAr: "1-30 يوم", labelEn: "1-30 days" },
-  { key: "d31_60", labelAr: "31-60 يوم", labelEn: "31-60 days" },
-  { key: "d61_90", labelAr: "61-90 يوم", labelEn: "61-90 days" },
-  { key: "d90plus", labelAr: "أكثر من 90 يوم", labelEn: "90+ days" },
-] as const;
-
-function bucketFor(daysOverdue: number): (typeof BUCKETS)[number]["key"] {
-  if (daysOverdue <= 0) return "current";
-  if (daysOverdue <= 30) return "d1_30";
-  if (daysOverdue <= 60) return "d31_60";
-  if (daysOverdue <= 90) return "d61_90";
-  return "d90plus";
-}
+import {
+  AGING_BUCKETS,
+  AGING_ELIGIBLE_STATUSES,
+  computeAgingRows,
+  totalsByBucket,
+} from "@/lib/finance/aging";
 
 export default async function AgingPage({
   params,
@@ -66,33 +56,19 @@ export default async function AgingPage({
       .from("dues")
       .select("id, unit_id, amount, due_date, status")
       .eq("organization_id", organization.id)
-      .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"]),
+      .in("status", [...AGING_ELIGIBLE_STATUSES]),
     supabase.from("payment_allocations").select("due_id, amount, payment_id"),
     supabase.from("payments").select("id").eq("organization_id", organization.id).eq("status", "POSTED"),
     supabase.from("units").select("id, code").eq("organization_id", organization.id),
   ]);
 
   const postedIds = new Set((postedPayments ?? []).map((p) => p.id));
-  const paidByDue = new Map<string, number>();
-  for (const a of allocations ?? []) {
-    if (!postedIds.has(a.payment_id)) continue;
-    paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + a.amount);
-  }
   const unitCodeById = new Map((units ?? []).map((u) => [u.id, u.code]));
-
-  const today = new Date();
-  const rows = (dues ?? [])
-    .map((d) => {
-      const remaining = d.amount - (paidByDue.get(d.id) ?? 0);
-      const daysOverdue = Math.floor((today.getTime() - new Date(d.due_date).getTime()) / 86400000);
-      return { ...d, remaining, bucket: bucketFor(daysOverdue), unitCode: unitCodeById.get(d.unit_id) ?? d.unit_id };
-    })
-    .filter((r) => r.remaining > 0);
-
-  const totalsByBucket = new Map<string, number>();
-  for (const r of rows) {
-    totalsByBucket.set(r.bucket, (totalsByBucket.get(r.bucket) ?? 0) + r.remaining);
-  }
+  const rows = computeAgingRows(dues ?? [], allocations ?? [], postedIds).map((r) => ({
+    ...r,
+    unitCode: unitCodeById.get(r.unit_id) ?? r.unit_id,
+  }));
+  const totals = totalsByBucket(rows);
   const grandTotal = rows.reduce((s, r) => s + r.remaining, 0);
 
   return (
@@ -100,10 +76,10 @@ export default async function AgingPage({
       <h1 className="text-xl font-semibold">{isAr ? "أعمار الديون" : "Receivables Aging"}</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {BUCKETS.map((b) => (
+        {AGING_BUCKETS.map((b) => (
           <div key={b.key} className="rounded-lg border p-3">
             <p className="text-xs text-muted-foreground">{isAr ? b.labelAr : b.labelEn}</p>
-            <p className="text-lg font-semibold tabular-nums">{(totalsByBucket.get(b.key) ?? 0).toFixed(2)}</p>
+            <p className="text-lg font-semibold tabular-nums">{(totals.get(b.key) ?? 0).toFixed(2)}</p>
           </div>
         ))}
       </div>
@@ -125,7 +101,7 @@ export default async function AgingPage({
                   <TableCell className="font-medium">{r.unitCode}</TableCell>
                   <TableCell>{r.remaining.toFixed(2)}</TableCell>
                   <TableCell className="text-muted-foreground">{r.due_date}</TableCell>
-                  <TableCell>{isAr ? BUCKETS.find((b) => b.key === r.bucket)?.labelAr : BUCKETS.find((b) => b.key === r.bucket)?.labelEn}</TableCell>
+                  <TableCell>{isAr ? AGING_BUCKETS.find((b) => b.key === r.bucket)?.labelAr : AGING_BUCKETS.find((b) => b.key === r.bucket)?.labelEn}</TableCell>
                 </TableRow>
               ))
             ) : (

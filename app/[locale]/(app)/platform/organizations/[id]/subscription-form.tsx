@@ -30,7 +30,15 @@ export function SubscriptionForm({
     <form action={formAction} className="flex flex-wrap items-end gap-3 rounded-lg border p-4">
       <input type="hidden" name="organizationId" value={organizationId} />
       <div className="space-y-2">
-        <Select name="planKey" defaultValue={currentPlanKey ?? "STARTER"}>
+        <Select
+          name="planKey"
+          defaultValue={currentPlanKey ?? "STARTER"}
+          items={[
+            { value: "STARTER", label: "Starter" },
+            { value: "PROFESSIONAL", label: "Professional" },
+            { value: "ENTERPRISE", label: "Enterprise" },
+          ]}
+        >
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>

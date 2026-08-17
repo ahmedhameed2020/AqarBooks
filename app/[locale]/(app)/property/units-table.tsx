@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, X, Home, Sun, Building2, Store, Briefcase, Wrench, Layers, Receipt, User, ArrowUpRight } from "lucide-react";
+import { Download, X, Building2, Receipt, User, ArrowUpRight } from "lucide-react";
+import { UNIT_TYPE_ICONS } from "@/lib/units/unit-type-labels";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,15 +38,7 @@ export const UNIT_TYPE_LABELS: Record<UnitRow["unit_type"], { ar: string; en: st
   OTHER: { ar: "أخرى", en: "Other" },
 };
 
-export const UNIT_TYPE_ICONS: Record<UnitRow["unit_type"], React.ReactNode> = {
-  VILLA: <Home className="size-3.5 text-emerald-500" />,
-  CHALET: <Sun className="size-3.5 text-amber-500" />,
-  APARTMENT: <Building2 className="size-3.5 text-blue-500" />,
-  SHOP: <Store className="size-3.5 text-purple-500" />,
-  OFFICE: <Briefcase className="size-3.5 text-indigo-500" />,
-  SERVICE: <Wrench className="size-3.5 text-slate-500" />,
-  OTHER: <Layers className="size-3.5 text-slate-400" />,
-};
+export { UNIT_TYPE_ICONS };
 
 const UNIT_TYPE_STYLES: Record<UnitRow["unit_type"], { bg: string; iconColor: string }> = {
   VILLA: { bg: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800", iconColor: "text-emerald-600" },

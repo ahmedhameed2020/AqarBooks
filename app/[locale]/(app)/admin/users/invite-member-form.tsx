@@ -38,7 +38,11 @@ export function InviteMemberForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="roleKey">{isAr ? "الدور" : "Role"}</Label>
-        <Select name="roleKey" defaultValue={roles[0]?.key}>
+        <Select
+          name="roleKey"
+          defaultValue={roles[0]?.key}
+          items={roles.map((role) => ({ value: role.key, label: isAr ? role.name_ar : role.name_en }))}
+        >
           <SelectTrigger id="roleKey" className="w-full">
             <SelectValue />
           </SelectTrigger>

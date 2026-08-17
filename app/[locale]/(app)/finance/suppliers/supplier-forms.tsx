@@ -48,7 +48,7 @@ export function CreateSupplierForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب الدائنين" : "Payable account"}</Label>
-        <Select name="payableAccountId">
+        <Select name="payableAccountId" items={payableAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

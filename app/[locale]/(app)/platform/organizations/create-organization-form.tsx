@@ -36,7 +36,15 @@ export function CreateOrganizationForm({ locale }: { locale: string }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="planKey">{isAr ? "الباقة" : "Plan"}</Label>
-        <Select name="planKey" defaultValue="STARTER">
+        <Select
+          name="planKey"
+          defaultValue="STARTER"
+          items={[
+            { value: "STARTER", label: "Starter" },
+            { value: "PROFESSIONAL", label: "Professional" },
+            { value: "ENTERPRISE", label: "Enterprise" },
+          ]}
+        >
           <SelectTrigger id="planKey" className="w-full">
             <SelectValue />
           </SelectTrigger>
