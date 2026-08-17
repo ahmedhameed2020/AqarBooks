@@ -216,6 +216,16 @@ export async function setPurchaseOrderStatusAction(
   return { ok: true };
 }
 
+// deferred_purchasing_vat_wht_baseline: post_supplier_invoice's live signature
+// (confirmed via pg_get_function_identity_arguments, not assumed from the
+// migration file, which had drifted) requires p_net_amount/p_discount_amount/
+// p_vat_rate/p_vat_account_id/p_wht_rate/p_wht_account_id -- none of which
+// this form previously collected (it only ever sent a since-removed p_amount).
+// Discount/VAT/WHT are all optional and default to 0/null; the RPC itself
+// requires the matching account when a rate above zero is supplied and
+// raises a clear error otherwise (VAT/WHT account is required when a
+// VAT/WHT rate is set) -- not re-validated here, to avoid the two sides of
+// that rule drifting apart.
 const postInvoiceSchema = z.object({
   organizationId: z.string().uuid(),
   resortId: z.string().uuid(),
@@ -223,7 +233,12 @@ const postInvoiceSchema = z.object({
   purchaseOrderId: z.string().uuid().optional(),
   invoiceNumber: z.string().min(1).max(60),
   expenseAccountId: z.string().uuid(),
-  amount: z.coerce.number().positive(),
+  netAmount: z.coerce.number().positive(),
+  discountAmount: z.coerce.number().min(0).default(0),
+  vatRate: z.coerce.number().min(0).max(100).default(0),
+  vatAccountId: z.string().uuid().optional(),
+  whtRate: z.coerce.number().min(0).max(100).default(0),
+  whtAccountId: z.string().uuid().optional(),
   invoiceDate: z.string().min(1),
   dueDate: z.string().min(1),
   fiscalPeriodId: z.string().uuid(),
@@ -240,7 +255,12 @@ export async function postSupplierInvoiceAction(
     purchaseOrderId: formData.get("purchaseOrderId") || undefined,
     invoiceNumber: formData.get("invoiceNumber"),
     expenseAccountId: formData.get("expenseAccountId"),
-    amount: formData.get("amount"),
+    netAmount: formData.get("netAmount"),
+    discountAmount: formData.get("discountAmount") || undefined,
+    vatRate: formData.get("vatRate") || undefined,
+    vatAccountId: formData.get("vatAccountId") || undefined,
+    whtRate: formData.get("whtRate") || undefined,
+    whtAccountId: formData.get("whtAccountId") || undefined,
     invoiceDate: formData.get("invoiceDate"),
     dueDate: formData.get("dueDate"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
@@ -255,7 +275,12 @@ export async function postSupplierInvoiceAction(
     p_purchase_order_id: parsed.data.purchaseOrderId ?? null,
     p_invoice_number: parsed.data.invoiceNumber,
     p_expense_account_id: parsed.data.expenseAccountId,
-    p_amount: parsed.data.amount,
+    p_net_amount: parsed.data.netAmount,
+    p_discount_amount: parsed.data.discountAmount,
+    p_vat_rate: parsed.data.vatRate,
+    p_vat_account_id: parsed.data.vatAccountId ?? null,
+    p_wht_rate: parsed.data.whtRate,
+    p_wht_account_id: parsed.data.whtAccountId ?? null,
     p_invoice_date: parsed.data.invoiceDate,
     p_due_date: parsed.data.dueDate,
     p_fiscal_period_id: parsed.data.fiscalPeriodId,

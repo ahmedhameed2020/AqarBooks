@@ -233,6 +233,7 @@ export default async function SuppliersPage({
               resortId={resort.id}
               suppliers={(suppliers ?? []).map((s) => ({ id: s.id, label: s.name }))}
               expenseAccounts={expenseAccounts.map((a) => ({ id: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }))}
+              liabilityAccounts={liabilityAccounts.map((a) => ({ id: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }))}
               periods={(periods ?? []).map((p) => ({ id: p.id, label: p.name }))}
               locale={locale}
             />
