@@ -108,6 +108,7 @@ export default async function AppShellLayout({
               icon: <Scale className={ic} />,
               subItems: [
                 { href: "/finance/journals", labelAr: "القيود اليومية", labelEn: "Journals" },
+                { href: "/finance/budgets", labelAr: "الموازنات", labelEn: "Budgets" },
                 { href: "/admin/finance/periods", labelAr: "الفترات المالية", labelEn: "Fiscal Periods" },
               ],
             },

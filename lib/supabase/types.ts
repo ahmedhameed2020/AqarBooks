@@ -314,6 +314,8 @@ export type Database = {
           requires_cost_center: boolean;
           is_active: boolean;
           is_used: boolean;
+          is_cash_equivalent: boolean;
+          cash_flow_section: "OPERATING" | "INVESTING" | "FINANCING" | null;
         };
         Insert: {
           id?: string;
@@ -328,6 +330,8 @@ export type Database = {
           is_group?: boolean;
           requires_cost_center?: boolean;
           is_active?: boolean;
+          is_cash_equivalent?: boolean;
+          cash_flow_section?: "OPERATING" | "INVESTING" | "FINANCING" | null;
         };
         Update: Partial<Database["public"]["Tables"]["chart_of_accounts"]["Row"]>;
         Relationships: [];
@@ -1790,6 +1794,23 @@ export type Database = {
           total_debit: number;
           total_credit: number;
           balance: number;
+        }[];
+      };
+      get_cash_position: {
+        Args: { p_organization_id: string; p_as_of_date: string };
+        Returns: number;
+      };
+      get_cash_flow_statement: {
+        Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
+        Returns: {
+          section: "OPERATING" | "INVESTING" | "FINANCING";
+          account_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          category: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+          is_classified: boolean;
+          net_amount: number;
         }[];
       };
       get_account_ledger: {
