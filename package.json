@@ -15,7 +15,10 @@
     "test:sql": "vitest run tests/pgtap.integration.test.ts",
     "test:payment-idempotency": "vitest run tests/record-online-payment-concurrency.integration.test.ts",
     "test:e2e": "playwright test",
-    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal"
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -45,7 +48,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "esbuild": "^0.28.2",
+    "esbuild": "^0.25.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "exceljs": "^4.4.0",
