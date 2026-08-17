@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { CreateFiscalYearForm } from "./create-fiscal-year-form";
 import { PeriodStatusForm } from "./period-status-form";
+import { RecognizeDuesForm } from "./recognize-dues-form";
 
 export default async function FiscalPeriodsPage({
   params,
@@ -41,12 +42,28 @@ export default async function FiscalPeriodsPage({
     .eq("organization_id", organization.id)
     .order("start_date", { ascending: true });
 
+  // Dues dated beyond any open period are issued but not yet recognised in the
+  // ledger. Surfacing the balance here -- next to the control that opens a
+  // period -- is what keeps it a visible number rather than a silent omission.
+  const { data: pendingRows } = await supabase.rpc("get_unrecognized_dues_summary", {
+    p_organization_id: organization.id,
+  });
+  const pending = pendingRows?.[0];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{isAr ? "السنوات والفترات المالية" : "Fiscal years & periods"}</h1>
       </div>
       <CreateFiscalYearForm organizationId={organization.id} locale={locale} />
+
+      {pending && pending.pending_count > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          {isAr
+            ? `${pending.pending_count} مستحقًا بقيمة ${pending.pending_total.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} صادرة لكنها لم تُقيَّد بعد في دفتر الأستاذ، لأن تواريخها (${pending.earliest_issue_date} → ${pending.latest_issue_date}) تقع خارج أي فترة مفتوحة. افتح الفترة التي تخصّها ثم اضغط «اعتراف بالمستحقات» بجوارها.`
+            : `${pending.pending_count} due(s) totalling ${pending.pending_total.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} are issued but not yet in the ledger, because their dates (${pending.earliest_issue_date} → ${pending.latest_issue_date}) fall outside any open period. Open the period they belong to, then use "Recognise dues" on that row.`}
+        </div>
+      )}
 
       {years?.map((year) => (
         <section key={year.id} className="space-y-2">
@@ -82,7 +99,16 @@ export default async function FiscalPeriodsPage({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <PeriodStatusForm periodId={period.id} />
+                        <div className="flex items-center gap-1">
+                          <PeriodStatusForm periodId={period.id} />
+                          {period.status === "OPEN" && (
+                            <RecognizeDuesForm
+                              organizationId={organization.id}
+                              periodId={period.id}
+                              locale={locale}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

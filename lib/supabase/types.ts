@@ -1991,6 +1991,19 @@ export type Database = {
         Args: { p_organization_id: string; p_as_of_date: string };
         Returns: number;
       };
+      recognize_pending_dues: {
+        Args: { p_organization_id: string; p_fiscal_period_id: string };
+        Returns: number;
+      };
+      get_unrecognized_dues_summary: {
+        Args: { p_organization_id: string };
+        Returns: {
+          pending_count: number;
+          pending_total: number;
+          earliest_issue_date: string | null;
+          latest_issue_date: string | null;
+        }[];
+      };
       auto_match_bank_statement: {
         Args: { p_statement_id: string; p_date_tolerance_days?: number };
         Returns: { matched_count: number; ambiguous_count: number; unmatched_count: number }[];
