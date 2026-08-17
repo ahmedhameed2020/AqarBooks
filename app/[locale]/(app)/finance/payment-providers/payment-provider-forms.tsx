@@ -41,7 +41,14 @@ export function UpsertPaymentProviderSettingsForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <div className="space-y-2">
         <Label>{isAr ? "المزود" : "Provider"}</Label>
-        <Select name="provider" defaultValue="FAWRY">
+        <Select
+          name="provider"
+          defaultValue="FAWRY"
+          items={[
+            { value: "FAWRY", label: "Fawry" },
+            { value: "PAYMOB", label: "Paymob" },
+          ]}
+        >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -53,7 +60,14 @@ export function UpsertPaymentProviderSettingsForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "البيئة" : "Environment"}</Label>
-        <Select name="environment" defaultValue="SANDBOX">
+        <Select
+          name="environment"
+          defaultValue="SANDBOX"
+          items={[
+            { value: "SANDBOX", label: "SANDBOX" },
+            { value: "PRODUCTION", label: "PRODUCTION" },
+          ]}
+        >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -65,7 +79,14 @@ export function UpsertPaymentProviderSettingsForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "النطاق (اختياري)" : "Scope (optional)"}</Label>
-        <Select name="resortId" defaultValue="">
+        <Select
+          name="resortId"
+          defaultValue=""
+          items={[
+            { value: "", label: isAr ? "كل المؤسسة" : "Organization-wide" },
+            ...resorts.map((r) => ({ value: r.id, label: r.label })),
+          ]}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder={isAr ? "كل المؤسسة" : "Organization-wide"} />
           </SelectTrigger>

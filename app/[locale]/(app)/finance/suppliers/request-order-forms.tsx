@@ -105,7 +105,7 @@ export function CreateOrderForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label>{isAr ? "المورد" : "Supplier"}</Label>
-        <Select name="supplierId">
+        <Select name="supplierId" items={suppliers.map((s) => ({ value: s.id, label: s.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -120,7 +120,7 @@ export function CreateOrderForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "طلب شراء (اختياري)" : "Purchase request (optional)"}</Label>
-        <Select name="purchaseRequestId">
+        <Select name="purchaseRequestId" items={approvedRequests.map((r) => ({ value: r.id, label: r.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder={isAr ? "بدون" : "None"} />
           </SelectTrigger>

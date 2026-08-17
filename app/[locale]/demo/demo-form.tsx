@@ -71,7 +71,14 @@ export function DemoForm({ locale }: { locale: string }) {
           <Label htmlFor="preferredContactMethod" className="text-[var(--mk-text)]">
             {isAr ? "طريقة التواصل المفضّلة" : "Preferred contact method"}
           </Label>
-          <Select name="preferredContactMethod" defaultValue="email">
+          <Select
+            name="preferredContactMethod"
+            defaultValue="email"
+            items={[
+              { value: "email", label: isAr ? "البريد الإلكتروني" : "Email" },
+              { value: "phone", label: isAr ? "الهاتف" : "Phone" },
+            ]}
+          >
             <SelectTrigger id="preferredContactMethod" className="w-full">
               <SelectValue />
             </SelectTrigger>

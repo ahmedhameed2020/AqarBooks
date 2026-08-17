@@ -49,7 +49,10 @@ export function CreateAccountForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="parentId">{isAr ? "الحساب الأب" : "Parent account"}</Label>
-        <Select name="parentId">
+        <Select
+          name="parentId"
+          items={groupAccounts.map((a) => ({ value: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }))}
+        >
           <SelectTrigger id="parentId" className="w-full">
             <SelectValue placeholder={isAr ? "بدون" : "None"} />
           </SelectTrigger>
@@ -64,7 +67,7 @@ export function CreateAccountForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="category">{isAr ? "التصنيف" : "Category"}</Label>
-        <Select name="category" defaultValue="ASSET">
+        <Select name="category" defaultValue="ASSET" items={CATEGORIES.map((c) => ({ value: c, label: c }))}>
           <SelectTrigger id="category" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -79,7 +82,14 @@ export function CreateAccountForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="normalBalance">{isAr ? "الرصيد الطبيعي" : "Normal balance"}</Label>
-        <Select name="normalBalance" defaultValue="DEBIT">
+        <Select
+          name="normalBalance"
+          defaultValue="DEBIT"
+          items={[
+            { value: "DEBIT", label: isAr ? "مدين" : "Debit" },
+            { value: "CREDIT", label: isAr ? "دائن" : "Credit" },
+          ]}
+        >
           <SelectTrigger id="normalBalance" className="w-full">
             <SelectValue />
           </SelectTrigger>
