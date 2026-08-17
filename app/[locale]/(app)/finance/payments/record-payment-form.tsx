@@ -74,7 +74,7 @@ export function RecordPaymentForm({
       <div className="grid gap-4 sm:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="memberId">{isAr ? "العضو" : "Member"}</Label>
-          <Select name="memberId">
+          <Select name="memberId" items={members.map((m) => ({ value: m.id, label: m.label }))}>
             <SelectTrigger id="memberId" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -89,7 +89,16 @@ export function RecordPaymentForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="method">{isAr ? "طريقة الدفع" : "Method"}</Label>
-          <Select name="method" defaultValue="CASH">
+          <Select
+            name="method"
+            defaultValue="CASH"
+            items={[
+              { value: "CASH", label: isAr ? "نقدًا" : "Cash" },
+              { value: "BANK_TRANSFER", label: isAr ? "تحويل بنكي" : "Bank transfer" },
+              { value: "CHEQUE", label: isAr ? "شيك" : "Cheque" },
+              { value: "OTHER", label: isAr ? "أخرى" : "Other" },
+            ]}
+          >
             <SelectTrigger id="method" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -103,7 +112,10 @@ export function RecordPaymentForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="depositAccountId">{isAr ? "حساب الإيداع" : "Deposit account"}</Label>
-          <Select name="depositAccountId">
+          <Select
+            name="depositAccountId"
+            items={depositAccounts.map((a) => ({ value: a.id, label: a.label }))}
+          >
             <SelectTrigger id="depositAccountId" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -118,7 +130,7 @@ export function RecordPaymentForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="fiscalPeriodId">{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-          <Select name="fiscalPeriodId">
+          <Select name="fiscalPeriodId" items={periods.map((p) => ({ value: p.id, label: p.label }))}>
             <SelectTrigger id="fiscalPeriodId" className="w-full">
               <SelectValue />
             </SelectTrigger>

@@ -47,7 +47,11 @@ export function IssueDueForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label htmlFor="unitId">{isAr ? "الوحدة" : "Unit"}</Label>
-        <Select name="unitId" defaultValue={preselectedUnitId}>
+        <Select
+          name="unitId"
+          defaultValue={preselectedUnitId}
+          items={units.map((u) => ({ value: u.id, label: u.label }))}
+        >
           <SelectTrigger id="unitId" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -62,7 +66,7 @@ export function IssueDueForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="dueTypeId">{isAr ? "نوع المستحق" : "Due type"}</Label>
-        <Select name="dueTypeId">
+        <Select name="dueTypeId" items={dueTypes.map((d) => ({ value: d.id, label: d.label }))}>
           <SelectTrigger id="dueTypeId" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -77,7 +81,10 @@ export function IssueDueForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="receivableAccountId">{isAr ? "حساب الذمم" : "Receivable account"}</Label>
-        <Select name="receivableAccountId">
+        <Select
+          name="receivableAccountId"
+          items={receivableAccounts.map((a) => ({ value: a.id, label: a.label }))}
+        >
           <SelectTrigger id="receivableAccountId" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -92,7 +99,7 @@ export function IssueDueForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="fiscalPeriodId">{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-        <Select name="fiscalPeriodId">
+        <Select name="fiscalPeriodId" items={periods.map((p) => ({ value: p.id, label: p.label }))}>
           <SelectTrigger id="fiscalPeriodId" className="w-full">
             <SelectValue />
           </SelectTrigger>
