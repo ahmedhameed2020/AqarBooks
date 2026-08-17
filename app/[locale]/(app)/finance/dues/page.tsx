@@ -11,6 +11,7 @@ import {
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Locale } from "@/i18n/routing";
 import { CreateDueTypeForm } from "./create-due-type-form";
 import { IssueDueForm } from "./issue-due-form";
@@ -49,7 +50,17 @@ export default async function DuesPage({
     .limit(1)
     .maybeSingle();
 
+  // Lazy sweep: no pg_cron exists in this database, so rent-due generation
+  // for ACTIVE unit_leases happens here, the staff-facing analog to
+  // expire_stale_member_invitations/expire_stale_online_payment_
+  // transactions (both called inline by a relevant page load rather than
+  // on a schedule). Sweeps ALL organizations' leases, not just this one --
+  // matches run_due_schedules()'s own all-orgs scope. Best-effort: a
+  // failure here must never block the page.
+  const adminClient = createAdminClient();
+
   const [
+    { error: sweepError },
     { data: units },
     { data: dueTypes },
     { data: accounts },
@@ -57,6 +68,7 @@ export default async function DuesPage({
     { data: dues },
     { data: allocations },
   ] = await Promise.all([
+    adminClient.rpc("run_lease_rent_generation"),
     supabase.from("units").select("id, code").eq("organization_id", organization.id).order("code"),
     supabase.from("due_types").select("id, name_ar, name_en").eq("organization_id", organization.id),
     supabase
@@ -79,6 +91,9 @@ export default async function DuesPage({
       .from("payment_allocations")
       .select("due_id, amount, payment_id"),
   ]);
+  if (sweepError) {
+    console.error("[DuesPage] run_lease_rent_generation failed:", sweepError.message);
+  }
 
   const { data: postedPayments } = await supabase
     .from("payments")

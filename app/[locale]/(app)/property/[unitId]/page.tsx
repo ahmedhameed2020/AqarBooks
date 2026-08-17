@@ -13,6 +13,7 @@ import { UnitDetailTabs } from "./unit-detail-tabs";
 import { TabOverview } from "./tab-overview";
 import { TabFinancials } from "./tab-financials";
 import { TabOwnership } from "./tab-ownership";
+import { TabLease } from "./tab-lease";
 import { TabActivity } from "./tab-activity";
 
 export default async function UnitDetailPage({
@@ -175,6 +176,7 @@ export default async function UnitDetailPage({
           overview: isAr ? "نظرة عامة" : "Overview",
           financials: isAr ? "المالية" : "Financials",
           ownership: isAr ? "الملكية" : "Ownership",
+          lease: isAr ? "الإيجار" : "Lease",
           activity: isAr ? "النشاط" : "Activity",
         }}
         overview={
@@ -198,6 +200,7 @@ export default async function UnitDetailPage({
           />
         }
         ownership={<TabOwnership history={ownershipHistory} locale={locale} />}
+        lease={<TabLease organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />}
         activity={<TabActivity events={activity} locale={locale} currency={currency} />}
       />
     </main>
