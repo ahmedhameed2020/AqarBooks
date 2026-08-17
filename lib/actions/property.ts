@@ -416,3 +416,83 @@ export async function setUnitLeaseBillingRecipientAction(
   revalidatePath("/[locale]/property/[unitId]", "page");
   return { ok: true };
 }
+
+// Unit purchase installment plans -- same pattern as the lease actions
+// above: a thin zod-validated wrapper around a security-definer RPC that
+// performs its own has_permission() check.
+
+const createInstallmentPlanSchema = z.object({
+  organizationId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  buyerMemberId: z.string().uuid(),
+  dueTypeId: z.string().uuid(),
+  receivableAccountId: z.string().uuid(),
+  totalPrice: z.coerce.number().positive(),
+  downPayment: z.coerce.number().min(0).default(0),
+  installmentCount: z.coerce.number().int().positive(),
+  installmentFrequency: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"]),
+  startsOn: z.string().min(1),
+});
+
+export async function createInstallmentPlanAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = createInstallmentPlanSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    unitId: formData.get("unitId"),
+    buyerMemberId: formData.get("buyerMemberId"),
+    dueTypeId: formData.get("dueTypeId"),
+    receivableAccountId: formData.get("receivableAccountId"),
+    totalPrice: formData.get("totalPrice"),
+    downPayment: formData.get("downPayment") || 0,
+    installmentCount: formData.get("installmentCount"),
+    installmentFrequency: formData.get("installmentFrequency"),
+    startsOn: formData.get("startsOn"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_installment_plan", {
+    p_organization_id: parsed.data.organizationId,
+    p_unit_id: parsed.data.unitId,
+    p_buyer_member_id: parsed.data.buyerMemberId,
+    p_due_type_id: parsed.data.dueTypeId,
+    p_receivable_account_id: parsed.data.receivableAccountId,
+    p_total_price: parsed.data.totalPrice,
+    p_down_payment: parsed.data.downPayment,
+    p_installment_count: parsed.data.installmentCount,
+    p_installment_frequency: parsed.data.installmentFrequency,
+    p_starts_on: parsed.data.startsOn,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const cancelInstallmentPlanSchema = z.object({
+  planId: z.string().uuid(),
+  cancelReason: z.string().min(1),
+});
+
+export async function cancelInstallmentPlanAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = cancelInstallmentPlanSchema.safeParse({
+    planId: formData.get("planId"),
+    cancelReason: formData.get("cancelReason"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_installment_plan", {
+    p_plan_id: parsed.data.planId,
+    p_cancel_reason: parsed.data.cancelReason,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}

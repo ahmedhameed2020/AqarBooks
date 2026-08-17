@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsIndicator, TabsPanel } from "@/components/ui/tabs";
 
-export const UNIT_TABS = ["overview", "financials", "ownership", "lease", "activity"] as const;
+export const UNIT_TABS = ["overview", "financials", "ownership", "lease", "installments", "activity"] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 
 export function resolveTab(raw: string | null | undefined): UnitTab {
@@ -16,6 +16,7 @@ export function UnitDetailTabs({
   financials,
   ownership,
   lease,
+  installments,
   activity,
 }: {
   labels: Record<UnitTab, string>;
@@ -23,13 +24,14 @@ export function UnitDetailTabs({
   financials: React.ReactNode;
   ownership: React.ReactNode;
   lease: React.ReactNode;
+  installments: React.ReactNode;
   activity: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const active = resolveTab(searchParams.get("tab"));
-  const panels: Record<UnitTab, React.ReactNode> = { overview, financials, ownership, lease, activity };
+  const panels: Record<UnitTab, React.ReactNode> = { overview, financials, ownership, lease, installments, activity };
 
   function onValueChange(value: string) {
     const next = new URLSearchParams(searchParams.toString());

@@ -903,6 +903,45 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      installment_plans: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          buyer_member_id: string;
+          due_type_id: string;
+          receivable_account_id: string;
+          status: "ACTIVE" | "COMPLETED" | "CANCELLED";
+          total_price: number;
+          down_payment: number;
+          installment_count: number;
+          installment_frequency: "MONTHLY" | "QUARTERLY" | "YEARLY";
+          starts_on: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      plan_installments: {
+        Row: {
+          id: string;
+          plan_id: string;
+          due_id: string;
+          sequence_no: number;
+          principal_amount: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       payments: {
         Row: {
           id: string;
@@ -1693,6 +1732,25 @@ export type Database = {
       run_lease_rent_generation: {
         Args: Record<string, never>;
         Returns: { generated: number; idempotent: number; blocked: number; skipped: number; errored: number };
+      };
+      create_installment_plan: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+          p_buyer_member_id: string;
+          p_due_type_id: string;
+          p_receivable_account_id: string;
+          p_total_price: number;
+          p_down_payment: number;
+          p_installment_count: number;
+          p_installment_frequency: string;
+          p_starts_on: string;
+        };
+        Returns: string;
+      };
+      cancel_installment_plan: {
+        Args: { p_plan_id: string; p_cancel_reason: string };
+        Returns: undefined;
       };
       create_cashbox: {
         Args: { p_organization_id: string; p_resort_id: string; p_name: string; p_gl_account_id: string };
