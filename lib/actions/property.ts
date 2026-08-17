@@ -42,7 +42,7 @@ export async function createUnitAction(
   const supabase = await createClient();
   const { error } = await supabase.from("units").insert({
     organization_id: parsed.data.organizationId,
-    resort_id: parsed.data.resortId,
+    property_id: parsed.data.resortId,
     code: parsed.data.code,
     unit_type: parsed.data.unitType,
     custom_type_label: parsed.data.unitType === "OTHER" ? (parsed.data.customTypeLabel ?? null) : null,
@@ -79,7 +79,7 @@ export async function createZoneAction(
   const supabase = await createClient();
   const { error } = await supabase.from("zones").insert({
     organization_id: parsed.data.organizationId,
-    resort_id: parsed.data.resortId,
+    property_id: parsed.data.resortId,
     name_ar: parsed.data.nameAr,
     name_en: parsed.data.nameEn,
   });
@@ -115,7 +115,7 @@ export async function createBuildingAction(
   const supabase = await createClient();
   const { error } = await supabase.from("buildings").insert({
     organization_id: parsed.data.organizationId,
-    resort_id: parsed.data.resortId,
+    property_id: parsed.data.resortId,
     zone_id: parsed.data.zoneId ?? null,
     code: parsed.data.code,
     name_ar: parsed.data.nameAr,

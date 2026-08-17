@@ -43,3 +43,19 @@ next-env.d.ts
 
 # superpowers brainstorming scratch
 .superpowers/
+
+# cloudflare
+/.open-next/
+/.wrangler/
+.dev.vars
+
+# git worktrees
+/.worktrees/
+
+# test artifacts
+/playwright-report/
+/test-results/
+tests/e2e/.auth/
+
+# supabase local
+/supabase/.temp/

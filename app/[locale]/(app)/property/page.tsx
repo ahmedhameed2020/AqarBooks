@@ -159,13 +159,13 @@ export default async function PropertyPage({
   const monthStart = today.slice(0, 8) + "01";
 
   const [{ data: buildings }, { data: zones }, { data: kpiRows }, { data: monthPayments }] = await Promise.all([
-    supabase.from("buildings").select("id, name_ar, name_en").eq("resort_id", resort.id).order("code"),
-    supabase.from("zones").select("id, name_ar, name_en").eq("resort_id", resort.id).order("name_ar"),
-    supabase.from("units_with_financials").select("occupancy_status, balance").eq("resort_id", resort.id),
+    supabase.from("buildings").select("id, name_ar, name_en").eq("property_id", resort.id).order("code"),
+    supabase.from("zones").select("id, name_ar, name_en").eq("property_id", resort.id).order("name_ar"),
+    supabase.from("units_with_financials").select("occupancy_status, balance").eq("property_id", resort.id),
     supabase
       .from("payments")
       .select("amount")
-      .eq("resort_id", resort.id)
+      .eq("property_id", resort.id)
       .eq("status", "POSTED")
       .gte("payment_date", monthStart),
   ]);
@@ -179,7 +179,7 @@ export default async function PropertyPage({
   let query = supabase
     .from("units_with_financials")
     .select("*", { count: "exact" })
-    .eq("resort_id", resort.id);
+    .eq("property_id", resort.id);
 
   if (sp.q) {
     const term = sp.q.replace(/"/g, "").trim();

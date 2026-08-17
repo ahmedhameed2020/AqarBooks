@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Task 15 (Owner Portal Phase 2 exit gate): RLS isolation proven in
  * pgTAP-style scripts (Task 10, see supabase/tests/phase_owner_portal_data_integrity.sql)
@@ -52,7 +53,7 @@ async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
   const { error: cloneError } = await admin.rpc("clone_tenant_role_templates", { p_organization_id: org!.id });
   expect(cloneError, `clone_tenant_role_templates failed: ${cloneError?.message}`).toBeNull();
 
-  const staffEmail = `staff-iso-${label.toLowerCase()}-${Date.now()}@resortos-test.local`;
+  const staffEmail = `staff-iso-${label.toLowerCase()}-${Date.now()}@aqarbooks-test.local`;
   const { data: staffCreated, error: staffCreateError } = await admin.auth.admin.createUser({
     email: staffEmail,
     password: STAFF_PASSWORD,
@@ -86,11 +87,11 @@ async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
   });
   expect(createUserError, `createUser failed: ${createUserError?.message}`).toBeNull();
 
-  // create_resort has two overloads (4-arg legacy, 8-arg with contact
-  // details) -- named params with only the first 4 supplied are ambiguous
-  // between them (both match via defaults), so all 8 must be passed
-  // explicitly to disambiguate, matching lib/actions/tenant.ts and
-  // supabase/tests/phase_owner_portal_data_integrity.sql.
+  // create_resort takes contact-detail fields alongside the core ones --
+  // pass all 8 explicitly, matching lib/actions/tenant.ts and
+  // supabase/tests/phase_owner_portal_data_integrity.sql. (Until
+  // 2026-08-16 this also had to disambiguate against orphaned legacy
+  // overloads with fewer args; those have since been dropped as drift.)
   const { data: resort, error: resortError } = await staffClient.rpc("create_resort", {
     p_organization_id: org!.id,
     p_name: `Resort ${label}`,

@@ -67,6 +67,7 @@ export type Database = {
           governorate: string | null;
           phone: string | null;
           email: string | null;
+          property_type: string;
           created_at: string;
           updated_at: string;
         };
@@ -80,8 +81,41 @@ export type Database = {
           governorate?: string | null;
           phone?: string | null;
           email?: string | null;
+          property_type?: string;
         };
         Update: Partial<Database["public"]["Tables"]["resorts"]["Row"]>;
+        Relationships: [];
+      };
+      properties: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone: string;
+          property_type: string;
+          address: string | null;
+          governorate: string | null;
+          phone: string | null;
+          email: string | null;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          timezone?: string;
+          property_type?: string;
+          address?: string | null;
+          governorate?: string | null;
+          phone?: string | null;
+          email?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["properties"]["Row"]>;
         Relationships: [];
       };
       plans: {
@@ -164,7 +198,7 @@ export type Database = {
           user_id: string;
           role_id: string;
           organization_id: string | null;
-          resort_id: string | null;
+          property_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -172,7 +206,7 @@ export type Database = {
           user_id: string;
           role_id: string;
           organization_id?: string | null;
-          resort_id?: string | null;
+          property_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_role_assignments"]["Row"]>;
         Relationships: [];
@@ -199,7 +233,7 @@ export type Database = {
           id: string;
           actor_id: string | null;
           organization_id: string | null;
-          resort_id: string | null;
+          property_id: string | null;
           action: string;
           entity_type: string;
           entity_id: string | null;
@@ -211,7 +245,7 @@ export type Database = {
           id?: string;
           actor_id?: string | null;
           organization_id?: string | null;
-          resort_id?: string | null;
+          property_id?: string | null;
           action: string;
           entity_type: string;
           entity_id?: string | null;
@@ -225,7 +259,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -234,7 +268,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id?: string | null;
+          property_id?: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -247,7 +281,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -256,7 +290,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id?: string | null;
+          property_id?: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -269,7 +303,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -284,7 +318,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id?: string | null;
+          property_id?: string | null;
           code: string;
           name_ar: string;
           name_en: string;
@@ -346,7 +380,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           fiscal_period_id: string;
           entry_number: number | null;
           entry_date: string;
@@ -383,8 +417,8 @@ export type Database = {
         Relationships: [];
       };
       zones: {
-        Row: { id: string; organization_id: string; resort_id: string; name_ar: string; name_en: string };
-        Insert: { id?: string; organization_id: string; resort_id: string; name_ar: string; name_en: string };
+        Row: { id: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
+        Insert: { id?: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
         Update: Partial<Database["public"]["Tables"]["zones"]["Row"]>;
         Relationships: [];
       };
@@ -392,7 +426,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           zone_id: string | null;
           code: string;
           name_ar: string;
@@ -401,7 +435,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           zone_id?: string | null;
           code: string;
           name_ar: string;
@@ -414,7 +448,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id: string | null;
           zone_id: string | null;
           code: string;
@@ -429,7 +463,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id?: string | null;
           zone_id?: string | null;
           code: string;
@@ -470,7 +504,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           member_id: string;
           client_request_id: string;
           provider: "PAYMOB" | "FAWRY";
@@ -492,7 +526,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           member_id: string;
           client_request_id: string;
           provider: "PAYMOB" | "FAWRY";
@@ -668,7 +702,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           import_kind: "units" | "members";
           imported_rows: number;
           skipped_rows: number;
@@ -680,7 +714,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id?: string | null;
+          property_id?: string | null;
           import_kind: "units" | "members";
           imported_rows: number;
           skipped_rows: number;
@@ -740,7 +774,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           description_ar: string | null;
           description_en: string | null;
@@ -761,7 +795,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           description_ar?: string | null;
           description_en?: string | null;
@@ -798,7 +832,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string | null;
           actor_user_id: string | null;
           action: string;
           entity_type: string;
@@ -820,7 +854,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           unit_id: string;
           due_type_id: string;
           receivable_account_id: string;
@@ -840,7 +874,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string | null;
+          property_id: string;
           member_id: string | null;
           unit_id: string | null;
           amount: number;
@@ -905,7 +939,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           gl_account_id: string;
           is_active: boolean;
@@ -913,7 +947,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           name: string;
           gl_account_id: string;
           is_active?: boolean;
@@ -925,7 +959,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           cashbox_id: string;
           opened_by: string;
           opening_balance: number;
@@ -966,7 +1000,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_id: string;
           account_name: string;
           account_number: string;
@@ -976,7 +1010,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_id: string;
           account_name: string;
           account_number: string;
@@ -990,7 +1024,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           bank_account_id: string;
           direction: "INCOMING" | "OUTGOING";
           cheque_number: string;
@@ -1078,7 +1112,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           description: string;
           estimated_amount: number;
           status: "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -1094,7 +1128,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           purchase_request_id: string | null;
           order_number: number | null;
@@ -1112,7 +1146,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           purchase_order_id: string | null;
           invoice_number: string;
@@ -1144,7 +1178,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           supplier_id: string;
           amount: number;
           wht_amount: number;
@@ -1181,7 +1215,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           expense_category_id: string;
           description: string;
           amount: number;
@@ -1253,7 +1287,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          resort_id: string;
+          property_id: string;
           building_id: string | null;
           zone_id: string | null;
           code: string;
@@ -1357,7 +1391,7 @@ export type Database = {
         Args: { p_organization_id: string };
         Returns: {
           id: string;
-          resort_id: string | null;
+          property_id: string | null;
           provider: string;
           environment: string;
           merchant_identifier: string | null;
