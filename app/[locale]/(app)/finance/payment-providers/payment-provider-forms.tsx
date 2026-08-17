@@ -164,7 +164,15 @@ export function PaymentProviderRowActions({
           </form>
         )}
       </div>
-      {!testState.ok && <p className="text-xs text-destructive">{testState.error}</p>}
+      {!testState.ok && (
+        <p className="text-xs text-destructive">
+          {testState.error === "STALE_VERIFICATION"
+            ? isAr
+              ? "تغيّر الإعداد أثناء فحص الاتصال، يرجى إعادة المحاولة"
+              : "The setting changed while the connection test was running -- please try again"
+            : testState.error}
+        </p>
+      )}
       {!enableState.ok && <p className="text-xs text-destructive">{enableState.error}</p>}
       {!disableState.ok && <p className="text-xs text-destructive">{disableState.error}</p>}
     </div>

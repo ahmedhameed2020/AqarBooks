@@ -1363,10 +1363,11 @@ export type Database = {
         }[];
       };
       // authenticated, self-permission-checked (unlike get_payment_provider_credentials
-      // above) -- see supabase/migrations/20260830000001_payment_provider_settings_verification_credentials.sql.
+      // above) -- see supabase/migrations/20260830000001_payment_provider_settings_verification_credentials.sql
+      // and .../20260830000002_record_payment_provider_verification_stale_check.sql (adds updated_at).
       get_payment_provider_settings_credentials: {
         Args: { p_settings_id: string };
-        Returns: { api_key: string | null; hmac_secret: string | null }[];
+        Returns: { api_key: string | null; hmac_secret: string | null; updated_at: string }[];
       };
       upsert_payment_provider_settings: {
         Args: {
@@ -1382,7 +1383,12 @@ export type Database = {
         Returns: string;
       };
       record_payment_provider_verification: {
-        Args: { p_settings_id: string; p_success: boolean; p_error_message?: string | null };
+        Args: {
+          p_settings_id: string;
+          p_success: boolean;
+          p_error_message?: string | null;
+          p_expected_updated_at?: string | null;
+        };
         Returns: undefined;
       };
       enable_payment_provider: {

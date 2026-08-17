@@ -10,16 +10,15 @@ import type { ActionResult } from "@/lib/actions/platform";
 const providerSchema = z.enum(["FAWRY", "PAYMOB"]);
 const environmentSchema = z.enum(["SANDBOX", "PRODUCTION"]);
 
-// Every RPC below (upsert/enable/disable/record_payment_provider_verification)
-// carries its own has_permission(auth.uid(), organization_id,
-// 'finance.online_payments.manage') + organization_is_active() check inside
-// the function body (SECURITY DEFINER) -- these actions do not duplicate
-// that check, matching this codebase's established pattern (see
-// lib/actions/treasury.ts). The one exception is testPaymentProviderConnectionAction,
-// which additionally calls the service-role-only get_payment_provider_credentials
-// RPC -- that one has no internal permission check by design (see
-// resolve-credentials.ts's doc comment), so that action self-authorizes
-// before using the admin client. See its own comment below.
+// Every RPC below (upsert/enable/disable/record_payment_provider_verification/
+// get_payment_provider_settings_credentials) carries its own
+// has_permission(auth.uid(), organization_id, 'finance.online_payments.manage')
+// + organization_is_active() check inside the function body (SECURITY
+// DEFINER) -- these actions do not duplicate that check, matching this
+// codebase's established pattern (see lib/actions/treasury.ts). None of
+// this calls the runtime payment resolver's get_payment_provider_credentials
+// RPC (service-role-only, requires enabled=true) -- testing a not-yet-enabled
+// row needs a separate RPC, see the comment on that call below.
 
 const upsertSchema = z.object({
   organizationId: z.string().uuid(),
@@ -186,6 +185,16 @@ export async function testPaymentProviderConnectionAction(
     baseUrl: row.provider === "FAWRY" ? "https://atfawry.fawrystaging.com" : undefined,
   });
 
+  // p_expected_updated_at closes a real race: if the row is edited (secret
+  // changed, disabled, etc.) while probeProvider's network call above is in
+  // flight (up to 8s), the probe's result is for credentials that no longer
+  // apply. record_payment_provider_verification only writes if updated_at
+  // still matches what was read moments before the probe started (captured
+  // atomically alongside the secrets themselves in
+  // get_payment_provider_settings_credentials); otherwise it raises
+  // STALE_VERIFICATION and leaves whatever state the concurrent edit
+  // produced completely untouched -- this probe's success/failure is never
+  // recorded onto a row it didn't actually test.
   const { error: recordError } = await supabase.rpc("record_payment_provider_verification", {
     p_settings_id: settingsId,
     p_success: probe.success,
@@ -193,8 +202,14 @@ export async function testPaymentProviderConnectionAction(
     // (left(p_error_message, 500)) and never receives anything but this
     // fixed, secret-free code -- never the raw fetch error or response body.
     p_error_message: probe.success ? null : probe.error,
+    p_expected_updated_at: credentials.updated_at,
   });
-  if (recordError) return { ok: false, error: recordError.message };
+  if (recordError) {
+    if (recordError.message?.startsWith("STALE_VERIFICATION")) {
+      return { ok: false, error: "STALE_VERIFICATION" };
+    }
+    return { ok: false, error: recordError.message };
+  }
 
   revalidatePath("/[locale]/finance/payment-providers", "page");
   return probe.success ? { ok: true } : { ok: false, error: probe.error ?? "connection_failed" };
