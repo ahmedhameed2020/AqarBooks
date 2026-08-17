@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { CreateAccountForm } from "./create-account-form";
@@ -51,6 +52,27 @@ export default async function ChartOfAccountsPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  // chart_of_accounts SELECT stays broadly readable to any org member at
+  // the RLS layer (chart_of_accounts_select_member, is_org_member) --
+  // deliberately NOT tightened, since it's a shared reference table read
+  // by 8+ other finance pages (cashier, banks, suppliers, dues, payments,
+  // general-ledger, etc.) across roles that legitimately need to resolve
+  // account names/codes without needing full chart-of-accounts management
+  // rights. This page-level gate only protects the ADMINISTRATION view
+  // (full listing + create-account form) specifically, matching the same
+  // pattern already used by finance/reports/aging/page.tsx.
+  const canViewAccounts = await hasPermission(organization.id, "finance.accounts.view");
+  if (!canViewAccounts) {
+    return (
+      <div className="space-y-2">
+        <h1 className="text-xl font-semibold">{isAr ? "دليل الحسابات" : "Chart of Accounts"}</h1>
+        <p className="text-sm text-muted-foreground">
+          {isAr ? "لا تملك صلاحية عرض دليل الحسابات." : "You don't have permission to view the chart of accounts."}
+        </p>
+      </div>
+    );
+  }
 
   const supabase = await createClient();
   const { data: accounts } = await supabase
