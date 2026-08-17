@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
@@ -68,7 +69,9 @@ export default async function ResetPasswordPage({
       imageSrc="/images/commercial-towers.jpg"
       locale={locale}
     >
-      <ResetPasswordForm locale={locale as Locale} />
+      <Suspense fallback={null}>
+        <ResetPasswordForm locale={locale as Locale} />
+      </Suspense>
     </AuthShell>
   );
 }
