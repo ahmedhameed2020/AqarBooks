@@ -49,25 +49,75 @@
 }
 
 :root {
-  --background: #060a18;
-  --foreground: #f8fafc;
-  --card: #0b1126;
-  --card-foreground: #f8fafc;
-  --popover: #0b1126;
-  --popover-foreground: #f8fafc;
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --secondary: #152044;
-  --secondary-foreground: #f8fafc;
-  --muted: #0f1733;
-  --muted-foreground: #94a3b8;
-  --accent: #1e1b4b;
-  --accent-foreground: #c4b5fd;
-  --destructive: #ef4444;
-  --border: rgba(148, 163, 184, 0.14);
-  --input: rgba(148, 163, 184, 0.18);
-  --ring: #7c3aed;
+  /* App-shell theme: light, data-dense content area + a dark-navy sidebar,
+     both keyed off the same ocean-blue accent as the marketing site (see
+     .marketing below) so the product feels like one brand end to end. */
+  --background: oklch(0.99 0.002 240);
+  --foreground: oklch(0.2 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 250);
+  --primary: oklch(0.5 0.14 235);
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.95 0.008 240);
+  --secondary-foreground: oklch(0.28 0.03 250);
+  --muted: oklch(0.96 0.006 240);
+  --muted-foreground: oklch(0.5 0.02 250);
+  --accent: oklch(0.94 0.02 235);
+  --accent-foreground: oklch(0.32 0.06 235);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.008 240);
+  --input: oklch(0.9 0.008 240);
+  --ring: oklch(0.62 0.12 235);
+  --chart-1: oklch(0.62 0.13 235);
+  --chart-2: oklch(0.7 0.1 200);
+  --chart-3: oklch(0.75 0.09 85);
+  --chart-4: oklch(0.55 0.03 250);
+  --chart-5: oklch(0.4 0.02 250);
   --radius: 0.625rem;
+  --sidebar: oklch(0.19 0.025 250);
+  --sidebar-foreground: oklch(0.93 0.01 240);
+  --sidebar-primary: oklch(0.64 0.13 235);
+  --sidebar-primary-foreground: oklch(0.15 0.02 250);
+  --sidebar-accent: oklch(0.25 0.03 250);
+  --sidebar-accent-foreground: oklch(0.95 0.01 240);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.64 0.13 235);
+}
+
+.dark {
+  --background: oklch(0.16 0.015 250);
+  --foreground: oklch(0.94 0.008 240);
+  --card: oklch(0.2 0.02 250);
+  --card-foreground: oklch(0.94 0.008 240);
+  --popover: oklch(0.2 0.02 250);
+  --popover-foreground: oklch(0.94 0.008 240);
+  --primary: oklch(0.64 0.13 235);
+  --primary-foreground: oklch(0.15 0.02 250);
+  --secondary: oklch(0.26 0.02 250);
+  --secondary-foreground: oklch(0.94 0.008 240);
+  --muted: oklch(0.26 0.02 250);
+  --muted-foreground: oklch(0.68 0.02 240);
+  --accent: oklch(0.28 0.03 250);
+  --accent-foreground: oklch(0.94 0.008 240);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.64 0.13 235);
+  --chart-1: oklch(0.64 0.13 235);
+  --chart-2: oklch(0.7 0.1 200);
+  --chart-3: oklch(0.75 0.09 85);
+  --chart-4: oklch(0.6 0.03 250);
+  --chart-5: oklch(0.45 0.02 250);
+  --sidebar: oklch(0.14 0.02 250);
+  --sidebar-foreground: oklch(0.93 0.01 240);
+  --sidebar-primary: oklch(0.64 0.13 235);
+  --sidebar-primary-foreground: oklch(0.15 0.02 250);
+  --sidebar-accent: oklch(0.22 0.025 250);
+  --sidebar-accent-foreground: oklch(0.95 0.01 240);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.64 0.13 235);
 }
 
 @layer base {
@@ -84,7 +134,10 @@
   }
 }
 
-/* Marketing site theme: Enterprise Fintech Dark Blue + Deep Purple + Metallic Slate */
+/* Marketing site theme: Enterprise Fintech Dark Blue + Deep Purple + Metallic
+   Slate -- deliberately separate from the app-shell shadcn tokens above.
+   Scoped under .marketing so it never leaks into /dashboard, /admin,
+   /finance, etc. */
 .marketing {
   --mk-bg: #060a18;
   --mk-bg-elevated: #0b1126;
@@ -242,16 +295,16 @@
 }
 
 .glass-card {
-  background: rgba(15, 23, 51, 0.8);
+  background: rgba(15, 23, 51, 0.85) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.14);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(139, 92, 246, 0.4);
-  box-shadow: 0 16px 40px -10px rgba(124, 58, 237, 0.25);
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 16px 40px -10px rgba(124, 58, 237, 0.3);
   transform: translateY(-3px);
 }
 
@@ -280,130 +333,6 @@
 .glow-btn-primary:hover {
   box-shadow: 0 0 32px 0px rgba(124, 58, 237, 0.75);
   transform: translateY(-1px);
-}
-
-.marketing-grid {
-  background-image:
-    linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-/* Flow line animations */
-@keyframes flow-dash-1 {
-  0% {
-    stroke-dashoffset: 200;
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.8;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 0.4;
-  }
-}
-
-@keyframes flow-dash-2 {
-  0% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: 160;
-  }
-}
-
-@keyframes flow-dash-3 {
-  0% {
-    stroke-dashoffset: 120;
-  }
-  100% {
-    stroke-dashoffset: -120;
-  }
-}
-
-.animate-flow-dash-1 {
-  stroke-dasharray: 40 80;
-  animation: flow-dash-1 12s ease-in-out infinite alternate;
-}
-
-.animate-flow-dash-2 {
-  animation: flow-dash-2 18s linear infinite;
-}
-
-.animate-flow-dash-3 {
-  animation: flow-dash-3 24s linear infinite;
-}
-
-@keyframes float-badge {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes float-badge-reverse {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(8px);
-  }
-}
-
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 12px rgba(124, 58, 237, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
-  }
-}
-
-@keyframes ticker-slide {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-@keyframes ticker-slide-rtl {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(50%);
-  }
-}
-
-.animate-float-badge {
-  animation: float-badge 4s ease-in-out infinite;
-}
-
-.animate-float-badge-reverse {
-  animation: float-badge-reverse 4.5s ease-in-out infinite;
-}
-
-.animate-pulse-ring {
-  animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.animate-ticker {
-  animation: ticker-slide 32s linear infinite;
-}
-
-.animate-ticker-rtl {
-  animation: ticker-slide-rtl 32s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -442,52 +371,4 @@
   [data-closed].animate-out {
     animation-duration: 0.01ms !important;
   }
-}
-
-/* Glass & Luxury Light Card Utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-}
-
-.glass-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 20px -2px rgba(11, 19, 43, 0.05);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
-}
-
-.glass-card:hover {
-  border-color: rgba(124, 58, 237, 0.35);
-  box-shadow: 0 16px 36px -8px rgba(124, 58, 237, 0.12);
-  transform: translateY(-3px);
-}
-
-.gradient-hero-banner {
-  background: linear-gradient(
-    135deg,
-    rgba(124, 58, 237, 0.06) 0%,
-    rgba(37, 99, 235, 0.04) 50%,
-    #ffffff 100%
-  );
-}
-
-.gradient-badge-purple {
-  background: #f5f3ff;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  color: #6d28d9;
-}
-
-.glow-btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 16px -2px rgba(124, 58, 237, 0.35);
-  transition: all 0.2s ease;
-}
-
-.glow-btn-primary:hover {
-  box-shadow: 0 8px 24px -2px rgba(124, 58, 237, 0.5);
-  transform: translateY(-1px);
 }
