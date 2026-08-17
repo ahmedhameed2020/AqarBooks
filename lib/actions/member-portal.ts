@@ -11,7 +11,7 @@ const createInvitationSchema = z.object({
 });
 
 export type CreateInvitationResult =
-  | { ok: true; actionLink: string; memberEmail: string; memberPhone: string | null }
+  | { ok: true; actionLink: string; memberEmail: string | null; memberPhone: string | null; isSyntheticEmail: boolean }
   | { ok: false; error: string };
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -54,7 +54,7 @@ export async function createMemberInvitationAction(
     `?invitation=${data.invitation_id}&t=${data.raw_token}`;
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "invite",
-    email: data.member_email,
+    email: data.invite_email,
     options: { redirectTo },
   });
 
@@ -68,5 +68,6 @@ export async function createMemberInvitationAction(
     actionLink: linkData.properties.action_link,
     memberEmail: data.member_email,
     memberPhone: data.member_phone,
+    isSyntheticEmail: data.is_synthetic_email,
   };
 }
