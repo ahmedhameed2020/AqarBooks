@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { Download, FileUp, FileSpreadsheet, FileCode, Printer, ChevronDown } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface ExportToolbarProps {
   locale: string;
@@ -18,7 +18,7 @@ interface ExportToolbarProps {
 export function ExportToolbar({
   locale,
   importHref,
-  showImport = true,
+  showImport = false,
   onExportExcel,
   onExportCsv,
   onExportPdf,
@@ -34,19 +34,15 @@ export function ExportToolbar({
 
   return (
     <div className="flex items-center gap-2">
-      {/* 1. Import Wizard Link */}
+      {/* 1. Optional Import Wizard Link */}
       {showImport && importHref && (
         <Link
           href={importHref}
           locale={locale}
-          className={buttonVariants({
-            variant: "outline",
-            size: "sm",
-            className: "gap-1.5 font-medium shadow-2xs hover:bg-muted/60",
-          })}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 text-xs font-bold shadow-2xs transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer"
         >
-          <FileUp className="size-3.5 text-primary" />
-          <span>{isAr ? "استيراد ملف" : "Import File"}</span>
+          <FileUp className="size-3.5 text-purple-600" />
+          <span>{isAr ? "استيراد CSV" : "Import CSV"}</span>
         </Link>
       )}
 
@@ -58,19 +54,19 @@ export function ExportToolbar({
           size="sm"
           disabled={exporting}
           onClick={() => setMenuOpen(!menuOpen)}
-          className="gap-1.5 font-medium shadow-2xs hover:bg-muted/60"
+          className="h-9 gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold shadow-2xs transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer text-xs"
         >
-          <Download className="size-3.5 text-primary" />
-          <span>{exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير وتقارير" : "Export & Reports"}</span>
-          <ChevronDown className="size-3 text-muted-foreground ms-0.5" />
+          <Download className="size-3.5 text-purple-600" />
+          <span>{exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير وطباعة" : "Export & Print"}</span>
+          <ChevronDown className="size-3 text-slate-400 ms-0.5" />
         </Button>
 
         {menuOpen && (
           <>
             {/* Backdrop click dismiss */}
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-            
-            <div className="absolute end-0 top-full z-50 mt-1.5 w-60 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-2xl">
+
+            <div className="absolute end-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
               {/* Option 1: Excel */}
               <button
                 type="button"
@@ -78,14 +74,14 @@ export function ExportToolbar({
                   setMenuOpen(false);
                   onExportExcel();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-popover-foreground hover:bg-muted transition-colors text-start"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors text-start dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
-                <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-200 dark:bg-emerald-950/60 dark:border-emerald-800">
                   <FileSpreadsheet className="size-4" />
                 </div>
                 <div>
-                  <p className="font-semibold">{isAr ? "تصدير إكسل (.xlsx)" : "Export Excel (.xlsx)"}</p>
-                  <p className="text-[10px] text-muted-foreground">{isAr ? "جدول بيانات إكسل متوافق" : "Excel compatible spreadsheet"}</p>
+                  <p className="font-extrabold text-slate-900 dark:text-white">{isAr ? "تصدير كشف إكسل (.xlsx)" : "Export Excel (.xlsx)"}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{isAr ? "جدول بيانات إكسل متوافق" : "Excel compatible spreadsheet"}</p>
                 </div>
               </button>
 
@@ -96,31 +92,31 @@ export function ExportToolbar({
                   setMenuOpen(false);
                   onExportCsv();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-popover-foreground hover:bg-muted transition-colors text-start"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors text-start dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
-                <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600 shrink-0 border border-amber-200 dark:bg-amber-950/60 dark:border-amber-800">
                   <FileCode className="size-4" />
                 </div>
                 <div>
-                  <p className="font-semibold">{isAr ? "تصدير CSV (.csv)" : "Export CSV (.csv)"}</p>
-                  <p className="text-[10px] text-muted-foreground">{isAr ? "ملف نصوص UTF-8 مفصول بفاصلة" : "Comma separated values file"}</p>
+                  <p className="font-extrabold text-slate-900 dark:text-white">{isAr ? "تصدير ملف نصوص (.csv)" : "Export CSV (.csv)"}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{isAr ? "ملف UTF-8 مفصول بفواصل" : "Comma separated values file"}</p>
                 </div>
               </button>
 
-              <div className="my-1 border-t border-border/60" />
+              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
               {/* Option 3: PDF Print Report */}
               <button
                 type="button"
                 onClick={handlePdfClick}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-popover-foreground hover:bg-muted transition-colors text-start"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors text-start dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
-                <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600 shrink-0 border border-purple-200 dark:bg-purple-950/60 dark:border-purple-800">
                   <Printer className="size-4" />
                 </div>
                 <div>
-                  <p className="font-semibold">{isAr ? "طباعة تقرير PDF رسمي" : "Print Executive PDF Report"}</p>
-                  <p className="text-[10px] text-muted-foreground">{isAr ? "تقرير تنفيذي منسق بشعار المنظمة" : "Branded RTL print document"}</p>
+                  <p className="font-extrabold text-slate-900 dark:text-white">{isAr ? "طباعة تقرير PDF رسمي" : "Print Official PDF Report"}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{isAr ? "تقرير منسق بشعار وهوية المنظمة" : "Branded RTL print document"}</p>
                 </div>
               </button>
             </div>

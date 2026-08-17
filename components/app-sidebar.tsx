@@ -41,9 +41,9 @@ export type SidebarWorkspace = {
   groups: SidebarNavGroup[];
 };
 
-const GROUP_STORAGE_KEY = "resortos-sidebar-collapsed-groups";
-const SUBITEM_STORAGE_KEY = "resortos-sidebar-open-subitems";
-const WORKSPACE_STORAGE_KEY = "resortos-sidebar-workspace";
+const GROUP_STORAGE_KEY = "aqarbooks-sidebar-collapsed-groups";
+const SUBITEM_STORAGE_KEY = "aqarbooks-sidebar-open-subitems";
+const WORKSPACE_STORAGE_KEY = "aqarbooks-sidebar-workspace";
 
 function itemMatches(pathname: string, item: SidebarNavItem): boolean {
   if (pathname === item.href) return true;
@@ -85,13 +85,13 @@ function NavRow({
           href={item.href}
           locale={locale}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+            "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all",
             isActive
-              ? "bg-sidebar-primary/15 text-sidebar-foreground font-medium"
-              : "text-sidebar-foreground/70 hover:bg-white/[0.05] hover:text-sidebar-foreground",
+              ? "bg-purple-600/15 text-purple-300 font-bold shadow-2xs"
+              : "text-sidebar-foreground/75 hover:bg-white/[0.06] hover:text-white",
           )}
         >
-          <span className={cn("shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/55")}>
+          <span className={cn("shrink-0", isActive ? "text-purple-400" : "text-sidebar-foreground/55")}>
             {item.icon}
           </span>
           <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
@@ -101,7 +101,7 @@ function NavRow({
             type="button"
             onClick={() => onToggleSub(item.href)}
             aria-label={isSubOpen ? (isAr ? "طي" : "Collapse") : (isAr ? "توسيع" : "Expand")}
-            className="me-1 flex size-6 shrink-0 items-center justify-center rounded text-sidebar-foreground/45 transition-colors hover:bg-white/[0.06] hover:text-sidebar-foreground/80"
+            className="me-1 flex size-6 shrink-0 items-center justify-center rounded text-sidebar-foreground/45 transition-colors hover:bg-white/[0.06] hover:text-sidebar-foreground/80 cursor-pointer"
           >
             <ChevronDown className={cn("size-3.5 transition-transform", isSubOpen && "rotate-180")} />
           </button>
@@ -114,7 +114,7 @@ function NavRow({
           style={{ gridTemplateRows: isSubOpen ? "1fr" : "0fr" }}
         >
           <div className="overflow-hidden">
-            <div className="ms-[27px] mt-0.5 space-y-0.5 border-s border-sidebar-border ps-2.5">
+            <div className="ms-[22px] mt-0.5 space-y-0.5 border-s border-sidebar-border/60 ps-2.5">
               {item.subItems!.map((sub) => {
                 const subActive = pathname === sub.href;
                 return (
@@ -123,16 +123,16 @@ function NavRow({
                     href={sub.href}
                     locale={locale}
                     className={cn(
-                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
                       subActive
-                        ? "text-sidebar-foreground font-medium"
-                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+                        ? "text-purple-300 font-bold bg-purple-600/10"
+                        : "text-sidebar-foreground/65 hover:text-white hover:bg-white/[0.04]",
                     )}
                   >
                     <span
                       className={cn(
-                        "size-1 shrink-0 rounded-full",
-                        subActive ? "bg-sidebar-primary" : "bg-sidebar-foreground/35",
+                        "size-1.5 shrink-0 rounded-full",
+                        subActive ? "bg-purple-400" : "bg-sidebar-foreground/35",
                       )}
                     />
                     <span className="truncate">{isAr ? sub.labelAr : sub.labelEn}</span>
@@ -268,21 +268,19 @@ export function AppSidebar({
   }, [activeWorkspace, query, searching, isAr]);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col bg-[linear-gradient(180deg,var(--sidebar)_0%,oklch(0.12_0.018_250)_100%)] text-sidebar-foreground md:h-[calc(100vh-3.5rem)] md:w-64">
+    <aside className="flex w-full shrink-0 flex-col bg-[#060a18] text-sidebar-foreground border-e border-sidebar-border/40 md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-[260px] md:self-start overflow-hidden">
       <div className="relative px-3 pt-3 pb-2">
-        <div className="absolute inset-x-3 top-0 h-px bg-sidebar-primary/60" />
-
         {workspaces.length > 1 && (
-          <div className="mb-2.5 grid grid-cols-2 gap-0.5 rounded-md bg-white/[0.04] p-0.5">
+          <div className="mb-2.5 grid grid-cols-2 gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
             {workspaces.map((w) => (
               <button
                 key={w.key}
                 type="button"
                 onClick={() => switchWorkspace(w.key)}
                 className={cn(
-                  "rounded px-2 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer",
                   activeWorkspace?.key === w.key
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    ? "bg-purple-600 text-white shadow-xs"
                     : "text-sidebar-foreground/60 hover:text-sidebar-foreground",
                 )}
               >
@@ -299,8 +297,8 @@ export function AppSidebar({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={isAr ? "بحث سريع..." : "Quick search..."}
-            className="h-8 w-full rounded-md border border-sidebar-border bg-white/[0.04] ps-8 pe-12 text-xs text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none transition-colors focus:border-sidebar-primary/60 focus:bg-white/[0.07]"
+            placeholder={isAr ? "بحث في النظام..." : "Search..."}
+            className="h-8.5 w-full rounded-lg border border-sidebar-border/60 bg-white/[0.04] ps-8 pe-12 text-xs text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none transition-colors focus:border-purple-500/60 focus:bg-white/[0.07]"
           />
           {query ? (
             <button
@@ -319,17 +317,17 @@ export function AppSidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 pb-4">
         {visibleGroups.map((group) => {
           const hasLabel = Boolean(group.labelAr || group.labelEn);
           const isOpen = searching || !collapsedKeys.has(group.key);
           return (
-            <div key={group.key}>
+            <div key={group.key} className="pt-1">
               {hasLabel && (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
-                  className="mt-3 mb-0.5 flex w-full items-center justify-between rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase transition-colors hover:bg-white/[0.05] hover:text-sidebar-foreground/80"
+                  className="mt-2.5 mb-1 flex w-full items-center justify-between rounded-md px-2 py-1 text-[11px] font-bold tracking-wider text-sidebar-foreground/45 uppercase transition-colors hover:bg-white/[0.04] hover:text-sidebar-foreground/80 cursor-pointer"
                 >
                   <span>{isAr ? group.labelAr : group.labelEn}</span>
                   <ChevronDown className={cn("size-3 transition-transform", !isOpen && "-rotate-90")} />
@@ -365,7 +363,7 @@ export function AppSidebar({
         )}
       </nav>
 
-      {footer && <div className="border-t border-sidebar-border p-3">{footer}</div>}
+      {footer && <div className="border-t border-sidebar-border/40 p-3">{footer}</div>}
     </aside>
   );
 }

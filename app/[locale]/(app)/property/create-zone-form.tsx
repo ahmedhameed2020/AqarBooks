@@ -29,7 +29,6 @@ export function CreateZoneForm({
   const [touched, setTouched] = useState(false);
 
   const nameArError = touched && !nameAr.trim() ? (isAr ? "الاسم بالعربي مطلوب" : "Arabic name is required") : undefined;
-  const nameEnError = touched && !nameEn.trim() ? (isAr ? "الاسم بالإنجليزي مطلوب" : "English name is required") : undefined;
 
   useEffect(() => {
     if (wasPending.current && !pending && state.ok) {
@@ -42,7 +41,7 @@ export function CreateZoneForm({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     setTouched(true);
-    if (!nameAr.trim() || !nameEn.trim()) e.preventDefault();
+    if (!nameAr.trim()) e.preventDefault();
   }
 
   return (
@@ -50,14 +49,16 @@ export function CreateZoneForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="resortId" value={resortId} />
 
-      <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
-        <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-          <MapPin className="size-3.5 text-primary" />
-          {isAr ? "بيانات المنطقة الجديدة" : "New Zone Details"}
+      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/50 p-4 space-y-3 dark:border-slate-800 dark:bg-slate-900/50">
+        <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+          <MapPin className="size-4 text-purple-600" />
+          <span>{isAr ? "بيانات المنطقة العقارية أو القطاع" : "Zone / Sector Details"}</span>
         </h4>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="zoneNameAr" className="text-xs">{isAr ? "الاسم بالعربي *" : "Arabic Name *"}</Label>
+            <Label htmlFor="zoneNameAr" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              {isAr ? "الاسم بالعربي *" : "Arabic Name *"}
+            </Label>
             <Input
               id="zoneNameAr"
               name="nameAr"
@@ -68,35 +69,42 @@ export function CreateZoneForm({
               aria-invalid={Boolean(nameArError)}
               required
             />
-            {nameArError && <p className="text-[11px] text-destructive">{nameArError}</p>}
+            {nameArError && <p className="text-[11px] font-bold text-rose-600">{nameArError}</p>}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="zoneNameEn" className="text-xs">{isAr ? "الاسم بالإنجليزي *" : "English Name *"}</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="zoneNameEn" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {isAr ? "الاسم بالإنجليزي" : "English Name"}
+              </Label>
+              <span className="text-[10px] font-semibold text-slate-400">
+                {isAr ? "(اختياري)" : "(Optional)"}
+              </span>
+            </div>
             <Input
               id="zoneNameEn"
               name="nameEn"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              onBlur={() => setTouched(true)}
-              placeholder={isAr ? "مثال: East Zone / Villas Area" : "e.g. East Zone / Villas Area"}
-              aria-invalid={Boolean(nameEnError)}
-              required
+              placeholder={isAr ? "اختياري — مثال: East Zone" : "Optional — e.g. East Zone"}
             />
-            {nameEnError && <p className="text-[11px] text-destructive">{nameEnError}</p>}
           </div>
         </div>
       </div>
 
       {!state.ok && (
-        <p role="alert" className="text-xs font-semibold text-destructive">
+        <p role="alert" className="text-xs font-bold text-rose-600">
           {state.error}
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full font-semibold shadow-xs">
-        {pending && <Loader2 className="size-3.5 animate-spin" />}
-        {pending ? (isAr ? "جارٍ إضافة المنطقة…" : "Adding Zone…") : isAr ? "إضافة المنطقة" : "Add Zone"}
+      <Button
+        type="submit"
+        disabled={pending}
+        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black shadow-md shadow-purple-600/20 py-2.5 rounded-xl cursor-pointer"
+      >
+        {pending && <Loader2 className="size-4 animate-spin" />}
+        {pending ? (isAr ? "جارٍ إضافة المنطقة…" : "Adding Zone…") : isAr ? "حفظ وإضافة المنطقة" : "Save & Add Zone"}
       </Button>
     </form>
   );

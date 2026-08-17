@@ -41,7 +41,7 @@ export function AddMemberDialog({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <UserPlus className="size-4.5" />

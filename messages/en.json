@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "RESORTOS"
+    "name": "AqarBooks"
   },
   "common": {
     "loading": "Loading...",
@@ -12,7 +12,7 @@
   "auth": {
     "login": {
       "title": "Sign In",
-      "subtitle": "Enter your account details to access ResortOS",
+      "subtitle": "Enter your credentials to access AqarBooks ERP",
       "email": "Email",
       "password": "Password",
       "submit": "Sign In",
@@ -28,9 +28,9 @@
     "platformAdmin": "Platform Super Admin"
   },
   "home": {
-    "title": "Run Your Resort Finances",
-    "subtitle": "One Platform. Accurate Accounts. Clearer Decisions.",
-    "description": "RESORTOS is a financial and operational platform for resorts and gated communities, unifying accounting, units, receivables, collections, treasury, banking, and reporting.",
+    "title": "Real Estate & Resort Accounting ERP",
+    "subtitle": "Atomic Double-Entry • Egypt & GCC Tax Compliance • 5 Property Models",
+    "description": "AqarBooks is an enterprise accounting ERP for coastal resorts, residential towers, private villas, retail plazas, and HOAs across Egypt & GCC.",
     "requestDemo": "Request a Demo",
     "explorePlatform": "Explore the Platform"
   }

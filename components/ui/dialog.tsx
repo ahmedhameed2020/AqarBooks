@@ -11,7 +11,18 @@ function Dialog(props: DialogPrimitive.Root.Props) {
 }
 
 function DialogTrigger(props: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+  // No hardcoded `data-slot="dialog-trigger"` here on purpose: when this is
+  // composed via `render={<Button>}` (see app/[locale]/(app)/members/
+  // send-reminder-dialog.tsx), base-ui's render-prop merge resolves the
+  // two elements' own `data-slot` attributes differently between the SSR
+  // pass and the client hydration pass -- server output kept this
+  // component's "dialog-trigger" value, the client re-render picked the
+  // rendered Button's own "button" value instead, producing a hydration
+  // mismatch. Nothing in this codebase selects on `[data-slot="dialog-trigger"]`
+  // (confirmed via a repo-wide search), so dropping it removes the
+  // conflicting source of truth instead of trying to force one value to
+  // consistently win.
+  return <DialogPrimitive.Trigger {...props} />
 }
 
 function DialogPortal(props: DialogPrimitive.Portal.Props) {

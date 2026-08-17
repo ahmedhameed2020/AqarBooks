@@ -10,6 +10,7 @@ import { signOut } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
 import {
   LayoutDashboard,
+  Building,
   MapPinned,
   Users,
   Settings,
@@ -21,6 +22,7 @@ import {
   BarChart3,
   Inbox,
   ShieldAlert,
+  Scale,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -47,91 +49,127 @@ export default async function AppShellLayout({
 
   const homeGroup: SidebarNavGroup = {
     key: "home",
-    items: [{ href: "/dashboard", labelAr: "الرئيسية", labelEn: "Dashboard", icon: <LayoutDashboard className={ic} /> }],
+    items: [
+      {
+        href: "/dashboard",
+        labelAr: "الرئيسية",
+        labelEn: "Dashboard",
+        icon: <LayoutDashboard className={ic} />,
+      },
+    ],
   };
 
-  // Two clearly separate workspaces, not one blended nav -- operating the
-  // whole platform (every tenant) and managing a single tenant's own books
-  // are different mental contexts, even for the rare account that holds
-  // both roles. AppSidebar only shows a switcher when there's more than one.
   const workspaces: SidebarWorkspace[] = [];
 
   if (organization) {
     workspaces.push({
       key: "tenant",
-      labelAr: "المنظمة",
-      labelEn: "Organization",
+      labelAr: "عقار بوكس",
+      labelEn: "AqarBooks",
       groups: [
         homeGroup,
         {
           key: "property",
           labelAr: "العقارات",
-          labelEn: "Property",
+          labelEn: "Properties",
           items: [
-            { href: "/property", labelAr: "الوحدات", labelEn: "Units", icon: <MapPinned className={ic} /> },
-            { href: "/members", labelAr: "الأعضاء", labelEn: "Members", icon: <Users className={ic} /> },
-            { href: "/import", labelAr: "استيراد CSV", labelEn: "Import CSV", icon: <BookOpen className={ic} /> },
+            {
+              href: "/admin/resorts",
+              labelAr: "الكيانات العقارية",
+              labelEn: "Entities",
+              icon: <Building className={ic} />,
+            },
+            {
+              href: "/property",
+              labelAr: "الوحدات",
+              labelEn: "Units",
+              icon: <MapPinned className={ic} />,
+              subItems: [
+                { href: "/import", labelAr: "استيراد", labelEn: "Import" },
+              ],
+            },
+            {
+              href: "/members",
+              labelAr: "الأعضاء",
+              labelEn: "Members",
+              icon: <Users className={ic} />,
+            },
           ],
         },
         {
-          // Themed parent items with nested sub-destinations instead of 9
-          // flat siblings -- each parent is still a real page (clicking the
-          // label navigates there); the chevron only toggles the reveal.
           key: "finance",
-          labelAr: "الحسابات",
-          labelEn: "Finance",
+          labelAr: "المحاسبة",
+          labelEn: "Accounting",
           items: [
             {
               href: "/finance/accounts",
-              labelAr: "دليل الحسابات",
-              labelEn: "Chart of Accounts",
-              icon: <BookOpen className={ic} />,
+              labelAr: "الحسابات",
+              labelEn: "Accounts",
+              icon: <Scale className={ic} />,
               subItems: [
-                { href: "/finance/journals", labelAr: "القيود اليومية", labelEn: "Journal Entries" },
-                { href: "/admin/finance/periods", labelAr: "السنوات المالية", labelEn: "Fiscal Periods" },
+                { href: "/finance/journals", labelAr: "القيود", labelEn: "Journals" },
+                { href: "/admin/finance/periods", labelAr: "الفترات", labelEn: "Periods" },
               ],
             },
             {
               href: "/finance/dues",
-              labelAr: "المديونيات",
+              labelAr: "الاستحقاقات",
               labelEn: "Receivables",
               icon: <Receipt className={ic} />,
-              subItems: [{ href: "/finance/payments", labelAr: "المدفوعات", labelEn: "Payments" }],
+              subItems: [
+                { href: "/finance/payments", labelAr: "المقبوضات", labelEn: "Receipts" },
+              ],
             },
             {
               href: "/finance/cashier",
               labelAr: "الخزينة",
               labelEn: "Treasury",
               icon: <Wallet className={ic} />,
-              subItems: [{ href: "/finance/banks", labelAr: "البنوك والشيكات", labelEn: "Banks & Cheques" }],
+              subItems: [
+                { href: "/finance/banks", labelAr: "البنوك", labelEn: "Banks" },
+              ],
             },
             {
               href: "/finance/suppliers",
               labelAr: "المشتريات",
               labelEn: "Purchasing",
               icon: <Truck className={ic} />,
-              subItems: [{ href: "/finance/expenses", labelAr: "المصروفات", labelEn: "Expenses" }],
+              subItems: [
+                { href: "/finance/expenses", labelAr: "المصروفات", labelEn: "Expenses" },
+              ],
             },
-            { href: "/finance/reports", labelAr: "التقارير", labelEn: "Reports", icon: <BarChart3 className={ic} /> },
           ],
         },
         {
-          // Configuration, not daily operation -- deliberately last, below
-          // the sections people actually work in day to day.
+          key: "reports",
+          labelAr: "التقارير",
+          labelEn: "Reports",
+          items: [
+            {
+              href: "/finance/reports",
+              labelAr: "القوائم المالية",
+              labelEn: "Financials",
+              icon: <BarChart3 className={ic} />,
+              subItems: [
+                { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
+              ],
+            },
+          ],
+        },
+        {
           key: "settings",
           labelAr: "الإعدادات",
           labelEn: "Settings",
           items: [
             {
               href: "/admin",
-              labelAr: "إعدادات المنظمة",
-              labelEn: "Organization Settings",
+              labelAr: "عام",
+              labelEn: "General",
               icon: <Settings className={ic} />,
               subItems: [
-                { href: "/admin/resorts", labelAr: "المنتجعات", labelEn: "Resorts" },
                 { href: "/admin/users", labelAr: "المستخدمون", labelEn: "Users" },
-                { href: "/admin/roles", labelAr: "الأدوار", labelEn: "Roles" },
-                { href: "/finance/payment-providers", labelAr: "مزودو الدفع الإلكتروني", labelEn: "Payment Providers" },
+                { href: "/admin/roles", labelAr: "الصلاحيات", labelEn: "Roles" },
+                { href: "/finance/payment-providers", labelAr: "بوابات الدفع", labelEn: "Gateways" },
               ],
             },
           ],
@@ -149,12 +187,12 @@ export default async function AppShellLayout({
         homeGroup,
         {
           key: "platform-nav",
-          labelAr: "إدارة المنصة",
-          labelEn: "Platform Admin",
+          labelAr: "الإدارة",
+          labelEn: "Admin",
           items: [
             { href: "/platform/organizations", labelAr: "المنظمات", labelEn: "Organizations", icon: <Building2 className={ic} /> },
-            { href: "/platform/leads", labelAr: "طلبات العرض", labelEn: "Leads", icon: <Inbox className={ic} /> },
-            { href: "/platform/audit", labelAr: "سجل التدقيق", labelEn: "Audit Log", icon: <ShieldAlert className={ic} /> },
+            { href: "/platform/leads", labelAr: "العروض", labelEn: "Leads", icon: <Inbox className={ic} /> },
+            { href: "/platform/audit", labelAr: "التدقيق", labelEn: "Audit", icon: <ShieldAlert className={ic} /> },
           ],
         },
       ],
@@ -170,55 +208,55 @@ export default async function AppShellLayout({
 
   return (
     <Toaster>
-    <div className="flex min-h-full flex-1 flex-col">
-      <SiteHeader locale={loc} />
-      <div className="flex flex-1 flex-col md:flex-row">
-        <AppSidebar
-          workspaces={workspaces}
-          locale={loc}
-          footer={
-            <div className="space-y-2.5">
-              <Link
-                href="/account"
-                locale={loc}
-                className="-mx-1 flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-white/[0.05]"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-                  {(organization?.name || user!.email || "?")[0].toUpperCase()}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-sidebar-foreground">
-                    {organization?.name || user!.email}
-                  </p>
-                  <p className="truncate text-[11px] text-sidebar-foreground/55">{user!.email}</p>
-                </div>
-              </Link>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {organization && (
-                  <Badge variant="outline" className="border-sidebar-border text-[10px] text-sidebar-foreground/80">
-                    {organization.status}
-                  </Badge>
-                )}
-                {platformAdmin && (
-                  <Badge className="text-[10px]">{isAr ? "مدير المنصة" : "Super Admin"}</Badge>
-                )}
-              </div>
-              <form action={boundSignOut}>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-white/[0.06]"
+      <div className="flex min-h-full flex-1 flex-col">
+        <SiteHeader locale={loc} />
+        <div className="flex flex-1 flex-col md:flex-row">
+          <AppSidebar
+            workspaces={workspaces}
+            locale={loc}
+            footer={
+              <div className="space-y-2.5">
+                <Link
+                  href="/account"
+                  locale={loc}
+                  className="-mx-1 flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-white/[0.05]"
                 >
-                  {isAr ? "تسجيل الخروج" : "Sign out"}
-                </Button>
-              </form>
-            </div>
-          }
-        />
-        <main className="flex-1 p-6">{children}</main>
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+                    {(organization?.name || user!.email || "?")[0].toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                      {organization?.name || user!.email}
+                    </p>
+                    <p className="truncate text-[11px] text-sidebar-foreground/55">{user!.email}</p>
+                  </div>
+                </Link>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {organization && (
+                    <Badge variant="outline" className="border-sidebar-border text-[10px] text-sidebar-foreground/80">
+                      {organization.status}
+                    </Badge>
+                  )}
+                  {platformAdmin && (
+                    <Badge className="text-[10px]">{isAr ? "مدير المنصة" : "Super Admin"}</Badge>
+                  )}
+                </div>
+                <form action={boundSignOut}>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-white/[0.06]"
+                  >
+                    {isAr ? "تسجيل الخروج" : "Sign out"}
+                  </Button>
+                </form>
+              </div>
+            }
+          />
+          <main className="flex-1 p-6">{children}</main>
+        </div>
       </div>
-    </div>
     </Toaster>
   );
 }

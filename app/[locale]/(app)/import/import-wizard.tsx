@@ -39,8 +39,8 @@ export function ImportWizard({
   organizationId: string;
   resorts: { id: string; name: string }[];
   resortId?: string;
-  buildings: { id: string; code: string; name_ar: string; name_en: string }[];
-  zones: { id: string; code: string; name_ar: string; name_en: string }[];
+  buildings: { id: string; code?: string; name_ar?: string; name_en?: string }[];
+  zones: { id: string; code?: string; name_ar?: string; name_en?: string }[];
   members: { id: string; full_name: string; email: string | null; phone: string | null }[];
 }) {
   const isAr = locale === "ar";
@@ -57,7 +57,9 @@ export function ImportWizard({
   const buildingMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const building of buildings) {
-      map.set(building.code.trim().toLowerCase(), building.id);
+      if (building?.code) map.set(building.code.trim().toLowerCase(), building.id);
+      if (building?.name_ar) map.set(building.name_ar.trim().toLowerCase(), building.id);
+      if (building?.name_en) map.set(building.name_en.trim().toLowerCase(), building.id);
     }
     return map;
   }, [buildings]);
@@ -65,7 +67,9 @@ export function ImportWizard({
   const zoneMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const zone of zones) {
-      map.set(zone.code.trim().toLowerCase(), zone.id);
+      if (zone?.code) map.set(zone.code.trim().toLowerCase(), zone.id);
+      if (zone?.name_ar) map.set(zone.name_ar.trim().toLowerCase(), zone.id);
+      if (zone?.name_en) map.set(zone.name_en.trim().toLowerCase(), zone.id);
     }
     return map;
   }, [zones]);
@@ -73,7 +77,7 @@ export function ImportWizard({
   const membersByEmail = useMemo(() => {
     const map = new Map<string, string>();
     for (const member of members) {
-      if (member.email) map.set(member.email.trim().toLowerCase(), member.id);
+      if (member?.email) map.set(member.email.trim().toLowerCase(), member.id);
     }
     return map;
   }, [members]);
@@ -81,7 +85,7 @@ export function ImportWizard({
   const membersByPhone = useMemo(() => {
     const map = new Map<string, string>();
     for (const member of members) {
-      if (member.phone) map.set(member.phone.trim().toLowerCase(), member.id);
+      if (member?.phone) map.set(member.phone.trim().toLowerCase(), member.id);
     }
     return map;
   }, [members]);

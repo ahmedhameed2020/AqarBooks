@@ -275,7 +275,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
     <div class="meta-info">
       <div>${isAr ? "تاريخ الطباعة:" : "Printed:"} <strong>${dateLabel}</strong></div>
       <div>${isAr ? "رقم الإيصال:" : "Receipt No:"} <strong>${safeReceiptNo || "—"}</strong></div>
-      <div>ResortOS Owner Portal</div>
+      <div>${isAr ? "عقار بوكس — بوابة الملاك والمقبوضات" : "AqarBooks Owner Portal"}</div>
     </div>
   </div>
 
@@ -355,7 +355,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
   }
 
   <div class="report-footer">
-    <div>ResortOS Owner Portal &copy; ${new Date().getFullYear()}</div>
+    <div>${isAr ? `عقار بوكس لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
     <div>${isAr ? "إيصال رسمي مطبوع · تم التصدير بواسطة النظام" : "Official Print Receipt · Exported Systematically"}</div>
   </div>
 

@@ -61,7 +61,7 @@ export async function buildUnitsXlsxBuffer(rows: UnitRow[], isAr: boolean): Prom
     : ["Unit Code", "Building", "Zone", "Area (m²)", "Type", "Occupancy", "Current Owner", "Financial Balance", "Has Arrears"];
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "ResortOS";
+  workbook.creator = "AqarBooks";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet(isAr ? "الوحدات" : "Units", {

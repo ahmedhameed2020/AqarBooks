@@ -32,6 +32,7 @@ import {
   Clock,
   Briefcase,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 
 const AGING_BUCKETS = [
@@ -217,39 +218,39 @@ export async function TenantDashboard({
   const overviewContent = (
     <>
       {/* KPI Cards Row */}
-      <div className="reveal-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div style={{ "--reveal-i": 0 } as React.CSSProperties}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div>
           <KpiCard
-            label={isAr ? `إجمالي الإيرادات (${currency})` : `Total Revenue (${currency})`}
+            label={isAr ? `إجمالي الإيرادات المحصلة (${currency})` : `Total Revenue (${currency})`}
             value={<CountUp value={revenue} locale={locale} />}
             hint={currentPeriod ? currentPeriod.name : undefined}
-            icon={<TrendingUp className="size-5" />}
+            icon={<TrendingUp className="size-5.5" />}
             tone="positive"
             change={8.4}
             changeLabel={isAr ? "مقارنة بالشهر السابق" : "vs last month"}
           />
         </div>
-        <div style={{ "--reveal-i": 1 } as React.CSSProperties}>
+        <div>
           <KpiCard
             label={isAr ? `إجمالي المصروفات (${currency})` : `Total Expenses (${currency})`}
             value={<CountUp value={expenses} locale={locale} />}
             hint={currentPeriod ? currentPeriod.name : undefined}
-            icon={<TrendingDown className="size-5" />}
+            icon={<TrendingDown className="size-5.5" />}
             tone="warning"
           />
         </div>
-        <div style={{ "--reveal-i": 2 } as React.CSSProperties}>
+        <div>
           <KpiCard
-            label={isAr ? "الفائض / العجز المالي" : "Net Surplus / Deficit"}
+            label={isAr ? "صافي الفائض / العجز المالي" : "Net Surplus / Deficit"}
             value={<CountUp value={surplus} locale={locale} />}
-            icon={<Scale className="size-5" />}
+            icon={<Scale className="size-5.5" />}
             tone={surplus >= 0 ? "positive" : "negative"}
-            changeLabel={isAr ? (surplus >= 0 ? "فائض إيجابي" : "عجز مالي") : surplus >= 0 ? "Healthy Margin" : "Deficit Alert"}
+            changeLabel={isAr ? (surplus >= 0 ? "فائض تشغيلي إيجابي" : "عجز مالي") : surplus >= 0 ? "Healthy Margin" : "Deficit Alert"}
           />
         </div>
-        <div style={{ "--reveal-i": 3 } as React.CSSProperties}>
+        <div>
           <KpiCard
-            label={isAr ? "الذمم المستحقة القائمة" : "Outstanding Receivables"}
+            label={isAr ? "الذمم والاستحقاقات القائمة" : "Outstanding Receivables"}
             value={<CountUp value={outstanding} locale={locale} />}
             hint={
               collectionRate !== null
@@ -258,7 +259,7 @@ export async function TenantDashboard({
                   : `Collection rate ${collectionRate}%`
                 : undefined
             }
-            icon={<Receipt className="size-5" />}
+            icon={<Receipt className="size-5.5" />}
             tone={overdueAmount > 0 ? "negative" : "info"}
           />
         </div>
@@ -278,15 +279,19 @@ export async function TenantDashboard({
 
       {/* Trend + Aging charts */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-2xl border border-border/60 bg-card shadow-xs lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+        <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs lg:col-span-2 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
-              <h2 className="text-sm font-semibold">{isAr ? "الاتجاه المالي — إيرادات ومصروفات آخر 6 أشهر" : "Financial Trend — Revenue vs. Expenses"}</h2>
-              <p className="text-[11px] text-muted-foreground">{isAr ? "مقارنة شهرية شاملة للميزانية" : "Monthly budget comparison"}</p>
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                {isAr ? "الاتجاه المالي — إيرادات ومصروفات آخر 6 أشهر" : "Financial Trend — Revenue vs. Expenses"}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isAr ? "مقارنة شهرية شاملة للتدفقات النقدية والميزانية" : "Monthly budget and cashflow comparison"}
+              </p>
             </div>
-            <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
-              <Layers className="size-3" />
-              {isAr ? "منحنى متصل" : "Area View"}
+            <span className="flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+              <Layers className="size-3.5 text-purple-600" />
+              <span>{isAr ? "مخطط مساحي" : "Area View"}</span>
             </span>
           </div>
           <div className="p-4">
@@ -295,62 +300,70 @@ export async function TenantDashboard({
         </section>
 
         {/* Collection Target & Aging Breakdown */}
-        <section className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card shadow-xs">
-          <div className="border-b border-border/50 px-5 py-3.5">
-            <h2 className="text-sm font-semibold">{isAr ? "مؤشر هدف التحصيل الشهري" : "Collection Target Meter"}</h2>
+        <section className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
+            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+              {isAr ? "مؤشر هدف التحصيل الشهري" : "Collection Target Meter"}
+            </h2>
           </div>
           <div className="p-4">
             <CollectionTargetGauge rate={collectionRate} isAr={isAr} />
           </div>
-          <div className="border-t border-border/50 p-4">
-            <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{isAr ? "توزيع أعمار الذمم" : "Receivables Aging"}</h3>
+          <div className="border-t border-slate-200/80 p-4 dark:border-slate-800">
+            <h3 className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "توزيع أعمار الذمم والديون" : "Receivables Aging"}
+            </h3>
             <AgingChart data={agingData} isAr={isAr} currency={currency} />
           </div>
         </section>
       </div>
 
       {/* Secondary Stats Grid */}
-      <div className="reveal-stagger grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
-        <div style={{ "--reveal-i": 4 } as React.CSSProperties}>
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 xl:grid-cols-6">
+        <div>
           <MiniStat label={isAr ? "تحصيلات اليوم" : "Collected today"} value={fmt(collectionsToday)} />
         </div>
-        <div style={{ "--reveal-i": 5 } as React.CSSProperties}>
+        <div>
           <MiniStat label={isAr ? "تحصيلات الشهر" : "Collected this month"} value={fmt(collectionsMonth)} />
         </div>
-        <div style={{ "--reveal-i": 6 } as React.CSSProperties}>
+        <div>
           <MiniStat
             label={isAr ? "مستحقات متأخرة" : "Overdue dues"}
             value={String(overdue.length)}
             tone={overdue.length > 0 ? "negative" : undefined}
           />
         </div>
-        <div style={{ "--reveal-i": 7 } as React.CSSProperties}>
+        <div>
           <MiniStat
             label={isAr ? "قيود غير مرحّلة" : "Unposted entries"}
             value={String(unpostedEntries ?? 0)}
             tone={(unpostedEntries ?? 0) > 0 ? "warning" : undefined}
           />
         </div>
-        <div style={{ "--reveal-i": 8 } as React.CSSProperties}>
+        <div>
           <MiniStat label={isAr ? "جلسات كاشير مفتوحة" : "Open sessions"} value={String(openSessions ?? 0)} />
         </div>
-        <div style={{ "--reveal-i": 9 } as React.CSSProperties}>
+        <div>
           <MiniStat label={isAr ? "شيكات قيد التحصيل" : "Pending cheques"} value={String(outstandingCheques ?? 0)} />
         </div>
       </div>
 
       {/* Tables Section */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-border/60 bg-card shadow-xs">
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+        <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
-              <h2 className="text-sm font-semibold">{isAr ? "آخر المقبوضات والتحصيلات" : "Recent Collections"}</h2>
-              <p className="text-[11px] text-muted-foreground">{isAr ? "أحدث الإيصالات التي تم سدادها" : "Latest posted receipts"}</p>
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                {isAr ? "آخر المقبوضات وسندات التحصيل" : "Recent Collections"}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isAr ? "أحدث الإيصالات التي تم سدادها وترحيلها" : "Latest posted receipts"}
+              </p>
             </div>
             <Link
               href="/finance/payments"
               locale={locale}
-              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="flex items-center gap-1 text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400"
             >
               {isAr ? "عرض سجل المقبوضات" : "View all payments"}
               <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
@@ -358,31 +371,31 @@ export async function TenantDashboard({
           </div>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>{isAr ? "رقم الإيصال" : "Receipt #"}</TableHead>
-                <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
-                <TableHead>{isAr ? "طريقة الدفع" : "Method"}</TableHead>
-                <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
+              <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                <TableHead className="text-xs font-extrabold">{isAr ? "رقم الإيصال" : "Receipt #"}</TableHead>
+                <TableHead className="text-xs font-extrabold">{isAr ? "المبلغ" : "Amount"}</TableHead>
+                <TableHead className="text-xs font-extrabold">{isAr ? "طريقة الدفع" : "Method"}</TableHead>
+                <TableHead className="text-xs font-extrabold">{isAr ? "التاريخ" : "Date"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentPayments.length ? (
                 recentPayments.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="font-semibold text-primary">#{p.receipt_number}</TableCell>
-                    <TableCell className="tabular-nums font-bold text-foreground">{fmt(p.amount)} {currency}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <Badge variant="outline" className="text-[10px] font-normal">
+                  <TableRow key={p.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 dark:border-slate-800">
+                    <TableCell className="font-mono font-extrabold text-purple-600 dark:text-purple-400">#{p.receipt_number}</TableCell>
+                    <TableCell className="tabular-nums font-black text-slate-900 dark:text-white">{fmt(p.amount)} {currency}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs font-bold bg-slate-50 text-slate-700 border-slate-200">
                         {isAr ? METHOD_LABELS[p.method]?.ar : METHOD_LABELS[p.method]?.en}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{p.payment_date}</TableCell>
+                    <TableCell className="text-xs text-slate-500 font-medium">{p.payment_date}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
-                    {isAr ? "لا توجد تحصيلات بعد" : "No collections recorded yet"}
+                  <TableCell colSpan={4} className="py-8 text-center text-xs font-medium text-slate-500">
+                    {isAr ? "لا توجد تحصيلات مسجلة بعد" : "No collections recorded yet"}
                   </TableCell>
                 </TableRow>
               )}
@@ -390,46 +403,48 @@ export async function TenantDashboard({
           </Table>
         </section>
 
-        <section className="rounded-2xl border border-border/60 bg-card shadow-xs">
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
+        <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                {isAr ? "مستحقات متأخرة الدفع" : "Overdue Dues"}
+              <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-white">
+                {isAr ? "مستحقات متأخرة السداد" : "Overdue Dues"}
                 {overdue.length > 0 && (
-                  <Badge variant="destructive" className="text-[10px] font-bold">
+                  <span className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-extrabold text-rose-700">
                     {fmt(overdueAmount)} {currency}
-                  </Badge>
+                  </span>
                 )}
               </h2>
-              <p className="text-[11px] text-muted-foreground">{isAr ? "الذمم المستحقة التي تجاوزت موعد السداد" : "Dues exceeding due dates"}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isAr ? "الذمم والمطالبات التي تجاوزت موعد الاستحقاق" : "Dues exceeding due dates"}
+              </p>
             </div>
             <Link
-              href="/finance/reports/aging"
+              href="/finance/dues"
               locale={locale}
-              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="flex items-center gap-1 text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400"
             >
-              {isAr ? "تقرير الأعمار التفصيلي" : "Aging report"}
+              {isAr ? "تقرير الاستحقاقات" : "Dues report"}
               <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
             </Link>
           </div>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>{isAr ? "المبلغ المتبقي" : "Remaining"}</TableHead>
-                <TableHead>{isAr ? "تاريخ الاستحقاق" : "Due date"}</TableHead>
-                <TableHead>{isAr ? "مستوى الخطورة" : "Status"}</TableHead>
+              <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                <TableHead className="text-xs font-extrabold">{isAr ? "المبلغ المتبقي" : "Remaining"}</TableHead>
+                <TableHead className="text-xs font-extrabold">{isAr ? "تاريخ الاستحقاق" : "Due date"}</TableHead>
+                <TableHead className="text-xs font-extrabold">{isAr ? "الحالة" : "Status"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {overdue.length ? (
                 overdue.slice(0, 5).map((d) => (
-                  <TableRow key={d.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="tabular-nums font-bold text-rose-600 dark:text-rose-400">
+                  <TableRow key={d.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 dark:border-slate-800">
+                    <TableCell className="tabular-nums font-black text-rose-600 dark:text-rose-400">
                       {fmt(d.amount - (paidByDue.get(d.id) ?? 0))} {currency}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{d.due_date}</TableCell>
+                    <TableCell className="text-xs text-slate-500 font-medium">{d.due_date}</TableCell>
                     <TableCell>
-                      <Badge variant="destructive" className="text-[10px] font-semibold">
+                      <Badge variant="destructive" className="text-xs font-extrabold">
                         {isAr ? "متأخر" : "Overdue"}
                       </Badge>
                     </TableCell>
@@ -437,7 +452,7 @@ export async function TenantDashboard({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={3} className="py-8 text-center text-xs font-bold text-emerald-600">
                     {isAr ? "لا توجد مستحقات متأخرة 🎉" : "No overdue dues 🎉"}
                   </TableCell>
                 </TableRow>
@@ -452,56 +467,68 @@ export async function TenantDashboard({
   // Content 2: Tasks & Approvals Queue Tab
   const tasksContent = (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-amber-700 dark:text-amber-400">
-          <ShieldAlert className="size-5" />
+      <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-5 dark:border-amber-800 dark:bg-amber-950/30">
+        <h3 className="flex items-center gap-2 text-base font-extrabold text-amber-900 dark:text-amber-300">
+          <ShieldAlert className="size-5 text-amber-600" />
           {isAr ? "قائمة المهام والاعتمادات العاجلة" : "Approvals & Tasks Queue"}
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-400">
           {isAr
-            ? "هذه العناصر تتطلب اتخاذ إجراء مباشر لضمان دقة القوائم المالية وانضباط الدفاتر."
+            ? "هذه العناصر تتطلب اتخاذ إجراء مباشر لضمان دقة القوائم المالية وانضباط الدفاتر المحاسبية."
             : "Actionable priority items requiring executive attention for ledger compliance."}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Unposted Journal Entries */}
-        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-border/50 pb-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <FileText className="size-4.5 text-blue-500" />
-              <h4 className="text-sm font-semibold">{isAr ? "القيود المحاسبية المعلقة" : "Unposted Journal Entries"}</h4>
+              <FileText className="size-4.5 text-blue-600" />
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                {isAr ? "القيود المحاسبية المعلقة" : "Unposted Journal Entries"}
+              </h4>
             </div>
-            <Badge variant="outline" className="font-bold">{unpostedEntries ?? 0}</Badge>
+            <Badge className="font-black bg-blue-100 text-blue-800 border-blue-200">{unpostedEntries ?? 0}</Badge>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
             {isAr
               ? "القيود المسودة أو التي تحت المراجعة لا تدخل في القوائم المالية حتى يتم ترحيلها رسمياً."
               : "Draft or review entries do not reflect in general ledger until officially posted."}
           </p>
           <div className="mt-4 flex justify-end">
-            <Link href="/finance/journals" locale={locale} className={buttonVariants({ size: "sm" })}>
+            <Link
+              href="/finance/journals"
+              locale={locale}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-bold shadow-xs cursor-pointer"
+            >
               {isAr ? "مراجعة وترحيل القيود" : "Review & Post Entries"}
             </Link>
           </div>
         </div>
 
         {/* Pending Cheques Portfolio */}
-        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-border/50 pb-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <Briefcase className="size-4.5 text-indigo-500" />
-              <h4 className="text-sm font-semibold">{isAr ? "الشيكات قيد الإيداع والتحصيل" : "Pending Cheques Clearance"}</h4>
+              <Briefcase className="size-4.5 text-purple-600" />
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                {isAr ? "الشيكات قيد الإيداع والتحصيل" : "Pending Cheques Clearance"}
+              </h4>
             </div>
-            <Badge variant="outline" className="font-bold">{outstandingCheques ?? 0}</Badge>
+            <Badge className="font-black bg-purple-100 text-purple-800 border-purple-200">{outstandingCheques ?? 0}</Badge>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
             {isAr
               ? "شيكات مستلمة من الأعضاء جاهزة للتظهير أو الإيداع في الحساب البنكي."
               : "Received member cheques ready for deposit into primary bank accounts."}
           </p>
           <div className="mt-4 flex justify-end">
-            <Link href="/finance/payments" locale={locale} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link
+              href="/finance/cashier"
+              locale={locale}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 text-xs font-bold shadow-xs cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            >
               {isAr ? "إدارة محافظ الشيكات" : "Manage Cheques"}
             </Link>
           </div>
@@ -524,27 +551,35 @@ export async function TenantDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Executive Glass Banner Header */}
-      <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-6 shadow-sm">
+      {/* Executive Hero Banner Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Calendar className="size-3.5 text-primary" />
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
+              <Calendar className="size-3.5" />
               <span>{greeting}</span>
               <span>·</span>
               <span>{dateLabel}</span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
               {organization.name}
             </h1>
-            {currentPeriod && (
-              <div className="mt-2 flex items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="size-3" />
-                  {isAr ? "الفترة المالية الفعالة" : "Active Fiscal Period"}: {currentPeriod.name}
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+              {currentPeriod && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <CheckCircle2 className="size-3.5 text-emerald-600" />
+                  <span>{isAr ? "الفترة المالية الفعالة" : "Active Period"}: {currentPeriod.name}</span>
                 </span>
-              </div>
-            )}
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 font-bold text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300">
+                <Scale className="size-3.5 text-purple-600" />
+                <span>{isAr ? `العملة: ${currency}` : `Currency: ${currency}`}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 font-bold text-blue-800 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300">
+                <ShieldCheck className="size-3.5 text-blue-600" />
+                <span>{isAr ? "عزل مشفر (RLS 100%)" : "Tenant Isolated"}</span>
+              </span>
+            </div>
           </div>
 
           <DashboardActions locale={locale} />
@@ -552,12 +587,12 @@ export async function TenantDashboard({
       </div>
 
       {!currentPeriod && (
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
-          <Clock className="size-5 shrink-0" />
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+          <Clock className="size-5 shrink-0 text-amber-600" />
           <span>
             {isAr
-              ? "لا توجد فترة مالية مفتوحة — أرقام الفترة أدناه ستظهر صفرًا. افتح فترة من الإعدادات ← السنوات المالية."
-              : "No open fiscal period — figures below read zero. Open one from Settings → Fiscal Periods."}
+              ? "تنبيه: لا توجد فترة مالية مفتوحة حالياً. يرجى فتح سنة/فترة مالية من (المحاسبة ← الفترات المالية) لبدء الترحيل."
+              : "No open fiscal period. Please activate a period from (Finance → Fiscal Periods)."}
           </span>
         </div>
       )}

@@ -214,23 +214,23 @@ export default async function PropertyPage({
   return (
     <PropertyNavProvider>
       <main className="space-y-6 p-6">
-        {/* Executive Glass Banner Header */}
-        <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-6 shadow-xs">
+        {/* Executive Hero Banner Header */}
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Building className="size-3.5 text-primary" />
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
+                <Building className="size-3.5" />
                 <span>{resort.name}</span>
                 <span>·</span>
                 <span>{organization.name}</span>
               </div>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                {isAr ? "دليل وحدات المنتجع" : "Resort Units & Property Assets"}
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                {isAr ? "دليل الوحدات العقارية والملكيات" : "Real Estate Units & Ownership Index"}
               </h1>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                 {isAr
-                  ? "إدارة الوحدات العقارية، حالات الإشغال، والذمم المالية للملاك"
-                  : "Comprehensive property management, occupancy tracking, and owner balances"}
+                  ? "إدارة الوحدات، نسب الملكية المتعددة، حالات الإشغال، والذمم المالية للملاك عبر الكيانات والمشاريع"
+                  : "Property management, multi-owner equity, occupancy tracking, and owner dues across all entities"}
               </p>
             </div>
 
@@ -250,46 +250,48 @@ export default async function PropertyPage({
                 zones={zones ?? []}
                 locale={locale}
               />
+              <Link
+                href="/import"
+                locale={locale}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 px-3.5 py-2 text-xs font-bold shadow-2xs transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer"
+              >
+                <FileUp className="size-3.5 text-purple-600" />
+                {isAr ? "استيراد CSV" : "Import CSV"}
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* KPI Cards Row */}
-        <div className="reveal-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div style={{ "--reveal-i": 0 } as React.CSSProperties}>
-            <KpiCard
-              label={isAr ? "إجمالي الوحدات المسجلة" : "Total Registered Units"}
-              value={String(totalUnits)}
-              icon={<Building2 className="size-5" />}
-              tone="info"
-            />
-          </div>
-          <div style={{ "--reveal-i": 1 } as React.CSSProperties}>
-            <KpiCard
-              label={isAr ? "معدل الإشغال الإجمالي" : "Occupancy Rate"}
-              value={`${occupancyRate}%`}
-              hint={isAr ? `${occupiedUnits} وحدات مشغولة من أصل ${totalUnits}` : `${occupiedUnits} occupied of ${totalUnits}`}
-              icon={<Percent className="size-5" />}
-              tone={occupancyRate >= 70 ? "positive" : occupancyRate >= 40 ? "warning" : "negative"}
-            />
-          </div>
-          <div style={{ "--reveal-i": 2 } as React.CSSProperties}>
-            <KpiCard
-              label={isAr ? `إجمالي المتأخرات القائمة (${currency})` : `Total Outstanding Arrears (${currency})`}
-              value={<Money amount={totalArrears} locale={locale} tone={totalArrears > 0 ? "negative" : undefined} zeroLabel={isAr ? "لا يوجد" : "None"} />}
-              icon={<AlertCircle className="size-5" />}
-              tone={totalArrears > 0 ? "negative" : "positive"}
-              changeLabel={totalArrears > 0 ? (isAr ? "تتطلب متابعة الملاك" : "Follow up required") : (isAr ? "رصيد منضبط" : "Fully settled")}
-            />
-          </div>
-          <div style={{ "--reveal-i": 3 } as React.CSSProperties}>
-            <KpiCard
-              label={isAr ? `التحصيلات هذا الشهر (${currency})` : `Collected This Month (${currency})`}
-              value={<Money amount={collectedThisMonth} currency={currency} locale={locale} />}
-              icon={<Wallet className="size-5" />}
-              tone="positive"
-            />
-          </div>
+        {/* 4 Metric Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard
+            label={isAr ? "إجمالي الوحدات المسجلة" : "Total Registered Units"}
+            value={totalUnits}
+            hint={isAr ? `${occupiedUnits} وحدة مشغولة` : `${occupiedUnits} occupied`}
+            icon={<Building2 className="size-5.5" />}
+            tone="info"
+          />
+          <KpiCard
+            label={isAr ? "معدل الإشغال الإجمالي" : "Occupancy Rate"}
+            value={`${occupancyRate}%`}
+            hint={isAr ? `${totalUnits - occupiedUnits} وحدة شاغرة` : `${totalUnits - occupiedUnits} vacant`}
+            icon={<Percent className="size-5.5" />}
+            tone={occupancyRate >= 70 ? "positive" : occupancyRate >= 40 ? "warning" : "negative"}
+          />
+          <KpiCard
+            label={isAr ? "الذمم والمديونيات القائمة" : "Total Arrears"}
+            value={<Money amount={totalArrears} currency={currency} locale={locale} />}
+            hint={isAr ? "مستحقات لم تسدد" : "Unpaid dues"}
+            icon={<AlertCircle className="size-5.5" />}
+            tone={totalArrears > 0 ? "negative" : "positive"}
+          />
+          <KpiCard
+            label={isAr ? "المحصل هذا الشهر" : "Collected This Month"}
+            value={<Money amount={collectedThisMonth} currency={currency} locale={locale} />}
+            hint={isAr ? "مدفوعات مرحلة" : "Posted payments"}
+            icon={<Wallet className="size-5.5" />}
+            tone="positive"
+          />
         </div>
 
         {totalUnits === 0 && !sp.q && !sp.building && !sp.zone && !sp.type && !sp.occupancy && !sp.arrears ? (
