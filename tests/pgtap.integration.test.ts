@@ -3023,4 +3023,308 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("17. Phase 2g Group 3 due_schedules Property-ID Rename Integrity (preview_generate_recurring_dues/generate_recurring_dues end-to-end via RPC + due_schedules_manage RLS policy WITH CHECK)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP DueSchedulesCluster Org",
+        slug: `pgtap-due-schedules-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // generate_recurring_dues/preview_generate_recurring_dues are permission-
+    // gated via has_financial_permission (auth.uid(), ...), and the
+    // due_schedules_manage RLS policy this test also exercises is gated via
+    // has_permission(auth.uid(), ...) -- both require a real authenticated
+    // user. Stand up a real TENANT_OWNER session, matching test 15/16's
+    // pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-due-schedules-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: generate_recurring_dues/preview_generate_recurring_dues
+    // both key off of it, and it's what this test proves lands in
+    // due_schedules.property_id and dues.property_id.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "DueSchedulesCluster Resort",
+        code: `DSC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    const { data: receivableAcc, error: receivableAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1200-${Date.now()}`,
+        name_ar: "ذمم مستحقات اختبار",
+        name_en: "Test Dues Receivable",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(receivableAccErr).toBeNull();
+
+    const { data: revenueAcc, error: revenueAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `4300-${Date.now()}`,
+        name_ar: "إيرادات مستحقات اختبار",
+        name_en: "Test Dues Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+      })
+      .select("id")
+      .single();
+    expect(revenueAccErr).toBeNull();
+
+    const { data: dueType, error: dueTypeErr } = await admin
+      .from("due_types")
+      .insert({
+        organization_id: orgId,
+        name_ar: "نوع مستحق اختبار",
+        name_en: "Test Due Type",
+        default_revenue_account_id: revenueAcc!.id,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    expect(dueTypeErr).toBeNull();
+    const dueTypeId = dueType!.id;
+
+    const unitCode = `UNIT-DSC-${Date.now()}`;
+    const { data: unit, error: unitErr } = await admin
+      .from("units")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: unitCode,
+        unit_type: "APARTMENT",
+      })
+      .select("id")
+      .single();
+    expect(unitErr).toBeNull();
+    const unitId = unit!.id;
+
+    // --- due_schedules insert via the authenticated ownerClient: proves
+    // due_schedules_manage's WITH CHECK clause (property_id belongs to
+    // this org) accepts a correctly-scoped row, exercising its rename in
+    // the success case before the negative case below. ---
+    const { data: schedule, error: scheduleErr } = await ownerClient
+      .from("due_schedules")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        name: "pgTAP Test Monthly Schedule",
+        due_type_id: dueTypeId,
+        receivable_account_id: receivableAcc!.id,
+        amount: 250,
+        frequency: "MONTHLY",
+        day_of_month: 1,
+      })
+      .select("id, property_id")
+      .single();
+    expect(scheduleErr).toBeNull();
+    expect(schedule?.property_id).toBe(resortId);
+    const scheduleId = schedule!.id;
+
+    const period = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    // --- preview_generate_recurring_dues: proves its 2 substitutions ---
+    const { data: preview, error: previewErr } = await ownerClient.rpc(
+      "preview_generate_recurring_dues",
+      { p_organization_id: orgId, p_schedule_id: scheduleId, p_period: period },
+    );
+    expect(previewErr).toBeNull();
+    expect(preview?.unit_count).toBe(1);
+    expect(preview?.total_amount).toBe(250);
+
+    // --- generate_recurring_dues: proves the 6 substitutions (the
+    // has_financial_permission check, the units lookup, the dues INSERT,
+    // and the RECURRING_DUES_GENERATED audit event's property_id value) ---
+    const { data: generated, error: generateErr } = await ownerClient.rpc("generate_recurring_dues", {
+      p_organization_id: orgId,
+      p_schedule_id: scheduleId,
+      p_period: period,
+    });
+    expect(generateErr).toBeNull();
+    expect(generated?.success).toBe(true);
+    expect(generated?.idempotent).toBe(false);
+    expect(generated?.generated_units_count).toBe(1);
+
+    const { data: dueRow, error: dueRowErr } = await admin
+      .from("dues")
+      .select("id, property_id, organization_id, unit_id")
+      .eq("organization_id", orgId)
+      .single();
+    expect(dueRowErr).toBeNull();
+    expect(dueRow?.property_id).toBe(resortId);
+    expect(dueRow?.unit_id).toBe(unitId);
+    const dueId = dueRow!.id;
+
+    // --- Calling again for the same period hits the idempotent-replay
+    // branch: proves the RECURRING_DUES_SKIPPED audit event's property_id
+    // value substitution. ---
+    const { data: replay, error: replayErr } = await ownerClient.rpc("generate_recurring_dues", {
+      p_organization_id: orgId,
+      p_schedule_id: scheduleId,
+      p_period: period,
+    });
+    expect(replayErr).toBeNull();
+    expect(replay?.idempotent).toBe(true);
+    expect(replay?.generated_units_count).toBe(0);
+
+    // --- due_schedules_manage RLS policy WITH CHECK, negative case: a
+    // property_id belonging to a *different* organization must be
+    // rejected by RLS itself (a generic row-level-security violation, not
+    // a hard "column does not exist" error) -- the distinction between
+    // those two failure modes is exactly what proves this policy's rename
+    // is correct rather than broken. ---
+    const { data: otherOrg } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP DueSchedulesCluster Other Org",
+        slug: `pgtap-due-schedules-other-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+    const { data: otherResort } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: otherOrg!.id,
+        name: "DueSchedulesCluster Other Resort",
+        code: `DSC-OTHER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    const { error: scopeViolationErr } = await ownerClient.from("due_schedules").insert({
+      organization_id: orgId,
+      property_id: otherResort!.id,
+      name: "pgTAP Test Cross-Org Schedule",
+      due_type_id: dueTypeId,
+      receivable_account_id: receivableAcc!.id,
+      amount: 100,
+      frequency: "MONTHLY",
+      day_of_month: 1,
+    });
+    expect(scopeViolationErr).toBeDefined();
+    expect(scopeViolationErr?.code).toBe("42501");
+
+    // --- Cleanup (FK-safe order) ---
+    await admin.from("resorts").delete().eq("id", otherResort!.id);
+    await admin.from("organizations").delete().eq("id", otherOrg!.id);
+
+    // generate_recurring_dues writes to financial_audit_logs (via
+    // append_financial_audit_event), not platform_audit_logs -- must be
+    // removed before the resort delete below, matching test 15's
+    // precedent for that table.
+    const { error: deleteFinancialAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteFinancialAuditErr).toBeNull();
+
+    const { error: deleteDueErr } = await admin.from("dues").delete().eq("id", dueId);
+    expect(deleteDueErr).toBeNull();
+
+    const { error: deleteRunsErr } = await admin
+      .from("due_generation_runs")
+      .delete()
+      .eq("schedule_id", scheduleId);
+    expect(deleteRunsErr).toBeNull();
+
+    const { error: deleteScheduleErr } = await admin.from("due_schedules").delete().eq("id", scheduleId);
+    expect(deleteScheduleErr).toBeNull();
+
+    const { error: deleteUnitErr } = await admin.from("units").delete().eq("id", unitId);
+    expect(deleteUnitErr).toBeNull();
+
+    const { error: deleteDueTypeErr } = await admin.from("due_types").delete().eq("id", dueTypeId);
+    expect(deleteDueTypeErr).toBeNull();
+
+    // The receivable/revenue GL accounts are not deleted: they've been
+    // referenced by the generated due above, so chart_of_accounts.is_used
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_
+    // FORBIDDEN) -- matching test 15/16's precedent.
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
