@@ -5,6 +5,16 @@ import { DuesTable } from "../dues-table";
 import { PaymentsTable } from "../payments-table";
 import { UnitFinancialsChart } from "./unit-financials-chart";
 
+// Aging severity reads as a heat progression, cool -> hot, so the eye finds
+// the worst bucket without reading numbers first.
+const AGING_SEVERITY: Record<AgingBucketKey, string> = {
+  current: "border-slate-500/20 bg-slate-500/[0.03] text-slate-600 dark:text-slate-400",
+  d1_30: "border-amber-500/20 bg-amber-500/[0.04] text-amber-700 dark:text-amber-400",
+  d31_60: "border-amber-600/25 bg-amber-600/[0.06] text-amber-800 dark:text-amber-300",
+  d61_90: "border-orange-600/30 bg-orange-600/[0.07] text-orange-800 dark:text-orange-300",
+  d90plus: "border-rose-600/35 bg-rose-600/[0.08] text-rose-700 dark:text-rose-400",
+};
+
 export function TabFinancials({
   organizationId,
   unitId,
@@ -39,8 +49,8 @@ export function TabFinancials({
         <h2 className="mb-4 text-sm font-semibold">{isAr ? "أعمار المتأخرات" : "Arrears aging"}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {AGING_BUCKETS.map((b) => (
-            <div key={b.key} className="rounded-xl border border-border/50 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">{isAr ? b.labelAr : b.labelEn}</p>
+            <div key={b.key} className={`rounded-xl border p-3 ${AGING_SEVERITY[b.key]}`}>
+              <p className="text-xs opacity-80">{isAr ? b.labelAr : b.labelEn}</p>
               <p className="mt-1 text-lg font-bold tabular-nums">
                 <Money amount={agingTotals.get(b.key) ?? 0} locale={locale} zeroLabel="—" />
               </p>

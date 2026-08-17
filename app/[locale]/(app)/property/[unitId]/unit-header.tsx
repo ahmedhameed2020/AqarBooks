@@ -2,10 +2,11 @@ import { Wallet, Receipt, CircleCheck, Clock3, Building, CreditCard, Plus } from
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Money } from "@/components/money";
+import { cn } from "@/lib/utils";
 import { KpiCard } from "../../dashboard/kpi-card";
 import { BackButton } from "../back-button";
-import { OccupancyBadge, UNIT_TYPE_ICONS, type UnitRow } from "../units-table";
-import { unitTypeLabel } from "@/lib/units/unit-type-labels";
+import { OccupancyBadge, type UnitRow } from "../units-table";
+import { unitTypeLabel, UNIT_TYPE_ICONS } from "@/lib/units/unit-type-labels";
 import { UnitBalanceBadge } from "../unit-balance-badge";
 
 export function UnitHeader({
@@ -22,6 +23,7 @@ export function UnitHeader({
   lastPayment: { amount: number; payment_date: string } | null;
 }) {
   const isAr = locale === "ar";
+  const settled = unit.balance <= 0;
   const facts = [
     isAr ? unit.building_name_ar : unit.building_name_en,
     isAr ? unit.zone_name_ar : unit.zone_name_en,
@@ -34,16 +36,25 @@ export function UnitHeader({
     <div className="space-y-4">
       <BackButton locale={locale} />
 
-      <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-6 shadow-xs">
+      {/* Status spine: a single glance-able signal (settled vs. in arrears)
+          carried by the accent border, instead of leading with a loud badge. */}
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-3xl border border-s-4 border-border/60 bg-gradient-to-br from-primary/[0.05] via-card to-card p-6 shadow-xs",
+          settled ? "border-s-emerald-500" : "border-s-rose-500",
+        )}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-primary">{UNIT_TYPE_ICONS[unit.unit_type]}</span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 [&_svg]:size-4.5">
+                {UNIT_TYPE_ICONS[unit.unit_type]}
+              </span>
               <h1 className="font-mono text-2xl font-bold tracking-tight sm:text-3xl">{unit.code}</h1>
               <OccupancyBadge status={unit.occupancy_status} locale={locale} />
               <UnitBalanceBadge balance={unit.balance} currency={currency} locale={locale} />
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               <Building className="me-1 inline size-3.5" />
               {unitTypeLabel(unit, isAr)}
               {facts ? ` · ${facts}` : ""}
@@ -102,6 +113,7 @@ export function UnitHeader({
             value={lastPayment ? <Money amount={lastPayment.amount} currency={currency} locale={locale} /> : "—"}
             hint={lastPayment?.payment_date}
             icon={<Clock3 className="size-5" />}
+            tone="info"
           />
         </div>
       </div>

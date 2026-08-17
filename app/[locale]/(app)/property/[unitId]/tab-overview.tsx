@@ -1,6 +1,7 @@
-import { Wallet, User, ArrowUpRight } from "lucide-react";
+import { Wallet, User, ArrowUpRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Money } from "@/components/money";
+import { cn } from "@/lib/utils";
 import type { UnitRow } from "../units-table";
 import { unitTypeLabel } from "@/lib/units/unit-type-labels";
 import type { ActivityEvent } from "@/lib/property/unit-activity";
@@ -22,6 +23,7 @@ export function TabOverview({
   recentActivity: ActivityEvent[];
 }) {
   const isAr = locale === "ar";
+  const settled = unit.balance <= 0;
   const facts: [string, string][] = [
     [isAr ? "النوع" : "Type", unitTypeLabel(unit, isAr)],
     [isAr ? "الدور" : "Floor", unit.floor_number != null ? String(unit.floor_number) : "—"],
@@ -33,16 +35,34 @@ export function TabOverview({
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Wallet className="size-4 text-primary" />
-          {isAr ? "الصحة المالية" : "Financial health"}
-        </h2>
-        <p className="mt-3 text-3xl font-bold">
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-2xl border p-5 shadow-xs",
+          settled ? "border-emerald-500/25 bg-emerald-500/[0.04]" : "border-rose-500/25 bg-rose-500/[0.04]",
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-xl",
+              settled ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+            )}
+          >
+            <Wallet className="size-4" />
+          </span>
+          <h2 className="text-sm font-semibold">{isAr ? "الصحة المالية" : "Financial health"}</h2>
+        </div>
+        <p className="mt-4 text-3xl font-bold tabular-nums">
           <Money amount={unit.balance} currency={currency} locale={locale} tone={unit.balance > 0 ? "negative" : "positive"} />
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {unit.balance > 0 ? (isAr ? "رصيد متأخرات قائم" : "Outstanding arrears") : (isAr ? "رصيد منضبط" : "Fully settled")}
+        <p
+          className={cn(
+            "mt-2 flex items-center gap-1.5 text-xs font-medium",
+            settled ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400",
+          )}
+        >
+          {settled ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
+          {settled ? (isAr ? "رصيد منضبط" : "Fully settled") : (isAr ? "رصيد متأخرات قائم" : "Outstanding arrears")}
         </p>
       </section>
 

@@ -118,7 +118,7 @@ export async function PaymentsTable({
       <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30">
+            <TableRow className="bg-muted/60 hover:bg-muted/60">
               <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
               <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
               <TableHead>{isAr ? "طريقة الدفع" : "Method"}</TableHead>

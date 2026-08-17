@@ -80,7 +80,7 @@ export async function DuesTable({
       <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30">
+            <TableRow className="bg-muted/60 hover:bg-muted/60">
               <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
               <TableHead>{isAr ? "النوع" : "Type"}</TableHead>
               <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
