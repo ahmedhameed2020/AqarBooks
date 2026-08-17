@@ -94,3 +94,56 @@ export async function signOut(locale: Locale) {
   await supabase.auth.signOut();
   redirect({ href: "/login", locale });
 }
+
+export async function requestPasswordResetAction(
+  email: string,
+  redirectToUrl?: string
+): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const parsed = z.string().email("البريد الإلكتروني غير صالح").safeParse(email);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message || "البريد الإلكتروني غير صالح" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: redirectToUrl,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}
+
+export async function updatePasswordAction(
+  password: string,
+  confirmPassword: string
+): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  if (password !== confirmPassword) {
+    return { ok: false, error: "كلمتا المرور غير متطابقتين" };
+  }
+
+  const parsed = z.string().min(8, "كلمة المرور يجب ألا تقل عن 8 خانات").safeParse(password);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}
+
