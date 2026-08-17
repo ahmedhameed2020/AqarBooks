@@ -107,7 +107,7 @@ export function JournalEntryForm({
       <div className="space-y-2">
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50">
+            <thead className="border-b bg-table-header">
               <tr>
                 <th className="p-2 text-start">{isAr ? "الحساب" : "Account"}</th>
                 <th className="p-2 text-start">{isAr ? "البيان" : "Memo"}</th>
