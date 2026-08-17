@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Cairo, Plus_Jakarta_Sans } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import "../globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
 });
 
-const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
-  variable: "--font-ibm-plex-sans-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+const jakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 const DIRECTION: Record<Locale, "rtl" | "ltr"> = {
@@ -59,7 +62,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={direction}
-      className={`${inter.variable} ${ibmPlexSansArabic.variable} h-full antialiased`}
+      className={`${cairo.variable} ${jakartaSans.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>

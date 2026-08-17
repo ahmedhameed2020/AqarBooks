@@ -3,7 +3,26 @@ import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { MarketingNav } from "./marketing-nav";
-import { DashboardPreview } from "./dashboard-preview";
+import { FlowLinesBackground } from "@/components/marketing/flow-lines-background";
+import { HeroVisual } from "@/components/marketing/hero-visual";
+import { LiveLedgerTicker } from "@/components/marketing/live-ledger-ticker";
+import { EntitiesShowcase } from "@/components/marketing/entities-showcase";
+import { AccountingEngineShowcase } from "@/components/marketing/accounting-engine-showcase";
+import {
+  ShieldCheck,
+  Building,
+  Scale,
+  Receipt,
+  Users,
+  Layers,
+  Sparkles,
+  Lock,
+  History,
+  Check,
+  ArrowRight,
+  Shield,
+  FileCheck,
+} from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -13,11 +32,11 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "RESORTOS — الإدارة المالية والتشغيلية لمنتجعك"
-    : "RESORTOS — Run Your Resort Finances";
+    ? "عقار بوكس (AqarBooks) — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات (مصر والخليج)"
+    : "AqarBooks — Enterprise Real Estate & Resort Accounting ERP (Egypt & GCC)";
   const description = isAr
-    ? "نظام مالي وتشغيلي متكامل للقرى والمنتجعات السياحية: الحسابات، الوحدات، المديونيات، التحصيلات، الخزينة، البنوك، والتقارير في منصة واحدة آمنة."
-    : "A financial and operational platform for resorts and gated communities, unifying accounting, units, receivables, collections, treasury, banking, and reporting.";
+    ? "نظام محاسبي متكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الضرائب المصرية (VAT/WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
+    : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with Egyptian Tax & Saudi ZATCA e-invoicing.";
 
   return {
     title,
@@ -30,135 +49,181 @@ export async function generateMetadata({
   };
 }
 
-const FEATURES = [
+const MODULES = [
   {
     key: "accounting",
-    icon: "📒",
+    icon: Scale,
     titleAr: "محرك محاسبة بقيد مزدوج حقيقي",
-    titleEn: "A real double-entry accounting engine",
-    descAr: "دليل حسابات هرمي، سنوات وفترات مالية، ترحيل معاملات atomic، وعكس القيود بدل التعديل المباشر.",
-    descEn: "Hierarchical chart of accounts, fiscal years and periods, atomic posting, and reversal-based corrections instead of direct edits.",
+    titleEn: "True Double-Entry Accounting Engine",
+    descAr: "دليل حسابات شجري هرمي، فترات مالية مقفلة، ترحيل ذري Atomic، وتصحيح القيود بالعكس المحاسبي الموثّق بدل التعديل المباشر.",
+    descEn: "Hierarchical Chart of Accounts, closed fiscal periods, atomic DB posting, and audited reversals instead of direct edits.",
   },
   {
-    key: "property",
-    icon: "🏘️",
-    titleAr: "الوحدات والأعضاء والمديونيات",
-    titleEn: "Units, members, and receivables",
-    descAr: "ربط ملكية متعدد للوحدة الواحدة، إصدار مستحقات، وتحصيل بتخصيص جزئي أو متعدد المستحقات.",
-    descEn: "Multi-owner unit linking, due issuance, and collection with partial or multi-due allocation.",
+    key: "taxes",
+    icon: Receipt,
+    titleAr: "مطابقة الضرائب والفوترة الإلكترونية (VAT / ZATCA)",
+    titleEn: "Regional Tax & e-Invoicing (VAT / ZATCA)",
+    descAr: "حساب ضريبة القيمة المضافة (14% لمصر و 15% للخليج)، ضرائب الخصم والتحصيل WHT، والجاهزية التامة لمنظومة زاتكا ZATCA والفاتورة الإلكترونية.",
+    descEn: "Automated VAT (14% Egypt / 15% GCC), Withholding Tax (WHT) deductions, and Saudi ZATCA Phase 2 integration readiness.",
+  },
+  {
+    key: "units",
+    icon: Building,
+    titleAr: "الوحدات والملكية المتعددة والأقساط",
+    titleEn: "Units, Multi-Owner Linking & Dues",
+    descAr: "ربط ملكية أكثر من مالك بنفس الوحدة، إصدار جداول الأقساط ورسوم الصيانة الدورية، وسندات تحصيل بتخصيص جزئي أو متعدد.",
+    descEn: "Multi-owner fractional linking, maintenance dues schedules, and payment vouchers with multi-due allocation.",
   },
   {
     key: "treasury",
-    icon: "💵",
-    titleAr: "الخزينة والكاشير",
-    titleEn: "Treasury and cashier",
-    descAr: "جلسات كاشير بصندوق واحد مفتوح في المرة، وتسوية فرق الإقفال بدل تجاهله.",
-    descEn: "One open cashier session per cashbox at a time, with closing variance recorded, not discarded.",
+    icon: Layers,
+    titleAr: "الخزينة والكاشير وتسوية الفروق",
+    titleEn: "Treasury, Cashier & Variance Audit",
+    descAr: "جلسات كاشير منضبطة بصندوق واحد مفتوح في المرة، وتسجيل فروق الإقفال النقدية بحساب مستقل للتدقيق الإداري.",
+    descEn: "Single-session cashbox controls, opening float verification, and automatic closing variance ledger posting.",
   },
   {
     key: "banking",
-    icon: "🏦",
-    titleAr: "البنوك والشيكات",
-    titleEn: "Banks and cheques",
-    descAr: "دورة حياة شيك كاملة وموثّقة من الاستلام للتحصيل، وكل انتقال حالة مُدقَّق.",
-    descEn: "A fully audited cheque lifecycle from receipt to clearing — every status change is logged.",
+    icon: History,
+    titleAr: "البنوك ودورة حياة الشيكات والعملات",
+    titleEn: "Banking, Multi-Currency & Cheques",
+    descAr: "تتبع موثق للشيكات من الاستلام حتى المقاصة أو الارتداد، مع دعم المعاملات المتعددة العملات (EGP, SAR, AED, USD).",
+    descEn: "Complete audited cheque custody tracking and multi-currency transaction support (EGP, SAR, AED, USD).",
   },
   {
-    key: "purchasing",
-    icon: "🧾",
-    titleAr: "الموردون والمصروفات",
-    titleEn: "Suppliers and expenses",
-    descAr: "طلب شراء يحتاج موافقة صريحة قبل أي التزام، وفواتير موردين بترحيل محاسبي مباشر.",
-    descEn: "Purchase requests require explicit approval before any commitment; supplier invoices post directly to the ledger.",
-  },
-  {
-    key: "reports",
-    icon: "📊",
-    titleAr: "تقارير مالية مشتقة من الداتابيز",
-    titleEn: "Reports derived from the database",
-    descAr: "ميزان مراجعة، قائمة دخل، ميزانية عمومية، وأعمار ديون — كلها محسوبة من القيود الفعلية.",
-    descEn: "Trial balance, income statement, balance sheet, and aging — all computed from actual posted entries.",
+    key: "hoa",
+    icon: Users,
+    titleAr: "موازنات اتحادات وجمعيات الملاك (HOA / ملاك)",
+    titleEn: "HOA & Community Financials (Mollak)",
+    descAr: "إدارة الموازنة المعتمدة، توزيع مصاريف الحراسة والصيانة المشتركة بنسبة الحصص العقارية، وتوليد تقارير الجمعية العمومية المعتمدة.",
+    descEn: "AGM-approved budget management, pro-rata common expense sharing, and annual financial auditor packets.",
   },
 ] as const;
 
-const SECURITY_POINTS = [
+const SECURITY_PILLARS = [
   {
-    titleAr: "عزل كامل بين المستأجرين",
-    titleEn: "Full tenant isolation",
-    descAr: "كل جدول بحساسية بيانات مفعّل عليه Row-Level Security بشكل افتراضي رافض (default-deny).",
-    descEn: "Every sensitive table has Row-Level Security enabled with a default-deny policy.",
+    titleAr: "عزل RLS تام بين العقارات والشركات",
+    titleEn: "Database Row-Level Security (RLS)",
+    descAr: "كل جدول مالي محمي بسياسات Row-Level Security مشددة من داخل PostgreSQL — بيانات كل عقار أو اتحاد ملاك معزولة جذرياً.",
+    descEn: "Every sensitive table enforces default-deny Row-Level Security inside PostgreSQL — strict tenant isolation guaranteed.",
   },
   {
-    titleAr: "لا تعديل على المعاملات المرحّلة",
-    titleEn: "Posted transactions cannot be edited",
-    descAr: "القيود والمدفوعات المرحّلة لا تملك أي صلاحية تعديل مباشرة — التصحيح يتم بالعكس فقط.",
-    descEn: "Posted journal entries and payments have no direct write policy at all — corrections happen only via reversal.",
+    titleAr: "عدم التعديل المباشر (Immutable Ledger)",
+    titleEn: "Immutable Ledger & Audit Trail",
+    descAr: "القيود وسندات القبض المرحّلة لا تملك أي صلاحية تعديل أو حذف في قاعدة البيانات؛ أي تصحيح يتم عبر قيد عكسي موثّق.",
+    descEn: "Posted entries and payment vouchers have zero direct write/delete permissions. Corrections require documented reversals.",
   },
   {
-    titleAr: "كل إجراء حساس مُدقَّق",
-    titleEn: "Every sensitive action is audited",
-    descAr: "إنشاء المنظمات، الترحيل، التحصيل، وتغييرات الصلاحيات كلها مسجّلة بمن قام بها ومتى ولماذا.",
-    descEn: "Organization creation, posting, collection, and permission changes are all logged with who, when, and why.",
+    titleAr: "سجل تدقيق كامل لكل إجراء حساس",
+    titleEn: "Full Action Auditing & Accountability",
+    descAr: "ترحيل القيود، إقفال الصناديق، اعتماد فواتير الموردين، وتعديل الصلاحيات مسجلة بدقة مع هوية المستخدم، الـ IP، والطابع الزمني.",
+    descEn: "Posting, cashier closing, invoice approvals, and role updates are permanently logged with user ID, IP, and timestamp.",
   },
 ] as const;
 
 const PLANS = [
   {
     key: "STARTER",
-    nameAr: "الأساسية",
-    nameEn: "Starter",
-    descAr: "لمنتجع واحد يبدأ رحلته الرقمية.",
-    descEn: "For a single resort starting its digital journey.",
-    featuresAr: ["منتجع واحد", "حتى 5 مستخدمين", "المحاسبة والكاشير"],
-    featuresEn: ["1 resort", "Up to 5 users", "Accounting & cashier"],
+    nameAr: "الباقة الأساسية (عقار / برج / اتحاد ملاك)",
+    nameEn: "Starter (Single Property / Tower / HOA)",
+    descAr: "مثالية لإدارة برج سكني، عمارة، أو اتحاد ملاك فردي في مصر أو الخليج.",
+    descEn: "Designed for single towers, buildings, or standalone HOAs.",
+    featuresAr: [
+      "إدارة حتى 100 وحدة سكنية / تجارية",
+      "دليل حسابات مخصص لاتحاد الملاك أو العقار",
+      "إصدار مطالبات الصيانة وسندات التحصيل",
+      "حساب جلسات الكاشير وتسوية الصندوق",
+      "تقارير الإيرادات والمصروفات والمديونيات",
+      "دعم العملات المحلية (EGP / SAR / AED)",
+    ],
+    featuresEn: [
+      "Up to 100 residential/commercial units",
+      "Dedicated Chart of Accounts for Property/HOA",
+      "Maintenance dues & digital collection receipts",
+      "Cashbox sessions & variance tracking",
+      "Revenue, expense & member aging reports",
+      "Local currencies support (EGP / SAR / AED)",
+    ],
     highlighted: false,
   },
   {
     key: "PROFESSIONAL",
-    nameAr: "الاحترافية",
-    nameEn: "Professional",
-    descAr: "لمجموعات المنتجعات متوسطة الحجم.",
-    descEn: "For growing multi-resort groups.",
-    featuresAr: ["حتى 3 منتجعات", "حتى 25 مستخدمًا", "البنوك والأصول والمخزون"],
-    featuresEn: ["Up to 3 resorts", "Up to 25 users", "Banking, assets & inventory"],
+    nameAr: "باقة إدارة العقارات والمنتجعات",
+    nameEn: "Professional (Resorts & Management)",
+    descAr: "للشركات العقارية التي تدير عدة أبراج، قرى سياحية، ومراكز تجارية.",
+    descEn: "For real estate operators managing multi-towers, resorts & plazas.",
+    featuresAr: [
+      "إدارة حتى 1,000 وحدة عبر عدة كيانات",
+      "محرك الضرائب المصرية والخليجية (VAT / WHT / ZATCA)",
+      "تتبع دورة حياة الشيكات والمقاصة البنكية",
+      "إدارة مشتريات ومصروفات الموردين واعتماداتها",
+      "ميزان مراجعة، ميزانية عمومية، وقائمة دخل لحظية",
+      "دعم الفلل والمحلات والوحدات متعددة الملاك",
+    ],
+    featuresEn: [
+      "Up to 1,000 units across multi-entities",
+      "Egypt & GCC Tax Engine (VAT / WHT / ZATCA)",
+      "Cheque lifecycle & bank clearance tracking",
+      "Purchase orders & supplier expense workflows",
+      "Real-time Trial Balance, Balance Sheet & P&L",
+      "Multi-owner villa & commercial store support",
+    ],
     highlighted: true,
   },
   {
     key: "ENTERPRISE",
-    nameAr: "المؤسسية",
-    nameEn: "Enterprise",
-    descAr: "لمجموعات المنتجعات الكبيرة والعلامة الخاصة.",
-    descEn: "For large resort groups and white-label needs.",
-    featuresAr: ["منتجعات ومستخدمون غير محدودين", "علامة تجارية خاصة", "وصول API"],
-    featuresEn: ["Unlimited resorts & users", "White-label branding", "API access"],
+    nameAr: "باقة المجموعات القابضة والعلامة الخاصة",
+    nameEn: "Enterprise & White-Label",
+    descAr: "للمطورين العقاريين الكبار ومجموعات الضيافة متعددة الفروع في الوطن العربي.",
+    descEn: "For large real estate developers & hospitality conglomerates.",
+    featuresAr: [
+      "وحدات وكيانات ومستخدمين غير محدودين",
+      "تخصيص كامل للهوية البصرية (White-Label)",
+      "ربط برمجي كامل عبر REST API / Webhooks",
+      "خوادم وقواعد بيانات مخصصة أو داخلية (On-Prem)",
+      "اتفاقية مستوى خدمة مخصصة (SLA) ودعم فني خاص 24/7",
+    ],
+    featuresEn: [
+      "Unlimited units, entities & team members",
+      "Full custom branding (White-Label)",
+      "Direct REST API & Webhook integrations",
+      "Dedicated / Isolated DB hosting options",
+      "Enterprise SLA & 24/7 dedicated support",
+    ],
     highlighted: false,
   },
 ] as const;
 
 const FAQ = [
   {
-    qAr: "هل النظام يدعم العربية والإنجليزية بشكل كامل؟",
-    qEn: "Does the platform fully support Arabic and English?",
-    aAr: "نعم، الواجهة كاملة RTL بالعربية و LTR بالإنجليزية، بما في ذلك التقارير المالية والتواريخ والعملات.",
-    aEn: "Yes — the entire interface is true RTL in Arabic and LTR in English, including financial reports, dates, and currency formatting.",
+    qAr: "هل يدعم عقار بوكس (AqarBooks) متطلبات السوق المصري والسوق الخليجي؟",
+    qEn: "Does AqarBooks support Egyptian and GCC market requirements?",
+    aAr: "نعم، النظام مصمم خصيصاً للشركات العقارية في مصر ودول الخليج؛ فهو يدعم ضريبة القيمة المضافة 14% (مصر) و 15% (السعودية) و 5% (الإمارات)، وضرائب الخصم والتحصيل WHT، وجاهزية الفاتورة الإلكترونية وزاتكا ZATCA، مع دليل حسابات معرب ومطابق للمعايير المحاسبية المعتمدة.",
+    aEn: "Yes — AqarBooks is natively tailored for Egypt and the GCC: supporting Egyptian 14% VAT & WHT, Saudi 15% VAT & ZATCA e-invoicing Phase 2, UAE 5% VAT, multi-currencies (EGP, SAR, AED, USD), and localized Arabic Chart of Accounts.",
   },
   {
-    qAr: "هل يمكن لكل منتجع أن يكون له حسابات منفصلة؟",
-    qEn: "Can each resort have its own separate books?",
-    aAr: "نعم، المنظمة الواحدة يمكن أن تدير عدة منتجعات، وكل منتجع له وحداته وسجلاته الخاصة داخل نفس الحساب.",
-    aEn: "Yes — one organization can manage multiple resorts, each with its own units and records within the same account.",
+    qAr: "كيف يختلف عقار بوكس عن برامج إدارة العقارات التقليدية؟",
+    qEn: "How does AqarBooks differ from traditional property management software?",
+    aAr: "البرامج التقليدية غالبًا ما تكون مجرد جداول تسجيل إيجارات أو تحصيل سطحي. عقار بوكس مبني على محرك محاسبة عامة بقيد مزدوج حقيقي (Double-Entry GL)، ترحيل ذري Atomic، ويدعم الكيانات الخمسة (منتجعات سياحية، أبراج، فلل، محلات تجارية، اتحادات ملاك) في بنية واحدة متماسكة.",
+    aEn: "Traditional software is often just a billing spreadsheet. AqarBooks is built on a full double-entry general ledger engine with atomic DB posting, audited reversals, and native support for all 5 property entity types.",
   },
   {
-    qAr: "هل بياناتنا معزولة عن باقي العملاء؟",
-    qEn: "Is our data isolated from other customers?",
-    aAr: "نعم، بشكل صارم عبر Row-Level Security على مستوى قاعدة البيانات، وليس فقط على مستوى الواجهة.",
-    aEn: "Yes, strictly — enforced with Row-Level Security at the database level, not just hidden in the UI.",
+    qAr: "هل يمكن إدارة اتحاد شاغلين أو جمعية ملاك مع توزيع المصروفات بحسب الحصص؟",
+    qEn: "Can it manage an HOA / Mollak association with pro-rata area expense distribution?",
+    aAr: "نعم، يدعم النظام توزيع المصروفات المشتركة (حراسة، صيانة مصاعد، إنارة عامة) بحسب نسبة كل وحدة في ملكية الأرض والأجزاء المشتركة، مع إصدار مطالبات موثقة ومتابعة مديونيات الأعضاء.",
+    aEn: "Yes — common operational expenses are automatically apportioned based on each unit's official pro-rata ownership share with audited statements.",
   },
   {
-    qAr: "هل يمكن تخصيص دليل الحسابات؟",
-    qEn: "Can the chart of accounts be customized?",
-    aAr: "نقدّم قالب حسابات مبدئي اختياري لمنتجعات، وأنت حر تمامًا في تعديله أو البناء من الصفر.",
-    aEn: "We offer an optional starter chart-of-accounts template for resorts, and you're free to customize it or start from scratch.",
+    qAr: "كيف يضمن النظام عدم التلاعب المالي وسرية الحسابات؟",
+    qEn: "How does AqarBooks prevent financial tampering and protect tenant data?",
+    aAr: "من خلال ركيزتين أساسيتين: الأولى هي عزل البيانات الصارم عبر تقنية Row-Level Security في PostgreSQL، والثانية هي عدم إمكانية تعديل أو حذف القيود المرحّلة إطلاقاً (أي تصحيح يتم عبر قيد عكسي موثّق مع سجل تدقيق غير قابل للحذف).",
+    aEn: "Through two strict pillars: database-level Row-Level Security (RLS) for complete multi-tenant isolation, and an immutable ledger where posted entries cannot be edited — corrections require logged reversing entries.",
+  },
+  {
+    qAr: "هل النظام ثنائي اللغة (عربي بالكامل وإنجليزي)؟",
+    qEn: "Is the platform fully bilingual (Arabic RTL and English LTR)?",
+    aAr: "نعم، الواجهة كاملة، شجرة الحسابات، سندات القبض، والتقارير المالية مبنية من الأساس لتدعم اللغة العربية RTL والإنجليزية LTR بخطوط عصرية ومظهر احترافي فائق.",
+    aEn: "Yes — the complete UI, Chart of Accounts, receipt vouchers, and financial statements are natively designed for Arabic (RTL) and English (LTR) with modern high-contrast typography.",
   },
 ] as const;
 
@@ -174,174 +239,172 @@ export default async function LandingPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "RESORTOS",
-    applicationCategory: "BusinessApplication",
+    name: "AqarBooks",
+    applicationCategory: "Accounting & Real Estate ERP",
     operatingSystem: "Web",
     description: isAr
-      ? "نظام مالي وتشغيلي متكامل للقرى والمنتجعات السياحية."
-      : "A financial and operational platform for resorts and gated communities.",
+      ? "نظام عقار بوكس المحاسبي المتكامل لإدارة العقارات والمنتجعات واتحادات الملاك بقيد مزدوج حقيقي ومطابقة ضريبية لمصر والخليج."
+      : "AqarBooks Enterprise Double-Entry Real Estate & Resort Accounting ERP for Egypt and GCC.",
   };
 
   return (
-    <div className="marketing flex min-h-full flex-1 flex-col">
+    <div className="marketing relative flex min-h-full flex-1 flex-col bg-[#060a18] text-[#f8fafc] selection:bg-purple-900 selection:text-purple-100">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <MarketingNav locale={locale as Locale} />
 
-      {/* Hero */}
-      <section className="marketing-grid relative overflow-hidden border-b border-[var(--mk-border)] px-6 pt-20 pb-24 text-center">
-        <div className="mx-auto max-w-3xl">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--mk-border-strong)] px-3 py-1 text-xs text-[var(--mk-text-muted)]">
-            <span className="size-1.5 rounded-full bg-[var(--mk-accent)]" />
-            {isAr ? "منصة SaaS متعددة المستأجرين" : "Multi-tenant SaaS platform"}
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-[var(--mk-pearl)] sm:text-5xl">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden px-6 pt-16 pb-24 text-center">
+        {/* Animated Background Flow Lines & Luminous Laser Currents */}
+        <FlowLinesBackground />
+
+        <div className="relative z-10 mx-auto max-w-4xl">
+          {/* Top Trust Signal Badge */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/40 bg-[#0b1126]/90 px-4 py-1.5 text-xs text-purple-200 shadow-[0_0_25px_-4px_rgba(139,92,246,0.6)] backdrop-blur-md transition-transform hover:scale-105">
+            <span className="size-2 rounded-full bg-purple-400 animate-pulse" />
+            <span className="font-bold">
+              {isAr
+                ? "قيد مزدوج حقيقي • متوافق مع الضرائب المصرية (VAT/WHT) ومنظومة زاتكا (ZATCA)"
+                : "Full Double-Entry Engine • Egyptian Tax (VAT/WHT) & Saudi ZATCA Ready"}
+            </span>
+          </div>
+
+          {/* Main Hero Headline */}
+          <h1 className="text-balance text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.2]">
             {isAr ? (
               <>
-                الإدارة المالية والتشغيلية لمنتجعك.
-                <br />
-                منصة واحدة. حسابات دقيقة. رؤية أوضح.
+                النظام المحاسبي المتكامل لإدارة{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">
+                  العقارات والمنتجعات
+                </span>
               </>
             ) : (
               <>
-                Run Your Resort Finances.
-                <br />
-                One Platform. Accurate Accounts. Clearer Decisions.
+                Enterprise Accounting ERP for{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">
+                  Real Estate & Resorts
+                </span>
               </>
             )}
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-balance text-base text-[var(--mk-text-muted)] sm:text-lg">
+
+          {/* Subtitle */}
+          <p className="mx-auto mt-6 max-w-2xl text-balance text-base text-slate-300 sm:text-lg leading-relaxed font-normal">
             {isAr
-              ? "RESORTOS هو نظام مالي وتشغيلي متكامل للقرى والمنتجعات السياحية، يجمع الحسابات والوحدات والمديونيات والتحصيلات والخزينة والبنوك والتقارير في منصة واحدة آمنة."
-              : "RESORTOS is a financial and operational platform for resorts and gated communities, unifying accounting, units, receivables, collections, treasury, banking, and reporting."}
+              ? "عقار بوكس (AqarBooks) يوحّد قيود اليومية، حسابات جمعيات واتحادات الملاك، الأبراج السكنية، القرى السياحية، المراكز التجارية، والخزينة في منصة مالية واحدة آمنة وغير قابلة للتعديل العشوائي."
+              : "AqarBooks unifies general ledger postings, HOA community finances, residential towers, tourist resorts, retail plazas, and cashbox sessions into one secure, audit-proof ERP platform across Egypt & GCC."}
           </p>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+
+          {/* Dual CTAs */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/demo"
               locale={locale as Locale}
-              className="rounded-md bg-[var(--mk-accent)] px-6 py-3 text-sm font-medium text-[var(--mk-bg)] transition-transform hover:-translate-y-0.5"
+              className="glow-btn-primary rounded-xl px-7 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-lg shadow-purple-900/50"
             >
-              {isAr ? "طلب عرض توضيحي" : "Request a Demo"}
+              {isAr ? "طلب عرض توضيحي حي" : "Request a Live Demo"}
             </Link>
             <a
-              href="#platform"
-              className="rounded-md border border-[var(--mk-border-strong)] px-6 py-3 text-sm font-medium text-[var(--mk-text)] transition-colors hover:bg-[var(--mk-surface)]"
+              href="#entities"
+              className="rounded-xl border border-slate-700/80 bg-[#0b1126]/90 px-6 py-3.5 text-sm font-bold text-slate-200 transition-all hover:border-purple-500/50 hover:bg-[#0f1733] hover:text-white"
             >
-              {isAr ? "استكشف المنصة" : "Explore the Platform"}
+              {isAr ? "استكشف الكيانات المدعومة" : "Explore Entity Models"}
             </a>
           </div>
         </div>
 
-        <div className="mx-auto mt-16 max-w-4xl">
-          <DashboardPreview isAr={isAr} />
+        {/* Ultra-realistic Visual Hero Asset Card */}
+        <div className="mt-14">
+          <HeroVisual isAr={isAr} />
         </div>
       </section>
 
-      {/* Trust indicators */}
-      <section className="border-b border-[var(--mk-border)] px-6 py-8">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-6 text-center sm:grid-cols-4">
-          {[
-            { labelAr: "عربي/إنجليزي بالكامل", labelEn: "Fully Arabic/English" },
-            { labelAr: "معزول لكل مستأجر (RLS)", labelEn: "Per-tenant isolated (RLS)" },
-            { labelAr: "قيد مزدوج حقيقي", labelEn: "Real double-entry" },
-            { labelAr: "سجل تدقيق كامل", labelEn: "Full audit trail" },
-          ].map((item) => (
-            <p key={item.labelEn} className="text-xs font-medium text-[var(--mk-text-muted)] sm:text-sm">
-              {isAr ? item.labelAr : item.labelEn}
-            </p>
-          ))}
-        </div>
-      </section>
+      {/* Real-time Atomic Ledger Ticker */}
+      <LiveLedgerTicker isAr={isAr} />
 
-      {/* Problem */}
-      <section className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-            {isAr ? "الأنظمة المتفرّقة بتكلّفك أكتر مما تتخيّل" : "Fragmented systems cost more than you think"}
-          </h2>
-          <p className="mt-4 text-[var(--mk-text-muted)]">
-            {isAr
-              ? "شيت إكسل للحسابات، دفتر ورقي للمتأخرات، وواتساب للتحصيل — كل ده بيسيب فجوات في الدقة والمتابعة. RESORTOS بيجمعهم في نظام واحد مترابط."
-              : "A spreadsheet for accounting, a paper ledger for arrears, WhatsApp for collections — every gap between them is a gap in accuracy and follow-up. RESORTOS unifies them into one connected system."}
-          </p>
-        </div>
-      </section>
+      {/* The 5 Real Estate Entities Showcase Section */}
+      <EntitiesShowcase isAr={isAr} />
 
-      {/* Platform overview / feature grid */}
-      <section id="platform" className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-              {isAr ? "كل ما يحتاجه منتجعك، في مكان واحد" : "Everything your resort needs, in one place"}
+      {/* Accounting Engine & Egyptian Taxes Section */}
+      <AccountingEngineShowcase isAr={isAr} />
+
+      {/* Full Core Modules Grid */}
+      <section id="features" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#070c1e]">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-4 py-1 text-xs font-bold text-purple-300 mb-4 shadow-[0_0_20px_-4px_rgba(139,92,246,0.5)]">
+              <Layers className="size-3.5 text-purple-400" />
+              <span>{isAr ? "الموديولات الوظيفية" : "Functional ERP Modules"}</span>
+            </div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              {isAr ? "كل ما تحتاجه الإدارة المالية للعقار" : "Complete Real Estate Financial Toolkit"}
             </h2>
+            <p className="mt-3 text-sm text-slate-400 font-normal">
+              {isAr
+                ? "بنية متماسكة تشمل القيود، التحصيل، الصناديق، الشيكات، وإقرارات الضرائب لمصر والخليج."
+                : "A cohesive infrastructure covering journals, billing, cashboxes, cheques, and regional tax compliance."}
+            </p>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-xl border border-[var(--mk-border)] bg-[var(--mk-border)] sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.key} id={f.key} className="bg-[var(--mk-bg-elevated)] p-6">
-                <span className="text-2xl">{f.icon}</span>
-                <h3 className="mt-4 text-sm font-semibold text-[var(--mk-text)]">
-                  {isAr ? f.titleAr : f.titleEn}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--mk-text-muted)]">
-                  {isAr ? f.descAr : f.descEn}
-                </p>
-              </div>
-            ))}
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {MODULES.map((m) => {
+              const Icon = m.icon;
+              return (
+                <div
+                  key={m.key}
+                  className="glass-card rounded-2xl p-7 border border-slate-800 bg-[#0b1126]/80 hover:border-purple-500/50 transition-all group shadow-md hover:shadow-xl cursor-pointer"
+                >
+                  <div className="size-11 rounded-xl bg-gradient-to-tr from-purple-950 to-blue-950 border border-purple-500/40 flex items-center justify-center text-purple-300 mb-4 transition-transform group-hover:scale-110 shadow-xs">
+                    <Icon className="size-5.5" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                    {isAr ? m.titleAr : m.titleEn}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400 font-normal">
+                    {isAr ? m.descAr : m.descEn}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Accounting engine deep dive */}
-      <section id="accounting" className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--mk-accent)]">
-              {isAr ? "المحرك المحاسبي" : "Accounting Engine"}
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-              {isAr ? "قيد مزدوج، مُرحَّل بشكل atomic، وغير قابل للتعديل" : "Double-entry, posted atomically, never silently edited"}
+      {/* Security, Immutability & Audit Trail Section */}
+      <section id="security" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#060a18]">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-4 py-1 text-xs font-bold text-purple-300 mb-4 shadow-[0_0_20px_-4px_rgba(139,92,246,0.5)]">
+              <Lock className="size-3.5 text-purple-400" />
+              <span>{isAr ? "الأمان والنزاهة المحاسبية" : "Enterprise Financial Security"}</span>
+            </div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              {isAr
+                ? "مصمم للأموال الحقيقية — أمان مشدد وتدقيق غير قابل للتلاعب"
+                : "Built for Real Capital — Maximum Security & Audit Immutability"}
             </h2>
-            <ul className="mt-6 space-y-4">
-              {[
-                { ar: "لا يُقبل قيد غير متوازن أو بسطر واحد عند الترحيل.", en: "An unbalanced or single-line entry can never post." },
-                { ar: "لا ترحيل على حساب تجميعي أو فترة مالية مقفولة.", en: "No posting to a group account or a closed fiscal period." },
-                { ar: "الأرقام مضمونة عدم التكرار حتى مع إعادة المحاولة (idempotency).", en: "Numbering stays unique even under retry, via idempotency keys." },
-                { ar: "التصحيح دائمًا بعكس القيد، أبدًا بحذفه أو تعديله.", en: "Corrections are always a reversal — never a delete or a silent edit." },
-              ].map((item) => (
-                <li key={item.en} className="flex items-start gap-3 text-sm text-[var(--mk-text-muted)]">
-                  <span className="mt-0.5 text-[var(--mk-accent)]">✓</span>
-                  <span>{isAr ? item.ar : item.en}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-3 text-sm text-slate-400 font-normal">
+              {isAr
+                ? "لا مكان للأخطاء العشوائية أو حذف المعاملات المالية الحساسة."
+                : "Zero tolerance for accidental overrides or unaudited write operations."}
+            </p>
           </div>
-          <div className="rounded-xl border border-[var(--mk-border-strong)] bg-[var(--mk-bg-elevated)] p-6 font-mono text-xs leading-relaxed text-[var(--mk-text-muted)]">
-            <p className="text-[var(--mk-accent)]">-- {isAr ? "قيد تحصيل مستحق" : "due collection entry"}</p>
-            <p className="mt-2">Dr  1110 {isAr ? "الصندوق" : "Cash on Hand"}      1,200.00</p>
-            <p>Cr  1130 {isAr ? "ذمم الأعضاء" : "AR — Members"}   1,200.00</p>
-            <p className="mt-3 text-[var(--mk-gold)]">status: POSTED · entry #1042</p>
-          </div>
-        </div>
-      </section>
 
-      {/* Security */}
-      <section id="security" className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-12 text-center">
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--mk-accent)]">
-              {isAr ? "الأمان" : "Security"}
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-              {isAr ? "معمارية متعددة المستأجرين، بُنيت للأمان أولًا" : "Multi-tenant architecture, security-first"}
-            </h2>
-          </div>
           <div className="grid gap-6 sm:grid-cols-3">
-            {SECURITY_POINTS.map((p) => (
-              <div key={p.titleEn} className="rounded-lg border border-[var(--mk-border)] p-6">
-                <h3 className="text-sm font-semibold text-[var(--mk-text)]">{isAr ? p.titleAr : p.titleEn}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--mk-text-muted)]">
+            {SECURITY_PILLARS.map((p, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-slate-800 bg-[#0b1126]/90 p-7 space-y-3.5 shadow-md transition-all hover:border-purple-500/40"
+              >
+                <div className="size-10 rounded-xl bg-purple-950/90 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-xs">
+                  <ShieldCheck className="size-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white">
+                  {isAr ? p.titleAr : p.titleEn}
+                </h3>
+                <p className="text-xs leading-relaxed text-slate-400 font-normal">
                   {isAr ? p.descAr : p.descEn}
                 </p>
               </div>
@@ -350,74 +413,96 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* White-label branding */}
-      <section className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
-          <h2 className="text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-            {isAr ? "علامتك التجارية، مش علامتنا" : "Your brand, not ours"}
-          </h2>
-          <p className="max-w-xl text-[var(--mk-text-muted)]">
-            {isAr
-              ? "الشعار، الألوان، وترويسة التقارير والإيصالات — كلها قابلة للتخصيص للمنظمات المؤهلة، من غير المساس بإمكانية الوصول."
-              : "Logo, colors, and report/receipt branding are customizable for entitled organizations — without compromising accessibility."}
-          </p>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-              {isAr ? "باقة تناسب حجم منتجعك" : "A plan that fits your resort's size"}
+      {/* Pricing Plans */}
+      <section id="pricing" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#070c1e]">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              {isAr ? "باقات واضحة تناسب حجم نشاطك العقاري" : "Plans Tailored to Your Property Portfolio"}
             </h2>
-            <p className="mt-3 text-sm text-[var(--mk-text-muted)]">
-              {isAr ? "تواصل معنا للحصول على تسعير مخصص." : "Contact us for tailored pricing."}
+            <p className="mt-3 text-sm text-slate-400 font-normal">
+              {isAr
+                ? "سواء كنت تدير برجاً سكنياً واحداً أو محفظة منتجعات ومراكز تجارية متعددة في مصر أو الخليج."
+                : "Whether managing a single residential tower or a multi-resort commercial portfolio across the region."}
             </p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-3">
+
+          <div className="grid gap-8 sm:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.key}
-                className={`rounded-xl border p-6 ${
+                className={`rounded-2xl p-8 flex flex-col justify-between transition-all ${
                   plan.highlighted
-                    ? "border-[var(--mk-accent)] bg-[var(--mk-bg-elevated)]"
-                    : "border-[var(--mk-border)]"
+                    ? "border-2 border-purple-500 bg-gradient-to-b from-purple-950/60 via-[#0b1126] to-[#0b1126] shadow-[0_0_40px_-5px_rgba(139,92,246,0.4)] relative ring-2 ring-purple-500/30"
+                    : "border border-slate-800 bg-[#0b1126]/90 shadow-md"
                 }`}
               >
-                <h3 className="text-sm font-semibold text-[var(--mk-text)]">{isAr ? plan.nameAr : plan.nameEn}</h3>
-                <p className="mt-1 text-sm text-[var(--mk-text-muted)]">{isAr ? plan.descAr : plan.descEn}</p>
-                <ul className="mt-5 space-y-2.5">
-                  {(isAr ? plan.featuresAr : plan.featuresEn).map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-[var(--mk-text-muted)]">
-                      <span className="mt-0.5 text-[var(--mk-accent)]">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                {plan.highlighted && (
+                  <span className="absolute -top-3.5 start-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-1 text-[11px] font-extrabold text-white uppercase tracking-wider shadow-md">
+                    {isAr ? "الأكثر طلباً" : "Most Popular"}
+                  </span>
+                )}
+
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">
+                    {isAr ? plan.nameAr : plan.nameEn}
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-400 font-normal leading-relaxed">
+                    {isAr ? plan.descAr : plan.descEn}
+                  </p>
+
+                  <div className="my-6 border-t border-slate-800 pt-6 space-y-3.5">
+                    {(isAr ? plan.featuresAr : plan.featuresEn).map((feat, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-xs text-slate-200 font-medium">
+                        <Check className="size-4 text-purple-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Link
+                  href="/demo"
+                  locale={locale as Locale}
+                  className={`mt-6 w-full py-3 rounded-xl text-center text-xs font-bold transition-all ${
+                    plan.highlighted
+                      ? "glow-btn-primary text-white shadow-lg"
+                      : "border border-slate-700 bg-slate-900/90 text-slate-200 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  {isAr ? "طلب استشارة وعرض توضيحي" : "Request a Demo"}
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="border-b border-[var(--mk-border)] px-6 py-20">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="mb-10 text-center text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-            {isAr ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
-          </h2>
-          <div className="space-y-3">
-            {FAQ.map((item) => (
+      {/* FAQ Section */}
+      <section id="faq" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#060a18]">
+        <div className="mx-auto max-w-3xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">
+              {isAr ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
+            </h2>
+            <p className="mt-2 text-sm text-slate-400 font-normal">
+              {isAr ? "إجابات مباشرة عن المحاسبة، الأمان، والتوافق الضريبي الإقليمي." : "Direct answers on accounting, security, and regional tax compliance."}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {FAQ.map((item, idx) => (
               <details
-                key={item.qEn}
-                className="group rounded-lg border border-[var(--mk-border)] px-5 py-4 open:bg-[var(--mk-bg-elevated)]"
+                key={idx}
+                className="group rounded-2xl border border-slate-800 bg-[#0b1126]/90 px-6 py-4.5 open:border-purple-500/50 open:bg-[#0f1733] transition-all shadow-md"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-[var(--mk-text)]">
-                  {isAr ? item.qAr : item.qEn}
-                  <span className="ms-4 text-[var(--mk-text-muted)] transition-transform group-open:rotate-45">+</span>
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold text-white">
+                  <span>{isAr ? item.qAr : item.qEn}</span>
+                  <span className="ms-4 text-purple-400 transition-transform duration-200 group-open:rotate-45 font-mono text-lg font-bold">
+                    +
+                  </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--mk-text-muted)]">
+                <p className="mt-3 text-xs leading-relaxed text-slate-300 border-t border-slate-800/80 pt-3 font-normal">
                   {isAr ? item.aAr : item.aEn}
                 </p>
               </details>
@@ -426,43 +511,61 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="px-6 py-24 text-center">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="text-2xl font-semibold text-[var(--mk-pearl)] sm:text-3xl">
-            {isAr ? "جاهز تشوف RESORTOS شغّال على منتجعك؟" : "Ready to see RESORTOS running on your resort?"}
+      {/* Final Conversion CTA */}
+      <section className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-gradient-to-b from-[#070c1e] to-[#050814] text-center overflow-hidden">
+        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
+
+        <div className="relative z-10 mx-auto max-w-3xl space-y-6">
+          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            {isAr
+              ? "جاهز لترقية الإدارة المالية لعقاراتك في مصر والخليج؟"
+              : "Ready to Upgrade Your Real Estate Finances?"}
           </h2>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <p className="text-sm sm:text-base text-slate-300 max-w-xl mx-auto font-normal">
+            {isAr
+              ? "احصل على عرض توضيحي حي ومباشر للنظام المحاسبي مع إمكانية تجربة دليل الحسابات ودورة التحصيل على بيانات واقعية."
+              : "Get a live interactive walkthrough of the accounting engine, tax calculations, and multi-entity workflows."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Link
               href="/demo"
               locale={locale as Locale}
-              className="rounded-md bg-[var(--mk-accent)] px-6 py-3 text-sm font-medium text-[var(--mk-bg)] transition-transform hover:-translate-y-0.5"
+              className="glow-btn-primary rounded-xl px-8 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-xl shadow-purple-900/60"
             >
-              {isAr ? "طلب عرض توضيحي" : "Request a Demo"}
+              {isAr ? "طلب عرض تجريبي مخصص" : "Request a Tailored Demo"}
             </Link>
             <Link
               href="/contact"
               locale={locale as Locale}
-              className="rounded-md border border-[var(--mk-border-strong)] px-6 py-3 text-sm font-medium text-[var(--mk-text)] transition-colors hover:bg-[var(--mk-surface)]"
+              className="rounded-xl border border-slate-700 bg-slate-900/90 px-6 py-3.5 text-sm font-bold text-slate-200 hover:bg-slate-800 hover:text-white"
             >
-              {isAr ? "تواصل معنا" : "Contact Us"}
+              {isAr ? "تواصل مع المبيعات" : "Contact Sales"}
             </Link>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--mk-border)] px-6 py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-xs text-[var(--mk-text-muted)] sm:flex-row">
-          <p>© {new Date().getFullYear()} RESORTOS. {isAr ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
-          <div className="flex items-center gap-5">
-            <Link href="/contact" locale={locale as Locale} className="hover:text-[var(--mk-text)]">
+      <footer className="border-t border-[var(--mk-border)] bg-[#040711] px-6 py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-slate-400 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-blue-600 text-white font-bold text-xs shadow-md shadow-purple-900/50">
+              A
+            </div>
+            <span className="font-extrabold text-white">
+              {isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks"}
+            </span>
+            <span>— © {new Date().getFullYear()} {isAr ? "جميع الحقوق محفوظة (مصر ودول الخليج)." : "All rights reserved (Egypt & GCC)."}</span>
+          </div>
+
+          <div className="flex items-center gap-6 font-bold">
+            <Link href="/contact" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
               {isAr ? "تواصل معنا" : "Contact"}
             </Link>
-            <Link href="/demo" locale={locale as Locale} className="hover:text-[var(--mk-text)]">
-              {isAr ? "طلب عرض توضيحي" : "Request a Demo"}
+            <Link href="/demo" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
+              {isAr ? "طلب عرض تجريبي" : "Request a Demo"}
             </Link>
-            <Link href="/login" locale={locale as Locale} className="hover:text-[var(--mk-text)]">
+            <Link href="/login" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
               {isAr ? "تسجيل الدخول" : "Sign in"}
             </Link>
           </div>
