@@ -85,12 +85,12 @@ export default async function AppShellLayout({
               labelEn: "Units",
               icon: <MapPinned className={ic} />,
               subItems: [
-                { href: "/import", labelAr: "استيراد CSV", labelEn: "Import CSV" },
+                { href: "/import", labelAr: "استيراد", labelEn: "Import" },
               ],
             },
             {
               href: "/members",
-              labelAr: "الملاك والأعضاء",
+              labelAr: "الأعضاء",
               labelEn: "Members",
               icon: <Users className={ic} />,
             },
@@ -103,12 +103,12 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/finance/accounts",
-              labelAr: "دليل الحسابات",
-              labelEn: "Chart of Accounts",
+              labelAr: "الحسابات",
+              labelEn: "Accounts",
               icon: <Scale className={ic} />,
               subItems: [
-                { href: "/finance/journals", labelAr: "القيود اليومية", labelEn: "Journals" },
-                { href: "/admin/finance/periods", labelAr: "الفترات المالية", labelEn: "Fiscal Periods" },
+                { href: "/finance/journals", labelAr: "القيود", labelEn: "Journals" },
+                { href: "/admin/finance/periods", labelAr: "الفترات", labelEn: "Periods" },
               ],
             },
             {
@@ -122,11 +122,11 @@ export default async function AppShellLayout({
             },
             {
               href: "/finance/cashier",
-              labelAr: "الخزينة والكاشير",
+              labelAr: "الخزينة",
               labelEn: "Treasury",
               icon: <Wallet className={ic} />,
               subItems: [
-                { href: "/finance/banks", labelAr: "البنوك والشيكات", labelEn: "Banks & Cheques" },
+                { href: "/finance/banks", labelAr: "البنوك", labelEn: "Banks" },
               ],
             },
             {
@@ -142,8 +142,8 @@ export default async function AppShellLayout({
         },
         {
           key: "reports",
-          labelAr: "التقارير والضرائب",
-          labelEn: "Reports & Tax",
+          labelAr: "التقارير",
+          labelEn: "Reports",
           items: [
             {
               href: "/finance/reports",
@@ -151,7 +151,7 @@ export default async function AppShellLayout({
               labelEn: "Financials",
               icon: <BarChart3 className={ic} />,
               subItems: [
-                { href: "/finance/payment-providers", labelAr: "الضرائب والفوترة", labelEn: "Taxes & Invoicing" },
+                { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
               ],
             },
           ],
@@ -163,13 +163,13 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/admin",
-              labelAr: "إعدادات المنظمة",
-              labelEn: "Organization",
+              labelAr: "عام",
+              labelEn: "General",
               icon: <Settings className={ic} />,
               subItems: [
                 { href: "/admin/users", labelAr: "المستخدمون", labelEn: "Users" },
                 { href: "/admin/roles", labelAr: "الصلاحيات", labelEn: "Roles" },
-                { href: "/finance/payment-providers", labelAr: "بوابات الدفع", labelEn: "Payment Gateways" },
+                { href: "/finance/payment-providers", labelAr: "بوابات الدفع", labelEn: "Gateways" },
               ],
             },
           ],
