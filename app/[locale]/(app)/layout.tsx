@@ -70,25 +70,29 @@ export default async function AppShellLayout({
           items: [
             { href: "/property", labelAr: "الوحدات", labelEn: "Units", icon: <MapPinned className={ic} /> },
             { href: "/members", labelAr: "الأعضاء", labelEn: "Members", icon: <Users className={ic} /> },
-            { href: "/import", labelAr: "استيراد CSV", labelEn: "Import CSV", icon: <BookOpen className={ic} /> },
+            { href: "/import", labelAr: "استيراد", labelEn: "Import", icon: <BookOpen className={ic} /> },
           ],
         },
         {
           // Themed parent items with nested sub-destinations instead of 9
           // flat siblings -- each parent is still a real page (clicking the
           // label navigates there); the chevron only toggles the reveal.
+          // Labels kept to one or two short words throughout (global-app
+          // convention) -- the 256px sidebar truncates anything longer, and
+          // group/parent context already carries most of the meaning (e.g.
+          // "Accounting > Accounts", not "Accounting > Chart of Accounts").
           key: "finance",
-          labelAr: "الحسابات",
-          labelEn: "Finance",
+          labelAr: "المحاسبة",
+          labelEn: "Accounting",
           items: [
             {
               href: "/finance/accounts",
-              labelAr: "دليل الحسابات",
-              labelEn: "Chart of Accounts",
+              labelAr: "الحسابات",
+              labelEn: "Accounts",
               icon: <BookOpen className={ic} />,
               subItems: [
-                { href: "/finance/journals", labelAr: "القيود اليومية", labelEn: "Journal Entries" },
-                { href: "/admin/finance/periods", labelAr: "السنوات المالية", labelEn: "Fiscal Periods" },
+                { href: "/finance/journals", labelAr: "القيود", labelEn: "Journals" },
+                { href: "/admin/finance/periods", labelAr: "الفترات", labelEn: "Periods" },
               ],
             },
             {
@@ -103,7 +107,7 @@ export default async function AppShellLayout({
               labelAr: "الخزينة",
               labelEn: "Treasury",
               icon: <Wallet className={ic} />,
-              subItems: [{ href: "/finance/banks", labelAr: "البنوك والشيكات", labelEn: "Banks & Cheques" }],
+              subItems: [{ href: "/finance/banks", labelAr: "البنوك", labelEn: "Banks" }],
             },
             {
               href: "/finance/suppliers",
@@ -124,14 +128,14 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/admin",
-              labelAr: "إعدادات المنظمة",
-              labelEn: "Organization Settings",
+              labelAr: "عام",
+              labelEn: "General",
               icon: <Settings className={ic} />,
               subItems: [
                 { href: "/admin/resorts", labelAr: "المنتجعات", labelEn: "Resorts" },
                 { href: "/admin/users", labelAr: "المستخدمون", labelEn: "Users" },
                 { href: "/admin/roles", labelAr: "الأدوار", labelEn: "Roles" },
-                { href: "/finance/payment-providers", labelAr: "مزودو الدفع الإلكتروني", labelEn: "Payment Providers" },
+                { href: "/finance/payment-providers", labelAr: "بوابات الدفع", labelEn: "Gateways" },
               ],
             },
           ],
@@ -149,12 +153,12 @@ export default async function AppShellLayout({
         homeGroup,
         {
           key: "platform-nav",
-          labelAr: "إدارة المنصة",
-          labelEn: "Platform Admin",
+          labelAr: "الإدارة",
+          labelEn: "Admin",
           items: [
             { href: "/platform/organizations", labelAr: "المنظمات", labelEn: "Organizations", icon: <Building2 className={ic} /> },
-            { href: "/platform/leads", labelAr: "طلبات العرض", labelEn: "Leads", icon: <Inbox className={ic} /> },
-            { href: "/platform/audit", labelAr: "سجل التدقيق", labelEn: "Audit Log", icon: <ShieldAlert className={ic} /> },
+            { href: "/platform/leads", labelAr: "العروض", labelEn: "Leads", icon: <Inbox className={ic} /> },
+            { href: "/platform/audit", labelAr: "التدقيق", labelEn: "Audit", icon: <ShieldAlert className={ic} /> },
           ],
         },
       ],
