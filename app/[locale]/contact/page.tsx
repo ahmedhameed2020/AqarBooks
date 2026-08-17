@@ -12,7 +12,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "تواصل معنا — RESORTOS" : "Contact Us — RESORTOS",
+    title: isAr ? "تواصل معنا — عقار بوكس (AqarBooks)" : "Contact Us — AqarBooks",
     robots: { index: false, follow: true },
   };
 }

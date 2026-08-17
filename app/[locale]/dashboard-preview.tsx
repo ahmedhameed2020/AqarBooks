@@ -22,7 +22,7 @@ export function DashboardPreview({ isAr }: { isAr: boolean }) {
         <span className="size-2.5 rounded-full bg-[var(--mk-text-muted)]/30" />
         <span className="size-2.5 rounded-full bg-[var(--mk-text-muted)]/30" />
         <span className="ms-3 text-xs text-[var(--mk-text-muted)]">
-          resortos.app/{isAr ? "ar" : "en"}/finance/reports
+          aqarbooks.app/{isAr ? "ar" : "en"}/finance/reports
         </span>
       </div>
       <div className="grid grid-cols-2 gap-px bg-[var(--mk-border)] sm:grid-cols-4">

@@ -35,45 +35,47 @@ export function ManageStructureDialog({
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
       <DialogTrigger
         render={
-          <Button size="sm" variant="outline">
-            <Building className="size-3.5" />
-            {isAr ? "المباني والمناطق" : "Buildings & zones"}
+          <Button size="sm" variant="outline" className="border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer">
+            <Building className="size-3.5 text-purple-600" />
+            {isAr ? "إدارة المباني والمناطق" : "Buildings & Zones"}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
             <MapPinned className="size-4.5" />
           </span>
           <div>
-            <DialogTitle>{isAr ? "إضافة مبنى أو منطقة" : "Add a building or zone"}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base font-black text-slate-900 dark:text-white">
+              {isAr ? "إضافة مبنى أو منطقة عقارية" : "Add a Building or Zone"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-medium">
               {isAr
-                ? "أنشئ مبنى أو منطقة جديدة في هذا المنتجع لتظهر عند إضافة وحدة."
-                : "Create a new building or zone in this resort so it shows up when adding a unit."}
+                ? "أنشئ مبنى أو منطقة جديدة في هذا الكيان العقاري لتظهر تلقائياً عند إضافة وتوزيع الوحدات."
+                : "Create a new building or zone in this entity so it is selectable when adding units."}
             </DialogDescription>
           </div>
         </DialogHeader>
 
         <DialogBody>
           <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-            <TabsList>
-              <TabsTrigger value="building">
+            <TabsList className="grid w-full grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+              <TabsTrigger value="building" className="rounded-lg font-bold text-xs">
                 <span className="flex items-center gap-1.5">
                   <Building className="size-3.5" />
-                  {isAr ? "مبنى جديد" : "New building"}
+                  {isAr ? "مبنى جديد" : "New Building"}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="zone">
+              <TabsTrigger value="zone" className="rounded-lg font-bold text-xs">
                 <span className="flex items-center gap-1.5">
                   <MapPinned className="size-3.5" />
-                  {isAr ? "منطقة جديدة" : "New zone"}
+                  {isAr ? "منطقة جديدة" : "New Zone"}
                 </span>
               </TabsTrigger>
               <TabsIndicator />
             </TabsList>
-            <TabsPanel value="building">
+            <TabsPanel value="building" className="mt-4">
               <CreateBuildingForm
                 organizationId={organizationId}
                 resortId={resortId}
@@ -82,7 +84,7 @@ export function ManageStructureDialog({
                 onSuccess={() => setOpen(false)}
               />
             </TabsPanel>
-            <TabsPanel value="zone">
+            <TabsPanel value="zone" className="mt-4">
               <CreateZoneForm
                 organizationId={organizationId}
                 resortId={resortId}

@@ -47,6 +47,16 @@ export const UNIT_TYPE_ICONS: Record<UnitRow["unit_type"], React.ReactNode> = {
   OTHER: <Layers className="size-3.5 text-slate-400" />,
 };
 
+const UNIT_TYPE_STYLES: Record<UnitRow["unit_type"], { bg: string; iconColor: string }> = {
+  VILLA: { bg: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800", iconColor: "text-emerald-600" },
+  CHALET: { bg: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800", iconColor: "text-amber-600" },
+  APARTMENT: { bg: "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800", iconColor: "text-blue-600" },
+  SHOP: { bg: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800", iconColor: "text-purple-600" },
+  OFFICE: { bg: "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800", iconColor: "text-indigo-600" },
+  SERVICE: { bg: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700", iconColor: "text-slate-600" },
+  OTHER: { bg: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700", iconColor: "text-slate-600" },
+};
+
 export function unitTypeLabel(unit: Pick<UnitRow, "unit_type" | "custom_type_label">, isAr: boolean) {
   if (unit.unit_type === "OTHER" && unit.custom_type_label) return unit.custom_type_label;
   return isAr ? UNIT_TYPE_LABELS[unit.unit_type].ar : UNIT_TYPE_LABELS[unit.unit_type].en;
@@ -55,9 +65,10 @@ export function unitTypeLabel(unit: Pick<UnitRow, "unit_type" | "custom_type_lab
 export function UnitTypeBadge({ unit, isAr }: { unit: UnitRow; isAr: boolean }) {
   const icon = UNIT_TYPE_ICONS[unit.unit_type] ?? <Building2 className="size-3.5" />;
   const label = unitTypeLabel(unit, isAr);
+  const style = UNIT_TYPE_STYLES[unit.unit_type] ?? UNIT_TYPE_STYLES.OTHER;
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 py-1 text-xs font-medium text-foreground">
+    <span className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold", style.bg)}>
       {icon}
       <span>{label}</span>
     </span>
@@ -68,18 +79,17 @@ export function OccupancyBadge({ status, locale }: { status: UnitRow["occupancy_
   const isAr = locale === "ar";
   const occupied = status === "OCCUPIED";
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        "inline-flex items-center gap-1.5 border-transparent px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold",
         occupied
-          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          : "bg-muted text-muted-foreground",
+          ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+          : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
       )}
     >
-      <span className={cn("size-1.5 rounded-full", occupied ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40")} />
+      <span className={cn("size-1.5 rounded-full", occupied ? "bg-emerald-600 animate-pulse" : "bg-slate-400")} />
       {occupied ? (isAr ? "مشغولة" : "Occupied") : (isAr ? "شاغرة" : "Vacant")}
-    </Badge>
+    </span>
   );
 }
 

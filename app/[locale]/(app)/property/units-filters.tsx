@@ -143,19 +143,19 @@ export function UnitsFilters({
   return (
     <div className="relative z-30 space-y-3">
       {/* Modern Filter Container Card */}
-      <div className="relative z-30 rounded-2xl border border-border/80 bg-card/60 p-3 shadow-2xs backdrop-blur-sm space-y-3">
+      <div className="relative z-30 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Search & Select Filters Row */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative">
-              <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
               <Input
                 ref={inputRef}
                 value={qDraft}
                 onChange={(e) => setQDraft(e.target.value)}
                 placeholder={isAr ? "بحث بالرمز، المالك، المبنى، الهاتف… (/)" : "Search code, owner, building, phone… (/)"}
-                className="w-64 ps-9 pe-8 h-9 text-xs rounded-xl bg-background/80"
+                className="w-64 ps-9 pe-8 h-9 text-xs rounded-xl border-slate-300 bg-slate-50/50 font-medium dark:border-slate-700 dark:bg-slate-800"
               />
               {qDraft && (
                 <button
@@ -164,7 +164,7 @@ export function UnitsFilters({
                     setQDraft("");
                     pushParams({ q: undefined, page: undefined });
                   }}
-                  className="absolute end-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted text-muted-foreground"
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-slate-200 text-slate-500 cursor-pointer"
                 >
                   <X className="size-3" />
                 </button>
@@ -173,9 +173,9 @@ export function UnitsFilters({
 
             {/* Building Filter */}
             <Select value={building || undefined} onValueChange={(v) => pushParams({ building: (v === ALL ? undefined : v) as any, page: undefined })}>
-              <SelectTrigger className="w-36 h-9 text-xs rounded-xl bg-background/80">
+              <SelectTrigger className="w-36 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
-                  <Building2 className="size-3 text-muted-foreground shrink-0" />
+                  <Building2 className="size-3 text-slate-500 shrink-0" />
                   <SelectValue placeholder={isAr ? "المبنى" : "Building"} />
                 </div>
               </SelectTrigger>
@@ -191,9 +191,9 @@ export function UnitsFilters({
 
             {/* Zone Filter */}
             <Select value={zone || undefined} onValueChange={(v) => pushParams({ zone: (v === ALL ? undefined : v) as any, page: undefined })}>
-              <SelectTrigger className="w-36 h-9 text-xs rounded-xl bg-background/80">
+              <SelectTrigger className="w-36 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
-                  <MapPin className="size-3 text-muted-foreground shrink-0" />
+                  <MapPin className="size-3 text-slate-500 shrink-0" />
                   <SelectValue placeholder={isAr ? "المنطقة" : "Zone"} />
                 </div>
               </SelectTrigger>
@@ -209,9 +209,9 @@ export function UnitsFilters({
 
             {/* Unit Type Filter */}
             <Select value={type || undefined} onValueChange={(v) => pushParams({ type: (v === ALL ? undefined : v) as any, page: undefined })}>
-              <SelectTrigger className="w-32 h-9 text-xs rounded-xl bg-background/80">
+              <SelectTrigger className="w-32 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
-                  <Home className="size-3 text-muted-foreground shrink-0" />
+                  <Home className="size-3 text-slate-500 shrink-0" />
                   <SelectValue placeholder={isAr ? "النوع" : "Type"} />
                 </div>
               </SelectTrigger>
@@ -227,7 +227,7 @@ export function UnitsFilters({
 
             {/* Occupancy Status Filter */}
             <Select value={occupancy || undefined} onValueChange={(v) => pushParams({ occupancy: (v === ALL ? undefined : v) as any, page: undefined })}>
-              <SelectTrigger className="w-32 h-9 text-xs rounded-xl bg-background/80">
+              <SelectTrigger className="w-32 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <SelectValue placeholder={isAr ? "الإشغال" : "Occupancy"} />
               </SelectTrigger>
               <SelectContent>
@@ -243,17 +243,21 @@ export function UnitsFilters({
               variant={arrears === "1" ? "default" : "outline"}
               size="sm"
               onClick={() => pushParams({ arrears: arrears === "1" ? undefined : "1", page: undefined })}
-              className="h-9 text-xs rounded-xl gap-1.5 font-medium"
+              className={`h-9 text-xs rounded-xl gap-1.5 font-bold cursor-pointer ${
+                arrears === "1"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              }`}
             >
-              <AlertCircle className="size-3" />
+              <AlertCircle className="size-3 text-rose-500" />
               {isAr ? "عليها متأخرات فقط" : "Arrears only"}
             </Button>
           </div>
 
-          {/* Unified Export Toolbar (Import & Separate Excel / CSV / PDF) */}
+          {/* Dedicated Clean Export Toolbar (Excel / CSV / PDF) */}
           <ExportToolbar
             locale={locale}
-            importHref={`/import?kind=units&resort=${resortId}`}
+            showImport={false}
             onExportExcel={handleExportExcel}
             onExportCsv={handleExportCsv}
             onExportPdf={handleExportPdf}

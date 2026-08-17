@@ -40,29 +40,130 @@ const createResortSchema = z.object({
   name: z.string().min(2).max(200),
   code: z.string().min(1).max(20),
   timezone: z.string().min(1).max(60).default("Africa/Cairo"),
+  propertyType: z.enum(["resort", "building", "residential_unit", "commercial_unit"]).default("resort"),
+  address: z.string().max(300).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
 });
 
 export async function createResortAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const addressVal = formData.get("address");
+  const phoneVal = formData.get("phone");
+
   const parsed = createResortSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
     code: formData.get("code"),
     timezone: formData.get("timezone") || "Africa/Cairo",
+    propertyType: formData.get("propertyType") || "resort",
+    address: addressVal ? String(addressVal) : null,
+    phone: phoneVal ? String(phoneVal) : null,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_resort", {
+  const { data: newResortId, error } = await supabase.rpc("create_resort", {
     p_organization_id: parsed.data.organizationId,
     p_name: parsed.data.name,
     p_code: parsed.data.code,
     p_timezone: parsed.data.timezone,
+    p_address: parsed.data.address ?? null,
+    p_phone: parsed.data.phone ?? null,
   });
 
   if (error) return { ok: false, error: error.message };
+
+  if (newResortId && parsed.data.propertyType) {
+    await supabase
+      .from("resorts")
+      .update({ property_type: parsed.data.propertyType })
+      .eq("id", newResortId);
+  }
+
+  revalidatePath("/[locale]/admin/resorts", "page");
+  return { ok: true };
+}
+
+const updateResortSchema = z.object({
+  resortId: z.string().uuid(),
+  name: z.string().min(2).max(200),
+  code: z.string().min(1).max(20),
+  timezone: z.string().min(1).max(60).default("Africa/Cairo"),
+  propertyType: z.enum(["resort", "building", "residential_unit", "commercial_unit"]).default("resort"),
+  address: z.string().max(300).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+});
+
+export async function updateResortAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const addressVal = formData.get("address");
+  const phoneVal = formData.get("phone");
+
+  const parsed = updateResortSchema.safeParse({
+    resortId: formData.get("resortId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    timezone: formData.get("timezone") || "Africa/Cairo",
+    propertyType: formData.get("propertyType") || "resort",
+    address: addressVal ? String(addressVal) : null,
+    phone: phoneVal ? String(phoneVal) : null,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_resort", {
+    p_resort_id: parsed.data.resortId,
+    p_name: parsed.data.name,
+    p_code: parsed.data.code,
+    p_timezone: parsed.data.timezone,
+    p_address: parsed.data.address ?? null,
+    p_phone: parsed.data.phone ?? null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  if (parsed.data.propertyType) {
+    await supabase
+      .from("resorts")
+      .update({ property_type: parsed.data.propertyType })
+      .eq("id", parsed.data.resortId);
+  }
+
+  revalidatePath("/[locale]/admin/resorts", "page");
+  return { ok: true };
+}
+
+const deleteResortSchema = z.object({
+  resortId: z.string().uuid(),
+});
+
+export async function deleteResortAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = deleteResortSchema.safeParse({
+    resortId: formData.get("resortId"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_resort", {
+    p_resort_id: parsed.data.resortId,
+  });
+
+  if (error) {
+    if (error.message.includes("resort_has_units")) {
+      return {
+        ok: false,
+        error: "لا يمكن حذف هذا الكيان العقاري لوجود وحدات مسجلة تحته. يرجى نقل أو حذف الوحدات أولاً.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath("/[locale]/admin/resorts", "page");
   return { ok: true };

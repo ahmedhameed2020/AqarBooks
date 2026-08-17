@@ -61,18 +61,21 @@ const createZoneSchema = z.object({
   organizationId: z.string().uuid(),
   resortId: z.string().uuid(),
   nameAr: z.string().min(1).max(100),
-  nameEn: z.string().min(1).max(100),
+  nameEn: z.string().max(100).optional(),
 });
 
 export async function createZoneAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const nameAr = String(formData.get("nameAr") || "").trim();
+  const nameEn = String(formData.get("nameEn") || "").trim() || nameAr;
+
   const parsed = createZoneSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
-    nameAr: formData.get("nameAr"),
-    nameEn: formData.get("nameEn"),
+    nameAr,
+    nameEn,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -81,7 +84,7 @@ export async function createZoneAction(
     organization_id: parsed.data.organizationId,
     property_id: parsed.data.resortId,
     name_ar: parsed.data.nameAr,
-    name_en: parsed.data.nameEn,
+    name_en: parsed.data.nameEn || parsed.data.nameAr,
   });
 
   if (error) return { ok: false, error: error.message };
@@ -95,20 +98,23 @@ const createBuildingSchema = z.object({
   zoneId: z.string().uuid().optional(),
   code: z.string().min(1).max(50),
   nameAr: z.string().min(1).max(100),
-  nameEn: z.string().min(1).max(100),
+  nameEn: z.string().max(100).optional(),
 });
 
 export async function createBuildingAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const nameAr = String(formData.get("nameAr") || "").trim();
+  const nameEn = String(formData.get("nameEn") || "").trim() || nameAr;
+
   const parsed = createBuildingSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
     zoneId: formData.get("zoneId") || undefined,
     code: formData.get("code"),
-    nameAr: formData.get("nameAr"),
-    nameEn: formData.get("nameEn"),
+    nameAr,
+    nameEn,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -119,7 +125,7 @@ export async function createBuildingAction(
     zone_id: parsed.data.zoneId ?? null,
     code: parsed.data.code,
     name_ar: parsed.data.nameAr,
-    name_en: parsed.data.nameEn,
+    name_en: parsed.data.nameEn || parsed.data.nameAr,
   });
 
   if (error) return { ok: false, error: error.message };

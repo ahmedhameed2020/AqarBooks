@@ -1,7 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { buttonVariants } from "@/components/ui/button";
-import { CreditCard, Receipt, Plus, FileSpreadsheet, Search } from "lucide-react";
+import { CreditCard, Receipt, Plus, FileSpreadsheet, Building } from "lucide-react";
 
 export function DashboardActions({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
@@ -11,50 +10,37 @@ export function DashboardActions({ locale }: { locale: Locale }) {
       <Link
         href="/finance/payments"
         locale={locale}
-        className={buttonVariants({
-          size: "sm",
-          className:
-            "shadow-xs bg-primary font-medium hover:bg-primary/90 text-primary-foreground transition-all duration-200 hover:scale-[1.02]",
-        })}
+        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-purple-600/20 hover:from-purple-700 hover:to-indigo-700 transition-all cursor-pointer"
       >
-        <CreditCard className="size-3.5" />
-        {isAr ? "تسجيل دفعة" : "Record Payment"}
+        <CreditCard className="size-4" />
+        <span>{isAr ? "تسجيل سند قبض" : "Record Payment"}</span>
       </Link>
+
       <Link
         href="/finance/dues"
         locale={locale}
-        className={buttonVariants({
-          variant: "outline",
-          size: "sm",
-          className: "bg-card/80 backdrop-blur-sm border-border/80 hover:bg-muted/80 transition-all",
-        })}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-purple-300 transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer shadow-2xs"
       >
-        <Receipt className="size-3.5" />
-        {isAr ? "إصدار مستحق" : "Issue Due"}
+        <Receipt className="size-3.5 text-purple-600" />
+        <span>{isAr ? "إصدار مستحق" : "Issue Due"}</span>
       </Link>
+
       <Link
-        href="/finance/journals/new"
+        href="/finance/journals"
         locale={locale}
-        className={buttonVariants({
-          variant: "outline",
-          size: "sm",
-          className: "bg-card/80 backdrop-blur-sm border-border/80 hover:bg-muted/80 transition-all",
-        })}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-blue-300 transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer shadow-2xs"
       >
-        <Plus className="size-3.5" />
-        {isAr ? "قيد جديد" : "New Entry"}
+        <Plus className="size-3.5 text-blue-600" />
+        <span>{isAr ? "قيد يومية" : "New Journal"}</span>
       </Link>
+
       <Link
-        href="/finance/reports"
+        href="/admin/resorts"
         locale={locale}
-        className={buttonVariants({
-          variant: "ghost",
-          size: "sm",
-          className: "text-muted-foreground hover:text-foreground hover:bg-muted/60",
-        })}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-emerald-300 transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-white cursor-pointer shadow-2xs"
       >
-        <FileSpreadsheet className="size-3.5" />
-        {isAr ? "التقارير" : "Reports"}
+        <Building className="size-3.5 text-emerald-600" />
+        <span>{isAr ? "الكيانات العقارية" : "Entities"}</span>
       </Link>
     </div>
   );
