@@ -22,6 +22,36 @@ function inviteMessage(isAr: boolean, memberName: string, link: string) {
     : `Hello ${memberName}, you can now review your account and pay your dues online through the owner portal:\n${link}`;
 }
 
+// The raw RPC error message comes back as "<CODE>: <db message>" (see
+// supabase/migrations/20260814000004_member_invitation_rpcs.sql and
+// .../20260901000003_member_invitation_phone_only.sql) -- match on the
+// code prefix so staff see a specific, actionable reason instead of one
+// generic message for every failure.
+const ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
+  MEMBER_CONTACT_REQUIRED: {
+    ar: "يجب أن يكون للعضو بريد إلكتروني أو رقم هاتف مسجل قبل إنشاء دعوة.",
+    en: "The member needs a registered email or phone number before an invite can be created.",
+  },
+  MEMBER_ALREADY_LINKED: {
+    ar: "هذا العضو لديه حساب بوابة بالفعل.",
+    en: "This member already has a portal account.",
+  },
+  FORBIDDEN_PORTAL_INVITE: {
+    ar: "لا تملك صلاحية دعوة الأعضاء للبوابة.",
+    en: "You don't have permission to invite members to the portal.",
+  },
+  MEMBER_NOT_FOUND: {
+    ar: "العضو غير موجود.",
+    en: "The member could not be found.",
+  },
+};
+
+function mapError(message: string, isAr: boolean): string {
+  const code = Object.keys(ERROR_MESSAGES).find((candidate) => message.startsWith(candidate));
+  if (code) return ERROR_MESSAGES[code][isAr ? "ar" : "en"];
+  return isAr ? "تعذر إنشاء رابط الدعوة، برجاء المحاولة مرة أخرى." : "Could not create the invite link, please try again.";
+}
+
 export function InviteToPortalDialog({
   memberId,
   memberName,
@@ -35,25 +65,35 @@ export function InviteToPortalDialog({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [link, setLink] = useState<{ actionLink: string; memberEmail: string; memberPhone: string | null } | null>(null);
+  const [link, setLink] = useState<{
+    shortLink: string;
+    memberEmail: string | null;
+    memberPhone: string | null;
+    isSyntheticEmail: boolean;
+  } | null>(null);
 
   function handleGenerate() {
     setErrorMsg(null);
     startTransition(async () => {
       const res = await createMemberInvitationAction(memberId, locale);
       if (!res.ok) {
-        setErrorMsg(
-          isAr ? "تعذر إنشاء رابط الدعوة. راجع بيانات العضو (بريد إلكتروني مسجل، غير مرتبط ببوابة مسبقًا)." : "Could not create the invite link.",
-        );
+        setErrorMsg(mapError(res.error, isAr));
         return;
       }
-      setLink({ actionLink: res.actionLink, memberEmail: res.memberEmail, memberPhone: res.memberPhone });
+      setLink({
+        shortLink: res.shortLink,
+        memberEmail: res.memberEmail,
+        memberPhone: res.memberPhone,
+        isSyntheticEmail: res.isSyntheticEmail,
+      });
     });
   }
 
-  const whatsappUrl = link?.memberPhone ? buildWhatsAppUrl(link.memberPhone, inviteMessage(isAr, memberName, link.actionLink)) : null;
-  const mailtoUrl = link
-    ? `mailto:${link.memberEmail}?subject=${encodeURIComponent(isAr ? "دعوة لبوابة الملاك" : "Owner Portal Invitation")}&body=${encodeURIComponent(inviteMessage(isAr, memberName, link.actionLink))}`
+  const whatsappUrl = link?.memberPhone ? buildWhatsAppUrl(link.memberPhone, inviteMessage(isAr, memberName, link.shortLink)) : null;
+  // A synthetic placeholder email (no real email on file) can't receive
+  // anything -- only offer the mailto button for a real, deliverable address.
+  const mailtoUrl = link && link.memberEmail && !link.isSyntheticEmail
+    ? `mailto:${link.memberEmail}?subject=${encodeURIComponent(isAr ? "دعوة لبوابة الملاك" : "Owner Portal Invitation")}&body=${encodeURIComponent(inviteMessage(isAr, memberName, link.shortLink))}`
     : null;
 
   return (
@@ -83,8 +123,15 @@ export function InviteToPortalDialog({
           {!link && (
             <p className="text-sm text-muted-foreground">
               {isAr
-                ? "سيتم إنشاء رابط دعوة صالح لمدة 72 ساعة. يمكنك بعدها اختيار إرساله عبر البريد أو واتساب."
-                : "A 72-hour invite link will be generated. You can then choose to send it by email or WhatsApp."}
+                ? "سيتم إنشاء رابط دعوة صالح لمدة 72 ساعة. يمكنك بعدها اختيار إرساله عبر البريد أو واتساب. الأعضاء بدون بريد إلكتروني مسجل يمكنهم استلام الدعوة عبر واتساب فقط."
+                : "A 72-hour invite link will be generated. You can then choose to send it by email or WhatsApp. Members with no registered email can still receive the invite via WhatsApp only."}
+            </p>
+          )}
+          {link && link.isSyntheticEmail && (
+            <p className="rounded-2xl border border-border bg-muted/40 p-3 text-xs font-medium text-muted-foreground">
+              {isAr
+                ? "لا يوجد بريد إلكتروني مسجل لهذا العضو — الرابط جاهز للإرسال عبر واتساب فقط."
+                : "This member has no registered email — the link is ready to send via WhatsApp only."}
             </p>
           )}
           {link && (

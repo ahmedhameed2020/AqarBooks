@@ -11,10 +11,20 @@ const createInvitationSchema = z.object({
 });
 
 export type CreateInvitationResult =
-  | { ok: true; actionLink: string; memberEmail: string; memberPhone: string | null }
+  | { ok: true; shortLink: string; memberEmail: string | null; memberPhone: string | null; isSyntheticEmail: boolean }
   | { ok: false; error: string };
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+// Web Crypto (not node:crypto/Buffer) on purpose -- this runs in the
+// Cloudflare Workers runtime in production, and crypto.getRandomValues/btoa
+// are both available there and in Node without needing nodejs_compat.
+function generateShortSlug(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(9));
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 export async function createMemberInvitationAction(
   memberId: string,
@@ -54,7 +64,7 @@ export async function createMemberInvitationAction(
     `?invitation=${data.invitation_id}&t=${data.raw_token}`;
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "invite",
-    email: data.member_email,
+    email: data.invite_email,
     options: { redirectTo },
   });
 
@@ -63,10 +73,30 @@ export async function createMemberInvitationAction(
     return { ok: false, error: linkError?.message ?? "link_generation_failed" };
   }
 
+  // The real action_link is ~250+ chars (signed verify token + our own
+  // URL-encoded redirectTo) -- reads as spam over WhatsApp/email. Store it
+  // behind a short opaque slug instead; app/i/[slug]/route.ts does the 302.
+  // Matches the invitation's own 72h window rather than tracking it
+  // separately.
+  const slug = generateShortSlug();
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+  const { error: shortLinkError } = await adminClient.from("member_invitation_short_links").insert({
+    slug,
+    invitation_id: data.invitation_id,
+    action_link: linkData.properties.action_link,
+    expires_at: expiresAt,
+  });
+
+  if (shortLinkError) {
+    console.error("[createMemberInvitationAction] short link insert failed:", shortLinkError.message);
+    return { ok: false, error: shortLinkError.message };
+  }
+
   return {
     ok: true,
-    actionLink: linkData.properties.action_link,
+    shortLink: `${SITE_URL}/i/${slug}`,
     memberEmail: data.member_email,
     memberPhone: data.member_phone,
+    isSyntheticEmail: data.is_synthetic_email,
   };
 }

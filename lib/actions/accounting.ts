@@ -320,3 +320,32 @@ export async function saveBudgets(
   revalidatePath("/[locale]/finance/reports/budget-vs-actual", "page");
   return { ok: true };
 }
+
+// Sweep dues whose fiscal period has since opened into the general ledger.
+//
+// Dues dated beyond any open period -- future installments, chiefly -- are
+// issued but deliberately left unrecognised, since recognising two years of
+// installments on the day a plan is created would overstate revenue. Opening
+// the period they belong to is what makes them this period's revenue, so this
+// is the action that completes that. It is idempotent: already-recognised and
+// still-deferred dues are both no-ops.
+export async function recognizePendingDuesAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const organizationId = formData.get("organizationId");
+  const fiscalPeriodId = formData.get("fiscalPeriodId");
+  if (typeof organizationId !== "string" || typeof fiscalPeriodId !== "string") {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("recognize_pending_dues", {
+    p_organization_id: organizationId,
+    p_fiscal_period_id: fiscalPeriodId,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[locale]/admin/finance/periods", "page");
+  return { ok: true };
+}
