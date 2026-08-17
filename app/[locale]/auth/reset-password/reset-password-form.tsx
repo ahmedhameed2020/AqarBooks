@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Check, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { updatePasswordAction } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
 export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,6 +21,16 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) {
+      const supabase = createClient();
+      supabase.auth.exchangeCodeForSession(code).catch((err) => {
+        console.error("Failed to exchange code for session:", err);
+      });
+    }
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
