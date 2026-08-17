@@ -19,7 +19,10 @@ const createOrganizationSchema = z.object({
 });
 
 export type ActionResult =
-  | { ok: true }
+  // `id` is optional and only set by actions whose forms need to link
+  // somewhere after success (e.g. CreateUnitForm's toast action button) --
+  // every other `{ ok: true }` caller is unaffected.
+  | { ok: true; id?: string }
   | { ok: false; error: string };
 
 export async function createOrganization(

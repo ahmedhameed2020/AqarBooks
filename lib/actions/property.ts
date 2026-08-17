@@ -40,21 +40,25 @@ export async function createUnitAction(
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("units").insert({
-    organization_id: parsed.data.organizationId,
-    property_id: parsed.data.resortId,
-    code: parsed.data.code,
-    unit_type: parsed.data.unitType,
-    custom_type_label: parsed.data.unitType === "OTHER" ? (parsed.data.customTypeLabel ?? null) : null,
-    building_id: parsed.data.buildingId ?? null,
-    zone_id: parsed.data.zoneId ?? null,
-    floor_number: parsed.data.floorNumber ?? null,
-    area: parsed.data.area ?? null,
-  });
+  const { data: unit, error } = await supabase
+    .from("units")
+    .insert({
+      organization_id: parsed.data.organizationId,
+      property_id: parsed.data.resortId,
+      code: parsed.data.code,
+      unit_type: parsed.data.unitType,
+      custom_type_label: parsed.data.unitType === "OTHER" ? (parsed.data.customTypeLabel ?? null) : null,
+      building_id: parsed.data.buildingId ?? null,
+      zone_id: parsed.data.zoneId ?? null,
+      floor_number: parsed.data.floorNumber ?? null,
+      area: parsed.data.area ?? null,
+    })
+    .select("id")
+    .single();
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[locale]/property", "page");
-  return { ok: true };
+  return { ok: true, id: unit.id };
 }
 
 const createZoneSchema = z.object({

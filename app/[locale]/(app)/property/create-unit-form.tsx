@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Loader2, Hash, MapPin, Building2 } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ export function CreateUnitForm({
 }) {
   const isAr = locale === "ar";
   const toast = useToast();
+  const router = useRouter();
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     createUnitAction,
     { ok: true },
@@ -61,7 +63,16 @@ export function CreateUnitForm({
 
   useEffect(() => {
     if (wasPending.current && !pending && state.ok) {
-      toast.add({ title: isAr ? "تمت إضافة الوحدة بنجاح" : "Unit added successfully", type: "success" });
+      toast.add({
+        title: isAr ? "تمت إضافة الوحدة بنجاح" : "Unit added successfully",
+        type: "success",
+        actionProps: state.id
+          ? {
+              children: isAr ? "عرض الوحدة ←" : "View unit →",
+              onClick: () => router.push(`/property/${state.id}`),
+            }
+          : undefined,
+      });
       onSuccess?.();
     }
     wasPending.current = pending;

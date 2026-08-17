@@ -248,3 +248,75 @@ export async function reverseJournalEntryAction(
   revalidatePath("/[locale]/finance/journals/[id]", "page");
   return { ok: true };
 }
+
+// Budget entry. One row per (organization, fiscal period, account); the
+// unique constraint on that triple is what makes the upsert idempotent, so
+// re-submitting the form overwrites rather than duplicating.
+//
+// A blank input means "no budget set for this account" and DELETES any
+// existing row -- distinct from an explicit 0, which is a real budget of
+// zero and is stored. Writes go through the caller's own session so the
+// budgets_manage RLS policy (finance.budgets.manage + active org) is the
+// authorization boundary; there is no service-role bypass here.
+const saveBudgetsSchema = z.object({
+  organizationId: z.string().uuid(),
+  fiscalPeriodId: z.string().uuid(),
+});
+
+export async function saveBudgets(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = saveBudgetsSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    fiscalPeriodId: formData.get("fiscalPeriodId"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  const { organizationId, fiscalPeriodId } = parsed.data;
+
+  const upserts: { organization_id: string; fiscal_period_id: string; account_id: string; amount: number }[] = [];
+  const deletes: string[] = [];
+
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("amount_")) continue;
+    const accountId = key.slice("amount_".length);
+    if (!z.string().uuid().safeParse(accountId).success) continue;
+
+    const raw = String(value).trim();
+    if (raw === "") {
+      deletes.push(accountId);
+      continue;
+    }
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount < 0) return { ok: false, error: "invalid_amount" };
+    upserts.push({
+      organization_id: organizationId,
+      fiscal_period_id: fiscalPeriodId,
+      account_id: accountId,
+      amount,
+    });
+  }
+
+  const supabase = await createClient();
+
+  if (deletes.length > 0) {
+    const { error } = await supabase
+      .from("budgets")
+      .delete()
+      .eq("organization_id", organizationId)
+      .eq("fiscal_period_id", fiscalPeriodId)
+      .in("account_id", deletes);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  if (upserts.length > 0) {
+    const { error } = await supabase
+      .from("budgets")
+      .upsert(upserts, { onConflict: "organization_id,fiscal_period_id,account_id" });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/[locale]/finance/budgets", "page");
+  revalidatePath("/[locale]/finance/reports/budget-vs-actual", "page");
+  return { ok: true };
+}

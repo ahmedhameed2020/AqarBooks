@@ -24,6 +24,18 @@ const TAB_ICONS: Record<UnitTab, LucideIcon> = {
   activity: History,
 };
 
+// Tint the icon only, only while its own tab is active -- a touch of
+// distinction without the tab bar competing with the page's real semantic
+// colors (settled/arrears, aging severity).
+const TAB_ACTIVE_ICON_COLOR: Record<UnitTab, string> = {
+  overview: "group-data-active:text-indigo-600 dark:group-data-active:text-indigo-400",
+  financials: "group-data-active:text-blue-600 dark:group-data-active:text-blue-400",
+  ownership: "group-data-active:text-violet-600 dark:group-data-active:text-violet-400",
+  lease: "group-data-active:text-amber-600 dark:group-data-active:text-amber-400",
+  installments: "group-data-active:text-teal-600 dark:group-data-active:text-teal-400",
+  activity: "group-data-active:text-rose-600 dark:group-data-active:text-rose-400",
+};
+
 export function resolveTab(raw: string | null | undefined): UnitTab {
   return (UNIT_TABS as readonly string[]).includes(raw ?? "") ? (raw as UnitTab) : "overview";
 }
@@ -67,9 +79,9 @@ export function UnitDetailTabs({
               <TabsTrigger
                 key={t}
                 value={t}
-                className="relative z-10 flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-muted-foreground data-active:text-foreground"
+                className="group relative z-10 flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-muted-foreground data-active:text-foreground"
               >
-                <Icon className="size-3.5" />
+                <Icon className={`size-3.5 transition-colors ${TAB_ACTIVE_ICON_COLOR[t]}`} />
                 {labels[t]}
               </TabsTrigger>
             );

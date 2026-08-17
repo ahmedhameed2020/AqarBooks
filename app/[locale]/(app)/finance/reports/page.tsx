@@ -12,6 +12,8 @@ const REPORT_LINKS = [
   { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },
   { href: "/finance/reports/income-statement", labelAr: "قائمة الدخل", labelEn: "Income Statement" },
   { href: "/finance/reports/balance-sheet", labelAr: "الميزانية العمومية", labelEn: "Balance Sheet" },
+  { href: "/finance/reports/cash-flow", labelAr: "التدفقات النقدية", labelEn: "Cash Flow Statement" },
+  { href: "/finance/reports/budget-vs-actual", labelAr: "الموازنة مقابل الفعلي", labelEn: "Budget vs Actual" },
   { href: "/finance/reports/aging", labelAr: "أعمار الديون", labelEn: "Receivables Aging" },
 ] as const;
 
