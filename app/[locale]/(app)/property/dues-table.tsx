@@ -77,10 +77,10 @@ export async function DuesTable({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/30">
               <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
               <TableHead>{isAr ? "النوع" : "Type"}</TableHead>
               <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
@@ -93,9 +93,9 @@ export async function DuesTable({
                 const label = STATUS_LABELS[due.status] ?? { ar: due.status, en: due.status, variant: "outline" as const };
                 return (
                   <TableRow key={due.id}>
-                    <TableCell className="text-muted-foreground">{due.due_date}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">{due.due_date}</TableCell>
                     <TableCell>{dueTypeNameById.get(due.due_type_id) ?? due.description ?? "—"}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium tabular-nums">
                       <Money amount={due.amount} currency={currency} locale={locale} />
                     </TableCell>
                     <TableCell>
@@ -106,8 +106,8 @@ export async function DuesTable({
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
-                  {isAr ? "لا توجد استحقاقات" : "No dues"}
+                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                  {isAr ? "لا توجد استحقاقات مسجّلة بعد" : "No dues recorded yet"}
                 </TableCell>
               </TableRow>
             )}
