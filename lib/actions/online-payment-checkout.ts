@@ -81,7 +81,7 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
   // the "FAWRY" literal by inputSchema's z.enum(["FAWRY"]) above.
   const adapter = fawryAdapter;
 
-  // resort_id is read back off the transaction row that
+  // property_id is read back off the transaction row that
   // create_online_payment_checkout_transaction just inserted -- not
   // supplied by the client. That RPC (SECURITY INVOKER) derives it
   // entirely from public.current_member_id() and the requested dues'
@@ -94,7 +94,7 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
   // below are safe: neither is unvalidated client input.
   const { data: txnScope } = await supabase
     .from("online_payment_transactions")
-    .select("resort_id")
+    .select("property_id")
     .eq("id", data.transaction_id)
     .single();
 
@@ -107,7 +107,7 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
     // tenant's PRODUCTION credentials could be resolved here.
     credentials = await resolveProviderCredentials(
       memberContext.member.organization_id,
-      txnScope?.resort_id ?? null,
+      txnScope?.property_id ?? null,
       "FAWRY",
       "SANDBOX"
     );

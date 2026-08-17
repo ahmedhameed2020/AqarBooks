@@ -125,7 +125,7 @@ describe("record_online_payment concurrent replay", () => {
 
     const { error: settingsErr } = await admin
       .from("organization_finance_settings")
-      .insert({ organization_id: orgId, resort_id: resortId, online_payments_clearing_account_id: assetAccountId });
+      .insert({ organization_id: orgId, property_id: resortId, online_payments_clearing_account_id: assetAccountId });
     expect(settingsErr).toBeNull();
 
     const { data: dueType, error: dueTypeErr } = await admin
@@ -161,7 +161,7 @@ describe("record_online_payment concurrent replay", () => {
       .from("dues")
       .insert({
         organization_id: orgId,
-        resort_id: resortId,
+        property_id: resortId,
         unit_id: unitId,
         due_type_id: dueTypeId,
         receivable_account_id: receivableAccountId,
@@ -179,7 +179,7 @@ describe("record_online_payment concurrent replay", () => {
       .from("online_payment_transactions")
       .insert({
         organization_id: orgId,
-        resort_id: resortId,
+        property_id: resortId,
         member_id: memberId,
         client_request_id: `conc-${runSuffix}`,
         provider: "PAYMOB",

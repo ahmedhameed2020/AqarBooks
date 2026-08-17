@@ -31,7 +31,7 @@ begin
   values (v_org_id, 'Test Resort', 'TR' || substr(md5(clock_timestamp()::text), 1, 8))
   returning id into v_resort_id;
 
-  -- A resort that belongs to the OTHER org -- used to prove resort_id must
+  -- A resort that belongs to the OTHER org -- used to prove property_id must
   -- belong to organization_id, independently of whether the clearing
   -- account itself is valid.
   insert into public.resorts (organization_id, name, code)
@@ -65,27 +65,27 @@ begin
 
   -- 1. Valid ASSET, non-group, active, same-org account, resort belongs to
   --    the same org -> succeeds.
-  insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+  insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
   values (v_org_id, v_resort_id, v_asset_account_id);
-  assert (select count(*) from public.organization_finance_settings where organization_id = v_org_id and resort_id = v_resort_id) = 1,
+  assert (select count(*) from public.organization_finance_settings where organization_id = v_org_id and property_id = v_resort_id) = 1,
     'FAIL: valid clearing account config should have been accepted';
 
-  -- 2. unique(organization_id, resort_id) -> a second row for the same
+  -- 2. unique(organization_id, property_id) -> a second row for the same
   --    (org, resort) pair is rejected, even with an otherwise-valid account.
   v_error_caught := false;
   begin
-    insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+    insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
     values (v_org_id, v_resort_id, v_asset_account_id2);
   exception when sqlstate '23505' then v_error_caught := true;
   end;
-  assert v_error_caught, 'FAIL: duplicate (organization_id, resort_id) should have been rejected by the unique constraint';
+  assert v_error_caught, 'FAIL: duplicate (organization_id, property_id) should have been rejected by the unique constraint';
 
   -- 3. LIABILITY account -> rejected.
   v_error_caught := false;
   begin
     update public.organization_finance_settings
     set online_payments_clearing_account_id = v_liability_account_id
-    where organization_id = v_org_id and resort_id = v_resort_id;
+    where organization_id = v_org_id and property_id = v_resort_id;
   exception when sqlstate '22023' then v_error_caught := true;
   end;
   assert v_error_caught, 'FAIL: LIABILITY account should have been rejected';
@@ -95,7 +95,7 @@ begin
   begin
     update public.organization_finance_settings
     set online_payments_clearing_account_id = v_group_account_id
-    where organization_id = v_org_id and resort_id = v_resort_id;
+    where organization_id = v_org_id and property_id = v_resort_id;
   exception when sqlstate '22023' then v_error_caught := true;
   end;
   assert v_error_caught, 'FAIL: group account should have been rejected';
@@ -105,7 +105,7 @@ begin
   begin
     update public.organization_finance_settings
     set online_payments_clearing_account_id = v_inactive_account_id
-    where organization_id = v_org_id and resort_id = v_resort_id;
+    where organization_id = v_org_id and property_id = v_resort_id;
   exception when sqlstate '22023' then v_error_caught := true;
   end;
   assert v_error_caught, 'FAIL: inactive account should have been rejected';
@@ -115,19 +115,19 @@ begin
   begin
     update public.organization_finance_settings
     set online_payments_clearing_account_id = v_wrong_org_account_id
-    where organization_id = v_org_id and resort_id = v_resort_id;
+    where organization_id = v_org_id and property_id = v_resort_id;
   exception when sqlstate '22023' then v_error_caught := true;
   end;
   assert v_error_caught, 'FAIL: cross-org account should have been rejected';
 
-  -- 7. resort_id belongs to a DIFFERENT organization than organization_id ->
+  -- 7. property_id belongs to a DIFFERENT organization than organization_id ->
   --    rejected, even though the account itself is perfectly valid for
   --    organization_id. Closes the gap found in code review: the original
   --    trigger validated the account's org/resort against the row but never
-  --    validated that the row's own resort_id belongs to its organization_id.
+  --    validated that the row's own property_id belongs to its organization_id.
   v_error_caught := false;
   begin
-    insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+    insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
     values (v_org_id, v_other_org_resort_id, v_asset_account_id);
   exception when sqlstate '22023' then v_error_caught := true;
   end;
@@ -145,7 +145,7 @@ begin
   set local role authenticated;
   v_error_caught := false;
   begin
-    insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+    insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
     values (v_org_id, v_resort_id, v_asset_account_id);
   exception
     when sqlstate '42501' then v_error_caught := true;

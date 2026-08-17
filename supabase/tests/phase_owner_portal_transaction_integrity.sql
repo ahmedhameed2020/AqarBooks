@@ -7,7 +7,7 @@
 --   3. A different owner cannot see another org's transaction, even
 --      knowing its real UUID.
 --   4. amount cannot be changed once a transaction leaves PENDING.
---   5. organization_id/resort_id/member_id/provider cannot be changed once
+--   5. organization_id/property_id/member_id/provider cannot be changed once
 --      a transaction leaves PENDING.
 --   6. A transaction cannot transition PAID -> PENDING (or any terminal
 --      state back to any other state).
@@ -116,7 +116,7 @@ begin
   -- TEST 1: owner A inserts their own PENDING transaction + allocation.
   perform set_config('request.jwt.claim.sub', v_owner_a_user::text, false);
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_a, v_resort_a, v_member_a, 'creq-a-1', 'PAYMOB', 1000, now() + interval '30 minutes')
   returning id into v_txn_a;
@@ -131,7 +131,7 @@ begin
   v_error_caught := false;
   begin
     insert into public.online_payment_transactions
-      (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+      (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
     values
       (v_org_a, v_resort_a, v_member_b, 'creq-a-spoof', 'PAYMOB', 500, now() + interval '30 minutes');
   exception when sqlstate '42501' then
@@ -170,7 +170,7 @@ begin
   v_pass := v_error_caught;
   insert into test_results values ('TEST 4 (amount immutable after leaving PENDING)', case when v_pass then 'PASS' else 'FAIL' end, format('error_caught=%s', v_error_caught));
 
-  -- TEST 5: organization_id/resort_id/member_id/provider cannot change once settled.
+  -- TEST 5: organization_id/property_id/member_id/provider cannot change once settled.
   v_error_caught := false;
   begin
     update public.online_payment_transactions set provider = 'FAWRY' where id = v_txn_a;
@@ -194,7 +194,7 @@ begin
   v_error_caught := false;
   begin
     insert into public.online_payment_transactions
-      (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+      (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
     values
       (v_org_a, v_resort_a, v_member_a, 'creq-a-1', 'PAYMOB', 250, now() + interval '30 minutes');
   exception when unique_violation then
@@ -205,7 +205,7 @@ begin
 
   -- TEST 8: duplicate (provider, provider_reference) rejected.
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at, provider_reference)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at, provider_reference)
   values
     (v_org_a, v_resort_a, v_member_a, 'creq-a-2', 'PAYMOB', 300, now() + interval '30 minutes', 'PMOB-REF-' || v_run_suffix)
   returning id into v_txn_b;
@@ -213,7 +213,7 @@ begin
   v_error_caught := false;
   begin
     insert into public.online_payment_transactions
-      (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at, provider_reference)
+      (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at, provider_reference)
     values
       (v_org_a, v_resort_a, v_member_a, 'creq-a-3', 'PAYMOB', 300, now() + interval '30 minutes', 'PMOB-REF-' || v_run_suffix);
   exception when unique_violation then
@@ -227,7 +227,7 @@ begin
   v_error_caught := false;
   begin
     insert into public.online_payment_transactions
-      (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at, webhook_event_id)
+      (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at, webhook_event_id)
     values
       (v_org_a, v_resort_a, v_member_a, 'creq-a-4', 'PAYMOB', 300, now() + interval '30 minutes', 'EVT-' || v_run_suffix);
   exception when unique_violation then

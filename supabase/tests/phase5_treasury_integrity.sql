@@ -57,17 +57,17 @@ begin
 
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_id, 'صيانة', 'Maintenance', v_revenue_id) returning id into v_due_type_id;
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort_id, 'U-1', 'VILLA') returning id into v_unit_id;
 
   v_due_id := public.issue_due(v_org_id, v_resort_id, v_unit_id, v_due_type_id, v_receivable_id, 200, '2026-01-05', '2026-01-31', 'Due A', v_period_open);
   v_due_id_2 := public.issue_due(v_org_id, v_resort_id, v_unit_id, v_due_type_id, v_receivable_id, 300, '2026-01-05', '2026-01-31', 'Due B', v_period_open);
 
-  insert into public.cashboxes (organization_id, resort_id, name, gl_account_id) values (v_org_id, v_resort_id, 'Main Box', v_cash_id) returning id into v_cashbox_a;
-  insert into public.cashboxes (organization_id, resort_id, name, gl_account_id) values (v_org_id, v_resort_id, 'Second Box', v_cash_id) returning id into v_cashbox_b;
+  insert into public.cashboxes (organization_id, property_id, name, gl_account_id) values (v_org_id, v_resort_id, 'Main Box', v_cash_id) returning id into v_cashbox_a;
+  insert into public.cashboxes (organization_id, property_id, name, gl_account_id) values (v_org_id, v_resort_id, 'Second Box', v_cash_id) returning id into v_cashbox_b;
 
   insert into public.banks (organization_id, name_ar, name_en) values (v_org_id, 'بنك تجريبي', 'Test Bank') returning id into v_bank_id;
-  insert into public.bank_accounts (organization_id, resort_id, bank_id, account_name, account_number, gl_account_id)
+  insert into public.bank_accounts (organization_id, property_id, bank_id, account_name, account_number, gl_account_id)
   values (v_org_id, v_resort_id, v_bank_id, 'Main Account', '12345', v_cash_id) returning id into v_bank_account_id;
 
   insert into _test_results (test, result, detail) values ('Setup', 'INFO', 'org=' || v_org_id);

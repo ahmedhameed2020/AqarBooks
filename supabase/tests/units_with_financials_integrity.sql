@@ -67,16 +67,16 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_a, 'صيانة', 'Maintenance', v_revenue_a) returning id into v_due_type_a;
 
-  insert into public.zones (organization_id, resort_id, name_ar, name_en)
+  insert into public.zones (organization_id, property_id, name_ar, name_en)
   values (v_org_a, v_resort_a, 'منطقة أ', 'Zone A') returning id into v_zone_a;
-  insert into public.buildings (organization_id, resort_id, zone_id, code, name_ar, name_en)
+  insert into public.buildings (organization_id, property_id, zone_id, code, name_ar, name_en)
   values (v_org_a, v_resort_a, v_zone_a, 'B1', 'مبنى 1', 'Building 1') returning id into v_building_a;
 
-  insert into public.units (organization_id, resort_id, building_id, zone_id, code, unit_type)
+  insert into public.units (organization_id, property_id, building_id, zone_id, code, unit_type)
   values (v_org_a, v_resort_a, v_building_a, v_zone_a, 'A-1', 'VILLA') returning id into v_unit_a1;
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_a, v_resort_a, 'A-2', 'CHALET') returning id into v_unit_a2;
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_a, v_resort_a, 'A-3', 'APARTMENT') returning id into v_unit_a3;
 
   insert into public.members (organization_id, full_name, email)
@@ -103,7 +103,7 @@ begin
   v_org_b := public.create_organization('UWF Test Org B', 'uwf-test-b-' || extract(epoch from now())::bigint, 'EGP', 'STARTER');
   v_resort_b := public.create_resort(v_org_b, 'Resort B', 'RB1', 'Africa/Cairo');
   perform public.clone_chart_of_accounts_template(v_org_b, 'RESORT_STANDARD');
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_b, v_resort_b, 'B-1', 'VILLA') returning id into v_unit_b1;
 
   insert into test_results values ('setup', 'INFO', format('org_a=%s, org_b=%s', v_org_a, v_org_b));

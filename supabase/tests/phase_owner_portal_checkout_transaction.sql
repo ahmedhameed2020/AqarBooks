@@ -110,31 +110,31 @@ begin
   insert into public.unit_ownerships (organization_id, unit_id, member_id)
   values (v_org_id, v_unit1_id, v_member_id), (v_org_id, v_unit2_id, v_member_id);
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 600, current_date, current_date + 30, 'ISSUED')
   returning id into v_due1_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 400, current_date, current_date + 30, 'ISSUED')
   returning id into v_due2_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 300, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_cross_a_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort2_id, v_unit2_id, v_due_type_id, v_asset_account_id, 250, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_cross_b_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit_unowned_id, v_due_type_id, v_asset_account_id, 500, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_unowned_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 200, current_date, current_date + 30, 'PAID')
   returning id into v_due_paid_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort1_id, v_unit1_id, v_due_type_id, v_asset_account_id, 150, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_double_id;
 
@@ -162,7 +162,7 @@ begin
   assert v_alloc_count = 2, format('FAIL scenario 1: expected 2 allocation rows, got %s', v_alloc_count);
 
   perform 1 from public.online_payment_transactions
-  where id = v_result.transaction_id and organization_id = v_org_id and resort_id = v_resort1_id
+  where id = v_result.transaction_id and organization_id = v_org_id and property_id = v_resort1_id
     and member_id = v_member_id and provider = 'FAWRY' and amount = 1000 and status = 'PENDING';
   assert found, 'FAIL scenario 1: transaction row did not persist with expected organization/resort/member/provider/amount/status';
 

@@ -101,7 +101,7 @@ begin
   values (v_org_id, 'ROP-RECV-' || clock_timestamp()::text, 'ذمم', 'Receivable', 'ASSET', 'DEBIT', false, true)
   returning id into v_receivable_account_id;
 
-  insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+  insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
   values (v_org_id, v_resort_id, v_asset_account_id);
   -- Deliberately NO row for (v_org_id, v_resort_no_settings_id) -- scenario 5.
 
@@ -130,19 +130,19 @@ begin
   perform public.set_fiscal_period_status(v_fiscal_period_id, 'OPEN', 'Phase 4 test setup');
 
   -- Dues for org A
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort_id, v_unit_id, v_due_type_id, v_receivable_account_id, 1000, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_happy_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort_id, v_unit_id, v_due_type_id, v_receivable_account_id, 400, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort_id, v_unit_id, v_due_type_id, v_receivable_account_id, 300, current_date, current_date + 30, 'ISSUED')
   returning id into v_due2_id;
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org_id, v_resort_id, v_unit_unowned_id, v_due_type_id, v_receivable_account_id, 500, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_ownership_id;
 
@@ -162,7 +162,7 @@ begin
   values (v_org2_id, 'ROP-B-RECV-' || clock_timestamp()::text, 'ذمم', 'Receivable', 'ASSET', 'DEBIT', false, true)
   returning id into v_receivable_account_b_id;
 
-  insert into public.organization_finance_settings (organization_id, resort_id, online_payments_clearing_account_id)
+  insert into public.organization_finance_settings (organization_id, property_id, online_payments_clearing_account_id)
   values (v_org2_id, v_resort_b_id, v_asset_account_b_id);
 
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
@@ -181,7 +181,7 @@ begin
   -- Deliberately no set_fiscal_period_status call -- every period for org B
   -- stays PLANNED, so no period covers current_date -> OPEN_PERIOD_REQUIRED.
 
-  insert into public.dues (organization_id, resort_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
+  insert into public.dues (organization_id, property_id, unit_id, due_type_id, receivable_account_id, amount, issue_date, due_date, status)
   values (v_org2_id, v_resort_b_id, v_unit_b_id, v_due_type_b_id, v_receivable_account_b_id, 250, current_date, current_date + 30, 'ISSUED')
   returning id into v_due_b_id;
 
@@ -191,7 +191,7 @@ begin
   -- SCENARIO 1: happy path.
   -----------------------------------------------------------------------
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_id, v_resort_id, v_member_id, 'rop-happy-' || v_run_suffix, 'PAYMOB', 1000, now() + interval '30 minutes')
   returning id into v_txn_happy_id;
@@ -265,7 +265,7 @@ begin
   assert v_due_status = 'PAID', format('FAIL scenario 3 setup: expected v_due_id PAID before the race, got %s', v_due_status);
 
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_id, v_resort_id, v_member_id, 'rop-race-' || v_run_suffix, 'PAYMOB', 700, now() + interval '30 minutes')
   returning id into v_txn_race_id;
@@ -300,7 +300,7 @@ begin
   -- SCENARIO 4: no open period covers today for org B.
   -----------------------------------------------------------------------
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org2_id, v_resort_b_id, v_member_b_id, 'rop-noperiod-' || v_run_suffix, 'PAYMOB', 250, now() + interval '30 minutes')
   returning id into v_txn_no_period_id;
@@ -322,7 +322,7 @@ begin
   -- organization_finance_settings row at all).
   -----------------------------------------------------------------------
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_id, v_resort_no_settings_id, v_member_id, 'rop-noclearing-' || v_run_suffix, 'PAYMOB', 100, now() + interval '30 minutes')
   returning id into v_txn_missing_clearing_id;
@@ -338,7 +338,7 @@ begin
   -- row for the transaction's member_id.
   -----------------------------------------------------------------------
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_id, v_resort_id, v_member_id, 'rop-notowned-' || v_run_suffix, 'PAYMOB', 500, now() + interval '30 minutes')
   returning id into v_txn_ownership_id;
@@ -362,13 +362,13 @@ begin
   -- org A allocates against a due that belongs to org B entirely (not
   -- just a different resort within org A). Distinct failure branch from
   -- scenario 6's ownership check: this one trips on
-  -- v_due.organization_id/resort_id <> v_txn.organization_id/resort_id,
+  -- v_due.organization_id/property_id <> v_txn.organization_id/property_id,
   -- before the ownership check ever runs. v_due_b_id is untouched here --
   -- scenario 4 failed at the OPEN_PERIOD_REQUIRED check, before its due
   -- loop ever ran, so it's still a clean ISSUED due to reuse.
   -----------------------------------------------------------------------
   insert into public.online_payment_transactions
-    (organization_id, resort_id, member_id, client_request_id, provider, amount, expires_at)
+    (organization_id, property_id, member_id, client_request_id, provider, amount, expires_at)
   values
     (v_org_id, v_resort_id, v_member_id, 'rop-outofscope-' || v_run_suffix, 'PAYMOB', 250, now() + interval '30 minutes')
   returning id into v_txn_out_of_scope_id;

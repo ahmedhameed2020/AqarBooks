@@ -141,9 +141,9 @@ begin
     assert v_sqlerrm like 'RESORT_NOT_IN_ORGANIZATION%', format('FAIL scenario 1: expected RESORT_NOT_IN_ORGANIZATION, got %s', v_sqlerrm);
   end;
   reset role;
-  assert v_error_caught, 'FAIL scenario 1: cross-org resort_id should have been rejected';
+  assert v_error_caught, 'FAIL scenario 1: cross-org property_id should have been rejected';
 
-  assert (select count(*) from public.payment_provider_settings where organization_id = v_org_a and resort_id = v_resort_b1) = 0,
+  assert (select count(*) from public.payment_provider_settings where organization_id = v_org_a and property_id = v_resort_b1) = 0,
     'FAIL scenario 1: no row should have been created';
 
   raise notice 'SCENARIO 1 (cross-org resort rejected): PASS';
@@ -400,10 +400,10 @@ begin
   raise notice 'SCENARIO 6 (secret change resets verification; non-secret change does not): PASS';
 
   -----------------------------------------------------------------------
-  -- SCENARIO 7: org-wide (resort_id IS NULL) and resort-specific settings
+  -- SCENARIO 7: org-wide (property_id IS NULL) and resort-specific settings
   -- for the SAME org/provider/environment coexist; resort-specific wins
   -- when both exist, org-wide is the fallback when it doesn't.
-  -- v_settings_fawry_prod (resort_id = null) is already ENABLED from
+  -- v_settings_fawry_prod (property_id = null) is already ENABLED from
   -- scenario 3, with api_key 'fawry-prod-key-<suffix>'.
   -----------------------------------------------------------------------
   perform set_config('request.jwt.claim.sub', v_user_a::text, true);
@@ -421,7 +421,7 @@ begin
           where organization_id = v_org_a and provider = 'FAWRY' and environment = 'PRODUCTION') = 2,
     'FAIL scenario 7: expected both the org-wide and resort-specific FAWRY/PRODUCTION rows to coexist';
 
-  -- Resort-specific wins when a resort_id with its own row is requested.
+  -- Resort-specific wins when a property_id with its own row is requested.
   select * into v_cred from public.get_payment_provider_credentials(v_org_a, v_resort_a1, 'FAWRY', 'PRODUCTION');
   assert v_cred.settings_id = v_settings_fawry_prod_resort,
     format('FAIL scenario 7: expected resort-specific row (%s) to win for resort_a1, got %s', v_settings_fawry_prod_resort, v_cred.settings_id);

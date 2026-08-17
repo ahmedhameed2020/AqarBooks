@@ -23,7 +23,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
 
 test("owner accepts an invite and reaches the portal dashboard", async ({ page }) => {
   test.setTimeout(60_000);

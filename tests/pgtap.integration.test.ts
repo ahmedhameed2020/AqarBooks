@@ -496,7 +496,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // Zone and building created directly with `property_id` -- this proves
     // the column rename on zones/buildings applied. If the column were
-    // still `resort_id`, this insert would fail (strict mode) or the row
+    // still `property_id`, this insert would fail (strict mode) or the row
     // would never be found scoped by `property_id` on read-back.
     const { data: zone, error: zoneErr } = await admin
       .from("zones")
@@ -728,7 +728,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // Insert into resort_memberships directly via `property_id` -- this
     // alone proves the column rename applied. If the column were still
-    // `resort_id`, this insert would fail (strict mode).
+    // `property_id`, this insert would fail (strict mode).
     const { data: membership, error: membershipInsertErr } = await admin
       .from("resort_memberships")
       .insert({
@@ -902,9 +902,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(ownerSignInErr).toBeNull();
 
     // create_resort inserts into platform_audit_logs with the renamed
-    // property_id column -- if the column were still resort_id (or the
+    // property_id column -- if the column were still property_id (or the
     // function's INSERT column list hadn't been updated), this call would
-    // fail with "column resort_id does not exist" / "column property_id of
+    // fail with "column property_id does not exist" / "column property_id of
     // relation platform_audit_logs does not exist".
     const resortCode = `AUDIT-PIC-${Date.now()}`;
     const { data: resortId, error: createResortErr } = await ownerClient.rpc("create_resort", {
@@ -1106,9 +1106,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(session?.property_id).toBe(resortId);
 
     // close_cashier_session: proves the row-typed-variable field-access edit
-    // (v_session.property_id, formerly v_session.resort_id) works -- if it
+    // (v_session.property_id, formerly v_session.property_id) works -- if it
     // didn't, this call would fail with a hard Postgres error since
-    // cashier_sessions.resort_id no longer exists.
+    // cashier_sessions.property_id no longer exists.
     const { error: closeSessionErr } = await ownerClient.rpc("close_cashier_session", {
       p_session_id: sessionId,
       p_actual_closing_balance: 100,
@@ -1376,9 +1376,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(request?.property_id).toBe(resortId);
 
     // decide_purchase_request: proves the single-occurrence row-typed-variable
-    // field-access edit (v_request.property_id, formerly v_request.resort_id)
+    // field-access edit (v_request.property_id, formerly v_request.property_id)
     // works -- if it didn't, this call would fail with a hard Postgres error
-    // since purchase_requests.resort_id no longer exists.
+    // since purchase_requests.property_id no longer exists.
     const { error: decideErr } = await ownerClient.rpc("decide_purchase_request", {
       p_request_id: requestId,
       p_approve: true,
@@ -1437,12 +1437,12 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(invoice?.property_id).toBe(resortId);
 
     // cancel_supplier_invoice: the highest-risk edit shape in this cluster --
-    // v_invoice.property_id (formerly v_invoice.resort_id) is read THREE
+    // v_invoice.property_id (formerly v_invoice.property_id) is read THREE
     // times in this one function body (has_financial_permission argument,
     // create_journal_entry_internal argument, and the platform_audit_logs
     // value). If even one of the three occurrences had been missed, this
     // call would fail with a hard Postgres error since
-    // supplier_invoices.resort_id no longer exists.
+    // supplier_invoices.property_id no longer exists.
     const { error: cancelErr } = await ownerClient.rpc("cancel_supplier_invoice", {
       p_organization_id: orgId,
       p_invoice_id: invoiceId,
@@ -1614,9 +1614,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // edit. Call it TWICE for the same user/role/org so the INSERT's ON
     // CONFLICT clause is actually re-parsed/re-planned against the live
     // schema on a second execution, not just the first. This is the
-    // load-bearing proof: if the column list still said `resort_id` (which
+    // load-bearing proof: if the column list still said `property_id` (which
     // no longer exists on this table after the migration), Postgres would
-    // reject the statement outright with "column resort_id does not exist"
+    // reject the statement outright with "column property_id does not exist"
     // on either call, since the ON CONFLICT inference target is validated
     // against the table's real columns/indexes regardless of whether a
     // duplicate is actually found at runtime.
@@ -1630,7 +1630,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // NOTHING's arbiter never actually matches an existing NULL-scoped row,
     // and the second call legitimately inserts a SECOND row rather than
     // deduplicating. This is pre-existing behavior unrelated to this
-    // rename (identical NULL semantics applied under the old `resort_id`
+    // rename (identical NULL semantics applied under the old `property_id`
     // name), so this test asserts the count that's actually observed (2)
     // rather than the naive expectation of 1 -- what matters for THIS
     // phase's correctness is that both calls succeed without a
@@ -1746,7 +1746,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // create_purchase_request (Phase 2d, already migrated) calls
     // has_financial_permission(p_organization_id, 'purchasing.requests.create',
     // p_resort_id) -- if `ura.property_id` still referenced a nonexistent
-    // `resort_id` column, this call would error outright (not silently
+    // `property_id` column, this call would error outright (not silently
     // deny), but if the rename had instead been mistyped in a way that
     // still compiles (e.g. comparing the wrong columns), this scoped user
     // would be silently and wrongly denied. Asserting success here is the
@@ -2008,7 +2008,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // post_journal_entry (thin real-session-facing wrapper around
     // post_journal_entry_internal, gated on finance.entries.post). Reading
     // the resulting platform_audit_logs row proves the single-occurrence
-    // `v_entry.property_id` edit (formerly `v_entry.resort_id`) in
+    // `v_entry.property_id` edit (formerly `v_entry.property_id`) in
     // post_journal_entry_internal.
     const { error: postEntryErr } = await ownerClient.rpc("post_journal_entry", {
       p_journal_entry_id: entryId,
@@ -2037,11 +2037,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // reverse_journal_entry: the highest-risk edit shape in this phase --
     // three substitutions split across two statement types within one
     // function body: (a) the new reversal entry's INSERT column list, (b)
-    // `v_original.property_id` (formerly `v_original.resort_id`) read into
+    // `v_original.property_id` (formerly `v_original.property_id`) read into
     // that same INSERT's VALUES list, and (c) `v_original.property_id` read
     // again as the value passed into platform_audit_logs. If any of the
     // three had been missed, this call would fail with a hard Postgres
-    // error since journal_entries.resort_id no longer exists.
+    // error since journal_entries.property_id no longer exists.
     const { data: reversalEntryId, error: reverseErr } = await ownerClient.rpc(
       "reverse_journal_entry",
       {
@@ -2300,11 +2300,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // clone-style RPC exists for this table per the plan's Task 4 note).
     // This INSERT fires trg_validate_online_payments_clearing_account ->
     // validate_online_payments_clearing_account, which now reads/compares
-    // exclusively via new.property_id (formerly new.resort_id, function 7 --
+    // exclusively via new.property_id (formerly new.property_id, function 7 --
     // completing its own Phase 2e partial edit) -- if either of that
     // trigger's two substitutions had been missed, this insert would fail
     // outright with a hard Postgres error since organization_finance_
-    // settings.resort_id no longer exists.
+    // settings.property_id no longer exists.
     const { data: financeSettings, error: financeSettingsErr } = await admin
       .from("organization_finance_settings")
       .insert({
@@ -2437,7 +2437,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     const dueId = due!.id;
 
     // create_online_payment_checkout_transaction, under the member's own
-    // real signed-in session: proves substitution 1 (both the v_due.resort_id
+    // real signed-in session: proves substitution 1 (both the v_due.property_id
     // -> v_due.property_id reassignment/comparison, and the online_payment_
     // transactions INSERT column list).
     const { data: checkoutData, error: checkoutErr } = await memberClient.rpc(
@@ -2468,8 +2468,8 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // its live body above, which has no has_permission/has_financial_
     // permission/auth.uid() check at all). This is the highest-value proof
     // in this test: it completes function 4's Phase-2e-partial-edit closure
-    // (six v_txn.resort_id -> v_txn.property_id occurrences, one ofs.resort_id
-    // -> ofs.property_id, one v_due.resort_id -> v_due.property_id) plus
+    // (six v_txn.property_id -> v_txn.property_id occurrences, one ofs.property_id
+    // -> ofs.property_id, one v_due.property_id -> v_due.property_id) plus
     // function 3's post_payment_internal edit (v_due.property_id guard +
     // payments INSERT column list) -- a single missed substitution anywhere
     // in this chain surfaces as a hard "column ... does not exist" error, so
@@ -2509,7 +2509,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // The platform_audit_logs row for 'online_payment.posted': proves the
     // final substitution in function 4 (the platform_audit_logs INSERT's
-    // v_txn.resort_id -> v_txn.property_id value), completing the full
+    // v_txn.property_id -> v_txn.property_id value), completing the full
     // record_online_payment closure.
     const { data: postedAuditLog, error: postedAuditLogErr } = await admin
       .from("platform_audit_logs")
@@ -2523,7 +2523,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // void_payment, under a real signed-in TENANT_OWNER session holding
     // finance.payments.void: intended to prove function 8's two
-    // substitutions (v_payment.resort_id -> v_payment.property_id in the
+    // substitutions (v_payment.property_id -> v_payment.property_id in the
     // has_financial_permission check, and in the append_financial_audit_
     // event call's p_resort_id argument).
     //
@@ -2547,7 +2547,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // permission(..., v_payment.property_id) check, past the status guard,
     // past the payment_allocations/dues updates -- and fails on a check
     // constraint (Postgres code 23514), NOT a "column ... does not exist"
-    // error (42703), which is exactly what a broken v_payment.resort_id ->
+    // error (42703), which is exactly what a broken v_payment.property_id ->
     // v_payment.property_id substitution would produce instead. The whole
     // call runs inside one implicit transaction, so everything upstream
     // (including the payments status UPDATE) rolls back with it -- confirmed
@@ -2921,7 +2921,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(orgWideSettingsId).not.toBe(scopedSettingsId);
 
     // --- list_payment_provider_settings: proves the RETURNS TABLE column
-    // rename (resort_id -> property_id) didn't break anything; there are
+    // rename (property_id -> property_id) didn't break anything; there are
     // zero app-code callers today, so this RPC call itself is the only
     // proof this substitution is correct. ---
     const { data: listedSettings, error: listErr } = await ownerClient.rpc(
@@ -3397,7 +3397,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
 
-  it("18. Phase 2g Group 4 financial_audit_logs Property-ID Rename Integrity (append_financial_audit_event/verify_financial_audit_chain end-to-end via RPC -- the final deferred group of the whole resort_id->property_id rename effort)", async () => {
+  it("18. Phase 2g Group 4 financial_audit_logs Property-ID Rename Integrity (append_financial_audit_event/verify_financial_audit_chain end-to-end via RPC -- the final deferred group of the whole property_id->property_id rename effort)", async () => {
     const { data: org } = await admin
       .from("organizations")
       .insert({

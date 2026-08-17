@@ -350,7 +350,7 @@ async function provisionResortWithDue(
 
   const { error: settingsErr } = await admin
     .from("organization_finance_settings")
-    .insert({ organization_id: ctx.orgId, resort_id: resortId, online_payments_clearing_account_id: assetAccount!.id });
+    .insert({ organization_id: ctx.orgId, property_id: resortId, online_payments_clearing_account_id: assetAccount!.id });
   expect(settingsErr, `finance settings insert failed: ${settingsErr?.message}`).toBeNull();
 
   const { data: dueType, error: dueTypeErr } = await admin
@@ -377,7 +377,7 @@ async function provisionResortWithDue(
     .from("dues")
     .insert({
       organization_id: ctx.orgId,
-      resort_id: resortId,
+      property_id: resortId,
       unit_id: unit!.id,
       due_type_id: dueType!.id,
       receivable_account_id: receivableAccount!.id,
@@ -473,7 +473,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .select("id, status, amount")
       .eq("member_id", ctx.memberId)
-      .eq("resort_id", fixture.resortId)
+      .eq("property_id", fixture.resortId)
       .single();
     expect(pendingTxn?.status).toBe("PENDING");
     expect(Number(pendingTxn?.amount)).toBe(750);
@@ -530,7 +530,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .insert({
         organization_id: ctx.orgId,
-        resort_id: fixture.resortId,
+        property_id: fixture.resortId,
         member_id: ctx.memberId,
         client_request_id: `badsig-${ctx.suffix}`,
         provider: "FAWRY",
@@ -570,7 +570,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .insert({
         organization_id: ctx.orgId,
-        resort_id: fixture.resortId,
+        property_id: fixture.resortId,
         member_id: ctx.memberId,
         client_request_id: `dup-${ctx.suffix}`,
         provider: "FAWRY",
@@ -625,7 +625,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .insert({
         organization_id: ctx.orgId,
-        resort_id: fixture.resortId,
+        property_id: fixture.resortId,
         member_id: ctx.memberId,
         client_request_id: `race-${ctx.suffix}`,
         provider: "FAWRY",
@@ -703,7 +703,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .insert({
         organization_id: ctxB.orgId,
-        resort_id: fixtureB.resortId,
+        property_id: fixtureB.resortId,
         member_id: ctxB.memberId,
         client_request_id: `iso-b-${ctxB.suffix}`,
         provider: "FAWRY",
@@ -793,7 +793,7 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
       .from("online_payment_transactions")
       .select("id, status, amount")
       .eq("member_id", ctx.memberId)
-      .eq("resort_id", fixture.resortId)
+      .eq("property_id", fixture.resortId)
       .single();
     expect(txn?.status).toBe("PENDING");
     expect(Number(txn?.amount)).toBe(450);

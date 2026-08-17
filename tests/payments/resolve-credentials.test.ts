@@ -199,7 +199,7 @@ describe("resolveProviderCredentials (real Supabase, no mocks)", () => {
     expect(resortCreds.merchantIdentifier).toBe("RCRED-PAYMOB-RESORT");
     expect(resortCreds.apiKey).toBe(`rcred-paymob-resort-key-${runSuffix}`);
 
-    // Org-wide row is still returned when queried without a resort_id.
+    // Org-wide row is still returned when queried without a property_id.
     const orgWideCreds = await resolveProviderCredentials(orgId, null, "PAYMOB", "SANDBOX");
     expect(orgWideCreds.merchantIdentifier).toBe("RCRED-PAYMOB-ORGWIDE");
     expect(orgWideCreds.apiKey).toBe(`rcred-paymob-orgwide-key-${runSuffix}`);

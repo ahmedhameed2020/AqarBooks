@@ -52,7 +52,7 @@ describe("webhook route handler (against fake adapter)", () => {
   });
 
   it("rejects an invalid signature with 401, AFTER looking up the transaction (needed to resolve whose secret applies) but never calling record_online_payment", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e1" });
     const res = await handler(buildRequest(body, { "x-fake-signature": "wrong" }));
     expect(res.status).toBe(401);
@@ -75,7 +75,7 @@ describe("webhook route handler (against fake adapter)", () => {
   });
 
   it("calls record_online_payment only on a SUCCESS status", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     mockRpcSingle.mockResolvedValue({ data: { status: "PAID", payment_id: "pay-1" }, error: null });
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e1" });
     const res = await handler(buildRequest(body, { "x-fake-signature": signFakePayload(body, DEFAULT_CREDENTIALS.hmacSecret) }));
@@ -84,7 +84,7 @@ describe("webhook route handler (against fake adapter)", () => {
   });
 
   it("does NOT call record_online_payment for a PENDING/FAILED status", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "PENDING", amountMinor: 100, webhookEventId: "e1" });
     const res = await handler(buildRequest(body, { "x-fake-signature": signFakePayload(body, DEFAULT_CREDENTIALS.hmacSecret) }));
     expect(res.status).toBe(200);
@@ -92,7 +92,7 @@ describe("webhook route handler (against fake adapter)", () => {
   });
 
   it("returns 500 (to trigger provider retry) when record_online_payment errors unexpectedly", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     mockRpcSingle.mockResolvedValue({ data: null, error: { message: "db down" } });
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e1" });
     const res = await handler(buildRequest(body, { "x-fake-signature": signFakePayload(body, DEFAULT_CREDENTIALS.hmacSecret) }));
@@ -157,7 +157,7 @@ describe("webhook route handler (against fake adapter)", () => {
   });
 
   it("gate 8: a duplicate/replay of the same valid SUCCESS webhook calls record_online_payment again each time (no route-level dedup)", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     mockRpcSingle.mockResolvedValue({ data: { status: "PAID", payment_id: "pay-1" }, error: null });
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e1" });
     const sig = signFakePayload(body, DEFAULT_CREDENTIALS.hmacSecret);
@@ -176,7 +176,7 @@ describe("webhook route handler (against fake adapter)", () => {
   // --- Task 3, Part 6: required regression scenarios (credential wiring) ---
 
   it("scenario 3: a DRAFT/not-enabled tenant setting (credential resolution throws) surfaces as 500, not a silent env fallback or crash", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", resort_id: null } });
+    mockMaybeSingle.mockResolvedValue({ data: { id: "txn-1", organization_id: "org-1", property_id: null } });
     mockResolveProviderCredentials.mockRejectedValue(new Error("TenantProviderUnusableError: PROVIDER_NOT_ENABLED"));
     const body = JSON.stringify({ merchantOrderRef: "txn-1", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e1" });
     const res = await handler(buildRequest(body, { "x-fake-signature": signFakePayload(body, DEFAULT_CREDENTIALS.hmacSecret) }));
@@ -193,7 +193,7 @@ describe("webhook route handler (against fake adapter)", () => {
     const bodyB = JSON.stringify({ merchantOrderRef: "txn-b", providerTransactionId: "y", status: "SUCCESS", amountMinor: 100, webhookEventId: "e-b" });
 
     // Transaction A resolves to tenant A's secret.
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-a", organization_id: "org-a", resort_id: null } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-a", organization_id: "org-a", property_id: null } });
     mockResolveProviderCredentials.mockResolvedValueOnce({ ...DEFAULT_CREDENTIALS, hmacSecret: secretA });
     mockRpcSingle.mockResolvedValueOnce({ data: { status: "PAID" }, error: null });
     // Signed with tenant B's secret, but this webhook is for tenant A's
@@ -204,7 +204,7 @@ describe("webhook route handler (against fake adapter)", () => {
     expect(mockRpcSingle).not.toHaveBeenCalled();
 
     // Correctly signed with tenant A's own secret -- succeeds.
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-a", organization_id: "org-a", resort_id: null } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-a", organization_id: "org-a", property_id: null } });
     mockResolveProviderCredentials.mockResolvedValueOnce({ ...DEFAULT_CREDENTIALS, hmacSecret: secretA });
     mockRpcSingle.mockResolvedValueOnce({ data: { status: "PAID" }, error: null });
     const resOwnTenant = await handler(buildRequest(bodyA, { "x-fake-signature": signFakePayload(bodyA, secretA) }));
@@ -213,7 +213,7 @@ describe("webhook route handler (against fake adapter)", () => {
 
     // Transaction B (a different tenant) resolves to its own, different
     // secret, and is verified independently of A.
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-b", organization_id: "org-b", resort_id: null } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: "txn-b", organization_id: "org-b", property_id: null } });
     mockResolveProviderCredentials.mockResolvedValueOnce({ ...DEFAULT_CREDENTIALS, hmacSecret: secretB });
     mockRpcSingle.mockResolvedValueOnce({ data: { status: "PAID" }, error: null });
     const resB = await handler(buildRequest(bodyB, { "x-fake-signature": signFakePayload(bodyB, secretB) }));

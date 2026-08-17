@@ -37,7 +37,7 @@ export function createWebhookRouteHandler(adapter: PaymentProviderAdapter) {
     const admin = createAdminClient();
     const { data: txn } = await admin
       .from("online_payment_transactions")
-      .select("id, organization_id, resort_id")
+      .select("id, organization_id, property_id")
       .eq("id", parsed.merchantOrderRef)
       .eq("provider", adapter.providerId)
       .maybeSingle();
@@ -64,7 +64,7 @@ export function createWebhookRouteHandler(adapter: PaymentProviderAdapter) {
     // resolved for a real transaction.
     let credentials;
     try {
-      credentials = await resolveProviderCredentials(txn.organization_id, txn.resort_id, adapter.providerId, "SANDBOX");
+      credentials = await resolveProviderCredentials(txn.organization_id, txn.property_id, adapter.providerId, "SANDBOX");
     } catch (err) {
       // A real webhook arrived for a real transaction we currently cannot
       // process due to a configuration problem (PROVIDER_NOT_ENABLED,
