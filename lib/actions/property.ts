@@ -133,34 +133,94 @@ export async function createBuildingAction(
   return { ok: true };
 }
 
+// Digits only, keeping a single leading "+" if present -- member_phones'
+// normalized_phone column is used for the (member_id, normalized_phone)
+// uniqueness check and the org-wide lookup index, so it needs to be
+// consistent regardless of how a user formats the raw number (spaces,
+// dashes, parentheses).
+function normalizePhone(raw: string): string {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  return trimmed.startsWith("+") ? `+${digits}` : digits;
+}
+
+const phoneEntrySchema = z.object({
+  number: z.string().min(7).max(30),
+  label: z.enum(["PERSONAL", "WORK", "WHATSAPP", "HOME", "OTHER"]),
+  whatsapp: z.boolean(),
+  primary: z.boolean(),
+});
+
 const createMemberSchema = z.object({
   organizationId: z.string().uuid(),
   fullName: z.string().min(1).max(200),
   email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().max(30).optional(),
+  isCompany: z.boolean(),
+  phones: z.array(phoneEntrySchema),
 });
 
 export async function createMemberAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  let phonesRaw: unknown = [];
+  try {
+    phonesRaw = JSON.parse(String(formData.get("phones") ?? "[]"));
+  } catch {
+    return { ok: false, error: "invalid_input" };
+  }
+
   const parsed = createMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     fullName: formData.get("fullName"),
     email: formData.get("email") || undefined,
-    phone: formData.get("phone") || undefined,
+    isCompany: formData.get("isCompany") === "true",
+    phones: phonesRaw,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
+  // Backward compat: members.phone (a single legacy column several other
+  // views/exports/the WhatsApp reminder flow still read directly) is kept
+  // populated with the primary number, even though member_phones is now
+  // the source of truth for the full, multi-number, WhatsApp-flagged list.
+  const primaryPhone = parsed.data.phones.find((p) => p.primary) ?? parsed.data.phones[0];
+
   const supabase = await createClient();
-  const { error } = await supabase.from("members").insert({
-    organization_id: parsed.data.organizationId,
-    full_name: parsed.data.fullName,
-    email: parsed.data.email || null,
-    phone: parsed.data.phone || null,
-  });
+  const { data: member, error } = await supabase
+    .from("members")
+    .insert({
+      organization_id: parsed.data.organizationId,
+      full_name: parsed.data.fullName,
+      email: parsed.data.email || null,
+      phone: primaryPhone?.number || null,
+      is_company: parsed.data.isCompany,
+    })
+    .select("id")
+    .single();
 
   if (error) return { ok: false, error: error.message };
+
+  if (parsed.data.phones.length > 0) {
+    const { error: phonesError } = await supabase.from("member_phones").insert(
+      parsed.data.phones.map((p) => ({
+        organization_id: parsed.data.organizationId,
+        member_id: member.id,
+        phone_number: p.number,
+        normalized_phone: normalizePhone(p.number),
+        label: p.label,
+        is_primary: p.primary,
+        can_receive_whatsapp: p.whatsapp,
+      })),
+    );
+    if (phonesError) {
+      // The member row was already created -- clean it up rather than
+      // leaving an orphaned member with none of the phone numbers the
+      // user actually submitted.
+      await supabase.from("members").delete().eq("id", member.id);
+      return { ok: false, error: phonesError.message };
+    }
+  }
+
   revalidatePath("/[locale]/members", "page");
   return { ok: true };
 }
