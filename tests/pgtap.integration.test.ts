@@ -3327,4 +3327,192 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });
+
+  it("18. Phase 2g Group 4 financial_audit_logs Property-ID Rename Integrity (append_financial_audit_event/verify_financial_audit_chain end-to-end via RPC -- the final deferred group of the whole resort_id->property_id rename effort)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP FinancialAuditLogsCluster Org",
+        slug: `pgtap-financial-audit-logs-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // append_financial_audit_event has EXECUTE granted only to anon/
+    // postgres/service_role (confirmed live via information_schema.
+    // routine_privileges) -- NOT authenticated. It's an internal helper,
+    // only ever called from other SECURITY DEFINER functions (which run
+    // as their own privileged owner, not the original caller), never
+    // exposed directly to end users. Calling it via the authenticated
+    // ownerClient fails with a grant-level 42501, distinct from the
+    // function's own RAISE EXCEPTION checks -- so it's called via admin
+    // (service role) below, matching how record_online_payment (another
+    // backend-only function) is called in test 15. verify_financial_audit_
+    // chain, by contrast, IS granted to authenticated (it backs the
+    // "Admins and managers can read financial audit logs" RLS-gated read
+    // path), so a real session is still stood up to exercise that
+    // realistically, matching test 15/16/17's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-financial-audit-logs-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: append_financial_audit_event's own p_resort_id ->
+    // organization-membership check requires this row to exist in the
+    // resorts compatibility view (matching the established precedent).
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "FinancialAuditLogsCluster Resort",
+        code: `FALC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // --- Event 1: property-scoped. Proves the INSERT column-list
+    // substitution (organization_id, property_id, ...). Called via admin
+    // (service role) -- see the grant note above; auth.uid() is null here,
+    // so this exercises the "system" actor branch (metadata tagged
+    // actor_type: system), not the human-membership-check branch. ---
+    const { data: event1Id, error: event1Err } = await admin.rpc("append_financial_audit_event", {
+      p_organization_id: orgId,
+      p_action: "DUE_ISSUED",
+      p_entity_type: "TEST_ENTITY",
+      p_resort_id: resortId,
+      p_entity_id: null,
+      p_metadata: { test: "event1" },
+    });
+    expect(event1Err).toBeNull();
+    expect(event1Id).toBeDefined();
+
+    const { data: event1Row, error: event1RowErr } = await admin
+      .from("financial_audit_logs")
+      .select("id, property_id, organization_id, previous_hash, event_hash")
+      .eq("id", event1Id)
+      .single();
+    expect(event1RowErr).toBeNull();
+    expect(event1Row?.property_id).toBe(resortId);
+    // The org's very first audit event has no prior row -- previous_hash is
+    // stored as NULL; "GENESIS_BLOCK" is only a transient substitution
+    // inside the hash payload computation itself, never the stored value.
+    expect(event1Row?.previous_hash).toBeNull();
+
+    // --- Event 2: organization-wide (p_resort_id null). Proves the
+    // nullable-property_id path, and that this event correctly chains its
+    // previous_hash to event 1's event_hash (chain-continuity, not just
+    // per-row hash correctness). ---
+    const { data: event2Id, error: event2Err } = await admin.rpc("append_financial_audit_event", {
+      p_organization_id: orgId,
+      p_action: "DUE_BATCH_ISSUED",
+      p_entity_type: "TEST_ENTITY",
+      p_resort_id: null,
+      p_entity_id: null,
+      p_metadata: { test: "event2" },
+    });
+    expect(event2Err).toBeNull();
+
+    const { data: event2Row, error: event2RowErr } = await admin
+      .from("financial_audit_logs")
+      .select("property_id, previous_hash, event_hash")
+      .eq("id", event2Id)
+      .single();
+    expect(event2RowErr).toBeNull();
+    expect(event2Row?.property_id).toBeNull();
+    expect(event2Row?.previous_hash).toBe(event1Row!.event_hash);
+
+    // --- verify_financial_audit_chain: proves its single substitution
+    // (v_rec.property_id in the hash-payload reconstruction) still
+    // produces hashes matching what append_financial_audit_event stored,
+    // for both the property-scoped and organization-wide rows. Called via
+    // ownerClient: unlike append_financial_audit_event, this function IS
+    // granted to authenticated, so this also proves that grant still
+    // resolves correctly. ---
+    const { data: chainResult, error: chainErr } = await ownerClient.rpc("verify_financial_audit_chain", {
+      p_organization_id: orgId,
+    });
+    expect(chainErr).toBeNull();
+    expect(chainResult).toHaveLength(2);
+    for (const row of chainResult!) {
+      expect(row.is_valid).toBe(true);
+      expect(row.calculated_hash).toBe(row.stored_hash);
+    }
+
+    // --- Cleanup ---
+    const { error: deleteAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteAuditErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
 });
