@@ -1362,6 +1362,12 @@ export type Database = {
           settings_id: string;
         }[];
       };
+      // authenticated, self-permission-checked (unlike get_payment_provider_credentials
+      // above) -- see supabase/migrations/20260830000001_payment_provider_settings_verification_credentials.sql.
+      get_payment_provider_settings_credentials: {
+        Args: { p_settings_id: string };
+        Returns: { api_key: string | null; hmac_secret: string | null }[];
+      };
       upsert_payment_provider_settings: {
         Args: {
           p_organization_id: string;

@@ -131,6 +131,7 @@ export default async function AppShellLayout({
                 { href: "/admin/resorts", labelAr: "المنتجعات", labelEn: "Resorts" },
                 { href: "/admin/users", labelAr: "المستخدمون", labelEn: "Users" },
                 { href: "/admin/roles", labelAr: "الأدوار", labelEn: "Roles" },
+                { href: "/finance/payment-providers", labelAr: "مزودو الدفع الإلكتروني", labelEn: "Payment Providers" },
               ],
             },
           ],
