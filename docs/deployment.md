@@ -147,24 +147,72 @@ npx wrangler deploy --dry-run
 # Total Upload: ... / gzip: <this number is what counts>
 ```
 
-**The current bundle is ~2971 KiB gzipped against a 3072 KiB limit — about
-100 KiB (3%) of headroom.** This is tight enough to treat as a live constraint,
-not a footnote: the next moderately sized dependency added to server-reachable
-code will break deploys with a hard size error.
+**The current bundle is ~2662 KiB gzipped against a 3072 KiB limit — about
+410 KiB of headroom.** Treat this as a live constraint, not a footnote: a
+moderately sized dependency added to server-reachable code can break deploys
+with a hard size error.
 
-The single largest contributor is `exceljs` (~624 KiB gzipped), imported by
-`app/[locale]/(app)/property/csv.ts`. Because that import is reachable from
-server code, it is bundled into the Worker itself rather than served as a static
-asset.
+It briefly sat at ~2971 KiB (only ~100 KiB of headroom) when `exceljs` was a
+normal import in `app/[locale]/(app)/property/csv.ts`. The deploy target
+flattens every reachable import into one script, so a dynamic `import()` does
+**not** reduce total size. `exceljs` is now fetched from `esm.sh` at call time
+with a type-only local import, which removes it from the bundle entirely; it
+lives in `devDependencies` purely for its types.
 
-If the limit is hit, the options in rough order of effort:
+Tradeoff of that approach, worth knowing: XLSX export now depends on a
+third-party CDN being reachable from the user's browser at click time, with no
+Subresource Integrity pinning. It only runs client-side after a button click, so
+it cannot break SSR or the Worker itself — but it will fail in offline or
+strict-CSP environments.
+
+If the limit is hit again, the options in rough order of effort:
 
 1. **Upgrade to Workers Paid** — raises the limit to 10 MB. Least effort.
-2. **Move spreadsheet generation out of the Worker** — a separate service, or
-   generate CSV (which needs no library) instead of XLSX.
-3. **Dynamically import `exceljs`** inside the route handler. This keeps it out
-   of the startup path, though it still counts toward total bundle size.
+2. **Generate CSV instead of XLSX** where possible — `lib/csv.ts` needs no
+   library at all.
+3. Externalize another heavy client-only dependency the same way.
 4. Store large static data in KV/R2/Workers Static Assets rather than bundling.
 
 Note also the **1 second Worker startup limit**: global scope must parse and
 execute within it, and larger bundles eat into that budget.
+
+## Two dependency traps that have each broken this build
+
+Both of these produced a red Cloudflare build that looked unrelated to its real
+cause. Check them first if `npm ci` or the bundling step fails in CI.
+
+**1. Never hand-prune `package-lock.json` — regenerate it.** The root pins
+`@swc/helpers@0.5.15`, while `next-intl` needs `>=0.5.17`, so a correct lockfile
+must contain a *nested* `node_modules/next-intl/node_modules/@swc/helpers`
+(0.5.23). Editing or partially pruning the lockfile drops that entry, and CI
+dies with:
+
+```
+npm error `npm ci` can only install packages when your package.json and
+npm error package-lock.json are in sync.
+npm error Missing: @swc/helpers@0.5.23 from lock file
+```
+
+This has happened twice. Verify after any lockfile change:
+
+```bash
+node -e "console.log(require('./package-lock.json').packages['node_modules/next-intl/node_modules/@swc/helpers'].version)"
+```
+
+**2. `esbuild` must stay an explicit `devDependency`.**
+`@opennextjs/cloudflare` imports `esbuild` at runtime in
+`dist/cli/build/bundle-server.js` but declares it only as its *own*
+devDependency (`^0.27.0`), so it is never installed for consumers — it silently
+relies on some other package hoisting an `esbuild` to the project root. When
+that hoisting stopped happening, the build failed with:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from
+node_modules/@opennextjs/cloudflare/dist/cli/build/bundle-server.js
+```
+
+Declaring `esbuild` directly makes root placement deterministic instead of
+incidental. Do not remove it as an "unused" dependency — nothing in this
+repo's own source imports it. Note also that `npm install --package-lock-only`
+does not dedupe/hoist identically to a real `npm install`, so prefer a full
+install when regenerating the lockfile.
