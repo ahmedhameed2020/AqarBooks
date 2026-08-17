@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 
@@ -40,6 +41,24 @@ export default async function AgingPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  // RLS on `dues`/`payments` already enforces finance.dues.read /
+  // finance.payments.read (see deferred_aging_rls_tightening, resolved
+  // 2026-08-17) -- this check is purely a UX improvement so a user
+  // without the permission sees a clear denial message instead of a
+  // misleading empty "no outstanding receivables" table. No data query or
+  // RLS behavior changes here.
+  const canReadDues = await hasPermission(organization.id, "finance.dues.read");
+  if (!canReadDues) {
+    return (
+      <div className="space-y-2">
+        <h1 className="text-xl font-semibold">{isAr ? "أعمار الديون" : "Receivables Aging"}</h1>
+        <p className="text-sm text-muted-foreground">
+          {isAr ? "لا تملك صلاحية عرض هذا التقرير." : "You don't have permission to view this report."}
+        </p>
+      </div>
+    );
+  }
 
   const supabase = await createClient();
   const [{ data: dues }, { data: allocations }, { data: postedPayments }, { data: units }] = await Promise.all([
