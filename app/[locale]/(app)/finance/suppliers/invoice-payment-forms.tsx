@@ -21,6 +21,7 @@ export function PostInvoiceForm({
   resortId,
   suppliers,
   expenseAccounts,
+  liabilityAccounts,
   periods,
   locale,
 }: {
@@ -28,6 +29,7 @@ export function PostInvoiceForm({
   resortId: string;
   suppliers: Option[];
   expenseAccounts: Option[];
+  liabilityAccounts: Option[];
   periods: Option[];
   locale: string;
 }) {
@@ -91,8 +93,12 @@ export function PostInvoiceForm({
         </Select>
       </div>
       <div className="space-y-2">
-        <Label>{isAr ? "المبلغ" : "Amount"}</Label>
-        <Input name="amount" type="number" step="0.01" min="0.01" required />
+        <Label>{isAr ? "المبلغ الصافي (قبل الخصم/الضريبة)" : "Net amount (before discount/VAT)"}</Label>
+        <Input name="netAmount" type="number" step="0.01" min="0.01" required />
+      </div>
+      <div className="space-y-2">
+        <Label>{isAr ? "الخصم (اختياري)" : "Discount (optional)"}</Label>
+        <Input name="discountAmount" type="number" step="0.01" min="0" defaultValue="0" />
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "تاريخ الفاتورة" : "Invoice date"}</Label>
@@ -101,6 +107,44 @@ export function PostInvoiceForm({
       <div className="space-y-2">
         <Label>{isAr ? "تاريخ الاستحقاق" : "Due date"}</Label>
         <Input name="dueDate" type="date" required />
+      </div>
+      <div className="space-y-2">
+        <Label>{isAr ? "نسبة ضريبة القيمة المضافة % (اختياري)" : "VAT rate % (optional)"}</Label>
+        <Input name="vatRate" type="number" step="0.01" min="0" max="100" defaultValue="0" />
+      </div>
+      <div className="space-y-2">
+        <Label>{isAr ? "حساب ضريبة القيمة المضافة" : "VAT account"}</Label>
+        <Select name="vatAccountId">
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={isAr ? "مطلوب فقط إذا كانت النسبة أكبر من صفر" : "Required only if rate is above zero"} />
+          </SelectTrigger>
+          <SelectContent>
+            {liabilityAccounts.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>{isAr ? "نسبة الخصم تحت حساب الضريبة % (اختياري)" : "WHT rate % (optional)"}</Label>
+        <Input name="whtRate" type="number" step="0.01" min="0" max="100" defaultValue="0" />
+      </div>
+      <div className="space-y-2">
+        <Label>{isAr ? "حساب الخصم تحت حساب الضريبة" : "WHT account"}</Label>
+        <Select name="whtAccountId">
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={isAr ? "مطلوب فقط إذا كانت النسبة أكبر من صفر" : "Required only if rate is above zero"} />
+          </SelectTrigger>
+          <SelectContent>
+            {liabilityAccounts.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {!state.ok && <p className="text-sm text-destructive sm:col-span-4">{state.error}</p>}
       <div className="sm:col-span-4">

@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { unitTypeLabel, type UnitRow } from "./units-table";
 
 export { downloadCsv } from "@/lib/csv";
@@ -30,84 +31,78 @@ export function buildUnitsCsv(rows: UnitRow[], isAr: boolean): string {
     );
   }
   // UTF-8 BOM so Microsoft Excel opens CSV with correct Arabic text encoding
-  const BOM = "\uFEFF";
+  const BOM = "﻿";
   return BOM + lines.join("\r\n");
 }
 
-export function buildUnitsExcelHtml(rows: UnitRow[], isAr: boolean): string {
+const HEADER_FILL = "FF1E3A8A";
+const HEADER_BORDER = "FFCBD5E1";
+const CELL_BORDER = "FFE2E8F0";
+
+// Builds a genuine OOXML .xlsx workbook -- NOT an HTML table disguised with
+// an Excel MIME type/extension (that trick used to mostly work but current
+// Excel versions validate real file content against the extension and
+// reject it: "file format or file extension is not valid"). ExcelJS runs
+// client-side here via its bundled browser build (see its package.json
+// "browser" field), since this is only ever invoked from a "use client"
+// component after a button click.
+export async function buildUnitsXlsxBuffer(rows: UnitRow[], isAr: boolean): Promise<ExcelJS.Buffer> {
   const headers = isAr
     ? ["كود الوحدة", "المبنى", "المنطقة", "المساحة (م²)", "النوع", "حالة الإشغال", "المالك الحالي", "الرصيد المالي", "عليها متأخرات"]
     : ["Unit Code", "Building", "Zone", "Area (m²)", "Type", "Occupancy", "Current Owner", "Financial Balance", "Has Arrears"];
 
-  const tableRows = rows
-    .map((r) => {
-      const bld = (isAr ? r.building_name_ar : r.building_name_en) ?? "—";
-      const zne = (isAr ? r.zone_name_ar : r.zone_name_en) ?? "—";
-      const areaStr = r.area ? String(r.area) : "—";
-      const typeStr = unitTypeLabel(r, isAr);
-      const occStr = r.occupancy_status === "OCCUPIED" ? (isAr ? "مشغولة" : "Occupied") : (isAr ? "شاغرة" : "Vacant");
-      const ownerStr = r.owner_name ?? "—";
-      const balStr = r.balance.toFixed(2);
-      const arrStr = r.has_arrears ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No");
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "ResortOS";
+  workbook.created = new Date();
 
-      return `
-        <tr>
-          <td>${r.code}</td>
-          <td>${bld}</td>
-          <td>${zne}</td>
-          <td>${areaStr}</td>
-          <td>${typeStr}</td>
-          <td>${occStr}</td>
-          <td>${ownerStr}</td>
-          <td>${balStr}</td>
-          <td>${arrStr}</td>
-        </tr>`;
-    })
-    .join("");
+  const worksheet = workbook.addWorksheet(isAr ? "الوحدات" : "Units", {
+    views: [{ rightToLeft: isAr }],
+  });
+  worksheet.columns = headers.map((header) => ({ header, width: 20 }));
 
-  return `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-      <!--[if gte mso 9]>
-      <xml>
-       <x:ExcelWorkbook>
-        <x:ExcelWorksheets>
-         <x:ExcelWorksheet>
-          <x:Name>Units</x:Name>
-          <x:WorksheetOptions>
-           ${isAr ? "<x:DisplayRightToLeft/>" : ""}
-           <x:ProtectContents>False</x:ProtectContents>
-          </x:WorksheetOptions>
-         </x:ExcelWorksheet>
-        </x:ExcelWorksheets>
-       </x:ExcelWorkbook>
-      </xml>
-      <![endif]-->
-      <style>
-        body { font-family: Segoe UI, Tahoma, sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th { background-color: #1e3a8a; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px; }
-        td { border: 1px solid #e2e8f0; padding: 6px; text-align: ${isAr ? "right" : "left"}; }
-      </style>
-    </head>
-    <body dir="${isAr ? "rtl" : "ltr"}">
-      <table>
-        <thead>
-          <tr>
-            ${headers.map((h) => `<th>${h}</th>`).join("")}
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    </body>
-    </html>`;
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
+    cell.alignment = { horizontal: isAr ? "right" : "left", vertical: "middle" };
+    cell.border = {
+      top: { style: "thin", color: { argb: HEADER_BORDER } },
+      left: { style: "thin", color: { argb: HEADER_BORDER } },
+      bottom: { style: "thin", color: { argb: HEADER_BORDER } },
+      right: { style: "thin", color: { argb: HEADER_BORDER } },
+    };
+  });
+
+  for (const r of rows) {
+    const row = worksheet.addRow([
+      r.code,
+      (isAr ? r.building_name_ar : r.building_name_en) ?? "—",
+      (isAr ? r.zone_name_ar : r.zone_name_en) ?? "—",
+      r.area ?? "—",
+      unitTypeLabel(r, isAr),
+      r.occupancy_status === "OCCUPIED" ? (isAr ? "مشغولة" : "Occupied") : (isAr ? "شاغرة" : "Vacant"),
+      r.owner_name ?? "—",
+      r.balance,
+      r.has_arrears ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No"),
+    ]);
+    row.eachCell((cell) => {
+      cell.alignment = { horizontal: isAr ? "right" : "left" };
+      cell.border = {
+        top: { style: "thin", color: { argb: CELL_BORDER } },
+        left: { style: "thin", color: { argb: CELL_BORDER } },
+        bottom: { style: "thin", color: { argb: CELL_BORDER } },
+        right: { style: "thin", color: { argb: CELL_BORDER } },
+      };
+    });
+    row.getCell(8).numFmt = "#,##0.00";
+  }
+
+  return workbook.xlsx.writeBuffer();
 }
 
-export function downloadExcelFile(filename: string, htmlContent: string) {
-  const blob = new Blob(["\uFEFF", htmlContent], { type: "application/vnd.ms-excel;charset=utf-8" });
+export function downloadXlsxBuffer(filename: string, buffer: ExcelJS.Buffer) {
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

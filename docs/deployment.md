@@ -137,12 +137,34 @@ convention. Revisit when the adapter gains Node.js middleware support, and track
 - `next.config.ts` — calls `initOpenNextCloudflareForDev()` so `next dev` can
   access Cloudflare bindings through `getCloudflareContext()`.
 
-## Bundle size
+## Bundle size ⚠️
 
-Workers enforce a compressed-bundle limit (3 MB on the free plan, 10 MB on paid).
-The current bundle is roughly **2.3 MB gzipped**, so there is headroom but it is
-not unlimited. Check with:
+Workers enforce a compressed-bundle limit: **3 MB on the free plan**, 10 MB on
+paid. Check the current size with:
 
 ```bash
 npx wrangler deploy --dry-run
+# Total Upload: ... / gzip: <this number is what counts>
 ```
+
+**The current bundle is ~2971 KiB gzipped against a 3072 KiB limit — about
+100 KiB (3%) of headroom.** This is tight enough to treat as a live constraint,
+not a footnote: the next moderately sized dependency added to server-reachable
+code will break deploys with a hard size error.
+
+The single largest contributor is `exceljs` (~624 KiB gzipped), imported by
+`app/[locale]/(app)/property/csv.ts`. Because that import is reachable from
+server code, it is bundled into the Worker itself rather than served as a static
+asset.
+
+If the limit is hit, the options in rough order of effort:
+
+1. **Upgrade to Workers Paid** — raises the limit to 10 MB. Least effort.
+2. **Move spreadsheet generation out of the Worker** — a separate service, or
+   generate CSV (which needs no library) instead of XLSX.
+3. **Dynamically import `exceljs`** inside the route handler. This keeps it out
+   of the startup path, though it still counts toward total bundle size.
+4. Store large static data in KV/R2/Workers Static Assets rather than bundling.
+
+Note also the **1 second Worker startup limit**: global scope must parse and
+execute within it, and larger bundles eat into that budget.

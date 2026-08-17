@@ -62,9 +62,9 @@ begin
   insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
   values (v_org_a, 'صيانة', 'Maintenance', v_revenue_a) returning id into v_due_type_a;
 
-  insert into public.units (organization_id, resort_id, code, unit_type) values (v_org_a, v_resort_a, 'A-1', 'VILLA') returning id into v_unit_a1;
-  insert into public.units (organization_id, resort_id, code, unit_type) values (v_org_a, v_resort_a, 'A-2', 'CHALET') returning id into v_unit_a2;
-  insert into public.units (organization_id, resort_id, code, unit_type) values (v_org_a, v_resort_a, 'A-3', 'APARTMENT') returning id into v_unit_a3;
+  insert into public.units (organization_id, property_id, code, unit_type) values (v_org_a, v_resort_a, 'A-1', 'VILLA') returning id into v_unit_a1;
+  insert into public.units (organization_id, property_id, code, unit_type) values (v_org_a, v_resort_a, 'A-2', 'CHALET') returning id into v_unit_a2;
+  insert into public.units (organization_id, property_id, code, unit_type) values (v_org_a, v_resort_a, 'A-3', 'APARTMENT') returning id into v_unit_a3;
 
   insert into public.members (organization_id, full_name) values (v_org_a, 'Owner One') returning id into v_owner1;
   insert into public.members (organization_id, full_name) values (v_org_a, 'Owner Two') returning id into v_owner2;
@@ -106,7 +106,7 @@ begin
   v_org_b := public.create_organization('MWF Test Org B', 'mwf-test-b-' || extract(epoch from now())::bigint, 'EGP', 'STARTER');
   v_resort_b := public.create_resort(v_org_b, 'Resort B', 'RB1', 'Africa/Cairo');
   perform public.clone_chart_of_accounts_template(v_org_b, 'RESORT_STANDARD');
-  insert into public.units (organization_id, resort_id, code, unit_type) values (v_org_b, v_resort_b, 'B-1', 'VILLA') returning id into v_unit_b1;
+  insert into public.units (organization_id, property_id, code, unit_type) values (v_org_b, v_resort_b, 'B-1', 'VILLA') returning id into v_unit_b1;
   insert into public.members (organization_id, full_name) values (v_org_b, 'Other Org Member') returning id into v_member_b;
   insert into public.unit_ownerships (organization_id, unit_id, member_id, share_percentage, is_primary_contact)
   values (v_org_b, v_unit_b1, v_member_b, 100, true);

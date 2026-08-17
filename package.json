@@ -10,7 +10,12 @@
     "lint": "eslint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts",
+    "test:sql": "vitest run tests/pgtap.integration.test.ts",
+    "test:payment-idempotency": "vitest run tests/record-online-payment-concurrency.integration.test.ts",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -21,6 +26,7 @@
     "@swc/helpers": "0.5.15",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "next-intl": "^4.13.5",
@@ -35,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -43,6 +50,7 @@
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vitest": "^4.1.10",
     "wrangler": "^4.123.0"
   }
 }

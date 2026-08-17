@@ -59,7 +59,7 @@ begin
   values (v_org_id, 'Test Supplier', v_payable_id) returning id into v_supplier_id;
   insert into public.expense_categories (organization_id, name_ar, name_en, default_expense_account_id)
   values (v_org_id, 'صيانة', 'Maintenance', v_expense_id) returning id into v_category_id;
-  insert into public.cashboxes (organization_id, resort_id, name, gl_account_id)
+  insert into public.cashboxes (organization_id, property_id, name, gl_account_id)
   values (v_org_id, v_resort_id, 'Main Box', v_cash_id) returning id into v_cashbox_id;
   v_session_id := public.open_cashier_session(v_org_id, v_resort_id, v_cashbox_id, 500);
 

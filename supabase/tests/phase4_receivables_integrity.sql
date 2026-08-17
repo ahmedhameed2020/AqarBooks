@@ -45,7 +45,7 @@ begin
   values (v_org_id, 'صيانة', 'Maintenance', v_revenue_id)
   returning id into v_due_type_id;
 
-  insert into public.units (organization_id, resort_id, code, unit_type)
+  insert into public.units (organization_id, property_id, code, unit_type)
   values (v_org_id, v_resort_id, 'U-1', 'VILLA')
   returning id into v_unit_id;
 
@@ -129,7 +129,7 @@ begin
     select id into v_other_cash_id from public.chart_of_accounts where organization_id = v_other_org_id and code = '1110';
     insert into public.due_types (organization_id, name_ar, name_en, default_revenue_account_id)
     values (v_other_org_id, 'صيانة', 'Maintenance', v_other_revenue_id) returning id into v_other_due_type_id;
-    insert into public.units (organization_id, resort_id, code, unit_type)
+    insert into public.units (organization_id, property_id, code, unit_type)
     values (v_other_org_id, v_other_resort_id, 'OU-1', 'VILLA') returning id into v_other_unit_id;
 
     declare v_other_year_id uuid; v_other_period_id uuid;

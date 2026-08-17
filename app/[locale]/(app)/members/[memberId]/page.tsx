@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { redirect, Link } from "@/i18n/navigation";
-import { Wallet, Building2, CircleCheck, Clock3 } from "lucide-react";
+import { ArrowRight, Wallet, Building2, CircleCheck, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,13 +15,28 @@ import { cn } from "@/lib/utils";
 import { Money } from "@/components/money";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "../../dashboard/kpi-card";
 import { UnitBalanceBadge } from "../../property/unit-balance-badge";
 import { DuesTable } from "../../property/dues-table";
 import { PaymentsTable } from "../../property/payments-table";
-import { BackButton } from "../../property/back-button";
+import { AddMemberDialog } from "../add-member-dialog";
+import { SendReminderDialog } from "../send-reminder-dialog";
+import { InviteToPortalDialog } from "./invite-to-portal-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+// TODO: `./member-statement-dialog`, `./member-tags`, `./member-activity`,
+// and `./member-documents` were referenced here but never implemented --
+// confirmed via `git log --all` that no commit on any branch in this repo
+// ever added these files. This is member-CRM scope (tags, activity log,
+// document uploads, PDF statement), which is out of scope for the current
+// baseline cleanup. The imports and their JSX usage below were removed
+// pending that feature; see git history for
+// `app/[locale]/(app)/members/[memberId]/page.tsx`.
+// (`./back-to-members-button` was also removed here, but replaced with a
+// plain Link below -- back-navigation isn't CRM scope.)
 
 export default async function MemberDetailPage({
   params,
@@ -50,6 +65,15 @@ export default async function MemberDetailPage({
     .maybeSingle();
 
   if (!member) notFound();
+
+  const canManage = await hasPermission(organization.id, "property.members.manage");
+
+  const { data: memberPhones } = await supabase
+    .from("member_phones")
+    .select("id, phone_number, label, is_primary, can_receive_whatsapp")
+    .eq("member_id", member.id)
+    .eq("organization_id", organization.id)
+    .order("is_primary", { ascending: false });
 
   const currency = organization.default_currency;
   const today = new Date().toISOString().slice(0, 10);
@@ -95,15 +119,103 @@ export default async function MemberDetailPage({
   const totalPaid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const lastPayment = (payments ?? [])[0] ?? null;
 
+  // TODO: this used to also fetch member_tags/member_tag_assignments,
+  // member_activity_log (+ actor profile names), and member_documents to
+  // feed MemberTags/MemberActivity/MemberDocuments below -- those components
+  // were never implemented (see the TODO near the top-of-file imports), so
+  // those queries were removed rather than left running for no consumer.
+  const { data: allUnits } = await supabase
+    .from("units_with_financials")
+    .select("id, code, building_name_ar, building_name_en")
+    .eq("organization_id", organization.id)
+    .order("code");
+
   return (
     <main className="space-y-6 p-6">
-      <BackButton locale={locale} />
+      <Link
+        href="/members"
+        locale={locale}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+        {isAr ? "رجوع للأعضاء" : "Back to members"}
+      </Link>
 
-      <div>
-        <h1 className="text-xl font-semibold">{member.full_name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {[member.email, member.phone].filter(Boolean).join(" · ") || (isAr ? "بلا بيانات تواصل" : "No contact info")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">{member.full_name}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {member.email && <span>{member.email}</span>}
+            {(memberPhones ?? []).length > 0 ? (
+              (memberPhones ?? []).map((p) => (
+                <span
+                  key={p.id}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs ${
+                    p.is_primary ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground"
+                  }`}
+                  dir="ltr"
+                >
+                  <span>{p.phone_number}</span>
+                  <span className="text-[10px] uppercase text-muted-foreground/70">({p.label})</span>
+                  {p.can_receive_whatsapp && <span className="text-[10px] text-emerald-500 font-bold">WA</span>}
+                </span>
+              ))
+            ) : (
+              member.phone && <span dir="ltr">{member.phone}</span>
+            )}
+            {!member.email && (!memberPhones || memberPhones.length === 0) && !member.phone && (
+              <span>{isAr ? "بلا بيانات تواصل" : "No contact info"}</span>
+            )}
+          </div>
+          {/* TODO: MemberTags was never implemented -- removed, see top-of-file TODO. */}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {canManage && (
+            <AddMemberDialog
+              organizationId={organization.id}
+              members={[{ id: member.id, full_name: member.full_name }]}
+              units={(allUnits ?? []).map((u) => ({
+                id: u.id,
+                code: u.code,
+                building_name_ar: u.building_name_ar,
+                building_name_en: u.building_name_en,
+              }))}
+              locale={locale}
+              // TODO: AddMemberDialog has no `defaultTab`/`defaultMemberId`
+              // support (its tab always starts on "member" and
+              // LinkOwnershipForm's member picker always starts empty) --
+              // these props were passed here but never wired up anywhere,
+              // so opening this dialog from the member page doesn't
+              // actually preselect "Link ownership" + this member yet.
+              // Dropped rather than silently accepted as no-ops; wiring
+              // real default-tab/default-member support is member-CRM-
+              // adjacent UI work, out of scope for this baseline cleanup.
+            />
+          )}
+          <SendReminderDialog
+            memberId={member.id}
+            organizationId={organization.id}
+            memberName={member.full_name}
+            phone={member.phone}
+            email={member.email}
+            balance={totalBalance}
+            currency={currency}
+            locale={locale}
+            trigger={
+              <Button variant="outline" size="sm">
+                <MessageCircle className="size-3.5" />
+                {isAr ? "تذكير" : "Remind"}
+              </Button>
+            }
+          />
+          {/* TODO: MemberStatementDialog was never implemented -- removed, see top-of-file TODO. */}
+          <InviteToPortalDialog
+            memberId={member.id}
+            memberName={member.full_name}
+            locale={locale}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -199,6 +311,12 @@ export default async function MemberDetailPage({
         <h2 className="text-sm font-semibold">{isAr ? "سجل الدفعات" : "Payments history"}</h2>
         <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
       </section>
+
+      {/*
+        TODO: "Notes & activity" (MemberActivity) and "Documents"
+        (MemberDocuments) were never implemented -- removed, see
+        top-of-file TODO.
+      */}
     </main>
   );
 }

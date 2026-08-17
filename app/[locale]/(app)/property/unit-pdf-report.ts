@@ -1,5 +1,6 @@
 import type { UnitRow } from "./units-table";
 import { unitTypeLabel } from "./units-table";
+import { escapeHtml } from "@/lib/reports/html-escape";
 
 interface PdfReportData {
   organizationName: string;
@@ -35,6 +36,15 @@ export function generateUnitsPdfReport(data: PdfReportData) {
 
   const fmt = (n: number) =>
     n.toLocaleString(isAr ? "ar-EG" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Escape every user-supplied string field before interpolation below --
+  // organizationName/resortName/currency (org config) and, per-unit, code/
+  // building/zone names/type label/owner name (all DB free-text or
+  // staff-editable values). Numbers (via fmt) and hardcoded ar/en literal
+  // strings never need escaping.
+  const safeOrganizationName = escapeHtml(organizationName);
+  const safeResortName = escapeHtml(resortName);
+  const safeCurrency = escapeHtml(currency);
 
   const html = `<!DOCTYPE html>
 <html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}">
@@ -217,10 +227,10 @@ export function generateUnitsPdfReport(data: PdfReportData) {
 
   <div class="report-header">
     <div class="org-brand">
-      <div class="logo-badge">${organizationName.slice(0, 1).toUpperCase()}</div>
+      <div class="logo-badge">${escapeHtml(organizationName.slice(0, 1).toUpperCase())}</div>
       <div>
-        <div class="org-name">${organizationName}</div>
-        <div class="resort-title">${isAr ? `دليل وحدات ${resortName}` : `Units Directory - ${resortName}`}</div>
+        <div class="org-name">${safeOrganizationName}</div>
+        <div class="resort-title">${isAr ? `دليل وحدات ${safeResortName}` : `Units Directory - ${safeResortName}`}</div>
       </div>
     </div>
     <div class="meta-info">
@@ -240,11 +250,11 @@ export function generateUnitsPdfReport(data: PdfReportData) {
       <div class="kpi-value">${occupancyRate}%</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">${isAr ? `إجمالي المتأخرات (${currency})` : `Total Arrears (${currency})`}</div>
+      <div class="kpi-label">${isAr ? `إجمالي المتأخرات (${safeCurrency})` : `Total Arrears (${safeCurrency})`}</div>
       <div class="kpi-value ${totalArrears > 0 ? "danger" : ""}">${totalArrears > 0 ? fmt(totalArrears) : (isAr ? "لا يوجد" : "None")}</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">${isAr ? `تحصيلات الشهر (${currency})` : `Monthly Collections (${currency})`}</div>
+      <div class="kpi-label">${isAr ? `تحصيلات الشهر (${safeCurrency})` : `Monthly Collections (${safeCurrency})`}</div>
       <div class="kpi-value success">${fmt(collectedThisMonth)}</div>
     </div>
   </div>
@@ -260,32 +270,35 @@ export function generateUnitsPdfReport(data: PdfReportData) {
         <th>${isAr ? "النوع" : "Type"}</th>
         <th>${isAr ? "حالة الإشغال" : "Occupancy"}</th>
         <th>${isAr ? "المالك الحالي" : "Current Owner"}</th>
-        <th>${isAr ? `الرصيد المالي (${currency})` : `Balance (${currency})`}</th>
+        <th>${isAr ? `الرصيد المالي (${safeCurrency})` : `Balance (${safeCurrency})`}</th>
       </tr>
     </thead>
     <tbody>
       ${units
-        .map(
-          (u, i) => `
+        .map((u, i) => {
+          const buildingName = (isAr ? u.building_name_ar : u.building_name_en) ?? "—";
+          const zoneName = (isAr ? u.zone_name_ar : u.zone_name_en) ?? "—";
+          const ownerName = u.owner_name ?? "—";
+          return `
         <tr>
           <td>${i + 1}</td>
-          <td><strong>${u.code}</strong></td>
-          <td>${(isAr ? u.building_name_ar : u.building_name_en) ?? "—"}</td>
-          <td>${(isAr ? u.zone_name_ar : u.zone_name_en) ?? "—"}</td>
+          <td><strong>${escapeHtml(u.code)}</strong></td>
+          <td>${escapeHtml(buildingName)}</td>
+          <td>${escapeHtml(zoneName)}</td>
           <td>${u.area ? `${u.area} ${isAr ? "م²" : "m²"}` : "—"}</td>
-          <td>${unitTypeLabel(u, isAr)}</td>
+          <td>${escapeHtml(unitTypeLabel(u, isAr))}</td>
           <td>
             <span class="${u.occupancy_status === "OCCUPIED" ? "badge-occupied" : "badge-vacant"}">
               ${u.occupancy_status === "OCCUPIED" ? (isAr ? "مشغولة" : "Occupied") : (isAr ? "شاغرة" : "Vacant")}
             </span>
           </td>
-          <td>${u.owner_name ?? "—"}</td>
+          <td>${escapeHtml(ownerName)}</td>
           <td class="${u.balance > 0 ? "balance-arrears" : u.balance < 0 ? "balance-credit" : "balance-zero"}">
             ${u.balance > 0 ? `+${fmt(u.balance)}` : u.balance < 0 ? fmt(u.balance) : fmt(0)}
           </td>
         </tr>
-      `,
-        )
+      `;
+        })
         .join("")}
     </tbody>
   </table>
@@ -308,7 +321,7 @@ export function generateUnitsPdfReport(data: PdfReportData) {
   // Create same-origin Blob URL to guarantee 100% security & zero cross-origin frame errors
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
+  const win = window.open(url, "_blank", "noopener");
   if (!win) {
     window.location.href = url;
   }

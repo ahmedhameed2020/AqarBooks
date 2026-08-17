@@ -29,63 +29,132 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(orgErr).toBeNull();
     const orgId = org!.id;
 
-    await admin.rpc("clone_chart_of_accounts_template", {
-      p_organization_id: orgId,
-      p_template_key: "RESORT_STANDARD",
-    });
-
-    const { data: cashAcc } = await admin
+    // NOTE: chart-of-accounts provisioning does NOT use the
+    // clone_chart_of_accounts_template RPC here, for the same reason the
+    // fiscal-year fixtures below skip create_fiscal_year: the function
+    // checks has_permission(auth.uid(), ..., 'finance.accounts.manage') and
+    // auth.uid() is always null under a service-role JWT, so it always
+    // raises 42501 under this test's `admin` client (verified against
+    // supabase/migrations/20260813000004_fix_coa_clone_template_safe_delete.sql).
+    // The original code never surfaced this because the RPC's error went
+    // unchecked and cashAcc/revAcc were only ever dereferenced inside the
+    // (also-always-false) `if (period)` guard. Inserting the two accounts
+    // this test actually needs (cash 1110, revenue 4100, matching
+    // RESORT_STANDARD's category/normal_balance) directly instead.
+    const { data: cashAcc, error: cashErr } = await admin
       .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: "1110",
+        name_ar: "الصندوق",
+        name_en: "Cash on Hand",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+        is_group: false,
+        is_active: true,
+      })
       .select("id")
-      .eq("organization_id", orgId)
-      .eq("code", "1110")
       .single();
+    expect(cashErr).toBeNull();
 
-    const { data: revAcc } = await admin
+    const { data: revAcc, error: revErr } = await admin
       .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: "4100",
+        name_ar: "إيرادات اشتراكات الصيانة",
+        name_en: "Maintenance Fee Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+        is_group: false,
+        is_active: true,
+      })
       .select("id")
-      .eq("organization_id", orgId)
-      .eq("code", "4100")
       .single();
+    expect(revErr).toBeNull();
 
-    const { data: yearId } = await admin.rpc("create_fiscal_year", {
-      p_organization_id: orgId,
-      p_name: "2026",
-      p_start_date: "2026-01-01",
-      p_end_date: "2026-12-31",
-    });
+    // NOTE: fiscal year / period fixture provisioning does NOT use the
+    // create_fiscal_year / set_fiscal_period_status RPCs here. Those RPCs
+    // check has_permission(auth.uid(), ...), and auth.uid() is always null
+    // under a service-role JWT (no `sub` claim), so they raise 42501 "not
+    // authorized" every time under this test's `admin` client. Inserting
+    // directly into fiscal_years/fiscal_periods with status: 'OPEN' bypasses
+    // that RPC-level permission check the way a service-role client
+    // legitimately can (RLS/function auth checks don't apply to a
+    // service-role client's own direct table writes) -- same pattern used by
+    // tests/record-online-payment-concurrency.integration.test.ts's beforeAll.
+    const { data: fiscalYear, error: yearErr } = await admin
+      .from("fiscal_years")
+      .insert({
+        organization_id: orgId,
+        name: "2026",
+        start_date: "2026-01-01",
+        end_date: "2026-12-31",
+        status: "OPEN",
+      })
+      .select("id")
+      .single();
+    expect(yearErr).toBeNull();
 
-    const { data: period } = await admin
+    const { data: period, error: periodErr } = await admin
       .from("fiscal_periods")
+      .insert({
+        organization_id: orgId,
+        fiscal_year_id: fiscalYear!.id,
+        period_number: 1,
+        name: "2026 — Full Year",
+        start_date: "2026-01-01",
+        end_date: "2026-12-31",
+        status: "OPEN",
+      })
       .select("id")
-      .eq("fiscal_year_id", yearId)
-      .limit(1)
       .single();
+    expect(periodErr).toBeNull();
 
-    if (period) {
-      await admin.rpc("set_fiscal_period_status", {
-        p_period_id: period.id,
-        p_status: "OPEN",
-        p_reason: "pgTAP setup",
-      });
+    // NOTE: this calls create_journal_entry_internal / post_journal_entry_internal
+    // instead of the public create_journal_entry / post_journal_entry RPCs, for
+    // two compounding reasons verified empirically against this DB:
+    //  1. The public create_journal_entry RPC does its own
+    //     has_permission(auth.uid(), ..., 'finance.entries.create') check (see
+    //     supabase/migrations/20260813000005_payment_posting_permission_fix_and_overload_cleanup.sql),
+    //     which -- same root cause as the fiscal-year RPC bug above -- always
+    //     fails under a service-role JWT (auth.uid() is null), raising 42501
+    //     FORBIDDEN_FINANCE_PERMISSION regardless of whether the lines balance.
+    //     Calling create_journal_entry with unbalanced lines and asserting
+    //     `error).toBeDefined()` therefore "passed" for the wrong reason: a
+    //     permission rejection, not a balance rejection -- a *balanced* entry
+    //     would have failed the exact same way, which the test never checked.
+    //  2. Per supabase/migrations/20260810000017_journal_engine.sql's own design
+    //     comment, balance is validated only at POST time, not at create time
+    //     ("a DRAFT is allowed to be incomplete/unbalanced work in progress") --
+    //     so even with permissions fixed, create_journal_entry itself would never
+    //     reject an unbalanced entry; only post_journal_entry does.
+    // The *_internal functions have no permission check (they're the primitives
+    // record_payment uses internally, per that same migration) but still run the
+    // real balance validation, so they're the only way a service-role client can
+    // exercise the actual "unbalanced entry rejection" rule this test is named for.
+    const { data: draftEntryId, error: draftErr } = await admin.rpc("create_journal_entry_internal", {
+      p_organization_id: orgId,
+      p_resort_id: null,
+      p_fiscal_period_id: period!.id,
+      p_entry_date: "2026-01-15",
+      p_description: "Unbalanced test",
+      p_source_type: "JOURNAL_VOUCHER",
+      p_lines: [
+        { account_id: cashAcc!.id, debit: 100, credit: 0 },
+        { account_id: revAcc!.id, debit: 0, credit: 50 },
+      ],
+      p_idempotency_key: `pgtap-unbal-${Date.now()}`,
+    });
+    expect(draftErr).toBeNull(); // DRAFT creation itself is allowed to be unbalanced
 
-      // Unbalanced entry must fail
-      const { error: unbalErr } = await admin.rpc("create_journal_entry", {
-        p_organization_id: orgId,
-        p_resort_id: null,
-        p_fiscal_period_id: period.id,
-        p_entry_date: "2026-01-15",
-        p_description: "Unbalanced test",
-        p_source_type: "JOURNAL_VOUCHER",
-        p_lines: [
-          { account_id: cashAcc!.id, debit: 100, credit: 0 },
-          { account_id: revAcc!.id, debit: 0, credit: 50 },
-        ],
-        p_idempotency_key: `pgtap-unbal-${Date.now()}`,
-      });
+    // Posting the unbalanced DRAFT must fail.
+    const { error: unbalErr } = await admin.rpc("post_journal_entry_internal", {
+      p_journal_entry_id: draftEntryId,
+    });
 
-      expect(unbalErr).toBeDefined();
-    }
+    expect(unbalErr).toBeDefined();
+    expect(unbalErr?.message).toMatch(/unbalanced entry/i);
 
     // Archive test org
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
@@ -427,7 +496,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // Zone and building created directly with `property_id` -- this proves
     // the column rename on zones/buildings applied. If the column were
-    // still `resort_id`, this insert would fail (strict mode) or the row
+    // still `property_id`, this insert would fail (strict mode) or the row
     // would never be found scoped by `property_id` on read-back.
     const { data: zone, error: zoneErr } = await admin
       .from("zones")
@@ -659,7 +728,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // Insert into resort_memberships directly via `property_id` -- this
     // alone proves the column rename applied. If the column were still
-    // `resort_id`, this insert would fail (strict mode).
+    // `property_id`, this insert would fail (strict mode).
     const { data: membership, error: membershipInsertErr } = await admin
       .from("resort_memberships")
       .insert({
@@ -833,9 +902,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(ownerSignInErr).toBeNull();
 
     // create_resort inserts into platform_audit_logs with the renamed
-    // property_id column -- if the column were still resort_id (or the
+    // property_id column -- if the column were still property_id (or the
     // function's INSERT column list hadn't been updated), this call would
-    // fail with "column resort_id does not exist" / "column property_id of
+    // fail with "column property_id does not exist" / "column property_id of
     // relation platform_audit_logs does not exist".
     const resortCode = `AUDIT-PIC-${Date.now()}`;
     const { data: resortId, error: createResortErr } = await ownerClient.rpc("create_resort", {
@@ -1037,9 +1106,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(session?.property_id).toBe(resortId);
 
     // close_cashier_session: proves the row-typed-variable field-access edit
-    // (v_session.property_id, formerly v_session.resort_id) works -- if it
+    // (v_session.property_id, formerly v_session.property_id) works -- if it
     // didn't, this call would fail with a hard Postgres error since
-    // cashier_sessions.resort_id no longer exists.
+    // cashier_sessions.property_id no longer exists.
     const { error: closeSessionErr } = await ownerClient.rpc("close_cashier_session", {
       p_session_id: sessionId,
       p_actual_closing_balance: 100,
@@ -1307,9 +1376,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(request?.property_id).toBe(resortId);
 
     // decide_purchase_request: proves the single-occurrence row-typed-variable
-    // field-access edit (v_request.property_id, formerly v_request.resort_id)
+    // field-access edit (v_request.property_id, formerly v_request.property_id)
     // works -- if it didn't, this call would fail with a hard Postgres error
-    // since purchase_requests.resort_id no longer exists.
+    // since purchase_requests.property_id no longer exists.
     const { error: decideErr } = await ownerClient.rpc("decide_purchase_request", {
       p_request_id: requestId,
       p_approve: true,
@@ -1368,12 +1437,12 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(invoice?.property_id).toBe(resortId);
 
     // cancel_supplier_invoice: the highest-risk edit shape in this cluster --
-    // v_invoice.property_id (formerly v_invoice.resort_id) is read THREE
+    // v_invoice.property_id (formerly v_invoice.property_id) is read THREE
     // times in this one function body (has_financial_permission argument,
     // create_journal_entry_internal argument, and the platform_audit_logs
     // value). If even one of the three occurrences had been missed, this
     // call would fail with a hard Postgres error since
-    // supplier_invoices.resort_id no longer exists.
+    // supplier_invoices.property_id no longer exists.
     const { error: cancelErr } = await ownerClient.rpc("cancel_supplier_invoice", {
       p_organization_id: orgId,
       p_invoice_id: invoiceId,
@@ -1545,9 +1614,9 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // edit. Call it TWICE for the same user/role/org so the INSERT's ON
     // CONFLICT clause is actually re-parsed/re-planned against the live
     // schema on a second execution, not just the first. This is the
-    // load-bearing proof: if the column list still said `resort_id` (which
+    // load-bearing proof: if the column list still said `property_id` (which
     // no longer exists on this table after the migration), Postgres would
-    // reject the statement outright with "column resort_id does not exist"
+    // reject the statement outright with "column property_id does not exist"
     // on either call, since the ON CONFLICT inference target is validated
     // against the table's real columns/indexes regardless of whether a
     // duplicate is actually found at runtime.
@@ -1561,7 +1630,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // NOTHING's arbiter never actually matches an existing NULL-scoped row,
     // and the second call legitimately inserts a SECOND row rather than
     // deduplicating. This is pre-existing behavior unrelated to this
-    // rename (identical NULL semantics applied under the old `resort_id`
+    // rename (identical NULL semantics applied under the old `property_id`
     // name), so this test asserts the count that's actually observed (2)
     // rather than the naive expectation of 1 -- what matters for THIS
     // phase's correctness is that both calls succeed without a
@@ -1677,7 +1746,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // create_purchase_request (Phase 2d, already migrated) calls
     // has_financial_permission(p_organization_id, 'purchasing.requests.create',
     // p_resort_id) -- if `ura.property_id` still referenced a nonexistent
-    // `resort_id` column, this call would error outright (not silently
+    // `property_id` column, this call would error outright (not silently
     // deny), but if the rename had instead been mistyped in a way that
     // still compiles (e.g. comparing the wrong columns), this scoped user
     // would be silently and wrongly denied. Asserting success here is the
@@ -1939,7 +2008,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // post_journal_entry (thin real-session-facing wrapper around
     // post_journal_entry_internal, gated on finance.entries.post). Reading
     // the resulting platform_audit_logs row proves the single-occurrence
-    // `v_entry.property_id` edit (formerly `v_entry.resort_id`) in
+    // `v_entry.property_id` edit (formerly `v_entry.property_id`) in
     // post_journal_entry_internal.
     const { error: postEntryErr } = await ownerClient.rpc("post_journal_entry", {
       p_journal_entry_id: entryId,
@@ -1968,11 +2037,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // reverse_journal_entry: the highest-risk edit shape in this phase --
     // three substitutions split across two statement types within one
     // function body: (a) the new reversal entry's INSERT column list, (b)
-    // `v_original.property_id` (formerly `v_original.resort_id`) read into
+    // `v_original.property_id` (formerly `v_original.property_id`) read into
     // that same INSERT's VALUES list, and (c) `v_original.property_id` read
     // again as the value passed into platform_audit_logs. If any of the
     // three had been missed, this call would fail with a hard Postgres
-    // error since journal_entries.resort_id no longer exists.
+    // error since journal_entries.property_id no longer exists.
     const { data: reversalEntryId, error: reverseErr } = await ownerClient.rpc(
       "reverse_journal_entry",
       {
@@ -2231,11 +2300,11 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // clone-style RPC exists for this table per the plan's Task 4 note).
     // This INSERT fires trg_validate_online_payments_clearing_account ->
     // validate_online_payments_clearing_account, which now reads/compares
-    // exclusively via new.property_id (formerly new.resort_id, function 7 --
+    // exclusively via new.property_id (formerly new.property_id, function 7 --
     // completing its own Phase 2e partial edit) -- if either of that
     // trigger's two substitutions had been missed, this insert would fail
     // outright with a hard Postgres error since organization_finance_
-    // settings.resort_id no longer exists.
+    // settings.property_id no longer exists.
     const { data: financeSettings, error: financeSettingsErr } = await admin
       .from("organization_finance_settings")
       .insert({
@@ -2368,7 +2437,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     const dueId = due!.id;
 
     // create_online_payment_checkout_transaction, under the member's own
-    // real signed-in session: proves substitution 1 (both the v_due.resort_id
+    // real signed-in session: proves substitution 1 (both the v_due.property_id
     // -> v_due.property_id reassignment/comparison, and the online_payment_
     // transactions INSERT column list).
     const { data: checkoutData, error: checkoutErr } = await memberClient.rpc(
@@ -2399,8 +2468,8 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // its live body above, which has no has_permission/has_financial_
     // permission/auth.uid() check at all). This is the highest-value proof
     // in this test: it completes function 4's Phase-2e-partial-edit closure
-    // (six v_txn.resort_id -> v_txn.property_id occurrences, one ofs.resort_id
-    // -> ofs.property_id, one v_due.resort_id -> v_due.property_id) plus
+    // (six v_txn.property_id -> v_txn.property_id occurrences, one ofs.property_id
+    // -> ofs.property_id, one v_due.property_id -> v_due.property_id) plus
     // function 3's post_payment_internal edit (v_due.property_id guard +
     // payments INSERT column list) -- a single missed substitution anywhere
     // in this chain surfaces as a hard "column ... does not exist" error, so
@@ -2440,7 +2509,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // The platform_audit_logs row for 'online_payment.posted': proves the
     // final substitution in function 4 (the platform_audit_logs INSERT's
-    // v_txn.resort_id -> v_txn.property_id value), completing the full
+    // v_txn.property_id -> v_txn.property_id value), completing the full
     // record_online_payment closure.
     const { data: postedAuditLog, error: postedAuditLogErr } = await admin
       .from("platform_audit_logs")
@@ -2454,7 +2523,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
 
     // void_payment, under a real signed-in TENANT_OWNER session holding
     // finance.payments.void: intended to prove function 8's two
-    // substitutions (v_payment.resort_id -> v_payment.property_id in the
+    // substitutions (v_payment.property_id -> v_payment.property_id in the
     // has_financial_permission check, and in the append_financial_audit_
     // event call's p_resort_id argument).
     //
@@ -2478,7 +2547,7 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // permission(..., v_payment.property_id) check, past the status guard,
     // past the payment_allocations/dues updates -- and fails on a check
     // constraint (Postgres code 23514), NOT a "column ... does not exist"
-    // error (42703), which is exactly what a broken v_payment.resort_id ->
+    // error (42703), which is exactly what a broken v_payment.property_id ->
     // v_payment.property_id substitution would produce instead. The whole
     // call runs inside one implicit transaction, so everything upstream
     // (including the payments status UPDATE) rolls back with it -- confirmed
@@ -2635,6 +2704,883 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     expect(deleteOwnerErr).toBeNull();
     const { error: deleteMemberUserErr } = await admin.auth.admin.deleteUser(memberUserId);
     expect(deleteMemberUserErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
+
+  it("16. Phase 2g Group 2 payment_provider_settings/expenses Property-ID Rename Integrity (record_expense/upsert_payment_provider_settings/get_payment_provider_credentials/list_payment_provider_settings/enable-disable_payment_provider/record_payment_provider_verification/validate_payment_provider_settings_scope end-to-end via RPC)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ProviderSettingsExpensesCluster Org",
+        slug: `pgtap-provider-settings-expenses-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // record_expense/upsert_payment_provider_settings/enable_payment_provider/
+    // disable_payment_provider/record_payment_provider_verification are all
+    // permission-gated via has_permission/has_financial_permission
+    // (auth.uid(), ...), which requires a real authenticated user -- the
+    // service-role admin client has no auth.uid() and would be rejected.
+    // Stand up a real TENANT_OWNER session, matching test 15's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-provider-settings-expenses-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: record_expense and the payment-provider-settings RPCs
+    // all key off of it, and it's what this test proves lands in
+    // expenses.property_id and payment_provider_settings.property_id.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "ProviderSettingsExpensesCluster Resort",
+        code: `PSEC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    const { data: expenseAcc, error: expenseAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `5100-${Date.now()}`,
+        name_ar: "مصروفات اختبار",
+        name_en: "Test Expense",
+        category: "EXPENSE",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(expenseAccErr).toBeNull();
+
+    const { data: cashAcc, error: cashAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1110-${Date.now()}`,
+        name_ar: "نقدية اختبار",
+        name_en: "Test Cash",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(cashAccErr).toBeNull();
+
+    const { data: expenseCategory, error: expenseCategoryErr } = await admin
+      .from("expense_categories")
+      .insert({
+        organization_id: orgId,
+        name_ar: "فئة مصروفات اختبار",
+        name_en: "Test Expense Category",
+        default_expense_account_id: expenseAcc!.id,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    expect(expenseCategoryErr).toBeNull();
+
+    // An OPEN fiscal period covering *today*: record_expense's
+    // create_journal_entry_internal call requires one.
+    const { data: yearId, error: yearErr } = await ownerClient.rpc("create_fiscal_year", {
+      p_organization_id: orgId,
+      p_name: "2026",
+      p_start_date: "2026-01-01",
+      p_end_date: "2026-12-31",
+    });
+    expect(yearErr).toBeNull();
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: period, error: periodErr } = await admin
+      .from("fiscal_periods")
+      .select("id")
+      .eq("fiscal_year_id", yearId)
+      .lte("start_date", todayIso)
+      .gte("end_date", todayIso)
+      .single();
+    expect(periodErr).toBeNull();
+    const periodId = period!.id;
+
+    const { error: openPeriodErr } = await ownerClient.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodId,
+      p_status: "OPEN",
+      p_reason: "pgTAP provider-settings-expenses-cluster setup",
+    });
+    expect(openPeriodErr).toBeNull();
+
+    // --- record_expense: proves the INSERT column-list substitution ---
+    const { data: expenseId, error: recordExpenseErr } = await ownerClient.rpc("record_expense", {
+      p_organization_id: orgId,
+      p_resort_id: resortId,
+      p_expense_category_id: expenseCategory!.id,
+      p_description: "pgTAP test expense",
+      p_amount: 123.45,
+      p_expense_date: todayIso,
+      p_payment_account_id: cashAcc!.id,
+      p_fiscal_period_id: periodId,
+      p_cashier_session_id: null,
+    });
+    expect(recordExpenseErr).toBeNull();
+    expect(expenseId).toBeDefined();
+
+    const { data: expenseRow, error: expenseRowErr } = await admin
+      .from("expenses")
+      .select("id, property_id, organization_id, journal_entry_id")
+      .eq("id", expenseId)
+      .single();
+    expect(expenseRowErr).toBeNull();
+    expect(expenseRow?.property_id).toBe(resortId);
+    expect(expenseRow?.organization_id).toBe(orgId);
+    expect(expenseRow?.journal_entry_id).toBeDefined();
+
+    // --- upsert_payment_provider_settings: property-scoped + org-wide ---
+    const { data: scopedSettingsId, error: upsertScopedErr } = await ownerClient.rpc(
+      "upsert_payment_provider_settings",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+        p_merchant_identifier: "pgtap-merchant-scoped",
+        p_public_key: "pgtap-public-key-scoped",
+        p_api_key: "pgtap-api-key-scoped",
+        p_hmac_secret: "pgtap-hmac-secret-scoped",
+      },
+    );
+    expect(upsertScopedErr).toBeNull();
+    expect(scopedSettingsId).toBeDefined();
+
+    const { data: orgWideSettingsId, error: upsertOrgWideErr } = await ownerClient.rpc(
+      "upsert_payment_provider_settings",
+      {
+        p_organization_id: orgId,
+        p_resort_id: null,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+        p_merchant_identifier: "pgtap-merchant-org-wide",
+        p_public_key: "pgtap-public-key-org-wide",
+        p_api_key: "pgtap-api-key-org-wide",
+        p_hmac_secret: "pgtap-hmac-secret-org-wide",
+      },
+    );
+    expect(upsertOrgWideErr).toBeNull();
+    expect(orgWideSettingsId).toBeDefined();
+    expect(orgWideSettingsId).not.toBe(scopedSettingsId);
+
+    // --- list_payment_provider_settings: proves the RETURNS TABLE column
+    // rename (property_id -> property_id) didn't break anything; there are
+    // zero app-code callers today, so this RPC call itself is the only
+    // proof this substitution is correct. ---
+    const { data: listedSettings, error: listErr } = await ownerClient.rpc(
+      "list_payment_provider_settings",
+      { p_organization_id: orgId },
+    );
+    expect(listErr).toBeNull();
+    expect(listedSettings).toHaveLength(2);
+    const scopedListed = listedSettings!.find((s: { id: string }) => s.id === scopedSettingsId);
+    const orgWideListed = listedSettings!.find((s: { id: string }) => s.id === orgWideSettingsId);
+    expect(scopedListed?.property_id).toBe(resortId);
+    expect(orgWideListed?.property_id).toBeNull();
+
+    // --- record_payment_provider_verification + enable_payment_provider ---
+    const { error: verifyErr } = await ownerClient.rpc("record_payment_provider_verification", {
+      p_settings_id: scopedSettingsId,
+      p_success: true,
+    });
+    expect(verifyErr).toBeNull();
+
+    const { error: enableErr } = await ownerClient.rpc("enable_payment_provider", {
+      p_settings_id: scopedSettingsId,
+    });
+    expect(enableErr).toBeNull();
+
+    // --- get_payment_provider_credentials: proves the lookup condition and
+    // ORDER BY substitutions -- the property-scoped (now enabled) row must
+    // be preferred over the org-wide row for this exact resort. ---
+    const { data: credentials, error: credentialsErr } = await admin.rpc(
+      "get_payment_provider_credentials",
+      {
+        p_organization_id: orgId,
+        p_resort_id: resortId,
+        p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+      },
+    );
+    expect(credentialsErr).toBeNull();
+    const credentialsRow = Array.isArray(credentials) ? credentials[0] : credentials;
+    expect(credentialsRow?.settings_id).toBe(scopedSettingsId);
+    expect(credentialsRow?.merchant_identifier).toBe("pgtap-merchant-scoped");
+    expect(credentialsRow?.api_key).toBe("pgtap-api-key-scoped");
+    expect(credentialsRow?.hmac_secret).toBe("pgtap-hmac-secret-scoped");
+
+    // --- disable_payment_provider ---
+    const { error: disableErr } = await ownerClient.rpc("disable_payment_provider", {
+      p_settings_id: scopedSettingsId,
+    });
+    expect(disableErr).toBeNull();
+
+    const { data: disabledRow, error: disabledRowErr } = await admin
+      .from("payment_provider_settings")
+      .select("status, enabled")
+      .eq("id", scopedSettingsId)
+      .single();
+    expect(disabledRowErr).toBeNull();
+    expect(disabledRow?.status).toBe("DISABLED");
+    expect(disabledRow?.enabled).toBe(false);
+
+    // --- validate_payment_provider_settings_scope trigger: a property_id
+    // that doesn't belong to this organization must be rejected. Uses
+    // PAYMOB/SANDBOX (not FAWRY/SANDBOX) purely to avoid colliding with the
+    // payment_provider_settings_unique_scope index against the rows created
+    // above -- PRODUCTION is avoided too, since enable_payment_provider
+    // blocks PAYMOB/PRODUCTION, though that's moot here since the upsert is
+    // expected to fail before any enable step is reached.
+    const { data: otherOrg } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP ProviderSettingsExpensesCluster Other Org",
+        slug: `pgtap-provider-settings-expenses-other-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+    const { data: otherResort } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: otherOrg!.id,
+        name: "ProviderSettingsExpensesCluster Other Resort",
+        code: `PSEC-OTHER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    const { error: scopeViolationErr } = await ownerClient.rpc("upsert_payment_provider_settings", {
+      p_organization_id: orgId,
+      p_resort_id: otherResort!.id,
+      p_provider: "PAYMOB",
+      p_environment: "SANDBOX",
+      p_merchant_identifier: "pgtap-merchant-scope-violation",
+      p_public_key: "pgtap-public-key-scope-violation",
+      p_api_key: "pgtap-api-key-scope-violation",
+      p_hmac_secret: "pgtap-hmac-secret-scope-violation",
+    });
+    expect(scopeViolationErr).toBeDefined();
+    expect(scopeViolationErr?.message).toContain("RESORT_NOT_IN_ORGANIZATION");
+
+    // --- Cleanup (FK-safe order) ---
+    await admin.from("resorts").delete().eq("id", otherResort!.id);
+    await admin.from("organizations").delete().eq("id", otherOrg!.id);
+
+    // vault.secrets rows created by upsert_payment_provider_settings above
+    // are left in place: the `vault` schema isn't exposed via the REST API
+    // (by design, matching Supabase's default configuration), so they
+    // aren't reachable from this test client to delete. This is the same
+    // accepted-and-documented small leak pattern as chart_of_accounts rows
+    // being left behind elsewhere in this file (COA_USED_DELETE_FORBIDDEN)
+    // -- a handful of tiny encrypted, org-orphaned rows per test run, not
+    // wired to anything once payment_provider_settings is deleted below.
+    const { error: deleteScopedSettingsErr } = await admin
+      .from("payment_provider_settings")
+      .delete()
+      .eq("id", scopedSettingsId);
+    expect(deleteScopedSettingsErr).toBeNull();
+    const { error: deleteOrgWideSettingsErr } = await admin
+      .from("payment_provider_settings")
+      .delete()
+      .eq("id", orgWideSettingsId);
+    expect(deleteOrgWideSettingsErr).toBeNull();
+
+    const { error: deleteExpenseErr } = await admin.from("expenses").delete().eq("id", expenseId);
+    expect(deleteExpenseErr).toBeNull();
+
+    const { error: deleteJournalEntriesErr } = await admin
+      .from("journal_entries")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteJournalEntriesErr).toBeNull();
+
+    const { error: deleteExpenseCategoryErr } = await admin
+      .from("expense_categories")
+      .delete()
+      .eq("id", expenseCategory!.id);
+    expect(deleteExpenseCategoryErr).toBeNull();
+
+    // record_expense's 'expense.recorded' entry lands in platform_audit_logs
+    // .property_id, which FKs to the resort -- must be removed before the
+    // resort delete below, matching test 15's precedent.
+    const { error: deleteAuditErr } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteAuditErr).toBeNull();
+
+    // The expense/cash GL accounts are not deleted: they've been posted to
+    // by record_expense's journal entry above, so chart_of_accounts.is_used
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_
+    // FORBIDDEN) -- matching test 15's precedent.
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
+
+  it("17. Phase 2g Group 3 due_schedules Property-ID Rename Integrity (preview_generate_recurring_dues/generate_recurring_dues end-to-end via RPC + due_schedules_manage RLS policy WITH CHECK)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP DueSchedulesCluster Org",
+        slug: `pgtap-due-schedules-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // generate_recurring_dues/preview_generate_recurring_dues are permission-
+    // gated via has_financial_permission (auth.uid(), ...), and the
+    // due_schedules_manage RLS policy this test also exercises is gated via
+    // has_permission(auth.uid(), ...) -- both require a real authenticated
+    // user. Stand up a real TENANT_OWNER session, matching test 15/16's
+    // pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-due-schedules-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: generate_recurring_dues/preview_generate_recurring_dues
+    // both key off of it, and it's what this test proves lands in
+    // due_schedules.property_id and dues.property_id.
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "DueSchedulesCluster Resort",
+        code: `DSC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    const { data: receivableAcc, error: receivableAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `1200-${Date.now()}`,
+        name_ar: "ذمم مستحقات اختبار",
+        name_en: "Test Dues Receivable",
+        category: "ASSET",
+        normal_balance: "DEBIT",
+      })
+      .select("id")
+      .single();
+    expect(receivableAccErr).toBeNull();
+
+    const { data: revenueAcc, error: revenueAccErr } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: `4300-${Date.now()}`,
+        name_ar: "إيرادات مستحقات اختبار",
+        name_en: "Test Dues Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+      })
+      .select("id")
+      .single();
+    expect(revenueAccErr).toBeNull();
+
+    const { data: dueType, error: dueTypeErr } = await admin
+      .from("due_types")
+      .insert({
+        organization_id: orgId,
+        name_ar: "نوع مستحق اختبار",
+        name_en: "Test Due Type",
+        default_revenue_account_id: revenueAcc!.id,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    expect(dueTypeErr).toBeNull();
+    const dueTypeId = dueType!.id;
+
+    const unitCode = `UNIT-DSC-${Date.now()}`;
+    const { data: unit, error: unitErr } = await admin
+      .from("units")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        code: unitCode,
+        unit_type: "APARTMENT",
+      })
+      .select("id")
+      .single();
+    expect(unitErr).toBeNull();
+    const unitId = unit!.id;
+
+    // --- due_schedules insert via the authenticated ownerClient: proves
+    // due_schedules_manage's WITH CHECK clause (property_id belongs to
+    // this org) accepts a correctly-scoped row, exercising its rename in
+    // the success case before the negative case below. ---
+    const { data: schedule, error: scheduleErr } = await ownerClient
+      .from("due_schedules")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        name: "pgTAP Test Monthly Schedule",
+        due_type_id: dueTypeId,
+        receivable_account_id: receivableAcc!.id,
+        amount: 250,
+        frequency: "MONTHLY",
+        day_of_month: 1,
+      })
+      .select("id, property_id")
+      .single();
+    expect(scheduleErr).toBeNull();
+    expect(schedule?.property_id).toBe(resortId);
+    const scheduleId = schedule!.id;
+
+    const period = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    // --- preview_generate_recurring_dues: proves its 2 substitutions ---
+    const { data: preview, error: previewErr } = await ownerClient.rpc(
+      "preview_generate_recurring_dues",
+      { p_organization_id: orgId, p_schedule_id: scheduleId, p_period: period },
+    );
+    expect(previewErr).toBeNull();
+    expect(preview?.unit_count).toBe(1);
+    expect(preview?.total_amount).toBe(250);
+
+    // --- generate_recurring_dues: proves the 6 substitutions (the
+    // has_financial_permission check, the units lookup, the dues INSERT,
+    // and the RECURRING_DUES_GENERATED audit event's property_id value) ---
+    const { data: generated, error: generateErr } = await ownerClient.rpc("generate_recurring_dues", {
+      p_organization_id: orgId,
+      p_schedule_id: scheduleId,
+      p_period: period,
+    });
+    expect(generateErr).toBeNull();
+    expect(generated?.success).toBe(true);
+    expect(generated?.idempotent).toBe(false);
+    expect(generated?.generated_units_count).toBe(1);
+
+    const { data: dueRow, error: dueRowErr } = await admin
+      .from("dues")
+      .select("id, property_id, organization_id, unit_id")
+      .eq("organization_id", orgId)
+      .single();
+    expect(dueRowErr).toBeNull();
+    expect(dueRow?.property_id).toBe(resortId);
+    expect(dueRow?.unit_id).toBe(unitId);
+    const dueId = dueRow!.id;
+
+    // --- Calling again for the same period hits the idempotent-replay
+    // branch: proves the RECURRING_DUES_SKIPPED audit event's property_id
+    // value substitution. ---
+    const { data: replay, error: replayErr } = await ownerClient.rpc("generate_recurring_dues", {
+      p_organization_id: orgId,
+      p_schedule_id: scheduleId,
+      p_period: period,
+    });
+    expect(replayErr).toBeNull();
+    expect(replay?.idempotent).toBe(true);
+    expect(replay?.generated_units_count).toBe(0);
+
+    // --- due_schedules_manage RLS policy WITH CHECK, negative case: a
+    // property_id belonging to a *different* organization must be
+    // rejected by RLS itself (a generic row-level-security violation, not
+    // a hard "column does not exist" error) -- the distinction between
+    // those two failure modes is exactly what proves this policy's rename
+    // is correct rather than broken. ---
+    const { data: otherOrg } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP DueSchedulesCluster Other Org",
+        slug: `pgtap-due-schedules-other-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+    const { data: otherResort } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: otherOrg!.id,
+        name: "DueSchedulesCluster Other Resort",
+        code: `DSC-OTHER-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+
+    const { error: scopeViolationErr } = await ownerClient.from("due_schedules").insert({
+      organization_id: orgId,
+      property_id: otherResort!.id,
+      name: "pgTAP Test Cross-Org Schedule",
+      due_type_id: dueTypeId,
+      receivable_account_id: receivableAcc!.id,
+      amount: 100,
+      frequency: "MONTHLY",
+      day_of_month: 1,
+    });
+    expect(scopeViolationErr).toBeDefined();
+    expect(scopeViolationErr?.code).toBe("42501");
+
+    // --- Cleanup (FK-safe order) ---
+    await admin.from("resorts").delete().eq("id", otherResort!.id);
+    await admin.from("organizations").delete().eq("id", otherOrg!.id);
+
+    // generate_recurring_dues writes to financial_audit_logs (via
+    // append_financial_audit_event), not platform_audit_logs -- must be
+    // removed before the resort delete below, matching test 15's
+    // precedent for that table.
+    const { error: deleteFinancialAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteFinancialAuditErr).toBeNull();
+
+    const { error: deleteDueErr } = await admin.from("dues").delete().eq("id", dueId);
+    expect(deleteDueErr).toBeNull();
+
+    const { error: deleteRunsErr } = await admin
+      .from("due_generation_runs")
+      .delete()
+      .eq("schedule_id", scheduleId);
+    expect(deleteRunsErr).toBeNull();
+
+    const { error: deleteScheduleErr } = await admin.from("due_schedules").delete().eq("id", scheduleId);
+    expect(deleteScheduleErr).toBeNull();
+
+    const { error: deleteUnitErr } = await admin.from("units").delete().eq("id", unitId);
+    expect(deleteUnitErr).toBeNull();
+
+    const { error: deleteDueTypeErr } = await admin.from("due_types").delete().eq("id", dueTypeId);
+    expect(deleteDueTypeErr).toBeNull();
+
+    // The receivable/revenue GL accounts are not deleted: they've been
+    // referenced by the generated due above, so chart_of_accounts.is_used
+    // is now true and a trigger rejects the delete (COA_USED_DELETE_
+    // FORBIDDEN) -- matching test 15/16's precedent.
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
+
+    await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+  });
+
+  it("18. Phase 2g Group 4 financial_audit_logs Property-ID Rename Integrity (append_financial_audit_event/verify_financial_audit_chain end-to-end via RPC -- the final deferred group of the whole property_id->property_id rename effort)", async () => {
+    const { data: org } = await admin
+      .from("organizations")
+      .insert({
+        name: "pgTAP FinancialAuditLogsCluster Org",
+        slug: `pgtap-financial-audit-logs-cluster-${Date.now()}`,
+        default_currency: "EGP",
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
+
+    expect(org?.id).toBeDefined();
+    const orgId = org!.id;
+
+    // append_financial_audit_event has EXECUTE granted only to anon/
+    // postgres/service_role (confirmed live via information_schema.
+    // routine_privileges) -- NOT authenticated. It's an internal helper,
+    // only ever called from other SECURITY DEFINER functions (which run
+    // as their own privileged owner, not the original caller), never
+    // exposed directly to end users. Calling it via the authenticated
+    // ownerClient fails with a grant-level 42501, distinct from the
+    // function's own RAISE EXCEPTION checks -- so it's called via admin
+    // (service role) below, matching how record_online_payment (another
+    // backend-only function) is called in test 15. verify_financial_audit_
+    // chain, by contrast, IS granted to authenticated (it backs the
+    // "Admins and managers can read financial audit logs" RLS-gated read
+    // path), so a real session is still stood up to exercise that
+    // realistically, matching test 15/16/17's pattern.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", {
+      p_organization_id: orgId,
+    });
+    expect(cloneErr).toBeNull();
+
+    const { data: ownerRole } = await admin
+      .from("roles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("key", "TENANT_OWNER")
+      .single();
+    expect(ownerRole?.id).toBeDefined();
+
+    const password = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-financial-audit-logs-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password,
+      email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+
+    const { error: membershipErr } = await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+    expect(membershipErr).toBeNull();
+
+    const { error: roleAssignErr } = await admin.from("user_role_assignments").insert({
+      user_id: ownerId,
+      role_id: ownerRole!.id,
+      organization_id: orgId,
+    });
+    expect(roleAssignErr).toBeNull();
+
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: ownerSignInErr } = await ownerClient.auth.signInWithPassword({
+      email: ownerEmail,
+      password,
+    });
+    expect(ownerSignInErr).toBeNull();
+
+    // A resort row: append_financial_audit_event's own p_resort_id ->
+    // organization-membership check requires this row to exist in the
+    // resorts compatibility view (matching the established precedent).
+    const { data: resort, error: resortErr } = await admin
+      .from("resorts")
+      .insert({
+        organization_id: orgId,
+        name: "FinancialAuditLogsCluster Resort",
+        code: `FALC-${Date.now()}`,
+      })
+      .select("id")
+      .single();
+    expect(resortErr).toBeNull();
+    const resortId = resort!.id;
+
+    // --- Event 1: property-scoped. Proves the INSERT column-list
+    // substitution (organization_id, property_id, ...). Called via admin
+    // (service role) -- see the grant note above; auth.uid() is null here,
+    // so this exercises the "system" actor branch (metadata tagged
+    // actor_type: system), not the human-membership-check branch. ---
+    const { data: event1Id, error: event1Err } = await admin.rpc("append_financial_audit_event", {
+      p_organization_id: orgId,
+      p_action: "DUE_ISSUED",
+      p_entity_type: "TEST_ENTITY",
+      p_resort_id: resortId,
+      p_entity_id: null,
+      p_metadata: { test: "event1" },
+    });
+    expect(event1Err).toBeNull();
+    expect(event1Id).toBeDefined();
+
+    const { data: event1Row, error: event1RowErr } = await admin
+      .from("financial_audit_logs")
+      .select("id, property_id, organization_id, previous_hash, event_hash")
+      .eq("id", event1Id)
+      .single();
+    expect(event1RowErr).toBeNull();
+    expect(event1Row?.property_id).toBe(resortId);
+    // The org's very first audit event has no prior row -- previous_hash is
+    // stored as NULL; "GENESIS_BLOCK" is only a transient substitution
+    // inside the hash payload computation itself, never the stored value.
+    expect(event1Row?.previous_hash).toBeNull();
+
+    // --- Event 2: organization-wide (p_resort_id null). Proves the
+    // nullable-property_id path, and that this event correctly chains its
+    // previous_hash to event 1's event_hash (chain-continuity, not just
+    // per-row hash correctness). ---
+    const { data: event2Id, error: event2Err } = await admin.rpc("append_financial_audit_event", {
+      p_organization_id: orgId,
+      p_action: "DUE_BATCH_ISSUED",
+      p_entity_type: "TEST_ENTITY",
+      p_resort_id: null,
+      p_entity_id: null,
+      p_metadata: { test: "event2" },
+    });
+    expect(event2Err).toBeNull();
+
+    const { data: event2Row, error: event2RowErr } = await admin
+      .from("financial_audit_logs")
+      .select("property_id, previous_hash, event_hash")
+      .eq("id", event2Id)
+      .single();
+    expect(event2RowErr).toBeNull();
+    expect(event2Row?.property_id).toBeNull();
+    expect(event2Row?.previous_hash).toBe(event1Row!.event_hash);
+
+    // --- verify_financial_audit_chain: proves its single substitution
+    // (v_rec.property_id in the hash-payload reconstruction) still
+    // produces hashes matching what append_financial_audit_event stored,
+    // for both the property-scoped and organization-wide rows. Called via
+    // ownerClient: unlike append_financial_audit_event, this function IS
+    // granted to authenticated, so this also proves that grant still
+    // resolves correctly. ---
+    const { data: chainResult, error: chainErr } = await ownerClient.rpc("verify_financial_audit_chain", {
+      p_organization_id: orgId,
+    });
+    expect(chainErr).toBeNull();
+    expect(chainResult).toHaveLength(2);
+    for (const row of chainResult!) {
+      expect(row.is_valid).toBe(true);
+      expect(row.calculated_hash).toBe(row.stored_hash);
+    }
+
+    // --- Cleanup ---
+    const { error: deleteAuditErr } = await admin
+      .from("financial_audit_logs")
+      .delete()
+      .eq("organization_id", orgId);
+    expect(deleteAuditErr).toBeNull();
+
+    const { error: deleteResortErr } = await admin.from("resorts").delete().eq("id", resortId);
+    expect(deleteResortErr).toBeNull();
+
+    const { error: deleteRoleAssignErr } = await admin
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteRoleAssignErr).toBeNull();
+
+    const { error: deleteMembershipErr } = await admin
+      .from("organization_memberships")
+      .delete()
+      .eq("user_id", ownerId);
+    expect(deleteMembershipErr).toBeNull();
+
+    const { error: deleteOwnerErr } = await admin.auth.admin.deleteUser(ownerId);
+    expect(deleteOwnerErr).toBeNull();
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });

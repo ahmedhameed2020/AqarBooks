@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { UNIT_TYPES, UNIT_TYPE_LABELS } from "./units-table";
 import { usePropertyNav } from "./property-nav-context";
 import { exportUnitsCsvAction } from "@/lib/actions/units-export";
-import { buildUnitsCsv, buildUnitsExcelHtml, downloadCsv, downloadExcelFile } from "./csv";
+import { buildUnitsCsv, buildUnitsXlsxBuffer, downloadCsv, downloadXlsxBuffer } from "./csv";
 import { ExportToolbar } from "@/components/export-toolbar";
 import { generateUnitsPdfReport } from "./unit-pdf-report";
 
@@ -101,7 +101,8 @@ export function UnitsFilters({
     setExporting(true);
     try {
       const rows = await exportUnitsCsvAction({ resortId, q, building, zone, type, occupancy, arrears });
-      downloadExcelFile(`units-export-${Date.now()}.xls`, buildUnitsExcelHtml(rows, isAr));
+      const buffer = await buildUnitsXlsxBuffer(rows, isAr);
+      downloadXlsxBuffer(`units-export-${Date.now()}.xlsx`, buffer);
     } finally {
       setExporting(false);
     }
