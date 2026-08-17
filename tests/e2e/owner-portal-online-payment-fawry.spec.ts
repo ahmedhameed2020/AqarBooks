@@ -782,8 +782,16 @@ test.describe("Fawry online payment -- happy path and webhook correctness", () =
     await armProviderFailure();
     await page.getByRole("button", { name: "Pay with Fawry" }).click();
 
-    // UI surfaces an error, does not crash / silently redirect.
-    await expect(page.locator("p.text-destructive")).toBeVisible({ timeout: 15_000 });
+    // UI surfaces an error, does not crash / silently redirect -- and the
+    // mock provider's own response body ("mock provider outage", set by
+    // startMockFawryChargeServer's failNextCharge branch above) must never
+    // reach the checkout action's response / the rendered error text. Only
+    // the fixed FAWRY_CHARGE_REQUEST_FAILED code may appear.
+    const errorLocator = page.locator("p.text-destructive");
+    await expect(errorLocator).toBeVisible({ timeout: 15_000 });
+    const errorText = await errorLocator.textContent();
+    expect(errorText).not.toContain("mock provider outage");
+    expect(errorText).toContain("FAWRY_CHARGE_REQUEST_FAILED");
 
     // The RPC (Task 4's atomic checkout-transaction creation) already ran
     // and committed BEFORE the provider call -- the row must still exist,

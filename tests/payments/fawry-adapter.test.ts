@@ -336,19 +336,64 @@ describe("Fawry adapter createCheckout", () => {
     );
   });
 
-  it("throws FAWRY_CHARGE_REQUEST_FAILED with status and body text on a non-ok HTTP response", async () => {
+  it("throws a fixed, detail-free FAWRY_CHARGE_REQUEST_FAILED message on a non-ok HTTP response -- Fawry's response body/status must never reach the thrown Error's .message, since callers forward that straight to the client", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
         ok: false,
         status: 502,
         json: async () => ({}),
-        text: async () => "upstream error detail",
+        text: async () => "upstream error detail with sensitive-looking content",
       }))
     );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS)).rejects.toThrow(
-      "FAWRY_CHARGE_REQUEST_FAILED: 502 upstream error detail"
+    let caught: Error | undefined;
+    try {
+      await fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS);
+    } catch (err) {
+      caught = err as Error;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught!.message).toBe("FAWRY_CHARGE_REQUEST_FAILED");
+    expect(caught!.message).not.toContain("upstream error detail");
+    expect(caught!.message).not.toContain("502");
+
+    // The upstream detail IS logged server-side (for debugging), just never
+    // surfaced in the thrown Error that reaches the client.
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    const logged = consoleErrorSpy.mock.calls[0][0] as string;
+    expect(logged).toContain("upstream error detail");
+    expect(logged).toContain("charge_request_failed");
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("throws a fixed, detail-free FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL message, never embedding the response body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ referenceNumber: "ref-3", someSensitiveLookingField: "should-not-leak" }),
+        text: async () => "",
+      }))
     );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    let caught: Error | undefined;
+    try {
+      await fawryAdapter.createCheckout(baseInput, TEST_CREDENTIALS);
+    } catch (err) {
+      caught = err as Error;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught!.message).toBe("FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL");
+    expect(caught!.message).not.toContain("should-not-leak");
+    expect(caught!.message).not.toContain("ref-3");
+
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    const logged = consoleErrorSpy.mock.calls[0][0] as string;
+    expect(logged).not.toContain("should-not-leak");
+    consoleErrorSpy.mockRestore();
   });
 });

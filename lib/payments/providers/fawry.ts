@@ -176,13 +176,37 @@ export const fawryAdapter: PaymentProviderAdapter = {
     });
 
     if (!response.ok) {
-      throw new Error(`FAWRY_CHARGE_REQUEST_FAILED: ${response.status} ${await response.text()}`);
+      // Fawry's response body is logged server-side only (capped, since it's
+      // untrusted external content) -- the thrown Error carries a fixed,
+      // detail-free message, because callers (createOnlinePaymentCheckoutAction)
+      // return `(err as Error).message` straight to the browser. Never echo
+      // an upstream provider's response body/status details into anything
+      // that reaches the client.
+      const bodyText = await response.text().catch(() => "");
+      console.error(
+        JSON.stringify({
+          provider: "FAWRY",
+          event: "charge_request_failed",
+          status: response.status,
+          transaction_id: input.transactionId,
+          body_excerpt: bodyText.slice(0, 500),
+        })
+      );
+      throw new Error("FAWRY_CHARGE_REQUEST_FAILED");
     }
 
     const result = await response.json();
     const redirectUrl = result.nextAction?.redirectUrl ?? result.redirectUrl;
     if (!redirectUrl || typeof redirectUrl !== "string") {
-      throw new Error(`FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL: ${JSON.stringify(result)}`);
+      console.error(
+        JSON.stringify({
+          provider: "FAWRY",
+          event: "charge_response_missing_redirect_url",
+          transaction_id: input.transactionId,
+          response_keys: Object.keys(result ?? {}),
+        })
+      );
+      throw new Error("FAWRY_CHARGE_RESPONSE_MISSING_REDIRECT_URL");
     }
     return {
       redirectUrl,
