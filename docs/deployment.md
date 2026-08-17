@@ -19,12 +19,44 @@ why the dashboard reported **"No deployment available."**
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Next.js dev server. Fastest feedback loop; runs in Node, not `workerd`. |
+| `npm run build` | **Produces the deployable Worker bundle** (`opennextjs-cloudflare build`). This is what CI runs. |
+| `npm run build:next` | Plain `next build`. Useful for checking compilation only — output is *not* deployable. |
 | `npm run preview` | Builds the Worker bundle and serves it locally in the real `workerd` runtime. Use this to verify behaviour before deploying. |
 | `npm run deploy` | Builds and deploys to Cloudflare. |
 | `npm run cf-typegen` | Regenerates `cloudflare-env.d.ts` from `wrangler.jsonc` bindings. |
 
 `npm run dev` runs in Node.js, so it will not catch Workers-runtime errors.
 Anything runtime-sensitive should be checked with `npm run preview`.
+
+## Workers Builds configuration (and the recursion trap)
+
+Cloudflare Workers Builds runs two steps: a **build command** (defaults to
+`npm run build`) and a **deploy command** (defaults to `npx wrangler deploy`,
+or `npx wrangler versions upload` on non-production branches).
+
+`npm run build` is therefore deliberately wired to `opennextjs-cloudflare build`,
+so that Cloudflare's *default* build command produces `.open-next/worker.js`
+and no dashboard configuration is required. When `npm run build` was left as a
+plain `next build`, the deploy step failed with:
+
+```
+✘ [ERROR] The entry-point file at ".open-next/worker.js" was not found.
+```
+
+⚠️ **This creates a recursion hazard.** OpenNext builds the Next.js app by
+shelling out to the package manager's build script — `buildNextjsApp()` uses
+`config.buildCommand ?? "npm run build"`. With `npm run build` pointing back at
+`opennextjs-cloudflare build`, that recurses infinitely (observed: 178 nested
+builds and ~185 runaway processes before being killed).
+
+`open-next.config.ts` therefore sets:
+
+```ts
+buildCommand: "npx next build",
+```
+
+**Do not remove that line while `npm run build` runs the OpenNext build.**
+Changing either one requires changing the other.
 
 ## Environment variables
 

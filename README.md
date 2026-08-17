@@ -39,8 +39,9 @@ npm run preview   # build + run locally in the Workers runtime
 npm run deploy    # build + deploy to Cloudflare
 ```
 
-Note that `npm run build` on its own produces only `.next/` and is **not**
-deployable — the Worker bundle comes from `opennextjs-cloudflare build`.
+`npm run build` produces the deployable Worker bundle (`.open-next/worker.js`),
+which is what Cloudflare's build step runs. Use `npm run build:next` for a plain
+Next.js compile check — its output is not deployable on its own.
 
 See [docs/deployment.md](docs/deployment.md) for required environment variables
 (including the build-time vs. runtime distinction, which is easy to get wrong)
