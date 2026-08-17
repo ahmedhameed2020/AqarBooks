@@ -459,6 +459,8 @@ export type Database = {
           custom_type_label: string | null;
           archived_at: string | null;
           archived_by: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -474,6 +476,8 @@ export type Database = {
           custom_type_label?: string | null;
           archived_at?: string | null;
           archived_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["units"]["Row"]>;
         Relationships: [];
@@ -864,6 +868,74 @@ export type Database = {
           description: string | null;
           status: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "VOID";
           journal_entry_id: string | null;
+          created_at: string;
+          source_type: "LEASE_RENT" | null;
+          source_id: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      unit_leases: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          tenant_member_id: string;
+          due_type_id: string;
+          receivable_account_id: string;
+          status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED";
+          starts_on: string;
+          ends_on: string | null;
+          rent_amount: number;
+          rent_frequency: "MONTHLY" | "QUARTERLY" | "YEARLY";
+          security_deposit_amount: number;
+          billing_recipient: "OWNER" | "TENANT";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          ended_by: string | null;
+          ended_at: string | null;
+          end_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      installment_plans: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          buyer_member_id: string;
+          due_type_id: string;
+          receivable_account_id: string;
+          status: "ACTIVE" | "COMPLETED" | "CANCELLED";
+          total_price: number;
+          down_payment: number;
+          installment_count: number;
+          installment_frequency: "MONTHLY" | "QUARTERLY" | "YEARLY";
+          starts_on: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      plan_installments: {
+        Row: {
+          id: string;
+          plan_id: string;
+          due_id: string;
+          sequence_no: number;
+          principal_amount: number;
           created_at: string;
         };
         Insert: never;
@@ -1624,6 +1696,61 @@ export type Database = {
           p_cashier_session_id?: string | null;
         };
         Returns: string;
+      };
+      create_unit_lease: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+          p_tenant_member_id: string;
+          p_due_type_id: string;
+          p_receivable_account_id: string;
+          p_rent_amount: number;
+          p_rent_frequency: string;
+          p_starts_on: string;
+          p_ends_on?: string | null;
+          p_security_deposit_amount?: number;
+          p_billing_recipient?: string;
+        };
+        Returns: string;
+      };
+      activate_unit_lease: {
+        Args: { p_lease_id: string };
+        Returns: undefined;
+      };
+      end_unit_lease: {
+        Args: { p_lease_id: string; p_ends_on: string; p_end_reason: string };
+        Returns: undefined;
+      };
+      cancel_unit_lease: {
+        Args: { p_lease_id: string; p_cancel_reason?: string | null };
+        Returns: undefined;
+      };
+      set_unit_lease_billing_recipient: {
+        Args: { p_lease_id: string; p_billing_recipient: string };
+        Returns: undefined;
+      };
+      run_lease_rent_generation: {
+        Args: Record<string, never>;
+        Returns: { generated: number; idempotent: number; blocked: number; skipped: number; errored: number };
+      };
+      create_installment_plan: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+          p_buyer_member_id: string;
+          p_due_type_id: string;
+          p_receivable_account_id: string;
+          p_total_price: number;
+          p_down_payment: number;
+          p_installment_count: number;
+          p_installment_frequency: string;
+          p_starts_on: string;
+        };
+        Returns: string;
+      };
+      cancel_installment_plan: {
+        Args: { p_plan_id: string; p_cancel_reason: string };
+        Returns: undefined;
       };
       create_cashbox: {
         Args: { p_organization_id: string; p_resort_id: string; p_name: string; p_gl_account_id: string };

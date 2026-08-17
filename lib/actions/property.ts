@@ -260,3 +260,239 @@ export async function linkOwnershipAction(
   revalidatePath("/[locale]/property", "page");
   return { ok: true };
 }
+
+// Unit rental/occupancy (unit_leases). Every action below is a thin wrapper
+// around a security-definer RPC that performs its own has_permission()
+// check -- this file is never the authorization boundary, matching every
+// other action here.
+
+const createUnitLeaseSchema = z.object({
+  organizationId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  tenantMemberId: z.string().uuid(),
+  dueTypeId: z.string().uuid(),
+  receivableAccountId: z.string().uuid(),
+  rentAmount: z.coerce.number().positive(),
+  rentFrequency: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"]),
+  startsOn: z.string().min(1),
+  endsOn: z.string().min(1).optional(),
+  securityDepositAmount: z.coerce.number().min(0).default(0),
+  billingRecipient: z.enum(["OWNER", "TENANT"]),
+});
+
+export async function createUnitLeaseAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = createUnitLeaseSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    unitId: formData.get("unitId"),
+    tenantMemberId: formData.get("tenantMemberId"),
+    dueTypeId: formData.get("dueTypeId"),
+    receivableAccountId: formData.get("receivableAccountId"),
+    rentAmount: formData.get("rentAmount"),
+    rentFrequency: formData.get("rentFrequency"),
+    startsOn: formData.get("startsOn"),
+    endsOn: formData.get("endsOn") || undefined,
+    securityDepositAmount: formData.get("securityDepositAmount") || 0,
+    billingRecipient: formData.get("billingRecipient"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_unit_lease", {
+    p_organization_id: parsed.data.organizationId,
+    p_unit_id: parsed.data.unitId,
+    p_tenant_member_id: parsed.data.tenantMemberId,
+    p_due_type_id: parsed.data.dueTypeId,
+    p_receivable_account_id: parsed.data.receivableAccountId,
+    p_rent_amount: parsed.data.rentAmount,
+    p_rent_frequency: parsed.data.rentFrequency,
+    p_starts_on: parsed.data.startsOn,
+    p_ends_on: parsed.data.endsOn ?? null,
+    p_security_deposit_amount: parsed.data.securityDepositAmount,
+    p_billing_recipient: parsed.data.billingRecipient,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const leaseIdSchema = z.object({ leaseId: z.string().uuid() });
+
+export async function activateUnitLeaseAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = leaseIdSchema.safeParse({ leaseId: formData.get("leaseId") });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("activate_unit_lease", { p_lease_id: parsed.data.leaseId });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const endUnitLeaseSchema = z.object({
+  leaseId: z.string().uuid(),
+  endsOn: z.string().min(1),
+  endReason: z.string().min(1),
+});
+
+export async function endUnitLeaseAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = endUnitLeaseSchema.safeParse({
+    leaseId: formData.get("leaseId"),
+    endsOn: formData.get("endsOn"),
+    endReason: formData.get("endReason"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("end_unit_lease", {
+    p_lease_id: parsed.data.leaseId,
+    p_ends_on: parsed.data.endsOn,
+    p_end_reason: parsed.data.endReason,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const cancelUnitLeaseSchema = z.object({
+  leaseId: z.string().uuid(),
+  cancelReason: z.string().optional(),
+});
+
+export async function cancelUnitLeaseAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = cancelUnitLeaseSchema.safeParse({
+    leaseId: formData.get("leaseId"),
+    cancelReason: formData.get("cancelReason") || undefined,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_unit_lease", {
+    p_lease_id: parsed.data.leaseId,
+    p_cancel_reason: parsed.data.cancelReason ?? null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const setBillingRecipientSchema = z.object({
+  leaseId: z.string().uuid(),
+  billingRecipient: z.enum(["OWNER", "TENANT"]),
+});
+
+export async function setUnitLeaseBillingRecipientAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = setBillingRecipientSchema.safeParse({
+    leaseId: formData.get("leaseId"),
+    billingRecipient: formData.get("billingRecipient"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_unit_lease_billing_recipient", {
+    p_lease_id: parsed.data.leaseId,
+    p_billing_recipient: parsed.data.billingRecipient,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+// Unit purchase installment plans -- same pattern as the lease actions
+// above: a thin zod-validated wrapper around a security-definer RPC that
+// performs its own has_permission() check.
+
+const createInstallmentPlanSchema = z.object({
+  organizationId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  buyerMemberId: z.string().uuid(),
+  dueTypeId: z.string().uuid(),
+  receivableAccountId: z.string().uuid(),
+  totalPrice: z.coerce.number().positive(),
+  downPayment: z.coerce.number().min(0).default(0),
+  installmentCount: z.coerce.number().int().positive(),
+  installmentFrequency: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"]),
+  startsOn: z.string().min(1),
+});
+
+export async function createInstallmentPlanAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = createInstallmentPlanSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    unitId: formData.get("unitId"),
+    buyerMemberId: formData.get("buyerMemberId"),
+    dueTypeId: formData.get("dueTypeId"),
+    receivableAccountId: formData.get("receivableAccountId"),
+    totalPrice: formData.get("totalPrice"),
+    downPayment: formData.get("downPayment") || 0,
+    installmentCount: formData.get("installmentCount"),
+    installmentFrequency: formData.get("installmentFrequency"),
+    startsOn: formData.get("startsOn"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_installment_plan", {
+    p_organization_id: parsed.data.organizationId,
+    p_unit_id: parsed.data.unitId,
+    p_buyer_member_id: parsed.data.buyerMemberId,
+    p_due_type_id: parsed.data.dueTypeId,
+    p_receivable_account_id: parsed.data.receivableAccountId,
+    p_total_price: parsed.data.totalPrice,
+    p_down_payment: parsed.data.downPayment,
+    p_installment_count: parsed.data.installmentCount,
+    p_installment_frequency: parsed.data.installmentFrequency,
+    p_starts_on: parsed.data.startsOn,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+const cancelInstallmentPlanSchema = z.object({
+  planId: z.string().uuid(),
+  cancelReason: z.string().min(1),
+});
+
+export async function cancelInstallmentPlanAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = cancelInstallmentPlanSchema.safeParse({
+    planId: formData.get("planId"),
+    cancelReason: formData.get("cancelReason"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_installment_plan", {
+    p_plan_id: parsed.data.planId,
+    p_cancel_reason: parsed.data.cancelReason,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}

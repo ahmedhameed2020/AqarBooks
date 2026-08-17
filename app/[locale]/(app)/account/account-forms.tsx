@@ -41,7 +41,14 @@ export function ProfileForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="locale">{isAr ? "اللغة المفضّلة" : "Preferred language"}</Label>
-        <Select name="locale" defaultValue={locale}>
+        <Select
+          name="locale"
+          defaultValue={locale}
+          items={[
+            { value: "ar", label: "العربية" },
+            { value: "en", label: "English" },
+          ]}
+        >
           <SelectTrigger id="locale" className="w-full">
             <SelectValue />
           </SelectTrigger>

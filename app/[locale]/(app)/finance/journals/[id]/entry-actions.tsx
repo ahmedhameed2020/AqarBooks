@@ -80,7 +80,11 @@ export function EntryActions({
           <input type="hidden" name="journalEntryId" value={journalEntryId} />
           <div className="space-y-2">
             <Label htmlFor="reversalFiscalPeriodId">{isAr ? "فترة العكس" : "Reversal period"}</Label>
-            <Select name="reversalFiscalPeriodId" defaultValue={openPeriods[0]?.id}>
+            <Select
+              name="reversalFiscalPeriodId"
+              defaultValue={openPeriods[0]?.id}
+              items={openPeriods.map((p) => ({ value: p.id, label: p.name }))}
+            >
               <SelectTrigger id="reversalFiscalPeriodId" className="w-full">
                 <SelectValue />
               </SelectTrigger>

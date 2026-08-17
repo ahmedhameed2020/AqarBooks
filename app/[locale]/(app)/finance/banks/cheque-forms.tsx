@@ -45,7 +45,7 @@ export function RecordChequeForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label>{isAr ? "الحساب البنكي" : "Bank account"}</Label>
-        <Select name="bankAccountId">
+        <Select name="bankAccountId" items={bankAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -60,7 +60,7 @@ export function RecordChequeForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "العضو" : "Member"}</Label>
-        <Select name="memberId">
+        <Select name="memberId" items={members.map((m) => ({ value: m.id, label: m.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -124,7 +124,7 @@ export function ChequeStatusForm({
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="chequeId" value={chequeId} />
-      <Select name="status" defaultValue={options[0]}>
+      <Select name="status" defaultValue={options[0]} items={options.map((s) => ({ value: s, label: s }))}>
         <SelectTrigger size="sm" className="w-32">
           <SelectValue />
         </SelectTrigger>

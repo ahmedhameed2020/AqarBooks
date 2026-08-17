@@ -44,7 +44,7 @@ export function CreateExpenseCategoryForm({
       </div>
       <div className="space-y-2 sm:col-span-2">
         <Label>{isAr ? "حساب المصروف" : "Expense account"}</Label>
-        <Select name="defaultExpenseAccountId">
+        <Select name="defaultExpenseAccountId" items={expenseAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -94,7 +94,7 @@ export function RecordExpenseForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label>{isAr ? "الفئة" : "Category"}</Label>
-        <Select name="expenseCategoryId">
+        <Select name="expenseCategoryId" items={categories.map((c) => ({ value: c.id, label: c.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -109,7 +109,7 @@ export function RecordExpenseForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب الدفع" : "Payment account"}</Label>
-        <Select name="paymentAccountId">
+        <Select name="paymentAccountId" items={paymentAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -124,7 +124,7 @@ export function RecordExpenseForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-        <Select name="fiscalPeriodId">
+        <Select name="fiscalPeriodId" items={periods.map((p) => ({ value: p.id, label: p.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

@@ -36,7 +36,9 @@ export function KpiCard({
         ? "bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-md shadow-rose-600/20"
         : tone === "warning"
           ? "bg-gradient-to-tr from-amber-600 to-orange-500 text-white shadow-md shadow-amber-600/20"
-          : "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/20";
+          : tone === "info"
+            ? "bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-600/20"
+            : "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/20";
 
   const topGlow =
     tone === "positive"
@@ -45,7 +47,9 @@ export function KpiCard({
         ? "from-rose-500 via-red-400 to-rose-600"
         : tone === "warning"
           ? "from-amber-500 via-orange-400 to-amber-600"
-          : "from-purple-600 via-indigo-500 to-blue-500";
+          : tone === "info"
+            ? "from-blue-500 via-cyan-400 to-blue-600"
+            : "from-purple-600 via-indigo-500 to-blue-500";
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">

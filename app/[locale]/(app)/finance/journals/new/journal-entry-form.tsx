@@ -81,7 +81,11 @@ export function JournalEntryForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="fiscalPeriodId">{isAr ? "الفترة المالية" : "Fiscal period"}</Label>
-          <Select name="fiscalPeriodId" defaultValue={periods[0]?.id}>
+          <Select
+            name="fiscalPeriodId"
+            defaultValue={periods[0]?.id}
+            items={periods.map((p) => ({ value: p.id, label: p.name }))}
+          >
             <SelectTrigger id="fiscalPeriodId" className="w-full">
               <SelectValue />
             </SelectTrigger>

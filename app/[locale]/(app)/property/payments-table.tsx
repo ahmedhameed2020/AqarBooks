@@ -115,10 +115,10 @@ export async function PaymentsTable({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/60 hover:bg-muted/60">
               <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
               <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
               <TableHead>{isAr ? "طريقة الدفع" : "Method"}</TableHead>
@@ -133,14 +133,14 @@ export async function PaymentsTable({
             {rows.length ? (
               rows.map((r) => (
                 <TableRow key={r.key}>
-                  <TableCell className="text-muted-foreground">{r.paymentDate}</TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="text-muted-foreground tabular-nums">{r.paymentDate}</TableCell>
+                  <TableCell className="font-medium tabular-nums">
                     <Money amount={r.amount} currency={currency} locale={locale} />
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {isAr ? METHOD_LABELS[r.method]?.ar : METHOD_LABELS[r.method]?.en}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground tabular-nums">
                     {r.receiptNumber ? `#${r.receiptNumber}` : "—"}
                   </TableCell>
                   <TableCell>
@@ -152,8 +152,8 @@ export async function PaymentsTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
-                  {isAr ? "لا توجد دفعات" : "No payments"}
+                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  {isAr ? "لا توجد دفعات مسجّلة بعد" : "No payments recorded yet"}
                 </TableCell>
               </TableRow>
             )}

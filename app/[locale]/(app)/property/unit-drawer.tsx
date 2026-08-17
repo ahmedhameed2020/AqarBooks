@@ -83,9 +83,9 @@ export function UnitDrawer({
                   <OccupancyBadge status={shown.occupancyStatus} locale={locale} />
                 </div>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {[shown.buildingName, shown.zoneName].filter(Boolean).join(" · ") || (isAr ? "بدون مبنى/منطقة" : "No building/zone")}
-                  {" · "}
                   {unitTypeLabel({ unit_type: shown.unitType, custom_type_label: shown.customTypeLabel }, isAr)}
+                  {" · "}
+                  {[shown.buildingName, shown.zoneName].filter(Boolean).join(" · ") || (isAr ? "بدون مبنى/منطقة" : "No building/zone")}
                 </p>
               </div>
             </SheetHeader>

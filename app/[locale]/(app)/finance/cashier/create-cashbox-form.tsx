@@ -41,7 +41,7 @@ export function CreateCashboxForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="glAccountId">{isAr ? "حساب الأستاذ" : "GL account"}</Label>
-        <Select name="glAccountId">
+        <Select name="glAccountId" items={assetAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger id="glAccountId" className="w-full">
             <SelectValue />
           </SelectTrigger>

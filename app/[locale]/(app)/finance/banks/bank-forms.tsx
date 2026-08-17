@@ -67,7 +67,7 @@ export function CreateBankAccountForm({
       <input type="hidden" name="resortId" value={resortId} />
       <div className="space-y-2">
         <Label>{isAr ? "البنك" : "Bank"}</Label>
-        <Select name="bankId">
+        <Select name="bankId" items={banks.map((b) => ({ value: b.id, label: b.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -90,7 +90,7 @@ export function CreateBankAccountForm({
       </div>
       <div className="space-y-2">
         <Label>{isAr ? "حساب الأستاذ" : "GL account"}</Label>
-        <Select name="glAccountId">
+        <Select name="glAccountId" items={assetAccounts.map((a) => ({ value: a.id, label: a.label }))}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>

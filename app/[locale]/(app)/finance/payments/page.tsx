@@ -15,10 +15,13 @@ import { RecordPaymentForm } from "./record-payment-form";
 
 export default async function PaymentsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ unit?: string }>;
 }) {
   const { locale } = await params;
+  const { unit: unitParam } = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -87,9 +90,11 @@ export default async function PaymentsPage({
 
   const dueOptions = (openDues ?? []).map((d) => ({
     id: d.id,
+    unitId: d.unit_id,
     label: `${unitCodeById.get(d.unit_id) ?? d.unit_id} — ${d.amount.toFixed(2)}`,
     remaining: d.amount - (paidByDue.get(d.id) ?? 0),
   }));
+  const preselectedUnitId = unitParam && (units ?? []).some((u) => u.id === unitParam) ? unitParam : undefined;
 
   return (
     <div className="space-y-6">
@@ -107,6 +112,7 @@ export default async function PaymentsPage({
           }))}
           periods={(periods ?? []).map((p) => ({ id: p.id, label: p.name }))}
           locale={locale}
+          preselectedUnitId={preselectedUnitId}
         />
       )}
 
