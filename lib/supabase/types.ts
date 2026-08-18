@@ -822,6 +822,138 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["unit_ownerships"]["Row"]>;
         Relationships: [];
       };
+      revenue_natures: {
+        Row: {
+          code: string;
+          name_ar: string;
+          name_en: string;
+          is_derived: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          name_ar: string;
+          name_en: string;
+          is_derived?: boolean;
+          sort_order: number;
+        };
+        Update: {
+          name_ar?: string;
+          name_en?: string;
+          is_derived?: boolean;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      tax_rule_versions: {
+        Row: {
+          id: string;
+          jurisdiction: string;
+          revenue_nature: string;
+          tax_treatment: string;
+          vat_rate: number | null;
+          effective_from: string;
+          effective_to: string | null;
+          e_document_type: string;
+          issuer_scope: string;
+          version: number;
+          rule_hash: string;
+          status: string;
+          legal_reference: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          jurisdiction: string;
+          revenue_nature: string;
+          tax_treatment: string;
+          vat_rate?: number | null;
+          effective_from: string;
+          effective_to?: string | null;
+          e_document_type: string;
+          issuer_scope: string;
+          version: number;
+          rule_hash?: string;
+          status?: string;
+          legal_reference?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          effective_to?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      due_type_revenue_natures: {
+        Row: {
+          id: string;
+          organization_id: string;
+          due_type_id: string;
+          revenue_nature: string;
+          status: string;
+          notes: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          due_type_id: string;
+          revenue_nature: string;
+          status?: string;
+          notes?: string | null;
+        };
+        Update: {
+          revenue_nature?: string;
+          status?: string;
+          notes?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      tax_decisions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          source_type: string;
+          source_id: string;
+          revenue_nature: string;
+          jurisdiction: string;
+          transaction_date: string;
+          tax_rule_version_id: string;
+          tax_rule_hash: string;
+          tax_decision_snapshot: unknown;
+          decided_by: string | null;
+          decided_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          source_type: string;
+          source_id: string;
+          revenue_nature: string;
+          jurisdiction: string;
+          transaction_date: string;
+          tax_rule_version_id: string;
+          tax_rule_hash: string;
+          tax_decision_snapshot: unknown;
+          decided_by?: string | null;
+        };
+        Update: {
+          tax_rule_hash?: string;
+        };
+        Relationships: [];
+      };
       due_types: {
         Row: {
           id: string;
@@ -2570,6 +2702,85 @@ export type Database = {
           p_entry_id: string;
         };
         Returns: Database["public"]["Tables"]["journal_entries"]["Row"];
+      };
+      set_due_type_revenue_nature: {
+        Args: {
+          p_due_type_id: string;
+          p_revenue_nature: string;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      approve_due_type_revenue_nature: {
+        Args: { p_mapping_id: string };
+        Returns: undefined;
+      };
+      revoke_due_type_revenue_nature_approval: {
+        Args: { p_mapping_id: string; p_reason?: string | null };
+        Returns: undefined;
+      };
+      list_due_type_tax_mappings: {
+        Args: { p_organization_id: string };
+        Returns: {
+          due_type_id: string;
+          due_type_name_ar: string;
+          due_type_name_en: string;
+          mapping_id: string | null;
+          revenue_nature: string | null;
+          nature_name_ar: string | null;
+          nature_name_en: string | null;
+          status: string;
+          notes: string | null;
+          approved_at: string | null;
+          updated_at: string | null;
+        }[];
+      };
+      resolve_tax_rule: {
+        Args: {
+          p_jurisdiction: string;
+          p_revenue_nature: string;
+          p_transaction_date: string;
+        };
+        Returns: Database["public"]["Tables"]["tax_rule_versions"]["Row"];
+      };
+      record_tax_decision: {
+        Args: {
+          p_source_type: string;
+          p_source_id: string;
+          p_due_type_id: string;
+          p_jurisdiction: string;
+          p_transaction_date: string;
+        };
+        Returns: string;
+      };
+      create_tax_rule_draft: {
+        Args: {
+          p_jurisdiction: string;
+          p_revenue_nature: string;
+          p_tax_treatment: string;
+          p_vat_rate: number | null;
+          p_effective_from: string;
+          p_e_document_type: string;
+          p_issuer_scope: string;
+          p_legal_reference?: string | null;
+        };
+        Returns: string;
+      };
+      approve_tax_rule: {
+        Args: { p_rule_id: string };
+        Returns: undefined;
+      };
+      supersede_tax_rule: {
+        Args: {
+          p_rule_id: string;
+          p_effective_from: string;
+          p_tax_treatment: string;
+          p_vat_rate: number | null;
+          p_e_document_type: string;
+          p_issuer_scope: string;
+          p_legal_reference?: string | null;
+        };
+        Returns: string;
       };
     };
   };
