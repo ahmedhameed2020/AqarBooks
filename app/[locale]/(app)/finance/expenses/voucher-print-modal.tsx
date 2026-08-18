@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Receipt, CheckCircle2, Building2 } from "lucide-react";
+import {
+  Printer,
+  Receipt,
+  CheckCircle2,
+  Building2,
+  Share2,
+  Mail,
+  Copy,
+  Check,
+  Download,
+  Send,
+} from "lucide-react";
 import { tafqeetArabic } from "@/lib/tafqeet";
 import { generateExpenseVoucherPdf } from "@/lib/reports/expense-voucher-pdf";
 import type { ExpenseRow } from "./expenses-client";
@@ -37,12 +49,18 @@ export function VoucherPrintModal({
   locale: string;
 }) {
   const isAr = locale === "ar";
+  const [copied, setCopied] = useState(false);
 
   if (!expense) return null;
 
   const tafqeetText = tafqeetArabic(expense.amount, currencyCode);
 
-  const handlePrint = () => {
+  const formattedAmount = expense.amount.toLocaleString(isAr ? "ar-EG" : "en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const handlePrintPdf = () => {
     generateExpenseVoucherPdf(
       {
         organizationName,
@@ -60,40 +78,104 @@ export function VoucherPrintModal({
     );
   };
 
+  const shareText = isAr
+    ? `🧾 *سند صرف رسمي — ${organizationName}*
+━━━━━━━━━━━━━━━━━━━━
+🔢 *رقم السند:* #${expense.voucher_number ?? "—"}
+📅 *تاريخ الصرف:* ${expense.expense_date}
+💰 *المبلغ:* ${formattedAmount} ${currencyLabel}
+✍️ *المبلغ بالحروف:* ${tafqeetText}
+🏷️ *فئة المصروف:* ${categoryName}
+📝 *البيان:* ${expense.description}
+🏦 *حساب الدفع / الخزينة:* ${accountName}
+━━━━━━━━━━━━━━━━━━━━
+_نظام AqarBooks المالي_`
+    : `🧾 *Official Payment Voucher — ${organizationName}*
+━━━━━━━━━━━━━━━━━━━━
+🔢 *Voucher #:* #${expense.voucher_number ?? "—"}
+📅 *Date:* ${expense.expense_date}
+💰 *Amount:* ${formattedAmount} ${currencyLabel}
+✍️ *In Words:* ${tafqeetText}
+🏷️ *Category:* ${categoryName}
+📝 *Description:* ${expense.description}
+🏦 *Paid From:* ${accountName}
+━━━━━━━━━━━━━━━━━━━━
+_AqarBooks Financial Suite_`;
+
+  const handleShareWhatsApp = () => {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleShareEmail = () => {
+    const subject = isAr
+      ? `سند صرف #${expense.voucher_number ?? "—"} — ${organizationName}`
+      : `Payment Voucher #${expense.voucher_number ?? "—"} — ${organizationName}`;
+    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+      shareText
+    )}`;
+    window.location.href = mailto;
+  };
+
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Clipboard error:", err);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl sm:max-w-3xl overflow-hidden p-0">
-        <DialogHeader className="p-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between w-full">
+        <DialogHeader className="p-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
             <div className="flex items-center gap-2">
               <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                <Printer className="size-4" />
+                <Receipt className="size-4" />
               </div>
               <div>
                 <DialogTitle className="text-base">
-                  {isAr ? "معاينة وطباعة سند الصرف" : "Print Payment Voucher"}
+                  {isAr ? "معاينة وإرسال سند الصرف" : "Payment Voucher Preview & Share"}
                 </DialogTitle>
                 <DialogDescription className="text-xs">
                   {isAr
-                    ? "مستند سند صرف رسمي معتمد جاهز للطباعة المباشرة وحفظ PDF"
-                    : "Official payment voucher ready for physical print and PDF export"}
+                    ? "طباعة وحفظ PDF وإرسال السند للعميل أو المورد عبر واتساب والبريد"
+                    : "Print, save PDF, or send voucher to client/vendor via WhatsApp or Email"}
                 </DialogDescription>
               </div>
             </div>
 
-            <Button
-              type="button"
-              onClick={handlePrint}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-8 text-xs cursor-pointer"
-            >
-              <Printer className="size-3.5" />
-              <span>{isAr ? "طباعة المستند" : "Print Voucher"}</span>
-            </Button>
+            {/* Top Quick Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleShareWhatsApp}
+                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-300 font-bold gap-1.5 h-8 text-xs dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+              >
+                <Send className="size-3.5" />
+                <span>{isAr ? "واتساب" : "WhatsApp"}</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handlePrintPdf}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-8 text-xs cursor-pointer shadow-xs"
+              >
+                <Download className="size-3.5" />
+                <span>{isAr ? "تحميل / طباعة PDF" : "PDF / Print"}</span>
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
-        <DialogBody className="p-6 max-h-[75vh] overflow-y-auto bg-slate-100/60 dark:bg-slate-950/60">
-          {/* Preview Container */}
+        <DialogBody className="p-6 max-h-[72vh] overflow-y-auto bg-slate-100/60 dark:bg-slate-950/60">
+          {/* Printable Container */}
           <div className="mx-auto max-w-2xl bg-white p-8 text-slate-900 shadow-sm border border-slate-300 rounded-xl dark:bg-white dark:text-slate-900">
             {/* Header */}
             <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
@@ -145,11 +227,7 @@ export function VoucherPrintModal({
                   {isAr ? "المبلغ المستحق للصرف" : "Amount Paid"}
                 </span>
                 <div className="font-mono font-black text-2xl text-blue-950 mt-0.5">
-                  {expense.amount.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  <span className="text-sm font-bold">{currencyLabel}</span>
+                  {formattedAmount} <span className="text-sm font-bold">{currencyLabel}</span>
                 </div>
               </div>
 
@@ -227,19 +305,47 @@ export function VoucherPrintModal({
           </div>
         </DialogBody>
 
-        <DialogFooter className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            {isAr ? "إغلاق" : "Close"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handlePrint}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
-          >
-            <Printer className="size-3.5" />
-            <span>{isAr ? "طباعة سند الصرف" : "Print Voucher"}</span>
-          </Button>
+        <DialogFooter className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            {/* Copy Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyText}
+              className="text-xs font-bold gap-1"
+            >
+              {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+              <span>{copied ? (isAr ? "تم النسخ!" : "Copied!") : (isAr ? "نسخ النص" : "Copy Text")}</span>
+            </Button>
+
+            {/* Email Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleShareEmail}
+              className="text-xs font-bold gap-1"
+            >
+              <Mail className="size-3.5 text-blue-600" />
+              <span>{isAr ? "إرسال إيميل" : "Email"}</span>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              {isAr ? "إغلاق" : "Close"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handlePrintPdf}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+            >
+              <Printer className="size-3.5" />
+              <span>{isAr ? "تحميل / طباعة PDF" : "PDF / Print"}</span>
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
