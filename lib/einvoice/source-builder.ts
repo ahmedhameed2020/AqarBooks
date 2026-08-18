@@ -88,9 +88,10 @@ export async function buildSourceDocumentForDue(
     },
     lines: raw.lines.map((line) => ({
       description: String(line.description ?? ""),
-      // Egypt requires an EGS/GS1 code with no free-text path. Nothing in this
-      // product carries one yet, so it is explicitly null rather than filled
-      // with something plausible -- a real ETA adapter must refuse on it.
+      // Egypt requires an EGS/GS1 code with no free-text path. It comes from the
+      // catalogue when the due type is linked, and stays null otherwise rather
+      // than being filled with something plausible -- a real ETA adapter must
+      // refuse on it.
       itemCode: (line.itemCode as string | null) ?? null,
       quantity: num(line.quantity),
       unitCode: String(line.unitCode ?? "EA"),

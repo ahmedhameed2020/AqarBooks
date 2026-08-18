@@ -925,6 +925,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      catalogue_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          unit_code: string;
+          item_code_type: string | null;
+          item_code: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          unit_code?: string;
+          item_code_type?: string | null;
+          item_code?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          name_ar?: string;
+          item_code?: string | null;
+          item_code_type?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       document_numbers: {
         Row: {
           id: string;
@@ -1115,6 +1148,7 @@ export type Database = {
           name_en: string;
           default_revenue_account_id: string;
           is_active: boolean;
+          catalogue_item_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2920,6 +2954,26 @@ export type Database = {
           disabled_reason: string | null;
           dues_without_decision: number;
         }[];
+      };
+      upsert_catalogue_item: {
+        Args: {
+          p_organization_id: string;
+          p_code: string;
+          p_name_ar: string;
+          p_name_en: string;
+          p_unit_code?: string | null;
+          p_item_code_type?: string | null;
+          p_item_code?: string | null;
+        };
+        Returns: string;
+      };
+      set_due_type_catalogue_item: {
+        Args: { p_due_type_id: string; p_catalogue_item_id: string | null };
+        Returns: undefined;
+      };
+      check_einvoice_emission_readiness: {
+        Args: { p_organization_id: string };
+        Returns: { gap_code: string; detail: string }[];
       };
       get_einvoice_source_for_due: {
         Args: { p_due_id: string };

@@ -214,6 +214,7 @@ afterAll(async () => {
     await admin.from("units").delete().eq("organization_id", id);
     await admin.from("properties").delete().eq("organization_id", id);
     await admin.from("due_types").delete().eq("organization_id", id);
+    await admin.from("catalogue_items").delete().eq("organization_id", id);
     await admin.from("chart_of_accounts")
       .update({ is_used: false } as never).eq("organization_id", id);
     await admin.from("chart_of_accounts").delete().eq("organization_id", id);
@@ -350,6 +351,51 @@ describe("إصدار مستند إلكتروني", () => {
     const rebuilt = await buildSourceDocumentForDue(owner.client, dueId);
     expect(rebuilt.document.buyer.name, "الفاتورة الصادرة لا تتغير").toBe("شركة المشتري ذ.م.م");
     expect(rebuilt.document.buyer.taxId).toBe("TRN-BUYER-77");
+  });
+
+  it("كتالوج الأصناف: الكود يصل إلى المستند، وGS1 غير الصالح مرفوض", async () => {
+    // GS1 رقمي بأطوال محددة، ويُفحص في القاعدة.
+    const { error: badGs1 } = await owner.client.rpc("upsert_catalogue_item", {
+      p_organization_id: orgId, p_code: "BAD", p_name_ar: "صنف", p_name_en: "Item",
+      p_item_code_type: "GS1", p_item_code: "12345",
+    });
+    expect(badGs1, "طول GS1 غير صالح").not.toBeNull();
+
+    // والكود بلا نوعه مرفوض: كود لا يُعرف مصدره لا يُرسَل.
+    const { error: noType } = await owner.client.rpc("upsert_catalogue_item", {
+      p_organization_id: orgId, p_code: "NOTYPE", p_name_ar: "صنف", p_name_en: "Item",
+      p_item_code: "EGS-12345",
+    });
+    expect(noType!.message).toMatch(/ITEM_CODE_TYPE_MISMATCH/);
+
+    const { data: itemId, error } = await owner.client.rpc("upsert_catalogue_item", {
+      p_organization_id: orgId, p_code: "GUEST-SVC",
+      p_name_ar: "خدمة زائر", p_name_en: "Guest service",
+      p_unit_code: "HUR", p_item_code_type: "GS1", p_item_code: "6221033010113",
+    });
+    expect(error, `item upsert failed: ${error?.message}`).toBeNull();
+
+    await owner.client.rpc("set_due_type_catalogue_item", {
+      p_due_type_id: taxableTypeId, p_catalogue_item_id: itemId as unknown as string,
+    });
+
+    const dueId = await makeDue(unitB2B, taxableTypeId, 1150, "خدمة زائر مع كود");
+    const built = await buildSourceDocumentForDue(owner.client, dueId);
+
+    expect(built.document.lines[0].itemCode, "الكود وصل من الكتالوج").toBe("6221033010113");
+    expect(built.document.lines[0].unitCode, "والوحدة كذلك").toBe("HUR");
+  });
+
+  it("جاهزية الإصدار تسمّي ما ينقص قبل الإرسال", async () => {
+    const { data: gaps, error } = await owner.client.rpc("check_einvoice_emission_readiness", {
+      p_organization_id: orgId,
+    });
+    expect(error, `readiness failed: ${error?.message}`).toBeNull();
+    const codes = (gaps as unknown as { gap_code: string }[]).map((g) => g.gap_code);
+
+    // النوع المعفى لم يُربط بصنف بعد ⇒ يظهر النقص باسمه لا كصمت.
+    expect(codes).toContain("ITEM_LINK_MISSING");
+    expect(codes, "المؤسسة تحمل رقمًا ضريبيًا").not.toContain("SELLER_TAX_ID_MISSING");
   });
 
   it("لا مستند بلا قرار ضريبي مختوم", async () => {
