@@ -63,6 +63,7 @@ import {
 } from "./expense-dialogs";
 import { buildExpensesXlsxBuffer, downloadXlsxBuffer } from "./expenses-excel";
 import { VoucherPrintModal } from "./voucher-print-modal";
+import { generateExpenseVoucherPdf } from "@/lib/reports/expense-voucher-pdf";
 
 export type ExpenseRow = {
   id: string;
@@ -127,6 +128,26 @@ export function ExpensesClient({
     () => new Map(paymentAccounts.map((a) => [a.id, a.label])),
     [paymentAccounts]
   );
+
+  const handleQuickPrint = (exp: ExpenseRow) => {
+    generateExpenseVoucherPdf(
+      {
+        organizationName,
+        voucherNumber: exp.voucher_number,
+        expenseDate: exp.expense_date,
+        categoryName: categoryMap.get(exp.expense_category_id) || "—",
+        paymentAccountName: exp.payment_account_id
+          ? paymentAccountMap.get(exp.payment_account_id) || "—"
+          : "—",
+        description: exp.description,
+        amount: exp.amount,
+        currencyCode: currency,
+        currencyLabel,
+        journalEntryId: exp.journal_entry_id,
+      },
+      locale
+    );
+  };
 
   // Filtered & Sorted Expenses
   const filteredExpenses = useMemo(() => {
@@ -493,7 +514,7 @@ export function ExpensesClient({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => setPrintingExpense(exp)}
+                          onClick={() => handleQuickPrint(exp)}
                           title={isAr ? "طباعة سند الصرف" : "Print Voucher"}
                           className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
                         >
@@ -677,8 +698,7 @@ export function ExpensesClient({
                 size="sm"
                 onClick={() => {
                   const exp = selectedExpense;
-                  setSelectedExpense(null);
-                  setPrintingExpense(exp);
+                  handleQuickPrint(exp);
                 }}
                 className="gap-1.5 text-xs font-bold"
               >

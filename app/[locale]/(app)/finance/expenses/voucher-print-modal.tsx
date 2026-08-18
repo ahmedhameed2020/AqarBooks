@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +10,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X, Receipt, CheckCircle2, Building2 } from "lucide-react";
+import { Printer, Receipt, CheckCircle2, Building2 } from "lucide-react";
 import { tafqeetArabic } from "@/lib/tafqeet";
+import { generateExpenseVoucherPdf } from "@/lib/reports/expense-voucher-pdf";
 import type { ExpenseRow } from "./expenses-client";
 
 export function VoucherPrintModal({
@@ -37,14 +37,27 @@ export function VoucherPrintModal({
   locale: string;
 }) {
   const isAr = locale === "ar";
-  const printRef = useRef<HTMLDivElement>(null);
 
   if (!expense) return null;
 
   const tafqeetText = tafqeetArabic(expense.amount, currencyCode);
 
   const handlePrint = () => {
-    window.print();
+    generateExpenseVoucherPdf(
+      {
+        organizationName,
+        voucherNumber: expense.voucher_number,
+        expenseDate: expense.expense_date,
+        categoryName,
+        paymentAccountName: accountName,
+        description: expense.description,
+        amount: expense.amount,
+        currencyCode,
+        currencyLabel,
+        journalEntryId: expense.journal_entry_id,
+      },
+      locale
+    );
   };
 
   return (
@@ -62,8 +75,8 @@ export function VoucherPrintModal({
                 </DialogTitle>
                 <DialogDescription className="text-xs">
                   {isAr
-                    ? "مستند سند صرف رسمي معتمد جاهز للطباعة والأرشفة"
-                    : "Official payment voucher ready for physical print and archiving"}
+                    ? "مستند سند صرف رسمي معتمد جاهز للطباعة المباشرة وحفظ PDF"
+                    : "Official payment voucher ready for physical print and PDF export"}
                 </DialogDescription>
               </div>
             </div>
@@ -71,7 +84,7 @@ export function VoucherPrintModal({
             <Button
               type="button"
               onClick={handlePrint}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-8 text-xs cursor-pointer print:hidden"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-8 text-xs cursor-pointer"
             >
               <Printer className="size-3.5" />
               <span>{isAr ? "طباعة المستند" : "Print Voucher"}</span>
@@ -80,12 +93,8 @@ export function VoucherPrintModal({
         </DialogHeader>
 
         <DialogBody className="p-6 max-h-[75vh] overflow-y-auto bg-slate-100/60 dark:bg-slate-950/60">
-          {/* Printable Container */}
-          <div
-            id="printable-voucher"
-            ref={printRef}
-            className="mx-auto max-w-2xl bg-white p-8 text-slate-900 shadow-sm border border-slate-300 rounded-xl dark:bg-white dark:text-slate-900"
-          >
+          {/* Preview Container */}
+          <div className="mx-auto max-w-2xl bg-white p-8 text-slate-900 shadow-sm border border-slate-300 rounded-xl dark:bg-white dark:text-slate-900">
             {/* Header */}
             <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
               <div>
@@ -229,7 +238,7 @@ export function VoucherPrintModal({
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
           >
             <Printer className="size-3.5" />
-            <span>{isAr ? "طباعة" : "Print"}</span>
+            <span>{isAr ? "طباعة سند الصرف" : "Print Voucher"}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
