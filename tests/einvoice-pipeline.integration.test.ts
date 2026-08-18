@@ -78,7 +78,13 @@ beforeAll(async () => {
       slug: `e2e-einvoice-${stamp}`,
       default_currency: "EGP",
       status: "ACTIVE",
-    })
+      // Required since ADR 0002: organizations.tax_id is the identity source,
+      // and claim_einvoice_document refuses to file without it or when the
+      // profile's taxpayer_id disagrees. This fixture predates that rule and
+      // broke when the rule landed — correctly, since the invariant it now
+      // violates is real. It must match the profile's taxpayer_id below.
+      tax_id: "100-000-000",
+    } as never)
     .select("id")
     .single();
   orgId = org!.id;
