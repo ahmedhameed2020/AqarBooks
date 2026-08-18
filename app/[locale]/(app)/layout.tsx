@@ -139,6 +139,7 @@ export default async function AppShellLayout({
               icon: <Truck className={ic} />,
               subItems: [
                 { href: "/finance/expenses", labelAr: "المصروفات", labelEn: "Expenses" },
+                { href: "/finance/commissions", labelAr: "عمولات الوسطاء", labelEn: "Commissions" },
               ],
             },
           ],

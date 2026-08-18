@@ -944,6 +944,67 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      brokers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          broker_type: "INTERNAL" | "EXTERNAL";
+          tax_id: string | null;
+          phone: string | null;
+          email: string | null;
+          default_wht_rate: number;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          broker_type?: "INTERNAL" | "EXTERNAL";
+          tax_id?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          default_wht_rate?: number;
+          is_active?: boolean;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["brokers"]["Row"]>;
+        Relationships: [];
+      };
+      commissions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          broker_id: string;
+          unit_id: string | null;
+          source_type: "LEASE" | "INSTALLMENT_PLAN" | "MANUAL";
+          lease_id: string | null;
+          installment_plan_id: string | null;
+          basis_amount: number;
+          rate_percent: number | null;
+          gross_amount: number;
+          wht_rate: number;
+          wht_amount: number;
+          net_amount: number;
+          earned_date: string;
+          status: "ACCRUED" | "PAID" | "CANCELLED";
+          accrual_journal_entry_id: string | null;
+          payment_journal_entry_id: string | null;
+          paid_date: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Written only through accrue_commission()/pay_commission(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       unit_lease_deposit_events: {
         Row: {
           id: string;
@@ -2120,6 +2181,29 @@ export type Database = {
       recognize_pending_dues: {
         Args: { p_organization_id: string; p_fiscal_period_id: string };
         Returns: number;
+      };
+      accrue_commission: {
+        Args: {
+          p_organization_id: string;
+          p_broker_id: string;
+          p_property_id: string;
+          p_source_type: "LEASE" | "INSTALLMENT_PLAN" | "MANUAL";
+          p_basis_amount: number;
+          p_rate_percent?: number | null;
+          p_gross_amount?: number | null;
+          p_wht_rate?: number | null;
+          p_wht_account_id?: string | null;
+          p_unit_id?: string | null;
+          p_lease_id?: string | null;
+          p_installment_plan_id?: string | null;
+          p_earned_date?: string;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      pay_commission: {
+        Args: { p_commission_id: string; p_cash_account_id: string; p_paid_date?: string };
+        Returns: string;
       };
       record_lease_deposit_event: {
         Args: {
