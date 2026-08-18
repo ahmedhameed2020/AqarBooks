@@ -156,6 +156,7 @@ export default async function AppShellLayout({
               icon: <BarChart3 className={ic} />,
               subItems: [
                 { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
+                { href: "/finance/einvoice", labelAr: "الفوترة الإلكترونية", labelEn: "E-Invoicing" },
               ],
             },
           ],

@@ -305,3 +305,50 @@ test("the statement is unreachable without a portal session", async ({ browser }
 
   await ctx.close();
 });
+
+/**
+ * The teardown itself, under test.
+ *
+ * cleanUp() issues real deletes with a service-role client, which bypasses RLS
+ * — so "it only touches its own fixture" is a claim that has to be proven, not
+ * read off the code. Two properties matter: it stays inside its own
+ * organization, and it can be run twice without erroring, so a retried or
+ * partially-failed run is safe rather than a second hazard.
+ */
+test("cleanUp stays inside its own organization and is idempotent", async () => {
+  test.setTimeout(90_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  const victim = await setUpOwner(admin, "Victim", true);
+  const bystander = await setUpOwner(admin, "Bystander", true);
+
+  const countFor = async (orgId: string) => {
+    const [{ count: dues }, { count: payments }, { count: members }] = await Promise.all([
+      admin.from("dues").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+      admin.from("payments").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+      admin.from("members").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+    ]);
+    return { dues: dues ?? 0, payments: payments ?? 0, members: members ?? 0 };
+  };
+
+  const before = await countFor(bystander.orgId);
+  expect(before.dues, "fixture should have created dues to lose").toBeGreaterThan(0);
+
+  await cleanUp(admin, victim.orgId);
+
+  // The bystander is untouched: same dues, payments and members as before.
+  expect(await countFor(bystander.orgId)).toEqual(before);
+  // And the victim is genuinely gone.
+  const { data: victimOrg } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("id", victim.orgId)
+    .maybeSingle();
+  expect(victimOrg, "victim org should be deleted").toBeNull();
+
+  // Idempotent: a second run is a no-op, not an error.
+  await cleanUp(admin, victim.orgId);
+  expect(await countFor(bystander.orgId)).toEqual(before);
+
+  await cleanUp(admin, bystander.orgId);
+});

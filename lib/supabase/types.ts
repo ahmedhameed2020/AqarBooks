@@ -944,6 +944,105 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      einvoice_profiles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string | null;
+          jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          environment: "SANDBOX" | "PRODUCTION";
+          taxpayer_id: string | null;
+          branch_code: string | null;
+          activity_code: string | null;
+          /**
+           * Vault references, never the secrets themselves. Deliberately never
+           * selected by any page — see the settings screen's query.
+           */
+          client_id_secret_id: string | null;
+          client_secret_secret_id: string | null;
+          signing_certificate_secret_id: string | null;
+          signing_key_secret_id: string | null;
+          status: "DRAFT" | "ACTIVE" | "SUSPENDED";
+          enabled: boolean;
+          verified_at: string | null;
+          last_verification_error: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id?: string | null;
+          jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          environment?: "SANDBOX" | "PRODUCTION";
+          taxpayer_id?: string | null;
+          branch_code?: string | null;
+          activity_code?: string | null;
+          status?: "DRAFT" | "ACTIVE" | "SUSPENDED";
+          enabled?: boolean;
+          verified_at?: string | null;
+          last_verification_error?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["einvoice_profiles"]["Row"]>;
+        Relationships: [];
+      };
+      einvoice_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          profile_id: string;
+          source_type: "SUPPLIER_INVOICE" | "PAYMENT_RECEIPT" | "DUE" | "CREDIT_NOTE" | "DEBIT_NOTE";
+          source_id: string;
+          document_type: "INVOICE" | "CREDIT_NOTE" | "DEBIT_NOTE" | "RECEIPT";
+          status: "DRAFT" | "SIGNED" | "SUBMITTED" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "FAILED";
+          authority_status: string | null;
+          authority_uuid: string | null;
+          authority_long_id: string | null;
+          qr_payload: string | null;
+          idempotency_key: string;
+          attempt_count: number;
+          last_error_code: string | null;
+          last_error_detail: string | null;
+          submitted_at: string | null;
+          settled_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          profile_id: string;
+          source_type: "SUPPLIER_INVOICE" | "PAYMENT_RECEIPT" | "DUE" | "CREDIT_NOTE" | "DEBIT_NOTE";
+          source_id: string;
+          document_type?: "INVOICE" | "CREDIT_NOTE" | "DEBIT_NOTE" | "RECEIPT";
+          status?: "DRAFT" | "SIGNED" | "SUBMITTED" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "FAILED";
+          idempotency_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["einvoice_documents"]["Row"]>;
+        Relationships: [];
+      };
+      einvoice_submission_attempts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          document_id: string;
+          attempt_number: number;
+          operation: "SUBMIT" | "POLL" | "CANCEL";
+          http_status: number | null;
+          authority_status: string | null;
+          resulting_status: string | null;
+          request_summary: Record<string, unknown> | null;
+          response_summary: Record<string, unknown> | null;
+          occurred_at: string;
+        };
+        /** Written only through record_einvoice_attempt(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       brokers: {
         Row: {
           id: string;
@@ -2252,6 +2351,22 @@ export type Database = {
       pay_commission: {
         Args: { p_commission_id: string; p_cash_account_id: string; p_paid_date?: string };
         Returns: string;
+      };
+      upsert_einvoice_profile: {
+        Args: {
+          p_organization_id: string;
+          p_jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          p_environment: "SANDBOX" | "PRODUCTION";
+          p_taxpayer_id?: string | null;
+          p_branch_code?: string | null;
+          p_activity_code?: string | null;
+          p_property_id?: string | null;
+        };
+        Returns: string;
+      };
+      set_einvoice_profile_enabled: {
+        Args: { p_profile_id: string; p_enabled: boolean };
+        Returns: undefined;
       };
       claim_einvoice_document: {
         Args: {
