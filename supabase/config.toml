@@ -26,7 +26,7 @@ verify_enabled = true
 [auth.email]
 enable_confirmations = true
 max_frequency = "1m0s"
-otp_length = 8
+otp_length = 6
 
 # Custom SMTP (Resend) -- required for template customization to work at all:
 # Supabase's default email provider rejects it on the free tier ("Email
