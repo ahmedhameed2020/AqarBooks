@@ -59,3 +59,4 @@ tests/e2e/.auth/
 
 # supabase local
 /supabase/.temp/
+test-results/
