@@ -62,13 +62,30 @@ export async function createMemberInvitationAction(
   const redirectTo =
     `${SITE_URL}/${parsed.data.locale}/portal/accept-invite` +
     `?invitation=${data.invitation_id}&t=${data.raw_token}`;
-  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+  let { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email: data.invite_email,
     options: { redirectTo },
   });
 
-  if (linkError || !linkData) {
+  // "invite" only works for a brand-new email -- it fails outright if an
+  // auth.users row with that email already exists for ANY reason (staff
+  // testing with their own login email, a leftover partial signup, a
+  // synthetic placeholder reused after a revoked invite, etc.). That
+  // existing account is still a valid identity to authenticate through,
+  // so retry as a magic link instead of failing the whole invite: same
+  // hash-token session-establishing mechanism client-side, and
+  // accept_member_invitation's own email-match check still applies
+  // regardless of which link type got them there.
+  if (linkError?.message?.includes("already been registered")) {
+    ({ data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: "magiclink",
+      email: data.invite_email,
+      options: { redirectTo },
+    }));
+  }
+
+  if (linkError || !linkData || !linkData.properties) {
     console.error("[createMemberInvitationAction] generateLink failed:", linkError?.message);
     return { ok: false, error: linkError?.message ?? "link_generation_failed" };
   }
