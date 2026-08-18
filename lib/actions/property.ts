@@ -500,3 +500,108 @@ export async function cancelInstallmentPlanAction(
   revalidatePath("/[locale]/property/[unitId]", "page");
   return { ok: true };
 }
+
+// --- Unit handover -------------------------------------------------------
+// Handover creates no ledger entry; it is an operational milestone that gates
+// service-charge billing (see 20260907000001). Completion goes through the RPC
+// so its blocking-snag guard cannot be bypassed.
+
+export async function scheduleHandoverAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const unitId = formData.get("unitId");
+  const scheduledDate = formData.get("scheduledDate");
+  if (typeof unitId !== "string" || typeof scheduledDate !== "string") {
+    return { ok: false, error: "invalid_input" };
+  }
+  const memberId = (formData.get("handedToMemberId") as string) || null;
+  const note = (formData.get("note") as string) || null;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("schedule_unit_handover", {
+    p_unit_id: unitId,
+    p_scheduled_date: scheduledDate,
+    p_handed_to_member_id: memberId,
+    p_note: note,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+export async function addHandoverSnagAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const organizationId = formData.get("organizationId");
+  const handoverId = formData.get("handoverId");
+  const description = formData.get("description");
+  const severity = formData.get("severity");
+  if (
+    typeof organizationId !== "string" ||
+    typeof handoverId !== "string" ||
+    typeof description !== "string" ||
+    !description.trim() ||
+    (severity !== "BLOCKING" && severity !== "MINOR")
+  ) {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("unit_handover_snags").insert({
+    organization_id: organizationId,
+    handover_id: handoverId,
+    description: description.trim(),
+    severity,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+export async function resolveHandoverSnagAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const snagId = formData.get("snagId");
+  if (typeof snagId !== "string") return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("unit_handover_snags")
+    .update({ status: "RESOLVED", resolved_at: new Date().toISOString() })
+    .eq("id", snagId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}
+
+export async function completeHandoverAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const handoverId = formData.get("handoverId");
+  const completedDate = formData.get("completedDate");
+  if (typeof handoverId !== "string" || typeof completedDate !== "string") {
+    return { ok: false, error: "invalid_input" };
+  }
+  const num = (key: string) => {
+    const raw = formData.get(key);
+    if (typeof raw !== "string" || raw.trim() === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("complete_unit_handover", {
+    p_handover_id: handoverId,
+    p_completed_date: completedDate,
+    p_electricity_reading: num("electricityReading"),
+    p_water_reading: num("waterReading"),
+    p_gas_reading: num("gasReading"),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/property/[unitId]", "page");
+  return { ok: true };
+}

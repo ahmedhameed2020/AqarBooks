@@ -448,6 +448,70 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["buildings"]["Row"]>;
         Relationships: [];
       };
+      service_charge_levies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          total_amount: number;
+          allocation_basis: "AREA" | "EQUAL" | "CUSTOM";
+          due_type_id: string;
+          receivable_account_id: string;
+          issue_date: string;
+          due_date: string;
+          status: "DRAFT" | "ISSUED" | "CANCELLED";
+          issued_at: string | null;
+          issued_by: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          total_amount: number;
+          allocation_basis: "AREA" | "EQUAL" | "CUSTOM";
+          due_type_id: string;
+          receivable_account_id: string;
+          issue_date: string;
+          due_date: string;
+          status?: "DRAFT" | "ISSUED" | "CANCELLED";
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_charge_levies"]["Row"]>;
+        Relationships: [];
+      };
+      service_charge_allocations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          levy_id: string;
+          unit_id: string;
+          basis_value: number;
+          share_amount: number;
+          due_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          levy_id: string;
+          unit_id: string;
+          basis_value: number;
+          share_amount?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_charge_allocations"]["Row"]>;
+        Relationships: [];
+      };
       units: {
         Row: {
           id: string;
@@ -876,6 +940,232 @@ export type Database = {
           source_type: "LEASE_RENT" | null;
           source_id: string | null;
         };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      einvoice_profiles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string | null;
+          jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          environment: "SANDBOX" | "PRODUCTION";
+          taxpayer_id: string | null;
+          branch_code: string | null;
+          activity_code: string | null;
+          /**
+           * Vault references, never the secrets themselves. Deliberately never
+           * selected by any page — see the settings screen's query.
+           */
+          client_id_secret_id: string | null;
+          client_secret_secret_id: string | null;
+          signing_certificate_secret_id: string | null;
+          signing_key_secret_id: string | null;
+          status: "DRAFT" | "ACTIVE" | "SUSPENDED";
+          enabled: boolean;
+          verified_at: string | null;
+          last_verification_error: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id?: string | null;
+          jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          environment?: "SANDBOX" | "PRODUCTION";
+          taxpayer_id?: string | null;
+          branch_code?: string | null;
+          activity_code?: string | null;
+          status?: "DRAFT" | "ACTIVE" | "SUSPENDED";
+          enabled?: boolean;
+          verified_at?: string | null;
+          last_verification_error?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["einvoice_profiles"]["Row"]>;
+        Relationships: [];
+      };
+      einvoice_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          profile_id: string;
+          source_type: "SUPPLIER_INVOICE" | "PAYMENT_RECEIPT" | "DUE" | "CREDIT_NOTE" | "DEBIT_NOTE";
+          source_id: string;
+          document_type: "INVOICE" | "CREDIT_NOTE" | "DEBIT_NOTE" | "RECEIPT";
+          status: "DRAFT" | "SIGNED" | "SUBMITTED" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "FAILED";
+          authority_status: string | null;
+          authority_uuid: string | null;
+          authority_long_id: string | null;
+          qr_payload: string | null;
+          idempotency_key: string;
+          attempt_count: number;
+          last_error_code: string | null;
+          last_error_detail: string | null;
+          submitted_at: string | null;
+          settled_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          profile_id: string;
+          source_type: "SUPPLIER_INVOICE" | "PAYMENT_RECEIPT" | "DUE" | "CREDIT_NOTE" | "DEBIT_NOTE";
+          source_id: string;
+          document_type?: "INVOICE" | "CREDIT_NOTE" | "DEBIT_NOTE" | "RECEIPT";
+          status?: "DRAFT" | "SIGNED" | "SUBMITTED" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "FAILED";
+          idempotency_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["einvoice_documents"]["Row"]>;
+        Relationships: [];
+      };
+      einvoice_submission_attempts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          document_id: string;
+          attempt_number: number;
+          operation: "SUBMIT" | "POLL" | "CANCEL";
+          http_status: number | null;
+          authority_status: string | null;
+          resulting_status: string | null;
+          request_summary: Record<string, unknown> | null;
+          response_summary: Record<string, unknown> | null;
+          occurred_at: string;
+        };
+        /** Written only through record_einvoice_attempt(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      brokers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          broker_type: "INTERNAL" | "EXTERNAL";
+          tax_id: string | null;
+          phone: string | null;
+          email: string | null;
+          default_wht_rate: number;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          broker_type?: "INTERNAL" | "EXTERNAL";
+          tax_id?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          default_wht_rate?: number;
+          is_active?: boolean;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["brokers"]["Row"]>;
+        Relationships: [];
+      };
+      commissions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          broker_id: string;
+          unit_id: string | null;
+          source_type: "LEASE" | "INSTALLMENT_PLAN" | "MANUAL";
+          lease_id: string | null;
+          installment_plan_id: string | null;
+          basis_amount: number;
+          rate_percent: number | null;
+          gross_amount: number;
+          wht_rate: number;
+          wht_amount: number;
+          net_amount: number;
+          earned_date: string;
+          status: "ACCRUED" | "PAID" | "CANCELLED";
+          accrual_journal_entry_id: string | null;
+          payment_journal_entry_id: string | null;
+          paid_date: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Written only through accrue_commission()/pay_commission(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      unit_handovers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          handed_to_member_id: string | null;
+          status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+          scheduled_date: string | null;
+          completed_date: string | null;
+          electricity_reading: number | null;
+          water_reading: number | null;
+          gas_reading: number | null;
+          note: string | null;
+          completed_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Written only through schedule_unit_handover()/complete_unit_handover(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      unit_handover_snags: {
+        Row: {
+          id: string;
+          organization_id: string;
+          handover_id: string;
+          description: string;
+          severity: "BLOCKING" | "MINOR";
+          status: "OPEN" | "RESOLVED";
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          handover_id: string;
+          description: string;
+          severity?: "BLOCKING" | "MINOR";
+          status?: "OPEN" | "RESOLVED";
+        };
+        Update: Partial<Database["public"]["Tables"]["unit_handover_snags"]["Row"]>;
+        Relationships: [];
+      };
+      unit_lease_deposit_events: {
+        Row: {
+          id: string;
+          lease_id: string;
+          event_type: "RECEIVED" | "REFUNDED" | "DEDUCTED";
+          amount: number;
+          reason: string | null;
+          event_date: string;
+          journal_entry_id: string | null;
+          settlement_account_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        /** Written only through record_lease_deposit_event(); no client write policy exists. */
         Insert: never;
         Update: never;
         Relationships: [];
@@ -2038,6 +2328,137 @@ export type Database = {
       recognize_pending_dues: {
         Args: { p_organization_id: string; p_fiscal_period_id: string };
         Returns: number;
+      };
+      accrue_commission: {
+        Args: {
+          p_organization_id: string;
+          p_broker_id: string;
+          p_property_id: string;
+          p_source_type: "LEASE" | "INSTALLMENT_PLAN" | "MANUAL";
+          p_basis_amount: number;
+          p_rate_percent?: number | null;
+          p_gross_amount?: number | null;
+          p_wht_rate?: number | null;
+          p_wht_account_id?: string | null;
+          p_unit_id?: string | null;
+          p_lease_id?: string | null;
+          p_installment_plan_id?: string | null;
+          p_earned_date?: string;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      pay_commission: {
+        Args: { p_commission_id: string; p_cash_account_id: string; p_paid_date?: string };
+        Returns: string;
+      };
+      upsert_einvoice_profile: {
+        Args: {
+          p_organization_id: string;
+          p_jurisdiction: "EG_ETA" | "SA_ZATCA" | "AE_PEPPOL";
+          p_environment: "SANDBOX" | "PRODUCTION";
+          p_taxpayer_id?: string | null;
+          p_branch_code?: string | null;
+          p_activity_code?: string | null;
+          p_property_id?: string | null;
+        };
+        Returns: string;
+      };
+      set_einvoice_profile_enabled: {
+        Args: { p_profile_id: string; p_enabled: boolean };
+        Returns: undefined;
+      };
+      claim_einvoice_document: {
+        Args: {
+          p_profile_id: string;
+          p_source_type: string;
+          p_source_id: string;
+          p_document_type?: string;
+        };
+        Returns: string;
+      };
+      record_einvoice_attempt: {
+        Args: {
+          p_document_id: string;
+          p_operation: "SUBMIT" | "POLL" | "CANCEL";
+          p_resulting_status: string;
+          p_http_status?: number | null;
+          p_authority_status?: string | null;
+          p_authority_uuid?: string | null;
+          p_authority_long_id?: string | null;
+          p_qr_payload?: string | null;
+          p_error_code?: string | null;
+          p_error_detail?: string | null;
+          p_request_summary?: Record<string, unknown> | null;
+          p_response_summary?: Record<string, unknown> | null;
+        };
+        Returns: undefined;
+      };
+      set_einvoice_profile_verification: {
+        Args: { p_profile_id: string; p_success: boolean; p_error?: string | null };
+        Returns: undefined;
+      };
+      schedule_unit_handover: {
+        Args: {
+          p_unit_id: string;
+          p_scheduled_date: string;
+          p_handed_to_member_id?: string | null;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      complete_unit_handover: {
+        Args: {
+          p_handover_id: string;
+          p_completed_date?: string;
+          p_electricity_reading?: number | null;
+          p_water_reading?: number | null;
+          p_gas_reading?: number | null;
+        };
+        Returns: undefined;
+      };
+      record_lease_deposit_event: {
+        Args: {
+          p_lease_id: string;
+          p_event_type: "RECEIVED" | "REFUNDED" | "DEDUCTED";
+          p_amount: number;
+          p_settlement_account_id: string;
+          p_reason?: string | null;
+          p_event_date?: string;
+        };
+        Returns: string;
+      };
+      get_lease_deposit_summary: {
+        Args: { p_lease_id: string };
+        Returns: {
+          received_total: number;
+          refunded_total: number;
+          deducted_total: number;
+          held_total: number;
+          agreed_amount: number;
+          event_count: number;
+        }[];
+      };
+      compute_service_charge_allocations: {
+        Args: { p_levy_id: string };
+        Returns: { unit_count: number; allocated_total: number; levy_total: number }[];
+      };
+      issue_service_charge_levy: {
+        Args: { p_levy_id: string };
+        Returns: number;
+      };
+      get_service_charge_allocations: {
+        Args: { p_levy_id: string };
+        Returns: {
+          allocation_id: string;
+          unit_id: string;
+          unit_code: string;
+          unit_type: string;
+          basis_value: number;
+          share_amount: number;
+          share_percent: number;
+          due_id: string | null;
+        }[];
       };
       get_unrecognized_dues_summary: {
         Args: { p_organization_id: string };

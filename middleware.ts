@@ -18,6 +18,11 @@ function isProtectedPath(pathname: string) {
 // the Node.js runtime by `next build`, and @opennextjs/cloudflare only supports
 // edge middleware. See docs/deployment.md for the full rationale.
 export async function middleware(request: NextRequest) {
+  // Bypass next-intl for authentication callback routes so code/token exchange works directly
+  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
+    return NextResponse.next();
+  }
+
   const response = intlMiddleware(request);
 
   const supabase = createServerClient<Database>(
@@ -52,9 +57,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // `i/` excluded alongside `api`: short invite/reminder redirect links
-  // (app/i/[slug]/route.ts) must resolve without a locale prefix, both to
-  // stay as short as possible and because they run before any session/
-  // locale context exists for the invitee.
-  matcher: ["/((?!api|i/|_next|_vercel|.*\\..*).*)"],
+  // `i/` and `auth/callback` excluded alongside `api`:
+  // - `i/`: short invite/reminder redirect links (app/i/[slug]/route.ts)
+  // - `auth/callback`: Supabase PKCE and token hash exchange
+  matcher: ["/((?!api|i/|auth/callback|_next|_vercel|.*\\..*).*)"],
 };

@@ -20,7 +20,7 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
     startTransition(async () => {
       // Build redirect URL for password reset flow
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const resetRedirectUrl = origin ? `${origin}/${locale}/auth/reset-password` : undefined;
+      const resetRedirectUrl = origin ? `${origin}/auth/callback?next=/${locale}/auth/reset-password` : undefined;
 
       const res = await requestPasswordResetAction(email, resetRedirectUrl);
 

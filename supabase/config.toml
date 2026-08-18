@@ -1,0 +1,75 @@
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+#
+# A string used to distinguish different Supabase projects on the same host.
+# This is a local CLI label only -- it does NOT select which remote project
+# gets deployed to. That happens at link/push time via the project ref:
+#   supabase link --project-ref ataslxkcflxuilpgyepm
+project_id = "aqarbooks"
+
+# --- Everything below this line restores production auth settings that
+# were on the remote project BEFORE this file existed. `supabase config
+# push` replaces the ENTIRE remote [auth] config with whatever is (or is
+# NOT) in this file -- omitting a setting does not leave it untouched, it
+# resets it to the CLI's local-dev default. A prior push from this file
+# (missing these sections) already overwrote them once; this restores the
+# exact values confirmed live on the project immediately before that push.
+
+[auth]
+site_url = "http://aqarbooks.com"
+additional_redirect_urls = ["http://aqarbooks.com/**", "https://aqarbooks.com/auth/callback", "https://aqarbooks.com/ar/auth/reset-password", "http://localhost:3000/**"]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 6
+
+# Custom SMTP (Resend) -- required for template customization to work at all:
+# Supabase's default email provider rejects it on the free tier ("Email
+# template modification is not available for free tier projects using the
+# default email provider"); a custom SMTP provider is exempt regardless of
+# plan. Domain aqarbooks.com is verified in Resend.
+#
+# RESEND_API_KEY must be set as an env var in the shell `supabase` runs from
+# -- never hardcoded here.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "no-reply@aqarbooks.com"
+sender_name = "AqarBooks"
+
+# Auth email templates -- the only configuration this file currently manages.
+# Each template is a self-contained, email-client-safe HTML file under
+# ./supabase/templates/. Supabase has no include/partial mechanism, so the
+# six files intentionally repeat the same structural scaffold.
+
+[auth.email.template.confirmation]
+subject = "Confirm your email | تأكيد بريدك الإلكتروني"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.invite]
+subject = "You're invited to AqarBooks | تمت دعوتك إلى AqarBooks"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password | إعادة تعيين كلمة المرور"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Sign in to AqarBooks | تسجيل الدخول إلى AqarBooks"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email | تأكيد بريدك الإلكتروني الجديد"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.reauthentication]
+subject = "Your verification code | رمز التحقق الخاص بك"
+content_path = "./supabase/templates/reauthentication.html"

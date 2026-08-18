@@ -119,6 +119,7 @@ export default async function AppShellLayout({
               icon: <Receipt className={ic} />,
               subItems: [
                 { href: "/finance/payments", labelAr: "المقبوضات", labelEn: "Receipts" },
+                { href: "/finance/service-charges", labelAr: "رسوم الخدمة", labelEn: "Service Charges" },
               ],
             },
             {
@@ -138,6 +139,7 @@ export default async function AppShellLayout({
               icon: <Truck className={ic} />,
               subItems: [
                 { href: "/finance/expenses", labelAr: "المصروفات", labelEn: "Expenses" },
+                { href: "/finance/commissions", labelAr: "عمولات الوسطاء", labelEn: "Commissions" },
               ],
             },
           ],
@@ -154,6 +156,7 @@ export default async function AppShellLayout({
               icon: <BarChart3 className={ic} />,
               subItems: [
                 { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
+                { href: "/finance/einvoice", labelAr: "الفوترة الإلكترونية", labelEn: "E-Invoicing" },
               ],
             },
           ],
