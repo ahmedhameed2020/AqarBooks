@@ -64,6 +64,7 @@ import {
 import { buildExpensesXlsxBuffer, downloadXlsxBuffer } from "./expenses-excel";
 import { VoucherPrintModal } from "./voucher-print-modal";
 import { generateExpenseVoucherPdf } from "@/lib/reports/expense-voucher-pdf";
+import { generateExpensesReportPdf } from "@/lib/reports/expenses-report-pdf";
 
 export type ExpenseRow = {
   id: string;
@@ -226,6 +227,25 @@ export function ExpensesClient({
     }
   };
 
+  // PDF Export Handler
+  const handleExportPdf = () => {
+    generateExpensesReportPdf(
+      {
+        organizationName,
+        currencyCode: currency,
+        currencyLabel,
+        expenses: filteredExpenses,
+        categoryMap,
+        accountMap: paymentAccountMap,
+        filterCategoryName:
+          selectedCategory !== "ALL"
+            ? categoryMap.get(selectedCategory)
+            : undefined,
+      },
+      locale
+    );
+  };
+
   // Color generator for category badges and bars
   const categoryPalette = [
     {
@@ -344,6 +364,18 @@ export function ExpensesClient({
           >
             <FileSpreadsheet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>{isExporting ? (isAr ? "جارٍ التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
+          </Button>
+
+          {/* PDF Statement Export Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!filteredExpenses.length}
+            className="text-xs font-bold gap-1.5 h-9"
+          >
+            <FileText className="size-3.5 text-rose-600 dark:text-rose-400" />
+            <span>{isAr ? "تصدير PDF" : "Export PDF"}</span>
           </Button>
 
           {/* Categories Dialog */}
