@@ -162,7 +162,7 @@ async function insertDue(org: Org, issueDate: string, amount = 1000) {
 
 async function approveMapping(org: Org) {
   const { data: mappingId } = await org.owner.client.rpc("set_due_type_revenue_nature", {
-    p_due_type_id: org.dueTypeId, p_revenue_nature: NATURE,
+    p_due_type_id: org.dueTypeId, p_revenue_nature: NATURE, p_amount_basis: "NET",
   });
   await org.owner.client.rpc("approve_due_type_revenue_nature", {
     p_mapping_id: mappingId as unknown as string,

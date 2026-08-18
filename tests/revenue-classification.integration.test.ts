@@ -198,6 +198,7 @@ beforeAll(async () => {
   const { data: mappingId } = await staffA.client.rpc("set_due_type_revenue_nature", {
     p_due_type_id: a.dueTypeId,
     p_revenue_nature: NATURE,
+    p_amount_basis: "NET",
   });
   await staffA.client.rpc("approve_due_type_revenue_nature", {
     p_mapping_id: mappingId as unknown as string,

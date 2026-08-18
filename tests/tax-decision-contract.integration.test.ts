@@ -183,6 +183,7 @@ async function approveMapping(actor: Actor, dueTypeId: string) {
   const { data: mappingId, error } = await actor.client.rpc("set_due_type_revenue_nature", {
     p_due_type_id: dueTypeId,
     p_revenue_nature: NATURE,
+    p_amount_basis: "NET",
   });
   expect(error, `mapping failed: ${error?.message}`).toBeNull();
   const { error: approveErr } = await actor.client.rpc("approve_due_type_revenue_nature", {

@@ -905,6 +905,7 @@ export type Database = {
           revenue_nature: string;
           status: string;
           notes: string | null;
+          amount_basis: string | null;
           approved_by: string | null;
           approved_at: string | null;
           created_by: string | null;
@@ -945,6 +946,10 @@ export type Database = {
           reverses_decision_id: string | null;
           replaces_decision_id: string | null;
           reason: string | null;
+          amount_basis: string | null;
+          taxable_base: number | null;
+          vat_amount: number | null;
+          gross_amount: number | null;
         };
         Insert: {
           id?: string;
@@ -2718,6 +2723,7 @@ export type Database = {
           p_due_type_id: string;
           p_revenue_nature: string;
           p_notes?: string | null;
+          p_amount_basis?: string | null;
         };
         Returns: string;
       };

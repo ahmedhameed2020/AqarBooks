@@ -257,6 +257,7 @@ describe("بروفة دفتر تشغيل الطيار", () => {
       p_due_type_id: org.dueTypeId,
       p_revenue_nature: NATURE,
       p_notes: "بروفة — عقد الإدارة",
+      p_amount_basis: "NET",
     });
     expect(error, `mapping failed: ${error?.message}`).toBeNull();
     mappingId = id as unknown as string;
