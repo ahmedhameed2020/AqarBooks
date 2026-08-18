@@ -54,7 +54,7 @@
 <tr>
 <td align="center" class="fluid-padding" style="padding:20px 40px 0 40px;font-family:Arial, Tahoma, sans-serif;">
 <h1 style="margin:0 0 12px 0;font-size:20px;line-height:28px;color:#1F2937;font-weight:bold;">Sign in to AqarBooks</h1>
-<p style="margin:0;font-size:15px;line-height:24px;color:#6B7280;">Use the button below to securely sign in to your AqarBooks account without entering a password.</p>
+<p style="margin:0;font-size:15px;line-height:24px;color:#6B7280;">Use the button below to securely sign in to your AqarBooks account without entering a password, or enter this code if you were asked for one:</p>
 </td>
 </tr>
 
@@ -65,6 +65,19 @@
 <tr>
 <td align="center" style="border-radius:6px;background-color:#7C3AED;">
 <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:Arial, Tahoma, sans-serif;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:6px;">Sign in securely</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- English token box -->
+<tr>
+<td align="center" style="padding:16px 24px 0 24px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center" style="background-color:#F8FAFC;border:2px solid #0F766E;border-radius:8px;padding:12px 28px;">
+<span style="font-family:Arial, Tahoma, sans-serif;font-size:28px;font-weight:bold;letter-spacing:8px;color:#1F2937;">{{ .Token }}</span>
 </td>
 </tr>
 </table>
@@ -82,17 +95,30 @@
 <tr>
 <td align="center" class="fluid-padding" dir="rtl" style="padding:28px 40px 0 40px;font-family:Arial, Tahoma, sans-serif;direction:rtl;text-align:right;">
 <h1 style="margin:0 0 12px 0;font-size:20px;line-height:32px;color:#1F2937;font-weight:bold;direction:rtl;text-align:right;">تسجيل الدخول إلى AqarBooks</h1>
-<p style="margin:0;font-size:15px;line-height:28px;color:#6B7280;direction:rtl;text-align:right;">استخدم الزر أدناه لتسجيل الدخول بأمان إلى حسابك في AqarBooks دون إدخال كلمة مرور.</p>
+<p style="margin:0;font-size:15px;line-height:28px;color:#6B7280;direction:rtl;text-align:right;">استخدم الزر أدناه لتسجيل الدخول بأمان إلى حسابك في AqarBooks دون إدخال كلمة مرور، أو أدخل هذا الرمز إذا طُلب منك ذلك:</p>
 </td>
 </tr>
 
 <!-- Arabic CTA -->
 <tr>
-<td align="center" style="padding:24px 24px 32px 24px;">
+<td align="center" style="padding:24px 24px 0 24px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="center" style="border-radius:6px;background-color:#7C3AED;">
 <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:Arial, Tahoma, sans-serif;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:6px;">تسجيل الدخول بأمان</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Arabic token box -->
+<tr>
+<td align="center" style="padding:16px 24px 32px 24px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center" style="background-color:#F8FAFC;border:2px solid #0F766E;border-radius:8px;padding:12px 28px;">
+<span style="font-family:Arial, Tahoma, sans-serif;font-size:28px;font-weight:bold;letter-spacing:8px;color:#1F2937;">{{ .Token }}</span>
 </td>
 </tr>
 </table>
