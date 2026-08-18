@@ -17,6 +17,8 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 
+import { getCurrencyLabel } from "@/lib/currency";
+
 export async function generateMetadata({
   params,
 }: {
@@ -45,6 +47,9 @@ export default async function ExpensesPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const currency = organization.default_currency || "EGP";
+  const currencyLabel = getCurrencyLabel(currency, isAr);
 
   const supabase = await createClient();
   const { data: resort } = await supabase
@@ -185,7 +190,7 @@ export default async function ExpensesPage({
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
-              <span className="text-xs font-bold text-slate-400">{isAr ? "ر.س" : "SAR"}</span>
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
             </>
           }
           icon={<DollarSign className="size-5" />}
@@ -211,7 +216,7 @@ export default async function ExpensesPage({
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
-              <span className="text-xs font-bold text-slate-400">{isAr ? "ر.س" : "SAR"}</span>
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
             </>
           }
           icon={<ArrowDownRight className="size-5" />}
@@ -227,9 +232,7 @@ export default async function ExpensesPage({
           tone="positive"
           hint={
             topCategoryAmount > 0
-              ? isAr
-                ? `${topCategoryAmount.toLocaleString()} ر.س`
-                : `${topCategoryAmount.toLocaleString()} SAR`
+              ? `${topCategoryAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyLabel}`
               : isAr ? "لا توجد حركات بعد" : "No activity"
           }
         />
@@ -245,6 +248,7 @@ export default async function ExpensesPage({
         periods={periods}
         organizationId={organization.id}
         resortId={resort?.id ?? ""}
+        currency={currency}
         locale={locale}
       />
     </div>

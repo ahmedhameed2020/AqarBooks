@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { getCurrencyLabel } from "@/lib/currency";
 import {
   RecordExpenseDialog,
   ExpenseCategoriesDialog,
@@ -77,6 +78,7 @@ export function ExpensesClient({
   periods,
   organizationId,
   resortId,
+  currency = "EGP",
   locale,
 }: {
   expenses: ExpenseRow[];
@@ -87,9 +89,11 @@ export function ExpensesClient({
   periods: OptionItem[];
   organizationId: string;
   resortId: string;
+  currency?: string;
   locale: string;
 }) {
   const isAr = locale === "ar";
+  const currencyLabel = getCurrencyLabel(currency, isAr);
 
   // Dialog states
   const [recordExpenseOpen, setRecordExpenseOpen] = useState(false);
@@ -333,7 +337,7 @@ export function ExpensesClient({
                       <div className="inline-flex items-baseline gap-1 font-mono font-black text-rose-600 dark:text-rose-400 text-sm">
                         <span>{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <span className="text-[10px] font-bold text-slate-400">
-                          {isAr ? "ر.س" : "SAR"}
+                          {currencyLabel}
                         </span>
                       </div>
                     </TableCell>
@@ -412,7 +416,7 @@ export function ExpensesClient({
               {filteredExpenses
                 .reduce((sum, e) => sum + e.amount, 0)
                 .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-              {isAr ? "ر.س" : "SAR"}
+              {currencyLabel}
             </span>
           </span>
         </div>
@@ -444,7 +448,7 @@ export function ExpensesClient({
                   <span className="text-xs text-slate-500">{isAr ? "المبلغ الإجمالي" : "Total Amount"}</span>
                   <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-lg">
                     {selectedExpense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                    <span className="text-xs font-bold text-slate-400">{isAr ? "ر.س" : "SAR"}</span>
+                    <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
                   </span>
                 </div>
 
@@ -518,6 +522,7 @@ export function ExpensesClient({
         categories={categories}
         paymentAccounts={paymentAccounts}
         periods={periods}
+        currency={currency}
         locale={locale}
       />
 

@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { createExpenseCategoryAction, recordExpenseAction } from "@/lib/actions/purchasing";
 import { useToast } from "@/components/ui/toast";
+import { getCurrencyLabel } from "@/lib/currency";
 
 export type OptionItem = { id: string; label: string; code?: string };
 
@@ -60,6 +61,7 @@ export function RecordExpenseDialog({
   categories,
   paymentAccounts,
   periods,
+  currency = "EGP",
   locale,
 }: {
   open: boolean;
@@ -69,9 +71,11 @@ export function RecordExpenseDialog({
   categories: OptionItem[];
   paymentAccounts: OptionItem[];
   periods: OptionItem[];
+  currency?: string;
   locale: string;
 }) {
   const isAr = locale === "ar";
+  const currencyLabel = getCurrencyLabel(currency, isAr);
   const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -129,8 +133,8 @@ export function RecordExpenseDialog({
           type: "success",
           title: isAr ? "تم تسجيل المصروف بنجاح" : "Expense Recorded Successfully",
           description: isAr
-            ? `تم إصدار سند الصرف وترحيل القيد المحاسبي بمبلغ ${Number(amount).toLocaleString()}`
-            : `Expense voucher created and ledger updated for ${Number(amount).toLocaleString()}`,
+            ? `تم إصدار سند الصرف وترحيل القيد المحاسبي بمبلغ ${Number(amount).toLocaleString()} ${currencyLabel}`
+            : `Expense voucher created and ledger updated for ${Number(amount).toLocaleString()} ${currencyLabel}`,
         });
         onOpenChange(false);
         // Reset form
@@ -247,7 +251,7 @@ export function RecordExpenseDialog({
                     dir="ltr"
                   />
                   <div className="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none text-xs font-bold text-slate-400">
-                    {isAr ? "ر.س" : "SAR"}
+                    {currencyLabel}
                   </div>
                 </div>
               </div>
