@@ -448,6 +448,70 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["buildings"]["Row"]>;
         Relationships: [];
       };
+      service_charge_levies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          total_amount: number;
+          allocation_basis: "AREA" | "EQUAL" | "CUSTOM";
+          due_type_id: string;
+          receivable_account_id: string;
+          issue_date: string;
+          due_date: string;
+          status: "DRAFT" | "ISSUED" | "CANCELLED";
+          issued_at: string | null;
+          issued_by: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          total_amount: number;
+          allocation_basis: "AREA" | "EQUAL" | "CUSTOM";
+          due_type_id: string;
+          receivable_account_id: string;
+          issue_date: string;
+          due_date: string;
+          status?: "DRAFT" | "ISSUED" | "CANCELLED";
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_charge_levies"]["Row"]>;
+        Relationships: [];
+      };
+      service_charge_allocations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          levy_id: string;
+          unit_id: string;
+          basis_value: number;
+          share_amount: number;
+          due_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          levy_id: string;
+          unit_id: string;
+          basis_value: number;
+          share_amount?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_charge_allocations"]["Row"]>;
+        Relationships: [];
+      };
       units: {
         Row: {
           id: string;
@@ -2038,6 +2102,27 @@ export type Database = {
       recognize_pending_dues: {
         Args: { p_organization_id: string; p_fiscal_period_id: string };
         Returns: number;
+      };
+      compute_service_charge_allocations: {
+        Args: { p_levy_id: string };
+        Returns: { unit_count: number; allocated_total: number; levy_total: number }[];
+      };
+      issue_service_charge_levy: {
+        Args: { p_levy_id: string };
+        Returns: number;
+      };
+      get_service_charge_allocations: {
+        Args: { p_levy_id: string };
+        Returns: {
+          allocation_id: string;
+          unit_id: string;
+          unit_code: string;
+          unit_type: string;
+          basis_value: number;
+          share_amount: number;
+          share_percent: number;
+          due_id: string | null;
+        }[];
       };
       get_unrecognized_dues_summary: {
         Args: { p_organization_id: string };

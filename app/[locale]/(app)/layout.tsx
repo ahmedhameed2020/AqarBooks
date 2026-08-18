@@ -119,6 +119,7 @@ export default async function AppShellLayout({
               icon: <Receipt className={ic} />,
               subItems: [
                 { href: "/finance/payments", labelAr: "المقبوضات", labelEn: "Receipts" },
+                { href: "/finance/service-charges", labelAr: "رسوم الخدمة", labelEn: "Service Charges" },
               ],
             },
             {
