@@ -3006,6 +3006,33 @@ export type Database = {
         Args: { p_credit_note_id: string };
         Returns: unknown;
       };
+      list_catalogue_items: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          unit_code: string;
+          item_code_type: string | null;
+          item_code: string | null;
+          is_active: boolean;
+          linked_due_types: number;
+        }[];
+      };
+      list_due_type_catalogue_links: {
+        Args: { p_organization_id: string };
+        Returns: {
+          due_type_id: string;
+          due_type_name_ar: string;
+          due_type_name_en: string;
+          catalogue_item_id: string | null;
+          item_name_ar: string | null;
+          item_code: string | null;
+          item_code_type: string | null;
+          unit_code: string | null;
+        }[];
+      };
       upsert_catalogue_item: {
         Args: {
           p_organization_id: string;

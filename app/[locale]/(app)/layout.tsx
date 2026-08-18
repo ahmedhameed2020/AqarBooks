@@ -158,6 +158,7 @@ export default async function AppShellLayout({
                 { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
                 { href: "/finance/einvoice", labelAr: "الفوترة الإلكترونية", labelEn: "E-Invoicing" },
                 { href: "/finance/tax-mapping", labelAr: "تصنيف الإيرادات", labelEn: "Revenue Classification" },
+                { href: "/finance/einvoice-items", labelAr: "أصناف المستندات", labelEn: "E-Document Items" },
               ],
             },
           ],
