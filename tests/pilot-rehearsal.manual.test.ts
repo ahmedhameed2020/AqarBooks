@@ -118,6 +118,13 @@ beforeAll(async () => {
     organization_id: orgId, code: "1200", name_ar: "ذمم", name_en: "Receivable",
     category: "ASSET", normal_balance: "DEBIT",
   } as never).select("id").single();
+  // حساب ضريبة المخرجات: التزام نشط غير تجميعي. الـfixtures تنشئ دليلها يدويًا
+  // بلا استنساخ القالب، فلا يصلها الحساب القياسي 2300 تلقائيًا.
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
   const { data: property } = await admin.from("properties").insert({
     organization_id: orgId, name: "PILOT Property", code: `PILOT-${Date.now()}`,
     timezone: "Africa/Cairo", property_type: "building",
@@ -257,7 +264,7 @@ describe("بروفة دفتر تشغيل الطيار", () => {
       p_due_type_id: org.dueTypeId,
       p_revenue_nature: NATURE,
       p_notes: "بروفة — عقد الإدارة",
-      p_amount_basis: "NET",
+      p_amount_basis: "GROSS",
     });
     expect(error, `mapping failed: ${error?.message}`).toBeNull();
     mappingId = id as unknown as string;

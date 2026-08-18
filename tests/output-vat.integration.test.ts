@@ -83,6 +83,13 @@ async function makeOrg(label: string, currency: string): Promise<Org> {
     organization_id: orgId, code: "1200", name_ar: "ذمم", name_en: "Receivable",
     category: "ASSET", normal_balance: "DEBIT",
   } as never).select("id").single();
+  // حساب ضريبة المخرجات: التزام نشط غير تجميعي. الـfixtures تنشئ دليلها يدويًا
+  // بلا استنساخ القالب، فلا يصلها الحساب القياسي 2300 تلقائيًا.
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
   const { data: property } = await admin.from("properties").insert({
     organization_id: orgId, name: `P ${label}`, code: `E2E-VAT-${label}-${Date.now()}`,
     timezone: "Africa/Cairo", property_type: "building",
@@ -229,14 +236,29 @@ describe("مبلغ ضريبة المخرجات", () => {
     expect(codes).toContain("AMOUNT_BASIS_MISSING");
   });
 
-  it("أساس صافٍ: الضريبة تُضاف فوق المبلغ", async () => {
+  it("أساس صافٍ مرفوض: الذمم في الدفتر يجب أن تساوي مبلغ المستحق", async () => {
     await mapApprove(egp, egp.taxableTypeId, TAXABLE_NATURE, "NET");
-    const d = await decide(egp, egp.taxableTypeId, 1000);
 
-    expect(d.amount_basis).toBe("NET");
-    expect(Number(d.taxable_base)).toBe(1000);
-    expect(Number(d.vat_amount)).toBe(150);
-    expect(Number(d.gross_amount)).toBe(1150);
+    const { data: due } = await admin.from("dues").insert({
+      organization_id: egp.id, property_id: egp.propertyId, unit_id: egp.unitId,
+      due_type_id: egp.taxableTypeId, receivable_account_id: egp.receivableId,
+      amount: 1000, issue_date: "2026-06-01", due_date: "2026-07-01",
+      status: "ISSUED", description: "E2E net basis",
+    } as never).select("id");
+
+    const { error } = await egp.owner.client.rpc("record_tax_decision_for_due", {
+      p_due_id: due![0].id as string,
+    });
+    // الصافي يعني أن العميل يدين بأكثر من المبلغ المسجَّل، فتفترق الذمم عن
+    // السجل الفرعي الذي تُخصَّص عليه المدفوعات ويُبنى عليه تقرير الأعمار.
+    expect(error, "الصافي غير قابل للترحيل").not.toBeNull();
+    expect(error!.message).toMatch(/TAX_NET_BASIS_NOT_POSTABLE/);
+
+    const { data: gaps } = await egp.owner.client.rpc("check_tax_enforcement_readiness", {
+      p_organization_id: egp.id,
+    });
+    const codes = (gaps as unknown as { gap_code: string }[]).map((g) => g.gap_code);
+    expect(codes, "والجاهزية تكشفه قبل التفعيل").toContain("NET_BASIS_NOT_POSTABLE");
   });
 
   it("أساس شامل: الضريبة تُستخرج بالقسمة على (100 + النسبة) لا بالضرب فيها", async () => {
@@ -262,18 +284,87 @@ describe("مبلغ ضريبة المخرجات", () => {
   });
 
   it("التقريب بخانات العملة: الدينار الكويتي ثلاث خانات لا خانتان", async () => {
-    await mapApprove(kwd, kwd.taxableTypeId, TAXABLE_NATURE, "NET");
-    const d = await decide(kwd, kwd.taxableTypeId, 1000.123);
+    await mapApprove(kwd, kwd.taxableTypeId, TAXABLE_NATURE, "GROSS");
+    const d = await decide(kwd, kwd.taxableTypeId, 1150.141);
 
     const snap = d.tax_decision_snapshot as Record<string, unknown>;
     expect(snap.currency).toBe("KWD");
     expect(Number(snap.currency_decimals), "ثلاث خانات").toBe(3);
 
-    // 1000.123 × 15% = 150.01845 ⇒ 150.018 بثلاث خانات.
+    // 1150.141 × 15/115 = 150.01839… ⇒ 150.018 بثلاث خانات.
     // افتراض خانتين كان سيعطي 150.02 ويبتلع فرقًا في كل سطر.
     expect(Number(d.vat_amount)).toBe(150.018);
     expect(Number(d.taxable_base)).toBe(1000.123);
     expect(Number(d.gross_amount)).toBe(1150.141);
+  });
+
+  it("القيد الثلاثي: الذمم بالإجمالي، الإيراد بالصافي، والضريبة التزام", async () => {
+    // فترة مالية مفتوحة حتى يُرحَّل فعلًا؛ بدونها لا قيد ولا شيء يُفحص.
+    const { data: fy } = await admin.from("fiscal_years").insert({
+      organization_id: egp.id, name: "E2E FY", start_date: "2026-01-01",
+      end_date: "2026-12-31", status: "OPEN",
+    } as never).select("id").single();
+    await admin.from("fiscal_periods").insert({
+      organization_id: egp.id, fiscal_year_id: fy!.id, period_number: 1,
+      name: "E2E Period", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+    } as never);
+
+    await mapApprove(egp, egp.taxableTypeId, TAXABLE_NATURE, "GROSS");
+
+    // القيد الثلاثي لا يتحقق إلا عبر المسار الحقيقي: الـtrigger يختم القرار قبل
+    // الترحيل. استدعاء التسجيل يدويًا بعد الإدراج يأتي متأخرًا — الترحيل تم.
+    const { data: cov } = await egp.owner.client.rpc("get_tax_decision_coverage", {
+      p_organization_id: egp.id,
+    });
+    const undecided = Number(
+      (cov as unknown as { dues_without_decision: number }[])[0].dues_without_decision,
+    );
+    const { error: enableErr } = await egp.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: egp.id,
+      p_enabled: true,
+      p_reason: "اختبار القيد الثلاثي",
+      p_acknowledged_undecided_dues: undecided,
+    });
+    expect(enableErr, `enable failed: ${enableErr?.message}`).toBeNull();
+
+    const { data: due, error } = await admin.from("dues").insert({
+      organization_id: egp.id, property_id: egp.propertyId, unit_id: egp.unitId,
+      due_type_id: egp.taxableTypeId, receivable_account_id: egp.receivableId,
+      amount: 1150, issue_date: "2026-06-01", due_date: "2026-07-01",
+      status: "ISSUED", description: "E2E three line entry",
+    } as never).select("id, journal_entry_id");
+    expect(error, `due insert failed: ${error?.message}`).toBeNull();
+
+    const { data: posted } = await admin.from("dues")
+      .select("journal_entry_id, amount").eq("id", due![0].id as string).single();
+    expect(posted!.journal_entry_id, "القيد رُحِّل").not.toBeNull();
+
+    const { data: lines } = await admin.from("journal_entry_lines")
+      .select("account_id, debit, credit")
+      .eq("journal_entry_id", posted!.journal_entry_id as string);
+    expect(lines, "ثلاثة أطراف لا طرفان").toHaveLength(3);
+
+    const debit = (lines ?? []).filter((l) => Number(l.debit) > 0);
+    expect(debit).toHaveLength(1);
+    // الذمم بالإجمالي — وهو مبلغ المستحق نفسه، فيبقى الدفتر مطابقًا للسجل الفرعي.
+    expect(Number(debit[0].debit)).toBe(1150);
+    expect(Number(debit[0].debit), "الذمم = مبلغ المستحق").toBe(Number(posted!.amount));
+    expect(debit[0].account_id).toBe(egp.receivableId);
+
+    const credits = (lines ?? []).filter((l) => Number(l.credit) > 0).map((l) => Number(l.credit));
+    expect(credits.sort((a, b) => a - b)).toEqual([150, 1000]);
+
+    const { data: d } = await admin.from("tax_decisions")
+      .select("output_tax_account_id, vat_amount, taxable_base")
+      .eq("source_id", due![0].id as string).single();
+    const vatLine = (lines ?? []).find((l) => l.account_id === d!.output_tax_account_id);
+    expect(vatLine, "طرف الضريبة على الحساب المختوم في القرار").toBeTruthy();
+    expect(Number(vatLine!.credit)).toBe(Number(d!.vat_amount));
+
+    const { data: acc } = await admin.from("chart_of_accounts")
+      .select("category, is_group").eq("id", d!.output_tax_account_id as string).single();
+    expect(acc!.category, "التزام لا إيراد").toBe("LIABILITY");
+    expect(acc!.is_group).toBe(false);
   });
 
   it("الأساس زائد الضريبة يساوي الإجمالي بالضبط في كل حالة", async () => {

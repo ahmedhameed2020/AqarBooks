@@ -86,6 +86,13 @@ beforeAll(async () => {
   } as never).select("id").single();
   receivableId = receivable!.id as string;
 
+  // حساب ضريبة المخرجات: التزام نشط غير تجميعي. الـfixtures تنشئ دليلها يدويًا
+  // بلا استنساخ القالب، فلا يصلها الحساب القياسي 2300 تلقائيًا.
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
   const { data: property } = await admin.from("properties").insert({
     organization_id: orgId, name: "SANDBOX Property", code: `SBX-${STAMP}`,
     timezone: "Africa/Cairo", property_type: "building",

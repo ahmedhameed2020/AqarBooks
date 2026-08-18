@@ -97,6 +97,13 @@ async function makeOrg(label: string): Promise<Org> {
     organization_id: orgId, code: "1200", name_ar: "ذمم", name_en: "Receivable",
     category: "ASSET", normal_balance: "DEBIT",
   } as never).select("id").single();
+  // حساب ضريبة المخرجات: التزام نشط غير تجميعي. الـfixtures تنشئ دليلها يدويًا
+  // بلا استنساخ القالب، فلا يصلها الحساب القياسي 2300 تلقائيًا.
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
   const { data: property } = await admin.from("properties").insert({
     organization_id: orgId, name: `P ${label}`, code: `E2E-ENF-${label}-${Date.now()}`,
     timezone: "Africa/Cairo", property_type: "building",
@@ -162,7 +169,7 @@ async function insertDue(org: Org, issueDate: string, amount = 1000) {
 
 async function approveMapping(org: Org) {
   const { data: mappingId } = await org.owner.client.rpc("set_due_type_revenue_nature", {
-    p_due_type_id: org.dueTypeId, p_revenue_nature: NATURE, p_amount_basis: "NET",
+    p_due_type_id: org.dueTypeId, p_revenue_nature: NATURE, p_amount_basis: "GROSS",
   });
   await org.owner.client.rpc("approve_due_type_revenue_nature", {
     p_mapping_id: mappingId as unknown as string,

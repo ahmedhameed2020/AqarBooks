@@ -115,6 +115,13 @@ async function makeOrg(label: string, jurisdiction: string | null) {
     .select("id")
     .single();
 
+  // حساب ضريبة المخرجات: التزام نشط غير تجميعي. الـfixtures تنشئ دليلها يدويًا
+  // بلا استنساخ القالب، فلا يصلها الحساب القياسي 2300 تلقائيًا.
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
   const { data: property, error: propErr } = await admin
     .from("properties")
     .insert({
@@ -183,7 +190,7 @@ async function approveMapping(actor: Actor, dueTypeId: string) {
   const { data: mappingId, error } = await actor.client.rpc("set_due_type_revenue_nature", {
     p_due_type_id: dueTypeId,
     p_revenue_nature: NATURE,
-    p_amount_basis: "NET",
+    p_amount_basis: "GROSS",
   });
   expect(error, `mapping failed: ${error?.message}`).toBeNull();
   const { error: approveErr } = await actor.client.rpc("approve_due_type_revenue_nature", {

@@ -102,6 +102,12 @@ async function makeOrgWithDue(label: string) {
     } as never)
     .select("id").single();
 
+  await admin.from("chart_of_accounts").insert({
+    organization_id: orgId, code: "2300", name_ar: "ضريبة مخرجات مستحقة",
+    name_en: "Output Tax Payable", category: "LIABILITY", normal_balance: "CREDIT",
+  } as never);
+
+
   const { data: property } = await admin
     .from("properties")
     .insert({
@@ -198,7 +204,7 @@ beforeAll(async () => {
   const { data: mappingId } = await staffA.client.rpc("set_due_type_revenue_nature", {
     p_due_type_id: a.dueTypeId,
     p_revenue_nature: NATURE,
-    p_amount_basis: "NET",
+    p_amount_basis: "GROSS",
   });
   await staffA.client.rpc("approve_due_type_revenue_nature", {
     p_mapping_id: mappingId as unknown as string,
