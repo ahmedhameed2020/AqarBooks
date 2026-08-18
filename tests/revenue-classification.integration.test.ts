@@ -1,13 +1,13 @@
 /**
- * ADR 0003 — المرحلة الأولى: أساس تصنيف الإيراد والقواعد الضريبية المؤرَّخة.
+ * ADR 0003 — القواعد الضريبية المؤرَّخة والمُصدَّرة.
  *
- * الادعاء المركزي للتصميم هو أن **تعديل قاعدة لا يحرّك قرارًا تاريخيًا**. ادعاء
- * كهذا لا يُثبت بقراءة الكود، بل بتعديل قاعدة بعد الترحيل والتأكد أن القرار لم
- * يتزحزح — وهو ما يفعله الاختبار الخامس هنا. الباقي اختبارات اختراق: كل واحد
- * يحاول تجاوز ثابت من ثوابت ADR 0003 ويجب أن يفشل.
+ * نطاق هذا الملف **القواعد**: مناعتها، وعدم تداخلها، واتساق المعالجة مع النسبة،
+ * ومَن يملك إدارتها. أما عقد تسجيل القرار فانتقل بالكامل إلى
+ * `tax-decision-contract.integration.test.ts` بعد سحب العقد القديم؛ ما بقي هنا
+ * منه اختبار واحد لا غنى عنه: **أن تعديل قاعدة لا يحرّك قرارًا تاريخيًا**، وهو
+ * الادعاء المركزي للتصميم كله ولا يُثبت إلا بتعديل قاعدة بعد ترحيل قرار تحتها.
  *
- * يعمل على القاعدة الحقيقية عبر جلسة مُصادَقة، فتسري RLS وhas_permission تمامًا
- * كما في المنتج.
+ * الباقي اختبارات اختراق: كل واحد يحاول تجاوز ثابت من ثوابت ADR 0003.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
@@ -23,29 +23,26 @@ const PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
 const admin = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
-/** يُميّز كل صف أنشأه هذا الملف حتى لا يلمس التنظيف شيئًا آخر. */
+/** يميّز كل صف أنشأه هذا الملف حتى لا يلمس التنظيف شيئًا آخر. */
 const SCOPE = `E2E_RC_${Date.now()}`;
 const NATURE = "MANAGEMENT_FEE";
+const ISSUE_DATE = "2026-06-01";
 
 type Actor = { userId: string; client: ReturnType<typeof createClient<Database>> };
 
-let orgA: string;
-let orgB: string;
-let dueTypeA: string;
-let dueTypeB: string;
-let staffA: Actor;
-let staffB: Actor;
-let platformAdmin: Actor;
-const createdRuleIds: string[] = [];
-/**
- * تُسجَّل المؤسسة لحظة إنشائها لا بعد اكتمال التهيئة. النسخة الأولى أسندت المعرّف
- * بعد نجاح المؤسستين معًا، فلما فشلت الثانية بقيت الأولى في القاعدة بلا تنظيف.
- */
 const createdOrgIds: string[] = [];
 const createdUserIds: string[] = [];
+const createdRuleIds: string[] = [];
+
+let orgA: string;
+let dueA: string;
+let staffA: Actor;
+let platformAdmin: Actor;
 
 async function makeUser(label: string): Promise<Actor> {
-  const email = `e2e-rc-${label.toLowerCase()}-${Date.now()}@aqarbooks-test.local`;
+  const email = `e2e-rc-${label.toLowerCase()}-${Date.now()}-${Math.floor(
+    performance.now() * 1000,
+  )}@aqarbooks-test.local`;
   const { data: created, error } = await admin.auth.admin.createUser({
     email,
     password: PASSWORD,
@@ -59,16 +56,16 @@ async function makeUser(label: string): Promise<Actor> {
   return { userId: created!.user!.id, client };
 }
 
-async function makeOrgWithStaff(label: string) {
-  const stamp = `${Date.now()}-${label}`;
+async function makeOrgWithDue(label: string) {
   const { data: org, error: orgErr } = await admin
     .from("organizations")
     .insert({
-      name: `E2E RevClass ${stamp}`,
+      name: `E2E RevClass ${label} ${Date.now()}`,
       slug: `e2e-revclass-${label.toLowerCase()}-${Date.now()}`,
       default_currency: "EGP",
       status: "ACTIVE",
-      tax_id: `100-000-${label === "A" ? "111" : "222"}`,
+      tax_id: "100-000-111",
+      tax_jurisdiction: "EG",
     } as never)
     .select("id")
     .single();
@@ -78,60 +75,67 @@ async function makeOrgWithStaff(label: string) {
 
   await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
 
-  const actor = await makeUser(label);
-  await admin
-    .from("organization_memberships")
-    .insert({ organization_id: orgId, user_id: actor.userId, status: "active" });
-  const { data: role } = await admin
-    .from("roles")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("key", "TENANT_OWNER")
-    .single();
-  await admin
-    .from("user_role_assignments")
-    .insert({ user_id: actor.userId, role_id: role!.id, organization_id: orgId });
-
-  // due_types يشترط حساب إيراد؛ حساب واحد يكفي لهذا الاختبار.
-  const { data: account, error: acctErr } = await admin
+  const { data: revenue } = await admin
     .from("chart_of_accounts")
     .insert({
-      organization_id: orgId,
-      code: "4100",
-      name_ar: "إيراد اختبار",
-      name_en: "Test Revenue",
-      category: "REVENUE",
-      normal_balance: "CREDIT",
+      organization_id: orgId, code: "4100", name_ar: "إيراد اختبار",
+      name_en: "Test Revenue", category: "REVENUE", normal_balance: "CREDIT",
     } as never)
-    .select("id")
-    .single();
-  expect(acctErr, `account insert failed: ${acctErr?.message}`).toBeNull();
+    .select("id").single();
+  const { data: receivable } = await admin
+    .from("chart_of_accounts")
+    .insert({
+      organization_id: orgId, code: "1200", name_ar: "ذمم اختبار",
+      name_en: "Test Receivable", category: "ASSET", normal_balance: "DEBIT",
+    } as never)
+    .select("id").single();
 
-  const { data: dueType, error: dtErr } = await admin
+  const { data: property } = await admin
+    .from("properties")
+    .insert({
+      organization_id: orgId, name: `E2E Property ${label}`,
+      code: `E2E-RC-${label}-${Date.now()}`, timezone: "Africa/Cairo",
+      property_type: "building",
+    } as never)
+    .select("id").single();
+
+  const { data: unit } = await admin
+    .from("units")
+    .insert({
+      organization_id: orgId, property_id: property!.id, code: `U-${label}-${Date.now()}`,
+    } as never)
+    .select("id").single();
+
+  const { data: dueType } = await admin
     .from("due_types")
     .insert({
       organization_id: orgId,
-      default_revenue_account_id: account!.id,
-      // اسم عديم المعنى الضريبي عمدًا: لو اشتُقّت الطبيعة من الاسم يومًا،
-      // فهذا النوع هو ما سيكشف ذلك.
-      name_ar: "رسوم / x",
-      name_en: "Fee / x",
-      is_active: true,
+      default_revenue_account_id: revenue!.id,
+      // اسم بلا معنى ضريبي عمدًا: لو اشتُقّت الطبيعة من الاسم يومًا فهذا ما يكشفه.
+      name_ar: "رسوم / x", name_en: "Fee / x", is_active: true,
     } as never)
-    .select("id")
-    .single();
-  expect(dtErr, `due_type insert failed: ${dtErr?.message}`).toBeNull();
+    .select("id").single();
 
-  return { orgId, actor, dueTypeId: dueType!.id as string };
+  const { data: due, error: dueErr } = await admin
+    .from("dues")
+    .insert({
+      organization_id: orgId, property_id: property!.id, unit_id: unit!.id,
+      due_type_id: dueType!.id, receivable_account_id: receivable!.id,
+      amount: 1000, issue_date: ISSUE_DATE, due_date: "2026-07-01",
+      status: "ISSUED", description: "E2E revenue classification",
+    } as never)
+    .select("id").single();
+  expect(dueErr, `due insert failed: ${dueErr?.message}`).toBeNull();
+
+  return { orgId, dueTypeId: dueType!.id as string, dueId: due!.id as string };
 }
 
-/** ينشئ قاعدة معتمدة مباشرةً — يتجاوز RPC المشرف لتثبيت حالة بداية الاختبار. */
 async function seedApprovedRule(opts: {
   effectiveFrom: string;
+  effectiveTo?: string;
   treatment: string;
   rate: number | null;
   version: number;
-  effectiveTo?: string;
 }): Promise<string> {
   const { data, error } = await admin
     .from("tax_rule_versions")
@@ -160,158 +164,83 @@ async function seedApprovedRule(opts: {
 beforeAll(async () => {
   platformAdmin = await makeUser("PlatformAdmin");
   const { data: superRole } = await admin
-    .from("roles")
-    .select("id")
-    .eq("key", "PLATFORM_SUPER_ADMIN")
-    .is("organization_id", null)
-    .single();
+    .from("roles").select("id").eq("key", "PLATFORM_SUPER_ADMIN").is("organization_id", null).single();
   expect(superRole, "PLATFORM_SUPER_ADMIN role must exist").not.toBeNull();
   await admin
     .from("user_role_assignments")
     .insert({ user_id: platformAdmin.userId, role_id: superRole!.id, organization_id: null });
 
-  const a = await makeOrgWithStaff("A");
-  const b = await makeOrgWithStaff("B");
+  const a = await makeOrgWithDue("A");
   orgA = a.orgId;
-  dueTypeA = a.dueTypeId;
-  staffA = a.actor;
-  orgB = b.orgId;
-  dueTypeB = b.dueTypeId;
-  staffB = b.actor;
-}, 120_000);
+  dueA = a.dueId;
+  staffA = await makeUser("StaffA");
+  await admin
+    .from("organization_memberships")
+    .insert({ organization_id: orgA, user_id: staffA.userId, status: "active" });
+  const { data: role } = await admin
+    .from("roles").select("id").eq("organization_id", orgA).eq("key", "TENANT_OWNER").single();
+  await admin
+    .from("user_role_assignments")
+    .insert({ user_id: staffA.userId, role_id: role!.id, organization_id: orgA });
+
+  const { data: mappingId } = await staffA.client.rpc("set_due_type_revenue_nature", {
+    p_due_type_id: a.dueTypeId,
+    p_revenue_nature: NATURE,
+  });
+  await staffA.client.rpc("approve_due_type_revenue_nature", {
+    p_mapping_id: mappingId as unknown as string,
+  });
+}, 150_000);
 
 afterAll(async () => {
   for (const orgId of createdOrgIds) {
+    await admin
+      .from("tax_decisions").delete().eq("organization_id", orgId)
+      .not("reverses_decision_id", "is", null);
     await admin.from("tax_decisions").delete().eq("organization_id", orgId);
     await admin.from("due_type_revenue_natures").delete().eq("organization_id", orgId);
+    await admin.from("dues").delete().eq("organization_id", orgId);
     await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
+    await admin.from("units").delete().eq("organization_id", orgId);
+    await admin.from("properties").delete().eq("organization_id", orgId);
+    await admin.from("chart_of_accounts").delete().eq("organization_id", orgId);
     const { error } = await admin.from("organizations").delete().eq("id", orgId);
     expect(error, `fixture org left behind: ${error?.message}`).toBeNull();
   }
   // القرارات حُذفت أعلاه، فلم تعد أي قاعدة مرجعًا لقرار مرحَّل ويجوز حذفها.
-  // الخطأ يُفحص صراحةً: أول نسخة من هذا التنظيف فشلت صامتةً وتركت قواعد عالمية.
   if (createdRuleIds.length) {
-    const { error: ruleDelErr } = await admin
-      .from("tax_rule_versions")
-      .delete()
-      .in("id", createdRuleIds);
-    expect(ruleDelErr, `fixture rules not removed: ${ruleDelErr?.message}`).toBeNull();
+    const { error } = await admin.from("tax_rule_versions").delete().in("id", createdRuleIds);
+    expect(error, `fixture rules not removed: ${error?.message}`).toBeNull();
   }
   const { count } = await admin
     .from("tax_rule_versions")
     .select("id", { count: "exact", head: true })
     .eq("issuer_scope", SCOPE);
   expect(count ?? 0, "fixture rules left behind").toBe(0);
-  for (const userId of createdUserIds) {
-    await admin.auth.admin.deleteUser(userId);
-  }
-}, 120_000);
+  for (const userId of createdUserIds) await admin.auth.admin.deleteUser(userId);
+}, 150_000);
 
-describe("ADR 0003 — أساس تصنيف الإيراد", () => {
-  it("يرفض الترحيل لنوع مستحق غير مربوط، ولا يستنطق الاسم النصي", async () => {
-    const { error } = await staffA.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000a1",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2026-06-01",
+describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () => {
+  it("تعديل القاعدة لاحقًا لا يحرّك القرار التاريخي — وهذا هو ادعاء التصميم", async () => {
+    await seedApprovedRule({
+      effectiveFrom: "2026-01-01",
+      treatment: "TAXABLE",
+      rate: 14,
+      version: 1,
     });
-    expect(error, "غير المربوط يجب أن يُرفض").not.toBeNull();
-    expect(error!.message).toMatch(/TAX_REVIEW_REQUIRED/);
 
-    const { count } = await admin
-      .from("tax_decisions")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", orgA);
-    expect(count ?? 0, "لا يُسجَّل قرار تحت المراجعة").toBe(0);
-  });
-
-  it("الربط الجديد يبدأ REVIEW_REQUIRED ويظل حاجبًا حتى يُعتمد", async () => {
-    const { data: mappingId, error } = await staffA.client.rpc("set_due_type_revenue_nature", {
-      p_due_type_id: dueTypeA,
-      p_revenue_nature: NATURE,
-    });
-    expect(error, `mapping failed: ${error?.message}`).toBeNull();
-
-    const { data: row } = await admin
-      .from("due_type_revenue_natures")
-      .select("status, approved_at")
-      .eq("id", mappingId as unknown as string)
-      .single();
-    expect(row!.status, "الربط لا يُولد معتمدًا").toBe("REVIEW_REQUIRED");
-    expect(row!.approved_at).toBeNull();
-
-    const { error: blocked } = await staffA.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000a2",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2026-06-01",
-    });
-    expect(blocked!.message).toMatch(/TAX_REVIEW_REQUIRED/);
-  });
-
-  it("يرفض الترحيل حين لا توجد قاعدة معتمدة سارية بتاريخ المعاملة", async () => {
-    const { data: mapping } = await admin
-      .from("due_type_revenue_natures")
-      .select("id")
-      .eq("organization_id", orgA)
-      .single();
-    const { error: approveErr } = await staffA.client.rpc("approve_due_type_revenue_nature", {
-      p_mapping_id: mapping!.id,
-    });
-    expect(approveErr, `approval failed: ${approveErr?.message}`).toBeNull();
-
-    // القاعدة تبدأ 2026-01-01؛ المعاملة أقدم منها.
-    await seedApprovedRule({ effectiveFrom: "2026-01-01", treatment: "TAXABLE", rate: 14, version: 1 });
-
-    const { error } = await staffA.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000a3",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2025-06-01",
-    });
-    expect(error, "تاريخ خارج نطاق أي قاعدة يجب أن يُرفض").not.toBeNull();
-    expect(error!.message).toMatch(/TAX_REVIEW_REQUIRED/);
-  });
-
-  it("يسجّل القرار ببصمة كاملة حين تكتمل الحلقة", async () => {
-    const { data: decisionId, error } = await staffA.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000a4",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2026-06-01",
+    const { data: decisionId, error } = await staffA.client.rpc("record_tax_decision_for_due", {
+      p_due_id: dueA,
     });
     expect(error, `record failed: ${error?.message}`).toBeNull();
 
-    const { data: decision } = await admin
-      .from("tax_decisions")
-      .select("tax_rule_version_id, tax_rule_hash, tax_decision_snapshot, revenue_nature")
-      .eq("id", decisionId as unknown as string)
-      .single();
-
-    expect(decision!.revenue_nature).toBe(NATURE);
-    expect(decision!.tax_rule_version_id).not.toBeNull();
-    expect(decision!.tax_rule_hash, "بصمة sha256").toHaveLength(64);
-
-    const snap = decision!.tax_decision_snapshot as Record<string, unknown>;
-    expect(snap.tax_treatment).toBe("TAXABLE");
-    expect(Number(snap.vat_rate)).toBe(14);
-    // اللقطة وحدها يجب أن تكفي لإعادة إنتاج القرار لو فُقد جدول القواعد.
-    expect(snap.effective_from).toBe("2026-01-01");
-    expect(snap.rule_hash).toBe(decision!.tax_rule_hash);
-  });
-
-  it("تعديل القاعدة لاحقًا لا يحرّك القرار التاريخي — وهذا هو ادعاء التصميم", async () => {
     const { data: before } = await admin
       .from("tax_decisions")
-      .select("id, tax_rule_version_id, tax_rule_hash, tax_decision_snapshot")
-      .eq("source_id", "00000000-0000-0000-0000-0000000000a4")
+      .select("tax_rule_version_id, tax_rule_hash, tax_decision_snapshot")
+      .eq("id", decisionId as unknown as string)
       .single();
-
     const oldRuleId = before!.tax_rule_version_id as string;
+    expect(before!.tax_rule_hash, "بصمة sha256").toHaveLength(64);
 
     // تشريع جديد: المعالجة تصبح معفاة اعتبارًا من 2026-07-01.
     const { data: newRuleId, error: supErr } = await platformAdmin.client.rpc("supersede_tax_rule", {
@@ -328,10 +257,11 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
     const { data: after } = await admin
       .from("tax_decisions")
       .select("tax_rule_version_id, tax_rule_hash, tax_decision_snapshot")
-      .eq("id", before!.id)
+      .eq("id", decisionId as unknown as string)
       .single();
 
     expect(after!.tax_rule_version_id, "القرار ما يزال يشير إلى قاعدته").toBe(oldRuleId);
+    // البصمة تستثني effective_to عمدًا، فإغلاق النافذة لا يُفسدها.
     expect(after!.tax_rule_hash, "البصمة لم تتحرك رغم إغلاق النافذة").toBe(before!.tax_rule_hash);
     expect(after!.tax_decision_snapshot).toEqual(before!.tax_decision_snapshot);
     expect(
@@ -341,14 +271,10 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
 
     // والبحث بالتاريخ يفرّق بين الفترتين.
     const { data: oldDateRule } = await admin.rpc("resolve_tax_rule", {
-      p_jurisdiction: "EG",
-      p_revenue_nature: NATURE,
-      p_transaction_date: "2026-06-01",
+      p_jurisdiction: "EG", p_revenue_nature: NATURE, p_transaction_date: "2026-06-01",
     });
     const { data: newDateRule } = await admin.rpc("resolve_tax_rule", {
-      p_jurisdiction: "EG",
-      p_revenue_nature: NATURE,
-      p_transaction_date: "2026-08-01",
+      p_jurisdiction: "EG", p_revenue_nature: NATURE, p_transaction_date: "2026-08-01",
     });
     expect((oldDateRule as unknown as { tax_treatment: string }).tax_treatment).toBe("TAXABLE");
     expect((newDateRule as unknown as { tax_treatment: string }).tax_treatment).toBe("EXEMPT");
@@ -358,12 +284,12 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
     const { error } = await admin
       .from("tax_decisions")
       .update({ tax_rule_hash: "tampered" } as never)
-      .eq("source_id", "00000000-0000-0000-0000-0000000000a4");
+      .eq("source_id", dueA);
     expect(error, "تعديل قرار مسجَّل يجب أن يُرفض").not.toBeNull();
     expect(error!.message).toMatch(/TAX_DECISION_IMMUTABLE/);
   });
 
-  it("القاعدة المعتمدة لا يُعدَّل مضمونها ولا تُحذف", async () => {
+  it("القاعدة المعتمدة لا يُعدَّل مضمونها، ولا تُحذف إن استند إليها قرار", async () => {
     // نافذة مغلقة في ماضٍ بعيد: هذا الاختبار يخص المناعة لا التداخل، فلا يجوز
     // أن يصطدم بقيد التداخل ويحجب ما جاء ليثبته.
     const ruleId = await seedApprovedRule({
@@ -382,15 +308,15 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
     expect(editErr!.message).toMatch(/TAX_RULE_IMMUTABLE/);
 
     // القاعدة التي استند إليها قرار مرحَّل لا تُحذف — وهذا هو الضمان الفعلي.
-    const { data: usedDecision } = await admin
+    const { data: used } = await admin
       .from("tax_decisions")
       .select("tax_rule_version_id")
-      .eq("source_id", "00000000-0000-0000-0000-0000000000a4")
+      .eq("source_id", dueA)
       .single();
     const { error: usedDelErr } = await admin
       .from("tax_rule_versions")
       .delete()
-      .eq("id", usedDecision!.tax_rule_version_id as string);
+      .eq("id", used!.tax_rule_version_id as string);
     expect(usedDelErr, "قاعدة يستند إليها قرار يجب ألا تُحذف").not.toBeNull();
     expect(usedDelErr!.message).toMatch(/TAX_RULE_IMMUTABLE/);
 
@@ -409,7 +335,7 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
       revenue_nature: NATURE,
       tax_treatment: "EXEMPT",
       vat_rate: 0,
-      // يقع داخل نافذة قاعدة 2026-01-01 المفتوحة/المُخلَفة.
+      // يقع داخل نافذة قاعدة 2026-01-01 المُخلَفة.
       effective_from: "2026-03-01",
       e_document_type: "BY_CUSTOMER_TYPE",
       issuer_scope: SCOPE,
@@ -477,10 +403,7 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
 
     const { data: anyRule } = await admin
       .from("tax_rule_versions")
-      .select("id")
-      .eq("issuer_scope", SCOPE)
-      .limit(1)
-      .single();
+      .select("id").eq("issuer_scope", SCOPE).limit(1).single();
     const { error: supErr } = await staffA.client.rpc("supersede_tax_rule", {
       p_rule_id: anyRule!.id,
       p_effective_from: "2027-01-01",
@@ -490,83 +413,5 @@ describe("ADR 0003 — أساس تصنيف الإيراد", () => {
       p_issuer_scope: SCOPE,
     });
     expect(supErr!.message).toMatch(/FORBIDDEN_TAX_RULE_ADMIN/);
-  });
-
-  it("العزل بين المؤسسات محفوظ للقراءة والربط والترحيل", async () => {
-    // B لا يرى ربط A ولا قراراته.
-    const { data: leakedMap } = await staffB.client
-      .from("due_type_revenue_natures")
-      .select("id")
-      .eq("organization_id", orgA);
-    expect(leakedMap ?? [], "RLS يخفي ربط مستأجر آخر").toEqual([]);
-
-    const { data: leakedDecisions } = await staffB.client
-      .from("tax_decisions")
-      .select("id")
-      .eq("organization_id", orgA);
-    expect(leakedDecisions ?? [], "RLS يخفي قرارات مستأجر آخر").toEqual([]);
-
-    // ولا يربط نوع مستحق يخص A.
-    const { error: crossMap } = await staffB.client.rpc("set_due_type_revenue_nature", {
-      p_due_type_id: dueTypeA,
-      p_revenue_nature: NATURE,
-    });
-    expect(crossMap, "الربط عبر المؤسسات يجب أن يُرفض").not.toBeNull();
-    expect(crossMap!.message).toMatch(/FORBIDDEN_TAX_MAPPING/);
-
-    // ولا يرحّل عنه.
-    const { error: crossRecord } = await staffB.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000b1",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2026-06-01",
-    });
-    expect(crossRecord!.message).toMatch(/FORBIDDEN_TAX_MAPPING/);
-
-    // وربط B الخاص به لا يرث اعتماد A.
-    await staffB.client.rpc("set_due_type_revenue_nature", {
-      p_due_type_id: dueTypeB,
-      p_revenue_nature: NATURE,
-    });
-    const { data: bMap } = await admin
-      .from("due_type_revenue_natures")
-      .select("status")
-      .eq("organization_id", orgB)
-      .single();
-    expect(bMap!.status).toBe("REVIEW_REQUIRED");
-  });
-
-  it("تغيير طبيعة إيراد مربوطة يعيدها إلى المراجعة ويحجب الترحيل من جديد", async () => {
-    const { data: mapping } = await admin
-      .from("due_type_revenue_natures")
-      .select("id, status")
-      .eq("organization_id", orgA)
-      .single();
-    expect(mapping!.status, "نقطة البداية معتمدة").toBe("APPROVED");
-
-    await staffA.client.rpc("set_due_type_revenue_nature", {
-      p_due_type_id: dueTypeA,
-      p_revenue_nature: "CLEANING_SERVICE",
-    });
-
-    const { data: after } = await admin
-      .from("due_type_revenue_natures")
-      .select("status, revenue_nature, approved_at")
-      .eq("id", mapping!.id)
-      .single();
-    expect(after!.revenue_nature).toBe("CLEANING_SERVICE");
-    // تغيير الطبيعة قرار ضريبي، فلا يرث اعتماد الربط السابق.
-    expect(after!.status, "التغيير يُلغي الاعتماد").toBe("REVIEW_REQUIRED");
-    expect(after!.approved_at).toBeNull();
-
-    const { error } = await staffA.client.rpc("record_tax_decision", {
-      p_source_type: "DUE",
-      p_source_id: "00000000-0000-0000-0000-0000000000a9",
-      p_due_type_id: dueTypeA,
-      p_jurisdiction: "EG",
-      p_transaction_date: "2026-06-01",
-    });
-    expect(error!.message).toMatch(/TAX_REVIEW_REQUIRED/);
   });
 });

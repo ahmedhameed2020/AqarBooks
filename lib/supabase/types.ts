@@ -33,6 +33,7 @@ export type Database = {
           phone: string | null;
           email: string | null;
           tax_id: string | null;
+          tax_jurisdiction: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -935,6 +936,9 @@ export type Database = {
           tax_decision_snapshot: unknown;
           decided_by: string | null;
           decided_at: string;
+          reverses_decision_id: string | null;
+          replaces_decision_id: string | null;
+          reason: string | null;
         };
         Insert: {
           id?: string;
@@ -2743,14 +2747,12 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["tax_rule_versions"]["Row"];
       };
-      record_tax_decision: {
-        Args: {
-          p_source_type: string;
-          p_source_id: string;
-          p_due_type_id: string;
-          p_jurisdiction: string;
-          p_transaction_date: string;
-        };
+      record_tax_decision_for_due: {
+        Args: { p_due_id: string };
+        Returns: string;
+      };
+      reverse_tax_decision: {
+        Args: { p_decision_id: string; p_reason: string };
         Returns: string;
       };
       create_tax_rule_draft: {

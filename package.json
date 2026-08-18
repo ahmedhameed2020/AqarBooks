@@ -16,7 +16,8 @@
     "test:einvoice-identity": "vitest run tests/einvoice-tax-identity.integration.test.ts",
     "test:revenue-classification": "vitest run tests/revenue-classification.integration.test.ts",
     "test:tax-mapping-review": "vitest run tests/tax-mapping-review.integration.test.ts",
-    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review",
+    "test:tax-decision-contract": "vitest run tests/tax-decision-contract.integration.test.ts",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review && npm run test:tax-decision-contract",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
