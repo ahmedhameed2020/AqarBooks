@@ -34,6 +34,9 @@ export type Database = {
           email: string | null;
           tax_id: string | null;
           tax_jurisdiction: string | null;
+          tax_enforcement_enabled: boolean;
+          tax_enforcement_enabled_at: string | null;
+          tax_enforcement_enabled_by: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -2754,6 +2757,14 @@ export type Database = {
       reverse_tax_decision: {
         Args: { p_decision_id: string; p_reason: string };
         Returns: string;
+      };
+      check_tax_enforcement_readiness: {
+        Args: { p_organization_id: string };
+        Returns: { gap_code: string; detail: string }[];
+      };
+      set_tax_enforcement: {
+        Args: { p_organization_id: string; p_enabled: boolean; p_reason?: string | null };
+        Returns: undefined;
       };
       create_tax_rule_draft: {
         Args: {
