@@ -101,6 +101,7 @@ export async function requestPasswordResetAction(
 ): Promise<{
   ok: boolean;
   error?: string;
+  code?: string;
 }> {
   const parsed = z.string().email("البريد الإلكتروني غير صالح").safeParse(email);
   if (!parsed.success) {
@@ -113,6 +114,22 @@ export async function requestPasswordResetAction(
   });
 
   if (error) {
+    const msg = error.message.toLowerCase();
+    // 530 error indicates SMTP server rejection / built-in rate limit or SMTP misconfiguration
+    if (msg.includes("530") || msg.includes("smtp") || (error as { status?: number }).status === 530) {
+      return {
+        ok: false,
+        error: "تعذر إرسال البريد مؤقتاً عبر خادم SMTP (تم تجاوز حد الإرسال المسموح أو إعدادات مزود البريد في Supabase بحاجة لضبط).",
+        code: "SMTP_ERROR",
+      };
+    }
+    if (msg.includes("rate limit") || msg.includes("too many") || (error as { status?: number }).status === 429) {
+      return {
+        ok: false,
+        error: "تم إرسال عدة طلبات خلال وقت قصير. يرجى الانتظار بضع دقائق ثم المحاولة مجدداً.",
+        code: "RATE_LIMIT",
+      };
+    }
     return { ok: false, error: error.message };
   }
 
