@@ -17,6 +17,16 @@ function message(error: string, isAr: boolean) {
       ? "لا يمكن تفعيل الإرسال قبل التحقق الفعلي من بيانات الاعتماد مقابل مصلحة الضرائب."
       : "Filing cannot be switched on before credentials are actually proven against the tax authority.";
   }
+  if (error.includes("EINVOICE_IDENTITY_CONFLICT")) {
+    return isAr
+      ? "الرقم الضريبي المُدخَل يخالف الرقم المسجّل للمؤسسة. الهوية الضريبية تُغيَّر على بيانات المؤسسة، لا هنا."
+      : "This taxpayer ID does not match the organization's registered number. The legal identity is changed on the organization, not here.";
+  }
+  if (error.includes("EINVOICE_LEGAL_IDENTITY_MISSING")) {
+    return isAr
+      ? "سجّل الرقم الضريبي للمؤسسة أولًا قبل إعداد الفوترة الإلكترونية."
+      : "Record the organization's tax registration number before configuring e-invoicing.";
+  }
   if (error.includes("EINVOICE_JURISDICTION_INVALID")) {
     return isAr ? "ولاية ضريبية غير مدعومة." : "Unsupported tax jurisdiction.";
   }

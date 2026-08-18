@@ -30,6 +30,10 @@ async function setUpOrg(
   roleKey: string | null,
 ): Promise<Org> {
   const stamp = `${Date.now()}-${label}`;
+  // ADR 0002: organizations.tax_id هو مصدر الهوية، ولا يُنشأ ملف فوترة بدونه،
+  // وقيمة الملف يجب أن تطابقه. هذا الـfixture سبق تلك القاعدة فانكسر بحق حين
+  // نزلت — الإصلاح في الـfixture لا في الحارس.
+  const taxpayerId = `TAX-${label}-${Date.now()}`;
   const { data: org, error: orgErr } = await admin
     .from("organizations")
     .insert({
@@ -37,6 +41,7 @@ async function setUpOrg(
       slug: `e2e-einv-settings-${label.toLowerCase()}-${Date.now()}`,
       default_currency: "EGP",
       status: "ACTIVE",
+      tax_id: taxpayerId,
     })
     .select("id")
     .single();
@@ -69,7 +74,7 @@ async function setUpOrg(
       .insert({ user_id: created!.user!.id, role_id: role!.id, organization_id: orgId });
   }
 
-  return { orgId, email, taxpayerId: `TAX-${label}-${Date.now()}` };
+  return { orgId, email, taxpayerId };
 }
 
 async function cleanUp(admin: SupabaseClient, orgId: string) {
@@ -256,11 +261,34 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
   // taxpayer id and the profile silently stayed verified. ProfileForm is now
   // keyed on updated_at so it remounts after each save; this asserts that fix
   // rather than working around it.
+  //
+  // Since ADR 0002 the screen can no longer change WHO the filer is: a taxpayer
+  // id that disagrees with the organization's legal identity is refused
+  // outright, so the second save now asserts the refusal instead.
   const eg2 = section(page, "EG_ETA");
   await eg2.locator("#tax-EG_ETA").fill("TAX-DIFFERENT-FILER");
   await expect(eg2.locator("#tax-EG_ETA")).toHaveValue("TAX-DIFFERENT-FILER");
   await eg2.getByRole("button", { name: /Save details/i }).click();
-  await expect(eg2.getByText(/Configured — not verified/i)).toBeVisible({ timeout: 15_000 });
+  await expect(eg2.getByText(/does not match the organization/i)).toBeVisible({ timeout: 15_000 });
+
+  const { data: unchanged } = await admin
+    .from("einvoice_profiles")
+    .select("status, taxpayer_id")
+    .eq("id", profile!.id)
+    .single();
+  expect(unchanged!.status, "a refused save changes nothing").toBe("ACTIVE");
+  expect(unchanged!.taxpayer_id).toBe(org.taxpayerId);
+
+  // Changing the filer is an act on the ENTITY, not on an integration setting.
+  // That is what drops the verification, through the organization trigger.
+  await admin
+    .from("organizations")
+    .update({ tax_id: "TAX-DIFFERENT-FILER" })
+    .eq("id", org.orgId);
+  await page.reload();
+  await expect(
+    section(page, "EG_ETA").getByText(/Configured — not verified/i),
+  ).toBeVisible({ timeout: 15_000 });
 
   const { data: after } = await admin
     .from("einvoice_profiles")
