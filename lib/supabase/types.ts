@@ -37,6 +37,9 @@ export type Database = {
           tax_enforcement_enabled: boolean;
           tax_enforcement_enabled_at: string | null;
           tax_enforcement_enabled_by: string | null;
+          tax_enforcement_disabled_at: string | null;
+          tax_enforcement_disabled_by: string | null;
+          tax_enforcement_disabled_reason: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -2761,6 +2764,18 @@ export type Database = {
       check_tax_enforcement_readiness: {
         Args: { p_organization_id: string };
         Returns: { gap_code: string; detail: string }[];
+      };
+      list_tax_enforcement_lapses: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          organization_id: string;
+          organization_name: string;
+          enabled_at: string | null;
+          disabled_at: string | null;
+          disabled_by: string | null;
+          disabled_reason: string | null;
+          dues_without_decision: number;
+        }[];
       };
       set_tax_enforcement: {
         Args: { p_organization_id: string; p_enabled: boolean; p_reason?: string | null };

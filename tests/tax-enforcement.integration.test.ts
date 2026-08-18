@@ -402,18 +402,32 @@ describe("الإنفاذ الضريبي لكل مؤسسة", () => {
     expect(crossErr!.message).toMatch(/FORBIDDEN_TAX_ENFORCEMENT/);
   });
 
-  it("الإيقاف متاح دائمًا ويُسجَّل، ويعيد السلوك القديم", async () => {
+  it("الإيقاف مخرج طوارئ لا يُستعمل صامتًا: السبب إلزامي والأثر يبقى مرئيًا", async () => {
+    // مخرج الطوارئ يبقى مفتوحًا، لكن استعماله بلا سبب مرفوض — الفجوة التي يفتحها
+    // تُرحَّل فيها مستحقات بلا قرار ضريبي.
+    const { error: noReason } = await orgOn.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: orgOn.orgId, p_enabled: false,
+    });
+    expect(noReason, "الإيقاف بلا سبب مرفوض").not.toBeNull();
+    expect(noReason!.message).toMatch(/TAX_ENFORCEMENT_DISABLE_REASON_REQUIRED/);
+
     const { error } = await orgOn.owner.client.rpc("set_tax_enforcement", {
       p_organization_id: orgOn.orgId, p_enabled: false, p_reason: "إيقاف مؤقت",
     });
     expect(error, `disable failed: ${error?.message}`).toBeNull();
 
     const { data: org } = await admin.from("organizations")
-      .select("tax_enforcement_enabled, tax_enforcement_enabled_at, tax_enforcement_enabled_by")
+      .select(
+        "tax_enforcement_enabled, tax_enforcement_enabled_at, tax_enforcement_disabled_at, tax_enforcement_disabled_by, tax_enforcement_disabled_reason",
+      )
       .eq("id", orgOn.orgId).single();
     expect(org!.tax_enforcement_enabled).toBe(false);
-    expect(org!.tax_enforcement_enabled_at, "الطابع يُمسح مع الإيقاف").toBeNull();
-    expect(org!.tax_enforcement_enabled_by).toBeNull();
+    // النسخة الأولى كانت تمسح enabled_at عند الإيقاف، فلا يبقى على الصف أثر أن
+    // الإنفاذ كان مفعَّلًا يومًا — وتعمى المراقبة عن الفجوة تمامًا.
+    expect(org!.tax_enforcement_enabled_at, "أثر التفعيل السابق يبقى").not.toBeNull();
+    expect(org!.tax_enforcement_disabled_at).not.toBeNull();
+    expect(org!.tax_enforcement_disabled_by).toBe(orgOn.owner.userId);
+    expect(org!.tax_enforcement_disabled_reason).toBe("إيقاف مؤقت");
 
     const { data: logs } = await admin.from("platform_audit_logs")
       .select("reason").eq("organization_id", orgOn.orgId).eq("action", "tax_enforcement.disabled");
@@ -423,5 +437,27 @@ describe("الإنفاذ الضريبي لكل مؤسسة", () => {
     // وبعد الإيقاف يمر مستحق كان سيُرفض قبل قليل.
     const { error: passErr } = await insertDue(orgOn, "2025-06-01");
     expect(passErr, `المطفأ يمر: ${passErr?.message}`).toBeNull();
+  });
+
+  it("المراقبة تقيس أثر الفجوة لا مجرد وقوعها", async () => {
+    const { data, error } = await platformAdmin.client.rpc("list_tax_enforcement_lapses");
+    expect(error, `lapses failed: ${error?.message}`).toBeNull();
+
+    const rows = data as unknown as {
+      organization_id: string;
+      disabled_reason: string | null;
+      dues_without_decision: number;
+    }[];
+    const mine = rows.find((r) => r.organization_id === orgOn.orgId);
+    expect(mine, "المؤسسة التي أُوقف إنفاذها تظهر").toBeTruthy();
+    expect(mine!.disabled_reason).toBe("إيقاف مؤقت");
+    // مستحق واحد رُحِّل بعد الإيقاف بلا قرار — والعدد هو ما يميّز مخرج طوارئ
+    // بلا ضرر عن سجل ضريبي مثقوب.
+    expect(Number(mine!.dues_without_decision), "أثر الفجوة محسوب").toBe(1);
+
+    // ومحجوبة عن غير مشرف المنصة.
+    const { error: forbidden } = await orgOn.owner.client.rpc("list_tax_enforcement_lapses");
+    expect(forbidden, "المراقبة لمشرف المنصة وحده").not.toBeNull();
+    expect(forbidden!.message).toMatch(/FORBIDDEN_TAX_ENFORCEMENT/);
   });
 });
