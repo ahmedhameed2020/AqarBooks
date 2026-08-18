@@ -105,6 +105,8 @@ export async function accrueCommissionAction(
   });
   if (error) return { ok: false, error: error.message };
   revalidatePath(PATH, "page");
+  revalidatePath("/ar/finance/commissions", "page");
+  revalidatePath("/en/finance/commissions", "page");
   return { ok: true };
 }
 
@@ -147,8 +149,7 @@ export async function saveCommissionFinanceSettings(
   const { data: existing } = await supabase
     .from("organization_finance_settings")
     .select("id")
-    .eq("organization_id", organizationId)
-    .limit(1);
+    .eq("organization_id", organizationId);
 
   if (existing && existing.length > 0) {
     const { error } = await supabase
@@ -157,18 +158,16 @@ export async function saveCommissionFinanceSettings(
         commission_expense_account_id: expenseAccountId,
         commission_payable_account_id: payableAccountId,
       })
-      .eq("id", existing[0].id);
+      .eq("organization_id", organizationId);
 
     if (error) return { ok: false, error: error.message };
   } else {
     // Need property & clearing account to create the initial row
-    const [{ data: prop }, { data: assetAccount }] = await Promise.all([
+    const [{ data: properties }, { data: assetAccount }] = await Promise.all([
       supabase
         .from("properties")
         .select("id")
-        .eq("organization_id", organizationId)
-        .limit(1)
-        .maybeSingle(),
+        .eq("organization_id", organizationId),
       supabase
         .from("chart_of_accounts")
         .select("id")
@@ -179,24 +178,29 @@ export async function saveCommissionFinanceSettings(
         .maybeSingle(),
     ]);
 
-    if (!prop || !assetAccount) {
+    if (!properties || properties.length === 0 || !assetAccount) {
       return { ok: false, error: "missing_property_or_asset_account" };
     }
 
+    const rowsToInsert = properties.map((p) => ({
+      organization_id: organizationId,
+      property_id: p.id,
+      online_payments_clearing_account_id: assetAccount.id,
+      commission_expense_account_id: expenseAccountId,
+      commission_payable_account_id: payableAccountId,
+    }));
+
     const { error } = await supabase
       .from("organization_finance_settings")
-      .insert({
-        organization_id: organizationId,
-        property_id: prop.id,
-        online_payments_clearing_account_id: assetAccount.id,
-        commission_expense_account_id: expenseAccountId,
-        commission_payable_account_id: payableAccountId,
-      });
+      .insert(rowsToInsert);
 
     if (error) return { ok: false, error: error.message };
   }
 
   revalidatePath(PATH, "page");
+  revalidatePath("/ar/finance/commissions", "page");
+  revalidatePath("/en/finance/commissions", "page");
   return { ok: true };
 }
+
 
