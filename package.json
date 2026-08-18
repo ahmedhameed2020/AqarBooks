@@ -8,15 +8,16 @@
     "build:next": "next build",
     "start": "next start",
     "lint": "eslint",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts",
     "test:sql": "vitest run tests/pgtap.integration.test.ts",
     "test:payment-idempotency": "vitest run tests/record-online-payment-concurrency.integration.test.ts",
     "test:e2e": "playwright test",
     "test:einvoice": "vitest run tests/einvoice-pipeline.integration.test.ts",
-    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice"
+    "test:einvoice-identity": "vitest run tests/einvoice-tax-identity.integration.test.ts",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
