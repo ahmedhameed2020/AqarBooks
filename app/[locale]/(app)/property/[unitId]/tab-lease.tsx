@@ -1,8 +1,10 @@
 import { User, Wallet, Calendar, ShieldCheck } from "lucide-react";
 import { Money } from "@/components/money";
 import { createClient } from "@/lib/supabase/server";
+import { hasPermission } from "@/lib/auth/authorize";
 import { CreateLeaseDialog } from "./create-lease-dialog";
 import { ActivateLeaseButton, CancelLeaseButton, EndLeaseButton } from "./lease-action-buttons";
+import { DepositPanel } from "./deposit-panel";
 
 const FREQUENCY_LABEL: Record<string, { ar: string; en: string }> = {
   MONTHLY: { ar: "شهري", en: "Monthly" },
@@ -48,8 +50,36 @@ export async function TabLease({
       .eq("category", "ASSET"),
   ]);
 
+  // Deposit movements are cash in or out, or a recognised deduction, so the
+  // panel needs both sides of the chart of accounts rather than just assets.
+  const [{ data: incomeAccounts }, canManageLeases] = await Promise.all([
+    supabase
+      .from("chart_of_accounts")
+      .select("id, code, name_ar, name_en")
+      .eq("organization_id", organizationId)
+      .eq("is_group", false)
+      .eq("is_active", true)
+      .in("category", ["REVENUE", "EXPENSE"])
+      .order("code"),
+    hasPermission(organizationId, "property.leases.manage"),
+  ]);
+
   const memberName = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const activeLease = (leases ?? []).find((l) => l.status === "ACTIVE");
+
+  // Deposit position is derived from the event log, never from a stored
+  // balance, so it cannot drift from its own history.
+  const [{ data: depositRows }, { data: depositEvents }] = activeLease
+    ? await Promise.all([
+        supabase.rpc("get_lease_deposit_summary", { p_lease_id: activeLease.id }),
+        supabase
+          .from("unit_lease_deposit_events")
+          .select("id, event_type, amount, reason, event_date")
+          .eq("lease_id", activeLease.id)
+          .order("event_date", { ascending: false }),
+      ])
+    : [{ data: null }, { data: null }];
+  const depositSummary = depositRows?.[0];
   const draftLeases = (leases ?? []).filter((l) => l.status === "DRAFT");
   const historyLeases = (leases ?? []).filter((l) => l.status === "ENDED" || l.status === "CANCELLED");
 
@@ -107,6 +137,27 @@ export async function TabLease({
             </div>
             <EndLeaseButton leaseId={activeLease.id} locale={locale} />
           </div>
+
+          {depositSummary && (
+            <div className="mt-5">
+              <DepositPanel
+                leaseId={activeLease.id}
+                summary={depositSummary}
+                events={depositEvents ?? []}
+                cashAccounts={(accounts ?? []).map((a) => ({
+                  id: a.id,
+                  label: `${a.code} — ${isAr ? a.name_ar : a.name_en}`,
+                }))}
+                incomeAccounts={(incomeAccounts ?? []).map((a) => ({
+                  id: a.id,
+                  label: `${a.code} — ${isAr ? a.name_ar : a.name_en}`,
+                }))}
+                currency={currency}
+                locale={locale}
+                canManage={canManageLeases}
+              />
+            </div>
+          )}
         </section>
       ) : (
         <div className="rounded-2xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">

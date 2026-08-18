@@ -944,6 +944,24 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      unit_lease_deposit_events: {
+        Row: {
+          id: string;
+          lease_id: string;
+          event_type: "RECEIVED" | "REFUNDED" | "DEDUCTED";
+          amount: number;
+          reason: string | null;
+          event_date: string;
+          journal_entry_id: string | null;
+          settlement_account_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        /** Written only through record_lease_deposit_event(); no client write policy exists. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       unit_leases: {
         Row: {
           id: string;
@@ -2102,6 +2120,28 @@ export type Database = {
       recognize_pending_dues: {
         Args: { p_organization_id: string; p_fiscal_period_id: string };
         Returns: number;
+      };
+      record_lease_deposit_event: {
+        Args: {
+          p_lease_id: string;
+          p_event_type: "RECEIVED" | "REFUNDED" | "DEDUCTED";
+          p_amount: number;
+          p_settlement_account_id: string;
+          p_reason?: string | null;
+          p_event_date?: string;
+        };
+        Returns: string;
+      };
+      get_lease_deposit_summary: {
+        Args: { p_lease_id: string };
+        Returns: {
+          received_total: number;
+          refunded_total: number;
+          deducted_total: number;
+          held_total: number;
+          agreed_amount: number;
+          event_count: number;
+        }[];
       };
       compute_service_charge_allocations: {
         Args: { p_levy_id: string };
