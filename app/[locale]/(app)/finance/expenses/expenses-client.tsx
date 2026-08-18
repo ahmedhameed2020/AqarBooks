@@ -51,6 +51,8 @@ import {
   PieChart,
   BarChart3,
   FileSpreadsheet,
+  Send,
+  Share2,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
