@@ -5,6 +5,8 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Money } from "@/components/money";
 import type { Locale } from "@/i18n/routing";
 import type { DueDbRow, PaymentDbRow } from "@/lib/portal/row-types";
+import type { StatementLine } from "@/lib/reports/account-statement-pdf";
+import { PrintStatementButton } from "./print-statement-button";
 
 export default async function PortalStatementPage({
   params,
@@ -25,7 +27,12 @@ export default async function PortalStatementPage({
   // explicit .eq() on payments below is defense in depth, not the actual
   // boundary. dues has no member_id column; its RLS scoping goes through the
   // unit-ownership chain instead, so there is no equivalent .eq() to add here.
-  const [{ data: duesData, error: duesError }, { data: paymentsData, error: paymentsError }] = await Promise.all([
+  const [
+    { data: orgDisplay },
+    { data: duesData, error: duesError },
+    { data: paymentsData, error: paymentsError },
+  ] = await Promise.all([
+    supabase.rpc("get_own_organization_display").maybeSingle(),
     supabase
       .from("dues")
       .select("id, amount, issue_date, due_date, description, status, units(code)")
@@ -53,9 +60,40 @@ export default async function PortalStatementPage({
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = totalDue - totalPaid;
 
+  // Same rows the list below renders, shaped for the printable statement so
+  // the document can never disagree with the screen.
+  const statementLines: StatementLine[] = [
+    ...dues.map((d) => ({
+      date: d.issue_date,
+      kind: "CHARGE" as const,
+      description: d.description ?? (isAr ? "استحقاق" : "Due"),
+      unitCode: d.units?.code ?? null,
+      reference: null,
+      amount: Number(d.amount),
+    })),
+    ...payments.map((p) => ({
+      date: p.payment_date,
+      kind: "PAYMENT" as const,
+      description: isAr ? "دفعة" : "Payment",
+      unitCode: null,
+      reference: p.receipt_no || (p.receipt_number ? `REC-${p.receipt_number}` : null),
+      amount: Number(p.amount),
+    })),
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-bold text-foreground">{isAr ? "كشف الحساب" : "Account Statement"}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-lg font-bold text-foreground">{isAr ? "كشف الحساب" : "Account Statement"}</h1>
+        <PrintStatementButton
+          organizationName={orgDisplay?.name ?? ""}
+          propertyName=""
+          currency={orgDisplay?.default_currency ?? ""}
+          accountName={member.full_name ?? ""}
+          lines={statementLines}
+          locale={locale}
+        />
+      </div>
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl border border-border bg-background p-4">
           <p className="text-xs text-muted-foreground">{isAr ? "إجمالي المستحق" : "Total Due"}</p>
