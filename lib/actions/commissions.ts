@@ -129,3 +129,74 @@ export async function payCommissionAction(
   revalidatePath(PATH, "page");
   return { ok: true };
 }
+
+export async function saveCommissionFinanceSettings(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const organizationId = formData.get("organizationId") as string;
+  const expenseAccountId = formData.get("expenseAccountId") as string;
+  const payableAccountId = formData.get("payableAccountId") as string;
+
+  if (!organizationId || !expenseAccountId || !payableAccountId) {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("organization_finance_settings")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    const { error } = await supabase
+      .from("organization_finance_settings")
+      .update({
+        commission_expense_account_id: expenseAccountId,
+        commission_payable_account_id: payableAccountId,
+      })
+      .eq("id", existing[0].id);
+
+    if (error) return { ok: false, error: error.message };
+  } else {
+    // Need property & clearing account to create the initial row
+    const [{ data: prop }, { data: assetAccount }] = await Promise.all([
+      supabase
+        .from("properties")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("chart_of_accounts")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("category", "ASSET")
+        .eq("is_group", false)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (!prop || !assetAccount) {
+      return { ok: false, error: "missing_property_or_asset_account" };
+    }
+
+    const { error } = await supabase
+      .from("organization_finance_settings")
+      .insert({
+        organization_id: organizationId,
+        property_id: prop.id,
+        online_payments_clearing_account_id: assetAccount.id,
+        commission_expense_account_id: expenseAccountId,
+        commission_payable_account_id: payableAccountId,
+      });
+
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath(PATH, "page");
+  return { ok: true };
+}
+

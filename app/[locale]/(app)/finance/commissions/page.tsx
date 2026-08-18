@@ -84,6 +84,7 @@ export default async function CommissionsPage({
     { data: commissionsRaw },
     { data: propertiesRaw },
     { data: accountsRaw },
+    { data: financeSettingsRaw },
   ] = await Promise.all([
     supabase
       .from("brokers")
@@ -108,9 +109,20 @@ export default async function CommissionsPage({
       .eq("organization_id", organization.id)
       .eq("is_group", false)
       .eq("is_active", true)
-      .in("category", ["ASSET", "LIABILITY"])
+      .in("category", ["ASSET", "LIABILITY", "EXPENSE"])
       .order("code"),
+    supabase
+      .from("organization_finance_settings")
+      .select("id, commission_expense_account_id, commission_payable_account_id")
+      .eq("organization_id", organization.id)
+      .limit(1),
   ]);
+
+  const financeSetting = financeSettingsRaw?.[0] || null;
+  const isAccountsConfigured = Boolean(
+    financeSetting?.commission_expense_account_id &&
+    financeSetting?.commission_payable_account_id
+  );
 
   const commissions: CommissionRow[] = (commissionsRaw ?? []).map((c) => ({
     id: c.id,
@@ -175,6 +187,10 @@ export default async function CommissionsPage({
 
   const liabilityAccounts: Option[] = (accountsRaw ?? [])
     .filter((a) => a.category === "LIABILITY")
+    .map((a) => ({ id: a.id, label: label(a) }));
+
+  const expenseAccounts: Option[] = (accountsRaw ?? [])
+    .filter((a) => a.category === "EXPENSE")
     .map((a) => ({ id: a.id, label: label(a) }));
 
   // ── Executive KPI Financial Summary Calculations ──────────────────
@@ -276,6 +292,10 @@ export default async function CommissionsPage({
         properties={propertyOptions}
         cashAccounts={cashAccounts}
         liabilityAccounts={liabilityAccounts}
+        expenseAccounts={expenseAccounts}
+        isAccountsConfigured={isAccountsConfigured}
+        initialExpenseAccountId={financeSetting?.commission_expense_account_id}
+        initialPayableAccountId={financeSetting?.commission_payable_account_id}
         organizationId={organization.id}
         organizationName={organization.name}
         currency={currency}

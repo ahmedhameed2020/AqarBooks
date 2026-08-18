@@ -39,11 +39,15 @@ import {
   Mail,
   ShieldCheck,
   Calculator,
+  Settings2,
+  ArrowRight,
+  ExternalLink,
 } from "lucide-react";
 import {
   createBroker,
   accrueCommissionAction,
   payCommissionAction,
+  saveCommissionFinanceSettings,
 } from "@/lib/actions/commissions";
 import { useToast } from "@/components/ui/toast";
 import { getCurrencyLabel } from "@/lib/currency";
@@ -64,7 +68,209 @@ export type BrokerItem = {
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
-   1. CREATE BROKER DIALOG
+   1. CONFIGURE COMMISSION ACCOUNTS DIALOG (FINANCE SETTINGS)
+   ────────────────────────────────────────────────────────────────────────── */
+export function ConfigureCommissionAccountsDialog({
+  open,
+  onOpenChange,
+  organizationId,
+  expenseAccounts,
+  liabilityAccounts,
+  initialExpenseAccountId,
+  initialPayableAccountId,
+  locale,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  organizationId: string;
+  expenseAccounts: Option[];
+  liabilityAccounts: Option[];
+  initialExpenseAccountId?: string | null;
+  initialPayableAccountId?: string | null;
+  locale: string;
+}) {
+  const isAr = locale === "ar";
+  const router = useRouter();
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Auto-detect default expense account (e.g. includes "عمول" or "commission")
+  const defaultExpenseId =
+    initialExpenseAccountId ||
+    expenseAccounts.find((a) =>
+      a.label.toLowerCase().includes("عمول") ||
+      a.label.toLowerCase().includes("commission")
+    )?.id ||
+    expenseAccounts[0]?.id ||
+    "";
+
+  // Auto-detect default payable account (e.g. includes "عمول" or "مستحق" or "payable")
+  const defaultPayableId =
+    initialPayableAccountId ||
+    liabilityAccounts.find((a) =>
+      a.label.toLowerCase().includes("عمول") ||
+      a.label.toLowerCase().includes("مستحق") ||
+      a.label.toLowerCase().includes("payable")
+    )?.id ||
+    liabilityAccounts[0]?.id ||
+    "";
+
+  const [expenseAccountId, setExpenseAccountId] = useState<string>(defaultExpenseId);
+  const [payableAccountId, setPayableAccountId] = useState<string>(defaultPayableId);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (!expenseAccountId || !payableAccountId) {
+      setErrorMsg(
+        isAr
+          ? "يرجى اختيار كل من حساب مصروف العمولة وحساب التزام المستحقات"
+          : "Please select both commission expense and payable accounts"
+      );
+      return;
+    }
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("organizationId", organizationId);
+      formData.set("expenseAccountId", expenseAccountId);
+      formData.set("payableAccountId", payableAccountId);
+
+      const res = await saveCommissionFinanceSettings({ ok: true }, formData);
+
+      if (res.ok) {
+        toast.add({
+          type: "success",
+          title: isAr ? "تم حفظ إعدادات حسابات العمولات" : "Commission Settings Saved",
+          description: isAr
+            ? "تم ربط حساب المصروف وحساب الالتزام بنجاح، يمكنك الآن تسجيل الاستحقاقات."
+            : "Commission expense and payable accounts configured successfully.",
+        });
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        setErrorMsg(
+          res.error ||
+            (isAr
+              ? "حدث خطأ أثناء حفظ الإعدادات."
+              : "Failed to save finance settings.")
+        );
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+            <Settings2 className="size-5" />
+          </div>
+          <div>
+            <DialogTitle>
+              {isAr ? "تهيئة حسابات العمولات في دليل الحسابات" : "Configure Commission Accounts"}
+            </DialogTitle>
+            <DialogDescription>
+              {isAr
+                ? "تحديد حساب المصروف (مدين) وحساب التزام الوسطاء (دائن) لترحيل قيود اليومية تلقائياً."
+                : "Select the expense and liability accounts to auto-post double-entry GL journals."}
+            </DialogDescription>
+          </div>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit}>
+          <DialogBody className="space-y-4">
+            {errorMsg && (
+              <div
+                role="alert"
+                className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300"
+              >
+                <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Expense Account */}
+            <div className="space-y-1.5 text-start">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "حساب مصروف العمولات (مدين - EXPENSE) *" : "Commission Expense Account (Debit) *"}
+              </Label>
+              <Select
+                value={expenseAccountId}
+                onValueChange={(val) => setExpenseAccountId(val ?? "")}
+                items={expenseAccounts.map((a) => ({ value: a.id, label: a.label }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={isAr ? "اختر حساب المصروف..." : "Select expense account..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {expenseAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-slate-400">
+                {isAr ? "الحساب الذي يُحمَّل بمصروف العمولة عند الاستحقاق (مثلاً: 5120 - عمولات بيع وتسويق)." : "Debited with gross commission expense upon accrual."}
+              </p>
+            </div>
+
+            {/* Payable Account */}
+            <div className="space-y-1.5 text-start">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "حساب التزام عمولات الوسطاء (دائن - LIABILITY) *" : "Commission Payable Account (Credit) *"}
+              </Label>
+              <Select
+                value={payableAccountId}
+                onValueChange={(val) => setPayableAccountId(val ?? "")}
+                items={liabilityAccounts.map((a) => ({ value: a.id, label: a.label }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={isAr ? "اختر حساب الالتزام..." : "Select liability account..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {liabilityAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-slate-400">
+                {isAr ? "الحساب الذي يُثبت فيه التزام الصرف للوسيط حتى يتم السداد (مثلاً: 2130 - عمولات مستحقة للوسطاء)." : "Credited with net commission liability until settled."}
+              </p>
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || !expenseAccountId || !payableAccountId}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+            >
+              {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+              <span>{isAr ? "حفظ الحسابات" : "Save Accounts"}</span>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. CREATE BROKER DIALOG
    ────────────────────────────────────────────────────────────────────────── */
 export function CreateBrokerDialog({
   open,
@@ -293,7 +499,7 @@ export function CreateBrokerDialog({
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   2. ACCRUE COMMISSION DIALOG
+   3. ACCRUE COMMISSION DIALOG
    ────────────────────────────────────────────────────────────────────────── */
 export function AccrueCommissionDialog({
   open,
@@ -302,6 +508,9 @@ export function AccrueCommissionDialog({
   brokers,
   properties,
   liabilityAccounts,
+  expenseAccounts,
+  isAccountsConfigured,
+  onOpenConfigureAccounts,
   currency = "EGP",
   locale,
 }: {
@@ -311,6 +520,9 @@ export function AccrueCommissionDialog({
   brokers: Option[];
   properties: Option[];
   liabilityAccounts: Option[];
+  expenseAccounts: Option[];
+  isAccountsConfigured?: boolean;
+  onOpenConfigureAccounts?: () => void;
   currency?: string;
   locale: string;
 }) {
@@ -410,8 +622,8 @@ export function AccrueCommissionDialog({
         if (err.includes("COMMISSION_ACCOUNTS_NOT_SET")) {
           setErrorMsg(
             isAr
-              ? "لم تُحدَّد حسابات مصروف العمولة والتزامها في إعدادات المالية. يرجى تحديدها أولاً في شجرة الحسابات."
-              : "Commission accounts are not configured in finance settings."
+              ? "لم تُحدَّد حسابات مصروف العمولة والتزامها في إعدادات المالية. يرجى تهيئتها أولاً."
+              : "Commission expense and payable accounts are not configured in finance settings."
           );
         } else if (err.includes("NO_OPEN_FISCAL_PERIOD")) {
           setErrorMsg(isAr ? "لا توجد فترة مالية مفتوحة تغطي تاريخ الاستحقاق." : "No open fiscal period covers this date.");
@@ -424,24 +636,59 @@ export function AccrueCommissionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
-            <Calculator className="size-5" />
-          </div>
-          <div>
-            <DialogTitle>{isAr ? "تسجيل استحقاق عمولة وسيط" : "Accrue Broker Commission"}</DialogTitle>
-            <DialogDescription>
-              {isAr
-                ? "إثبات استحقاق العمولة المحاسبي مع حساب ضريبة الخصم من المنبع وترحيل القيد المزدوج."
-                : "Record accrued commission liability and auto-post double-entry GL transactions."}
-            </DialogDescription>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-5 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+              <Calculator className="size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold">
+                {isAr ? "تسجيل استحقاق عمولة وسيط" : "Accrue Broker Commission"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                {isAr
+                  ? "إثبات استحقاق العمولة المحاسبي مع حساب ضريبة الخصم من المنبع وترحيل القيد المزدوج."
+                  : "Record accrued commission liability and auto-post double-entry GL transactions."}
+              </DialogDescription>
+            </div>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <DialogBody className="space-y-4">
-            {errorMsg && (
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <DialogBody className="p-5 space-y-4 overflow-y-auto flex-1">
+            {/* Accounts configuration warning & fast link */}
+            {(!isAccountsConfigured || errorMsg?.includes("COMMISSION_ACCOUNTS_NOT_SET")) && (
+              <div
+                role="alert"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>
+                    {isAr
+                      ? "يلزم ربط حسابات مصروف والتزام العمولات قبل ترحيل القيد."
+                      : "Commission expense and liability accounts must be configured."}
+                  </span>
+                </div>
+                {onOpenConfigureAccounts && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenConfigureAccounts();
+                    }}
+                    className="bg-amber-700 hover:bg-amber-800 text-white font-bold h-7 text-xs gap-1 self-start sm:self-auto"
+                  >
+                    <Settings2 className="size-3" />
+                    <span>{isAr ? "تهيئة الحسابات الآن" : "Configure Accounts"}</span>
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {errorMsg && !errorMsg.includes("COMMISSION_ACCOUNTS_NOT_SET") && (
               <div
                 role="alert"
                 className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300"
@@ -455,20 +702,20 @@ export function AccrueCommissionDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5 text-start">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <UserCheck className="size-3 text-blue-600" />
-                  <span>{isAr ? "الوسيط *" : "Broker *"}</span>
+                  <UserCheck className="size-3.5 text-blue-600" />
+                  <span>{isAr ? "الوسيط المستفيد *" : "Beneficiary Broker *"}</span>
                 </Label>
                 <Select
                   value={brokerId}
                   onValueChange={(val) => setBrokerId(val ?? "")}
                   items={brokers.map((b) => ({ value: b.id, label: b.label }))}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue placeholder={isAr ? "اختر الوسيط..." : "Select broker..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {brokers.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
+                      <SelectItem key={b.id} value={b.id} className="text-xs">
                         {b.label}
                       </SelectItem>
                     ))}
@@ -478,7 +725,7 @@ export function AccrueCommissionDialog({
 
               <div className="space-y-1.5 text-start">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Building2 className="size-3 text-purple-600" />
+                  <Building2 className="size-3.5 text-purple-600" />
                   <span>{isAr ? "المشروع / العقار *" : "Property / Deal *"}</span>
                 </Label>
                 <Select
@@ -486,12 +733,12 @@ export function AccrueCommissionDialog({
                   onValueChange={(val) => setPropertyId(val ?? "")}
                   items={properties.map((p) => ({ value: p.id, label: p.label }))}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue placeholder={isAr ? "اختر العقار..." : "Select property..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {properties.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
+                      <SelectItem key={p.id} value={p.id} className="text-xs">
                         {p.label}
                       </SelectItem>
                     ))}
@@ -501,13 +748,13 @@ export function AccrueCommissionDialog({
             </div>
 
             {/* Mode selector */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
               <button
                 type="button"
                 onClick={() => setCalcMode("PERCENT")}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   calcMode === "PERCENT"
-                    ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-900 dark:text-white"
+                    ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
@@ -516,9 +763,9 @@ export function AccrueCommissionDialog({
               <button
                 type="button"
                 onClick={() => setCalcMode("FIXED")}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   calcMode === "FIXED"
-                    ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-900 dark:text-white"
+                    ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
@@ -531,7 +778,7 @@ export function AccrueCommissionDialog({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5 text-start">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {isAr ? "قيمة الصفقة / العقد" : "Deal / Basis Amount"}
+                    {isAr ? "قيمة الصفقة / العقد *" : "Deal Basis Amount *"}
                   </Label>
                   <div className="relative">
                     <Input
@@ -541,8 +788,8 @@ export function AccrueCommissionDialog({
                       required
                       value={basisAmount}
                       onChange={(e) => setBasisAmount(e.target.value)}
-                      placeholder="1,000,000"
-                      className="font-mono text-sm pe-12"
+                      placeholder="5000000"
+                      className="font-mono text-sm ps-3 pe-14 text-start h-9"
                       dir="ltr"
                     />
                     <div className="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none text-xs font-bold text-slate-400">
@@ -553,7 +800,7 @@ export function AccrueCommissionDialog({
 
                 <div className="space-y-1.5 text-start">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {isAr ? "نسبة العمولة %" : "Commission Rate %"}
+                    {isAr ? "نسبة العمولة % *" : "Commission Rate % *"}
                   </Label>
                   <Input
                     type="number"
@@ -564,7 +811,7 @@ export function AccrueCommissionDialog({
                     value={ratePercent}
                     onChange={(e) => setRatePercent(e.target.value)}
                     placeholder="2.5"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm h-9"
                     dir="ltr"
                   />
                 </div>
@@ -572,7 +819,7 @@ export function AccrueCommissionDialog({
             ) : (
               <div className="space-y-1.5 text-start">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "مبلغ العمولة الإجمالي" : "Gross Commission Amount"}
+                  {isAr ? "مبلغ العمولة الإجمالي *" : "Gross Commission Amount *"}
                 </Label>
                 <div className="relative">
                   <Input
@@ -582,8 +829,8 @@ export function AccrueCommissionDialog({
                     required
                     value={grossAmount}
                     onChange={(e) => setGrossAmount(e.target.value)}
-                    placeholder="25,000.00"
-                    className="font-mono text-sm pe-12"
+                    placeholder="125000.00"
+                    className="font-mono text-sm ps-3 pe-14 text-start h-9"
                     dir="ltr"
                   />
                   <div className="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none text-xs font-bold text-slate-400">
@@ -606,34 +853,47 @@ export function AccrueCommissionDialog({
                   min="0"
                   max="100"
                   value={whtRate}
-                  onChange={(e) => setWhtRate(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/^0+(?=\d)/, "");
+                    setWhtRate(val === "" ? "0" : val);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === "0") setWhtRate("");
+                  }}
                   placeholder="0"
-                  className="font-mono text-sm"
+                  className="font-mono text-sm h-9"
                   dir="ltr"
                 />
               </div>
 
-              {Number(whtRate || 0) > 0 && (
+              {Number(whtRate || 0) > 0 ? (
                 <div className="space-y-1.5 text-start">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {isAr ? "حساب التزام الضريبة" : "WHT Liability Account"}
+                    {isAr ? "حساب التزام الضريبة *" : "WHT Liability Account *"}
                   </Label>
                   <Select
                     value={whtAccountId}
                     onValueChange={(val) => setWhtAccountId(val ?? "")}
                     items={liabilityAccounts.map((a) => ({ value: a.id, label: a.label }))}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full h-9 text-xs">
                       <SelectValue placeholder={isAr ? "اختر الحساب..." : "Select account..."} />
                     </SelectTrigger>
                     <SelectContent>
                       {liabilityAccounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
+                        <SelectItem key={a.id} value={a.id} className="text-xs">
                           {a.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              ) : (
+                <div className="space-y-1.5 text-start opacity-50">
+                  <Label className="text-xs font-bold text-slate-400">
+                    {isAr ? "حساب التزام الضريبة" : "WHT Liability Account"}
+                  </Label>
+                  <Input disabled value={isAr ? "لا توجد ضريبة محتجزة (0%)" : "No tax withheld (0%)"} className="text-xs h-9" />
                 </div>
               )}
             </div>
@@ -643,14 +903,14 @@ export function AccrueCommissionDialog({
               <div className="space-y-1.5 text-start">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                   <Calendar className="size-3 text-slate-400" />
-                  <span>{isAr ? "تاريخ الاستحقاق" : "Earned Date"}</span>
+                  <span>{isAr ? "تاريخ الاستحقاق *" : "Earned Date *"}</span>
                 </Label>
                 <Input
                   type="date"
                   required
                   value={earnedDate}
                   onChange={(e) => setEarnedDate(e.target.value)}
-                  className="font-mono text-sm"
+                  className="font-mono text-sm h-9"
                 />
               </div>
 
@@ -663,13 +923,13 @@ export function AccrueCommissionDialog({
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder={isAr ? "مثال: عمولة بيع الوحدة A-102" : "e.g. Sale of Unit A-102"}
-                  className="text-sm"
+                  className="text-sm h-9"
                 />
               </div>
             </div>
 
             {/* Live Calculation Summary Banner */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-2 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-2 dark:border-blue-900/50 dark:bg-blue-950/40">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-600 dark:text-slate-300">{isAr ? "إجمالي العمولة المستحقة:" : "Gross Commission:"}</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">
@@ -695,7 +955,7 @@ export function AccrueCommissionDialog({
             </div>
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0 flex items-center justify-between w-full">
             <Button
               type="button"
               variant="outline"
@@ -720,7 +980,7 @@ export function AccrueCommissionDialog({
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   3. PAY COMMISSION DIALOG
+   4. PAY COMMISSION DIALOG
    ────────────────────────────────────────────────────────────────────────── */
 export function PayCommissionDialog({
   open,
@@ -911,7 +1171,7 @@ export function PayCommissionDialog({
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   4. MANAGE BROKERS DIALOG
+   5. MANAGE BROKERS DIALOG
    ────────────────────────────────────────────────────────────────────────── */
 export function ManageBrokersDialog({
   open,

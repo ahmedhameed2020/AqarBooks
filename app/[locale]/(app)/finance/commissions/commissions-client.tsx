@@ -66,12 +66,14 @@ import {
   AccrueCommissionDialog,
   PayCommissionDialog,
   ManageBrokersDialog,
+  ConfigureCommissionAccountsDialog,
   type Option,
   type BrokerItem,
 } from "./commission-dialogs";
 import { buildCommissionsXlsxBuffer, downloadXlsxBuffer } from "./commissions-excel";
 import { generateCommissionVoucherPdf } from "@/lib/reports/commission-voucher-pdf";
 import { generateCommissionsReportPdf } from "@/lib/reports/commissions-report-pdf";
+import { Settings2 } from "lucide-react";
 
 export type CommissionRow = {
   id: string;
@@ -99,6 +101,10 @@ export function CommissionsClient({
   properties,
   cashAccounts,
   liabilityAccounts,
+  expenseAccounts = [],
+  isAccountsConfigured = true,
+  initialExpenseAccountId,
+  initialPayableAccountId,
   organizationId,
   organizationName = "AqarBooks",
   currency = "EGP",
@@ -111,6 +117,10 @@ export function CommissionsClient({
   properties: Option[];
   cashAccounts: Option[];
   liabilityAccounts: Option[];
+  expenseAccounts?: Option[];
+  isAccountsConfigured?: boolean;
+  initialExpenseAccountId?: string | null;
+  initialPayableAccountId?: string | null;
   organizationId: string;
   organizationName?: string;
   currency?: string;
@@ -124,6 +134,7 @@ export function CommissionsClient({
   const [accrueOpen, setAccrueOpen] = useState(false);
   const [createBrokerOpen, setCreateBrokerOpen] = useState(false);
   const [manageBrokersOpen, setManageBrokersOpen] = useState(false);
+  const [configureAccountsOpen, setConfigureAccountsOpen] = useState(false);
   const [payingCommission, setPayingCommission] = useState<CommissionRow | null>(null);
   const [selectedCommission, setSelectedCommission] = useState<CommissionRow | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -397,6 +408,23 @@ _AqarBooks Financial Suite_`;
             <span>{isAr ? "دليل الوسطاء" : "Brokers"}</span>
           </Button>
 
+          {/* Account Setup Button */}
+          {canManage && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfigureAccountsOpen(true)}
+              className={`text-xs font-bold gap-1.5 h-9 ${
+                !isAccountsConfigured
+                  ? "border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                  : ""
+              }`}
+            >
+              <Settings2 className="size-3.5 text-slate-600 dark:text-slate-400" />
+              <span>{isAr ? "تهيئة الحسابات" : "Account Setup"}</span>
+            </Button>
+          )}
+
           {/* Add Broker */}
           {canManage && (
             <Button
@@ -423,6 +451,36 @@ _AqarBooks Financial Suite_`;
           )}
         </div>
       </div>
+
+      {/* ── Finance Settings Configuration Warning Banner ─────────── */}
+      {!isAccountsConfigured && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50/90 p-4 text-xs font-semibold text-amber-950 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+              <Settings2 className="size-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-amber-950 dark:text-white">
+                {isAr ? "يلزم تهيئة حسابات العمولات في دليل الحسابات" : "Commission accounts setup required"}
+              </p>
+              <p className="text-amber-800/80 dark:text-amber-300/80 text-xs mt-0.5">
+                {isAr
+                  ? "لتسجيل استحقاقات العمولات وترحيل القيود المزدوجة، يرجى تحديد حساب المصروف وحساب الالتزام."
+                  : "To accrue commissions and auto-post journals, link expense and payable accounts."}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => setConfigureAccountsOpen(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 h-9 self-start sm:self-auto cursor-pointer shadow-xs"
+          >
+            <Settings2 className="size-4" />
+            <span>{isAr ? "تهيئة الحسابات الآن" : "Configure Accounts"}</span>
+          </Button>
+        </div>
+      )}
 
       {/* ── Status Pills & Search Toolbar ───────────────────────────── */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60">
@@ -835,7 +893,7 @@ _AqarBooks Financial Suite_`;
         </Dialog>
       )}
 
-      {/* ── Dialogs: Accrue, Create Broker, Pay Commission, Manage Brokers ── */}
+      {/* ── Dialogs: Accrue, Create Broker, Pay Commission, Manage Brokers, Settings ── */}
       <AccrueCommissionDialog
         open={accrueOpen}
         onOpenChange={setAccrueOpen}
@@ -843,7 +901,21 @@ _AqarBooks Financial Suite_`;
         brokers={brokers}
         properties={properties}
         liabilityAccounts={liabilityAccounts}
+        expenseAccounts={expenseAccounts}
+        isAccountsConfigured={isAccountsConfigured}
+        onOpenConfigureAccounts={() => setConfigureAccountsOpen(true)}
         currency={currency}
+        locale={locale}
+      />
+
+      <ConfigureCommissionAccountsDialog
+        open={configureAccountsOpen}
+        onOpenChange={setConfigureAccountsOpen}
+        organizationId={organizationId}
+        expenseAccounts={expenseAccounts}
+        liabilityAccounts={liabilityAccounts}
+        initialExpenseAccountId={initialExpenseAccountId}
+        initialPayableAccountId={initialPayableAccountId}
         locale={locale}
       />
 
