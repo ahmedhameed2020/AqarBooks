@@ -9,6 +9,18 @@
  *
  * الباقي اختبارات اختراق: كل واحد يحاول تجاوز ثابت من ثوابت ADR 0003.
  */
+/**
+ * ملاحظة على اختيار الاختصاص وطبيعة الإيراد أدناه:
+ *
+ * `tax_rule_versions` جدول **عالمي** لا يخص مؤسسة، وقيد عدم التداخل يسري على
+ * `(jurisdiction, revenue_nature)` عبر المستأجرين جميعًا. فحين دخلت قواعد
+ * الإنتاج المعتمدة لـ`EG` اصطدمت بها اختبارات كانت تنشئ قواعدها الخاصة لنفس
+ * الزوج — وسقطت ثلاثة اختبارات دفعةً واحدة.
+ *
+ * لذلك تعمل الاختبارات في `SA` وعلى طبيعة إيراد لا تستعملها قواعد الإنتاج.
+ * وهذا ليس التفافًا: مساحة الاختبار يجب أن تكون منفصلة عن مساحة الإنتاج في أي
+ * مورد مشترك، وإلا صار كل إدخال إنتاجي كسرًا للاختبارات.
+ */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
@@ -25,7 +37,7 @@ const admin = createClient<Database>(url, serviceKey, { auth: { persistSession: 
 
 /** يميّز كل صف أنشأه هذا الملف حتى لا يلمس التنظيف شيئًا آخر. */
 const SCOPE = `E2E_RC_${Date.now()}`;
-const NATURE = "MANAGEMENT_FEE";
+const NATURE = "EVENT_VENUE_FEE";
 const ISSUE_DATE = "2026-06-01";
 
 type Actor = { userId: string; client: ReturnType<typeof createClient<Database>> };
@@ -65,7 +77,7 @@ async function makeOrgWithDue(label: string) {
       default_currency: "EGP",
       status: "ACTIVE",
       tax_id: "100-000-111",
-      tax_jurisdiction: "EG",
+      tax_jurisdiction: "SA",
     } as never)
     .select("id")
     .single();
@@ -140,7 +152,7 @@ async function seedApprovedRule(opts: {
   const { data, error } = await admin
     .from("tax_rule_versions")
     .insert({
-      jurisdiction: "EG",
+      jurisdiction: "SA",
       revenue_nature: NATURE,
       tax_treatment: opts.treatment,
       vat_rate: opts.rate,
@@ -271,10 +283,10 @@ describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () =
 
     // والبحث بالتاريخ يفرّق بين الفترتين.
     const { data: oldDateRule } = await admin.rpc("resolve_tax_rule", {
-      p_jurisdiction: "EG", p_revenue_nature: NATURE, p_transaction_date: "2026-06-01",
+      p_jurisdiction: "SA", p_revenue_nature: NATURE, p_transaction_date: "2026-06-01",
     });
     const { data: newDateRule } = await admin.rpc("resolve_tax_rule", {
-      p_jurisdiction: "EG", p_revenue_nature: NATURE, p_transaction_date: "2026-08-01",
+      p_jurisdiction: "SA", p_revenue_nature: NATURE, p_transaction_date: "2026-08-01",
     });
     expect((oldDateRule as unknown as { tax_treatment: string }).tax_treatment).toBe("TAXABLE");
     expect((newDateRule as unknown as { tax_treatment: string }).tax_treatment).toBe("EXEMPT");
@@ -331,7 +343,7 @@ describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () =
 
   it("يرفض تداخل نافذتين معتمدتين لنفس الاختصاص وطبيعة الإيراد", async () => {
     const { error } = await admin.from("tax_rule_versions").insert({
-      jurisdiction: "EG",
+      jurisdiction: "SA",
       revenue_nature: NATURE,
       tax_treatment: "EXEMPT",
       vat_rate: 0,
@@ -359,7 +371,7 @@ describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () =
     ];
     for (const [i, c] of bad.entries()) {
       const { error } = await admin.from("tax_rule_versions").insert({
-        jurisdiction: "SA",
+        jurisdiction: "EG",
         revenue_nature: NATURE,
         tax_treatment: c.treatment,
         vat_rate: c.rate,
@@ -376,7 +388,7 @@ describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () =
 
   it("النوع المشتق لا تُوضع له قاعدة مستقلة", async () => {
     const { error } = await platformAdmin.client.rpc("create_tax_rule_draft", {
-      p_jurisdiction: "EG",
+      p_jurisdiction: "SA",
       p_revenue_nature: "SALE_INSTALLMENT",
       p_tax_treatment: "TAXABLE",
       p_vat_rate: 14,
@@ -390,7 +402,7 @@ describe("ADR 0003 — القواعد الضريبية المؤرَّخة", () =
 
   it("إدارة القواعد ممنوعة على مستخدم المستأجر مهما كانت صلاحياته", async () => {
     const { error: draftErr } = await staffA.client.rpc("create_tax_rule_draft", {
-      p_jurisdiction: "EG",
+      p_jurisdiction: "SA",
       p_revenue_nature: "CLEANING_SERVICE",
       p_tax_treatment: "TAXABLE",
       p_vat_rate: 14,

@@ -8,6 +8,18 @@
  *
  * الذرية هي جوهر ما يُختبَر هنا: إن فشل القرار، يجب ألا يبقى مستحق ولا قيد.
  */
+/**
+ * ملاحظة على اختيار الاختصاص وطبيعة الإيراد أدناه:
+ *
+ * `tax_rule_versions` جدول **عالمي** لا يخص مؤسسة، وقيد عدم التداخل يسري على
+ * `(jurisdiction, revenue_nature)` عبر المستأجرين جميعًا. فحين دخلت قواعد
+ * الإنتاج المعتمدة لـ`EG` اصطدمت بها اختبارات كانت تنشئ قواعدها الخاصة لنفس
+ * الزوج — وسقطت ثلاثة اختبارات دفعةً واحدة.
+ *
+ * لذلك تعمل الاختبارات في `SA` وعلى طبيعة إيراد لا تستعملها قواعد الإنتاج.
+ * وهذا ليس التفافًا: مساحة الاختبار يجب أن تكون منفصلة عن مساحة الإنتاج في أي
+ * مورد مشترك، وإلا صار كل إدخال إنتاجي كسرًا للاختبارات.
+ */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
@@ -23,7 +35,7 @@ const PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 const admin = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
 const SCOPE = `E2E_ENF_${Date.now()}`;
-const NATURE = "MANAGEMENT_FEE";
+const NATURE = "ACCESS_CARD_FEE";
 
 type Actor = { userId: string; client: ReturnType<typeof createClient<Database>> };
 type Org = {
@@ -68,7 +80,7 @@ async function makeOrg(label: string): Promise<Org> {
       default_currency: "EGP",
       status: "ACTIVE",
       tax_id: `100-000-${label}`,
-      tax_jurisdiction: "EG",
+      tax_jurisdiction: "SA",
     } as never)
     .select("id").single();
   expect(error, `org insert failed: ${error?.message}`).toBeNull();
@@ -159,7 +171,7 @@ async function approveMapping(org: Org) {
 
 async function seedRule(from: string, treatment: string, rate: number | null, version: number) {
   const { data, error } = await admin.from("tax_rule_versions").insert({
-    jurisdiction: "EG", revenue_nature: NATURE, tax_treatment: treatment, vat_rate: rate,
+    jurisdiction: "SA", revenue_nature: NATURE, tax_treatment: treatment, vat_rate: rate,
     effective_from: from, e_document_type: "BY_CUSTOMER_TYPE", issuer_scope: SCOPE,
     version, rule_hash: "", status: "APPROVED",
     approved_by: platformAdmin.userId, approved_at: new Date().toISOString(),

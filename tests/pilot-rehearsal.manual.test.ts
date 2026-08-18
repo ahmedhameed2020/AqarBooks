@@ -19,6 +19,18 @@
  * لا يخص مؤسسة، فبقاء واحدة منه يلوّث الإنتاج — لذلك التنظيف يجمع أخطاءه
  * ويفحصها مرة واحدة بدل أن ينهار عند أولها.
  */
+/**
+ * ملاحظة على اختيار الاختصاص وطبيعة الإيراد أدناه:
+ *
+ * `tax_rule_versions` جدول **عالمي** لا يخص مؤسسة، وقيد عدم التداخل يسري على
+ * `(jurisdiction, revenue_nature)` عبر المستأجرين جميعًا. فحين دخلت قواعد
+ * الإنتاج المعتمدة لـ`EG` اصطدمت بها اختبارات كانت تنشئ قواعدها الخاصة لنفس
+ * الزوج — وسقطت ثلاثة اختبارات دفعةً واحدة.
+ *
+ * لذلك تعمل الاختبارات في `SA` وعلى طبيعة إيراد لا تستعملها قواعد الإنتاج.
+ * وهذا ليس التفافًا: مساحة الاختبار يجب أن تكون منفصلة عن مساحة الإنتاج في أي
+ * مورد مشترك، وإلا صار كل إدخال إنتاجي كسرًا للاختبارات.
+ */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
@@ -35,7 +47,7 @@ const PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 const admin = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
 const SCOPE = `PILOT_REHEARSAL_${Date.now()}`;
-const NATURE = "MANAGEMENT_FEE";
+const NATURE = "REPLACEMENT_CARD_FEE";
 const RULE_FROM = "2026-01-01";
 
 type Actor = { userId: string; client: ReturnType<typeof createClient<Database>> };
@@ -90,7 +102,7 @@ beforeAll(async () => {
     status: "ACTIVE",
     // الهوية القانونية والاختصاص — شرطا الجاهزية، ويُسجَّلان كما يسجّلهما مشغّل.
     tax_id: "100-PILOT-001",
-    tax_jurisdiction: "EG",
+    tax_jurisdiction: "SA",
   } as never).select("id").single();
   expect(orgErr, `org insert failed: ${orgErr?.message}`).toBeNull();
   const orgId = orgRow!.id as string;
@@ -200,7 +212,7 @@ afterAll(async () => {
 describe("بروفة دفتر تشغيل الطيار", () => {
   it("١) إدخال قاعدة معتمدة — مسودة ثم اعتماد، من مشرف المنصة وحده", async () => {
     const { data: draftId, error } = await platformAdmin.client.rpc("create_tax_rule_draft", {
-      p_jurisdiction: "EG",
+      p_jurisdiction: "SA",
       p_revenue_nature: NATURE,
       p_tax_treatment: "TAXABLE",
       p_vat_rate: 14,

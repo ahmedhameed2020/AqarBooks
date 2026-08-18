@@ -6,6 +6,18 @@
  * تفعل العكس تحديدًا — تحاول التزوير، وكل محاولة يجب أن تفشل أو تُتجاهَل لصالح
  * ما هو مكتوب في صف المصدر.
  */
+/**
+ * ملاحظة على اختيار الاختصاص وطبيعة الإيراد أدناه:
+ *
+ * `tax_rule_versions` جدول **عالمي** لا يخص مؤسسة، وقيد عدم التداخل يسري على
+ * `(jurisdiction, revenue_nature)` عبر المستأجرين جميعًا. فحين دخلت قواعد
+ * الإنتاج المعتمدة لـ`EG` اصطدمت بها اختبارات كانت تنشئ قواعدها الخاصة لنفس
+ * الزوج — وسقطت ثلاثة اختبارات دفعةً واحدة.
+ *
+ * لذلك تعمل الاختبارات في `SA` وعلى طبيعة إيراد لا تستعملها قواعد الإنتاج.
+ * وهذا ليس التفافًا: مساحة الاختبار يجب أن تكون منفصلة عن مساحة الإنتاج في أي
+ * مورد مشترك، وإلا صار كل إدخال إنتاجي كسرًا للاختبارات.
+ */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
@@ -21,7 +33,7 @@ const PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 const admin = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
 const SCOPE = `E2E_TDC_${Date.now()}`;
-const NATURE = "MANAGEMENT_FEE";
+const NATURE = "PARKING_FEE";
 const ISSUE_DATE = "2026-03-15";
 
 type Actor = { userId: string; client: ReturnType<typeof createClient<Database>> };
@@ -189,7 +201,7 @@ async function seedRule(opts: {
   const { data, error } = await admin
     .from("tax_rule_versions")
     .insert({
-      jurisdiction: "EG",
+      jurisdiction: "SA",
       revenue_nature: NATURE,
       tax_treatment: opts.treatment,
       vat_rate: opts.rate,
@@ -222,7 +234,7 @@ beforeAll(async () => {
     .from("user_role_assignments")
     .insert({ user_id: platformAdmin.userId, role_id: superRole!.id, organization_id: null });
 
-  const a = await makeOrg("A", "EG");
+  const a = await makeOrg("A", "SA");
   orgA = a.orgId;
   propertyA = a.propertyId;
   unitA = a.unitId;
@@ -238,7 +250,7 @@ beforeAll(async () => {
     .from("user_role_assignments")
     .insert({ user_id: ownerA.userId, role_id: roleA!.id, organization_id: orgA });
 
-  const b = await makeOrg("B", "EG");
+  const b = await makeOrg("B", "SA");
   orgB = b.orgId;
   dueTypeB = b.dueTypeId;
   dueB = b.dueId;
@@ -288,7 +300,7 @@ describe("عقد القرار الضريبي — المصدر هو الحقيق�
         p_source_type: "DUE",
         p_source_id: dueA,
         p_due_type_id: dueTypeA,
-        p_jurisdiction: "EG",
+        p_jurisdiction: "SA",
         p_transaction_date: "2020-01-01",
       } as never,
     );
@@ -330,7 +342,7 @@ describe("عقد القرار الضريبي — المصدر هو الحقيق�
     const snap = decision!.tax_decision_snapshot as Record<string, unknown>;
     expect(snap.source_issue_date).toBe(ISSUE_DATE);
     // والاختصاص مشتق من صفة المؤسسة القانونية لا من مُدخَل.
-    expect(decision!.jurisdiction).toBe("EG");
+    expect(decision!.jurisdiction).toBe("SA");
     expect(decision!.revenue_nature).toBe(NATURE);
   });
 
@@ -366,7 +378,7 @@ describe("عقد القرار الضريبي — المصدر هو الحقيق�
     expect(error, "الغياب يُرفض ولا يُفترض EG").not.toBeNull();
     expect(error!.message).toMatch(/TAX_JURISDICTION_MISSING/);
 
-    await admin.from("organizations").update({ tax_jurisdiction: "EG" } as never).eq("id", orgB);
+    await admin.from("organizations").update({ tax_jurisdiction: "SA" } as never).eq("id", orgB);
   });
 
   it("مستحق ملغى لا يُسجَّل له قرار", async () => {
@@ -592,7 +604,7 @@ describe("عقد القرار الضريبي — المصدر هو الحقيق�
       source_type: "SUPPLIER_INVOICE",
       source_id: "00000000-0000-0000-0000-0000000000c1",
       revenue_nature: NATURE,
-      jurisdiction: "EG",
+      jurisdiction: "SA",
       transaction_date: ISSUE_DATE,
       tax_rule_version_id: createdRuleIds[0],
       tax_rule_hash: "x",
