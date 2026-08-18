@@ -308,6 +308,61 @@ describe("الإنفاذ الضريبي لكل مؤسسة", () => {
     expect(logs![0].reason).toBe("جاهزية مكتملة");
   });
 
+  it("الفجوة التاريخية تمنع التفعيل حتى تُقَر بعددها الصحيح", async () => {
+    // مؤسسة جاهزة تمامًا لكن لديها مستحقات قائمة بلا قرار: التفعيل يعمل إلى
+    // الأمام فقط، فقبوله ضمنًا يعني تمرير فجوة لم يُنظر فيها.
+    await orgOn.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: orgOn.orgId, p_enabled: false, p_reason: "تهيئة اختبار الفجوة",
+    });
+    const { error: legacyErr } = await insertDue(orgOn, "2026-05-01", 250);
+    expect(legacyErr, `legacy due insert failed: ${legacyErr?.message}`).toBeNull();
+
+    const { data: coverage, error: covErr } = await orgOn.owner.client.rpc(
+      "get_tax_decision_coverage",
+      { p_organization_id: orgOn.orgId },
+    );
+    expect(covErr, `coverage failed: ${covErr?.message}`).toBeNull();
+    const cov = (coverage as unknown as {
+      dues_without_decision: number;
+      undecided_amount: number;
+      earliest_undecided_issue_date: string | null;
+    }[])[0];
+    expect(Number(cov.dues_without_decision), "المستحق القديم بلا قرار").toBeGreaterThan(0);
+    expect(Number(cov.undecided_amount), "والمبلغ محسوب لا مجرد عدد").toBeGreaterThan(0);
+
+    // بلا إقرار: مرفوض، والرسالة تحمل العدد والمدى والمبلغ.
+    const { error: unack } = await orgOn.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: orgOn.orgId, p_enabled: true,
+    });
+    expect(unack, "التفعيل فوق فجوة غير مُقَرَّة مرفوض").not.toBeNull();
+    expect(unack!.message).toMatch(/TAX_HISTORICAL_GAP_UNACKNOWLEDGED/);
+
+    // وبعدد خاطئ: مرفوض أيضًا — الإقرار لا يُمرَّر بالتخمين.
+    const { error: wrong } = await orgOn.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: orgOn.orgId,
+      p_enabled: true,
+      p_acknowledged_undecided_dues: Number(cov.dues_without_decision) + 1,
+    });
+    expect(wrong!.message).toMatch(/TAX_HISTORICAL_GAP_UNACKNOWLEDGED/);
+
+    // وبالعدد الصحيح: يُقبل، والفجوة المقبولة تُختم في السجل.
+    const { error: ok } = await orgOn.owner.client.rpc("set_tax_enforcement", {
+      p_organization_id: orgOn.orgId,
+      p_enabled: true,
+      p_reason: "طيار — الفجوة التاريخية مُقَرَّة",
+      p_acknowledged_undecided_dues: Number(cov.dues_without_decision),
+    });
+    expect(ok, `acknowledged enable failed: ${ok?.message}`).toBeNull();
+
+    const { data: logs } = await admin.from("platform_audit_logs")
+      .select("safe_change_summary")
+      .eq("organization_id", orgOn.orgId).eq("action", "tax_enforcement.enabled")
+      .order("created_at", { ascending: false }).limit(1);
+    const summary = logs![0].safe_change_summary as Record<string, unknown>;
+    expect(Number(summary.historical_undecided_dues)).toBe(Number(cov.dues_without_decision));
+    expect(summary.historical_undecided_from, "المدى مختوم لحظة القبول").not.toBeNull();
+  });
+
   it("الترحيل الناجح يُظهر المستحق والقيد والقرار معًا", async () => {
     const { data, error } = await insertDue(orgOn, "2026-06-15");
     expect(error, `insert failed: ${error?.message}`).toBeNull();
@@ -429,9 +484,11 @@ describe("الإنفاذ الضريبي لكل مؤسسة", () => {
     expect(org!.tax_enforcement_disabled_by).toBe(orgOn.owner.userId);
     expect(org!.tax_enforcement_disabled_reason).toBe("إيقاف مؤقت");
 
+    // آخر سجل إيقاف، لا «سجل واحد»: اختبارات سابقة في هذا الملف تُوقف الإنفاذ
+    // أيضًا، وتوقيع عدد ثابت يربط الاختبار بترتيب غيره.
     const { data: logs } = await admin.from("platform_audit_logs")
-      .select("reason").eq("organization_id", orgOn.orgId).eq("action", "tax_enforcement.disabled");
-    expect(logs).toHaveLength(1);
+      .select("reason").eq("organization_id", orgOn.orgId).eq("action", "tax_enforcement.disabled")
+      .order("created_at", { ascending: false }).limit(1);
     expect(logs![0].reason).toBe("إيقاف مؤقت");
 
     // وبعد الإيقاف يمر مستحق كان سيُرفض قبل قليل.
@@ -451,9 +508,21 @@ describe("الإنفاذ الضريبي لكل مؤسسة", () => {
     const mine = rows.find((r) => r.organization_id === orgOn.orgId);
     expect(mine, "المؤسسة التي أُوقف إنفاذها تظهر").toBeTruthy();
     expect(mine!.disabled_reason).toBe("إيقاف مؤقت");
-    // مستحق واحد رُحِّل بعد الإيقاف بلا قرار — والعدد هو ما يميّز مخرج طوارئ
-    // بلا ضرر عن سجل ضريبي مثقوب.
-    expect(Number(mine!.dues_without_decision), "أثر الفجوة محسوب").toBe(1);
+
+    // العدد يُقاس مقابل حساب مستقل لا مقابل رقم مكتوب باليد: الرقم الثابت يربط
+    // الاختبار بترتيب ما قبله، والحساب المستقل يثبت أن الدالة تقيس فعلًا.
+    const { data: org } = await admin.from("organizations")
+      .select("tax_enforcement_disabled_at").eq("id", orgOn.orgId).single();
+    const { data: sinceDisable } = await admin.from("dues")
+      .select("id").eq("organization_id", orgOn.orgId).neq("status", "VOID")
+      .gte("created_at", org!.tax_enforcement_disabled_at as string);
+    const { data: decided } = await admin.from("tax_decisions")
+      .select("source_id").eq("organization_id", orgOn.orgId);
+    const decidedIds = new Set((decided ?? []).map((d) => d.source_id));
+    const expected = (sinceDisable ?? []).filter((d) => !decidedIds.has(d.id)).length;
+
+    expect(expected, "لا بد من فجوة فعلية وإلا كان التوكيد فارغًا").toBeGreaterThan(0);
+    expect(Number(mine!.dues_without_decision), "أثر الفجوة محسوب").toBe(expected);
 
     // ومحجوبة عن غير مشرف المنصة.
     const { error: forbidden } = await orgOn.owner.client.rpc("list_tax_enforcement_lapses");

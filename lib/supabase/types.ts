@@ -2778,8 +2778,26 @@ export type Database = {
         }[];
       };
       set_tax_enforcement: {
-        Args: { p_organization_id: string; p_enabled: boolean; p_reason?: string | null };
+        Args: {
+          p_organization_id: string;
+          p_enabled: boolean;
+          p_reason?: string | null;
+          p_acknowledged_undecided_dues?: number | null;
+        };
         Returns: undefined;
+      };
+      get_tax_decision_coverage: {
+        Args: { p_organization_id: string };
+        Returns: {
+          total_dues: number;
+          dues_with_decision: number;
+          dues_without_decision: number;
+          earliest_undecided_issue_date: string | null;
+          latest_undecided_issue_date: string | null;
+          undecided_amount: number;
+          enforcement_enabled: boolean;
+          enforcement_enabled_at: string | null;
+        }[];
       };
       create_tax_rule_draft: {
         Args: {
