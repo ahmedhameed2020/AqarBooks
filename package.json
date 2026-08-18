@@ -20,7 +20,8 @@
     "test:tax-enforcement": "vitest run tests/tax-enforcement.integration.test.ts",
     "test:output-vat": "vitest run tests/output-vat.integration.test.ts",
     "test:buyer-identity": "vitest run tests/buyer-identity.integration.test.ts",
-    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review && npm run test:tax-decision-contract && npm run test:tax-enforcement && npm run test:output-vat && npm run test:buyer-identity",
+    "test:input-tax": "vitest run tests/input-tax.integration.test.ts",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review && npm run test:tax-decision-contract && npm run test:tax-enforcement && npm run test:output-vat && npm run test:buyer-identity && npm run test:input-tax",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"

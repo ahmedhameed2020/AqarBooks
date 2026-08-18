@@ -40,6 +40,8 @@ export type Database = {
           tax_enforcement_disabled_at: string | null;
           tax_enforcement_disabled_by: string | null;
           tax_enforcement_disabled_reason: string | null;
+          output_tax_account_id: string | null;
+          input_tax_account_id: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -837,6 +839,90 @@ export type Database = {
           end_date?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["unit_ownerships"]["Row"]>;
+        Relationships: [];
+      };
+      expense_account_input_tax: {
+        Row: {
+          id: string;
+          organization_id: string;
+          expense_account_id: string;
+          recoverability: string;
+          recoverable_ratio: number | null;
+          ratio_method: string | null;
+          ratio_period: string | null;
+          ratio_reference: string | null;
+          status: string;
+          notes: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          expense_account_id: string;
+          recoverability: string;
+          recoverable_ratio?: number | null;
+          ratio_method?: string | null;
+          ratio_period?: string | null;
+          ratio_reference?: string | null;
+          status?: string;
+          notes?: string | null;
+        };
+        Update: {
+          recoverability?: string;
+          recoverable_ratio?: number | null;
+          status?: string;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      input_tax_decisions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          source_type: string;
+          source_id: string;
+          supplier_id: string | null;
+          expense_account_id: string;
+          invoice_number: string;
+          invoice_date: string;
+          supply_date: string | null;
+          gross_amount: number;
+          taxable_base: number;
+          tax_amount: number;
+          recoverability: string;
+          recoverable_ratio: number | null;
+          recoverable_amount: number;
+          non_recoverable_amount: number;
+          input_tax_account_id: string | null;
+          decision_snapshot: unknown;
+          reverses_decision_id: string | null;
+          replaces_decision_id: string | null;
+          reason: string | null;
+          decided_by: string | null;
+          decided_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          source_type: string;
+          source_id: string;
+          expense_account_id: string;
+          invoice_number: string;
+          invoice_date: string;
+          gross_amount: number;
+          taxable_base: number;
+          tax_amount: number;
+          recoverability: string;
+          recoverable_amount: number;
+          non_recoverable_amount: number;
+          decision_snapshot: unknown;
+        };
+        Update: {
+          recoverable_amount?: number;
+        };
         Relationships: [];
       };
       revenue_natures: {
@@ -2806,6 +2892,34 @@ export type Database = {
           p_country_code?: string | null;
           p_billing_address?: string | null;
         };
+        Returns: undefined;
+      };
+      set_expense_account_input_tax: {
+        Args: {
+          p_expense_account_id: string;
+          p_recoverability: string;
+          p_recoverable_ratio?: number | null;
+          p_ratio_method?: string | null;
+          p_ratio_period?: string | null;
+          p_ratio_reference?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      approve_expense_account_input_tax: {
+        Args: { p_id: string };
+        Returns: undefined;
+      };
+      record_input_tax_decision: {
+        Args: { p_invoice_id: string };
+        Returns: string;
+      };
+      check_input_tax_readiness: {
+        Args: { p_organization_id: string };
+        Returns: { gap_code: string; detail: string }[];
+      };
+      set_input_tax_account: {
+        Args: { p_organization_id: string; p_account_id: string | null };
         Returns: undefined;
       };
       set_output_tax_account: {
