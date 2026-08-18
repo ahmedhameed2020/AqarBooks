@@ -65,6 +65,7 @@ import { buildExpensesXlsxBuffer, downloadXlsxBuffer } from "./expenses-excel";
 import { VoucherPrintModal } from "./voucher-print-modal";
 import { generateExpenseVoucherPdf } from "@/lib/reports/expense-voucher-pdf";
 import { generateExpensesReportPdf } from "@/lib/reports/expenses-report-pdf";
+import { tafqeetArabic } from "@/lib/tafqeet";
 
 export type ExpenseRow = {
   id: string;
@@ -147,6 +148,48 @@ export function ExpensesClient({
         journalEntryId: exp.journal_entry_id,
       },
       locale
+    );
+  };
+
+  const handleWhatsAppShare = (exp: ExpenseRow) => {
+    const formattedAmount = exp.amount.toLocaleString(isAr ? "ar-EG" : "en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const tafqeetText = tafqeetArabic(exp.amount, currency);
+    const catName = categoryMap.get(exp.expense_category_id) || "—";
+    const accName = exp.payment_account_id
+      ? paymentAccountMap.get(exp.payment_account_id) || "—"
+      : "—";
+
+    const text = isAr
+      ? `🧾 *سند صرف رسمي — ${organizationName}*
+━━━━━━━━━━━━━━━━━━━━
+🔢 *رقم السند:* #${exp.voucher_number ?? "—"}
+📅 *تاريخ الصرف:* ${exp.expense_date}
+💰 *المبلغ:* ${formattedAmount} ${currencyLabel}
+✍️ *المبلغ بالحروف:* ${tafqeetText}
+🏷️ *فئة المصروف:* ${catName}
+📝 *البيان:* ${exp.description}
+🏦 *حساب الدفع / الخزينة:* ${accName}
+━━━━━━━━━━━━━━━━━━━━
+_نظام AqarBooks المالي_`
+      : `🧾 *Payment Voucher — ${organizationName}*
+━━━━━━━━━━━━━━━━━━━━
+🔢 *Voucher #:* #${exp.voucher_number ?? "—"}
+📅 *Date:* ${exp.expense_date}
+💰 *Amount:* ${formattedAmount} ${currencyLabel}
+✍️ *In Words:* ${tafqeetText}
+🏷️ *Category:* ${catName}
+📝 *Description:* ${exp.description}
+🏦 *Paid From:* ${accName}
+━━━━━━━━━━━━━━━━━━━━
+_AqarBooks Financial Suite_`;
+
+    window.open(
+      `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer"
     );
   };
 
@@ -540,14 +583,26 @@ export function ExpensesClient({
 
                     {/* Actions & Journal Entry */}
                     <TableCell className="py-3.5 text-end" onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center gap-2 justify-end">
-                        {/* Quick Print Trigger */}
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        {/* WhatsApp Share Trigger */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleWhatsAppShare(exp)}
+                          title={isAr ? "مشاركة عبر واتساب" : "Share via WhatsApp"}
+                          className="h-7 w-7 p-0 text-slate-500 hover:text-emerald-600"
+                        >
+                          <Send className="size-3.5" />
+                        </Button>
+
+                        {/* Quick Print/PDF Trigger */}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => handleQuickPrint(exp)}
-                          title={isAr ? "طباعة سند الصرف" : "Print Voucher"}
+                          title={isAr ? "تحميل / طباعة PDF" : "Print / PDF Voucher"}
                           className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
                         >
                           <Printer className="size-3.5" />
@@ -723,20 +778,37 @@ export function ExpensesClient({
               )}
             </DialogBody>
 
-            <DialogFooter className="flex items-center justify-between w-full">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const exp = selectedExpense;
-                  handleQuickPrint(exp);
-                }}
-                className="gap-1.5 text-xs font-bold"
-              >
-                <Printer className="size-3.5 text-blue-600" />
-                <span>{isAr ? "طباعة السند الرسمي" : "Print Voucher"}</span>
-              </Button>
+            <DialogFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 w-full">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* WhatsApp Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedExpense) handleWhatsAppShare(selectedExpense);
+                  }}
+                  className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-300 gap-1.5 text-xs font-bold dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                >
+                  <Send className="size-3.5" />
+                  <span>{isAr ? "إرسال واتساب" : "WhatsApp"}</span>
+                </Button>
+
+                {/* Print/PDF Full Modal Trigger */}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    const exp = selectedExpense;
+                    setSelectedExpense(null);
+                    setPrintingExpense(exp);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 text-xs font-bold"
+                >
+                  <Printer className="size-3.5" />
+                  <span>{isAr ? "معاينة وتحميل PDF" : "PDF / Print"}</span>
+                </Button>
+              </div>
 
               <Button variant="outline" size="sm" onClick={() => setSelectedExpense(null)}>
                 {isAr ? "إغلاق" : "Close"}
