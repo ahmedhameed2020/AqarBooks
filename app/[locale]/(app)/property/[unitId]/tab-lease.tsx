@@ -5,6 +5,7 @@ import { hasPermission } from "@/lib/auth/authorize";
 import { CreateLeaseDialog } from "./create-lease-dialog";
 import { ActivateLeaseButton, CancelLeaseButton, EndLeaseButton } from "./lease-action-buttons";
 import { DepositPanel } from "./deposit-panel";
+import { HandoverPanel } from "./handover-panel";
 
 const FREQUENCY_LABEL: Record<string, { ar: string; en: string }> = {
   MONTHLY: { ar: "شهري", en: "Monthly" },
@@ -64,6 +65,25 @@ export async function TabLease({
     hasPermission(organizationId, "property.leases.manage"),
   ]);
 
+  // Handover is about the unit rather than any one lease, but it lives here
+  // because this is where the unit's occupancy lifecycle already is.
+  const [{ data: handover }, canManageHandover] = await Promise.all([
+    supabase
+      .from("unit_handovers")
+      .select("id, status, scheduled_date, completed_date, electricity_reading, water_reading, gas_reading, note")
+      .eq("unit_id", unitId)
+      .maybeSingle(),
+    hasPermission(organizationId, "property.handover.manage"),
+  ]);
+  const { data: snags } = handover
+    ? await supabase
+        .from("unit_handover_snags")
+        .select("id, description, severity, status")
+        .eq("handover_id", handover.id)
+        .order("severity")
+        .order("created_at")
+    : { data: null };
+
   const memberName = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const activeLease = (leases ?? []).find((l) => l.status === "ACTIVE");
 
@@ -96,6 +116,15 @@ export async function TabLease({
           locale={locale}
         />
       </div>
+
+      <HandoverPanel
+        organizationId={organizationId}
+        unitId={unitId}
+        handover={handover ?? null}
+        snags={snags ?? []}
+        locale={locale}
+        canManage={canManageHandover}
+      />
 
       {activeLease ? (
         <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">

@@ -1005,6 +1005,54 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      unit_handovers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          handed_to_member_id: string | null;
+          status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+          scheduled_date: string | null;
+          completed_date: string | null;
+          electricity_reading: number | null;
+          water_reading: number | null;
+          gas_reading: number | null;
+          note: string | null;
+          completed_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Written only through schedule_unit_handover()/complete_unit_handover(). */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      unit_handover_snags: {
+        Row: {
+          id: string;
+          organization_id: string;
+          handover_id: string;
+          description: string;
+          severity: "BLOCKING" | "MINOR";
+          status: "OPEN" | "RESOLVED";
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          handover_id: string;
+          description: string;
+          severity?: "BLOCKING" | "MINOR";
+          status?: "OPEN" | "RESOLVED";
+        };
+        Update: Partial<Database["public"]["Tables"]["unit_handover_snags"]["Row"]>;
+        Relationships: [];
+      };
       unit_lease_deposit_events: {
         Row: {
           id: string;
@@ -2204,6 +2252,25 @@ export type Database = {
       pay_commission: {
         Args: { p_commission_id: string; p_cash_account_id: string; p_paid_date?: string };
         Returns: string;
+      };
+      schedule_unit_handover: {
+        Args: {
+          p_unit_id: string;
+          p_scheduled_date: string;
+          p_handed_to_member_id?: string | null;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      complete_unit_handover: {
+        Args: {
+          p_handover_id: string;
+          p_completed_date?: string;
+          p_electricity_reading?: number | null;
+          p_water_reading?: number | null;
+          p_gas_reading?: number | null;
+        };
+        Returns: undefined;
       };
       record_lease_deposit_event: {
         Args: {
