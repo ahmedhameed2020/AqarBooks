@@ -46,6 +46,11 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  Download,
+  Printer,
+  PieChart,
+  BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -56,6 +61,8 @@ import {
   type OptionItem,
   type CategoryDetail,
 } from "./expense-dialogs";
+import { buildExpensesXlsxBuffer, downloadXlsxBuffer } from "./expenses-excel";
+import { VoucherPrintModal } from "./voucher-print-modal";
 
 export type ExpenseRow = {
   id: string;
@@ -77,6 +84,7 @@ export function ExpensesClient({
   expenseAccounts,
   periods,
   organizationId,
+  organizationName = "AqarBooks",
   resortId,
   currency = "EGP",
   locale,
@@ -88,6 +96,7 @@ export function ExpensesClient({
   expenseAccounts: OptionItem[];
   periods: OptionItem[];
   organizationId: string;
+  organizationName?: string;
   resortId: string;
   currency?: string;
   locale: string;
@@ -99,11 +108,15 @@ export function ExpensesClient({
   const [recordExpenseOpen, setRecordExpenseOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseRow | null>(null);
+  const [printingExpense, setPrintingExpense] = useState<ExpenseRow | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">("date_desc");
+  const [sortBy, setSortBy] = useState<
+    "date_desc" | "date_asc" | "amount_desc" | "amount_asc"
+  >("date_desc");
 
   // Maps
   const categoryMap = useMemo(
@@ -151,19 +164,79 @@ export function ExpensesClient({
       });
   }, [expenses, selectedCategory, searchQuery, sortBy, categoryMap]);
 
-  // Color generator for category badges
-  const getCategoryBadgeClass = (id: string) => {
-    const palette = [
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-300",
-      "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/50 dark:bg-purple-950/60 dark:text-purple-300",
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/60 dark:text-emerald-300",
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/60 dark:text-amber-300",
-      "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/50 dark:bg-teal-950/60 dark:text-teal-300",
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/60 dark:text-rose-300",
-    ];
+  // Overall Total
+  const totalAmount = useMemo(
+    () => expenses.reduce((sum, e) => sum + e.amount, 0),
+    [expenses]
+  );
+
+  // Top spending categories for visual distribution bar
+  const distributionData = useMemo(() => {
+    if (!totalAmount) return [];
+    return categoryDetails
+      .filter((c) => (c.totalAmount ?? 0) > 0)
+      .sort((a, b) => (b.totalAmount ?? 0) - (a.totalAmount ?? 0))
+      .slice(0, 5)
+      .map((c) => ({
+        id: c.id,
+        name: isAr ? c.name_ar : c.name_en,
+        amount: c.totalAmount ?? 0,
+        percentage: Math.round(((c.totalAmount ?? 0) / totalAmount) * 100),
+      }));
+  }, [categoryDetails, totalAmount, isAr]);
+
+  // Excel Export Handler
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const buffer = await buildExpensesXlsxBuffer(
+        filteredExpenses,
+        categoryMap,
+        paymentAccountMap,
+        currencyLabel,
+        isAr
+      );
+      const dateStr = new Date().toISOString().split("T")[0];
+      downloadXlsxBuffer(`Expenses_Report_${dateStr}.xlsx`, buffer);
+    } catch (err) {
+      console.error("Excel export error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Color generator for category badges and bars
+  const categoryPalette = [
+    {
+      badge: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-300",
+      bar: "bg-blue-600",
+    },
+    {
+      badge: "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/50 dark:bg-purple-950/60 dark:text-purple-300",
+      bar: "bg-purple-600",
+    },
+    {
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/60 dark:text-emerald-300",
+      bar: "bg-emerald-600",
+    },
+    {
+      badge: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/60 dark:text-amber-300",
+      bar: "bg-amber-600",
+    },
+    {
+      badge: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/50 dark:bg-teal-950/60 dark:text-teal-300",
+      bar: "bg-teal-600",
+    },
+    {
+      badge: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/60 dark:text-rose-300",
+      bar: "bg-rose-600",
+    },
+  ];
+
+  const getCategoryStyles = (id: string) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) hash += id.charCodeAt(i);
-    return palette[Math.abs(hash) % palette.length];
+    return categoryPalette[Math.abs(hash) % categoryPalette.length];
   };
 
   const sortItems = [
@@ -180,6 +253,51 @@ export function ExpensesClient({
 
   return (
     <div className="space-y-6">
+      {/* ── Visual Spending Distribution Summary Bar ─────────────────── */}
+      {distributionData.length > 0 && (
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PieChart className="size-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {isAr ? "التوزيع النسبي للمصروفات حسب الفئات" : "Category Spending Breakdown"}
+              </span>
+            </div>
+            <span className="text-[11px] font-mono text-slate-400 font-semibold">
+              {isAr ? "أعلى الفئات إنفاقاً" : "Top Categories"}
+            </span>
+          </div>
+
+          {/* Segmented Progress Bar */}
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 gap-0.5">
+            {distributionData.map((cat) => (
+              <div
+                key={cat.id}
+                style={{ width: `${Math.max(cat.percentage, 2)}%` }}
+                className={`${getCategoryStyles(cat.id).bar} transition-all`}
+                title={`${cat.name}: ${cat.percentage}% (${cat.amount.toLocaleString()} ${currencyLabel})`}
+              />
+            ))}
+          </div>
+
+          {/* Legend Items */}
+          <div className="flex items-center gap-4 flex-wrap text-xs pt-1">
+            {distributionData.map((cat) => (
+              <div key={cat.id} className="flex items-center gap-1.5">
+                <span className={`size-2.5 rounded-full ${getCategoryStyles(cat.id).bar}`} />
+                <span className="text-slate-600 dark:text-slate-300 font-medium">{cat.name}:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">
+                  {cat.percentage}%
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  ({cat.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} {currencyLabel})
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Top Header Controls & Triggers ──────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -189,12 +307,25 @@ export function ExpensesClient({
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {isAr
-              ? "سجل القيود وسندات الصرف المسجلة على المنشأة مع الربط المحاسبي التلقائي."
-              : "Ledger of recorded expense vouchers with automatic double-entry journal linkage."}
+              ? "سجل القيود وسندات الصرف المسجلة على المنشأة مع إمكانية الطباعة والتصدير والربط المحاسبي."
+              : "Ledger of recorded expense vouchers with print, excel export, and automated journal linkage."}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Excel Export Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={isExporting || !filteredExpenses.length}
+            className="text-xs font-bold gap-1.5 h-9"
+          >
+            <FileSpreadsheet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>{isExporting ? (isAr ? "جارٍ التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
+          </Button>
+
+          {/* Categories Dialog */}
           <Button
             type="button"
             variant="outline"
@@ -205,6 +336,7 @@ export function ExpensesClient({
             <span>{isAr ? "إدارة الفئات" : "Expense Categories"}</span>
           </Button>
 
+          {/* Record Expense Button */}
           <Button
             type="button"
             onClick={() => setRecordExpenseOpen(true)}
@@ -218,7 +350,6 @@ export function ExpensesClient({
 
       {/* ── Filter & Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60">
-        
         {/* Search bar */}
         <div className="relative flex-1">
           <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-slate-400">
@@ -280,7 +411,6 @@ export function ExpensesClient({
             </Select>
           </div>
         </div>
-
       </div>
 
       {/* ── Table Container ─────────────────────────────────────────── */}
@@ -294,7 +424,7 @@ export function ExpensesClient({
                 <TableHead className="min-w-[240px]">{isAr ? "البيان / الوصف" : "Description"}</TableHead>
                 <TableHead className="w-[140px]">{isAr ? "المبلغ" : "Amount"}</TableHead>
                 <TableHead className="w-[130px]">{isAr ? "تاريخ الصرف" : "Date"}</TableHead>
-                <TableHead className="w-[120px] text-end">{isAr ? "القيد المحاسبي" : "Journal"}</TableHead>
+                <TableHead className="w-[170px] text-end">{isAr ? "الإجراءات والقيود" : "Actions & Ledger"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -316,9 +446,9 @@ export function ExpensesClient({
                     {/* Category */}
                     <TableCell className="py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${getCategoryBadgeClass(
-                          exp.expense_category_id
-                        )}`}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                          getCategoryStyles(exp.expense_category_id).badge
+                        }`}
                       >
                         <Tag className="size-3" />
                         <span>{categoryMap.get(exp.expense_category_id) ?? "—"}</span>
@@ -335,7 +465,12 @@ export function ExpensesClient({
                     {/* Amount */}
                     <TableCell className="py-3.5">
                       <div className="inline-flex items-baseline gap-1 font-mono font-black text-rose-600 dark:text-rose-400 text-sm">
-                        <span>{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>
+                          {exp.amount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
                         <span className="text-[10px] font-bold text-slate-400">
                           {currencyLabel}
                         </span>
@@ -350,20 +485,35 @@ export function ExpensesClient({
                       </div>
                     </TableCell>
 
-                    {/* Journal Entry Link */}
+                    {/* Actions & Journal Entry */}
                     <TableCell className="py-3.5 text-end" onClick={(e) => e.stopPropagation()}>
-                      {exp.journal_entry_id ? (
-                        <Link
-                          href={`/finance/journals/${exp.journal_entry_id}`}
-                          locale={locale as Locale}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline"
+                      <div className="inline-flex items-center gap-2 justify-end">
+                        {/* Quick Print Trigger */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPrintingExpense(exp)}
+                          title={isAr ? "طباعة سند الصرف" : "Print Voucher"}
+                          className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
                         >
-                          <span>{isAr ? "عرض القيد" : "View entry"}</span>
-                          <ExternalLink className="size-3" />
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
+                          <Printer className="size-3.5" />
+                        </Button>
+
+                        {/* Journal Entry Link */}
+                        {exp.journal_entry_id ? (
+                          <Link
+                            href={`/finance/journals/${exp.journal_entry_id}`}
+                            locale={locale as Locale}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline"
+                          >
+                            <span>{isAr ? "القيد" : "Entry"}</span>
+                            <ExternalLink className="size-3" />
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -375,13 +525,21 @@ export function ExpensesClient({
                     </div>
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {searchQuery || selectedCategory !== "ALL"
-                        ? isAr ? "لا توجد نتائج تطابق خيارات البحث" : "No expenses match your search"
-                        : isAr ? "لا توجد سندات صرف مسجلة بعد" : "No expense vouchers recorded yet"}
+                        ? isAr
+                          ? "لا توجد نتائج تطابق خيارات البحث"
+                          : "No expenses match your search"
+                        : isAr
+                        ? "لا توجد سندات صرف مسجلة بعد"
+                        : "No expense vouchers recorded yet"}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       {searchQuery || selectedCategory !== "ALL"
-                        ? isAr ? "جرب تعديل كلمات البحث أو تصفية الفئات." : "Try adjusting your search query or category filters."
-                        : isAr ? "ابدأ بإصدار أول سند صرف مباشر لتسجيل مصروفات التشغيل والصيانة." : "Start by creating your first expense voucher."}
+                        ? isAr
+                          ? "جرب تعديل كلمات البحث أو تصفية الفئات."
+                          : "Try adjusting your search query or category filters."
+                        : isAr
+                        ? "ابدأ بإصدار أول سند صرف مباشر لتسجيل مصروفات التشغيل والصيانة."
+                        : "Start by creating your first expense voucher."}
                     </p>
                     {!searchQuery && selectedCategory === "ALL" && (
                       <div className="mt-4">
@@ -415,7 +573,10 @@ export function ExpensesClient({
             <span className="text-rose-600 dark:text-rose-400">
               {filteredExpenses
                 .reduce((sum, e) => sum + e.amount, 0)
-                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                .toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
               {currencyLabel}
             </span>
           </span>
@@ -437,7 +598,9 @@ export function ExpensesClient({
                     : `Expense Voucher #${selectedExpense.voucher_number ?? "—"}`}
                 </DialogTitle>
                 <DialogDescription>
-                  {isAr ? "بيانات السند والقيد المحاسبي المرتبط" : "Voucher details and general ledger posting"}
+                  {isAr
+                    ? "بيانات السند والقيد المحاسبي المرتبط"
+                    : "Voucher details and general ledger posting"}
                 </DialogDescription>
               </div>
             </DialogHeader>
@@ -447,7 +610,10 @@ export function ExpensesClient({
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
                   <span className="text-xs text-slate-500">{isAr ? "المبلغ الإجمالي" : "Total Amount"}</span>
                   <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-lg">
-                    {selectedExpense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                    {selectedExpense.amount.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
                     <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
                   </span>
                 </div>
@@ -504,14 +670,50 @@ export function ExpensesClient({
               )}
             </DialogBody>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedExpense(null)}>
+            <DialogFooter className="flex items-center justify-between w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const exp = selectedExpense;
+                  setSelectedExpense(null);
+                  setPrintingExpense(exp);
+                }}
+                className="gap-1.5 text-xs font-bold"
+              >
+                <Printer className="size-3.5 text-blue-600" />
+                <span>{isAr ? "طباعة السند الرسمي" : "Print Voucher"}</span>
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={() => setSelectedExpense(null)}>
                 {isAr ? "إغلاق" : "Close"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ── Official Printable Voucher Modal ────────────────────────── */}
+      <VoucherPrintModal
+        open={!!printingExpense}
+        onOpenChange={(open) => !open && setPrintingExpense(null)}
+        expense={printingExpense}
+        categoryName={
+          printingExpense
+            ? categoryMap.get(printingExpense.expense_category_id) ?? "—"
+            : "—"
+        }
+        accountName={
+          printingExpense && printingExpense.payment_account_id
+            ? paymentAccountMap.get(printingExpense.payment_account_id) ?? "—"
+            : "—"
+        }
+        organizationName={organizationName}
+        currencyCode={currency}
+        currencyLabel={currencyLabel}
+        locale={locale}
+      />
 
       {/* ── Dialogs: Record Expense & Categories ────────────────────── */}
       <RecordExpenseDialog

@@ -247,6 +247,7 @@ export default async function ExpensesPage({
         expenseAccounts={expenseAccounts}
         periods={periods}
         organizationId={organization.id}
+        organizationName={organization.name}
         resortId={resort?.id ?? ""}
         currency={currency}
         locale={locale}
