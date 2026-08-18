@@ -1,24 +1,46 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
+import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
+import { getCurrencyLabel } from "@/lib/currency";
 import {
-  AccrueCommissionForm,
-  CreateBrokerForm,
-  PayCommissionForm,
+  CommissionsClient,
+  type CommissionRow,
+} from "./commissions-client";
+import {
   type Option,
-} from "./commission-forms";
+  type BrokerItem,
+} from "./commission-dialogs";
+import {
+  UserCheck,
+  CreditCard,
+  Clock,
+  CheckCircle2,
+  Percent,
+  TrendingDown,
+  Building2,
+  DollarSign,
+} from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+
+  return {
+    title: isAr ? "عمولات الوسطاء العقاريين | AqarBooks" : "Broker Commissions | AqarBooks",
+    description: isAr
+      ? "إدارة واستحقاق وسداد عمولات الوسطاء ومسوقي العقارات مع حساب ضريبة الخصم من المنبع."
+      : "Manage broker commission accruals, payouts, withholding tax liabilities, and ledger postings.",
+  };
+}
 
 export default async function CommissionsPage({
   params,
@@ -37,182 +59,229 @@ export default async function CommissionsPage({
     hasPermission(organization.id, "finance.commissions.manage"),
     hasPermission(organization.id, "finance.commissions.read"),
   ]);
+
   if (!canManage && !canRead) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">{isAr ? "عمولات الوسطاء" : "Broker Commissions"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr ? "لا تملك صلاحية الاطلاع على العمولات." : "You don't have permission to view commissions."}
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+          {isAr ? "عمولات الوسطاء" : "Broker Commissions"}
+        </h1>
+        <p className="text-sm text-slate-500">
+          {isAr
+            ? "لا تملك صلاحية الاطلاع على عمولات الوسطاء."
+            : "You do not have permission to view broker commissions."}
         </p>
       </div>
     );
   }
 
-  const supabase = await createClient();
-  const [{ data: brokers }, { data: commissions }, { data: properties }, { data: accounts }] =
-    await Promise.all([
-      supabase
-        .from("brokers")
-        .select("id, name, broker_type, default_wht_rate, is_active")
-        .eq("organization_id", organization.id)
-        .order("name"),
-      supabase
-        .from("commissions")
-        .select("id, broker_id, gross_amount, wht_amount, net_amount, wht_rate, rate_percent, basis_amount, earned_date, paid_date, status, note")
-        .eq("organization_id", organization.id)
-        .order("earned_date", { ascending: false }),
-      supabase
-        .from("properties")
-        .select("id, name")
-        .eq("organization_id", organization.id)
-        .order("name"),
-      supabase
-        .from("chart_of_accounts")
-        .select("id, code, name_ar, name_en, category")
-        .eq("organization_id", organization.id)
-        .eq("is_group", false)
-        .eq("is_active", true)
-        .in("category", ["ASSET", "LIABILITY"])
-        .order("code"),
-    ]);
+  const currency = organization.default_currency || "EGP";
+  const currencyLabel = getCurrencyLabel(currency, isAr);
 
-  const brokerName = new Map((brokers ?? []).map((b) => [b.id, b.name]));
+  const supabase = await createClient();
+  const [
+    { data: brokersRaw },
+    { data: commissionsRaw },
+    { data: propertiesRaw },
+    { data: accountsRaw },
+  ] = await Promise.all([
+    supabase
+      .from("brokers")
+      .select("id, name, broker_type, default_wht_rate, tax_id, phone, email, is_active")
+      .eq("organization_id", organization.id)
+      .order("name"),
+    supabase
+      .from("commissions")
+      .select(
+        "id, broker_id, property_id, gross_amount, wht_amount, net_amount, wht_rate, rate_percent, basis_amount, earned_date, paid_date, status, note, cash_account_id, payment_journal_entry_id, accrual_journal_entry_id"
+      )
+      .eq("organization_id", organization.id)
+      .order("earned_date", { ascending: false }),
+    supabase
+      .from("properties")
+      .select("id, name")
+      .eq("organization_id", organization.id)
+      .order("name"),
+    supabase
+      .from("chart_of_accounts")
+      .select("id, code, name_ar, name_en, category")
+      .eq("organization_id", organization.id)
+      .eq("is_group", false)
+      .eq("is_active", true)
+      .in("category", ["ASSET", "LIABILITY"])
+      .order("code"),
+  ]);
+
+  const commissions: CommissionRow[] = (commissionsRaw ?? []).map((c) => ({
+    id: c.id,
+    broker_id: c.broker_id,
+    property_id: c.property_id,
+    gross_amount: Number(c.gross_amount),
+    wht_amount: Number(c.wht_amount),
+    net_amount: Number(c.net_amount),
+    wht_rate: c.wht_rate !== null ? Number(c.wht_rate) : null,
+    rate_percent: c.rate_percent !== null ? Number(c.rate_percent) : null,
+    basis_amount: c.basis_amount !== null ? Number(c.basis_amount) : null,
+    earned_date: c.earned_date,
+    paid_date: c.paid_date,
+    status: c.status,
+    note: c.note,
+    cash_account_id: c.cash_account_id,
+    payment_journal_entry_id: c.payment_journal_entry_id,
+    accrual_journal_entry_id: c.accrual_journal_entry_id,
+  }));
+
+  // Calculate totals per broker
+  const brokerStats = new Map<string, { total: number; count: number }>();
+  for (const c of commissions) {
+    const prev = brokerStats.get(c.broker_id) || { total: 0, count: 0 };
+    brokerStats.set(c.broker_id, {
+      total: prev.total + c.net_amount,
+      count: prev.count + 1,
+    });
+  }
+
+  const brokerList: BrokerItem[] = (brokersRaw ?? []).map((b) => {
+    const stats = brokerStats.get(b.id);
+    return {
+      id: b.id,
+      name: b.name,
+      broker_type: b.broker_type,
+      default_wht_rate: Number(b.default_wht_rate || 0),
+      tax_id: b.tax_id,
+      phone: b.phone,
+      email: b.email,
+      is_active: b.is_active,
+      totalCommissions: stats?.total ?? 0,
+      accruedCount: stats?.count ?? 0,
+    };
+  });
+
+  const activeBrokers: Option[] = brokerList
+    .filter((b) => b.is_active)
+    .map((b) => ({ id: b.id, label: b.name }));
+
+  const propertyOptions: Option[] = (propertiesRaw ?? []).map((p) => ({
+    id: p.id,
+    label: p.name,
+  }));
+
   const label = (a: { code: string; name_ar: string; name_en: string }) =>
     `${a.code} — ${isAr ? a.name_ar : a.name_en}`;
 
-  const activeBrokers: Option[] = (brokers ?? [])
-    .filter((b) => b.is_active)
-    .map((b) => ({ id: b.id, label: b.name }));
-  const propertyOptions: Option[] = (properties ?? []).map((p) => ({ id: p.id, label: p.name }));
-  const cashAccounts: Option[] = (accounts ?? [])
+  const cashAccounts: Option[] = (accountsRaw ?? [])
     .filter((a) => a.category === "ASSET")
     .map((a) => ({ id: a.id, label: label(a) }));
-  const liabilityAccounts: Option[] = (accounts ?? [])
+
+  const liabilityAccounts: Option[] = (accountsRaw ?? [])
     .filter((a) => a.category === "LIABILITY")
     .map((a) => ({ id: a.id, label: label(a) }));
 
-  const fmt = (n: number) =>
-    n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-
-  const outstanding = (commissions ?? [])
+  // ── Executive KPI Financial Summary Calculations ──────────────────
+  const outstandingAccrued = commissions
     .filter((c) => c.status === "ACCRUED")
     .reduce((s, c) => s + c.net_amount, 0);
-  const withheld = (commissions ?? []).reduce((s, c) => s + c.wht_amount, 0);
+
+  const totalSettledPaid = commissions
+    .filter((c) => c.status === "PAID")
+    .reduce((s, c) => s + c.net_amount, 0);
+
+  const totalWithheldTax = commissions.reduce((s, c) => s + c.wht_amount, 0);
+
+  const accruedCount = commissions.filter((c) => c.status === "ACCRUED").length;
+  const paidCount = commissions.filter((c) => c.status === "PAID").length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{isAr ? "عمولات الوسطاء" : "Broker Commissions"}</h1>
-        <p className="text-sm text-muted-foreground">
+    <div className="space-y-8">
+      {/* ── Page Header ────────────────────────────────────────────── */}
+      <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          {isAr ? "عمولات الوسطاء العقاريين" : "Broker Commissions Management"}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
           {isAr
-            ? "العمولة تُسجَّل عند استحقاقها لا عند سدادها، والخصم من المنبع يظل التزامًا حتى تُورَّد الضريبة."
-            : "Commission is recorded when earned, not when paid, and withholding stays a liability until the tax is remitted."}
+            ? "حوكمة استحقاقات وسداد عمولات الوسطاء مع استقطاع ضريبة الخصم من المنبع وترحيل القيود المحاسبية."
+            : "Track broker commission accruals, tax withholding obligations, and settlement payouts."}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">{isAr ? "مستحق للوسطاء" : "Owed to brokers"}</p>
-          <p className="text-lg font-semibold tabular-nums">{fmt(outstanding)}</p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">{isAr ? "خصم منبع محتجز" : "Withheld tax"}</p>
-          <p className="text-lg font-semibold tabular-nums">{fmt(withheld)}</p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">{isAr ? "الوسطاء" : "Brokers"}</p>
-          <p className="text-lg font-semibold tabular-nums">{activeBrokers.length}</p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">{isAr ? "عمولات مسجّلة" : "Commissions"}</p>
-          <p className="text-lg font-semibold tabular-nums">{(commissions ?? []).length}</p>
-        </div>
+      {/* ── Executive KPI Summary Grid ──────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Outstanding Unpaid Commissions */}
+        <KpiCard
+          label={isAr ? "مستحق للوسطاء (معلق)" : "Owed to Brokers (Accrued)"}
+          value={
+            <>
+              {outstandingAccrued.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
+            </>
+          }
+          icon={<Clock className="size-5" />}
+          tone={outstandingAccrued > 0 ? "warning" : "positive"}
+          hint={isAr ? `${accruedCount} عمولة مستحقة بانتظار السداد` : `${accruedCount} pending payouts`}
+        />
+
+        {/* Settled / Paid Commissions */}
+        <KpiCard
+          label={isAr ? "عمولات مسددة ومصروفة" : "Settled Commissions"}
+          value={
+            <>
+              {totalSettledPaid.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
+            </>
+          }
+          icon={<CheckCircle2 className="size-5" />}
+          tone="positive"
+          hint={isAr ? `تم صرفها عبر ${paidCount} حركة سداد` : `Settled across ${paidCount} records`}
+        />
+
+        {/* Withheld Tax (WHT) */}
+        <KpiCard
+          label={isAr ? "ضريبة منبع محتجزة (التزام)" : "Withheld Tax Liability"}
+          value={
+            <>
+              {totalWithheldTax.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
+            </>
+          }
+          icon={<Percent className="size-5" />}
+          tone="info"
+          hint={isAr ? "محتجزة للتوريد لمصلحة الضرائب" : "To be remitted to tax authority"}
+        />
+
+        {/* Active Brokers Count */}
+        <KpiCard
+          label={isAr ? "الوسطاء المعتمدون" : "Active Brokers"}
+          value={activeBrokers.length.toLocaleString()}
+          icon={<UserCheck className="size-5" />}
+          tone="info"
+          hint={isAr ? `من إجمالي ${brokerList.length} وسيط مسجل` : `Out of ${brokerList.length} registered`}
+        />
       </div>
 
-      {canManage && (
-        <>
-          <div>
-            <h2 className="mb-2 text-sm font-medium">{isAr ? "إضافة وسيط" : "Add a broker"}</h2>
-            <CreateBrokerForm organizationId={organization.id} locale={locale} />
-          </div>
-          <div>
-            <h2 className="mb-2 text-sm font-medium">
-              {isAr ? "تسجيل استحقاق عمولة" : "Accrue a commission"}
-            </h2>
-            <AccrueCommissionForm
-              organizationId={organization.id}
-              brokers={activeBrokers}
-              properties={propertyOptions}
-              liabilityAccounts={liabilityAccounts}
-              locale={locale}
-            />
-          </div>
-        </>
-      )}
-
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{isAr ? "الوسيط" : "Broker"}</TableHead>
-              <TableHead>{isAr ? "الاستحقاق" : "Earned"}</TableHead>
-              <TableHead className="text-end">{isAr ? "الإجمالي" : "Gross"}</TableHead>
-              <TableHead className="text-end">{isAr ? "خصم منبع" : "Withheld"}</TableHead>
-              <TableHead className="text-end">{isAr ? "الصافي" : "Net"}</TableHead>
-              <TableHead>{isAr ? "الحالة" : "Status"}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(commissions ?? []).length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground">
-                  {isAr ? "لا توجد عمولات بعد." : "No commissions yet."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              (commissions ?? []).map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    {brokerName.get(c.broker_id) ?? "—"}
-                    {c.note && (
-                      <span className="ms-2 text-xs text-muted-foreground">{c.note}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {c.earned_date}
-                    {c.rate_percent !== null && (
-                      <span className="ms-2 text-xs">
-                        {c.rate_percent}% {isAr ? "من" : "of"} {fmt(c.basis_amount)}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-end tabular-nums">{fmt(c.gross_amount)}</TableCell>
-                  <TableCell className="text-end tabular-nums text-muted-foreground">
-                    {c.wht_amount > 0 ? `${fmt(c.wht_amount)} (${c.wht_rate}%)` : "—"}
-                  </TableCell>
-                  <TableCell className="text-end tabular-nums font-medium">{fmt(c.net_amount)}</TableCell>
-                  <TableCell>
-                    {c.status === "PAID" ? (
-                      <div className="flex items-center gap-2">
-                        <Badge>{isAr ? "مسدَّدة" : "Paid"}</Badge>
-                        <span className="text-xs text-muted-foreground tabular-nums">{c.paid_date}</span>
-                      </div>
-                    ) : canManage ? (
-                      <PayCommissionForm
-                        commissionId={c.id}
-                        cashAccounts={cashAccounts}
-                        locale={locale}
-                      />
-                    ) : (
-                      <Badge variant="secondary">{isAr ? "مستحقة" : "Accrued"}</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* ── Main Interactive Table & Client Controls ────────────────── */}
+      <CommissionsClient
+        commissions={commissions}
+        brokers={activeBrokers}
+        brokerList={brokerList}
+        properties={propertyOptions}
+        cashAccounts={cashAccounts}
+        liabilityAccounts={liabilityAccounts}
+        organizationId={organization.id}
+        organizationName={organization.name}
+        currency={currency}
+        canManage={canManage}
+        locale={locale}
+      />
     </div>
   );
 }
