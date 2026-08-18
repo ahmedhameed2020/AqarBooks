@@ -104,6 +104,17 @@ beforeAll(async () => {
   } as never).select("id").single();
   unitId = unit!.id as string;
 
+  // المشتري: `dues` يرتبط بوحدة لا بعضو، فالمشتري يُشتق من الملكية السارية.
+  // ومنذ إضافة هوية المشتري، المستحق الخاضع بلا مالك محسوم التصنيف مرفوض.
+  const { data: buyer } = await admin.from("members").insert({
+    organization_id: orgId, full_name: "مشتري اختبار", is_company: false,
+    customer_type: "B2C", country_code: "EG",
+  } as never).select("id").single();
+  await admin.from("unit_ownerships").insert({
+    organization_id: orgId, unit_id: unitId, member_id: buyer!.id,
+    share_percentage: 100, is_primary_contact: true, start_date: "2020-01-01",
+  } as never);
+
   const { data: feeType } = await admin.from("due_types").insert({
     organization_id: orgId, default_revenue_account_id: revenue!.id,
     name_ar: "رسوم إدارة", name_en: "Management Fee", is_active: true,

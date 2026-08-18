@@ -111,6 +111,17 @@ async function makeOrg(label: string): Promise<Org> {
   const { data: unit } = await admin.from("units").insert({
     organization_id: orgId, property_id: property!.id, code: `U-${label}-${Date.now()}`,
   } as never).select("id").single();
+  // المشتري: `dues` يرتبط بوحدة لا بعضو، فالمشتري يُشتق من الملكية السارية.
+  // ومنذ إضافة هوية المشتري، المستحق الخاضع بلا مالك محسوم التصنيف مرفوض.
+  const { data: buyer } = await admin.from("members").insert({
+    organization_id: orgId, full_name: "مشتري اختبار", is_company: false,
+    customer_type: "B2C", country_code: "EG",
+  } as never).select("id").single();
+  await admin.from("unit_ownerships").insert({
+    organization_id: orgId, unit_id: unit!.id, member_id: buyer!.id,
+    share_percentage: 100, is_primary_contact: true, start_date: "2020-01-01",
+  } as never);
+
   const { data: dueType } = await admin.from("due_types").insert({
     organization_id: orgId, default_revenue_account_id: revenue!.id,
     name_ar: "رسوم / x", name_en: "Fee / x", is_active: true,

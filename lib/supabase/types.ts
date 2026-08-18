@@ -566,6 +566,16 @@ export type Database = {
           email: string | null;
           phone: string | null;
           user_id: string | null;
+          customer_type: string;
+          tax_registration_number: string | null;
+          identity_document_type: string | null;
+          identity_document_number: string | null;
+          legal_name: string | null;
+          country_code: string | null;
+          billing_address: string | null;
+          identity_verified_at: string | null;
+          identity_verification_source: string | null;
+          identity_verification_reference: string | null;
         };
         Insert: {
           id?: string;
@@ -950,6 +960,8 @@ export type Database = {
           taxable_base: number | null;
           vat_amount: number | null;
           gross_amount: number | null;
+          output_tax_account_id: string | null;
+          buyer_member_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2782,6 +2794,23 @@ export type Database = {
           disabled_reason: string | null;
           dues_without_decision: number;
         }[];
+      };
+      set_member_tax_identity: {
+        Args: {
+          p_member_id: string;
+          p_customer_type: string;
+          p_tax_registration_number?: string | null;
+          p_identity_document_type?: string | null;
+          p_identity_document_number?: string | null;
+          p_legal_name?: string | null;
+          p_country_code?: string | null;
+          p_billing_address?: string | null;
+        };
+        Returns: undefined;
+      };
+      set_output_tax_account: {
+        Args: { p_organization_id: string; p_account_id: string | null };
+        Returns: undefined;
       };
       set_tax_enforcement: {
         Args: {
