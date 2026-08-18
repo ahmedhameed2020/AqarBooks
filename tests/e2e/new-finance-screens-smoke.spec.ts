@@ -32,6 +32,7 @@ let orgId: string;
 let userId: string;
 let staffEmail: string;
 let unitId: string;
+let propertyId: string;
 
 /** Pages under test, with a string that must appear if the page truly rendered. */
 const SCREENS: { path: string; expect: RegExp }[] = [
@@ -100,6 +101,27 @@ test.beforeAll(async () => {
     .select("id")
     .single();
   expect(propErr, `property insert failed: ${propErr?.message}`).toBeNull();
+  propertyId = property!.id as string;
+
+  // A service charge levy needs a revenue account (via its due type) and a
+  // receivable account, so the workflow test below has something to select.
+  const { data: accounts, error: acctErr } = await admin
+    .from("chart_of_accounts")
+    .insert([
+      { organization_id: orgId, code: "1130", name_ar: "ذمم", name_en: "Receivables", category: "ASSET", normal_balance: "DEBIT", is_group: false },
+      { organization_id: orgId, code: "4100", name_ar: "إيراد", name_en: "Service Revenue", category: "REVENUE", normal_balance: "CREDIT", is_group: false },
+    ])
+    .select("id, category");
+  expect(acctErr, `coa insert failed: ${acctErr?.message}`).toBeNull();
+  const revenueId = accounts!.find((a) => a.category === "REVENUE")!.id;
+
+  const { error: dueTypeErr } = await admin.from("due_types").insert({
+    organization_id: orgId,
+    name_ar: "رسوم خدمة",
+    name_en: "Service Charge",
+    default_revenue_account_id: revenueId,
+  });
+  expect(dueTypeErr, `due_type insert failed: ${dueTypeErr?.message}`).toBeNull();
 
   const { data: unit, error: unitErr } = await admin
     .from("units")
@@ -117,9 +139,32 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  // Order matters: the user's assignments and membership reference the org.
   if (userId) await admin.auth.admin.deleteUser(userId);
-  if (orgId) await admin.from("organizations").delete().eq("id", orgId);
+  if (!orgId) return;
+
+  // Deleting the organization does NOT cascade everything, and the first
+  // version of this teardown silently left a fixture behind because of it.
+  // Two blockers, both deliberate in the schema:
+  //   - platform_audit_logs has no cascade, because an audit trail is supposed
+  //     to outlive the thing it describes.
+  //   - service_charge_levies references chart_of_accounts and due_types, which
+  //     the org cascade tries to remove first.
+  // So the fixture unwinds explicitly, and the delete is checked rather than
+  // fired and forgotten -- a teardown that fails quietly is how a test database
+  // fills up with debris nobody can attribute.
+  await admin
+    .from("service_charge_allocations")
+    .delete()
+    .in(
+      "levy_id",
+      ((await admin.from("service_charge_levies").select("id").eq("organization_id", orgId)).data ?? [])
+        .map((l) => l.id as string),
+    );
+  await admin.from("service_charge_levies").delete().eq("organization_id", orgId);
+  await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
+
+  const { error: orgDeleteErr } = await admin.from("organizations").delete().eq("id", orgId);
+  expect(orgDeleteErr, `fixture org was left behind: ${orgDeleteErr?.message}`).toBeNull();
 });
 
 async function signIn(page: Page) {
@@ -170,4 +215,47 @@ test("every new finance screen renders for an authorised user", async ({ page })
 
   expect(failures, `screens failed to render:\n${failures.join("\n")}`).toEqual([]);
   expect(consoleErrors, `uncaught page errors:\n${consoleErrors.join("\n")}`).toEqual([]);
+});
+
+/**
+ * Rendering proves the page loads; it does not prove the buttons work. This
+ * drives one real workflow end to end through the browser -- form submission,
+ * server action, RPC, allocation arithmetic, and the result rendered back --
+ * because a form that paints but whose action fails is still a broken screen.
+ *
+ * The service charge levy is chosen deliberately: it is the most intricate of
+ * the new flows, and its allocation is the one piece of arithmetic where being
+ * off by a piastre is a real defect rather than a cosmetic one.
+ */
+test("a service charge levy can be created and allocated from the browser", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/en/finance/service-charges");
+
+  await page.locator("#name").fill("E2E Smoke Levy");
+  await page.locator("#periodStart").fill("2026-01-01");
+  await page.locator("#periodEnd").fill("2026-03-31");
+  // 1000.01 over a single unit still exercises the largest-remainder path:
+  // the whole amount must land on that unit, to the piastre.
+  await page.locator("#totalAmount").fill("1000.01");
+  await page.locator("#allocationBasis").selectOption("EQUAL");
+  await page.locator("#issueDate").fill("2026-08-18");
+  await page.locator("#dueDate").fill("2026-09-15");
+  await page.getByRole("button", { name: /Create as draft/i }).click();
+
+  // The action revalidates rather than navigating, so the levy appears in the
+  // list below the form.
+  const levyLink = page.getByRole("link", { name: "E2E Smoke Levy" });
+  await expect(levyLink).toBeVisible({ timeout: 15_000 });
+  await levyLink.click();
+
+  await expect(page.getByRole("button", { name: /Compute allocation/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await page.getByRole("button", { name: /Compute allocation/i }).click();
+
+  // The proof: the unit is billed, the total ties exactly, and the page says so.
+  await expect(page.getByText("SMK-A-1")).toBeVisible({ timeout: 15_000 });
+  const body = await page.locator("body").innerText();
+  expect(body, "allocation should tie to the levy total").toMatch(/1,?000\.01/);
+  expect(body, "page should confirm the split balances").toMatch(/Balanced|sum to the levy total/i);
 });
