@@ -925,6 +925,46 @@ export type Database = {
         };
         Relationships: [];
       };
+      document_numbers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          document_type: string;
+          source_type: string;
+          source_id: string;
+          year: number;
+          sequence_number: number;
+          document_number: string;
+          issued_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          document_type: string;
+          source_type: string;
+          source_id: string;
+          year: number;
+          sequence_number: number;
+          document_number: string;
+        };
+        Update: { document_number?: string };
+        Relationships: [];
+      };
+      document_number_counters: {
+        Row: {
+          organization_id: string;
+          document_type: string;
+          year: number;
+          next_number: number;
+        };
+        Insert: {
+          organization_id: string;
+          document_type: string;
+          year: number;
+          next_number?: number;
+        };
+        Update: { next_number?: number };
+        Relationships: [];
+      };
       revenue_natures: {
         Row: {
           code: string;
@@ -2880,6 +2920,20 @@ export type Database = {
           disabled_reason: string | null;
           dues_without_decision: number;
         }[];
+      };
+      get_einvoice_source_for_due: {
+        Args: { p_due_id: string };
+        Returns: unknown;
+      };
+      allocate_document_number: {
+        Args: {
+          p_organization_id: string;
+          p_document_type: string;
+          p_source_type: string;
+          p_source_id: string;
+          p_issue_date: string;
+        };
+        Returns: string;
       };
       set_member_tax_identity: {
         Args: {
