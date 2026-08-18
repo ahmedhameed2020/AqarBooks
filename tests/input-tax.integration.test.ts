@@ -145,6 +145,14 @@ afterAll(async () => {
     await admin.from("input_tax_decisions").delete().eq("organization_id", id);
     await admin.from("expense_account_input_tax").delete().eq("organization_id", id);
     await admin.from("supplier_invoices").delete().eq("organization_id", id);
+    const { data: entries } = await admin.from("journal_entries")
+      .select("id").eq("organization_id", id);
+    for (const e of entries ?? []) {
+      await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
+    }
+    await admin.from("journal_entries").delete().eq("organization_id", id);
+    await admin.from("fiscal_periods").delete().eq("organization_id", id);
+    await admin.from("fiscal_years").delete().eq("organization_id", id);
     await admin.from("suppliers").delete().eq("organization_id", id);
     await admin.from("properties").delete().eq("organization_id", id);
     await admin.from("platform_audit_logs").delete().eq("organization_id", id);
@@ -347,6 +355,90 @@ describe("أهلية ضريبة المدخلات", () => {
     expect(codes).toContain("INPUT_TAX_RECOVERABILITY_UNDECLARED");
     expect(codes).toContain("SUPPLIER_TAX_ID_MISSING");
     expect(codes).toContain("SUPPLIER_INVOICE_MISSING");
+  });
+
+  it("الترحيل الحقيقي: القابل أصل، وغير القابل تكلفة على حساب المصروف", async () => {
+    // فترة مالية مفتوحة، وإلا لم يُرحَّل شيء وصار التوكيد فارغًا.
+    const { data: fy } = await admin.from("fiscal_years").insert({
+      organization_id: orgId, name: "IT FY", start_date: "2026-01-01",
+      end_date: "2026-12-31", status: "OPEN",
+    } as never).select("id").single();
+    const { data: fp } = await admin.from("fiscal_periods").insert({
+      organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
+      name: "IT Period", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+    } as never).select("id").single();
+
+    // حساب المصروف القابل صار إعلانه غير معتمد في اختبار سابق؛ يُعاد اعتماده.
+    const redo = await declare(accFull, "FULLY_RECOVERABLE");
+    await approve(redo.id!);
+
+    const post = async (expenseAccount: string, supplier: string, net: number, rate: number) =>
+      owner.client.rpc("post_supplier_invoice", {
+        p_organization_id: orgId,
+        p_resort_id: propertyId,
+        p_supplier_id: supplier,
+        p_purchase_order_id: null,
+        p_invoice_number: `POST-${Date.now()}-${Math.random()}`,
+        p_expense_account_id: expenseAccount,
+        p_net_amount: net,
+        p_discount_amount: 0,
+        p_vat_rate: rate,
+        p_vat_account_id: vatAccountId,
+        p_wht_rate: 0,
+        p_wht_account_id: null,
+        p_invoice_date: "2026-06-01",
+        p_due_date: "2026-07-01",
+        p_fiscal_period_id: fp!.id,
+      } as never);
+
+    const linesOf = async (invoiceId: string) => {
+      const { data: inv } = await admin.from("supplier_invoices")
+        .select("journal_entry_id").eq("id", invoiceId).single();
+      const { data: lines } = await admin.from("journal_entry_lines")
+        .select("account_id, debit, credit").eq("journal_entry_id", inv!.journal_entry_id as string);
+      return lines ?? [];
+    };
+
+    // ١) قابل بالكامل ⇒ أصل ضريبة بكامل الضريبة.
+    const full = await post(accFull, supplierWithTaxId, 1000, 14);
+    expect(full.error, `post failed: ${full.error?.message}`).toBeNull();
+    const fullLines = await linesOf(full.data as unknown as string);
+    const fullVat = fullLines.find((l) => l.account_id === vatAccountId);
+    expect(fullVat, "أصل ضريبة موجود").toBeTruthy();
+    expect(Number(fullVat!.debit)).toBe(140);
+
+    // ٢) غير قابل ⇒ لا أصل، والضريبة تُحمَّل على حساب المصروف نفسه.
+    const none = await post(accNone, supplierWithTaxId, 1000, 14);
+    expect(none.error, `post failed: ${none.error?.message}`).toBeNull();
+    const noneLines = await linesOf(none.data as unknown as string);
+    expect(noneLines.find((l) => l.account_id === vatAccountId),
+      "لا أصل ضريبة بلا أهلية").toBeUndefined();
+    const noneExpense = noneLines
+      .filter((l) => l.account_id === accNone)
+      .reduce((sum, l) => sum + Number(l.debit), 0);
+    expect(noneExpense, "الضريبة صارت تكلفة").toBe(1140);
+
+    // ٣) مختلط 60% ⇒ الأصل بالجزء القابل والباقي تكلفة، والمجموع لا يتغير.
+    const mixed = await post(accMixed, supplierWithTaxId, 1000, 14);
+    expect(mixed.error, `post failed: ${mixed.error?.message}`).toBeNull();
+    const mixedLines = await linesOf(mixed.data as unknown as string);
+    const mixedVat = mixedLines.find((l) => l.account_id === vatAccountId);
+    expect(Number(mixedVat!.debit)).toBe(84);
+    const mixedExpense = mixedLines
+      .filter((l) => l.account_id === accMixed)
+      .reduce((sum, l) => sum + Number(l.debit), 0);
+    expect(mixedExpense, "الصافي زائد الجزء غير القابل").toBe(1056);
+    const credit = mixedLines.reduce((sum, l) => sum + Number(l.credit), 0);
+    const debit = mixedLines.reduce((sum, l) => sum + Number(l.debit), 0);
+    expect(debit).toBe(credit);
+    expect(credit, "الدائن بالإجمالي دائمًا").toBe(1140);
+
+    // ٤) مورد بلا رقم تسجيل ⇒ لا أصل رغم أن الإعلان قابل بالكامل.
+    const noTrn = await post(accFull, supplierNoTaxId, 1000, 14);
+    expect(noTrn.error, `post failed: ${noTrn.error?.message}`).toBeNull();
+    const noTrnLines = await linesOf(noTrn.data as unknown as string);
+    expect(noTrnLines.find((l) => l.account_id === vatAccountId),
+      "لا أصل بلا رقم تسجيل — التسجيل المحاسبي يمر والمطالبة لا").toBeUndefined();
   });
 
   it("حساب ضريبة المدخلات لا يكون حساب المخرجات نفسه", async () => {
