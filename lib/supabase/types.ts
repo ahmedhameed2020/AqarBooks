@@ -2253,6 +2253,36 @@ export type Database = {
         Args: { p_commission_id: string; p_cash_account_id: string; p_paid_date?: string };
         Returns: string;
       };
+      claim_einvoice_document: {
+        Args: {
+          p_profile_id: string;
+          p_source_type: string;
+          p_source_id: string;
+          p_document_type?: string;
+        };
+        Returns: string;
+      };
+      record_einvoice_attempt: {
+        Args: {
+          p_document_id: string;
+          p_operation: "SUBMIT" | "POLL" | "CANCEL";
+          p_resulting_status: string;
+          p_http_status?: number | null;
+          p_authority_status?: string | null;
+          p_authority_uuid?: string | null;
+          p_authority_long_id?: string | null;
+          p_qr_payload?: string | null;
+          p_error_code?: string | null;
+          p_error_detail?: string | null;
+          p_request_summary?: Record<string, unknown> | null;
+          p_response_summary?: Record<string, unknown> | null;
+        };
+        Returns: undefined;
+      };
+      set_einvoice_profile_verification: {
+        Args: { p_profile_id: string; p_success: boolean; p_error?: string | null };
+        Returns: undefined;
+      };
       schedule_unit_handover: {
         Args: {
           p_unit_id: string;
