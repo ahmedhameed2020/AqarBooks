@@ -925,6 +925,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      credit_notes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          document_type: string;
+          document_number: string;
+          source_type: string;
+          source_id: string;
+          tax_decision_id: string;
+          credit_date: string;
+          gross_amount: number;
+          taxable_base: number;
+          vat_amount: number;
+          reason: string;
+          journal_entry_id: string | null;
+          decision_snapshot: unknown;
+          issued_by: string | null;
+          issued_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          document_number: string;
+          source_id: string;
+          tax_decision_id: string;
+          credit_date: string;
+          gross_amount: number;
+          taxable_base: number;
+          vat_amount: number;
+          reason: string;
+          decision_snapshot: unknown;
+        };
+        Update: { gross_amount?: number };
+        Relationships: [];
+      };
       catalogue_items: {
         Row: {
           id: string;
@@ -2954,6 +2988,23 @@ export type Database = {
           disabled_reason: string | null;
           dues_without_decision: number;
         }[];
+      };
+      issue_credit_note: {
+        Args: {
+          p_due_id: string;
+          p_gross_amount: number;
+          p_reason: string;
+          p_credit_date?: string;
+        };
+        Returns: string;
+      };
+      creditable_remaining: {
+        Args: { p_due_id: string };
+        Returns: number;
+      };
+      get_einvoice_source_for_credit_note: {
+        Args: { p_credit_note_id: string };
+        Returns: unknown;
       };
       upsert_catalogue_item: {
         Args: {
