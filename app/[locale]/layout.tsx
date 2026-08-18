@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing, type Locale } from "@/i18n/routing";
+import { AuthRecoveryListener } from "@/components/auth/auth-recovery-listener";
 import "../globals.css";
 
 const cairo = Cairo({
@@ -65,7 +66,10 @@ export default async function LocaleLayout({
       className={`${cairo.variable} ${jakartaSans.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <AuthRecoveryListener locale={locale} />
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
