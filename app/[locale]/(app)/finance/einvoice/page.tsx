@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import type { Jurisdiction } from "@/lib/einvoice/types";
+import { supportedJurisdictions } from "@/lib/einvoice/registry";
 import {
   deriveProfileState,
   JURISDICTION_LABELS,
@@ -15,10 +16,11 @@ import {
 } from "@/lib/einvoice/profile-status";
 import { FilingToggle, ProfileForm } from "./einvoice-forms";
 
-// Only jurisdictions with an adapter are offered. The UAE is intentionally
-// absent: its mandate is still phasing in and offering a setting that cannot
-// lead anywhere would be a promise the product does not keep.
-const OFFERED: Jurisdiction[] = ["EG_ETA", "SA_ZATCA"];
+// Derived from the adapter registry rather than listed by hand, so a
+// jurisdiction can never appear here without an adapter behind it. The
+// matching guard lives in upsert_einvoice_profile, because a UI that merely
+// declines to show something is not a control.
+const OFFERED: Jurisdiction[] = supportedJurisdictions();
 
 const STATE_TONE: Record<EInvoiceProfileState, "default" | "secondary" | "outline"> = {
   NOT_CONFIGURED: "outline",

@@ -417,3 +417,45 @@ test("no secret material reaches the response, the DOM, or the client bundle", a
   await ctx.close();
   await cleanUp(admin, org.orgId);
 });
+
+test("a jurisdiction with no adapter is refused by the API, not just hidden by the UI", async () => {
+  test.setTimeout(90_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const org = await setUpOrg(admin, "Jurisdiction", "TENANT_OWNER");
+
+  const asUser = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false },
+  });
+  const { error: signInErr } = await asUser.auth.signInWithPassword({
+    email: org.email,
+    password: STAFF_PASSWORD,
+  });
+  expect(signInErr, `sign-in failed: ${signInErr?.message}`).toBeNull();
+
+  // The settings screen never offers the UAE, but a caller can skip the screen.
+  const { error } = await asUser.rpc("upsert_einvoice_profile", {
+    p_organization_id: org.orgId,
+    p_jurisdiction: "AE_PEPPOL",
+    p_environment: "SANDBOX",
+    p_taxpayer_id: "SHOULD-NOT-EXIST",
+  });
+  expect(error, "an adapterless jurisdiction must be refused").not.toBeNull();
+  expect(error!.message).toMatch(/EINVOICE_JURISDICTION_UNSUPPORTED/);
+
+  const { count } = await admin
+    .from("einvoice_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", org.orgId);
+  expect(count ?? 0, "nothing may be created for an unsupported jurisdiction").toBe(0);
+
+  // A supported one still works, so the guard is a filter and not a wall.
+  const { error: okErr } = await asUser.rpc("upsert_einvoice_profile", {
+    p_organization_id: org.orgId,
+    p_jurisdiction: "EG_ETA",
+    p_environment: "SANDBOX",
+    p_taxpayer_id: org.taxpayerId,
+  });
+  expect(okErr, `supported jurisdiction should succeed: ${okErr?.message}`).toBeNull();
+
+  await cleanUp(admin, org.orgId);
+});
