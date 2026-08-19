@@ -1,16 +1,27 @@
 import { setRequestLocale } from "next-intl/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
+import { Scale } from "lucide-react";
+import { TrialBalanceClient, type TrialBalanceRow } from "./trial-balance-client";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "ميزان المراجعة بالمجاميع والأرصدة — عقار بوكس"
+      : "Trial Balance Statement — AqarBooks",
+    description: isAr
+      ? "كشف شامل لأرصدة وحركات الحسابات المحاسبية مع فحص التوازن والتصدير للـ PDF والإكسل."
+      : "Full trial balance statement with debit/credit balance validation and PDF/Excel export.",
+  };
+}
 
 export default async function TrialBalancePage({
   params,
@@ -30,78 +41,48 @@ export default async function TrialBalancePage({
 
   const asOfDate = asOf || new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
-  const { data: rows } = await supabase.rpc("get_trial_balance", {
+  const { data: rowsData } = await supabase.rpc("get_trial_balance", {
     p_organization_id: organization.id,
     p_start_date: "1900-01-01",
     p_end_date: asOfDate,
   });
 
-  const nonZero = (rows ?? []).filter((r) => r.total_debit !== 0 || r.total_credit !== 0);
-  const totalDebit = nonZero.reduce((s, r) => s + r.total_debit, 0);
-  const totalCredit = nonZero.reduce((s, r) => s + r.total_credit, 0);
+  const rawRows = (rowsData ?? []) as unknown as TrialBalanceRow[];
+  const rows = rawRows.filter((r) => r.total_debit !== 0 || r.total_credit !== 0);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ──────────────────────────────────────────────────────────────────────────
+          PAGE HEADER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
-          <h1 className="text-xl font-semibold">{isAr ? "ميزان المراجعة" : "Trial Balance"}</h1>
-          <p className="text-sm text-muted-foreground">
-            {isAr ? "حتى تاريخ" : "As of"} {asOfDate}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+              <Scale className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+                {isAr ? "ميزان المراجعة بالمجاميع والأرصدة" : "Trial Balance Statement"}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {isAr
+                  ? `ميزان الأرصدة التراكمية والحركات لكافة الحسابات حتى تاريخ ${asOfDate}`
+                  : `Cumulative balances and ledger activity for all chart of accounts as of ${asOfDate}`}
+              </p>
+            </div>
+          </div>
         </div>
-        <form className="flex items-center gap-2">
-          <input
-            type="date"
-            name="asOf"
-            defaultValue={asOfDate}
-            className="rounded-md border border-input bg-transparent p-1.5 text-sm"
-          />
-          <button type="submit" className="rounded-md border px-3 py-1.5 text-sm">
-            {isAr ? "تحديث" : "Update"}
-          </button>
-        </form>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{isAr ? "الرمز" : "Code"}</TableHead>
-              <TableHead>{isAr ? "الحساب" : "Account"}</TableHead>
-              <TableHead>{isAr ? "مدين" : "Debit"}</TableHead>
-              <TableHead>{isAr ? "دائن" : "Credit"}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {nonZero.length ? (
-              nonZero.map((r) => (
-                <TableRow key={r.account_id}>
-                  <TableCell className="font-mono text-xs">{r.code}</TableCell>
-                  <TableCell>{isAr ? r.name_ar : r.name_en}</TableCell>
-                  <TableCell>{r.total_debit.toFixed(2)}</TableCell>
-                  <TableCell>{r.total_credit.toFixed(2)}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  {isAr ? "لا توجد حركات مرحّلة" : "No posted activity"}
-                </TableCell>
-              </TableRow>
-            )}
-            <TableRow className="font-medium">
-              <TableCell colSpan={2}>{isAr ? "الإجمالي" : "Total"}</TableCell>
-              <TableCell>{totalDebit.toFixed(2)}</TableCell>
-              <TableCell>{totalCredit.toFixed(2)}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      {Math.abs(totalDebit - totalCredit) > 0.005 && (
-        <p className="text-sm text-destructive">
-          {isAr ? "تحذير: الميزان غير متوازن" : "Warning: trial balance does not balance"}
-        </p>
-      )}
+      <TrialBalanceClient
+        rows={rows}
+        asOfDate={asOfDate}
+        organizationName={organization.name}
+        taxNumber={organization.tax_id}
+        currency={organization.default_currency || "EGP"}
+        locale={locale}
+      />
     </div>
   );
 }

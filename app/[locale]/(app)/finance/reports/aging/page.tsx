@@ -1,23 +1,33 @@
 import { setRequestLocale } from "next-intl/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
+import { Clock, AlertCircle } from "lucide-react";
 import {
-  AGING_BUCKETS,
   AGING_ELIGIBLE_STATUSES,
   computeAgingRows,
   totalsByBucket,
 } from "@/lib/finance/aging";
+import { AgingClient, type AgingReportRow } from "./aging-client";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "تقرير أعمار الديون والتحصيل — عقار بوكس"
+      : "Receivables Aging Report — AqarBooks",
+    description: isAr
+      ? "تحليل الذمم المدينة وتصنيف فترات الاستحقاق المتأخرة حسب الوحدات مع التصدير الرسمي للـ PDF والإكسل."
+      : "Analysis of aged receivables and delinquency periods with PDF/Excel export.",
+  };
+}
 
 export default async function AgingPage({
   params,
@@ -32,19 +42,20 @@ export default async function AgingPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
-  // RLS on `dues`/`payments` already enforces finance.dues.read /
-  // finance.payments.read (see deferred_aging_rls_tightening, resolved
-  // 2026-08-17) -- this check is purely a UX improvement so a user
-  // without the permission sees a clear denial message instead of a
-  // misleading empty "no outstanding receivables" table. No data query or
-  // RLS behavior changes here.
   const canReadDues = await hasPermission(organization.id, "finance.dues.read");
   if (!canReadDues) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">{isAr ? "أعمار الديون" : "Receivables Aging"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr ? "لا تملك صلاحية عرض هذا التقرير." : "You don't have permission to view this report."}
+      <div className="p-8 text-center space-y-3">
+        <div className="size-12 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600">
+          <AlertCircle className="size-6" />
+        </div>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          {isAr ? "أعمار الديون والذمم المدينة" : "Receivables Aging"}
+        </h1>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          {isAr
+            ? "لا تملك صلاحية عرض هذا التقرير."
+            : "You don't have permission to view this report."}
         </p>
       </div>
     );
@@ -67,58 +78,50 @@ export default async function AgingPage({
   const rows = computeAgingRows(dues ?? [], allocations ?? [], postedIds).map((r) => ({
     ...r,
     unitCode: unitCodeById.get(r.unit_id) ?? r.unit_id,
-  }));
-  const totals = totalsByBucket(rows);
+  })) as AgingReportRow[];
+
+  const totalsMap = totalsByBucket(rows);
+  const totalsRecord: Record<string, number> = {};
+  totalsMap.forEach((v, k) => {
+    totalsRecord[k] = v;
+  });
+
   const grandTotal = rows.reduce((s, r) => s + r.remaining, 0);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{isAr ? "أعمار الديون" : "Receivables Aging"}</h1>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {AGING_BUCKETS.map((b) => (
-          <div key={b.key} className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">{isAr ? b.labelAr : b.labelEn}</p>
-            <p className="text-lg font-semibold tabular-nums">{(totals.get(b.key) ?? 0).toFixed(2)}</p>
+      {/* ──────────────────────────────────────────────────────────────────────────
+          PAGE HEADER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-rose-600/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+              <Clock className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+                {isAr ? "تقرير أعمار الديون والتحصيل" : "Receivables Aging Report"}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {isAr
+                  ? "تحليل الذمم المدينة وتصنيف فترات الاستحقاق المتأخرة حسب الوحدات مع التصدير الرسمي للـ PDF والإكسل."
+                  : "Analysis of aged receivables and delinquency periods across units with PDF/Excel export."}
+              </p>
+            </div>
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{isAr ? "الوحدة" : "Unit"}</TableHead>
-              <TableHead>{isAr ? "المتبقي" : "Remaining"}</TableHead>
-              <TableHead>{isAr ? "الاستحقاق" : "Due date"}</TableHead>
-              <TableHead>{isAr ? "الفئة" : "Bucket"}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length ? (
-              rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.unitCode}</TableCell>
-                  <TableCell>{r.remaining.toFixed(2)}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.due_date}</TableCell>
-                  <TableCell>{isAr ? AGING_BUCKETS.find((b) => b.key === r.bucket)?.labelAr : AGING_BUCKETS.find((b) => b.key === r.bucket)?.labelEn}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  {isAr ? "لا توجد ذمم مستحقة" : "No outstanding receivables"}
-                </TableCell>
-              </TableRow>
-            )}
-            <TableRow className="font-semibold">
-              <TableCell>{isAr ? "الإجمالي" : "Total"}</TableCell>
-              <TableCell>{grandTotal.toFixed(2)}</TableCell>
-              <TableCell colSpan={2} />
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
+      <AgingClient
+        rows={rows}
+        totals={totalsRecord}
+        grandTotal={grandTotal}
+        organizationName={organization.name}
+        taxNumber={organization.tax_id}
+        currency={organization.default_currency || "EGP"}
+        locale={locale}
+      />
     </div>
   );
 }

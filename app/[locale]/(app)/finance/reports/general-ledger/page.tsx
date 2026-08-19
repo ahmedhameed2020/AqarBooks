@@ -1,27 +1,37 @@
 import { setRequestLocale } from "next-intl/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { AccountPicker } from "./account-picker";
+import { BookOpen } from "lucide-react";
+import { GeneralLedgerClient, type AccountOption, type LedgerLine } from "./general-ledger-client";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "دفتر الأستاذ العام — عقار بوكس"
+      : "General Ledger — AqarBooks",
+    description: isAr
+      ? "كشف حساب تفصيلي للحركات المحاسبية والقيود والرصيد التراكمي مع التصدير الرسمي للـ PDF والإكسل."
+      : "Itemized transaction statement with journal references and running balance.",
+  };
+}
 
 export default async function GeneralLedgerPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ accountId?: string }>;
+  searchParams: Promise<{ accountId?: string; start?: string; end?: string }>;
 }) {
   const { locale } = await params;
-  const { accountId } = await searchParams;
+  const { accountId, start, end } = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -29,67 +39,67 @@ export default async function GeneralLedgerPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
+  const startDate = start || "1900-01-01";
+  const endDate = end || new Date().toISOString().slice(0, 10);
+
   const supabase = await createClient();
-  const { data: accounts } = await supabase
+  const { data: accountsData } = await supabase
     .from("chart_of_accounts")
     .select("id, code, name_ar, name_en")
     .eq("organization_id", organization.id)
     .eq("is_group", false)
     .order("code");
 
-  const { data: lines } = accountId
+  const accounts = (accountsData ?? []) as AccountOption[];
+  const selectedAccount = accounts.find((a) => a.id === accountId) || null;
+
+  const { data: linesData } = accountId
     ? await supabase.rpc("get_account_ledger", {
         p_organization_id: organization.id,
         p_account_id: accountId,
-        p_start_date: "1900-01-01",
-        p_end_date: new Date().toISOString().slice(0, 10),
+        p_start_date: startDate,
+        p_end_date: endDate,
       })
     : { data: null };
 
+  const lines = (linesData ?? []) as LedgerLine[];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{isAr ? "دفتر الأستاذ العام" : "General Ledger"}</h1>
+      {/* ──────────────────────────────────────────────────────────────────────────
+          PAGE HEADER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-600/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
+              <BookOpen className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+                {isAr ? "دفتر الأستاذ العام التفصيلي" : "General Ledger"}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {isAr
+                  ? "كشف حساب تفصيلي بالقيود المحاسبية والحركات والرصيد التراكمي مع التصدير الرسمي للـ PDF والإكسل."
+                  : "Itemized transaction ledger with journal references, running balance, and instant exports."}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <AccountPicker accounts={accounts ?? []} selectedId={accountId} locale={locale} />
-
-      {accountId && (
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
-                <TableHead>{isAr ? "البيان" : "Description"}</TableHead>
-                <TableHead>{isAr ? "مدين" : "Debit"}</TableHead>
-                <TableHead>{isAr ? "دائن" : "Credit"}</TableHead>
-                <TableHead>{isAr ? "الرصيد" : "Balance"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lines?.length ? (
-                lines.map((l) => (
-                  <TableRow key={l.entry_id + String(l.running_balance)}>
-                    <TableCell>{l.entry_number ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{l.entry_date}</TableCell>
-                    <TableCell>{l.description}</TableCell>
-                    <TableCell>{l.debit > 0 ? l.debit.toFixed(2) : ""}</TableCell>
-                    <TableCell>{l.credit > 0 ? l.credit.toFixed(2) : ""}</TableCell>
-                    <TableCell className="font-medium">{l.running_balance.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    {isAr ? "لا توجد حركات لهذا الحساب" : "No activity for this account"}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <GeneralLedgerClient
+        accounts={accounts}
+        selectedAccount={selectedAccount}
+        lines={lines}
+        startDate={startDate}
+        endDate={endDate}
+        organizationName={organization.name}
+        taxNumber={organization.tax_id}
+        currency={organization.default_currency || "EGP"}
+        locale={locale}
+      />
     </div>
   );
 }
