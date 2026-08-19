@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { setFiscalPeriodStatusAction, recognizePendingDuesAction } from "@/lib/actions/accounting";
-import { exportTableToExcel, exportFinancialPdfReport } from "@/lib/utils/export-reports";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
+import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
 import {
   Calendar,
   Clock,
@@ -183,36 +184,46 @@ export function PeriodsClient({
     const rows = periods.map((p) => {
       const yr = years.find((y) => y.id === p.fiscal_year_id);
       return {
-        [isAr ? "السنة المالية" : "Fiscal Year"]: yr?.name || "—",
-        [isAr ? "رقم الفترة" : "Period #"]: p.period_number,
-        [isAr ? "اسم الفترة" : "Period Name"]: p.name,
-        [isAr ? "تاريخ البداية" : "Start Date"]: p.start_date,
-        [isAr ? "تاريخ النهاية" : "End Date"]: p.end_date,
-        [isAr ? "الحالة" : "Status"]: p.status,
+        year: yr?.name || "—",
+        num: p.period_number,
+        name: p.name,
+        start: p.start_date,
+        end: p.end_date,
+        status: p.status,
       };
     });
 
-    exportTableToExcel({
+    exportFinancialStatementToExcel({
+      title: isAr ? "جدول الفترات والسنوات المالية المعتمدة" : "Fiscal Years & Accounting Periods Matrix",
+      organizationName,
+      currency: currencyLabel,
+      columns: [
+        { header: isAr ? "السنة المالية" : "Fiscal Year", key: "year" },
+        { header: isAr ? "رقم الفترة" : "Period #", key: "num", isNumber: true },
+        { header: isAr ? "اسم الشهر" : "Month", key: "name" },
+        { header: isAr ? "من تاريخ" : "From", key: "start" },
+        { header: isAr ? "إلى تاريخ" : "To", key: "end" },
+        { header: isAr ? "الحالة" : "Status", key: "status" },
+      ],
+      rows,
       filename: `Fiscal_Periods_${new Date().toISOString().slice(0, 10)}.xlsx`,
-      sheetName: isAr ? "الفترات المالية" : "Fiscal Periods",
-      data: rows,
     });
   };
 
   const handleExportPdf = () => {
     const rows = periods.map((p) => {
       const yr = years.find((y) => y.id === p.fiscal_year_id);
-      return [
-        yr?.name || "—",
-        String(p.period_number),
-        p.name,
-        p.start_date,
-        p.end_date,
-        p.status,
-      ];
+      return {
+        year: yr?.name || "—",
+        num: String(p.period_number),
+        name: p.name,
+        start: p.start_date,
+        end: p.end_date,
+        status: p.status,
+      };
     });
 
-    exportFinancialPdfReport({
+    generateFinancialStatementPdf({
       title: isAr ? "جدول الفترات والسنوات المالية المعتمدة" : "Fiscal Years & Accounting Periods Matrix",
       subtitle: isAr ? "تقرير رقابة الفترات والإقفال المحاسبي الدوري" : "Accounting Period Governance & Closing Report",
       organizationName,
@@ -220,12 +231,12 @@ export function PeriodsClient({
       currencyLabel,
       dateRangeLabel: new Date().toISOString().slice(0, 10),
       columns: [
-        { header: isAr ? "السنة المالية" : "Fiscal Year", dataKey: "year" },
-        { header: isAr ? "الفترة" : "Period #", dataKey: "num" },
-        { header: isAr ? "اسم الشهر" : "Month", dataKey: "name" },
-        { header: isAr ? "من تاريخ" : "From", dataKey: "start" },
-        { header: isAr ? "إلى تاريخ" : "To", dataKey: "end" },
-        { header: isAr ? "الحالة" : "Status", dataKey: "status" },
+        { header: isAr ? "السنة المالية" : "Fiscal Year", key: "year", align: "start" },
+        { header: isAr ? "الفترة" : "Period #", key: "num", align: "center", isNumber: true },
+        { header: isAr ? "اسم الشهر" : "Month", key: "name", align: "start" },
+        { header: isAr ? "من تاريخ" : "From", key: "start", align: "center" },
+        { header: isAr ? "إلى تاريخ" : "To", key: "end", align: "center" },
+        { header: isAr ? "الحالة" : "Status", key: "status", align: "center" },
       ],
       rows,
       summaryCards: [
