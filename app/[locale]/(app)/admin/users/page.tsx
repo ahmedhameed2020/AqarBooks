@@ -89,14 +89,12 @@ export default async function UsersPage({
       profileMap.set(p.id, { fullName: p.full_name });
     }
 
-    await Promise.all(
-      userIds.map(async (uid) => {
-        const { data } = await adminClient.auth.admin.getUserById(uid);
-        if (data.user?.email) {
-          emailMap.set(uid, data.user.email);
-        }
-      })
-    );
+    const { data: usersList } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    for (const u of usersList?.users ?? []) {
+      if (u.email) {
+        emailMap.set(u.id, u.email);
+      }
+    }
   }
 
   const userItems: UserItem[] = (memberships ?? []).map((m) => {
