@@ -294,7 +294,7 @@ export default async function AppShellLayout({
             userProfile={userProfile}
             signOutAction={boundSignOut}
           />
-          <main className="flex-1 p-6 min-w-0">{children}</main>
+          <main className="flex-1 p-6 sm:p-8 min-w-0 bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
         </div>
       </div>
     </Toaster>

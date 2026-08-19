@@ -338,6 +338,33 @@
   transform: translateY(-1px);
 }
 
+/* Luxury SaaS Enterprise Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.subtle-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subtle-lift:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 25px -4px rgba(0, 0, 0, 0.06), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   .marketing * {
     transition-duration: 0.01ms !important;
