@@ -1,38 +1,43 @@
 import { setRequestLocale } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { ItemForm, LinkForm } from "./einvoice-items-forms";
-// نوع فقط — يُمحى عند البناء. استيراد قيمة فعلية من ملف "use client" داخل مكوّن
-// خادم يعود undefined بصمت.
-import type { ItemOption } from "./einvoice-items-forms";
+import {
+  Barcode,
+  Package,
+  Layers,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ShieldCheck,
+  AlertCircle,
+  Tag,
+} from "lucide-react";
+import {
+  EInvoiceItemsClient,
+  type CatalogueItemRow,
+  type DueTypeLinkRow,
+  type EmissionGap,
+} from "./einvoice-items-client";
 
-type ItemRow = {
-  id: string;
-  code: string;
-  name_ar: string;
-  name_en: string;
-  unit_code: string;
-  item_code_type: string | null;
-  item_code: string | null;
-  is_active: boolean;
-  linked_due_types: number;
-};
-
-type LinkRow = {
-  due_type_id: string;
-  due_type_name_ar: string;
-  due_type_name_en: string;
-  catalogue_item_id: string | null;
-  item_name_ar: string | null;
-  item_code: string | null;
-  item_code_type: string | null;
-};
-
-type Gap = { gap_code: string; detail: string };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "تكويد وأصناف الفاتورة الإلكترونية — عقار بوكس"
+      : "E-Invoice Item Coding & Catalogue — AqarBooks",
+    description: isAr
+      ? "إدارة كتالوج الأصناف الضريبية، أكواد EGS و GS1، وربط بنود المطالبات بالأكواد المعتمدة لدى مصلحة الضرائب."
+      : "Manage statutory item catalogue, GS1/EGS authority codes, and due type mappings.",
+  };
+}
 
 export default async function EInvoiceItemsPage({
   params,
@@ -52,18 +57,19 @@ export default async function EInvoiceItemsPage({
     hasPermission(organization.id, "finance.einvoice.read"),
   ]);
 
-  // الرفض معلن لا مخفي: إخفاء الشاشة من التنقل ليس حدًا أمنيًا، والـRPC يرفض
-  // بنفسه على أي حال.
   if (!canManage && !canRead) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">
-          {isAr ? "أصناف المستندات الإلكترونية" : "E-Document Items"}
+      <div className="p-8 text-center space-y-3">
+        <div className="size-12 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600">
+          <AlertCircle className="size-6" />
+        </div>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          {isAr ? "أصناف وتكويد الفاتورة الإلكترونية" : "E-Document Items & Coding"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
           {isAr
-            ? "لا تملك صلاحية الاطلاع على كتالوج الأصناف."
-            : "You don't have permission to view the item catalogue."}
+            ? "لا تملك صلاحية الاطلاع على كتالوج وتكويد أصناف الفاتورة الإلكترونية."
+            : "You don't have permission to view e-invoice items and coding."}
         </p>
       </div>
     );
@@ -76,182 +82,162 @@ export default async function EInvoiceItemsPage({
     supabase.rpc("check_einvoice_emission_readiness", { p_organization_id: organization.id }),
   ]);
 
-  const items = (itemsData ?? []) as unknown as ItemRow[];
-  const links = (linksData ?? []) as unknown as LinkRow[];
-  const gaps = (gapsData ?? []) as unknown as Gap[];
+  const items = (itemsData ?? []) as unknown as CatalogueItemRow[];
+  const links = (linksData ?? []) as unknown as DueTypeLinkRow[];
+  const gaps = (gapsData ?? []) as unknown as EmissionGap[];
 
-  const options: ItemOption[] = items
-    .filter((i) => i.is_active)
-    .map((i) => ({
-      id: i.id,
-      label: `${isAr ? i.name_ar : i.name_en} · ${i.code}`,
-      hasCode: Boolean(i.item_code),
-    }));
-
-  const unlinked = links.filter((l) => !l.catalogue_item_id || !l.item_code);
-  const linked = links.filter((l) => l.catalogue_item_id && l.item_code);
+  const totalDueTypes = links.length;
+  const codedDueTypes = links.filter((l) => l.catalogue_item_id && l.item_code).length;
+  const uncodedDueTypes = totalDueTypes - codedDueTypes;
+  const isEmissionReady = gaps.length === 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">
-          {isAr ? "أصناف المستندات الإلكترونية" : "E-Document Items"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr
-            ? "كل نوع مستحق يُرسَل في مستند إلكتروني يحتاج صنفًا يحمل كود سلطة."
-            : "Every due type filed in an electronic document needs an item carrying an authority code."}
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-        {isAr
-          ? "مصلحة الضرائب المصرية لا تقبل وصفًا نصيًا حرًا لسطر الفاتورة: تشترط كود صنف (EGS أو GS1) ولا مسار بديل. والنوع بلا كود يظهر هنا بدل أن يُرفض عند الإرسال."
-          : "Egypt accepts no free-text line description: an item code (EGS or GS1) is required with no alternative. A type with no code appears here rather than being rejected at filing."}
-      </div>
-
-      <section aria-label={isAr ? "جاهزية الإصدار" : "Emission readiness"} className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-medium">{isAr ? "جاهزية الإصدار" : "Emission readiness"}</h2>
-          <Badge variant={gaps.length === 0 ? "secondary" : "outline"}>{gaps.length}</Badge>
-        </div>
-        {gaps.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {isAr ? "لا نواقص تمنع الإصدار." : "Nothing blocking emission."}
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {gaps.map((g, i) => (
-              <li
-                key={`${g.gap_code}-${i}`}
-                data-gap={g.gap_code}
-                className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs"
-              >
-                <span className="font-mono">{g.gap_code}</span> — {g.detail}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-label={isAr ? "أنواع بلا كود" : "Types without a code"} className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-medium">
-            {isAr ? "أنواع مستحقات تحتاج صنفًا بكود" : "Due types needing a coded item"}
-          </h2>
-          <Badge variant="outline">{unlinked.length}</Badge>
-        </div>
-        {unlinked.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {isAr ? "كل الأنواع النشطة مربوطة بصنف يحمل كودًا." : "Every active type has a coded item."}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {unlinked.map((l) => (
-              <article
-                key={l.due_type_id}
-                data-due-type={l.due_type_id}
-                data-linked={l.catalogue_item_id ? "no-code" : "unlinked"}
-                className="space-y-3 rounded-lg border p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-medium">
-                    {isAr ? l.due_type_name_ar : l.due_type_name_en}
-                  </p>
-                  <Badge variant="outline">
-                    {l.catalogue_item_id
-                      ? isAr
-                        ? "الصنف بلا كود"
-                        : "Item has no code"
-                      : isAr
-                        ? "بلا صنف"
-                        : "Unlinked"}
-                  </Badge>
-                </div>
-                {canManage ? (
-                  <LinkForm
-                    dueTypeId={l.due_type_id}
-                    currentItemId={l.catalogue_item_id}
-                    items={options}
-                    locale={locale}
-                  />
-                ) : (
-                  <p className="text-xs text-muted-foreground">{isAr ? "الاطلاع فقط." : "View only."}</p>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {linked.length > 0 && (
-        <section aria-label={isAr ? "مربوط" : "Linked"} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium">{isAr ? "مربوط بكود" : "Linked and coded"}</h2>
-            <Badge variant="secondary">{linked.length}</Badge>
-          </div>
-          <div className="space-y-2">
-            {linked.map((l) => (
-              <article
-                key={l.due_type_id}
-                data-due-type={l.due_type_id}
-                data-linked="coded"
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-              >
-                <p className="text-sm">{isAr ? l.due_type_name_ar : l.due_type_name_en}</p>
-                <p className="text-xs text-muted-foreground" dir="ltr">
-                  {l.item_name_ar} · {l.item_code_type} {l.item_code}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {canManage && (
-        <section aria-label={isAr ? "الكتالوج" : "Catalogue"} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium">{isAr ? "كتالوج الأصناف" : "Item catalogue"}</h2>
-            <Badge variant="outline">{items.length}</Badge>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <p className="mb-3 text-xs text-muted-foreground">
-              {isAr ? "إضافة صنف أو تعديل قائم بالكود نفسه" : "Add an item, or edit one by its code"}
-            </p>
-            <ItemForm organizationId={organization.id} locale={locale} />
-          </div>
-
-          {items.length > 0 && (
-            <div className="space-y-2">
-              {items.map((i) => (
-                <article
-                  key={i.id}
-                  data-item-code={i.code}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-                >
-                  <div>
-                    <p className="text-sm">{isAr ? i.name_ar : i.name_en}</p>
-                    <p className="text-xs text-muted-foreground" dir="ltr">
-                      {i.code} · {i.unit_code}
-                      {i.item_code ? ` · ${i.item_code_type} ${i.item_code}` : ""}
-                    </p>
-                  </div>
-                  <Badge variant={i.item_code ? "secondary" : "outline"}>
-                    {i.item_code
-                      ? isAr
-                        ? `مرتبط بـ${i.linked_due_types}`
-                        : `${i.linked_due_types} linked`
-                      : isAr
-                        ? "بلا كود"
-                        : "No code"}
-                  </Badge>
-                </article>
-              ))}
+      {/* ──────────────────────────────────────────────────────────────────────────
+          PAGE HEADER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+              <Barcode className="size-5" />
             </div>
-          )}
-        </section>
-      )}
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+                {isAr ? "تكويد وأصناف الفاتورة الإلكترونية" : "E-Invoice Item Coding & Catalogue"}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {isAr
+                  ? "ربط بنود الاستحقاقات بأكواد مصلحة الضرائب المعتمدة (معيار EGS / GS1) لضمان قبول الفواتير آلياً."
+                  : "Catalogue item authority coding (EGS / GS1 standards) ensuring automated invoice acceptance."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          EXECUTIVE CODING & EMISSION KPIS
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* KPI 1: Emission Readiness */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "جاهزية إرسال الفواتير" : "Emission Readiness"}
+            </span>
+            <div className={`rounded-xl p-2 ${isEmissionReady ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400" : "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"}`}>
+              {isEmissionReady ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className={`font-mono text-2xl font-black tracking-tight ${isEmissionReady ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              {isEmissionReady ? (isAr ? "جاهز 100%" : "Ready") : (isAr ? `${gaps.length} نواقص` : `${gaps.length} Gaps`)}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+            <span>{isEmissionReady ? (isAr ? "لا توجد موانع للإصدار" : "No blocking gaps") : (isAr ? "تحتاج استكمال التكويد" : "Fix gaps to emit")}</span>
+          </div>
+        </div>
+
+        {/* KPI 2: Total Catalogue Items */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "أصناف الكتالوج المعرفة" : "Catalogue Items"}
+            </span>
+            <div className="rounded-xl p-2 bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
+              <Package className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className="font-mono text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+              {items.length}
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">{isAr ? "صنف" : "items"}</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+            <span>{isAr ? "مسجلة بكود السلطة" : "With standard codes"}</span>
+          </div>
+        </div>
+
+        {/* KPI 3: Coded Due Types */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "البنود المكودة والمربوطة" : "Coded & Linked Types"}
+            </span>
+            <div className="rounded-xl p-2 bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+              <Tag className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className="font-mono text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+              {codedDueTypes}
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">/ {totalDueTypes}</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-blue-600 font-bold">
+            <span>{isAr ? "جاهزة للطباعة والرفع الإلكتروني" : "Ready for e-invoice export"}</span>
+          </div>
+        </div>
+
+        {/* KPI 4: Uncoded Types */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "بنود تحتاج تكويد" : "Uncoded / Unlinked"}
+            </span>
+            <div className="rounded-xl p-2 bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className={`font-mono text-2xl font-black tracking-tight ${uncodedDueTypes > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600"}`}>
+              {uncodedDueTypes}
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">{isAr ? "بند" : "types"}</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+            <span>{uncodedDueTypes === 0 ? (isAr ? "تم تكويد جميع البنود" : "All coded") : (isAr ? "تظهر معلقة لتفادي الرفض" : "Needs mapping")}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          STATUTORY ITEM CODING GUIDANCE BANNER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/50 dark:bg-blue-950/40 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+            <Barcode className="size-4" />
+          </div>
+          <div className="space-y-1 text-xs">
+            <h3 className="font-black text-slate-900 dark:text-white">
+              {isAr
+                ? "اشتراطات مصلحة الضرائب لتكويد أصناف الفاتورة الإلكترونية"
+                : "Tax Authority Mandatory Item Coding Standards"}
+            </h3>
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+              {isAr
+                ? "تشترط منظومة الفاتورة الإلكترونية وجود كود صنف ضريبي معتمد (EGS أو GS1) لكل سطر في الفاتورة، ولا يُقبل الوصف النصي الحر. يضمن ربط بنود المطالبات بالأصناف هنا قبول الفواتير فور إرسالها دون أي أخطاء رفض من مصلحة الضرائب."
+                : "Tax authorities require an official item code (EGS or GS1 standard) for each invoice line item. Pre-mapping due types to catalogue items guarantees seamless validation and prevents rejection."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          MAIN ITEMS & CODING CLIENT
+          ────────────────────────────────────────────────────────────────────────── */}
+      <EInvoiceItemsClient
+        items={items}
+        links={links}
+        gaps={gaps}
+        organizationId={organization.id}
+        canManage={canManage}
+        locale={locale}
+      />
     </div>
   );
 }
