@@ -261,7 +261,12 @@ export function EInvoiceClient({
   // Handle Form Submission for Create E-Invoice
   const handleIssueInvoiceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedResortId || !selectedUnitId || !selectedDueTypeId || !selectedPeriodId || !invoiceAmount) {
+    const effectiveResortId = selectedResortId || resorts[0]?.id;
+    const effectiveUnitId = selectedUnitId || filteredUnits[0]?.id || units[0]?.id;
+    const effectiveDueTypeId = selectedDueTypeId || dueTypes[0]?.id;
+    const effectivePeriodId = selectedPeriodId || periods[0]?.id;
+
+    if (!effectiveResortId || !effectiveUnitId || !effectiveDueTypeId || !effectivePeriodId || !invoiceAmount) {
       toast.add({
         type: "error",
         title: isAr ? "يرجى تعبئة كافة الحقول المطلوبة" : "Missing Required Fields",
@@ -272,11 +277,11 @@ export function EInvoiceClient({
 
     const formData = new FormData();
     formData.append("organizationId", organizationId);
-    formData.append("resortId", selectedResortId);
-    formData.append("unitId", selectedUnitId);
-    formData.append("dueTypeId", selectedDueTypeId);
+    formData.append("resortId", effectiveResortId);
+    formData.append("unitId", effectiveUnitId);
+    formData.append("dueTypeId", effectiveDueTypeId);
     formData.append("receivableAccountId", selectedReceivableAccountId || (receivableAccounts[0]?.id || ""));
-    formData.append("fiscalPeriodId", selectedPeriodId);
+    formData.append("fiscalPeriodId", effectivePeriodId);
     formData.append("amount", String(invoiceAmount));
     formData.append("issueDate", issueDate);
     formData.append("dueDate", dueDate);
@@ -864,7 +869,7 @@ export function EInvoiceClient({
               <div className="space-y-1.5">
                 <Label className="font-bold">{isAr ? "المشروع / الكيان العقاري *" : "Property / Project *"}</Label>
                 <select
-                  value={selectedResortId}
+                  value={selectedResortId || resorts[0]?.id || ""}
                   onChange={(e) => setSelectedResortId(e.target.value)}
                   className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
@@ -881,7 +886,7 @@ export function EInvoiceClient({
               <div className="space-y-1.5">
                 <Label className="font-bold">{isAr ? "الوحدة العقارية المستهدفة *" : "Target Unit *"}</Label>
                 <select
-                  value={selectedUnitId}
+                  value={selectedUnitId || filteredUnits[0]?.id || ""}
                   onChange={(e) => setSelectedUnitId(e.target.value)}
                   className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
@@ -898,7 +903,7 @@ export function EInvoiceClient({
               <div className="space-y-1.5">
                 <Label className="font-bold">{isAr ? "نوع الإيراد / المطالبة *" : "Due Type / Revenue Nature *"}</Label>
                 <select
-                  value={selectedDueTypeId}
+                  value={selectedDueTypeId || dueTypes[0]?.id || ""}
                   onChange={(e) => setSelectedDueTypeId(e.target.value)}
                   className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
@@ -915,7 +920,7 @@ export function EInvoiceClient({
               <div className="space-y-1.5">
                 <Label className="font-bold">{isAr ? "الفترة المالية المحاسبية *" : "Fiscal Period *"}</Label>
                 <select
-                  value={selectedPeriodId}
+                  value={selectedPeriodId || periods[0]?.id || ""}
                   onChange={(e) => setSelectedPeriodId(e.target.value)}
                   className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
