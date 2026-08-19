@@ -142,6 +142,30 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("سجل الشيكات الآجلة وأوراق القبض (PDC)");
     await expect(page.locator("text=شيكات مقبوضة (واردة)")).toBeVisible();
 
+    // 10. Test Property P&L Page
+    await page.goto(`${baseURL}/ar/finance/reports/property-pnl`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("قائمة أرباح وخسائر العقارات والمنتجعات (Property P&L)");
+    await expect(page.locator("text=صافي الدخل التشغيلي (NOI)")).toBeVisible();
+
+    // 11. Test AP Aging Page
+    await page.goto(`${baseURL}/ar/finance/reports/ap-aging`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("تقرير أعمار ديون الموردين والالتزامات (AP Aging)");
+    await expect(page.locator("text=إجمالي ديون الموردين")).toBeVisible();
+
+    // 12. Test Fixed Assets Page
+    await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
+    await expect(page.locator("text=صافي القيمة الدفترية (NBV)")).toBeVisible();
+
+    // 13. Test Audit Trail Page
+    await page.goto(`${baseURL}/ar/finance/reports/audit-trail`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("سجل التدقيق والحركات الملغاة ومكافحة التلاعب");
+    await expect(page.locator("text=إجمالي الحركات الموثقة")).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });
