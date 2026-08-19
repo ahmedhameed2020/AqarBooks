@@ -115,6 +115,51 @@ export function CreateOrganizationForm({
         </div>
       </div>
 
+      {/* Owner Info & Email Dispatch (New) */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-3 text-start">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary shrink-0" />
+          <div>
+            <p className="text-xs font-bold text-foreground">
+              {isAr ? "بيانات المالك ودعوة البريد الإلكتروني" : "Owner Details & Email Invite"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {isAr
+                ? "سيتم إرسال بريد إلكتروني ترحيبي برابط تعيين كلمة المرور فوراً"
+                : "A welcome email with password setup link will be dispatched automatically"}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="space-y-1">
+            <Label htmlFor="ownerFullName" className="text-[11px] font-bold text-foreground block">
+              {isAr ? "اسم المسؤول / المدير" : "Owner / Admin Name"}
+            </Label>
+            <Input
+              id="ownerFullName"
+              name="ownerFullName"
+              placeholder={isAr ? "مثال: م. أحمد عبد العزيز" : "e.g. Ahmed Abdulaziz"}
+              className="h-9 text-xs rounded-lg bg-background"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="ownerEmail" className="text-[11px] font-bold text-foreground block">
+              {isAr ? "بريد العميل الإلكتروني" : "Owner Email Address"}
+            </Label>
+            <Input
+              id="ownerEmail"
+              name="ownerEmail"
+              type="email"
+              placeholder="owner@company.com"
+              className="h-9 text-xs rounded-lg bg-background font-mono"
+              dir="ltr"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Plan Selection Cards */}
       <div className="space-y-2 text-start pt-1">
         <Label className="text-xs font-bold text-foreground block">
