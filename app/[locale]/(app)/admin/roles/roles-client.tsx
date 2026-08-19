@@ -268,7 +268,7 @@ export function RolesClient({
         title: isAr ? "مصفوفة الأدوار والصلاحيات المعتمدة للمنشأة" : "Statutory RBAC & Internal Controls Matrix",
         subtitle: isAr ? "جدول حوكمة الصلاحيات والأدوار الوظيفية المعتمدة" : "Official Role-Based Access Control Matrix",
         organizationName,
-        taxNumber,
+        taxNumber: taxId || undefined,
         currencyLabel: "RBAC",
         dateRangeLabel: new Date().toISOString().slice(0, 10),
         columns: [
@@ -320,7 +320,7 @@ export function RolesClient({
         sheetName: isAr ? "مصفوفة الصلاحيات" : "RBAC Matrix",
         reportTitle: isAr ? "مصفوفة الأدوار والصلاحيات والحوكمة" : "Roles & Permissions Matrix",
         organizationName,
-        taxNumber,
+        taxNumber: taxId || undefined,
         currencyLabel: "RBAC",
         dateRangeLabel: new Date().toISOString().slice(0, 10),
         columns: [
