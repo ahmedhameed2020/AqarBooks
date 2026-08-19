@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
+import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { ProfileForm } from "./profile-form";
 
@@ -20,6 +21,12 @@ export default async function AdminProfilePage({
   if (!organization) return null; // layout already renders the "no org" state
 
   const canManage = await hasPermission(organization.id, "tenant.settings.manage");
+
+  const supabase = await createClient();
+  const { data: einvoiceProfiles } = await supabase
+    .from("einvoice_profiles")
+    .select("id, jurisdiction, environment, taxpayer_id, branch_code, activity_code, status, enabled, verified_at, last_verification_error, updated_at")
+    .eq("organization_id", organization.id);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -43,6 +50,7 @@ export default async function AdminProfilePage({
         phone={organization.phone || ""}
         email={organization.email || ""}
         entityType={organization.entity_type || ""}
+        einvoiceProfiles={einvoiceProfiles ?? []}
         locale={locale}
         readOnly={!canManage}
       />

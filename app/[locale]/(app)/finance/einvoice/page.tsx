@@ -298,12 +298,10 @@ export default async function EInvoicePage({
           MAIN CLIENT HUB (TABS & REGISTERS)
           ────────────────────────────────────────────────────────────────────────── */}
       <EInvoiceClient
-        offeredJurisdictions={OFFERED}
-        profiles={profiles}
         taxDecisions={taxDecisions}
         revenueNatures={revenueNatures}
-        organizationId={organization.id}
-        canManage={canManage}
+        organizationJurisdiction={(organization.tax_jurisdiction as string) || "EG"}
+        organizationTaxId={organization.tax_id}
         currency={currency}
         locale={locale}
       />

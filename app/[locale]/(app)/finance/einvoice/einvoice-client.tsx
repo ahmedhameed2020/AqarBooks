@@ -20,36 +20,12 @@ import {
   RefreshCw,
   Globe,
   Settings,
-  Lock,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { getCurrencyLabel } from "@/lib/currency";
-import type { Jurisdiction } from "@/lib/einvoice/types";
-import {
-  deriveProfileState,
-  JURISDICTION_LABELS,
-  STATE_GUIDANCE,
-  STATE_LABELS,
-  type EInvoiceProfileState,
-} from "@/lib/einvoice/profile-status";
-import { FilingToggle, ProfileForm } from "./einvoice-forms";
-
-export type EInvoiceProfileData = {
-  id: string;
-  jurisdiction: Jurisdiction;
-  environment: "SANDBOX" | "PRODUCTION" | string;
-  taxpayer_id?: string | null;
-  branch_code?: string | null;
-  activity_code?: string | null;
-  status: string;
-  enabled: boolean;
-  verified_at?: string | null;
-  last_verification_error?: string | null;
-  updated_at?: string;
-};
 
 export type TaxDecisionItem = {
   id: string;
@@ -81,16 +57,32 @@ const JURISDICTION_INFO: Record<
     authorityAr: string;
     authorityEn: string;
     flag: string;
-    digitsHint: string;
+    standardVat: string;
   }
 > = {
+  EG: {
+    arName: "جمهورية مصر العربية",
+    enName: "Egypt",
+    authorityAr: "مصلحة الضرائب المصرية (منظومة الفاتورة والإيصال الإلكتروني - ETA)",
+    authorityEn: "Egyptian Tax Authority (ETA E-Invoicing / E-Receipt)",
+    flag: "🇪🇬",
+    standardVat: "14%",
+  },
   EG_ETA: {
     arName: "جمهورية مصر العربية",
     enName: "Egypt",
     authorityAr: "مصلحة الضرائب المصرية (منظومة الفاتورة والإيصال الإلكتروني - ETA)",
     authorityEn: "Egyptian Tax Authority (ETA E-Invoicing / E-Receipt)",
     flag: "🇪🇬",
-    digitsHint: "رقم التسجيل الضريبي المكون من 9 أرقام (مثال: 100-234-567)",
+    standardVat: "14%",
+  },
+  SA: {
+    nameAr: "المملكة العربية السعودية",
+    nameEn: "Saudi Arabia",
+    authorityAr: "هيئة الزكاة والضريبة والجمارك (منظومة فاتورة - ZATCA)",
+    authorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
+    flag: "🇸🇦",
+    standardVat: "15%",
   },
   SA_ZATCA: {
     arName: "المملكة العربية السعودية",
@@ -98,7 +90,15 @@ const JURISDICTION_INFO: Record<
     authorityAr: "هيئة الزكاة والضريبة والجمارك (منظومة فاتورة - ZATCA)",
     authorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
     flag: "🇸🇦",
-    digitsHint: "الرقم الضريبي الموحد المكون من 15 رقماً",
+    standardVat: "15%",
+  },
+  AE: {
+    arName: "دولة الإمارات العربية المتحدة",
+    enName: "United Arab Emirates",
+    authorityAr: "الهيئة الاتحادية للضرائب (شبكة الفوترة الإلكترونية PEPPOL)",
+    authorityEn: "Federal Tax Authority (FTA PEPPOL Network)",
+    flag: "🇦🇪",
+    standardVat: "5%",
   },
   AE_PEPPOL: {
     arName: "دولة الإمارات العربية المتحدة",
@@ -106,38 +106,32 @@ const JURISDICTION_INFO: Record<
     authorityAr: "الهيئة الاتحادية للضرائب (شبكة الفوترة الإلكترونية PEPPOL)",
     authorityEn: "Federal Tax Authority (FTA PEPPOL Network)",
     flag: "🇦🇪",
-    digitsHint: "رقم التسجيل الضريبي (TRN) المكون من 15 رقماً",
+    standardVat: "5%",
   },
 };
 
 export function EInvoiceClient({
-  offeredJurisdictions,
-  profiles,
   taxDecisions,
   revenueNatures,
-  organizationId,
-  canManage,
+  organizationJurisdiction = "EG",
+  organizationTaxId,
   currency = "EGP",
   locale,
 }: {
-  offeredJurisdictions: Jurisdiction[];
-  profiles: EInvoiceProfileData[];
   taxDecisions: TaxDecisionItem[];
   revenueNatures: RevenueNatureItem[];
-  organizationId: string;
-  canManage: boolean;
+  organizationJurisdiction?: string;
+  organizationTaxId?: string | null;
   currency?: string;
   locale: string;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
 
-  const [activeTab, setActiveTab] = useState<"PROFILES" | "DECISIONS" | "NATURES">("PROFILES");
+  const [activeTab, setActiveTab] = useState<"DECISIONS" | "NATURES">("DECISIONS");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const byJurisdiction = useMemo(() => {
-    return new Map(profiles.map((p) => [p.jurisdiction, p]));
-  }, [profiles]);
+  const currentJur = JURISDICTION_INFO[organizationJurisdiction] || JURISDICTION_INFO.EG;
 
   const filteredDecisions = useMemo(() => {
     if (!searchQuery.trim()) return taxDecisions;
@@ -164,26 +158,51 @@ export function EInvoiceClient({
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
+          ACTIVE TAX JURISDICTION COMPLIANCE BANNER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/40 dark:from-purple-950/30 dark:via-slate-900 dark:to-slate-900 p-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{currentJur.flag}</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                  {isAr ? currentJur.arName : currentJur.enName} — {isAr ? currentJur.authorityAr : currentJur.authorityEn}
+                </h2>
+                <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                  {isAr ? "✓ مربوط بإعدادات الكيان" : "Linked via Entity"}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                <span>
+                  {isAr ? "الرقم الضريبي للمنشأة: " : "Tax ID: "}
+                  <strong className="font-mono text-slate-900 dark:text-white">{organizationTaxId || "—"}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  {isAr ? "الضريبة القياسية: " : "Standard VAT: "}
+                  <strong className="text-purple-700 dark:text-purple-300">{currentJur.standardVat}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Link href="/admin">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-bold h-8 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300">
+              <Settings className="size-3.5" />
+              <span>{isAr ? "إعدادات الربط بالكيان" : "Entity Tax Settings"}</span>
+              <ExternalLink className="size-3" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
           MAIN ACTION TOOLBAR & MODULE TABS
           ────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         {/* Module Tabs */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto">
-          <button
-            onClick={() => setActiveTab("PROFILES")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "PROFILES"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            }`}
-          >
-            <Landmark className="size-3.5" />
-            <span>{isAr ? "ملفات الربط الضريبي" : "Tax Authority Profiles"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1">
-              {offeredJurisdictions.length}
-            </Badge>
-          </button>
-
           <button
             onClick={() => setActiveTab("DECISIONS")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -192,7 +211,7 @@ export function EInvoiceClient({
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <FileCheck2 className="size-3.5" />
+            <FileCheck2 className="size-3.5 text-blue-600" />
             <span>{isAr ? "سجل القرارات والفواتير الضريبية" : "Tax Decisions Register"}</span>
             <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1">
               {taxDecisions.length}
@@ -207,8 +226,8 @@ export function EInvoiceClient({
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <Scale className="size-3.5" />
-            <span>{isAr ? "دليل تصنيفات الإيراد والقواعد" : "Revenue Tax Rules"}</span>
+            <Scale className="size-3.5 text-purple-600" />
+            <span>{isAr ? "دليل تصنيفات الإيراد والقواعد الضريبية" : "Revenue Tax Rules"}</span>
             <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1">
               {revenueNatures.length}
             </Badge>
@@ -216,157 +235,19 @@ export function EInvoiceClient({
         </div>
 
         {/* Search */}
-        {(activeTab === "DECISIONS" || activeTab === "NATURES") && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAr ? "بحث..." : "Search..."}
-              className="ps-9 text-xs h-9"
-            />
-          </div>
-        )}
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={isAr ? "بحث في القرارات أو التصنيفات..." : "Search decisions or natures..."}
+            className="ps-9 text-xs h-9"
+          />
+        </div>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 1: TAX PROFILES & JURISDICTIONS
-          ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "PROFILES" && (
-        <div className="space-y-5">
-          {/* Security & Verification Banner */}
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50/50 p-4 dark:border-blue-900/50 dark:from-blue-950/40 dark:to-slate-900 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div className="space-y-1 text-xs">
-                <h3 className="font-black text-slate-900 dark:text-white">
-                  {isAr
-                    ? "منظومة الامتثال للفوترة الإلكترونية والربط الضريبي المباشر"
-                    : "Statutory E-Invoicing Compliance & Tax Authority Integration"}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {isAr
-                    ? "يتولى النظام احتساب الضرائب، ختم القرارات الضريبية بدقة، وتجهيز حزم البيانات بصيغ XML/UBL المتوافقة مع متطلبات مصلحة الضرائب وهيئات الزكاة والضريبة."
-                    : "The system stamps tax decisions, computes statutory VAT, and prepares UBL/XML payloads for statutory compliance."}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5">
-            {offeredJurisdictions.map((jurisdiction) => {
-              const profile = byJurisdiction.get(jurisdiction);
-              const state = deriveProfileState(profile);
-              const info = JURISDICTION_INFO[jurisdiction] || {
-                arName: jurisdiction,
-                enName: jurisdiction,
-                authorityAr: jurisdiction,
-                authorityEn: jurisdiction,
-                flag: "🌐",
-                digitsHint: "",
-              };
-
-              const isConfigured = state === "CONFIGURED" || state === "VERIFIED" || state === "ACTIVE";
-
-              return (
-                <div
-                  key={jurisdiction}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4"
-                >
-                  {/* Jurisdiction Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{info.flag}</span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-sm font-black text-slate-950 dark:text-white">
-                            {isAr ? info.arName : info.enName}
-                          </h2>
-                          <Badge
-                            className={`text-[10px] font-bold ${
-                              state === "ACTIVE"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
-                                : state === "VERIFIED" || state === "CONFIGURED"
-                                ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300"
-                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            {isAr ? STATE_LABELS[state].ar : STATE_LABELS[state].en}
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                          {isAr ? info.authorityAr : info.authorityEn}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-slate-500">
-                      <span className="font-semibold">{isAr ? "بيئة العمل: " : "Env: "}</span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                        {profile?.environment || "SANDBOX"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Profile Edit Form */}
-                  {canManage ? (
-                    <div className="pt-1">
-                      <ProfileForm
-                        key={`${jurisdiction}-${profile?.updated_at ?? "new"}`}
-                        organizationId={organizationId}
-                        jurisdiction={jurisdiction}
-                        environment={(profile?.environment as "SANDBOX" | "PRODUCTION") ?? "SANDBOX"}
-                        taxpayerId={profile?.taxpayer_id ?? null}
-                        branchCode={profile?.branch_code ?? null}
-                        activityCode={profile?.activity_code ?? null}
-                        locale={locale}
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                      <div>
-                        <span className="text-slate-400 block mb-1">{isAr ? "الرقم الضريبي" : "Tax ID"}</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                          {profile?.taxpayer_id || "—"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-1">{isAr ? "كود الفرع" : "Branch Code"}</span>
-                        <span className="font-mono text-slate-800 dark:text-slate-200">
-                          {profile?.branch_code || "0"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-1">{isAr ? "كود النشاط" : "Activity Code"}</span>
-                        <span className="font-mono text-slate-800 dark:text-slate-200">
-                          {profile?.activity_code || "—"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Automatic Filing Switch */}
-                  {canManage && profile && (
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <FilingToggle
-                        profileId={profile.id}
-                        enabled={profile.enabled}
-                        canEnable={profile.verified_at !== null && profile.status === "ACTIVE"}
-                        locale={locale}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 2: TAX DECISIONS REGISTER
+          TAB 1: TAX DECISIONS REGISTER
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "DECISIONS" && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
@@ -460,7 +341,7 @@ export function EInvoiceClient({
       )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 3: REVENUE TAX NATURES & RULES
+          TAB 2: REVENUE TAX NATURES & RULES
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "NATURES" && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
