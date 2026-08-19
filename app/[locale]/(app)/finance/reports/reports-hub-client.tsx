@@ -215,24 +215,21 @@ export function ReportsHubClient({
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
-          EXECUTIVE FINANCIAL PULSE BANNER
+          EXECUTIVE FINANCIAL PULSE BANNER (CLEAN LIGHT DESIGN)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-purple-950 text-white p-6 shadow-xl">
-        <div className="absolute -top-24 -end-24 size-72 rounded-full bg-purple-600/20 blur-3xl" />
-        <div className="absolute -bottom-24 -start-24 size-72 rounded-full bg-blue-600/10 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900 text-[10px] font-bold">
                 {isAr ? "منظومة التقارير الحية والمعتمدة IFRS" : "Live IFRS Statutory Reports"}
               </Badge>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-white">
+            <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
               {isAr ? "المؤشرات والأداء المالي للمنشأة" : "Executive Financial Summary"}
-            </h2>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+            </h1>
+            <p className="text-xs text-slate-500 font-medium mt-1 max-w-xl">
               {isAr
                 ? `بيانات الأداء المالي الحية لمنشأة «${organizationName}» مستخرجة آلياً من القيود والدفاتر المحاسبية.`
                 : `Live statutory financial performance indicators for ${organizationName}.`}
@@ -242,59 +239,59 @@ export function ReportsHubClient({
           <div className="flex items-center gap-3">
             <Link
               href="/admin"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-white transition-all backdrop-blur-sm shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm"
             >
-              <Palette className="size-3.5 text-purple-400" />
+              <Palette className="size-3.5 text-purple-600 dark:text-purple-400" />
               <span>{isAr ? "هوية البراند وألوان الغلاف" : "Brand Identity"}</span>
-              <span className="size-2.5 rounded-full border border-white/40" style={{ background: activeBrandColor }} />
+              <span className="size-2.5 rounded-full border border-slate-300 dark:border-slate-600" style={{ background: activeBrandColor }} />
             </Link>
           </div>
         </div>
 
         {/* 4 CORE FINANCIAL PULSE CARDS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-5">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "إجمالي الإيرادات" : "Total Revenue"}</span>
-              <TrendingUp className="size-4 text-emerald-400" />
+              <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="mt-2 font-mono text-xl font-black text-emerald-300">
+            <div className="mt-2 font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">
               {fmt(totalRevenue)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{currency}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "إجمالي المصروفات" : "Total Expenses"}</span>
-              <TrendingDown className="size-4 text-rose-400" />
+              <TrendingDown className="size-4 text-rose-600 dark:text-rose-400" />
             </div>
-            <div className="mt-2 font-mono text-xl font-black text-rose-300">
+            <div className="mt-2 font-mono text-xl font-black text-rose-600 dark:text-rose-400">
               {fmt(totalExpense)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{currency}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "صافي الفائض المالي" : "Net Surplus"}</span>
-              <ShieldCheck className="size-4 text-purple-400" />
+              <ShieldCheck className="size-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <div className={`mt-2 font-mono text-xl font-black ${netSurplus >= 0 ? "text-purple-300" : "text-amber-300"}`}>
+            <div className={`mt-2 font-mono text-xl font-black ${netSurplus >= 0 ? "text-purple-600 dark:text-purple-400" : "text-amber-600 dark:text-amber-400"}`}>
               {netSurplus >= 0 ? `+${fmt(netSurplus)}` : fmt(netSurplus)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{currency}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "السيولة والنقدية" : "Cash Position"}</span>
-              <Wallet className="size-4 text-blue-400" />
+              <Wallet className="size-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="mt-2 font-mono text-xl font-black text-blue-300">
+            <div className="mt-2 font-mono text-xl font-black text-blue-600 dark:text-blue-400">
               {fmt(cashPosition)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{currency}</div>
           </div>
         </div>
       </div>

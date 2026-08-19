@@ -370,26 +370,23 @@ export function RolesClient({
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
-          EXECUTIVE RBAC PULSE BANNER
+          EXECUTIVE RBAC PULSE BANNER (LIGHT & CRISP DESIGN)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 text-white p-6 shadow-xl">
-        <div className="absolute -top-24 -end-24 size-72 rounded-full bg-indigo-600/20 blur-3xl" />
-        <div className="absolute -bottom-24 -start-24 size-72 rounded-full bg-purple-600/10 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex size-2 rounded-full bg-indigo-400 animate-pulse" />
-              <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[10px] font-bold">
+              <span className="flex size-2 rounded-full bg-purple-600 animate-pulse" />
+              <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-900 text-[10px] font-bold">
                 {isAr ? "منظومة الصلاحيات والحوكمة الداخلية RBAC" : "Role-Based Access Control"}
               </Badge>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
+            <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
               {isAr ? "إدارة الأدوار وصلاحيات المستخدمين" : "Roles & Permissions Governance"}
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+            <p className="text-xs text-slate-500 font-medium mt-1 max-w-xl">
               {isAr
-                ? `حوكمة صلاحيات الوصول، توزيع المهام الرقابية والمالية لمنشأة «${organizationName}» مع التعديل والتصدير الفوري.`
+                ? `حوكمة صلاحيات الوصول، وتوزيع المهام الرقابية والمالية لمنشأة «${organizationName}» مع التعديل والتصدير الفوري.`
                 : `Manage authorization boundaries and user privileges for ${organizationName}.`}
             </p>
           </div>
@@ -399,16 +396,16 @@ export function RolesClient({
               onClick={handleExportPdf}
               variant="outline"
               size="sm"
-              className="h-9 text-xs font-bold gap-1.5 bg-white/10 hover:bg-white/20 text-white border-white/20"
+              className="h-9 text-xs font-bold gap-1.5 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
             >
-              <Printer className="size-3.5 text-purple-300" />
+              <Printer className="size-3.5 text-purple-600 dark:text-purple-400" />
               <span>{isAr ? "طباعة مصفوفة الصلاحيات" : "Print Matrix"}</span>
             </Button>
 
             <Button
               onClick={handleExportExcel}
               size="sm"
-              className="h-9 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+              className="h-9 text-xs font-bold gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
             >
               <FileSpreadsheet className="size-3.5" />
               <span>{isAr ? "تصدير إكسل" : "Export Excel"}</span>
@@ -416,50 +413,50 @@ export function RolesClient({
           </div>
         </div>
 
-        {/* 4 CORE RBAC STATS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+        {/* 4 CORE RBAC STATS CARDS */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-5">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "إجمالي الأدوار الوظيفية" : "Total Roles"}</span>
-              <Shield className="size-4 text-indigo-400" />
+              <Shield className="size-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <div className="mt-2 font-mono text-2xl font-black text-indigo-300">
+            <div className="mt-2 font-mono text-2xl font-black text-slate-900 dark:text-white">
               {roles.length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{isAr ? "أدوار معتمدة بالمنشأة" : "Active Roles"}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{isAr ? "أدوار معتمدة بالمنشأة" : "Active Roles"}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "صلاحيات النظام المسجلة" : "System Permissions"}</span>
-              <Key className="size-4 text-emerald-400" />
+              <Key className="size-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="mt-2 font-mono text-2xl font-black text-emerald-300">
+            <div className="mt-2 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400">
               {allPermissions.length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{isAr ? "موزعة على 8 وحدات نظام" : "Across 8 Modules"}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{isAr ? "موزعة على 8 وحدات نظام" : "Across 8 Modules"}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "المستخدمين المعينين" : "Assigned Users"}</span>
-              <Users className="size-4 text-purple-400" />
+              <Users className="size-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="mt-2 font-mono text-2xl font-black text-purple-300">
+            <div className="mt-2 font-mono text-2xl font-black text-slate-900 dark:text-white">
               {roles.reduce((s, r) => s + r.userCount, 0)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{isAr ? "تعيينات نشطة" : "Active Assignments"}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{isAr ? "تعيينات نشطة" : "Active Assignments"}</div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
               <span>{isAr ? "مستوى الحوكمة والرقابة" : "Security Posture"}</span>
-              <ShieldCheck className="size-4 text-blue-400" />
+              <ShieldCheck className="size-4 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <div className="mt-2 font-mono text-xl font-black text-blue-300">
+            <div className="mt-2 font-mono text-lg font-black text-indigo-600 dark:text-indigo-400">
               {isAr ? "مشدد (RLS)" : "Strict RLS"}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">{isAr ? "فصل المهام المحاسبية" : "Segregation of Duties"}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{isAr ? "فصل المهام المحاسبية" : "Segregation of Duties"}</div>
           </div>
         </div>
       </div>
