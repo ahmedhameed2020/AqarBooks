@@ -511,9 +511,9 @@ export function UsersClient({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1 text-xs text-slate-500 font-mono mt-0.5">
-                          <Mail className="size-3 text-slate-400" />
-                          <span className="truncate max-w-[180px]">{user.email}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono mt-0.5">
+                          <Mail className="size-3 text-slate-400 shrink-0" />
+                          <span dir="ltr" className="truncate max-w-[220px]">{user.email}</span>
                         </div>
                       </div>
                     </div>
