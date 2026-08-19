@@ -9,8 +9,17 @@ import type { ActionResult } from "@/lib/actions/platform";
 const createSupplierSchema = z.object({
   organizationId: z.string().uuid(),
   name: z.string().min(1).max(200),
+  taxNumber: z.string().max(50).optional().or(z.literal("")),
+  commercialRegistry: z.string().max(50).optional().or(z.literal("")),
+  contactPerson: z.string().max(100).optional().or(z.literal("")),
   contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().max(30).optional(),
+  contactPhone: z.string().max(30).optional().or(z.literal("")),
+  address: z.string().max(300).optional().or(z.literal("")),
+  category: z.string().max(100).optional().or(z.literal("")),
+  paymentTermsDays: z.coerce.number().int().nonnegative().optional().default(30),
+  creditLimit: z.coerce.number().nonnegative().optional().default(0),
+  bankName: z.string().max(100).optional().or(z.literal("")),
+  bankIban: z.string().max(60).optional().or(z.literal("")),
   payableAccountId: z.string().uuid(),
 });
 
@@ -21,8 +30,17 @@ export async function createSupplierAction(
   const parsed = createSupplierSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
+    taxNumber: formData.get("taxNumber") || undefined,
+    commercialRegistry: formData.get("commercialRegistry") || undefined,
+    contactPerson: formData.get("contactPerson") || undefined,
     contactEmail: formData.get("contactEmail") || undefined,
     contactPhone: formData.get("contactPhone") || undefined,
+    address: formData.get("address") || undefined,
+    category: formData.get("category") || undefined,
+    paymentTermsDays: formData.get("paymentTermsDays") || 30,
+    creditLimit: formData.get("creditLimit") || 0,
+    bankName: formData.get("bankName") || undefined,
+    bankIban: formData.get("bankIban") || undefined,
     payableAccountId: formData.get("payableAccountId"),
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
@@ -31,8 +49,17 @@ export async function createSupplierAction(
   const { error } = await supabase.from("suppliers").insert({
     organization_id: parsed.data.organizationId,
     name: parsed.data.name,
+    tax_number: parsed.data.taxNumber || null,
+    commercial_registry: parsed.data.commercialRegistry || null,
+    contact_person: parsed.data.contactPerson || null,
     contact_email: parsed.data.contactEmail || null,
     contact_phone: parsed.data.contactPhone || null,
+    address: parsed.data.address || null,
+    category: parsed.data.category || null,
+    payment_terms_days: parsed.data.paymentTermsDays,
+    credit_limit: parsed.data.creditLimit,
+    bank_name: parsed.data.bankName || null,
+    bank_iban: parsed.data.bankIban || null,
     payable_account_id: parsed.data.payableAccountId,
   });
 

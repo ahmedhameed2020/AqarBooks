@@ -33,9 +33,17 @@ import {
 export type SupplierItem = {
   id: string;
   name: string;
+  category?: string | null;
+  tax_number?: string | null;
+  commercial_registry?: string | null;
+  contact_person?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
   payable_account_code?: string;
+  payment_terms_days?: number;
+  credit_limit?: number;
+  bank_name?: string | null;
+  bank_iban?: string | null;
   invoice_count: number;
   total_billed: number;
   total_paid: number;
@@ -369,12 +377,13 @@ export function SuppliersClient({
             <table className="w-full text-xs text-start">
               <thead className="bg-slate-900 text-white dark:bg-slate-800/90 font-bold border-b border-slate-800">
                 <tr>
-                  <th className="p-3.5 text-start">{isAr ? "اسم المورد / الشركة" : "Supplier Name"}</th>
-                  <th className="p-3.5 text-start">{isAr ? "بيانات التواصل" : "Contact Info"}</th>
-                  <th className="p-3.5 text-center">{isAr ? "عدد الفواتير" : "Invoices"}</th>
+                  <th className="p-3.5 text-start">{isAr ? "المورد والنشاط" : "Supplier & Activity"}</th>
+                  <th className="p-3.5 text-start">{isAr ? "البيانات الضريبية والتجارية" : "Tax & CR"}</th>
+                  <th className="p-3.5 text-start">{isAr ? "مسؤول التواصل" : "Contact"}</th>
+                  <th className="p-3.5 text-center">{isAr ? "الفواتير" : "Invoices"}</th>
                   <th className="p-3.5 text-end">{isAr ? "إجمالي التعاملات" : "Total Billed"}</th>
                   <th className="p-3.5 text-end">{isAr ? "المسدد له" : "Total Paid"}</th>
-                  <th className="p-3.5 text-end">{isAr ? "الرصيد المستحق الحالي" : "Outstanding Balance"}</th>
+                  <th className="p-3.5 text-end">{isAr ? "الرصيد المستحق" : "Outstanding"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -387,11 +396,36 @@ export function SuppliersClient({
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">
                         <div className="flex items-center gap-2">
                           <Truck className="size-4 text-blue-600 shrink-0" />
-                          <span>{s.name}</span>
+                          <div>
+                            <div>{s.name}</div>
+                            {s.category && (
+                              <Badge variant="outline" className="text-[10px] font-normal border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300 mt-0.5">
+                                {s.category}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </td>
 
+                      <td className="p-3.5">
+                        {s.tax_number ? (
+                          <div className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <span className="text-[10px] text-slate-400 font-normal me-1">{isAr ? "ضريبي:" : "Tax:"}</span>
+                            {s.tax_number}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">—</span>
+                        )}
+                        {s.commercial_registry && (
+                          <div className="font-mono text-[11px] text-slate-500">
+                            <span className="text-[10px] text-slate-400 font-normal me-1">{isAr ? "س.ت:" : "CR:"}</span>
+                            {s.commercial_registry}
+                          </div>
+                        )}
+                      </td>
+
                       <td className="p-3.5 text-slate-600 dark:text-slate-400">
+                        {s.contact_person && <div className="font-semibold text-slate-800 dark:text-slate-200">{s.contact_person}</div>}
                         <div>{s.contact_phone || "—"}</div>
                         {s.contact_email && <div className="text-[11px] font-mono text-slate-400">{s.contact_email}</div>}
                       </td>
@@ -424,7 +458,7 @@ export function SuppliersClient({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-10 text-center text-slate-400 text-xs">
+                    <td colSpan={7} className="p-10 text-center text-slate-400 text-xs">
                       {isAr ? "لا يوجد موردون مسجلون بعد" : "No suppliers registered"}
                     </td>
                   </tr>

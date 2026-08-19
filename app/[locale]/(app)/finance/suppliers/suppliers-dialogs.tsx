@@ -49,7 +49,7 @@ export type Option = { id: string; label: string };
 export type InvoiceOption = Option & { remaining: number; supplierId: string };
 
 /* ──────────────────────────────────────────────────────────────────────────
-   1. CREATE SUPPLIER DIALOG
+   1. CREATE SUPPLIER DIALOG (ENTERPRISE PROFILE)
    ────────────────────────────────────────────────────────────────────────── */
 export function CreateSupplierDialog({
   open,
@@ -70,9 +70,19 @@ export function CreateSupplierDialog({
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Form states
   const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [taxNumber, setTaxNumber] = useState("");
+  const [commercialRegistry, setCommercialRegistry] = useState("");
+  const [address, setAddress] = useState("");
+  const [paymentTermsDays, setPaymentTermsDays] = useState("30");
+  const [creditLimit, setCreditLimit] = useState("0");
+  const [bankName, setBankName] = useState("");
+  const [bankIban, setBankIban] = useState("");
   const [payableAccountId, setPayableAccountId] = useState<string>(payableAccounts[0]?.id ?? "");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -80,7 +90,12 @@ export function CreateSupplierDialog({
     setErrorMsg(null);
 
     if (!name.trim()) {
-      setErrorMsg(isAr ? "يرجى إدخال اسم المورد" : "Please enter supplier name");
+      setErrorMsg(isAr ? "يرجى إدخال اسم المورد أو الشركة" : "Please enter supplier name");
+      return;
+    }
+
+    if (!payableAccountId) {
+      setErrorMsg(isAr ? "يرجى اختيار حساب الدائنين والموردين" : "Please select payable account");
       return;
     }
 
@@ -88,9 +103,18 @@ export function CreateSupplierDialog({
       const formData = new FormData();
       formData.set("organizationId", organizationId);
       formData.set("name", name.trim());
+      if (category.trim()) formData.set("category", category.trim());
+      if (contactPerson.trim()) formData.set("contactPerson", contactPerson.trim());
       if (contactEmail.trim()) formData.set("contactEmail", contactEmail.trim());
       if (contactPhone.trim()) formData.set("contactPhone", contactPhone.trim());
-      if (payableAccountId) formData.set("payableAccountId", payableAccountId);
+      if (taxNumber.trim()) formData.set("taxNumber", taxNumber.trim());
+      if (commercialRegistry.trim()) formData.set("commercialRegistry", commercialRegistry.trim());
+      if (address.trim()) formData.set("address", address.trim());
+      formData.set("paymentTermsDays", paymentTermsDays || "30");
+      formData.set("creditLimit", creditLimit || "0");
+      if (bankName.trim()) formData.set("bankName", bankName.trim());
+      if (bankIban.trim()) formData.set("bankIban", bankIban.trim());
+      formData.set("payableAccountId", payableAccountId);
 
       const res = await createSupplierAction({ ok: true }, formData);
 
@@ -98,12 +122,19 @@ export function CreateSupplierDialog({
         toast.add({
           type: "success",
           title: isAr ? "تم تسجيل المورد بنجاح" : "Supplier Registered",
-          description: isAr ? `تمت إضافة "${name}" إلى دليل الموردين` : `Added "${name}" to suppliers`,
+          description: isAr ? `تمت إضافة "${name}" بكافة بياناته الضريبية والمالية` : `Added "${name}" with full profile`,
         });
         onOpenChange(false);
         setName("");
+        setCategory("");
+        setContactPerson("");
         setContactEmail("");
         setContactPhone("");
+        setTaxNumber("");
+        setCommercialRegistry("");
+        setAddress("");
+        setBankName("");
+        setBankIban("");
         router.refresh();
       } else {
         setErrorMsg(res.error || (isAr ? "فشل تسجيل المورد" : "Failed to register supplier"));
@@ -113,23 +144,25 @@ export function CreateSupplierDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-            <Truck className="size-5" />
-          </div>
-          <div>
-            <DialogTitle>{isAr ? "إضافة مورد جديد" : "Register New Supplier"}</DialogTitle>
-            <DialogDescription>
-              {isAr
-                ? "تعريف مورد جديد بحساب الدائنين بالدليل المحاسبي لربط الفواتير والدفعات."
-                : "Register a new vendor/supplier and map to payables GL account."}
-            </DialogDescription>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-5 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+              <Truck className="size-5" />
+            </div>
+            <div>
+              <DialogTitle>{isAr ? "إضافة مورد جديد (ملف متكامل)" : "Register New Supplier (Full Profile)"}</DialogTitle>
+              <DialogDescription>
+                {isAr
+                  ? "تسجيل بيانات المورد الأساسية، الضريبية، البنكية، وشروط الائتمان والدفع."
+                  : "Register supplier basic, tax, banking, and payment terms."}
+              </DialogDescription>
+            </div>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <DialogBody className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <DialogBody className="p-5 space-y-5 overflow-y-auto flex-1">
             {errorMsg && (
               <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
                 <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
@@ -137,76 +170,230 @@ export function CreateSupplierDialog({
               </div>
             )}
 
-            <div className="space-y-1.5 text-start">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "اسم المورد أو الشركة *" : "Supplier / Company Name *"}
-              </Label>
-              <Input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={isAr ? "مثال: شركة النيل للمقاولات والتوريدات" : "e.g. Nile Construction Supplies"}
-                className="text-sm"
-              />
+            {/* 1. البيانات الأساسية */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <Truck className="size-3.5 text-blue-600" />
+                <span>{isAr ? "البيانات الأساسية وتصنيف النشاط" : "Basic Information & Activity"}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5 text-start sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "اسم المورد أو الشركة *" : "Supplier / Company Name *"}
+                  </Label>
+                  <Input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={isAr ? "مثال: شركة النيل للمقاولات والتوريدات العمومية" : "e.g. Nile General Contracting & Supplies"}
+                    className="text-sm font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "تصنيف / مجال النشاط" : "Category / Industry"}
+                  </Label>
+                  <Input
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder={isAr ? "مثال: مقاولات، صيانة مصاعد، أدوات صحية، أمن" : "e.g. Maintenance, Elevator, Plumbing"}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "الشخص المسؤول / مندوب المبيعات" : "Contact Person / Sales Rep"}
+                  </Label>
+                  <Input
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder={isAr ? "مثال: أ. محمد عبدالفتاح" : "e.g. John Doe"}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "البريد الإلكتروني" : "Email"}
-                </Label>
-                <Input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="vendor@company.com"
-                  className="text-xs font-mono"
-                  dir="ltr"
-                />
+            {/* 2. البيانات الضريبية والقانونية */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <FileText className="size-3.5 text-purple-600" />
+                <span>{isAr ? "البيانات الضريبية والتجارية (للفاتورة الإلكترونية)" : "Tax & Legal Identifiers"}</span>
               </div>
 
-              <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "رقم الهاتف" : "Phone"}
-                </Label>
-                <Input
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="010..."
-                  className="text-xs font-mono"
-                  dir="ltr"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "الرقم الضريبي / التسجيل الضريبي (Tax ID / TRN)" : "Tax ID / TRN"}
+                  </Label>
+                  <Input
+                    value={taxNumber}
+                    onChange={(e) => setTaxNumber(e.target.value)}
+                    placeholder="e.g. 100-234-567"
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "رقم السجل التجاري (CR Number)" : "Commercial Registration #"}
+                  </Label>
+                  <Input
+                    value={commercialRegistry}
+                    onChange={(e) => setCommercialRegistry(e.target.value)}
+                    placeholder="e.g. 49281"
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "العنوان والمقر الرئيسي" : "Headquarters Address"}
+                  </Label>
+                  <Input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder={isAr ? "مثال: 15 شارع الثورة، مصر الجديدة، القاهرة" : "e.g. 15 El-Thawra St, Heliopolis, Cairo"}
+                    className="text-xs"
+                  />
+                </div>
               </div>
             </div>
 
-            {payableAccounts.length > 0 && (
-              <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "حساب الدائنين والموردين (الالتزامات)" : "Payable Account"}
-                </Label>
-                <Select value={payableAccountId} onValueChange={(val) => setPayableAccountId(val ?? "")} items={payableAccounts.map((a) => ({ value: a.id, label: a.label }))}>
-                  <SelectTrigger className="w-full text-xs">
-                    <SelectValue placeholder={isAr ? "اختر الحساب..." : "Select account..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {payableAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id} className="text-xs">
-                        {a.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* 3. شروط الدفع والائتمان والحساب المحاسبي */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <DollarSign className="size-3.5 text-emerald-600" />
+                <span>{isAr ? "شروط الائتمان وحساب الدائنين" : "Credit Terms & Payables GL"}</span>
               </div>
-            )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "حساب الدائنين بالدليل *" : "Payable Account *"}
+                  </Label>
+                  <Select value={payableAccountId} onValueChange={(val) => setPayableAccountId(val ?? "")} items={payableAccounts.map((a) => ({ value: a.id, label: a.label }))}>
+                    <SelectTrigger className="w-full text-xs">
+                      <SelectValue placeholder={isAr ? "اختر الحساب..." : "Select account..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {payableAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id} className="text-xs">
+                          {a.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "مهلة السداد (أيام)" : "Payment Terms (Days)"}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={paymentTermsDays}
+                    onChange={(e) => setPaymentTermsDays(e.target.value)}
+                    placeholder="30"
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "الحد الائتماني المسموح به" : "Credit Limit"}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={creditLimit}
+                    onChange={(e) => setCreditLimit(e.target.value)}
+                    placeholder="0.00"
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. بيانات الاتصال والبيانات البنكية */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <CreditCard className="size-3.5 text-amber-600" />
+                <span>{isAr ? "بيانات التواصل والتحويل البنكي" : "Contact & Banking Details"}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "رقم الهاتف / الموبايل" : "Phone"}
+                  </Label>
+                  <Input
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="010..."
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "البريد الإلكتروني" : "Email"}
+                  </Label>
+                  <Input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="accounting@vendor.com"
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "اسم بنك المورد" : "Supplier Bank Name"}
+                  </Label>
+                  <Input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder={isAr ? "مثال: البنك الأهلي المصري / CIB" : "e.g. CIB / NBE"}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-start">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isAr ? "رقم الحساب أو الآيبان (IBAN)" : "Account # or IBAN"}
+                  </Label>
+                  <Input
+                    value={bankIban}
+                    onChange={(e) => setBankIban(e.target.value)}
+                    placeholder="EG..."
+                    className="text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0 flex items-center justify-between w-full">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !name.trim()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
+            <Button type="submit" disabled={isPending || !name.trim() || !payableAccountId} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
-              <span>{isAr ? "حفظ المورد" : "Save Supplier"}</span>
+              <span>{isAr ? "حفظ ملف المورد المتكامل" : "Save Supplier Profile"}</span>
             </Button>
           </DialogFooter>
         </form>
