@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import {
   CommissionsClient,
   type CommissionRow,
