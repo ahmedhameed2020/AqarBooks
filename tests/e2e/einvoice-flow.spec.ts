@@ -111,7 +111,7 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
       .from("units")
       .insert({
         organization_id: orgId,
-        resort_id: resort!.id,
+        property_id: resort!.id,
         code: "U-101",
         unit_type: "VILLA",
       })
