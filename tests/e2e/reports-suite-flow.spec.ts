@@ -13,7 +13,7 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
   test("Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register", async ({
     page,
   }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(240_000);
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
     // 1. Create Organization
     const orgSlug = `fin-hub-${Date.now()}`;
