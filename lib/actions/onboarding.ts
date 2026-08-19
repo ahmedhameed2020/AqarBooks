@@ -98,9 +98,9 @@ export async function completeOnboarding(
     return { ok: false, error: "حصل خطأ من عندنا، جرّب تاني بعد لحظات" };
   }
 
-  // The RPC returns jsonb, so Supabase's generated types can only say `Json`
-  // here -- the actual shape ({success, organization_id, resort_id, slug})
-  // is proven by tests/onboarding.integration.test.ts, not by the type system.
+  // The RPC returns jsonb, and its shape ({success, organization_id,
+  // resort_id, slug}) is proven by tests/onboarding.integration.test.ts,
+  // not by the type system (the "as never" call above has no return typing).
   const result = data as { success?: boolean } | null;
   if (!result?.success) {
     console.error("[completeOnboarding] RPC returned success:false unexpectedly", data);
