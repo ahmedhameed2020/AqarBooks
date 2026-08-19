@@ -1,11 +1,17 @@
 import { redirect, Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
-import { AppSidebar, type SidebarNavGroup, type SidebarWorkspace } from "@/components/app-sidebar";
+import {
+  AppSidebar,
+  type SidebarNavGroup,
+  type SidebarWorkspace,
+  type UserSidebarProfile,
+} from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toast";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
 import {
@@ -43,9 +49,16 @@ export default async function AppShellLayout({
     redirect({ href: "/login", locale: loc });
   }
 
-  const [platformAdmin, organization] = await Promise.all([
+  const supabase = await createClient();
+
+  const [platformAdmin, organization, { data: profile }] = await Promise.all([
     isPlatformAdmin(user!.id),
     getPrimaryOrganization(user!.id),
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("id", user!.id)
+      .maybeSingle(),
   ]);
 
   const homeGroup: SidebarNavGroup = {
@@ -256,6 +269,20 @@ export default async function AppShellLayout({
   const boundSignOut = signOut.bind(null, loc);
   const isAr = loc === "ar";
 
+  const userProfile: UserSidebarProfile = {
+    name: profile?.full_name || organization?.name || user!.email?.split("@")[0],
+    email: user!.email ?? "",
+    role: platformAdmin
+      ? isAr
+        ? "مسؤول النظام العام"
+        : "Platform Admin"
+      : isAr
+      ? "مالك المنشأة"
+      : "Organization Owner",
+    orgName: organization?.name,
+    isSuperAdmin: platformAdmin,
+  };
+
   return (
     <Toaster>
       <div className="flex min-h-full flex-1 flex-col">
@@ -264,47 +291,10 @@ export default async function AppShellLayout({
           <AppSidebar
             workspaces={workspaces}
             locale={loc}
-            footer={
-              <div className="space-y-2.5">
-                <Link
-                  href="/account"
-                  locale={loc}
-                  className="-mx-1 flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-white/[0.05]"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-                    {(organization?.name || user!.email || "?")[0].toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-sidebar-foreground">
-                      {organization?.name || user!.email}
-                    </p>
-                    <p className="truncate text-[11px] text-sidebar-foreground/55">{user!.email}</p>
-                  </div>
-                </Link>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {organization && (
-                    <Badge variant="outline" className="border-sidebar-border text-[10px] text-sidebar-foreground/80">
-                      {organization.status}
-                    </Badge>
-                  )}
-                  {platformAdmin && (
-                    <Badge className="text-[10px]">{isAr ? "مدير المنصة" : "Super Admin"}</Badge>
-                  )}
-                </div>
-                <form action={boundSignOut}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-white/[0.06]"
-                  >
-                    {isAr ? "تسجيل الخروج" : "Sign out"}
-                  </Button>
-                </form>
-              </div>
-            }
+            userProfile={userProfile}
+            signOutAction={boundSignOut}
           />
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-6 min-w-0">{children}</main>
         </div>
       </div>
     </Toaster>
