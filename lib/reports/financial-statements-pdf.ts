@@ -59,13 +59,18 @@ export function generateFinancialStatementPdf(
     includeCoverPage = true,
   } = data;
 
+  const storedBrandColor = typeof window !== "undefined" ? localStorage.getItem("aqarbooks_brand_color") : null;
+  const storedTagline = typeof window !== "undefined" ? localStorage.getItem("aqarbooks_tagline") : null;
+  const storedLogo = typeof window !== "undefined" ? localStorage.getItem("aqarbooks_logo_url") : null;
+
   const safeOrgName = escapeHtml(organizationName || "عقار بوكس");
   const safeTitle = escapeHtml(title);
   const safeSubtitle = subtitle ? escapeHtml(subtitle) : "";
   const safeDateRange = escapeHtml(dateRangeLabel);
   const safeCurrency = escapeHtml(currencyLabel);
-  const safeBrandColor = brandColor || "#1E1B4B";
-  const safeTagline = tagline ? escapeHtml(tagline) : (isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services");
+  const safeBrandColor = storedBrandColor || brandColor || "#1E1B4B";
+  const safeTagline = storedTagline || (tagline ? escapeHtml(tagline) : (isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services"));
+  const safeLogoUrl = storedLogo || logoUrl || null;
 
   const printTime = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
     dateStyle: "full",

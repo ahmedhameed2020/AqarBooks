@@ -1,0 +1,398 @@
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "@/i18n/navigation";
+import {
+  Scale,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Landmark,
+  FileSpreadsheet,
+  Clock,
+  ArrowUpRight,
+  ShieldCheck,
+  Building2,
+  Calendar,
+  Layers,
+  FileText,
+  PieChart,
+  DollarSign,
+  BookOpen,
+  Search,
+  Printer,
+  Sparkles,
+  Palette,
+  CheckCircle2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+export interface ReportDefinition {
+  id: string;
+  href: string;
+  category: "STATUTORY" | "LEDGERS" | "RECEIVABLES" | "BUDGETS";
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+  icon: any;
+  badgeAr: string;
+  badgeEn: string;
+  badgeVariant: "default" | "secondary" | "outline";
+  colorClass: string;
+  bgGradient: string;
+}
+
+const ALL_REPORTS: ReportDefinition[] = [
+  {
+    id: "trial-balance",
+    href: "/finance/reports/trial-balance",
+    category: "STATUTORY",
+    titleAr: "ميزان المراجعة بالمجاميع والأرصدة",
+    titleEn: "Trial Balance Statement",
+    descAr: "كشف شامل لأرصدة وحركات كافة الحسابات المدينة والدائنة مع فحص التوازن الفوري والاعتماد المحاسبي.",
+    descEn: "Comprehensive summary of debit and credit balances with automated balance integrity check.",
+    icon: Scale,
+    badgeAr: "أساسي ومعتمد",
+    badgeEn: "Core Statutory",
+    badgeVariant: "default",
+    colorClass: "text-blue-600 dark:text-blue-400",
+    bgGradient: "from-blue-600/10 to-indigo-600/10",
+  },
+  {
+    id: "income-statement",
+    href: "/finance/reports/income-statement",
+    category: "STATUTORY",
+    titleAr: "قائمة الدخل والأرباح والخسائر",
+    titleEn: "Income Statement (P&L)",
+    descAr: "بيان شجري للإيرادات المحققة والمصروفات التشغيلية وصافي الفائض أو العجز المالي وهوامش الربحية.",
+    descEn: "Full report of revenues, operating expenditures, and net period surplus or deficit.",
+    icon: TrendingUp,
+    badgeAr: "قائمة ختامية",
+    badgeEn: "Statutory",
+    badgeVariant: "default",
+    colorClass: "text-emerald-600 dark:text-emerald-400",
+    bgGradient: "from-emerald-600/10 to-teal-600/10",
+  },
+  {
+    id: "balance-sheet",
+    href: "/finance/reports/balance-sheet",
+    category: "STATUTORY",
+    titleAr: "الميزانية العمومية والمركز المالي",
+    titleEn: "Balance Sheet",
+    descAr: "بيان الأصول المتداولة والثابتة، الخصوم والالتزامات، وحقوق الملكية وفحص المعادلة المحاسبية.",
+    descEn: "Statement of financial position: assets, liabilities, and equity balances.",
+    icon: Landmark,
+    badgeAr: "قائمة ختامية",
+    badgeEn: "Statutory",
+    badgeVariant: "default",
+    colorClass: "text-purple-600 dark:text-purple-400",
+    bgGradient: "from-purple-600/10 to-pink-600/10",
+  },
+  {
+    id: "cash-flow",
+    href: "/finance/reports/cash-flow",
+    category: "STATUTORY",
+    titleAr: "قائمة التدفقات النقدية",
+    titleEn: "Cash Flow Statement",
+    descAr: "حركة السيولة والتدفقات النقدية من الأنشطة التشغيلية والاستثمارية والتمويلية ومطابقة النقدية.",
+    descEn: "Inflows and outflows across operational, investing, and financing activities.",
+    icon: Wallet,
+    badgeAr: "سيولة نقدية",
+    badgeEn: "Liquidity",
+    badgeVariant: "secondary",
+    colorClass: "text-amber-600 dark:text-amber-400",
+    bgGradient: "from-amber-600/10 to-orange-600/10",
+  },
+  {
+    id: "general-ledger",
+    href: "/finance/reports/general-ledger",
+    category: "LEDGERS",
+    titleAr: "دفتر الأستاذ العام التفصيلي",
+    titleEn: "General Ledger",
+    descAr: "كشف حساب تفصيلي لأي حساب بالدليل المحاسبي بالحركات والقيود المرجعية والرصيد التراكمي.",
+    descEn: "Itemized transaction statement with journal references and running balance.",
+    icon: BookOpen,
+    badgeAr: "تدقيق تفصيلي",
+    badgeEn: "Itemized Audit",
+    badgeVariant: "outline",
+    colorClass: "text-cyan-600 dark:text-cyan-400",
+    bgGradient: "from-cyan-600/10 to-blue-600/10",
+  },
+  {
+    id: "aging",
+    href: "/finance/reports/aging",
+    category: "RECEIVABLES",
+    titleAr: "تقرير أعمار الديون والتحصيل",
+    titleEn: "Receivables Aging Report",
+    descAr: "تحليل الذمم المدينة وتصنيف فترات الاستحقاق المتأخرة حسب الوحدات والأعضاء لتقييم المخاطر.",
+    descEn: "Analysis of aged receivables and delinquency periods across units and members.",
+    icon: Clock,
+    badgeAr: "تحصيل وذمم",
+    badgeEn: "Collections",
+    badgeVariant: "secondary",
+    colorClass: "text-rose-600 dark:text-rose-400",
+    bgGradient: "from-rose-600/10 to-red-600/10",
+  },
+  {
+    id: "budget-vs-actual",
+    href: "/finance/reports/budget-vs-actual",
+    category: "BUDGETS",
+    titleAr: "الموازنة التقديرية مقابل الفعلي",
+    titleEn: "Budget vs Actual Analysis",
+    descAr: "مقارنة الصرف والإيراد الفعلي بالموازنات المعتمدة واحتساب نسب الانحراف والوفر المالي.",
+    descEn: "Variance analysis comparing approved fiscal budget targets to actual financial activity.",
+    icon: PieChart,
+    badgeAr: "رقابة مالية",
+    badgeEn: "Variance Control",
+    badgeVariant: "outline",
+    colorClass: "text-violet-600 dark:text-violet-400",
+    bgGradient: "from-violet-600/10 to-purple-600/10",
+  },
+];
+
+export function ReportsHubClient({
+  totalRevenue,
+  totalExpense,
+  netSurplus,
+  cashPosition,
+  currency,
+  organizationName,
+  taxId,
+  locale,
+}: {
+  totalRevenue: number;
+  totalExpense: number;
+  netSurplus: number;
+  cashPosition: number;
+  currency: string;
+  organizationName: string;
+  taxId?: string | null;
+  locale: string;
+}) {
+  const isAr = locale === "ar";
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeBrandColor, setActiveBrandColor] = useState<string>("#1E1B4B");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("aqarbooks_brand_color");
+      if (saved) setActiveBrandColor(saved);
+    }
+  }, []);
+
+  const fmt = (n: number) =>
+    n.toLocaleString(isAr ? "ar-EG" : "en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const filteredReports = useMemo(() => {
+    return ALL_REPORTS.filter((r) => {
+      if (selectedCategory !== "ALL" && r.category !== selectedCategory) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        r.titleAr.toLowerCase().includes(q) ||
+        r.titleEn.toLowerCase().includes(q) ||
+        r.descAr.toLowerCase().includes(q) ||
+        r.descEn.toLowerCase().includes(q)
+      );
+    });
+  }, [selectedCategory, searchQuery]);
+
+  const categories = [
+    { key: "ALL", labelAr: "كافة التقارير والقوائم", labelEn: "All Reports", count: ALL_REPORTS.length },
+    { key: "STATUTORY", labelAr: "الحسابات الختامية الرسمية", labelEn: "Statutory Statements", count: 4 },
+    { key: "LEDGERS", labelAr: "دفاتر الأستاذ والتدقيق", labelEn: "Ledgers & Audits", count: 1 },
+    { key: "RECEIVABLES", labelAr: "الذمم وأعمار الديون", labelEn: "Aging & Collections", count: 1 },
+    { key: "BUDGETS", labelAr: "الموازنات والانحرافات", labelEn: "Budgets & Control", count: 1 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* ──────────────────────────────────────────────────────────────────────────
+          EXECUTIVE FINANCIAL PULSE BANNER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-purple-950 text-white p-6 shadow-xl">
+        <div className="absolute -top-24 -end-24 size-72 rounded-full bg-purple-600/20 blur-3xl" />
+        <div className="absolute -bottom-24 -start-24 size-72 rounded-full bg-blue-600/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                {isAr ? "منظومة التقارير الحية والمعتمدة IFRS" : "Live IFRS Statutory Reports"}
+              </Badge>
+            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white">
+              {isAr ? "المؤشرات والأداء المالي للمنشأة" : "Executive Financial Summary"}
+            </h2>
+            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+              {isAr
+                ? `بيانات الأداء المالي الحية لمنشأة «${organizationName}» مستخرجة آلياً من القيود والدفاتر المحاسبية.`
+                : `Live statutory financial performance indicators for ${organizationName}.`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-white transition-all backdrop-blur-sm shadow-sm"
+            >
+              <Palette className="size-3.5 text-purple-400" />
+              <span>{isAr ? "هوية البراند وألوان الغلاف" : "Brand Identity"}</span>
+              <span className="size-2.5 rounded-full border border-white/40" style={{ background: activeBrandColor }} />
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 CORE FINANCIAL PULSE CARDS */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>{isAr ? "إجمالي الإيرادات" : "Total Revenue"}</span>
+              <TrendingUp className="size-4 text-emerald-400" />
+            </div>
+            <div className="mt-2 font-mono text-xl font-black text-emerald-300">
+              {fmt(totalRevenue)}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>{isAr ? "إجمالي المصروفات" : "Total Expenses"}</span>
+              <TrendingDown className="size-4 text-rose-400" />
+            </div>
+            <div className="mt-2 font-mono text-xl font-black text-rose-300">
+              {fmt(totalExpense)}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>{isAr ? "صافي الفائض المالي" : "Net Surplus"}</span>
+              <ShieldCheck className="size-4 text-purple-400" />
+            </div>
+            <div className={`mt-2 font-mono text-xl font-black ${netSurplus >= 0 ? "text-purple-300" : "text-amber-300"}`}>
+              {netSurplus >= 0 ? `+${fmt(netSurplus)}` : fmt(netSurplus)}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>{isAr ? "السيولة والنقدية" : "Cash Position"}</span>
+              <Wallet className="size-4 text-blue-400" />
+            </div>
+            <div className="mt-2 font-mono text-xl font-black text-blue-300">
+              {fmt(cashPosition)}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">{currency}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          CATEGORY TABS & INSTANT SEARCH
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
+                  isSelected
+                    ? "bg-slate-900 text-white shadow-md dark:bg-white dark:text-slate-900"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+                }`}
+              >
+                <span>{isAr ? cat.labelAr : cat.labelEn}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}>
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={isAr ? "بحث في القوائم والتقارير..." : "Search reports..."}
+            className="ps-9 text-xs h-9 bg-white dark:bg-slate-900"
+          />
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          REPORT CARDS GRID
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredReports.map((r) => {
+          const Icon = r.icon;
+          return (
+            <Link
+              key={r.id}
+              href={r.href}
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:border-purple-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-purple-800"
+            >
+              <div>
+                {/* CARD TOP BAR */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className={`flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shadow-inner transition-transform group-hover:scale-110`}>
+                    <Icon className="size-5" />
+                  </div>
+
+                  <Badge variant={r.badgeVariant} className="text-[10px] font-bold">
+                    {isAr ? r.badgeAr : r.badgeEn}
+                  </Badge>
+                </div>
+
+                {/* CARD CONTENT */}
+                <div className="mt-4">
+                  <h3 className="text-sm font-black text-slate-950 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400 transition-colors flex items-center gap-1.5">
+                    <span>{isAr ? r.titleAr : r.titleEn}</span>
+                    <ArrowUpRight className="size-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-purple-600" />
+                  </h3>
+                  <p className="mt-1.5 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {isAr ? r.descAr : r.descEn}
+                  </p>
+                </div>
+              </div>
+
+              {/* CARD FOOTER */}
+              <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md">
+                    <Printer className="size-3" />
+                    <span>PDF</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                    <FileSpreadsheet className="size-3" />
+                    <span>Excel</span>
+                  </span>
+                </div>
+
+                <span className="text-purple-600 text-xs font-black group-hover:underline">
+                  {isAr ? "فتح التقرير ←" : "Open Report →"}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

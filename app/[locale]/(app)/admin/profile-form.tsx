@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,9 +115,42 @@ export function ProfileForm({
   const [selectedCountry, setSelectedCountry] = useState<string>(taxJurisdiction || "EG");
   const [currency, setCurrency] = useState<string>(defaultCurrency || "EGP");
   const [taxNumber, setTaxNumber] = useState<string>(taxId || "");
-  const [brandColor, setBrandColor] = useState<string>("#1E1B4B");
-  const [logoUrl, setLogoUrl] = useState<string>("");
-  const [tagline, setTagline] = useState<string>(isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services");
+  const [brandColor, setBrandColorState] = useState<string>("#1E1B4B");
+  const [logoUrl, setLogoUrlState] = useState<string>("");
+  const [tagline, setTaglineState] = useState<string>(isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services");
+
+  // Load branding from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedColor = localStorage.getItem("aqarbooks_brand_color");
+      if (savedColor) setBrandColorState(savedColor);
+      const savedLogo = localStorage.getItem("aqarbooks_logo_url");
+      if (savedLogo) setLogoUrlState(savedLogo);
+      const savedTag = localStorage.getItem("aqarbooks_tagline");
+      if (savedTag) setTaglineState(savedTag);
+    }
+  }, []);
+
+  const setBrandColor = (color: string) => {
+    setBrandColorState(color);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("aqarbooks_brand_color", color);
+    }
+  };
+
+  const setLogoUrl = (url: string) => {
+    setLogoUrlState(url);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("aqarbooks_logo_url", url);
+    }
+  };
+
+  const setTagline = (text: string) => {
+    setTaglineState(text);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("aqarbooks_tagline", text);
+    }
+  };
 
   // Auto-set currency when country changes
   const handleCountryChange = (countryCode: string) => {
