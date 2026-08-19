@@ -235,15 +235,18 @@ export function ProfileForm({
               <select
                 id="entityType"
                 name="entityType"
-                defaultValue={entityType || "real_estate_management"}
+                defaultValue={entityType || "FACILITY_MANAGEMENT"}
                 disabled={readOnly}
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-xs font-semibold text-slate-900 dark:text-white"
               >
-                <option value="real_estate_management">{isAr ? "شركة إدارة أملاك وتطوير عقاري" : "Real Estate Management"}</option>
-                <option value="resort_hotel">{isAr ? "منتجع سياحي وإدارة فندقية" : "Resort & Hospitality"}</option>
-                <option value="owners_association">{isAr ? "اتحاد شاغلين / جمعية ملاك" : "Owners Association"}</option>
-                <option value="commercial_center">{isAr ? "مجمع تجاري وإداري" : "Commercial Center"}</option>
-                <option value="corporate_holding">{isAr ? "مجموعة شركات قابضة" : "Corporate Holding"}</option>
+                <option value="FACILITY_MANAGEMENT">{isAr ? "شركة إدارة وتشغيل مرافق وأملاك" : "Facility & Property Management"}</option>
+                <option value="DEVELOPER">{isAr ? "شركة تطوير واستثمار عقاري" : "Real Estate Developer"}</option>
+                <option value="TOURIST_RESORT">{isAr ? "منتجع سياحي وإدارة فندقية" : "Tourist Resort & Hospitality"}</option>
+                <option value="TOURIST_VILLAGE">{isAr ? "قرية سياحية / منتجع ساحلي" : "Tourist Village"}</option>
+                <option value="RESIDENTIAL_COMPOUND">{isAr ? "مجمع سكني (كمبوند) / إدارة عقارية" : "Residential Compound"}</option>
+                <option value="OWNERS_ASSOCIATION">{isAr ? "اتحاد شاغلين / جمعية ملاك" : "Owners Association"}</option>
+                <option value="INDIVIDUAL_OWNER">{isAr ? "مالك فردي / محفظة عقارية" : "Individual Owner"}</option>
+                <option value="OTHER">{isAr ? "كيان آخر" : "Other"}</option>
               </select>
             </div>
           </div>
