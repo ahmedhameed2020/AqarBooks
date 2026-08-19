@@ -15,6 +15,12 @@ const slugify = (value: string) =>
     .replace(/(^-|-$)/g, "")
     .slice(0, 20);
 
+// Step-1 fields the server action may reject even after client-side
+// validation passes (e.g. server-side length/charset checks, or an entity
+// type the RPC no longer accepts). Used to detect when a server error needs
+// to send the user back to step 1 to see it.
+const STEP_1_FIELDS = ["orgName", "entityType", "customLabel"] as const;
+
 export function OnboardingWizard({ locale }: { locale: string }) {
   const isAr = locale === "ar";
   const [state, formAction, pending] = useActionState<OnboardingState, FormData>(
@@ -49,6 +55,24 @@ export function OnboardingWizard({ locale }: { locale: string }) {
     );
     target?.focus();
   }, [step]);
+
+  // If the server rejects a step-1 field (orgName/entityType/customLabel)
+  // after the user has already advanced to step 2, the error would
+  // otherwise be swallowed: the generic banner is suppressed whenever
+  // state.field is set, and the field-specific display lives inside
+  // EntityTypeStep, which isn't mounted on step 2. Navigate back to step 1
+  // so the existing showFieldError/EntityTypeStep wiring can surface it.
+  useEffect(() => {
+    if (
+      !state.ok &&
+      state.field &&
+      (STEP_1_FIELDS as readonly string[]).includes(state.field) &&
+      step === 2
+    ) {
+      setStep(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   function handleResortNameChange(value: string) {
     setResortName(value);
@@ -128,7 +152,15 @@ export function OnboardingWizard({ locale }: { locale: string }) {
       <div
         key={step}
         ref={stepContainerRef}
-        className="animate-in fade-in-0 zoom-in-95 duration-300 motion-reduce:animate-none"
+        // min-h reserves space for step 1's content (org-name field + 8-card
+        // entity type grid + conditional custom-label field + button), which
+        // is taller than step 2, so AuthShell's vertically-centered panel
+        // doesn't shrink and jump upward when switching from step 1 to step
+        // 2. Estimated value (label+input ~60px, entity grid ~340-360px,
+        // conditional field ~60px, button ~50px, plus spacing) -- not
+        // measured in a real browser since /onboarding isn't routed yet
+        // (Task 7). Spot-check visually once it is and adjust if needed.
+        className="min-h-[540px] animate-in fade-in-0 zoom-in-95 duration-300 motion-reduce:animate-none"
       >
         {step === 1 ? (
           <>
@@ -176,7 +208,8 @@ export function OnboardingWizard({ locale }: { locale: string }) {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                disabled={pending}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-70 cursor-pointer"
               >
                 {isAr ? "رجوع" : "Back"}
               </button>
