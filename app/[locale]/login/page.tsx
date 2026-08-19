@@ -55,18 +55,18 @@ export default async function LoginPage({
       title={isAr ? "تسجيل الدخول إلى حسابك" : "Sign In to Your Account"}
       subtitle={
         isAr
-          ? "أصولك، عقودك، والقيود المحاسبية لمنشأتك — في لوحة تحكم مالية واحدة."
-          : "Your properties, contracts, and financial ledgers — one calm dashboard."
+          ? "تابع إيجاراتك، مصروفاتك، وحسابات منشأتك — بكل وضوح وسهولة."
+          : "Manage your properties, cash flows, and ledgers in one simple place."
       }
       panelTitle={
         isAr
-          ? "حوكمة مالية متكاملة تحت السيطرة المطلقة"
-          : "Real estate finances, beautifully under control."
+          ? "كل أرقامك العقارية.. واضحة ومضبوطة في مكان واحد"
+          : "Clear, effortless financial control for your properties."
       }
       panelSubtitle={
         isAr
-          ? "تتبع كافة القيود، المحافظ، وكشوف الملاك بدقة محاسبية غير قابلة للتشكيك."
-          : "Track every unit, contract, and balance sheet ledger from a single source of truth."
+          ? "من متابعة الإيجارات والتحصيلات إلى كشوفات الملاك والتقارير الدورية — وفر وقتك وأدر أموالك باطمئنان."
+          : "From rent tracking and collections to owner statements — save hours and manage your money with peace of mind."
       }
       stats={
         isAr
@@ -81,7 +81,7 @@ export default async function LoginPage({
               { value: "99.9%", label: "Uptime" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <LoginForm locale={locale as Locale} redirectTo={redirectTo} />

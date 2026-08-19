@@ -55,18 +55,18 @@ export default async function RegisterPage({
       title={isAr ? "إنشاء حساب مؤسسي جديد" : "Create Your Enterprise Account"}
       subtitle={
         isAr
-          ? "جهّز منظومتك المالية والمحاسبية لكياناتك العقارية في أقل من دقيقتين."
-          : "Set up your multi-entity financial workspace in under two minutes."
+          ? "ابدأ إدارة حساباتك وعقودك العقارية بدون تعقيد وبخطوات بسيطة."
+          : "Start managing your properties and financials smoothly in minutes."
       }
       panelTitle={
         isAr
-          ? "محفظتك العقارية تستحق أدوات مالية أدق وأرقى"
-          : "Your real estate portfolio deserves institutional tools."
+          ? "طريقتك الأسهل والأذكى لإدارة أموال عقاراتك"
+          : "The simpler, smarter way to manage property finances."
       }
       panelSubtitle={
         isAr
-          ? "انضم إلى الكيانات والصناديق العقارية التي تدير آلاف الوحدات والأصول بوضوح تام."
-          : "Join real estate funds and holding companies managing thousands of assets with clarity."
+          ? "انضم لمئات الشركات والمكاتب العقارية التي وفرت ساعات العمل واعتمدت على نظام مالي يريح البال."
+          : "Join hundreds of real estate businesses saving valuable hours with accounting made effortless."
       }
       stats={
         isAr
@@ -81,7 +81,7 @@ export default async function RegisterPage({
               { value: "Free", label: "Trial Demo" },
             ]
       }
-      imageSrc="/images/executive-boardroom.jpg"
+      imageSrc="/images/aqarbooks-entities.jpg"
       locale={locale}
     >
       <RegisterForm locale={locale} />

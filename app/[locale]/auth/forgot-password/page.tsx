@@ -60,13 +60,13 @@ export default async function ForgotPasswordPage({
       }
       panelTitle={
         isAr
-          ? "أعلى معايير الأمان والتحكم المالي المؤسسي"
-          : "Enterprise-grade security and financial control."
+          ? "بياناتك المالية في أيدٍ أمينة دائماً"
+          : "Your financial data is always safe and secure."
       }
       panelSubtitle={
         isAr
-          ? "تشفير كامل، عزل بيانات RLS على مستوى كل قيد، وتوثيق دخول متعدد المستويات."
-          : "End-to-end encryption, strict RLS isolation per ledger, and robust multi-factor governance."
+          ? "نطبق أعلى معايير الحماية والتشفير المصرفي لضمان سرية حساباتك وعملياتك العقارية."
+          : "Enterprise-grade encryption and security protocols protecting your transactions around the clock."
       }
       stats={
         isAr
@@ -81,7 +81,7 @@ export default async function ForgotPasswordPage({
               { value: "24/7", label: "Monitoring" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-ledger.jpg"
       locale={locale}
     >
       <ForgotPasswordForm locale={locale as Locale} />
