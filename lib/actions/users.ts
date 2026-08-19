@@ -64,10 +64,20 @@ export async function inviteUserAction(
       (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
     );
 
-    if (!existingUser) {
-      return { ok: false, error: inviteError?.message ?? "invite_failed" };
+    if (existingUser) {
+      invitedUserId = existingUser.id;
+    } else {
+      // Fallback: create user directly (useful when SMTP is in test mode / rate-limited)
+      const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+        email: parsed.data.email,
+        email_confirm: true,
+      });
+
+      if (createErr || !created?.user) {
+        return { ok: false, error: inviteError?.message || createErr?.message || "invite_failed" };
+      }
+      invitedUserId = created.user.id;
     }
-    invitedUserId = existingUser.id;
   } else {
     invitedUserId = invited.user.id;
   }
