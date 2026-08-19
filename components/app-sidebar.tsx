@@ -453,7 +453,7 @@ export function AppSidebar({
       {/* ──────────────────────────────────────────────────────────────────────────
           NAVIGATION GROUPS & ITEMS
           ────────────────────────────────────────────────────────────────────────── */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4 sidebar-scrollbar">
         {visibleGroups.map((group) => {
           const hasLabel = Boolean(group.labelAr || group.labelEn);
           const isOpen = searching || !collapsedKeys.has(group.key);
