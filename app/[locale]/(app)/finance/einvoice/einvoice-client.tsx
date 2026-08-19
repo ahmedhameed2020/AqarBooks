@@ -192,7 +192,7 @@ export function EInvoiceClient({
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
-  const { toast } = useToast();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
 
   const [activeTab, setActiveTab] = useState<"DECISIONS" | "CREATE_INFO" | "NATURES" | "PROFILES">("DECISIONS");
@@ -267,7 +267,7 @@ export function EInvoiceClient({
     const effectivePeriodId = selectedPeriodId || periods[0]?.id;
 
     if (!effectiveResortId || !effectiveUnitId || !effectiveDueTypeId || !effectivePeriodId || !invoiceAmount) {
-      toast.add({
+      toast?.add({
         type: "error",
         title: isAr ? "يرجى تعبئة كافة الحقول المطلوبة" : "Missing Required Fields",
         description: isAr ? "تأكد من اختيار الوحدة، نوع المطالبة، المبلغ، والفترة المالية." : "Please fill in all mandatory invoice fields.",
@@ -290,7 +290,7 @@ export function EInvoiceClient({
     startTransition(async () => {
       const res = await issueDueAction({ ok: true }, formData);
       if (res.ok) {
-        toast.add({
+        toast?.add({
           type: "success",
           title: isAr ? "تم إصدار الفاتورة الضريبية الإلكترونية بنجاح" : "E-Invoice Issued Successfully",
           description: isAr
@@ -301,7 +301,7 @@ export function EInvoiceClient({
         setInvoiceAmount("");
         setInvoiceDescription("");
       } else {
-        toast.add({
+        toast?.add({
           type: "error",
           title: isAr ? "تعذر إصدار الفاتورة" : "Invoice Issuance Failed",
           description: res.error || (isAr ? "حدث خطأ غير متوقع أثناء المعالجة" : "Unknown error"),
