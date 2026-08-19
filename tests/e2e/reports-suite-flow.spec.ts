@@ -112,7 +112,7 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     // 5. Navigate to /finance/reports Hub
     await page.goto(`${baseURL}/ar/finance/reports`);
     await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("المؤشرات والأداء المالي");
+    await expect(page.locator("h1")).toContainText("مركز التقارير والقوائم المالية");
     await expect(page.locator("text=جدول الإيجارات وحصر العقود (Rent Roll)")).toBeVisible();
     await expect(page.locator("text=كشف حساب وتوزيعات أرباح الملاك")).toBeVisible();
     await expect(page.locator("text=إقرار ضريبة القيمة المضافة ومطابقة الضرائب")).toBeVisible();
