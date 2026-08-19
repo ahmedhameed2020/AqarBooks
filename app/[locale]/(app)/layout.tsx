@@ -30,6 +30,8 @@ import {
   ShieldAlert,
   Scale,
   Landmark,
+  Activity,
+  CreditCard,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -245,18 +247,21 @@ export default async function AppShellLayout({
   if (platformAdmin) {
     workspaces.push({
       key: "platform",
-      labelAr: "المنصة",
-      labelEn: "Platform",
+      labelAr: "قمرة المنصة (SuperAdmin)",
+      labelEn: "Platform Cockpit",
       groups: [
         homeGroup,
         {
           key: "platform-nav",
-          labelAr: "الإدارة",
-          labelEn: "Admin",
+          labelAr: "إدارة النظام والـ SaaS",
+          labelEn: "SaaS Operations",
           items: [
-            { href: "/platform/organizations", labelAr: "المنظمات", labelEn: "Organizations", icon: <Building2 className={ic} /> },
-            { href: "/platform/leads", labelAr: "العروض", labelEn: "Leads", icon: <Inbox className={ic} /> },
-            { href: "/platform/audit", labelAr: "التدقيق", labelEn: "Audit", icon: <ShieldAlert className={ic} /> },
+            { href: "/platform/organizations", labelAr: "المنظمات والشركات", labelEn: "Organizations", icon: <Building2 className={ic} /> },
+            { href: "/platform/subscriptions", labelAr: "الاشتراكات والـ MRR", labelEn: "Subscriptions & MRR", icon: <CreditCard className={ic} /> },
+            { href: "/platform/system", labelAr: "مراقبة صحة النظام", labelEn: "System Health", icon: <Activity className={ic} /> },
+            { href: "/platform/leads", labelAr: "طلبات العروض (Leads)", labelEn: "Demo Leads", icon: <Inbox className={ic} /> },
+            { href: "/platform/settings", labelAr: "إعدادات المنصة والإعلانات", labelEn: "Platform Settings", icon: <Settings className={ic} /> },
+            { href: "/platform/audit", labelAr: "سجل التدقيق والأمان", labelEn: "Security Audit", icon: <ShieldAlert className={ic} /> },
           ],
         },
       ],
