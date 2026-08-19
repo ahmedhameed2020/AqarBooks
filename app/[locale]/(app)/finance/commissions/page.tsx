@@ -97,7 +97,7 @@ export default async function CommissionsPage({
     supabase
       .from("commissions")
       .select(
-        "id, broker_id, property_id, gross_amount, wht_amount, net_amount, wht_rate, rate_percent, basis_amount, earned_date, paid_date, status, note, cash_account_id, payment_journal_entry_id, accrual_journal_entry_id"
+        "id, broker_id, property_id, gross_amount, wht_amount, net_amount, wht_rate, rate_percent, basis_amount, earned_date, paid_date, status, note, payment_journal_entry_id, accrual_journal_entry_id"
       )
       .eq("organization_id", organization.id)
       .order("earned_date", { ascending: false }),
@@ -141,7 +141,6 @@ export default async function CommissionsPage({
     paid_date: c.paid_date,
     status: c.status,
     note: c.note,
-    cash_account_id: c.cash_account_id,
     payment_journal_entry_id: c.payment_journal_entry_id,
     accrual_journal_entry_id: c.accrual_journal_entry_id,
   }));
