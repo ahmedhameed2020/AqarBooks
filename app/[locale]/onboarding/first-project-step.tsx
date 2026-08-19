@@ -2,6 +2,9 @@
 
 import { CURRENCY_CODES, getCurrencyLabel } from "@/lib/currency";
 
+const LRI = "⁦"; // LEFT-TO-RIGHT ISOLATE
+const PDI = "⁩"; // POP DIRECTIONAL ISOLATE
+
 interface FirstProjectStepProps {
   isAr: boolean;
   resortName: string;
@@ -37,6 +40,7 @@ export function FirstProjectStep({
           className="w-full rounded-lg border border-slate-300 bg-white py-2.5 px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
           required
           minLength={2}
+          maxLength={150}
           aria-invalid={resortNameError ? true : undefined}
           aria-describedby={resortNameError ? "resort-name-error" : undefined}
         />
@@ -75,11 +79,15 @@ export function FirstProjectStep({
           onChange={(e) => onCurrencyChange(e.target.value)}
           className="w-full rounded-lg border border-slate-300 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
         >
-          {CURRENCY_CODES.map((code) => (
-            <option key={code} value={code}>
-              {code} — {getCurrencyLabel(code, isAr)}
-            </option>
-          ))}
+          {CURRENCY_CODES.map((code) => {
+            const label = getCurrencyLabel(code, isAr);
+            const isolatedCode = `${LRI}${code}${PDI}`;
+            return (
+              <option key={code} value={code}>
+                {label === code ? isolatedCode : `${isolatedCode} — ${label}`}
+              </option>
+            );
+          })}
         </select>
       </div>
     </div>
