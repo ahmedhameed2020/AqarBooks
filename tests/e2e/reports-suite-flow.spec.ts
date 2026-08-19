@@ -51,6 +51,12 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
       locale: "ar",
     });
 
+    await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: userId,
+      status: "active",
+    });
+
     const { data: ownerRole } = await admin
       .from("roles")
       .select("id")
@@ -64,11 +70,35 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
       role_id: ownerRole!.id,
     });
 
-    await admin.from("organization_memberships").insert({
-      user_id: userId,
+    // 4. Create Resort
+    await admin.from("resorts").insert({
       organization_id: orgId,
-      status: "active",
-      role: "OWNER",
+      name: "منتجع ساندز بلازا",
+      slug: `resort-${Date.now()}`,
+      status: "ACTIVE",
+    });
+
+    // 5. Create Fiscal Year & Period
+    const { data: insertedYear } = await admin
+      .from("fiscal_years")
+      .insert({
+        organization_id: orgId,
+        name: "2026",
+        start_date: "2026-01-01",
+        end_date: "2026-12-31",
+        status: "OPEN",
+      })
+      .select("id")
+      .single();
+
+    await admin.from("fiscal_periods").insert({
+      organization_id: orgId,
+      fiscal_year_id: insertedYear!.id,
+      period_number: 1,
+      name: "2026-01",
+      start_date: "2026-01-01",
+      end_date: "2026-01-31",
+      status: "OPEN",
     });
 
     // 4. Sign in through UI
