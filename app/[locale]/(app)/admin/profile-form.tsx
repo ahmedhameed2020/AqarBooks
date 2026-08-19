@@ -206,328 +206,325 @@ export function ProfileForm({
       {/* ──────────────────────────────────────────────────────────────────────────
           TAB 1: GENERAL HEADQUARTERS & PROFILE
           ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "GENERAL" && (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Building2 className="size-4 text-purple-600" />
-              <span>{isAr ? "البيانات الأساسية للمنشأة" : "Organization Identity"}</span>
-            </h3>
+      <div className={activeTab === "GENERAL" ? "space-y-5" : "hidden"}>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <Building2 className="size-4 text-purple-600" />
+            <span>{isAr ? "البيانات الأساسية للمنشأة" : "Organization Identity"}</span>
+          </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 text-start">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "اسم المنشأة / الشركة *" : "Organization / Company Name *"}
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  defaultValue={name}
-                  required
-                  disabled={readOnly}
-                  className="text-xs font-bold"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-start">
-                <Label htmlFor="entityType" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "نوع الكيان والنشاط" : "Entity Type & Activity"}
-                </Label>
-                <select
-                  id="entityType"
-                  name="entityType"
-                  defaultValue={entityType || "real_estate_management"}
-                  disabled={readOnly}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-xs font-semibold text-slate-900 dark:text-white"
-                >
-                  <option value="real_estate_management">{isAr ? "شركة إدارة أملاك وتطوير عقاري" : "Real Estate Management"}</option>
-                  <option value="resort_hotel">{isAr ? "منتجع سياحي وإدارة فندقية" : "Resort & Hospitality"}</option>
-                  <option value="owners_association">{isAr ? "اتحاد شاغلين / جمعية ملاك" : "Owners Association"}</option>
-                  <option value="commercial_center">{isAr ? "مجمع تجاري وإداري" : "Commercial Center"}</option>
-                  <option value="corporate_holding">{isAr ? "مجموعة شركات قابضة" : "Corporate Holding"}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <MapPin className="size-4 text-blue-600" />
-              <span>{isAr ? "العنوان والتواصل الرسمي" : "Official Contact & Headquarters"}</span>
-            </h3>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5 text-start">
-              <Label htmlFor="address" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "العنوان والمقر الرئيسي" : "Headquarters Address"}
+              <Label htmlFor="name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "اسم المنشأة / الشركة *" : "Organization / Company Name *"}
               </Label>
               <Input
-                id="address"
-                name="address"
-                defaultValue={address ?? ""}
-                placeholder={isAr ? "مثال: التجمع الخامس، شارع التسعين الشمالي، مبنى 14" : "e.g. 5th Settlement, North 90th St"}
+                id="name"
+                name="name"
+                defaultValue={name}
+                required
+                disabled={readOnly}
+                className="text-xs font-bold"
+              />
+            </div>
+
+            <div className="space-y-1.5 text-start">
+              <Label htmlFor="entityType" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "نوع الكيان والنشاط" : "Entity Type & Activity"}
+              </Label>
+              <select
+                id="entityType"
+                name="entityType"
+                defaultValue={entityType || "real_estate_management"}
+                disabled={readOnly}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-xs font-semibold text-slate-900 dark:text-white"
+              >
+                <option value="real_estate_management">{isAr ? "شركة إدارة أملاك وتطوير عقاري" : "Real Estate Management"}</option>
+                <option value="resort_hotel">{isAr ? "منتجع سياحي وإدارة فندقية" : "Resort & Hospitality"}</option>
+                <option value="owners_association">{isAr ? "اتحاد شاغلين / جمعية ملاك" : "Owners Association"}</option>
+                <option value="commercial_center">{isAr ? "مجمع تجاري وإداري" : "Commercial Center"}</option>
+                <option value="corporate_holding">{isAr ? "مجموعة شركات قابضة" : "Corporate Holding"}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <MapPin className="size-4 text-blue-600" />
+            <span>{isAr ? "العنوان والتواصل الرسمي" : "Official Contact & Headquarters"}</span>
+          </h3>
+
+          <div className="space-y-1.5 text-start">
+            <Label htmlFor="address" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "العنوان والمقر الرئيسي" : "Headquarters Address"}
+            </Label>
+            <Input
+              id="address"
+              name="address"
+              defaultValue={address ?? ""}
+              placeholder={isAr ? "مثال: التجمع الخامس، شارع التسعين الشمالي، مبنى 14" : "e.g. 5th Settlement, North 90th St"}
+              disabled={readOnly}
+              className="text-xs"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 text-start">
+              <Label htmlFor="phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "الهاتف الرسمي" : "Official Phone"}
+              </Label>
+              <Input
+                id="phone"
+                name="phone"
+                defaultValue={phone ?? ""}
+                placeholder="+20 100 000 0000"
+                dir="ltr"
+                disabled={readOnly}
+                className="text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5 text-start">
+              <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "البريد الإلكتروني الرسمي" : "Official Email"}
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                defaultValue={email ?? ""}
+                placeholder="finance@aqarbooks.com"
+                dir="ltr"
                 disabled={readOnly}
                 className="text-xs"
               />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 text-start">
-                <Label htmlFor="phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "الهاتف الرسمي" : "Official Phone"}
-                </Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  defaultValue={phone ?? ""}
-                  placeholder="+20 100 000 0000"
-                  dir="ltr"
-                  disabled={readOnly}
-                  className="text-xs font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-start">
-                <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "البريد الإلكتروني الرسمي" : "Official Email"}
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  defaultValue={email ?? ""}
-                  placeholder="finance@aqarbooks.com"
-                  dir="ltr"
-                  disabled={readOnly}
-                  className="text-xs"
-                />
-              </div>
-            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
           TAB 2: COUNTRY OF ORIGIN & TAX COMPLIANCE
           ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "TAX" && (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <div>
-              <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
-                <Landmark className="size-4 text-emerald-600" />
-                <span>{isAr ? "اختر دولة المنشأ والمنظومة الضريبية المعتمدة" : "Select Country of Origin & Tax Jurisdiction"}</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                {isAr
-                  ? "تحديد دولة المنشأ يربط الكيان تلقائياً بالولاية الضريبية المعتمدة، العملة الافتراضية، ونسبة ضريبة القيمة المضافة القياسية."
-                  : "Selecting country automatically sets currency, statutory tax authority, and standard VAT rate."}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
-              {Object.entries(JURISDICTION_COUNTRY_MAP).map(([code, info]) => {
-                const isSelected = selectedCountry === code;
-                return (
-                  <div
-                    key={code}
-                    onClick={() => !readOnly && handleCountryChange(code)}
-                    className={`relative rounded-2xl border p-4 transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? "border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-600/20 dark:bg-emerald-950/20 shadow-sm"
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-2xl">{info.flag}</span>
-                        {isSelected && (
-                          <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
-                            {isAr ? "الدولة النشطة" : "Active"}
-                          </Badge>
-                        )}
-                      </div>
-                      <h4 className="font-bold text-xs text-slate-950 dark:text-white">
-                        {isAr ? info.nameAr : info.nameEn}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                        {isAr ? info.taxAuthorityAr : info.taxAuthorityEn}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                      <span>{isAr ? "العملة:" : "Currency:"} <strong className="text-slate-900 dark:text-white font-mono">{info.defaultCurrency}</strong></span>
-                      <span>{isAr ? "الضريبة:" : "VAT:"} <strong className="text-emerald-600 font-mono">{info.standardVat}</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      <div className={activeTab === "TAX" ? "space-y-5" : "hidden"}>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <div>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
+              <Landmark className="size-4 text-emerald-600" />
+              <span>{isAr ? "اختر دولة المنشأ والمنظومة الضريبية المعتمدة" : "Select Country of Origin & Tax Jurisdiction"}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {isAr
+                ? "تحديد دولة المنشأ يربط الكيان تلقائياً بالولاية الضريبية المعتمدة، العملة الافتراضية، ونسبة ضريبة القيمة المضافة القياسية."
+                : "Selecting country automatically sets currency, statutory tax authority, and standard VAT rate."}
+            </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <ShieldCheck className="size-4 text-purple-600" />
-              <span>{isAr ? "الرقم الضريبي وإعدادات الفوترة الإلكترونية" : "Tax ID & E-Invoice Profiles"}</span>
-            </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
+            {Object.entries(JURISDICTION_COUNTRY_MAP).map(([code, info]) => {
+              const isSelected = selectedCountry === code;
+              return (
+                <div
+                  key={code}
+                  onClick={() => !readOnly && handleCountryChange(code)}
+                  className={`relative rounded-2xl border p-4 transition-all cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? "border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-600/20 dark:bg-emerald-950/20 shadow-sm"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-2xl">{info.flag}</span>
+                      {isSelected && (
+                        <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
+                          {isAr ? "الدولة النشطة" : "Active"}
+                        </Badge>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-xs text-slate-950 dark:text-white">
+                      {isAr ? info.nameAr : info.nameEn}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                      {isAr ? info.taxAuthorityAr : info.taxAuthorityEn}
+                    </p>
+                  </div>
 
-            <div className="space-y-1.5 text-start">
-              <Label htmlFor="taxId" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "الرقم الضريبي الرسمي للمنشأة *" : "Official Taxpayer ID *"}
-              </Label>
-              <Input
-                id="taxId"
-                name="taxId"
-                value={taxNumber}
-                onChange={(e) => setTaxNumber(e.target.value)}
-                placeholder={currentCountry.taxIdHint}
-                dir="ltr"
-                disabled={readOnly}
-                className="text-xs font-mono font-bold"
-              />
-              <p className="text-[11px] text-slate-500">
-                {isAr
-                  ? "يُدرج هذا الرقم رسمياً في ترويسة كافة الفواتير، الإقرارات، والمستندات الضريبية الإلكترونية المرفوعة لمصلحة الضرائب."
-                  : "Included in invoice headers and statutory filings submitted to the tax authority."}
-              </p>
-            </div>
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    <span>{isAr ? "العملة:" : "Currency:"} <strong className="text-slate-900 dark:text-white font-mono">{info.defaultCurrency}</strong></span>
+                    <span>{isAr ? "الضريبة:" : "VAT:"} <strong className="text-emerald-600 font-mono">{info.standardVat}</strong></span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <ShieldCheck className="size-4 text-purple-600" />
+            <span>{isAr ? "الرقم الضريبي وإعدادات الفوترة الإلكترونية" : "Tax ID & E-Invoice Profiles"}</span>
+          </h3>
+
+          <div className="space-y-1.5 text-start">
+            <Label htmlFor="taxId" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "الرقم الضريبي الرسمي للمنشأة *" : "Official Taxpayer ID *"}
+            </Label>
+            <Input
+              id="taxId"
+              name="taxId"
+              value={taxNumber}
+              onChange={(e) => setTaxNumber(e.target.value)}
+              placeholder={currentCountry.taxIdHint}
+              dir="ltr"
+              disabled={readOnly}
+              className="text-xs font-mono font-bold"
+            />
+            <p className="text-[11px] text-slate-500">
+              {isAr
+                ? "يُدرج هذا الرقم رسمياً في ترويسة كافة الفواتير، الإقرارات، والمستندات الضريبية الإلكترونية المرفوعة لمصلحة الضرائب."
+                : "Included in invoice headers and statutory filings submitted to the tax authority."}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
           TAB 3: BRAND IDENTITY & PDF COVER PAGE
           ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "BRANDING" && (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <div>
-              <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
-                <Palette className="size-4 text-purple-600" />
-                <span>{isAr ? "ألوان البراند والهوية البصرية الرسمية" : "Company Brand Color Palette"}</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                {isAr
-                  ? "يتم تطبيق هذا اللون في ترويسة التقارير والقوائم المالية، وأغلفة مستندات الـ PDF الرسمية المعتمدة."
-                  : "Applied across financial statement headers and official PDF report cover pages."}
-              </p>
-            </div>
+      <div className={activeTab === "BRANDING" ? "space-y-5" : "hidden"}>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <div>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
+              <Palette className="size-4 text-purple-600" />
+              <span>{isAr ? "ألوان البراند والهوية البصرية الرسمية" : "Company Brand Color Palette"}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {isAr
+                ? "يتم تطبيق هذا اللون في ترويسة التقارير والقوائم المالية، وأغلفة مستندات الـ PDF الرسمية المعتمدة."
+                : "Applied across financial statement headers and official PDF report cover pages."}
+            </p>
+          </div>
 
-            {/* Brand Color Presets */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-2">
-              {BRAND_PALETTES.map((p) => {
-                const isSelected = brandColor.toLowerCase() === p.hex.toLowerCase();
-                return (
+          {/* Brand Color Presets */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-2">
+            {BRAND_PALETTES.map((p) => {
+              const isSelected = brandColor.toLowerCase() === p.hex.toLowerCase();
+              return (
+                <div
+                  key={p.hex}
+                  onClick={() => setBrandColor(p.hex)}
+                  className={`rounded-2xl border p-3 cursor-pointer transition-all flex flex-col items-center gap-2 ${
+                    isSelected
+                      ? "border-slate-900 ring-2 ring-purple-600/30 bg-purple-50/40 dark:bg-purple-950/20 shadow-sm"
+                      : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  }`}
+                >
                   <div
-                    key={p.hex}
-                    onClick={() => setBrandColor(p.hex)}
-                    className={`rounded-2xl border p-3 cursor-pointer transition-all flex flex-col items-center gap-2 ${
-                      isSelected
-                        ? "border-slate-900 ring-2 ring-purple-600/30 bg-purple-50/40 dark:bg-purple-950/20 shadow-sm"
-                        : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                    }`}
+                    className="size-8 rounded-full shadow-sm flex items-center justify-center text-white"
+                    style={{ background: p.hex }}
                   >
-                    <div
-                      className="size-8 rounded-full shadow-sm flex items-center justify-center text-white"
-                      style={{ background: p.hex }}
-                    >
-                      {isSelected && <CheckCircle2 className="size-4" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-900 dark:text-white text-center">
-                      {isAr ? p.nameAr : p.nameEn}
-                    </span>
+                    {isSelected && <CheckCircle2 className="size-4" />}
                   </div>
-                );
-              })}
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white text-center">
+                    {isAr ? p.nameAr : p.nameEn}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Custom Hex Color */}
+          <div className="flex items-center gap-3 pt-2">
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {isAr ? "أو اختر لوناً مخصصاً (Hex):" : "Custom Hex Color:"}
+            </Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                className="size-8 rounded-lg cursor-pointer border border-slate-300 dark:border-slate-700"
+              />
+              <Input
+                name="brandColor"
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                className="w-28 text-xs font-mono font-bold uppercase"
+                dir="ltr"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <FileText className="size-4 text-blue-600" />
+            <span>{isAr ? "بيانات غلاف التقارير والشعار" : "Report Cover Details & Tagline"}</span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 text-start">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "رابط الشعار الرسمي (Logo URL)" : "Company Logo URL"}
+              </Label>
+              <Input
+                name="logoUrl"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="https://example.com/logo.png"
+                dir="ltr"
+                className="text-xs"
+              />
             </div>
 
-            {/* Custom Hex Color */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="space-y-1.5 text-start">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "أو اختر لوناً مخصصاً (Hex):" : "Custom Hex Color:"}
+                {isAr ? "الشعار اللفظي للكيان (Tagline)" : "Company Slogan / Tagline"}
               </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={brandColor}
-                  onChange={(e) => setBrandColor(e.target.value)}
-                  className="size-8 rounded-lg cursor-pointer border border-slate-300 dark:border-slate-700"
-                />
-                <Input
-                  value={brandColor}
-                  onChange={(e) => setBrandColor(e.target.value)}
-                  className="w-28 text-xs font-mono font-bold uppercase"
-                  dir="ltr"
-                />
-              </div>
+              <Input
+                name="tagline"
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+                placeholder={isAr ? "مثال: للإدارة والاستثمار العقاري المتكامل" : "e.g. Property Management Services"}
+                className="text-xs"
+              />
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <FileText className="size-4 text-blue-600" />
-              <span>{isAr ? "بيانات غلاف التقارير والشعار" : "Report Cover Details & Tagline"}</span>
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "رابط الشعار الرسمي (Logo URL)" : "Company Logo URL"}
-                </Label>
-                <Input
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                  dir="ltr"
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "الشعار اللفظي للكيان (Tagline)" : "Company Slogan / Tagline"}
-                </Label>
-                <Input
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder={isAr ? "مثال: للإدارة والاستثمار العقاري المتكامل" : "e.g. Property Management Services"}
-                  className="text-xs"
-                />
-              </div>
+          {/* LIVE COVER PREVIEW MINI-CARD */}
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 mb-3">
+              <Eye className="size-4 text-purple-600" />
+              <span className="text-xs font-black text-slate-900 dark:text-white">
+                {isAr ? "معاينة حية لشكل غلاف التقارير المالية المعتمدة:" : "Live Cover Page Preview:"}
+              </span>
             </div>
 
-            {/* LIVE COVER PREVIEW MINI-CARD */}
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 mb-3">
-                <Eye className="size-4 text-purple-600" />
-                <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {isAr ? "معاينة حية لشكل غلاف التقارير المالية المعتمدة:" : "Live Cover Page Preview:"}
-                </span>
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-6 max-w-lg mx-auto shadow-md">
+              <div className="h-2 rounded-full mb-4" style={{ background: brandColor }} />
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h4 className="font-black text-sm" style={{ color: brandColor }}>{name || "عقار بوكس"}</h4>
+                  <p className="text-[10px] text-slate-500">{tagline}</p>
+                </div>
+                <Badge variant="outline" className="text-[9px] font-bold" style={{ borderColor: brandColor, color: brandColor }}>
+                  {isAr ? "تقرير مالي رسمي" : "Official Report"}
+                </Badge>
               </div>
-
-              <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-6 max-w-lg mx-auto shadow-md">
-                <div className="h-2 rounded-full mb-4" style={{ background: brandColor }} />
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                  <div>
-                    <h4 className="font-black text-sm" style={{ color: brandColor }}>{name || "عقار بوكس"}</h4>
-                    <p className="text-[10px] text-slate-500">{tagline}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[9px] font-bold" style={{ borderColor: brandColor, color: brandColor }}>
-                    {isAr ? "تقرير مالي رسمي" : "Official Report"}
-                  </Badge>
-                </div>
-                <div className="py-6 text-center">
-                  <h3 className="font-black text-base text-slate-900 dark:text-white">ميزان المراجعة بالمجاميع والأرصدة</h3>
-                  <p className="text-[11px] text-slate-500 mt-1">حتى تاريخ: 2026-08-19 | العملة: {currency}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-[10px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                  <span>{isAr ? "الرقم الضريبي:" : "Tax ID:"} <strong>{taxNumber || "100-234-567"}</strong></span>
-                  <span>{isAr ? "موثق ومعتمد" : "Certified"}</span>
-                </div>
+              <div className="py-6 text-center">
+                <h3 className="font-black text-base text-slate-900 dark:text-white">ميزان المراجعة بالمجاميع والأرصدة</h3>
+                <p className="text-[11px] text-slate-500 mt-1">حتى تاريخ: 2026-08-19 | العملة: {currency}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-[10px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span>{isAr ? "الرقم الضريبي:" : "Tax ID:"} <strong>{taxNumber || "100-234-567"}</strong></span>
+                <span>{isAr ? "موثق ومعتمد" : "Certified"}</span>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
           SUBMIT ACTION BUTTON

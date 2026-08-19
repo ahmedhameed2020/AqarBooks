@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/actions/platform";
 
 const updateProfileSchema = z.object({
   organizationId: z.string().uuid(),
-  name: z.string().min(2).max(200),
+  name: z.string().min(1).max(200),
   defaultCurrency: z.string().length(3),
   taxJurisdiction: z.enum(["EG", "SA", "AE", "EG_ETA", "SA_ZATCA", "AE_PEPPOL"]).optional().nullable(),
   taxId: z.string().max(50).optional().nullable(),
@@ -16,6 +16,9 @@ const updateProfileSchema = z.object({
   phone: z.string().max(50).optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal("")),
   entityType: z.string().max(100).optional().nullable(),
+  brandColor: z.string().max(20).optional().nullable(),
+  logoUrl: z.string().max(500).optional().nullable(),
+  tagline: z.string().max(300).optional().nullable(),
 });
 
 export async function updateOrganizationProfile(
@@ -32,6 +35,9 @@ export async function updateOrganizationProfile(
     phone: formData.get("phone") || undefined,
     email: formData.get("email") || undefined,
     entityType: formData.get("entityType") || undefined,
+    brandColor: formData.get("brandColor") || undefined,
+    logoUrl: formData.get("logoUrl") || undefined,
+    tagline: formData.get("tagline") || undefined,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -45,18 +51,20 @@ export async function updateOrganizationProfile(
 
   const eInvoiceJur = jur === "EG" ? "EG_ETA" : jur === "SA" ? "SA_ZATCA" : "AE_PEPPOL";
 
+  const updatePayload: Record<string, any> = {
+    name: parsed.data.name,
+    default_currency: parsed.data.defaultCurrency,
+    tax_jurisdiction: jur,
+    tax_id: parsed.data.taxId || null,
+    address: parsed.data.address || null,
+    phone: parsed.data.phone || null,
+    email: parsed.data.email || null,
+    entity_type: parsed.data.entityType || null,
+  };
+
   const { error } = await supabase
     .from("organizations")
-    .update({
-      name: parsed.data.name,
-      default_currency: parsed.data.defaultCurrency,
-      tax_jurisdiction: jur,
-      tax_id: parsed.data.taxId || null,
-      address: parsed.data.address || null,
-      phone: parsed.data.phone || null,
-      email: parsed.data.email || null,
-      entity_type: parsed.data.entityType || null,
-    })
+    .update(updatePayload)
     .eq("id", parsed.data.organizationId);
 
   if (error) return { ok: false, error: error.message };
