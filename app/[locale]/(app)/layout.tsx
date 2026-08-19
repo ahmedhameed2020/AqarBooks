@@ -23,6 +23,7 @@ import {
   Inbox,
   ShieldAlert,
   Scale,
+  Landmark,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -151,14 +152,35 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/finance/reports",
-              labelAr: "القوائم المالية",
+              labelAr: "التقارير المالية",
               labelEn: "Financials",
               icon: <BarChart3 className={ic} />,
               subItems: [
-                { href: "/finance/payment-providers", labelAr: "الضرائب", labelEn: "Tax" },
-                { href: "/finance/einvoice", labelAr: "الفوترة الإلكترونية", labelEn: "E-Invoicing" },
-                { href: "/finance/tax-mapping", labelAr: "تصنيف الإيرادات", labelEn: "Revenue Classification" },
-                { href: "/finance/einvoice-items", labelAr: "أصناف المستندات", labelEn: "E-Document Items" },
+                { href: "/finance/reports/trial-balance", labelAr: "ميزان المراجعة", labelEn: "Trial Balance" },
+                { href: "/finance/reports/income-statement", labelAr: "قائمة الدخل", labelEn: "Income Statement" },
+                { href: "/finance/reports/balance-sheet", labelAr: "الميزانية العمومية", labelEn: "Balance Sheet" },
+                { href: "/finance/reports/cash-flow", labelAr: "التدفقات النقدية", labelEn: "Cash Flow" },
+                { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ", labelEn: "General Ledger" },
+                { href: "/finance/reports/aging", labelAr: "أعمار الديون", labelEn: "Aging" },
+                { href: "/finance/reports/budget-vs-actual", labelAr: "الموازنة والفعلي", labelEn: "Budget vs Actual" },
+              ],
+            },
+          ],
+        },
+        {
+          key: "tax",
+          labelAr: "الضرائب",
+          labelEn: "Tax",
+          items: [
+            {
+              href: "/finance/einvoice",
+              labelAr: "الفوترة الإلكترونية",
+              labelEn: "E-Invoicing",
+              icon: <Landmark className={ic} />,
+              subItems: [
+                { href: "/finance/einvoice", labelAr: "القرارات والفواتير", labelEn: "Invoices Log" },
+                { href: "/finance/tax-mapping", labelAr: "التصنيف الضريبي", labelEn: "Tax Mapping" },
+                { href: "/finance/einvoice-items", labelAr: "تكويد الأصناف", labelEn: "Item Codes" },
               ],
             },
           ],
@@ -170,10 +192,11 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/admin",
-              labelAr: "عام",
-              labelEn: "General",
+              labelAr: "إعدادات الكيان",
+              labelEn: "Entity Settings",
               icon: <Settings className={ic} />,
               subItems: [
+                { href: "/admin", labelAr: "ملف الكيان والضرائب", labelEn: "Profile & Tax" },
                 { href: "/admin/users", labelAr: "المستخدمون", labelEn: "Users" },
                 { href: "/admin/roles", labelAr: "الصلاحيات", labelEn: "Roles" },
                 { href: "/finance/payment-providers", labelAr: "بوابات الدفع", labelEn: "Gateways" },
