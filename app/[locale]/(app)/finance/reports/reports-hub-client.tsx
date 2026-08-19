@@ -24,6 +24,10 @@ import {
   Sparkles,
   Palette,
   CheckCircle2,
+  KeyRound,
+  UserCheck,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -32,7 +36,7 @@ import { Button } from "@/components/ui/button";
 export interface ReportDefinition {
   id: string;
   href: string;
-  category: "STATUTORY" | "LEDGERS" | "RECEIVABLES" | "BUDGETS";
+  category: "STATUTORY" | "LEDGERS" | "RECEIVABLES" | "BUDGETS" | "REAL_ESTATE" | "TAX" | "TREASURY";
   titleAr: string;
   titleEn: string;
   descAr: string;
@@ -103,6 +107,66 @@ const ALL_REPORTS: ReportDefinition[] = [
     badgeAr: "سيولة نقدية",
     badgeEn: "Liquidity",
     badgeVariant: "secondary",
+    colorClass: "text-amber-600 dark:text-amber-400",
+    bgGradient: "from-amber-600/10 to-orange-600/10",
+  },
+  {
+    id: "rent-roll",
+    href: "/finance/reports/rent-roll",
+    category: "REAL_ESTATE",
+    titleAr: "جدول الإيجارات وحصر العقود (Rent Roll)",
+    titleEn: "Rent Roll & Leases Schedule",
+    descAr: "التقرير القياسي العالمي لحصر إشغال الوحدات، المستأجرين، القيمة الإيجارية التعاقدية، وتواريخ تجديد وانتهاء العقود.",
+    descEn: "Standard property management schedule tracking unit occupancy, tenants, lease terms, and contractual rent.",
+    icon: KeyRound,
+    badgeAr: "تشغيل وإشغال عقاري",
+    badgeEn: "Core PropTech",
+    badgeVariant: "default",
+    colorClass: "text-indigo-600 dark:text-indigo-400",
+    bgGradient: "from-indigo-600/10 to-blue-600/10",
+  },
+  {
+    id: "owner-statement",
+    href: "/finance/reports/owner-statement",
+    category: "REAL_ESTATE",
+    titleAr: "كشف حساب وتوزيعات أرباح الملاك",
+    titleEn: "Owner Payout & Distribution",
+    descAr: "الحساب المالي للمستثمرين والملاك: حصر الإيرادات المحصلة، استقطاع عمولة الإدارة ورسوم الصيانة، واحتساب صافي الأرباح.",
+    descEn: "Statement of account for property owners: collected income, management fees, maintenance charges, and net payout.",
+    icon: UserCheck,
+    badgeAr: "توزيعات المستثمرين",
+    badgeEn: "Owner Statement",
+    badgeVariant: "secondary",
+    colorClass: "text-emerald-600 dark:text-emerald-400",
+    bgGradient: "from-emerald-600/10 to-teal-600/10",
+  },
+  {
+    id: "vat-return",
+    href: "/finance/reports/vat-return",
+    category: "TAX",
+    titleAr: "إقرار ضريبة القيمة المضافة ومطابقة الضرائب",
+    titleEn: "VAT Return & Tax Audit",
+    descAr: "التقرير الضريبي المعتمد لتقديم الإقرارات الدورية لمصلحة الضرائب وهيئة الزكاة (ETA / ZATCA) ومطابقة ضريبة المخرجات والمدخلات.",
+    descEn: "Audited periodic tax return statement comparing output VAT on revenues against deductible input VAT.",
+    icon: Receipt,
+    badgeAr: "إقرار معتمد",
+    badgeEn: "Tax Authority",
+    badgeVariant: "default",
+    colorClass: "text-purple-600 dark:text-purple-400",
+    bgGradient: "from-purple-600/10 to-indigo-600/10",
+  },
+  {
+    id: "pdc",
+    href: "/finance/reports/pdc",
+    category: "TREASURY",
+    titleAr: "سجل الشيكات الآجلة وأوراق القبض (PDC)",
+    titleEn: "Post-Dated Cheques Register",
+    descAr: "إدارة ومراقبة أوراق القبض والشيكات البنكية تحت التحصيل، تتبع جداول الاستحقاق، ومتابعة التحصيل والمقاصة البنكية.",
+    descEn: "Comprehensive treasury register tracking post-dated cheques, maturity schedules, and bank deposit clearances.",
+    icon: CreditCard,
+    badgeAr: "أوراق قبض وخزينة",
+    badgeEn: "Treasury PDC",
+    badgeVariant: "outline",
     colorClass: "text-amber-600 dark:text-amber-400",
     bgGradient: "from-amber-600/10 to-orange-600/10",
   },
@@ -206,9 +270,12 @@ export function ReportsHubClient({
 
   const categories = [
     { key: "ALL", labelAr: "كافة التقارير والقوائم", labelEn: "All Reports", count: ALL_REPORTS.length },
+    { key: "REAL_ESTATE", labelAr: "التشغيل العقاري والملاك", labelEn: "Real Estate & Leases", count: 2 },
     { key: "STATUTORY", labelAr: "الحسابات الختامية الرسمية", labelEn: "Statutory Statements", count: 4 },
-    { key: "LEDGERS", labelAr: "دفاتر الأستاذ والتدقيق", labelEn: "Ledgers & Audits", count: 1 },
+    { key: "TAX", labelAr: "الضرائب والإقرارات", labelEn: "Tax & Compliance", count: 1 },
+    { key: "TREASURY", labelAr: "الخزينة والشيكات الآجلة", labelEn: "Treasury & PDCs", count: 1 },
     { key: "RECEIVABLES", labelAr: "الذمم وأعمار الديون", labelEn: "Aging & Collections", count: 1 },
+    { key: "LEDGERS", labelAr: "دفاتر الأستاذ والتدقيق", labelEn: "Ledgers & Audits", count: 1 },
     { key: "BUDGETS", labelAr: "الموازنات والانحرافات", labelEn: "Budgets & Control", count: 1 },
   ];
 
