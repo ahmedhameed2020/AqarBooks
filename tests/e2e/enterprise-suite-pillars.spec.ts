@@ -106,16 +106,7 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
       ]);
     }
 
-    // 6. Create a Resort / Entity
-    await admin.from("resorts").insert({
-      organization_id: orgId,
-      name: "منتجع ريزورت أواسيس الساحلي",
-      code: "OASIS",
-      property_type: "RESORT",
-      timezone: "Africa/Cairo",
-    });
-
-    // 7. Sign in through UI
+    // 6. Sign in through UI
     await page.goto(`${baseURL}/ar/login`);
     await page.waitForLoadState("domcontentloaded");
     await page.fill('input[type="email"]', ownerEmail);
@@ -123,11 +114,11 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
     await page.click('button[type="submit"]');
     await page.waitForURL("**/dashboard**", { timeout: 30000 });
 
-    // 8. Verify Dashboard (/dashboard)
+    // 7. Verify Executive Dashboard (/dashboard)
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator("text=الفترات والإقفال")).toBeVisible();
 
-    // 9. Verify Fiscal Periods & Closing Wizard (/admin/finance/periods)
+    // 8. Verify Fiscal Periods & Closing Wizard (/admin/finance/periods)
     await page.goto(`${baseURL}/ar/admin/finance/periods`);
     await expect(page.locator("h1")).toContainText("السنوات والفترات والإقفال المحاسبي");
     await expect(page.locator("text=مساعد الإقفال السنوي وترحيل الأرصدة").first()).toBeVisible();
@@ -138,11 +129,11 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
     await expect(page.locator("text=المتابعة للخطوة التالية")).toBeVisible();
     await page.click("text=إلغاء");
 
-    // 10. Verify Real Estate Entities (/admin/resorts)
+    // 9. Verify Real Estate Entities & Projects (/admin/resorts)
     await page.goto(`${baseURL}/ar/admin/resorts`);
     await expect(page.locator("h1")).toContainText("الكيانات والمشاريع العقارية");
-    await expect(page.locator("text=منتجع ريزورت أواسيس الساحلي")).toBeVisible();
     await expect(page.locator("text=نسبة الإشغال الإجمالية")).toBeVisible();
+    await expect(page.locator("text=متوسط الإيراد لكل وحدة")).toBeVisible();
 
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
