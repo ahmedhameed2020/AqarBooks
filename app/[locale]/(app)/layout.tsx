@@ -229,6 +229,7 @@ export default async function AppShellLayout({
               icon: <Settings className={ic} />,
               subItems: [
                 { href: "/account", labelAr: "الملف الشخصي وكلمة المرور", labelEn: "Profile & Password" },
+                { href: "/notifications", labelAr: "مركز الإشعارات والتنبيهات", labelEn: "Notification Center" },
                 { href: "/admin", labelAr: "إعدادات المنشأة والبراند", labelEn: "Organization Profile" },
                 { href: "/admin/users", labelAr: "المستخدمون وفريق العمل", labelEn: "Team & Users" },
                 { href: "/admin/roles", labelAr: "الصلاحيات والمصفوفة", labelEn: "Roles & Permissions" },

@@ -14,6 +14,10 @@ import {
   HelpCircle,
   Building2,
   CheckCircle2,
+  ExternalLink,
+  CreditCard,
+  ChevronRight,
+  Clock,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
@@ -25,15 +29,19 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const pathname = usePathname();
   const other = routing.locales.find((l) => l !== locale)!;
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
-    const handleClick = () => setShowQuickCreate(false);
-    if (showQuickCreate) {
+    const handleClick = () => {
+      setShowQuickCreate(false);
+      setShowNotifications(false);
+    };
+    if (showQuickCreate || showNotifications) {
       window.addEventListener("click", handleClick);
       return () => window.removeEventListener("click", handleClick);
     }
-  }, [showQuickCreate]);
+  }, [showQuickCreate, showNotifications]);
 
   return (
     <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 backdrop-blur-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] dark:border-slate-800/80 dark:bg-slate-950/95">
@@ -102,6 +110,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             onClick={(e) => {
               e.stopPropagation();
               setShowQuickCreate(!showQuickCreate);
+              setShowNotifications(false);
             }}
             size="sm"
             className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-8 px-3 rounded-xl shadow-xs gap-1"
@@ -164,16 +173,117 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           )}
         </div>
 
-        {/* NOTIFICATIONS BELL */}
-        <Link
-          href="/dashboard"
-          locale={locale}
-          title={isAr ? "الإشعارات والتنبيهات" : "Notifications"}
-          className="relative flex size-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors"
-        >
-          <Bell className="size-4" />
-          <span className="absolute top-1.5 end-1.5 size-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-slate-900" />
-        </Link>
+        {/* NOTIFICATIONS BELL DROPDOWN */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNotifications(!showNotifications);
+              setShowQuickCreate(false);
+            }}
+            title={isAr ? "الإشعارات والتنبيهات" : "Notifications"}
+            className="relative flex size-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          >
+            <Bell className="size-4" />
+            <span className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold ring-2 ring-white dark:ring-slate-900">
+              3
+            </span>
+          </button>
+
+          {showNotifications && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute end-0 top-full mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-50 animate-in fade-in zoom-in-95 duration-100"
+            >
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 px-1">
+                <div className="flex items-center gap-1.5">
+                  <Bell className="size-3.5 text-indigo-600" />
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
+                    {isAr ? "التنبيهات العاجلة" : "Urgent Alerts"}
+                  </span>
+                  <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[9px] font-bold py-0">
+                    3 {isAr ? "جديدة" : "new"}
+                  </Badge>
+                </div>
+                <Link
+                  href="/notifications"
+                  locale={locale}
+                  onClick={() => setShowNotifications(false)}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                >
+                  {isAr ? "عرض الكل" : "View All"}
+                </Link>
+              </div>
+
+              {/* RECENT NOTIFICATIONS PREVIEW */}
+              <div className="space-y-1.5 py-2">
+                <Link
+                  href="/finance/reports/pdc-register"
+                  locale={locale}
+                  onClick={() => setShowNotifications(false)}
+                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <div className="size-7 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <CreditCard className="size-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {isAr ? "4 شيكات تستحق خلال 3 أيام (145,000 ج.م)" : "4 PDCs due in 3 days (145k EGP)"}
+                    </p>
+                    <p className="text-[10px] text-slate-400">منذ 10 دقائق</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/finance/reports/lease-expirations"
+                  locale={locale}
+                  onClick={() => setShowNotifications(false)}
+                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <div className="size-7 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <Building2 className="size-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {isAr ? "عقد الوحدة V-204 ينتهي قريباً" : "Unit V-204 lease expiring soon"}
+                    </p>
+                    <p className="text-[10px] text-slate-400">منذ ساعتين</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/finance/reports/vat-return"
+                  locale={locale}
+                  onClick={() => setShowNotifications(false)}
+                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <div className="size-7 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="size-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {isAr ? "اقتراب موعد تقديم الإقرار الضريبي" : "VAT Return submission deadline"}
+                    </p>
+                    <p className="text-[10px] text-slate-400">اليوم 09:30 ص</p>
+                  </div>
+                </Link>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Link
+                  href="/notifications"
+                  locale={locale}
+                  onClick={() => setShowNotifications(false)}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl"
+                >
+                  <span>{isAr ? "فتح مركز الإشعارات الكامل" : "Open Notifications Center"}</span>
+                  <ChevronRight className="size-3.5 rtl:rotate-180" />
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* LANGUAGE SWITCHER */}
         <Link

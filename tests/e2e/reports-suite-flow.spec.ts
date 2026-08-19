@@ -209,6 +209,12 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("بوابات الدفع الإلكتروني والتحصيل الرقمي");
     await expect(page.locator("text=Fawry Pay (فوري باي)").first()).toBeVisible();
 
+    // 21. Test Notifications & Alerts Center Page
+    await page.goto(`${baseURL}/ar/notifications`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("إدارة التنبيهات، الشيكات، وقنوات المراسلة");
+    await expect(page.locator("text=سجل الإشعارات والتنبيهات").first()).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });
