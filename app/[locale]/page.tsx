@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+
+export const dynamic = "force-dynamic";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { MarketingNav } from "./marketing-nav";
