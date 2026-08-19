@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Download, Search, X } from "lucide-react";
+import { Download, Search, X, Filter, UserCheck, AlertCircle, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -54,8 +54,8 @@ export function MembersFilters({ locale }: { locale: string }) {
 
   const chips: { key: string; label: string }[] = [];
   if (q) chips.push({ key: "q", label: isAr ? `بحث: ${q}` : `Search: ${q}` });
-  if (ownership === "owns") chips.push({ key: "ownership", label: isAr ? "يملك وحدات" : "Owns units" });
-  if (ownership === "none") chips.push({ key: "ownership", label: isAr ? "لا يملك وحدات" : "Owns none" });
+  if (ownership === "owns") chips.push({ key: "ownership", label: isAr ? "يملكون وحدات" : "Owns units" });
+  if (ownership === "none") chips.push({ key: "ownership", label: isAr ? "لا يملكون وحدات" : "Owns none" });
   if (arrears === "1") chips.push({ key: "arrears", label: isAr ? "عليهم متأخرات" : "Has arrears" });
 
   function removeChip(key: string) {
@@ -71,65 +71,89 @@ export function MembersFilters({ locale }: { locale: string }) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            ref={inputRef}
-            value={qDraft}
-            onChange={(e) => setQDraft(e.target.value)}
-            placeholder={isAr ? "بحث بالاسم أو الهاتف أو البريد… (/)" : "Search name, phone, or email… (/)"}
-            className="w-64 ps-8"
-          />
+    <div className="space-y-2.5 p-4 rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          {/* SEARCH INPUT */}
+          <div className="relative max-w-sm w-full">
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              ref={inputRef}
+              value={qDraft}
+              onChange={(e) => setQDraft(e.target.value)}
+              placeholder={isAr ? "بحث سريع بالاسم، الهاتف، أو البريد… (/)" : "Search by name, phone, or email… (/)"}
+              className="w-full ps-9 h-9.5 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+            />
+          </div>
+
+          {/* OWNERSHIP FILTER */}
+          <Select
+            value={ownership || undefined}
+            onValueChange={(v) => pushParams({ ownership: (v === ALL ? undefined : v) as any, page: undefined })}
+          >
+            <SelectTrigger className="w-36 h-9.5 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+              <SelectValue placeholder={isAr ? "حالة الملكية" : "Ownership"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{isAr ? "الكل (ملاك وغيرهم)" : "All Members"}</SelectItem>
+              <SelectItem value="owns">{isAr ? "يملكون وحدات" : "Owns Units"}</SelectItem>
+              <SelectItem value="none">{isAr ? "بدون وحدات" : "No Units"}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* ARREARS QUICK BUTTON */}
+          <button
+            type="button"
+            onClick={() => pushParams({ arrears: arrears === "1" ? undefined : "1", page: undefined })}
+            className={`flex items-center gap-1.5 h-9.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              arrears === "1"
+                ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+            }`}
+          >
+            <AlertCircle className="size-3.5 text-rose-600" />
+            <span>{isAr ? "عليهم متأخرات فقط" : "Arrears Only"}</span>
+          </button>
         </div>
 
-        <Select
-          value={ownership || undefined}
-          onValueChange={(v) => pushParams({ ownership: (v === ALL ? undefined : v) as any, page: undefined })}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder={isAr ? "الملكية" : "Ownership"} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{isAr ? "الكل" : "All"}</SelectItem>
-            <SelectItem value="owns">{isAr ? "يملك وحدات" : "Owns units"}</SelectItem>
-            <SelectItem value="none">{isAr ? "لا يملك وحدات" : "Owns none"}</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          type="button"
-          variant={arrears === "1" ? "default" : "outline"}
-          size="sm"
-          onClick={() => pushParams({ arrears: arrears === "1" ? undefined : "1", page: undefined })}
-        >
-          {isAr ? "عليهم متأخرات فقط" : "Arrears only"}
-        </Button>
-
-        <Button type="button" variant="outline" size="sm" onClick={exportAll} disabled={exporting} className="ms-auto">
-          <Download className="size-3.5" />
-          {exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير CSV" : "Export CSV"}
-        </Button>
+        {/* EXPORT CSV BUTTON */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={exportAll}
+            disabled={exporting}
+            className="h-9 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 gap-1.5"
+          >
+            <Download className="size-3.5" />
+            <span>{exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير القائمة (CSV)" : "Export CSV"}</span>
+          </Button>
+        </div>
       </div>
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
           {chips.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="gap-1 ps-2.5 pe-1.5">
-              {chip.label}
+            <Badge key={chip.key} variant="secondary" className="gap-1 ps-2.5 pe-1.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+              <span>{chip.label}</span>
               <button
                 type="button"
                 onClick={() => removeChip(chip.key)}
-                className="rounded-full p-0.5 hover:bg-foreground/10"
+                className="rounded-md p-0.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 cursor-pointer"
                 aria-label={isAr ? "إزالة الفلتر" : "Remove filter"}
               >
                 <X className="size-3" />
               </button>
             </Badge>
           ))}
-          <Button variant="link" size="sm" className="h-5 px-1" onClick={() => { setQDraft(""); pushParams({ q: undefined, ownership: undefined, arrears: undefined, page: undefined }); }}>
-            {isAr ? "مسح الكل" : "Clear all"}
+          <Button
+            variant="link"
+            size="sm"
+            className="h-6 px-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
+            onClick={() => { setQDraft(""); pushParams({ q: undefined, ownership: undefined, arrears: undefined, page: undefined }); }}
+          >
+            {isAr ? "مسح جميع الفلاتر" : "Clear all"}
           </Button>
         </div>
       )}

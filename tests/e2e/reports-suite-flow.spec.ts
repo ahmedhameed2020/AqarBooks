@@ -215,6 +215,12 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("إدارة التنبيهات، الشيكات، وقنوات المراسلة");
     await expect(page.locator("text=سجل الإشعارات والتنبيهات").first()).toBeVisible();
 
+    // 22. Test Members & Owners Directory Page
+    await page.goto(`${baseURL}/ar/members`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("سجل الأعضاء والملاك وإدارة الحسابات");
+    await expect(page.locator("text=إجمالي الأعضاء والملاك").first()).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });

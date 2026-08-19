@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { Users, AlertCircle, Wallet, TrendingUp, UserPlus } from "lucide-react";
+import { Users, AlertCircle, Wallet, TrendingUp, UserPlus, Sparkles, Download, FileSpreadsheet } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
@@ -13,10 +13,30 @@ import { MembersFilters } from "./members-filters";
 import { MembersPagination } from "./members-pagination";
 import { MembersNavProvider } from "./members-nav-context";
 import { MemberDrawer, type MemberDrawerData } from "./member-drawer";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
 
 const PAGE_SIZE = 50;
 const SORT_COLUMN: Record<string, string> = { name: "full_name", units: "units_count", balance: "total_balance" };
 const DUE_TYPE_FALLBACK = "—";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "دليل الملاك والمستأجرين والأعضاء — عقار بوكس"
+      : "Members, Owners & Tenants Directory — AqarBooks",
+    description: isAr
+      ? "إدارة سجلات الملاك والمستأجرين، ملكيات الوحدات، أرصدة الحسابات، والمطالبات المالية."
+      : "Manage owners, tenants, unit ownerships, financial balances, and collection statements.",
+  };
+}
 
 async function getDrawerData(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -116,7 +136,7 @@ export default async function MembersPage({
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
         <p className="max-w-md text-sm text-muted-foreground">
           {isAr ? "حسابك غير مرتبط بأي منظمة بعد." : "Your account isn't linked to an organization yet."}
         </p>
@@ -132,12 +152,6 @@ export default async function MembersPage({
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 8) + "01";
 
-  // KPIs are org-wide (all resorts) and always computed from
-  // units_with_financials directly, never by summing members_with_financials
-  // .total_balance -- a unit with multiple active co-owners would otherwise
-  // be double-counted (each co-owner shows the unit's full balance, by the
-  // approved phase-3 policy). Matches /property's arrears figure exactly
-  // whenever the organization has a single resort.
   const [
     { count: membersCount },
     { count: membersWithArrears },
@@ -208,65 +222,107 @@ export default async function MembersPage({
   }
 
   const drawerData = sp.member ? await getDrawerData(supabase, organization.id, sp.member, isAr) : null;
-
   const noMembersAtAll = (membersCount ?? 0) === 0;
 
   return (
     <MembersNavProvider>
-      <main className="space-y-6 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">{isAr ? "الأعضاء" : "Members"}</h1>
-            <p className="text-sm text-muted-foreground">
-              {isAr ? "أعضاء المنظمة وملكيتهم للوحدات وأرصدتهم." : "Organization members, their unit ownership, and balances."}
-            </p>
+      <div className="w-full max-w-7xl mx-auto space-y-6 pb-20">
+        {/* ──────────────────────────────────────────────────────────────────────────
+            1. EXECUTIVE HERO BANNER
+            ────────────────────────────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 px-3 py-1 text-xs font-bold gap-1.5 shadow-2xs">
+                  <Users className="size-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>{isAr ? "دليل الملاك والمستأجرين" : "Members & Tenants CRM"}</span>
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-bold">
+                  {membersCount ?? 0} {isAr ? "عضو مسجل" : "Registered Members"}
+                </Badge>
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+                {isAr ? "سجل الأعضاء والملاك وإدارة الحسابات" : "Members Directory & Account Balances"}
+              </h1>
+
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl font-medium">
+                {isAr
+                  ? "متابعة سجلات الملاك، ملكيات الوحدات العقارية، الأرصدة المالية، وإصدار سندات القبض وكشوف الحسابات المباشرة."
+                  : "Track owners, real estate units, financial balances, payment receipts, and owner statements."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Link href="/import" locale={locale}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold h-9 px-3.5 gap-1.5 rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-800"
+                >
+                  <Sparkles className="size-3.5 text-amber-600" />
+                  <span>{isAr ? "استيراد بالذكاء الاصطناعي" : "AI Smart Import"}</span>
+                </Button>
+              </Link>
+
+              <AddMemberDialog
+                organizationId={organization.id}
+                members={allMembers ?? []}
+                units={allUnits ?? []}
+                locale={locale}
+              />
+            </div>
           </div>
-          <AddMemberDialog
-            organizationId={organization.id}
-            members={allMembers ?? []}
-            units={allUnits ?? []}
-            locale={locale}
-          />
+
+          {/* KPI CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+            <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 dark:bg-slate-800/40 dark:border-slate-800">
+              <p className="text-[11px] font-bold text-slate-500">{isAr ? "إجمالي الأعضاء والملاك" : "Total Members"}</p>
+              <p className="text-xl font-black text-slate-900 dark:text-white mt-1">{membersCount ?? 0}</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40">
+              <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">{isAr ? "أعضاء عليهم متأخرات" : "Members with Arrears"}</p>
+              <p className="text-xl font-black text-rose-700 dark:text-rose-300 mt-1">{membersWithArrears ?? 0}</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/40">
+              <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{isAr ? `إجمالي المتأخرات (${currency})` : `Total Arrears (${currency})`}</p>
+              <p className="text-xl font-black text-amber-700 dark:text-amber-300 mt-1 font-mono">
+                <Money amount={totalArrears} locale={locale} zeroLabel={isAr ? "0" : "0"} />
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/40">
+              <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">{isAr ? `المحصّل هذا الشهر (${currency})` : `Collected This Month`}</p>
+              <p className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-1 font-mono">
+                <Money amount={collectedThisMonth} locale={locale} />
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            label={isAr ? "إجمالي الأعضاء" : "Total members"}
-            value={String(membersCount ?? 0)}
-            icon={<Users className="size-4.5" />}
-          />
-          <KpiCard
-            label={isAr ? "أعضاء عليهم متأخرات" : "Members with arrears"}
-            value={String(membersWithArrears ?? 0)}
-            icon={<AlertCircle className="size-4.5" />}
-            tone={(membersWithArrears ?? 0) > 0 ? "negative" : undefined}
-          />
-          <KpiCard
-            label={isAr ? `إجمالي المتأخرات (${currency})` : `Total arrears (${currency})`}
-            value={<Money amount={totalArrears} locale={locale} tone={totalArrears > 0 ? "negative" : undefined} zeroLabel={isAr ? "لا يوجد" : "None"} />}
-            icon={<Wallet className="size-4.5" />}
-            tone={totalArrears > 0 ? "negative" : undefined}
-          />
-          <KpiCard
-            label={isAr ? `المحصّل هذا الشهر (${currency})` : `Collected this month (${currency})`}
-            value={<Money amount={collectedThisMonth} currency={currency} locale={locale} />}
-            icon={<TrendingUp className="size-4.5" />}
-            tone="positive"
-          />
-        </div>
-
+        {/* ──────────────────────────────────────────────────────────────────────────
+            2. FILTER STUDIO & DATA TABLE
+            ────────────────────────────────────────────────────────────────────────── */}
         {noMembersAtAll ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-            <UserPlus className="size-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-white p-16 text-center dark:border-slate-800 dark:bg-slate-900">
+            <div className="size-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <UserPlus className="size-7" />
+            </div>
             <div>
-              <p className="font-medium">{isAr ? "لا يوجد أعضاء بعد" : "No members yet"}</p>
-              <p className="text-sm text-muted-foreground">
-                {isAr ? "ابدأ بإضافة أول عضو من الأعلى." : "Start by adding your first member above."}
+              <p className="text-base font-black text-slate-900 dark:text-white">
+                {isAr ? "لا يوجد أعضاء مسجلين بعد" : "No members registered yet"}
+              </p>
+              <p className="text-xs text-slate-500 max-w-sm mt-1">
+                {isAr ? "ابدأ بإضافة أول عضو أو استيراد ملف العملاء بالذكاء الاصطناعي." : "Add your first member or import via Excel."}
               </p>
             </div>
           </div>
         ) : (
-          <>
+          <div className="space-y-4">
             <MembersFilters locale={locale} />
             <MembersTable
               members={members ?? []}
@@ -275,9 +331,9 @@ export default async function MembersPage({
               currency={currency}
             />
             <MembersPagination page={page} totalPages={totalPages} totalCount={count ?? 0} locale={locale} />
-          </>
+          </div>
         )}
-      </main>
+      </div>
 
       <MemberDrawer data={drawerData} locale={locale} currency={currency} />
     </MembersNavProvider>
