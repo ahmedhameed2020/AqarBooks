@@ -34,6 +34,12 @@ import {
   Check,
   X,
   HelpCircle,
+  Share2,
+  Mail,
+  MessageCircle,
+  Download,
+  Edit3,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,6 +221,10 @@ export function EInvoiceClient({
   // View / Print Tax Invoice Modal state
   const [viewInvoiceDecision, setViewInvoiceDecision] = useState<TaxDecisionItem | null>(null);
 
+  // Edit Invoice Note Modal state
+  const [editInvoiceDecision, setEditInvoiceDecision] = useState<TaxDecisionItem | null>(null);
+  const [editNote, setEditNote] = useState("");
+
   const currentJur = JURISDICTION_INFO[organizationJurisdiction] || JURISDICTION_INFO.EG;
 
   // Filtered units based on selected resort
@@ -310,7 +320,108 @@ export function EInvoiceClient({
     });
   };
 
-  // Export Matrix
+  // 1. WhatsApp Share
+  const handleShareInvoiceWhatsApp = (td: TaxDecisionItem) => {
+    const invNumber = td.id.slice(0, 8).toUpperCase();
+    const unit = td.unit_code || `#${td.source_id.slice(0, 8)}`;
+    const text = isAr
+      ? `📄 *فاتورة ضريبية إلكترونية معتمدة*\n` +
+        `🏢 *المنشأة:* ${organizationName}\n` +
+        `🔢 *الرقم الضريبي:* ${organizationTaxId || "—"}\n` +
+        `🏷️ *رقم الفاتورة:* #${invNumber}\n` +
+        `🏠 *الوحدة:* ${unit}\n` +
+        `📋 *البيان:* ${td.nature_name}\n` +
+        `💵 *الوعاء الصافي:* ${td.taxable_base.toLocaleString()} ${currencyLabel}\n` +
+        `📊 *ضريبة القيمة المضافة (${td.vat_rate}%):* ${td.vat_amount.toLocaleString()} ${currencyLabel}\n` +
+        `💳 *الإجمالي النهائي المستحق:* ${td.gross_amount.toLocaleString()} ${currencyLabel}\n` +
+        `📅 *تاريخ الإصدار:* ${td.decided_at}\n\n` +
+        `✅ *حالة الفاتورة:* مختومة ضريبياً وفقاً لمعايير منظومة الفوترة الإلكترونية.`
+      : `📄 *Statutory Tax Invoice*\n` +
+        `🏢 *Seller:* ${organizationName}\n` +
+        `🔢 *Tax ID:* ${organizationTaxId || "—"}\n` +
+        `🏷️ *Invoice #:* #${invNumber}\n` +
+        `🏠 *Unit:* ${unit}\n` +
+        `📋 *Item:* ${td.nature_name}\n` +
+        `💵 *Taxable Base:* ${td.taxable_base.toLocaleString()} ${currencyLabel}\n` +
+        `📊 *VAT (${td.vat_rate}%):* ${td.vat_amount.toLocaleString()} ${currencyLabel}\n` +
+        `💳 *Gross Payable:* ${td.gross_amount.toLocaleString()} ${currencyLabel}\n` +
+        `📅 *Date:* ${td.decided_at}\n\n` +
+        `✅ *Status:* Stamped & Legally Validated.`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  // 2. Email Share
+  const handleShareInvoiceEmail = (td: TaxDecisionItem) => {
+    const invNumber = td.id.slice(0, 8).toUpperCase();
+    const unit = td.unit_code || `#${td.source_id.slice(0, 8)}`;
+    const subject = isAr
+      ? `فاتورة ضريبية إلكترونية رقم #${invNumber} — ${unit} — ${organizationName}`
+      : `Tax Invoice #${invNumber} — ${unit} — ${organizationName}`;
+
+    const body = isAr
+      ? `السيد/ة المحترم/ة،\n\nنرفق لكم تفاصيل الفاتورة الضريبية الإلكترونية المعتمدة:\n\n` +
+        `• رقم الفاتورة: #${invNumber}\n` +
+        `• الوحدة المستفيدة: ${unit}\n` +
+        `• البيان: ${td.nature_name}\n` +
+        `• تاريخ الإصدار: ${td.decided_at}\n` +
+        `• الوعاء الصافي: ${td.taxable_base.toLocaleString()} ${currencyLabel}\n` +
+        `• ضريبة القيمة المضافة (${td.vat_rate}%): ${td.vat_amount.toLocaleString()} ${currencyLabel}\n` +
+        `• الإجمالي النهائي: ${td.gross_amount.toLocaleString()} ${currencyLabel}\n\n` +
+        `شاكرين لكم حسن تعاونكم،\n${organizationName}`
+      : `Dear Client,\n\nPlease find the details for statutory tax invoice #${invNumber}:\n\n` +
+        `• Invoice Number: #${invNumber}\n` +
+        `• Unit: ${unit}\n` +
+        `• Item: ${td.nature_name}\n` +
+        `• Date: ${td.decided_at}\n` +
+        `• Taxable Base: ${td.taxable_base.toLocaleString()} ${currencyLabel}\n` +
+        `• VAT (${td.vat_rate}%): ${td.vat_amount.toLocaleString()} ${currencyLabel}\n` +
+        `• Gross Total: ${td.gross_amount.toLocaleString()} ${currencyLabel}\n\n` +
+        `Best regards,\n${organizationName}`;
+
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+  };
+
+  // 3. Single Invoice PDF Export
+  const handleExportSingleInvoicePdf = (td: TaxDecisionItem) => {
+    const invNumber = td.id.slice(0, 8).toUpperCase();
+    generateFinancialStatementPdf({
+      title: isAr ? "فاتورة ضريبية إلكترونية معتمدة" : "Statutory Tax Invoice",
+      subtitle: isAr
+        ? `فاتورة رقم #${invNumber} — ${td.unit_code || `#${td.source_id.slice(0, 8)}`}`
+        : `Invoice #${invNumber} — ${td.unit_code || `#${td.source_id.slice(0, 8)}`}`,
+      organizationName,
+      taxNumber: organizationTaxId || undefined,
+      currencyLabel,
+      dateRangeLabel: td.decided_at,
+      columns: [
+        { header: isAr ? "البيان / البند الضريبي" : "Description / Tax Nature", key: "item", align: "start" },
+        { header: isAr ? "الوعاء الصافي" : "Taxable Base", key: "base", align: "end", isNumber: true },
+        { header: isAr ? "نسبة الضريبة" : "VAT Rate", key: "rate", align: "center" },
+        { header: isAr ? "مبلغ الضريبة" : "VAT Amount", key: "vat", align: "end", isNumber: true },
+        { header: isAr ? "الإجمالي بالضريبة" : "Gross Total", key: "gross", align: "end", isNumber: true },
+      ],
+      rows: [
+        {
+          item: td.nature_name,
+          base: td.taxable_base.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+          rate: `${td.vat_rate}%`,
+          vat: td.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+          gross: td.gross_amount.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+        },
+      ],
+      summaryCards: [
+        { label: isAr ? "صافي الوعاء" : "Net Base", value: `${td.taxable_base.toLocaleString()} ${currencyLabel}` },
+        { label: isAr ? `الضريبة (${td.vat_rate}%)` : `VAT (${td.vat_rate}%)`, value: `${td.vat_amount.toLocaleString()} ${currencyLabel}` },
+        { label: isAr ? "الإجمالي النهائي" : "Gross Total", value: `${td.gross_amount.toLocaleString()} ${currencyLabel}` },
+      ],
+      filename: `Tax_Invoice_${invNumber}_${td.decided_at}.pdf`,
+    });
+  };
+
+  // Full Register Excel Export
   const handleExportExcel = () => {
     const rows = filteredDecisions.map((td) => ({
       unit: td.unit_code || `#${td.source_id.slice(0, 8)}`,
@@ -342,6 +453,7 @@ export function EInvoiceClient({
     });
   };
 
+  // Full Register PDF Export
   const handleExportPdf = () => {
     const rows = filteredDecisions.map((td) => ({
       unit: td.unit_code || `#${td.source_id.slice(0, 8)}`,
@@ -621,7 +733,7 @@ export function EInvoiceClient({
                   <th className="p-3.5 text-end">{isAr ? "ضريبة القيمة المضافة" : "VAT Amount"}</th>
                   <th className="p-3.5 text-end">{isAr ? "الإجمالي بالضريبة" : "Gross Total"}</th>
                   <th className="p-3.5 text-center">{isAr ? "الحالة" : "Status"}</th>
-                  <th className="p-3.5 text-center">{isAr ? "الإجراءات" : "Actions"}</th>
+                  <th className="p-3.5 text-center">{isAr ? "إجراءات الفاتورة" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -686,15 +798,52 @@ export function EInvoiceClient({
                       </td>
 
                       <td className="p-3.5 text-center">
-                        <Button
-                          onClick={() => setViewInvoiceDecision(td)}
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[11px] font-bold px-2.5 gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
-                        >
-                          <Eye className="size-3" />
-                          <span>{isAr ? "عرض الفاتورة" : "View"}</span>
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {/* 1. VIEW / PREVIEW & PRINT */}
+                          <Button
+                            onClick={() => setViewInvoiceDecision(td)}
+                            variant="outline"
+                            size="sm"
+                            title={isAr ? "معاينة الفاتورة الضريبية" : "Preview Tax Invoice"}
+                            className="h-7 text-[11px] font-bold px-2 gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                          >
+                            <Eye className="size-3" />
+                            <span>{isAr ? "معاينة" : "View"}</span>
+                          </Button>
+
+                          {/* 2. WHATSAPP */}
+                          <Button
+                            onClick={() => handleShareInvoiceWhatsApp(td)}
+                            variant="ghost"
+                            size="sm"
+                            title={isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
+                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                          >
+                            <MessageCircle className="size-3.5" />
+                          </Button>
+
+                          {/* 3. EMAIL */}
+                          <Button
+                            onClick={() => handleShareInvoiceEmail(td)}
+                            variant="ghost"
+                            size="sm"
+                            title={isAr ? "إرسال عبر البريد الإلكتروني" : "Send via Email"}
+                            className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                          >
+                            <Mail className="size-3.5" />
+                          </Button>
+
+                          {/* 4. PDF DOWNLOAD */}
+                          <Button
+                            onClick={() => handleExportSingleInvoicePdf(td)}
+                            variant="ghost"
+                            size="sm"
+                            title={isAr ? "تصدير الفاتورة PDF" : "Download Invoice PDF"}
+                            className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          >
+                            <Download className="size-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -758,15 +907,15 @@ export function EInvoiceClient({
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
             <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950">
-              <QrCode className="size-5" />
+              <Share2 className="size-5" />
             </div>
             <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "3. طباعة الفاتورة والباركود الضريبي" : "3. Official Print & QR"}
+              {isAr ? "3. الإرسال عبر واتساب والإيميل والطباعة" : "3. Multi-Channel Distribution"}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
               {isAr
-                ? "توليد الفاتورة الضريبية الرسمية المعتمدة بصيغة PDF وتضمين رمز الاستجابة السريع (QR Code) المتوافق مع متطلبات الهيئة."
-                : "Print official compliant invoice with QR code and statutory metadata."}
+                ? "توليد الفاتورة الضريبية الرسمية المعتمدة مع رمز الاستجابة السريع (QR Code)، مع إمكانية الطباعة وتصدير PDF والإرسال عبر واتساب والبريد."
+                : "Share official compliant invoices via WhatsApp, Email, instant Print, or export to PDF."}
             </p>
           </div>
         </div>
@@ -1014,7 +1163,7 @@ export function EInvoiceClient({
       </Dialog>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MODAL 2: OFFICIAL TAX INVOICE PREVIEW & PRINT
+          MODAL 2: OFFICIAL TAX INVOICE PREVIEW & 360° ACTIONS
           ────────────────────────────────────────────────────────────────────────── */}
       <Dialog open={Boolean(viewInvoiceDecision)} onOpenChange={(open) => !open && setViewInvoiceDecision(null)}>
         <DialogContent className="max-w-2xl rounded-3xl p-6">
@@ -1102,25 +1251,63 @@ export function EInvoiceClient({
                 </div>
               </div>
 
-              <DialogFooter className="pt-2 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewInvoiceDecision(null)}
-                  className="text-xs font-bold h-9"
-                >
-                  {isAr ? "إغلاق" : "Close"}
-                </Button>
+              {/* ACTION TOOLBAR: 360° ACTIONS */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-1.5">
+                  {/* WHATSAPP */}
+                  <Button
+                    onClick={() => handleShareInvoiceWhatsApp(viewInvoiceDecision)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8.5 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                  >
+                    <MessageCircle className="size-3.5" />
+                    <span>{isAr ? "واتساب" : "WhatsApp"}</span>
+                  </Button>
 
-                <Button
-                  onClick={() => window.print()}
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 shadow-sm"
-                >
-                  <Printer className="size-3.5" />
-                  <span>{isAr ? "طباعة الفاتورة الضريبية" : "Print Invoice"}</span>
-                </Button>
-              </DialogFooter>
+                  {/* EMAIL */}
+                  <Button
+                    onClick={() => handleShareInvoiceEmail(viewInvoiceDecision)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 gap-1.5"
+                  >
+                    <Mail className="size-3.5" />
+                    <span>{isAr ? "إيميل" : "Email"}</span>
+                  </Button>
+
+                  {/* PDF DOWNLOAD */}
+                  <Button
+                    onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8.5 text-xs font-bold border-rose-200 text-rose-700 hover:bg-rose-50 gap-1.5"
+                  >
+                    <Download className="size-3.5" />
+                    <span>{isAr ? "تحميل PDF" : "PDF"}</span>
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setViewInvoiceDecision(null)}
+                    className="text-xs font-bold h-8.5"
+                  >
+                    {isAr ? "إغلاق" : "Close"}
+                  </Button>
+
+                  <Button
+                    onClick={() => window.print()}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8.5 px-4 gap-1.5 shadow-sm"
+                  >
+                    <Printer className="size-3.5" />
+                    <span>{isAr ? "طباعة الفاتورة" : "Print Invoice"}</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>
