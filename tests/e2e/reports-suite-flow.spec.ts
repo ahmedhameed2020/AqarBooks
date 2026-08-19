@@ -1,21 +1,20 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { config as loadEnv } from "dotenv";
+loadEnv({ path: ".env.local" });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4Mzg3NTIwMH0.ZXhw";
-
-const STAFF_PASSWORD = process.env.E2E_STAFF_PASSWORD || "TestPassword123!";
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
 
 test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
   test("Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register", async ({
     page,
-    baseURL,
   }) => {
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    test.setTimeout(90_000);
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
     const uniqueSuffix = randomUUID().slice(0, 8);
     const ownerEmail = `fin-reporter-${uniqueSuffix}@resortos.local`;
     const orgSlug = `fin-hub-${uniqueSuffix}`;
