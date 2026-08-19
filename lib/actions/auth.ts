@@ -31,10 +31,33 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+
+  let error;
+  try {
+    ({ error } = await supabase.auth.signInWithPassword(parsed.data));
+  } catch (thrown) {
+    // A transport-level failure never means the password was wrong.
+    console.error("[signIn] auth request threw", thrown);
+    return { error: "generic" };
+  }
 
   if (error) {
-    return { error: "invalid_credentials" };
+    // Only a genuine credential rejection should be reported as one --
+    // anything else (misconfigured keys, network, rate limiting, an outage)
+    // used to surface as "wrong email or password", which sends people off
+    // resetting a password that was fine.
+    const isCredentialError =
+      error.code === "invalid_credentials" || error.code === "email_not_confirmed";
+
+    if (!isCredentialError) {
+      console.error("[signIn] non-credential auth failure", {
+        status: error.status,
+        code: error.code,
+        message: error.message,
+      });
+    }
+
+    return { error: isCredentialError ? "invalid_credentials" : "generic" };
   }
 
   const target = redirectTo ? stripLocalePrefix(redirectTo) : "/dashboard";
