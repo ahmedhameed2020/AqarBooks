@@ -199,6 +199,8 @@ export function NotificationsClient({
     setNotifications(newList);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+      localStorage.setItem("aqarbooks-global-notifications", JSON.stringify(newList));
+      window.dispatchEvent(new CustomEvent("aqarbooks-notifications-updated"));
     } catch (e) {
       console.error("Error saving notifications to localStorage", e);
     }
