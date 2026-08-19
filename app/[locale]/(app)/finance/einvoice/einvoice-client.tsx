@@ -289,7 +289,6 @@ export function EInvoiceClient({
 
     startTransition(async () => {
       const res = await issueDueAction({ ok: true }, formData);
-      console.log("ISSUE DUE ACTION RES:", JSON.stringify(res));
       if (res.ok) {
         toast?.add({
           type: "success",
