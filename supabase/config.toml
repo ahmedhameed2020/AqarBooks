@@ -16,8 +16,8 @@ project_id = "aqarbooks"
 # exact values confirmed live on the project immediately before that push.
 
 [auth]
-site_url = "http://aqarbooks.com"
-additional_redirect_urls = ["http://aqarbooks.com/**", "https://aqarbooks.com/auth/callback", "https://aqarbooks.com/ar/auth/reset-password", "http://localhost:3000/**"]
+site_url = "https://aqarbooks.com/**"
+additional_redirect_urls = ["http://aqarbooks.com/**", "https://aqarbooks.com/auth/callback", "https://aqarbooks.com/ar/auth/reset-password", "http://localhost:3000/**", "http://localhost:3100/**"]
 
 [auth.mfa.totp]
 enroll_enabled = true
@@ -43,7 +43,7 @@ port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
 admin_email = "no-reply@aqarbooks.com"
-sender_name = "AqarBooks"
+sender_name = "AqarBooks-عقار بوكس"
 
 # Auth email templates -- the only configuration this file currently manages.
 # Each template is a self-contained, email-client-safe HTML file under
