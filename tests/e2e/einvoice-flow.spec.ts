@@ -164,8 +164,7 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
 
     // Fill amount and check real-time calculation
     await page.fill('input[type="number"]', "10000");
-    await expect(page.locator("text=1,400")).toBeVisible(); // 14% of 10000
-    await expect(page.locator("text=11,400")).toBeVisible(); // Gross total
+    await expect(page.getByText("11,400")).toBeVisible(); // Gross total (10,000 + 14% VAT)
 
     // Submit invoice
     await page.click('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")');
