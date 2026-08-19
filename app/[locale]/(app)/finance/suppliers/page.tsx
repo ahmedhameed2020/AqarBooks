@@ -76,7 +76,7 @@ export default async function SuppliersPage({
   ] = await Promise.all([
     supabase
       .from("suppliers")
-      .select("id, name, category, tax_number, commercial_registry, contact_person, contact_email, contact_phone, payable_account_id, payment_terms_days, credit_limit, bank_name, bank_iban")
+      .select("id, name, tax_number, commercial_registry, contact_person, contact_email, contact_phone, secondary_phone, address, bank_account_details, payable_account_id")
       .eq("organization_id", organization.id)
       .order("name"),
     supabase
@@ -177,16 +177,12 @@ export default async function SuppliersPage({
     return {
       id: s.id,
       name: s.name,
-      category: s.category,
       tax_number: s.tax_number,
       commercial_registry: s.commercial_registry,
       contact_person: s.contact_person,
       contact_email: s.contact_email,
       contact_phone: s.contact_phone,
-      payment_terms_days: s.payment_terms_days,
-      credit_limit: s.credit_limit ? Number(s.credit_limit) : undefined,
-      bank_name: s.bank_name,
-      bank_iban: s.bank_iban,
+      bank_account_details: s.bank_account_details,
       payable_account_code: s.payable_account_id ? accountMap.get(s.payable_account_id) : undefined,
       invoice_count: invoiceCountBySupplier.get(s.id) ?? 0,
       total_billed: totalBilled,

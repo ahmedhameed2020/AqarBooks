@@ -45,6 +45,11 @@ export async function createSupplierAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
+  const bankDetails = [
+    parsed.data.bankName ? `البنك: ${parsed.data.bankName}` : null,
+    parsed.data.bankIban ? `IBAN / الحساب: ${parsed.data.bankIban}` : null,
+  ].filter(Boolean).join(" — ");
+
   const supabase = await createClient();
   const { error } = await supabase.from("suppliers").insert({
     organization_id: parsed.data.organizationId,
@@ -55,11 +60,7 @@ export async function createSupplierAction(
     contact_email: parsed.data.contactEmail || null,
     contact_phone: parsed.data.contactPhone || null,
     address: parsed.data.address || null,
-    category: parsed.data.category || null,
-    payment_terms_days: parsed.data.paymentTermsDays,
-    credit_limit: parsed.data.creditLimit,
-    bank_name: parsed.data.bankName || null,
-    bank_iban: parsed.data.bankIban || null,
+    bank_account_details: bankDetails || null,
     payable_account_id: parsed.data.payableAccountId,
   });
 
