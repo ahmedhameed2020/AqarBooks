@@ -40,22 +40,32 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
       user_metadata: { full_name: "المدير التنفيذي العام" },
     });
     expect(ownerCreateErr).toBeNull();
-    const ownerUid = ownerUser!.user.id;
+    const ownerId = ownerUser!.user!.id;
 
-    // 4. Assign Owner role
+    // Profile & Membership for Owner
+    await admin.from("profiles").upsert({
+      id: ownerId,
+      full_name: "المدير التنفيذي العام",
+      locale: "ar",
+    });
+
+    await admin.from("organization_memberships").insert({
+      organization_id: orgId,
+      user_id: ownerId,
+      status: "active",
+    });
+
     const { data: ownerRole } = await admin
       .from("roles")
       .select("id")
       .eq("organization_id", orgId)
-      .eq("key", "owner")
+      .eq("key", "TENANT_OWNER")
       .single();
 
-    await admin.from("organization_members").insert({
+    await admin.from("user_role_assignments").insert({
       organization_id: orgId,
-      user_id: ownerUid,
-      role: "owner",
+      user_id: ownerId,
       role_id: ownerRole!.id,
-      status: "ACTIVE",
     });
 
     // 5. Create a Fiscal Year and periods
@@ -77,8 +87,9 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
 
     // 7. Sign in through UI
     await page.goto(`${baseURL}/ar/login`);
-    await page.fill('input[type="email"], input[name="email"]', ownerEmail);
-    await page.fill('input[type="password"], input[name="password"]', STAFF_PASSWORD);
+    await page.waitForLoadState("domcontentloaded");
+    await page.fill('input[type="email"]', ownerEmail);
+    await page.fill('input[type="password"]', STAFF_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL("**/dashboard**", { timeout: 30000 });
 
@@ -106,6 +117,6 @@ test.describe("Enterprise Suite 3-Pillar Comprehensive Flow", () => {
 
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
-    await admin.auth.admin.deleteUser(ownerUid);
+    await admin.auth.admin.deleteUser(ownerId);
   });
 });
