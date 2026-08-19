@@ -55,12 +55,41 @@ export async function issueDueAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const supabase = await createClient();
+  let receivableAccountId = formData.get("receivableAccountId") as string;
+  const orgId = formData.get("organizationId") as string;
+  const dueTypeId = formData.get("dueTypeId") as string;
+
+  if (!receivableAccountId || !z.string().uuid().safeParse(receivableAccountId).success) {
+    if (dueTypeId && z.string().uuid().safeParse(dueTypeId).success) {
+      const { data: dt } = await supabase
+        .from("due_types")
+        .select("default_revenue_account_id")
+        .eq("id", dueTypeId)
+        .maybeSingle();
+      if (dt?.default_revenue_account_id) {
+        receivableAccountId = dt.default_revenue_account_id;
+      }
+    }
+  }
+
+  if (!receivableAccountId && orgId && z.string().uuid().safeParse(orgId).success) {
+    const { data: acc } = await supabase
+      .from("chart_of_accounts")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("category", "ASSET")
+      .limit(1)
+      .maybeSingle();
+    if (acc?.id) receivableAccountId = acc.id;
+  }
+
   const parsed = issueDueSchema.safeParse({
-    organizationId: formData.get("organizationId"),
+    organizationId: orgId,
     resortId: formData.get("resortId"),
     unitId: formData.get("unitId"),
-    dueTypeId: formData.get("dueTypeId"),
-    receivableAccountId: formData.get("receivableAccountId"),
+    dueTypeId: dueTypeId,
+    receivableAccountId: receivableAccountId,
     amount: formData.get("amount"),
     issueDate: formData.get("issueDate"),
     dueDate: formData.get("dueDate"),
@@ -69,7 +98,6 @@ export async function issueDueAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  const supabase = await createClient();
   const { error } = await supabase.rpc("issue_due", {
     p_organization_id: parsed.data.organizationId,
     p_resort_id: parsed.data.resortId,
@@ -86,6 +114,7 @@ export async function issueDueAction(
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[locale]/finance/dues", "page");
+  revalidatePath("/[locale]/finance/einvoice", "page");
   return { ok: true };
 }
 
