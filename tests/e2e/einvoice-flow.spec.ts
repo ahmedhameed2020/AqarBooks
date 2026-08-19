@@ -95,28 +95,29 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
     });
 
     // 5. Create Resort, Unit, Due Type, and Receivable Account
-    const { data: resort } = await admin
+    const { data: resort, error: resErr } = await admin
       .from("resorts")
       .insert({
         organization_id: orgId,
         name: "منتجع ساندز بلازا",
         code: "SANDS",
-        property_type: "RESORT",
         timezone: "Africa/Cairo",
       })
       .select("id")
       .single();
+    expect(resErr).toBeNull();
 
-    const { data: unit } = await admin
+    const { data: unit, error: unitErr } = await admin
       .from("units")
       .insert({
         organization_id: orgId,
-        property_id: resort!.id,
+        resort_id: resort!.id,
         code: "U-101",
-        unit_type: "villa",
+        unit_type: "VILLA",
       })
       .select("id")
       .single();
+    expect(unitErr).toBeNull();
 
     const { data: recAccount } = await admin
       .from("chart_of_accounts")
@@ -170,7 +171,7 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
     await page.click('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")');
     await expect(page.locator("text=تم إصدار الفاتورة الضريبية الإلكترونية بنجاح")).toBeVisible({ timeout: 15000 });
 
-    // 9. Clean up
+    // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
     await admin.auth.admin.deleteUser(ownerId);
   });
