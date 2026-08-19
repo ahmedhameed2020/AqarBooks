@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,60 +12,182 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createOrganization, type ActionResult } from "@/lib/actions/platform";
+import { Building2, Sparkles, Check, RefreshCw, AlertCircle } from "lucide-react";
 
-export function CreateOrganizationForm({ locale }: { locale: string }) {
+export function CreateOrganizationForm({
+  locale,
+  onSuccess,
+}: {
+  locale: string;
+  onSuccess?: () => void;
+}) {
   const isAr = locale === "ar";
+  const [orgName, setOrgName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<"STARTER" | "PROFESSIONAL" | "ENTERPRISE">("STARTER");
+  const [currency, setCurrency] = useState("SAR");
+
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     createOrganization,
     { ok: true },
   );
 
+  useEffect(() => {
+    if (state.ok && !pending && onSuccess && orgName) {
+      onSuccess();
+    }
+  }, [state.ok, pending, onSuccess, orgName]);
+
+  const handleNameChange = (name: string) => {
+    setOrgName(name);
+    // Auto generate suggested slug
+    const generated = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06FF]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    setSlug(generated);
+  };
+
   return (
-    <form action={formAction} className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="name">{isAr ? "اسم المنظمة" : "Organization name"}</Label>
-        <Input id="name" name="name" required />
+    <form action={formAction} className="space-y-4 pt-2">
+      
+      {/* Name Input */}
+      <div className="space-y-1.5 text-start">
+        <Label htmlFor="name" className="text-xs font-bold text-foreground block">
+          {isAr ? "اسم المنظمة / الكيان العقاري" : "Organization / Company Name"}
+        </Label>
+        <Input
+          id="name"
+          name="name"
+          value={orgName}
+          onChange={(e) => handleNameChange(e.target.value)}
+          placeholder={isAr ? "مثال: مجموعة الزمرد العقارية" : "e.g. Emerald Real Estate Holding"}
+          required
+          className="h-10 text-sm rounded-xl"
+        />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="slug">{isAr ? "المعرّف (slug)" : "Slug"}</Label>
-        <Input id="slug" name="slug" placeholder={isAr ? "اختياري" : "optional"} />
+
+      {/* Slug & Currency in 2 cols */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-start">
+        <div className="space-y-1.5">
+          <Label htmlFor="slug" className="text-xs font-bold text-foreground block">
+            {isAr ? "المعرّف التقني (Slug)" : "Unique Slug"}
+          </Label>
+          <Input
+            id="slug"
+            name="slug"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder={isAr ? "emerald-group" : "emerald-group"}
+            className="h-10 text-xs font-mono rounded-xl"
+            dir="ltr"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="defaultCurrency" className="text-xs font-bold text-foreground block">
+            {isAr ? "العملة الافتراضية" : "Default Currency"}
+          </Label>
+          <Select
+            name="defaultCurrency"
+            value={currency}
+            onValueChange={(val) => {
+              if (val) setCurrency(val);
+            }}
+            items={[
+              { value: "SAR", label: isAr ? "ريال سعودي (SAR)" : "Saudi Riyal (SAR)" },
+              { value: "EGP", label: isAr ? "جنيه مصري (EGP)" : "Egyptian Pound (EGP)" },
+              { value: "AED", label: isAr ? "درهم إماراتي (AED)" : "UAE Dirham (AED)" },
+              { value: "USD", label: "US Dollar (USD)" },
+            ]}
+          >
+            <SelectTrigger id="defaultCurrency" className="h-10 text-xs rounded-xl w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SAR">{isAr ? "ريال سعودي (SAR)" : "Saudi Riyal (SAR)"}</SelectItem>
+              <SelectItem value="EGP">{isAr ? "جنيه مصري (EGP)" : "Egyptian Pound (EGP)"}</SelectItem>
+              <SelectItem value="AED">{isAr ? "درهم إماراتي (AED)" : "UAE Dirham (AED)"}</SelectItem>
+              <SelectItem value="USD">US Dollar (USD)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="defaultCurrency">{isAr ? "العملة" : "Currency"}</Label>
-        <Input id="defaultCurrency" name="defaultCurrency" defaultValue="EGP" maxLength={3} />
+
+      {/* Plan Selection Cards */}
+      <div className="space-y-2 text-start pt-1">
+        <Label className="text-xs font-bold text-foreground block">
+          {isAr ? "باقة الاشتراك الافتراضية" : "Initial Subscription Plan"}
+        </Label>
+        <input type="hidden" name="planKey" value={selectedPlan} />
+        
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { key: "STARTER", nameAr: "الأساسية", nameEn: "Starter", badgeAr: "100 وحدة", badgeEn: "100 units" },
+              { key: "PROFESSIONAL", nameAr: "الاحترافية", nameEn: "Pro", badgeAr: "1,000 وحدة", badgeEn: "1k units" },
+              { key: "ENTERPRISE", nameAr: "المجموعات", nameEn: "Enterprise", badgeAr: "غير محدود", badgeEn: "Unlimited" },
+            ] as const
+          ).map((plan) => {
+            const isSelected = selectedPlan === plan.key;
+            return (
+              <button
+                key={plan.key}
+                type="button"
+                onClick={() => setSelectedPlan(plan.key)}
+                className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary shadow-xs"
+                    : "border-border bg-card/80 hover:border-border/80 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="text-xs font-black block text-foreground">{isAr ? plan.nameAr : plan.nameEn}</span>
+                <span className="text-[10px] text-muted-foreground block mt-0.5">{isAr ? plan.badgeAr : plan.badgeEn}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="planKey">{isAr ? "الباقة" : "Plan"}</Label>
-        <Select
-          name="planKey"
-          defaultValue="STARTER"
-          items={[
-            { value: "STARTER", label: "Starter" },
-            { value: "PROFESSIONAL", label: "Professional" },
-            { value: "ENTERPRISE", label: "Enterprise" },
-          ]}
-        >
-          <SelectTrigger id="planKey" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="STARTER">Starter</SelectItem>
-            <SelectItem value="PROFESSIONAL">Professional</SelectItem>
-            <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+
+      {/* Error alert */}
       {!state.ok && (
-        <p role="alert" className="text-sm text-destructive sm:col-span-2">
-          {isAr ? "حدث خطأ: " : "Error: "}
-          {state.error}
-        </p>
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-semibold text-destructive flex items-center gap-2"
+        >
+          <AlertCircle className="size-4 shrink-0" />
+          <span>
+            {state.error === "invalid_input"
+              ? isAr
+                ? "يرجى التأكد من صحة كافة البيانات المدخلة"
+                : "Please check your input values"
+              : state.error}
+          </span>
+        </div>
       )}
-      <div className="sm:col-span-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? (isAr ? "جارٍ الإنشاء..." : "Creating...") : isAr ? "إنشاء منظمة" : "Create organization"}
+
+      {/* Submit Button */}
+      <div className="pt-2">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full h-10 font-bold rounded-xl shadow-md gap-2"
+        >
+          {pending ? (
+            <>
+              <RefreshCw className="size-4 animate-spin" />
+              <span>{isAr ? "جارٍ التهيئة والإنشاء..." : "Creating workspace..."}</span>
+            </>
+          ) : (
+            <>
+              <Check className="size-4" />
+              <span>{isAr ? "تأكيد وإنشاء المنظمة" : "Create Organization Workspace"}</span>
+            </>
+          )}
         </Button>
       </div>
+
     </form>
   );
 }
