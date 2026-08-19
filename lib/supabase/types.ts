@@ -967,6 +967,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      exchange_rates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          foreign_currency: string;
+          base_currency: string;
+          rate_date: string;
+          base_per_unit: number;
+          source: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          foreign_currency: string;
+          base_currency: string;
+          rate_date: string;
+          base_per_unit: number;
+          source?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["exchange_rates"]["Row"]>;
+        Relationships: [];
+      };
       fixed_assets: {
         Row: {
           id: string;
@@ -2260,6 +2284,27 @@ export type Database = {
       };
     };
     Functions: {
+      list_exchange_rates: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string;
+          foreign_currency: string;
+          base_currency: string;
+          rate_date: string;
+          base_per_unit: number;
+          source: string | null;
+          is_latest: boolean;
+        }[];
+      };
+      convert_to_base: {
+        Args: {
+          p_organization_id: string;
+          p_amount: number;
+          p_currency: string;
+          p_date: string;
+        };
+        Returns: number;
+      };
       list_fixed_assets: {
         Args: { p_organization_id: string };
         Returns: {
