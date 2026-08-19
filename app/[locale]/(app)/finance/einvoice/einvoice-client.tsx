@@ -1299,7 +1299,7 @@ export function EInvoiceClient({
                   </Button>
 
                   <Button
-                    onClick={() => window.print()}
+                    onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
                     size="sm"
                     className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8.5 px-4 gap-1.5 shadow-sm"
                   >

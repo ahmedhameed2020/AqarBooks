@@ -250,7 +250,7 @@ export function RentRollClient({
             </Button>
 
             <Button
-              onClick={() => window.print()}
+              onClick={handleExportPdf}
               variant="outline"
               size="sm"
               className="h-9 px-3 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 gap-1.5"
