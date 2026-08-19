@@ -113,7 +113,7 @@ export default async function EInvoicePage({
       .order("name"),
     supabase
       .from("units")
-      .select("id, code, property_id, owner_name")
+      .select("id, code, resort_id")
       .eq("organization_id", organization.id)
       .order("code"),
     supabase
@@ -143,14 +143,13 @@ export default async function EInvoicePage({
 
   const currency = orgData?.default_currency || organization.default_currency || "EGP";
 
-  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number; description?: string; ownerName?: string }>();
+  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number; description?: string }>();
   for (const d of duesRaw ?? []) {
-    const u = d.units as { id?: string; unit_number?: string; owner_name?: string } | null;
+    const u = d.units as { id?: string; code?: string } | null;
     dueUnitMap.set(d.id, {
-      unitNumber: u?.unit_number,
+      unitNumber: u?.code,
       amount: Number(d.amount),
       description: d.description || undefined,
-      ownerName: u?.owner_name || undefined,
     });
   }
 
@@ -211,8 +210,7 @@ export default async function EInvoicePage({
   const units = (unitsRaw ?? []).map((u) => ({
     id: u.id,
     label: u.code,
-    propertyId: u.property_id,
-    ownerName: u.owner_name,
+    propertyId: u.resort_id,
   }));
 
   const dueTypes: FormOption[] = (dueTypesRaw ?? []).map((d) => ({
