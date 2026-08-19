@@ -260,3 +260,113 @@ $$;
 grant execute on function public.due_outstanding(uuid) to authenticated;
 grant execute on function public.list_dunning_candidates(uuid, date) to authenticated;
 grant execute on function public.raise_dunning_notices(uuid, smallint, date) to authenticated;
+
+
+-- ── تسجيل التسليم (طُبِّق كـ dunning_delivery_recording) ────────────────────
+--
+-- القنوات المسموحة كلها **يدوية**: طُبع، سُلِّم باليد، اتصال، أو أُرسل من خارج
+-- النظام. لا قناة آلية هنا لأن النظام لا يملك واحدة — وحين تُبنى، تُضاف قيمتها
+-- ويُسجَّل مرجعها الحقيقي في `delivery_reference`.
+--
+-- الفارق الجوهري: هذه الدالة تُسجّل **ما فعله إنسان**، لا ما ادّعاه الكود.
+
+alter table public.dunning_notices
+  drop constraint if exists dunning_notices_channel_check;
+
+alter table public.dunning_notices
+  add constraint dunning_notices_channel_check check (
+    delivery_channel is null
+    or delivery_channel in ('PRINTED', 'HAND_DELIVERED', 'PHONE', 'EMAIL_EXTERNAL', 'WHATSAPP_EXTERNAL', 'POST')
+  );
+
+create or replace function public.record_dunning_delivery(
+  p_notice_id uuid,
+  p_channel text,
+  p_reference text default null,
+  p_delivered_at timestamptz default now()
+)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_org uuid;
+  v_status text;
+begin
+  select organization_id, status into v_org, v_status
+  from public.dunning_notices where id = p_notice_id;
+
+  if v_org is null then
+    raise exception 'DUNNING_NOTICE_NOT_FOUND' using errcode = 'P0001';
+  end if;
+
+  if not public.has_permission(auth.uid(), v_org, 'finance.dunning.manage') then
+    raise exception 'FORBIDDEN_FINANCE_PERMISSION: غير مصرح لك بتسجيل تسليم الإشعارات'
+      using errcode = '42501';
+  end if;
+
+  if v_status = 'CANCELLED' then
+    raise exception 'DUNNING_NOTICE_CANCELLED: الإشعار ملغى، فلا يُسجَّل له تسليم'
+      using errcode = '22023';
+  end if;
+
+  -- التسليم واقعة لا تتكرر: تسجيله مرتين يوحي بتنبيهين ولم يقع إلا واحد.
+  if v_status = 'DELIVERED' then
+    raise exception 'DUNNING_NOTICE_ALREADY_DELIVERED: سُجِّل تسليم هذا الإشعار من قبل'
+      using errcode = '22023';
+  end if;
+
+  update public.dunning_notices
+  set status = 'DELIVERED',
+      delivered_at = p_delivered_at,
+      delivery_channel = p_channel,
+      delivery_reference = nullif(btrim(coalesce(p_reference, '')), '')
+  where id = p_notice_id;
+
+  insert into public.platform_audit_logs
+    (actor_id, organization_id, action, entity_type, entity_id, safe_change_summary)
+  values (
+    auth.uid(), v_org, 'dunning_notice.delivered', 'dunning_notice', p_notice_id,
+    jsonb_build_object('channel', p_channel, 'delivered_at', p_delivered_at)
+  );
+end;
+$$;
+
+create or replace function public.list_dunning_notices(p_organization_id uuid)
+returns table (
+  id uuid, due_id uuid, stage smallint, stage_name_ar text, stage_name_en text,
+  raised_on date, days_overdue integer, outstanding_amount numeric,
+  status text, delivered_at timestamptz, delivery_channel text,
+  member_name text, member_email text, member_phone text,
+  due_description text, due_date date, unit_code text
+)
+language plpgsql stable security definer set search_path = public
+as $$
+begin
+  if not (
+    public.has_permission(auth.uid(), p_organization_id, 'finance.dunning.read')
+    or public.has_permission(auth.uid(), p_organization_id, 'finance.dunning.manage')
+  ) then
+    raise exception 'FORBIDDEN_FINANCE_PERMISSION: غير مصرح لك بالاطلاع على الإشعارات'
+      using errcode = '42501';
+  end if;
+
+  return query
+  select n.id, n.due_id, n.stage, pol.name_ar, pol.name_en,
+         n.raised_on, n.days_overdue, n.outstanding_amount,
+         n.status, n.delivered_at, n.delivery_channel,
+         m.full_name, m.email, m.phone,
+         coalesce(d.description, ''), d.due_date, u.code
+  from public.dunning_notices n
+  left join public.dunning_policies pol
+    on pol.organization_id = n.organization_id and pol.stage = n.stage
+  left join public.members m on m.id = n.member_id
+  left join public.dues d on d.id = n.due_id
+  left join public.units u on u.id = d.unit_id
+  where n.organization_id = p_organization_id
+  -- غير المسلَّم أولًا: الشاشة للعمل المتبقي.
+  order by (n.status <> 'RAISED'), n.raised_on desc, n.outstanding_amount desc;
+end;
+$$;
+
+grant execute on function public.record_dunning_delivery(uuid, text, text, timestamptz) to authenticated;
+grant execute on function public.list_dunning_notices(uuid) to authenticated;

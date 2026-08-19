@@ -147,6 +147,7 @@ export default async function AppShellLayout({
                 { href: "/finance/dues", labelAr: "المطالبات والاستحقاقات", labelEn: "Dues & Invoices" },
                 { href: "/finance/payments", labelAr: "سندات القبض والتحصيل", labelEn: "Receipt Vouchers" },
                 { href: "/finance/service-charges", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
+                { href: "/finance/dunning", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
                 { href: "/finance/reports/cam-allocation", labelAr: "توزيع تكاليف الخدمات (CAM)", labelEn: "CAM Allocation" },
                 { href: "/finance/reports/aging", labelAr: "أعمار ديون العملاء (AR)", labelEn: "AR Aging" },
               ],

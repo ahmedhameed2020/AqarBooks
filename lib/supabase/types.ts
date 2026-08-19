@@ -995,6 +995,60 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["exchange_rates"]["Row"]>;
         Relationships: [];
       };
+      dunning_policies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          stage: number;
+          name_ar: string;
+          name_en: string;
+          days_overdue: number;
+          minimum_amount: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          stage: number;
+          name_ar: string;
+          name_en: string;
+          days_overdue: number;
+          minimum_amount?: number;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["dunning_policies"]["Row"]>;
+        Relationships: [];
+      };
+      dunning_notices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          due_id: string;
+          member_id: string | null;
+          stage: number;
+          raised_on: string;
+          days_overdue: number;
+          outstanding_amount: number;
+          status: "RAISED" | "DELIVERED" | "CANCELLED";
+          delivered_at: string | null;
+          delivery_channel: string | null;
+          delivery_reference: string | null;
+          raised_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          due_id: string;
+          member_id?: string | null;
+          stage: number;
+          raised_on: string;
+          days_overdue: number;
+          outstanding_amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["dunning_notices"]["Row"]>;
+        Relationships: [];
+      };
       fixed_assets: {
         Row: {
           id: string;
@@ -2293,6 +2347,43 @@ export type Database = {
       };
     };
     Functions: {
+      list_dunning_candidates: {
+        Args: { p_organization_id: string; p_as_of?: string };
+        Returns: {
+          due_id: string; description: string; due_date: string;
+          days_overdue: number; outstanding: number;
+          member_id: string | null; member_name: string | null;
+          member_email: string | null; member_phone: string | null;
+          stage: number; stage_name_ar: string; stage_name_en: string;
+          already_raised: boolean;
+        }[];
+      };
+      list_dunning_notices: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string; due_id: string; stage: number;
+          stage_name_ar: string | null; stage_name_en: string | null;
+          raised_on: string; days_overdue: number; outstanding_amount: number;
+          status: string; delivered_at: string | null; delivery_channel: string | null;
+          member_name: string | null; member_email: string | null; member_phone: string | null;
+          due_description: string; due_date: string; unit_code: string | null;
+        }[];
+      };
+      raise_dunning_notices: {
+        Args: { p_organization_id: string; p_stage: number; p_as_of?: string };
+        Returns: number;
+      };
+      record_dunning_delivery: {
+        Args: {
+          p_notice_id: string; p_channel: string;
+          p_reference?: string | null; p_delivered_at?: string;
+        };
+        Returns: undefined;
+      };
+      due_outstanding: {
+        Args: { p_due_id: string };
+        Returns: number;
+      };
       post_supplier_invoice_in_currency: {
         Args: {
           p_organization_id: string;
