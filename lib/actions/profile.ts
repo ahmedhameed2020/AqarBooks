@@ -8,6 +8,9 @@ import type { ActionResult } from "@/lib/actions/platform";
 const updateProfileSchema = z.object({
   fullName: z.string().trim().min(1).max(200),
   locale: z.enum(["ar", "en"]),
+  phone: z.string().optional(),
+  jobTitle: z.string().optional(),
+  avatarUrl: z.string().optional(),
 });
 
 export async function updateProfileAction(
@@ -17,6 +20,9 @@ export async function updateProfileAction(
   const parsed = updateProfileSchema.safeParse({
     fullName: formData.get("fullName"),
     locale: formData.get("locale"),
+    phone: formData.get("phone") || undefined,
+    jobTitle: formData.get("jobTitle") || undefined,
+    avatarUrl: formData.get("avatarUrl") || undefined,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -26,12 +32,25 @@ export async function updateProfileAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "not_authenticated" };
 
-  const { error } = await supabase
+  const { error: profileError } = await supabase
     .from("profiles")
-    .update({ full_name: parsed.data.fullName, locale: parsed.data.locale })
+    .update({
+      full_name: parsed.data.fullName,
+      locale: parsed.data.locale,
+      ...(parsed.data.avatarUrl ? { avatar_url: parsed.data.avatarUrl } : {}),
+    })
     .eq("id", user.id);
 
-  if (error) return { ok: false, error: error.message };
+  if (profileError) return { ok: false, error: profileError.message };
+
+  // Also store extended metadata on auth user
+  await supabase.auth.updateUser({
+    data: {
+      phone: parsed.data.phone || null,
+      job_title: parsed.data.jobTitle || null,
+      avatar_url: parsed.data.avatarUrl || null,
+    },
+  });
 
   revalidatePath("/[locale]/account", "page");
   return { ok: true };
@@ -66,3 +85,11 @@ export async function changePasswordAction(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+export async function signOutOtherSessionsAction(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut({ scope: "others" });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
