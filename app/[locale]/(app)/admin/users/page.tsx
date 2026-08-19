@@ -1,19 +1,27 @@
 import { setRequestLocale } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Locale } from "@/i18n/routing";
-import { InviteMemberForm } from "./invite-member-form";
+import { UsersClient, type UserItem, type RoleOption } from "./users-client";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "إدارة فريق العمل والمستخدمين — عقار بوكس"
+      : "Team Members & User Access — AqarBooks",
+    description: isAr
+      ? "إدارة مستخدمي المنشأة، توزيع الأدوار والصلاحيات، إرسال الدعوات والتحكم في تفعيل الحسابات."
+      : "Manage team members, roles, invitations, and access privileges.",
+  };
+}
 
 export default async function UsersPage({
   params,
@@ -22,23 +30,28 @@ export default async function UsersPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale as Locale);
-  const isAr = locale === "ar";
 
-  const user = await getCurrentUser();
-  const organization = user ? await getPrimaryOrganization(user.id) : null;
+  const currentUser = await getCurrentUser();
+  const organization = currentUser ? await getPrimaryOrganization(currentUser.id) : null;
   if (!organization) return null;
 
   const supabase = await createClient();
-  const [{ data: memberships }, { data: roles }, { data: assignments }] = await Promise.all([
+  const adminClient = createAdminClient();
+
+  const [
+    { data: memberships },
+    { data: rolesData },
+    { data: assignments },
+  ] = await Promise.all([
     supabase
       .from("organization_memberships")
-      .select("user_id, status, created_at")
+      .select("id, user_id, status, created_at")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: true }),
     supabase
       .from("roles")
       .select("id, key, name_ar, name_en")
-      .eq("organization_id", organization.id)
+      .or(`organization_id.eq.${organization.id},organization_id.is.null`)
       .order("name_en"),
     supabase
       .from("user_role_assignments")
@@ -46,63 +59,73 @@ export default async function UsersPage({
       .eq("organization_id", organization.id),
   ]);
 
-  const roleNameById = new Map(
-    (roles ?? []).map((r) => [r.id, { key: r.key, name_ar: r.name_ar, name_en: r.name_en }]),
-  );
+  const roles: RoleOption[] = (rolesData ?? []).map((r) => ({
+    id: r.id,
+    key: r.key,
+    name_ar: r.name_ar,
+    name_en: r.name_en,
+  }));
 
-  const roleByUser = new Map<string, string>();
+  const roleMap = new Map(roles.map((r) => [r.id, r]));
+
+  const userRoleMap = new Map<string, RoleOption>();
   for (const a of assignments ?? []) {
-    const role = roleNameById.get(a.role_id);
-    if (role) roleByUser.set(a.user_id, isAr ? role.name_ar : role.name_en);
+    const r = roleMap.get(a.role_id);
+    if (r) userRoleMap.set(a.user_id, r);
   }
 
-  const adminClient = createAdminClient();
-  const emailByUser = new Map<string, string>();
-  await Promise.all(
-    (memberships ?? []).map(async (m) => {
-      const { data } = await adminClient.auth.admin.getUserById(m.user_id);
-      if (data.user?.email) emailByUser.set(m.user_id, data.user.email);
-    }),
-  );
+  // Fetch emails and profile names
+  const userIds = (memberships ?? []).map((m) => m.user_id);
+  const emailMap = new Map<string, string>();
+  const profileMap = new Map<string, { fullName: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id, { fullName: p.full_name });
+    }
+
+    await Promise.all(
+      userIds.map(async (uid) => {
+        const { data } = await adminClient.auth.admin.getUserById(uid);
+        if (data.user?.email) {
+          emailMap.set(uid, data.user.email);
+        }
+      })
+    );
+  }
+
+  const userItems: UserItem[] = (memberships ?? []).map((m) => {
+    const role = userRoleMap.get(m.user_id);
+    const profile = profileMap.get(m.user_id);
+    const email = emailMap.get(m.user_id) || m.user_id;
+
+    return {
+      id: m.id,
+      userId: m.user_id,
+      email,
+      fullName: profile?.fullName ?? null,
+      status: (m.status as UserItem["status"]) || "active",
+      roleId: role?.id ?? null,
+      roleKey: role?.key ?? null,
+      roleNameAr: role?.name_ar ?? null,
+      roleNameEn: role?.name_en ?? null,
+      createdAt: m.created_at,
+      isCurrentUser: currentUser?.id === m.user_id,
+    };
+  });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{isAr ? "المستخدمون" : "Users"}</h1>
-      </div>
-      <InviteMemberForm organizationId={organization.id} roles={roles ?? []} locale={locale} />
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{isAr ? "البريد" : "Email"}</TableHead>
-              <TableHead>{isAr ? "الدور" : "Role"}</TableHead>
-              <TableHead>{isAr ? "الحالة" : "Status"}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {memberships?.length ? (
-              memberships.map((m) => (
-                <TableRow key={m.user_id}>
-                  <TableCell className="font-medium">
-                    {emailByUser.get(m.user_id) ?? m.user_id}
-                  </TableCell>
-                  <TableCell>{roleByUser.get(m.user_id) ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{m.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  {isAr ? "لا يوجد مستخدمون بعد" : "No users yet"}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <UsersClient
+      users={userItems}
+      roles={roles}
+      organizationId={organization.id}
+      organizationName={organization.name}
+      locale={locale}
+    />
   );
 }
