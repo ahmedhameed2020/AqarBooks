@@ -273,54 +273,63 @@ export default async function CashierPage({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Cash In Drawers */}
         <KpiCard
-          title={isAr ? "النقدية في الورديات المفتوحة" : "Active Cash In Drawers"}
-          value={`${totalCashInDrawers.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyLabel}`}
-          description={
+          label={isAr ? "النقدية في الورديات المفتوحة" : "Active Cash In Drawers"}
+          value={
+            <>
+              {totalCashInDrawers.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
+            </>
+          }
+          hint={
             isAr
               ? `إجمالي النقدية المتواجدة حالياً بالدرج عبر ${activeOpenSessions.length} وردية نشطة`
               : `Total cash float & receipts across ${activeOpenSessions.length} open shift(s)`
           }
-          icon={CreditCard}
-          accentColor="emerald"
+          icon={<CreditCard className="size-5" />}
+          tone="positive"
         />
 
         {/* 2. Open Shifts */}
         <KpiCard
-          title={isAr ? "الورديات المفتوحة حالياً" : "Active Open Shifts"}
+          label={isAr ? "الورديات المفتوحة حالياً" : "Active Open Shifts"}
           value={`${activeOpenSessions.length} / ${cashboxes.length}`}
-          description={
+          hint={
             isAr
               ? "جلسات الخزينة قيد العمل والتحصيل الآن"
               : "Cashier shifts currently open & active"
           }
-          icon={Unlock}
-          accentColor="blue"
+          icon={<Unlock className="size-5" />}
+          tone="info"
         />
 
         {/* 3. Total Cash Receipts */}
         <KpiCard
-          title={isAr ? "إجمالي المقبوضات النقدية" : "Total Cash Receipts"}
-          value={`${totalLifetimeReceipts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyLabel}`}
-          description={
+          label={isAr ? "إجمالي المقبوضات النقدية" : "Total Cash Receipts"}
+          value={
+            <>
+              {totalLifetimeReceipts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
+            </>
+          }
+          hint={
             isAr
               ? "إجمالي المبالغ النقدية المحصلة بالخزائن"
               : "Total cash collected from dues & payments"
           }
-          icon={Receipt}
-          accentColor="violet"
+          icon={<Receipt className="size-5" />}
+          tone="info"
         />
 
         {/* 4. Total Cashboxes */}
         <KpiCard
-          title={isAr ? "صناديق الخزينة المسجلة" : "Configured Cashboxes"}
+          label={isAr ? "صناديق الخزينة المسجلة" : "Configured Cashboxes"}
           value={cashboxes.length.toString()}
-          description={
+          hint={
             isAr
               ? "صناديق الخزينة ونقاط التحصيل المعرفة بالمنشأة"
               : "Total physical and virtual cash drawers"
           }
-          icon={Building2}
-          accentColor="slate"
+          icon={<Building2 className="size-5" />}
         />
       </div>
 
