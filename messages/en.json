@@ -25,6 +25,7 @@
     "welcome": "Welcome",
     "signedInAs": "Signed in as",
     "noOrganization": "Your account isn't linked to an organization yet. Contact the platform admin.",
+    "createOrganizationCta": "Create your organization now",
     "platformAdmin": "Platform Super Admin"
   },
   "home": {

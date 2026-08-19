@@ -1,8 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { redirect } from "@/i18n/navigation";
+import { redirect, Link } from "@/i18n/navigation";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import type { Locale } from "@/i18n/routing";
+import { buttonVariants } from "@/components/ui/button";
 import { TenantDashboard } from "./tenant-dashboard";
 import { PlatformDashboard } from "./platform-dashboard";
 
@@ -36,9 +37,12 @@ export default async function DashboardPage({
 
   const t = await getTranslations("dashboard");
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-24 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
       <h1 className="text-xl font-semibold">{t("welcome")}</h1>
       <p className="max-w-md text-sm text-muted-foreground">{t("noOrganization")}</p>
+      <Link href="/onboarding" locale={locale as Locale} className={buttonVariants({ variant: "default" })}>
+        {t("createOrganizationCta")}
+      </Link>
     </div>
   );
 }
