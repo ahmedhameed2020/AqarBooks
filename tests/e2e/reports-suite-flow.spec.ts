@@ -190,6 +190,13 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("تقرير جداول انتهاء العقود ومعدل دوران الإشغال");
     await expect(page.locator("text=إجمالي العقود النشطة").first()).toBeVisible();
 
+    // 18. Test User Account & Security Settings Page
+    await page.goto(`${baseURL}/ar/account`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("text=الملف الشخصي").first()).toBeVisible();
+    await expect(page.locator("text=الأمان وكلمات المرور").first()).toBeVisible();
+    await expect(page.locator("text=تفضيلات الإشعارات").first()).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });
