@@ -37,13 +37,15 @@ export async function inviteUserAction(
 
   const adminClient = createAdminClient();
 
-  // 1. Find role for this organization
+  // 1. Find role for this organization (prefer org-specific role over system template)
   const { data: roleData, error: roleErr } = await adminClient
     .from("roles")
     .select("id")
     .or(`organization_id.eq.${parsed.data.organizationId},organization_id.is.null`)
     .eq("key", parsed.data.roleKey)
-    .single();
+    .order("organization_id", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
 
   if (roleErr || !roleData) {
     return { ok: false, error: "role_not_found" };
