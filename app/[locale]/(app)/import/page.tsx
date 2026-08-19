@@ -6,6 +6,23 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import type { Locale } from "@/i18n/routing";
 import { ImportWizard } from "./import-wizard";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr
+      ? "المستورد الذكي ومعالجة البيانات بالذكاء الاصطناعي — عقار بوكس"
+      : "AI Smart Real Estate Data Importer — AqarBooks",
+    description: isAr
+      ? "استيراد ومعالجة ملفات الوحدات والعقارات والملاك تلقائياً بالمطابقة الدلالية والتنظيف الذكي."
+      : "Import and process units, real estate assets, and member records with AI semantic mapping and data cleaning.",
+  };
+}
+
 export default async function ImportPage({
   params,
   searchParams,
@@ -24,7 +41,7 @@ export default async function ImportPage({
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
         <p className="max-w-md text-sm text-muted-foreground">
           {isAr ? "حسابك غير مرتبط بأي منظمة بعد." : "Your account isn't linked to an organization yet."}
         </p>
@@ -61,16 +78,7 @@ export default async function ImportPage({
     : [{ data: [] }, { data: [] }, { data: [] }];
 
   return (
-    <main className="space-y-6 p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">{isAr ? "استيراد CSV" : "CSV Import"}</h1>
-          <p className="text-sm text-muted-foreground">
-            {isAr ? "استيراد وحدات أو أعضاء مع التحقق والمعاينة وسجل النشاط." : "Import units or members with validation, preview, and auditing."}
-          </p>
-        </div>
-      </div>
-
+    <main className="space-y-6">
       <ImportWizard
         locale={locale}
         organizationId={organization.id}

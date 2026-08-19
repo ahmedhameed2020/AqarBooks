@@ -6,90 +6,220 @@ export const IMPORT_KINDS: ImportKind[] = ["units", "members"];
 export const UNIT_TYPES = ["VILLA", "CHALET", "APARTMENT", "SHOP", "OFFICE", "SERVICE", "OTHER"] as const;
 export type UnitType = (typeof UNIT_TYPES)[number];
 
-const truthyStrings = new Set(["1", "true", "yes", "y", "on"]);
+const truthyStrings = new Set(["1", "true", "yes", "y", "on", "نعم", "صح", "صحيح", "مفعل", "شركة"]);
 
-function normalizeHeader(header: string) {
+/**
+ * Converts Eastern Arabic / Hindi digits (٠١٢٣٤٥٦٧٨٩) to standard ASCII digits (0123456789)
+ */
+export function convertArabicHindiDigits(input: string): string {
+  const arabicHindiMap: Record<string, string> = {
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+  };
+  return input.replace(/[٠-٩]/g, (d) => arabicHindiMap[d] ?? d);
+}
+
+/**
+ * Normalizes header string preserving Arabic letters, English letters, and numbers.
+ */
+export function normalizeHeader(header: string): string {
   return header
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
+    .replace(/[\s\-_/\\.:]+/g, "_")
+    .replace(/[^\p{L}\p{N}_]/gu, "");
 }
 
-const MEMBER_HEADER_ALIASES: Record<string, string> = {
-  fullname: "full_name",
-  full_name: "full_name",
-  name: "full_name",
-  email: "email",
-  phone: "phone",
-  iscompany: "is_company",
-  is_company: "is_company",
-  company: "is_company",
+/**
+ * Semantic Arabic & English Column Dictionaries for AI Auto-Detection
+ */
+export const MEMBER_HEADER_DICTIONARY: Record<string, string[]> = {
+  full_name: [
+    "full_name", "fullname", "name", "member_name", "client_name", "customer_name", "owner_name",
+    "الاسم", "اسم_العضو", "الاسم_الكامل", "اسم_المالك", "اسم_العميل", "المالك", "العميل", "اسم_المستأجر",
+  ],
+  email: [
+    "email", "e_mail", "mail", "email_address",
+    "البريد", "البريد_الإلكتروني", "البريد_الالكتروني", "الايميل", "الإيميل", "ايميل",
+  ],
+  phone: [
+    "phone", "mobile", "telephone", "tel", "whatsapp", "phone_number", "mobile_number",
+    "الهاتف", "رقم_الهاتف", "الموبايل", "رقم_الموبايل", "التليفون", "رقم_التليفون", "الواتساب", "جوال", "رقم_الجوال",
+  ],
+  is_company: [
+    "is_company", "iscompany", "company", "type", "entity_type", "is_corporate",
+    "شركة", "نوع_الجهة", "نوع_العضو", "هل_شركة", "كيان_قانوني", "اعتباري",
+  ],
 };
 
-const UNIT_HEADER_ALIASES: Record<string, string> = {
-  code: "code",
-  unit: "code",
-  unit_code: "code",
-  building: "building_code",
-  building_code: "building_code",
-  building_name: "building_code",
-  building_id: "building_id",
-  zone: "zone_code",
-  zone_code: "zone_code",
-  zone_name: "zone_code",
-  zone_id: "zone_id",
-  type: "unit_type",
-  unit_type: "unit_type",
-  custom_type_label: "custom_type_label",
-  custom_type: "custom_type_label",
-  floor: "floor_number",
-  floor_number: "floor_number",
-  area: "area",
-  size: "area",
-  owner_email: "owner_email",
-  email: "owner_email",
-  owner_phone: "owner_phone",
-  phone: "owner_phone",
-  owner_name: "owner_full_name",
-  owner_full_name: "owner_full_name",
-  owner: "owner_full_name",
-  share_percentage: "share_percentage",
-  share_pct: "share_percentage",
-  ownership_share: "share_percentage",
-  start_date: "start_date",
-  ownership_start_date: "start_date",
+export const UNIT_HEADER_DICTIONARY: Record<string, string[]> = {
+  code: [
+    "code", "unit", "unit_code", "unit_number", "unit_no", "unitno", "apartment", "apartment_no", "flat_no",
+    "كود_الوحدة", "رقم_الوحدة", "الوحدة", "رقم_الشقة", "الشقة", "كود_الشقة", "رقم_الفيلّا", "رقم_الفيلا", "رقم_المحل", "رقم_المكتب", "كود",
+  ],
+  building_code: [
+    "building", "building_code", "building_name", "building_id", "block", "tower",
+    "المبنى", "رقم_المبنى", "كود_المبنى", "اسم_المبنى", "العمارة", "رقم_العمارة", "اسم_العمارة", "البرج", "البلوك", "بلوك",
+  ],
+  zone_code: [
+    "zone", "zone_code", "zone_name", "zone_id", "phase", "sector", "area_zone",
+    "المنطقة", "كود_المنطقة", "اسم_المنطقة", "المرحلة", "القطاع", "المجاورة", "الزون",
+  ],
+  unit_type: [
+    "unit_type", "type", "property_type", "category",
+    "نوع_الوحدة", "النوع", "تصنيف_الوحدة", "نوع_العقار", "التصنيف",
+  ],
+  custom_type_label: [
+    "custom_type_label", "custom_type", "subtype",
+    "وصف_النوع", "نوع_مخصص", "المسمى_المخصص",
+  ],
+  floor_number: [
+    "floor", "floor_number", "floor_no", "level", "storey",
+    "الدور", "الطابق", "رقم_الدور", "رقم_الطابق", "المستوى",
+  ],
+  area: [
+    "area", "size", "area_sqm", "sqm", "surface", "unit_area",
+    "المساحة", "المساحة_بالمتر", "المساحة_م2", "مساحة_الوحدة", "المساحة_الإجمالية", "المتر_المربع",
+  ],
+  owner_full_name: [
+    "owner_full_name", "owner_name", "owner", "client", "member", "customer",
+    "اسم_المالك", "المالك", "اسم_العميل", "العميل", "اسم_المستأجر", "المستأجر", "مالك_الوحدة",
+  ],
+  owner_phone: [
+    "owner_phone", "owner_mobile", "phone", "mobile", "whatsapp",
+    "هاتف_المالك", "موبايل_المالك", "تليفون_المالك", "واتساب_المالك", "رقم_التواصل", "الهاتف", "الموبايل",
+  ],
+  owner_email: [
+    "owner_email", "email", "mail",
+    "ايميل_المالك", "بريد_المالك", "البريد_الإلكتروني_للمالك", "البريد", "الإيميل",
+  ],
+  share_percentage: [
+    "share_percentage", "share_pct", "share", "ownership_share", "percentage",
+    "نسبة_الملكية", "النسبة", "نسبة_الحصة", "نسبة_التملك", "الحصة",
+  ],
+  start_date: [
+    "start_date", "ownership_start_date", "contract_date", "purchase_date", "date",
+    "تاريخ_التملك", "تاريخ_البدء", "تاريخ_العقد", "تاريخ_الشراء", "التاريخ",
+  ],
 };
 
-const parseBooleanString = (value: string | null | undefined) => {
-  if (!value) return false;
-  return truthyStrings.has(value.trim().toLowerCase());
-};
+/**
+ * AI Semantic Column Matcher: Determines target field and matching confidence score (0-100%)
+ */
+export function matchHeaderWithAi(
+  header: string,
+  kind: ImportKind
+): { field: string | null; confidence: number; label: string } {
+  const norm = normalizeHeader(header);
+  const dict = kind === "members" ? MEMBER_HEADER_DICTIONARY : UNIT_HEADER_DICTIONARY;
 
-const parseNullableString = (value: string | null | undefined) => {
-  const normalized = value?.trim();
-  return normalized === "" || normalized == null ? null : normalized;
-};
+  // 1. Direct dictionary lookup
+  for (const [field, aliases] of Object.entries(dict)) {
+    for (const alias of aliases) {
+      if (norm === alias) {
+        return { field, confidence: 100, label: header };
+      }
+    }
+  }
 
-const parsePositiveNumber = (value: string | null | undefined) => {
-  const normalized = value?.trim();
-  if (!normalized) return null;
-  const parsed = Number(normalized);
-  return Number.isNaN(parsed) ? null : parsed;
-};
+  // 2. Fuzzy substring semantic matching
+  for (const [field, aliases] of Object.entries(dict)) {
+    for (const alias of aliases) {
+      if (norm.includes(alias) || alias.includes(norm)) {
+        return { field, confidence: 85, label: header };
+      }
+    }
+  }
 
-const parseIntNumber = (value: string | null | undefined) => {
-  const normalized = value?.trim();
-  if (!normalized) return null;
-  const parsed = Number(normalized);
-  return Number.isNaN(parsed) ? null : Math.trunc(parsed);
-};
+  return { field: null, confidence: 0, label: header };
+}
 
-const parseDateString = (value: string | null | undefined) => {
-  const normalized = value?.trim();
-  if (!normalized) return null;
-  return normalized;
-};
+/**
+ * Smart Unit Type AI Resolver
+ */
+export function resolveUnitTypeWithAi(rawType: string | null | undefined): {
+  unitType: UnitType;
+  customLabel: string | null;
+} {
+  if (!rawType || !rawType.trim()) {
+    return { unitType: "APARTMENT", customLabel: null };
+  }
+  const clean = rawType.trim().toLowerCase();
+
+  if (clean.includes("شقة") || clean.includes("شقه") || clean.includes("apart") || clean.includes("flat")) {
+    return { unitType: "APARTMENT", customLabel: null };
+  }
+  if (clean.includes("فيلا") || clean.includes("فيلّا") || clean.includes("villa") || clean.includes("townhouse") || clean.includes("تاون")) {
+    return { unitType: "VILLA", customLabel: null };
+  }
+  if (clean.includes("شاليه") || clean.includes("chalet") || clean.includes("resort") || clean.includes("كابينة")) {
+    return { unitType: "CHALET", customLabel: null };
+  }
+  if (clean.includes("محل") || clean.includes("تجاري") || clean.includes("shop") || clean.includes("store") || clean.includes("معرض")) {
+    return { unitType: "SHOP", customLabel: null };
+  }
+  if (clean.includes("مكتب") || clean.includes("إداري") || clean.includes("اداري") || clean.includes("office") || clean.includes("عيادة")) {
+    return { unitType: "OFFICE", customLabel: null };
+  }
+  if (clean.includes("خدمي") || clean.includes("خدمات") || clean.includes("مخزن") || clean.includes("جراج") || clean.includes("service") || clean.includes("garage")) {
+    return { unitType: "SERVICE", customLabel: null };
+  }
+
+  const upper = rawType.trim().toUpperCase();
+  if (UNIT_TYPES.includes(upper as UnitType)) {
+    return { unitType: upper as UnitType, customLabel: null };
+  }
+
+  return { unitType: "OTHER", customLabel: rawType.trim() };
+}
+
+/**
+ * Smart Phone Number AI Cleaner
+ */
+export function cleanPhoneNumber(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  let clean = convertArabicHindiDigits(phone.trim());
+  clean = clean.replace(/[\s\-_()./\\#*]+/g, "");
+  if (!clean) return null;
+  return clean;
+}
+
+/**
+ * Smart Area & Currency Number AI Cleaner
+ */
+export function cleanNumericValue(val: string | null | undefined): number | null {
+  if (!val) return null;
+  let clean = convertArabicHindiDigits(val.trim());
+  clean = clean.replace(/[^0-9.-]/g, "");
+  if (!clean) return null;
+  const num = Number(clean);
+  return Number.isNaN(num) ? null : num;
+}
+
+/**
+ * Smart Date AI Parser (DD/MM/YYYY, YYYY/MM/DD, DD-MM-YYYY -> YYYY-MM-DD)
+ */
+export function cleanDateValue(val: string | null | undefined): string | null {
+  if (!val) return null;
+  let clean = convertArabicHindiDigits(val.trim());
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+
+  // Check DD/MM/YYYY or DD-MM-YYYY
+  const dmyMatch = clean.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // Check YYYY/MM/DD
+  const ymdMatch = clean.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/);
+  if (ymdMatch) {
+    const [, y, m, d] = ymdMatch;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  return null;
+}
 
 const memberSchema = z
   .object({
@@ -152,22 +282,26 @@ export type ImportPreviewRow<T> = {
   ownerHint?: string;
 };
 
+export type AiColumnMapping = {
+  header: string;
+  field: string | null;
+  confidence: number;
+};
+
 export type ImportPreviewResult<T> = {
   headers: string[];
+  mappings: AiColumnMapping[];
   rows: ImportPreviewRow<T>[];
+  qualityScore: number;
   parseError?: string;
 };
 
-function getMappedField(header: string, kind: ImportKind) {
-  const normalized = normalizeHeader(header);
-  if (kind === "members") {
-    return MEMBER_HEADER_ALIASES[normalized] ?? null;
-  }
-  return UNIT_HEADER_ALIASES[normalized] ?? null;
-}
-
+/**
+ * Universal CSV / Tab-Delimited Parser
+ */
 export function parseCsvText(csvText: string) {
   const normalized = csvText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/^\uFEFF/, "");
+  const delimiter = normalized.includes("\t") && !normalized.includes(",") ? "\t" : ",";
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -191,7 +325,7 @@ export function parseCsvText(csvText: string) {
     } else {
       if (char === '"') {
         inQuotes = true;
-      } else if (char === ",") {
+      } else if (char === delimiter) {
         row.push(field);
         field = "";
       } else if (char === "\n") {
@@ -223,15 +357,12 @@ export function parseCsvText(csvText: string) {
   const headerRow = rows[0].map((value) => value.trim());
   const dataRows = rows.slice(1).filter((cells) => cells.some((cell) => cell.trim() !== ""));
 
-  const normalizedHeaders = headerRow.map((header) => normalizeHeader(header));
-  const duplicates = normalizedHeaders.filter((value, index) => value && normalizedHeaders.indexOf(value) !== index);
-  if (duplicates.length > 0) {
-    return { headers: [], rows: [], error: "duplicate_headers" };
-  }
-
   return { headers: headerRow, rows: dataRows, error: undefined };
 }
 
+/**
+ * AI-Enhanced Preview Import Processor
+ */
 export function previewImportRows(
   csvText: string,
   kind: ImportKind,
@@ -240,45 +371,79 @@ export function previewImportRows(
     zonesByCode?: Map<string, string>;
     membersByEmail?: Map<string, string>;
     membersByPhone?: Map<string, string>;
+    customMappings?: Record<string, string>;
   } = {},
 ): ImportPreviewResult<any> {
   const parsedCsv = parseCsvText(csvText);
   if (parsedCsv.error) {
-    return { headers: [], rows: [], parseError: parsedCsv.error };
+    return { headers: [], mappings: [], rows: [], qualityScore: 0, parseError: parsedCsv.error };
   }
 
   const headers = parsedCsv.headers;
-  const mappedHeaders = headers.map((header) => getMappedField(header, kind));
-  const unknownColumns = mappedHeaders.map((field, index) => ({ field, index })).filter((item) => item.field === null);
-  if (unknownColumns.length > 0) {
+
+  // Build AI Column Mappings
+  const mappings: AiColumnMapping[] = headers.map((header) => {
+    if (config.customMappings?.[header]) {
+      return {
+        header,
+        field: config.customMappings[header],
+        confidence: 100,
+      };
+    }
+    const match = matchHeaderWithAi(header, kind);
+    return {
+      header,
+      field: match.field,
+      confidence: match.confidence,
+    };
+  });
+
+  const hasCodeOrName = mappings.some((m) =>
+    kind === "units" ? m.field === "code" : m.field === "full_name"
+  );
+
+  if (!hasCodeOrName) {
     return {
       headers,
+      mappings,
       rows: [],
-      parseError: "unknown_header_columns",
+      qualityScore: 0,
+      parseError: kind === "units" ? "missing_code_column" : "missing_name_column",
     };
   }
 
+  let totalValid = 0;
+
   const rows = parsedCsv.rows.map((cells, index) => {
     const raw: Record<string, string> = {};
-    for (let cellIndex = 0; cellIndex < mappedHeaders.length; cellIndex += 1) {
-      const field = mappedHeaders[cellIndex];
-      if (!field) continue;
-      raw[field] = (cells[cellIndex] ?? "").trim();
+    for (let cellIndex = 0; cellIndex < mappings.length; cellIndex += 1) {
+      const mapping = mappings[cellIndex];
+      if (!mapping.field) continue;
+      raw[mapping.field] = (cells[cellIndex] ?? "").trim();
     }
 
     const errors: string[] = [];
     const warnings: string[] = [];
 
     if (kind === "members") {
+      const cleanedPhone = cleanPhoneNumber(raw.phone);
+      if (raw.phone && cleanedPhone !== raw.phone) {
+        warnings.push("phone_auto_cleaned");
+      }
+
       const parsed = memberSchema.safeParse({
         full_name: raw.full_name ?? "",
-        email: parseNullableString(raw.email),
-        phone: parseNullableString(raw.phone),
-        is_company: parseBooleanString(raw.is_company),
+        email: raw.email ? raw.email.toLowerCase() : null,
+        phone: cleanedPhone,
+        is_company: truthyStrings.has((raw.is_company || "").toLowerCase()),
       });
+
       if (!parsed.success) {
         errors.push(...parsed.error.issues.map((issue: { message: string }) => issue.message));
+      } else {
+        totalValid += 1;
       }
+
       return {
         rowIndex: index + 2,
         raw,
@@ -289,44 +454,55 @@ export function previewImportRows(
       };
     }
 
-    const buildingId = parseNullableString(raw.building_id);
-    const zoneId = parseNullableString(raw.zone_id);
-    const buildingCode = parseNullableString(raw.building_code);
-    const zoneCode = parseNullableString(raw.zone_code);
+    // Units Import AI Processing
+    const buildingCode = (raw.building_code || "").trim();
+    const zoneCode = (raw.zone_code || "").trim();
 
-    const resolvedBuildingId = buildingId || (buildingCode ? config.buildingsByCode?.get(buildingCode.toLowerCase()) ?? null : null);
-    const resolvedZoneId = zoneId || (zoneCode ? config.zonesByCode?.get(zoneCode.toLowerCase()) ?? null : null);
+    const resolvedBuildingId = buildingCode
+      ? config.buildingsByCode?.get(buildingCode.toLowerCase()) ?? null
+      : null;
+    const resolvedZoneId = zoneCode
+      ? config.zonesByCode?.get(zoneCode.toLowerCase()) ?? null
+      : null;
 
-    if (buildingCode && !buildingId && !resolvedBuildingId) {
-      errors.push("unknown_building");
+    if (buildingCode && !resolvedBuildingId) {
+      warnings.push(`unknown_building_${buildingCode}`);
     }
-    if (zoneCode && !zoneId && !resolvedZoneId) {
-      errors.push("unknown_zone");
+    if (zoneCode && !resolvedZoneId) {
+      warnings.push(`unknown_zone_${zoneCode}`);
     }
 
-    const ownerEmail = parseNullableString(raw.owner_email);
-    const ownerPhone = parseNullableString(raw.owner_phone);
-    const ownerFullName = parseNullableString(raw.owner_full_name);
+    // AI Clean Phone & Email
+    const cleanedOwnerPhone = cleanPhoneNumber(raw.owner_phone);
+    const cleanedOwnerEmail = raw.owner_email ? raw.owner_email.toLowerCase() : null;
+    const cleanedArea = cleanNumericValue(raw.area);
+    const cleanedFloor = cleanNumericValue(raw.floor_number);
+    const cleanedShare = cleanNumericValue(raw.share_percentage) ?? 100;
+    const cleanedDate = cleanDateValue(raw.start_date);
+
+    // AI Unit Type Resolution
+    const { unitType, customLabel } = resolveUnitTypeWithAi(raw.unit_type);
+
     let ownerId: string | null = null;
     let ownerHint: string | undefined;
 
-    if (ownerEmail) {
-      const match = config.membersByEmail?.get(ownerEmail.toLowerCase());
+    if (cleanedOwnerEmail) {
+      const match = config.membersByEmail?.get(cleanedOwnerEmail);
       if (match) {
         ownerId = match;
         ownerHint = "existing_owner";
       }
     }
-    if (!ownerId && ownerPhone) {
-      const match = config.membersByPhone?.get(ownerPhone.toLowerCase());
+    if (!ownerId && cleanedOwnerPhone) {
+      const match = config.membersByPhone?.get(cleanedOwnerPhone);
       if (match) {
         ownerId = match;
         ownerHint = "existing_owner";
       }
     }
 
-    if (!ownerId && (ownerEmail || ownerPhone)) {
-      if (!ownerFullName) {
+    if (!ownerId && (cleanedOwnerEmail || cleanedOwnerPhone)) {
+      if (!raw.owner_full_name) {
         errors.push("owner_full_name_required_for_new_owner");
       } else {
         ownerHint = "create_owner";
@@ -337,20 +513,22 @@ export function previewImportRows(
       code: raw.code ?? "",
       building_id: resolvedBuildingId,
       zone_id: resolvedZoneId,
-      unit_type: (raw.unit_type ?? "").trim().toUpperCase(),
-      custom_type_label: parseNullableString(raw.custom_type_label),
-      floor_number: parseIntNumber(raw.floor_number),
-      area: parsePositiveNumber(raw.area),
+      unit_type: unitType,
+      custom_type_label: customLabel || raw.custom_type_label || null,
+      floor_number: cleanedFloor !== null ? Math.trunc(cleanedFloor) : null,
+      area: cleanedArea,
       owner_id: ownerId,
-      owner_email: ownerEmail,
-      owner_phone: ownerPhone,
-      owner_full_name: ownerFullName,
-      share_percentage: parsePositiveNumber(raw.share_percentage) ?? 100,
-      start_date: parseDateString(raw.start_date),
+      owner_email: cleanedOwnerEmail,
+      owner_phone: cleanedOwnerPhone,
+      owner_full_name: raw.owner_full_name || null,
+      share_percentage: cleanedShare,
+      start_date: cleanedDate,
     });
 
     if (!parsed.success) {
       errors.push(...parsed.error.issues.map((issue: { message: string }) => issue.message));
+    } else {
+      totalValid += 1;
     }
 
     return {
@@ -375,7 +553,10 @@ export function previewImportRows(
     };
   });
 
-  return { headers, rows };
+  const qualityScore =
+    rows.length > 0 ? Math.round((totalValid / rows.length) * 100) : 0;
+
+  return { headers, mappings, rows, qualityScore };
 }
 
 export function buildUnitsImportRows(rows: ImportPreviewRow<UnitImportRow>[]) {
@@ -388,14 +569,4 @@ export function buildMembersImportRows(rows: ImportPreviewRow<MemberImportRow>[]
   return rows
     .filter((row) => row.errors.length === 0 && row.parsed)
     .map((row) => row.parsed!);
-}
-
-export function refineUnitType(raw: string) {
-  const normalized = raw.trim().toUpperCase();
-  if (UNIT_TYPES.includes(normalized as UnitType)) return normalized as UnitType;
-  return undefined;
-}
-
-export function isValidDateFormat(value: string | null | undefined) {
-  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }

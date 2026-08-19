@@ -197,6 +197,18 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("text=الأمان وكلمات المرور").first()).toBeVisible();
     await expect(page.locator("text=تفضيلات الإشعارات").first()).toBeVisible();
 
+    // 19. Test AI Smart Data Importer Page
+    await page.goto(`${baseURL}/ar/import`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("استيراد ومعالجة البيانات العقارية بالذكاء الاصطناعي");
+    await expect(page.locator("text=الوحدات والعقارات").first()).toBeVisible();
+
+    // 20. Test Payment Providers Hub Page
+    await page.goto(`${baseURL}/ar/finance/payment-providers`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("بوابات الدفع الإلكتروني والتحصيل الرقمي");
+    await expect(page.locator("text=Fawry Pay (فوري باي)").first()).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });

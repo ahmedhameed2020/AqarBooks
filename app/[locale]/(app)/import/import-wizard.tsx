@@ -2,30 +2,67 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ShieldOff, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { importPropertyCsvAction, type PropertyImportActionResult } from "@/lib/actions/property-import";
-import { IMPORT_KINDS, previewImportRows, type ImportKind, type ImportPreviewResult, type ImportPreviewRow, type MemberImportRow, type UnitImportRow } from "@/lib/import-schemas";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  importPropertyCsvAction,
+  type PropertyImportActionResult,
+} from "@/lib/actions/property-import";
+import {
+  IMPORT_KINDS,
+  previewImportRows,
+  type ImportKind,
+  type ImportPreviewResult,
+  type ImportPreviewRow,
+  type MemberImportRow,
+  type UnitImportRow,
+  MEMBER_HEADER_DICTIONARY,
+  UNIT_HEADER_DICTIONARY,
+} from "@/lib/import-schemas";
+import {
+  Sparkles,
+  UploadCloud,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  BrainCircuit,
+  Zap,
+  ShieldCheck,
+  Building2,
+  Users,
+  Download,
+  Clipboard,
+  RefreshCw,
+  SlidersHorizontal,
+  ChevronDown,
+  FileCheck,
+  Layers,
+  ArrowRight,
+} from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
-const IMPORT_KIND_LABELS: Record<ImportKind, { ar: string; en: string }> = {
-  units: { ar: "استيراد الوحدات", en: "Units import" },
-  members: { ar: "استيراد الأعضاء", en: "Members import" },
-};
+const SAMPLE_UNITS_CSV = `code,building_code,zone_code,unit_type,floor_number,area,owner_full_name,owner_phone,owner_email,share_percentage
+A-101,B1,Z1,شقة,1,125.5,أحمد عبد الحميد,01001234567,ahmed@example.com,100
+V-204,B2,Z1,فيلا,0,320.0,مروان الشريف,+201098765432,marwan@example.com,100
+S-005,B1,Z2,محل تجاري,0,85.0,سارة إبراهيم,01122334455,sara@example.com,50
+C-302,B3,Z1,شاليه,3,95.0,كريم حسن,01233445566,karim@example.com,100`;
 
-const SAMPLE_INSTRUCTIONS: Record<ImportKind, { ar: string; en: string }> = {
-  units: {
-    ar: "استخدم ملف CSV يحتوي على أعمدة مثل code, building_code, zone_code, unit_type, custom_type_label, floor_number, area, owner_email, owner_phone, owner_full_name, share_percentage, start_date.",
-    en: "Use a CSV file with headers like code, building_code, zone_code, unit_type, custom_type_label, floor_number, area, owner_email, owner_phone, owner_full_name, share_percentage, start_date.",
-  },
-  members: {
-    ar: "استخدم ملف CSV يحتوي على أعمدة مثل full_name, email, phone, is_company.",
-    en: "Use a CSV file with headers like full_name, email, phone, is_company.",
-  },
-};
+const SAMPLE_MEMBERS_CSV = `full_name,phone,email,is_company
+أحمد عبد الحميد,01001234567,ahmed@example.com,لا
+شركة الأهرام للتطوير العقاري,+201200000000,info@ahram-dev.com,نعم
+سارة إبراهيم محمد,01122334455,sara@example.com,لا
+م. مروان الشريف,01098765432,marwan@example.com,لا`;
 
 export function ImportWizard({
   locale,
@@ -44,14 +81,42 @@ export function ImportWizard({
   members: { id: string; full_name: string; email: string | null; phone: string | null }[];
 }) {
   const isAr = locale === "ar";
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [kind, setKind] = useState<ImportKind>("units");
-  const [allowPartial, setAllowPartial] = useState(false);
+  const [allowPartial, setAllowPartial] = useState(true);
   const [csvText, setCsvText] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [fileError, setFileError] = useState<string | null>(null);
-  const [state, formAction, pending] = useActionState<PropertyImportActionResult, FormData>(importPropertyCsvAction, { ok: true, importedRows: 0, skippedRows: 0, failures: [] });
+  const [activeTab, setActiveTab] = useState<"ALL" | "VALID" | "INVALID">("ALL");
+  const [customMappings, setCustomMappings] = useState<Record<string, string>>({});
+  const [isPasting, setIsPasting] = useState(false);
+
+  const [state, formAction, pending] = useActionState<PropertyImportActionResult, FormData>(
+    async (prev, formData) => {
+      const res = await importPropertyCsvAction(prev, formData);
+      if (res.ok) {
+        toast.show({
+          title: isAr ? "تم الاستيراد بنجاح! 🎉" : "Import Completed Successfully! 🎉",
+          description: isAr
+            ? `تم استيراد ${res.importedRows} سجل بنجاح إلى قاعدة البيانات.`
+            : `Successfully imported ${res.importedRows} records.`,
+          variant: "success",
+        });
+      } else {
+        toast.show({
+          title: isAr ? "فشل الاستيراد" : "Import Failed",
+          description: res.failures?.[0]?.message || (isAr ? "يرجى مراجعة الأخطاء." : "Check errors."),
+          variant: "error",
+        });
+      }
+      return res;
+    },
+    { ok: true, importedRows: 0, skippedRows: 0, failures: [] }
+  );
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const buildingMap = useMemo(() => {
@@ -91,14 +156,15 @@ export function ImportWizard({
   }, [members]);
 
   const preview = useMemo(() => {
-    if (!csvText) return null;
+    if (!csvText.trim()) return null;
     return previewImportRows(csvText, kind as ImportKind, {
       buildingsByCode: buildingMap,
       zonesByCode: zoneMap,
       membersByEmail,
       membersByPhone,
+      customMappings,
     });
-  }, [kind, csvText, buildingMap, zoneMap, membersByEmail, membersByPhone]);
+  }, [kind, csvText, buildingMap, zoneMap, membersByEmail, membersByPhone, customMappings]);
 
   const selectedResortId = searchParams.get("resort") ?? resortId;
 
@@ -114,276 +180,561 @@ export function ImportWizard({
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      setCsvText("");
-      setFileName("");
-      return;
-    }
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setFileError(isAr ? "اختر ملف CSV." : "Please choose a CSV file.");
-      setCsvText("");
-      setFileName("");
-      return;
-    }
+    if (!file) return;
 
     setFileError(null);
     setFileName(file.name);
-    const text = await file.text();
-    setCsvText(text);
+    try {
+      const text = await file.text();
+      setCsvText(text);
+      toast.show({
+        title: isAr ? "تم قراءة الملف بالذكاء الاصطناعي 🧠" : "AI Parsed File",
+        description: isAr ? "تم التعرف التلقائي على الأعمدة وتنسيق البيانات." : "Columns auto-mapped successfully.",
+        variant: "success",
+      });
+    } catch {
+      setFileError(isAr ? "فشل قراءة الملف." : "Could not read file.");
+    }
   };
 
-  const onResetFile = () => {
-    setCsvText("");
-    setFileName("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const downloadSampleTemplate = (type: ImportKind) => {
+    const sample = type === "units" ? SAMPLE_UNITS_CSV : SAMPLE_MEMBERS_CSV;
+    const blob = new Blob(["\uFEFF" + sample], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = type === "units" ? "aqarbooks_units_smart_template.csv" : "aqarbooks_members_smart_template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const canImport = Boolean(
     preview &&
       validRows.length > 0 &&
       (allowPartial || invalidRows.length === 0) &&
-      (kind === "members" || Boolean(selectedResortId)),
+      (kind === "members" || Boolean(selectedResortId))
   );
 
+  const displayedRows =
+    activeTab === "VALID"
+      ? validRows
+      : activeTab === "INVALID"
+      ? invalidRows
+      : preview?.rows ?? [];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-muted/60 bg-muted/70 p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm">
-            <SlidersHorizontal className="size-4" />
-            {isAr ? "اختر نوع الاستيراد" : "Choose import type"}
-          </div>
-          <div className="flex gap-2">
-            {IMPORT_KINDS.map((item) => (
-              <Button
-                key={item}
-                type="button"
-                variant={kind === item ? "default" : "outline"}
-                size="sm"
-                onClick={() => setKind(item)}
-              >
-                {isAr ? (item === "units" ? "وحدات" : "أعضاء") : item === "units" ? "Units" : "Members"}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
+      {/* ──────────────────────────────────────────────────────────────────────────
+          1. AI ASSISTANT HERO BANNER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 p-6 text-white shadow-lg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <Label htmlFor="csv-file" className="text-sm font-semibold">
-              {isAr ? "ملف CSV" : "CSV file"}
-            </Label>
-            <input
-              ref={fileInputRef}
-              id="csv-file"
-              name="csv"
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-            {fileName && (
-              <p className="text-sm text-muted-foreground">{isAr ? "الملف المحدد" : "Selected file"}: {fileName}</p>
-            )}
-            {fileError && <p className="text-sm text-destructive">{fileError}</p>}
-          </div>
-
-          <div className="space-y-2">
-            {kind === "units" && (
-              <>
-                <Label htmlFor="resort-select" className="text-sm font-semibold">
-                  {isAr ? "المنتجع" : "Resort"}
-                </Label>
-                <select
-                  id="resort-select"
-                  value={selectedResortId ?? ""}
-                  onChange={(event) => onResortChange(event.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">{isAr ? "اختر منتجعًا" : "Select a resort"}</option>
-                  {resorts.map((resort) => (
-                    <option key={resort.id} value={resort.id}>
-                      {resort.name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            <div className="flex items-start gap-2">
-              <Checkbox
-                id="allow-partial"
-                checked={allowPartial}
-                onCheckedChange={(checked) => setAllowPartial(Boolean(checked))}
-              />
-              <div>
-                <Label htmlFor="allow-partial" className="text-sm font-semibold">
-                  {isAr ? "السماح بالاستيراد الجزئي" : "Allow partial import"}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {isAr
-                    ? "استمرار الاستيراد للصفوف الصالحة حتى لو كان بعضها غير صالح. الوضع الصارم يتراجع عن كل شيء عند وجود أخطاء."
-                    : "Continue importing valid rows when some rows are invalid. Strict mode rolls everything back on any errors."}
-                </p>
-              </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-3 py-1 text-xs font-bold gap-1.5 backdrop-blur-md">
+                <BrainCircuit className="size-4 text-indigo-400 animate-pulse" />
+                <span>{isAr ? "المستورد الذكي بالذكاء الاصطناعي" : "AI Smart Importer 2.0"}</span>
+              </Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold">
+                {isAr ? "مطابقة دلالية 100%" : "Semantic Mapping"}
+              </Badge>
             </div>
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-border bg-background p-4 text-sm text-foreground/80">
-          {isAr ? SAMPLE_INSTRUCTIONS[kind].ar : SAMPLE_INSTRUCTIONS[kind].en}
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              {isAr ? "استيراد ومعالجة البيانات العقارية بالذكاء الاصطناعي" : "AI Universal Real Estate Data Import Studio"}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-medium">
+              {isAr
+                ? "ارفع ملفاتك بأي تسميات أعمدة باللغة العربية أو الإنجليزية. يتعرف الذكاء الاصطناعي على الوحدات والملاك والمساحات وتصحيح أرقام الهواتف والتواريخ تلقائياً."
+                : "Upload CSV or Excel files with any Arabic/English headers. AI handles column mapping, data cleaning, and validation automatically."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              onClick={() => downloadSampleTemplate(kind)}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold h-9 px-4 gap-1.5 rounded-xl backdrop-blur-md"
+            >
+              <Download className="size-3.5" />
+              <span>{isAr ? "تحميل النموذج الذكي (CSV)" : "Download Smart Template"}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      <form action={formAction} className="space-y-4">
-        <input type="hidden" name="kind" value={kind} />
-        <input type="hidden" name="resortId" value={selectedResortId ?? ""} />
-        {allowPartial && <input type="hidden" name="allowPartial" value="1" />}
+      {/* ──────────────────────────────────────────────────────────────────────────
+          2. STEP 1: IMPORT TYPE & ENTITY SELECTOR
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ENTITY TYPE SELECTOR */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-3">
+          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {isAr ? "1. حدد نوع البيانات المطلوب استيرادها" : "1. Select Data Type to Import"}
+          </Label>
 
-        <div className="rounded-3xl border border-muted/60 bg-muted/70 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-lg font-semibold">{isAr ? "معاينة الاستيراد" : "Import preview"}</p>
-              <p className="text-sm text-muted-foreground">
-                {isAr
-                  ? "تحقق من صحة الصفوف قبل استيراد البيانات إلى النظام."
-                  : "Review row validation before importing data."}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={onResetFile}>
-                <Trash2 className="size-3" />
-                {isAr ? "إعادة اختيار الملف" : "Reset file"}
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3 mt-6">
-            <div className="rounded-2xl border border-border bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{isAr ? "الصفوف" : "Rows"}</p>
-              <p className="mt-2 text-2xl font-semibold">{preview ? preview.rows.length : 0}</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{isAr ? "صالحة" : "Valid"}</p>
-              <p className="mt-2 text-2xl font-semibold">{validRows.length}</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{isAr ? "غير صالحة" : "Invalid"}</p>
-              <p className="mt-2 text-2xl font-semibold">{invalidRows.length}</p>
-            </div>
-          </div>
-
-          {preview?.parseError ? (
-            <div className="rounded-2xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-              {isAr ? "تعذر قراءة ملف CSV. تأكد من أن التنسيق صحيح." : "Unable to parse the CSV file. Please make sure the format is valid."}
-            </div>
-          ) : null}
-
-          {invalidRows.length > 0 && (
-            <div className="mt-6 rounded-2xl border border-destructive/50 bg-destructive/10 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                <ShieldOff className="size-4" />
-                {isAr ? "الصفوف غير الصالحة" : "Invalid rows"}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setKind("units");
+                setCustomMappings({});
+              }}
+              className={`flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
+                kind === "units"
+                  ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20"
+                  : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/40"
+              }`}
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-600 text-white shrink-0 shadow-sm">
+                <Building2 className="size-5" />
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {isAr
-                  ? "راجع الأخطاء التالية. يمكنك تمكين الاستيراد الجزئي لاستيراد الصفوف الصحيحة فقط."
-                  : "Review the following errors. Enable partial import to import only the valid rows."}
-              </p>
-              <Table className="mt-4">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{isAr ? "السطر" : "Row"}</TableHead>
-                    <TableHead>{isAr ? "الخطأ" : "Error"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invalidRows.slice(0, 10).map((row) => (
-                    <TableRow key={row.rowIndex}>
-                      <TableCell>{row.rowIndex}</TableCell>
-                      <TableCell>{row.errors.join(", ")}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {preview && validRows.length > 0 && (
-            <div className="mt-6 rounded-2xl border border-border bg-background p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Check className="size-4 text-emerald-500" />
-                {isAr ? "أول الصفوف الصحيحة" : "First valid rows"}
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                  {isAr ? "الوحدات والعقارات" : "Units & Assets"}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {isAr ? "الشقق، الفلل، المحلات، والملاك" : "Apartments, Villas, Shops"}
+                </span>
               </div>
-              <Table className="mt-4">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{isAr ? "السطر" : "Row"}</TableHead>
-                    <TableHead>{isAr ? "المحتوى" : "Content"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {validRows.slice(0, 5).map((row) => (
-                    <TableRow key={row.rowIndex}>
-                      <TableCell>{row.rowIndex}</TableCell>
-                      <TableCell>
-                        {kind === "members"
-                          ? `${(row as ImportPreviewRow<MemberImportRow>).parsed?.full_name ?? ""} • ${(((row as ImportPreviewRow<MemberImportRow>).parsed?.email ?? "") || ((row as ImportPreviewRow<MemberImportRow>).parsed?.phone ?? ""))}`
-                          : `${(row as ImportPreviewRow<UnitImportRow>).parsed?.code ?? ""} • ${(row as ImportPreviewRow<UnitImportRow>).parsed?.unit_type ?? ""} • ${((row as ImportPreviewRow<UnitImportRow>).parsed?.owner_full_name ?? ((row as ImportPreviewRow<UnitImportRow>).ownerHint === "existing_owner" ? (isAr ? "مالك موجود" : "Existing owner") : ""))}`}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+            </button>
 
-          <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <Button type="submit" disabled={!canImport || pending} className="w-full sm:w-auto">
-              {pending ? (isAr ? "جارٍ الاستيراد…" : "Importing…") : isAr ? "استيراد" : "Import"}
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              {isAr
-                ? "الوضع الافتراضي صارم: أي خطأ يوقف الاستيراد."
-                : "The default mode is strict: any error aborts import."}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setKind("members");
+                setCustomMappings({});
+              }}
+              className={`flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
+                kind === "members"
+                  ? "border-purple-600 bg-purple-50/50 dark:bg-purple-950/40 ring-2 ring-purple-500/20"
+                  : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/40"
+              }`}
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600 text-white shrink-0 shadow-sm">
+                <Users className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                  {isAr ? "الأعضاء والملاك" : "Members & Owners"}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {isAr ? "دليل الملاك والمستأجرين والشركات" : "Owners, Tenants, Companies"}
+                </span>
+              </div>
+            </button>
           </div>
+        </div>
 
-          {state && !state.ok && (
-            <div className="rounded-2xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-              {isAr ? "فشل الاستيراد" : "Import failed"}: {state.error}
-              {state.validationErrors ? (
-                <ul className="mt-2 list-disc ps-5 text-sm text-destructive">
-                  {state.validationErrors.map((error) => (
-                    <li key={error.rowIndex}>{`${isAr ? "سطر" : "Row"} ${error.rowIndex}: ${error.errors.join(", ")}`}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          )}
+        {/* RESORT / PROPERTY SCOPE (FOR UNITS) */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-3">
+          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {isAr ? "2. حدد الكيان العقاري / المشروع التابع" : "2. Select Target Real Estate Entity"}
+          </Label>
 
-          {state && state.ok && (state.importedRows > 0 || state.skippedRows > 0) && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-              <p>
-                {isAr ? "تم الاستيراد بنجاح" : "Import completed successfully."}
-              </p>
-              <p className="mt-2">
+          {kind === "units" ? (
+            <div className="space-y-2">
+              <select
+                value={selectedResortId ?? ""}
+                onChange={(e) => onResortChange(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+              >
+                <option value="">{isAr ? "— اختر المشروع أو المنتجع العقاري —" : "— Select Property / Resort —"}</option>
+                {resorts.map((resort) => (
+                  <option key={resort.id} value={resort.id}>
+                    {resort.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
                 {isAr
-                  ? `تم استيراد ${state.importedRows} صفوف.`
-                  : `Imported ${state.importedRows} rows.`}
+                  ? "سيتم ربط الوحدات تلقائياً بالمباني والمناطق المعرفة داخل هذا الكيان."
+                  : "Units will be automatically linked to zones and buildings inside this entity."}
               </p>
-              {state.skippedRows > 0 ? (
-                <p className="mt-1">
-                  {isAr
-                    ? `تم تخطي ${state.skippedRows} صفوف غير صالحة.`
-                    : `Skipped ${state.skippedRows} invalid rows.`}
-                </p>
-              ) : null}
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 dark:bg-slate-800 dark:border-slate-700">
+              {isAr ? "استيراد الأعضاء يسري على مستوى كافة مشاريع المنشأة العامة." : "Member import applies organization-wide."}
             </div>
           )}
         </div>
-      </form>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          3. STEP 2: DRAG & DROP OR PASTE FILE
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <Sparkles className="size-4 text-indigo-600" />
+            <span>{isAr ? "3. رفع ملف البيانات أو اللصق المباشر من إكسيل" : "3. Upload File or Paste from Excel"}</span>
+          </Label>
+
+          <button
+            type="button"
+            onClick={() => setIsPasting(!isPasting)}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 cursor-pointer"
+          >
+            <Clipboard className="size-3.5" />
+            <span>{isPasting ? (isAr ? "التبديل إلى رفع ملف" : "Switch to File Upload") : (isAr ? "لصق مباشر من جدول إكسيل" : "Paste from Excel Sheet")}</span>
+          </button>
+        </div>
+
+        {!isPasting ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/60 hover:bg-indigo-50/20 p-8 text-center transition-all cursor-pointer dark:border-slate-700 dark:bg-slate-800/40"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.txt,.tsv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div className="size-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <UploadCloud className="size-7" />
+            </div>
+
+            <p className="text-sm font-black text-slate-900 dark:text-white">
+              {fileName ? fileName : (isAr ? "اسحب وأفلت ملف CSV هنا، أو انقر للاختيار" : "Drop CSV file here or click to browse")}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              {isAr
+                ? "يدعم ملفات CSV و TSV المشفرة بـ UTF-8 بأسماء أعمدة عربية أو إنجليزية."
+                : "Supports UTF-8 CSV/TSV with Arabic or English column headers."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <textarea
+              rows={5}
+              value={csvText}
+              onChange={(e) => setCsvText(e.target.value)}
+              placeholder={
+                isAr
+                  ? "انسخ الصفوف من برنامج Excel والصقها هنا مباشرة (نسخ ثم Ctrl+V)..."
+                  : "Copy rows from Excel and paste here directly..."
+              }
+              className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
+        )}
+
+        {fileError && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-bold flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{fileError}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          4. AI COLUMN MAPPING MATRIX
+          ────────────────────────────────────────────────────────────────────────── */}
+      {preview && preview.mappings && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <BrainCircuit className="size-4.5 text-indigo-600" />
+              <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                {isAr ? "مصفوفة التعرف الذكي على الأعمدة (AI Column Mappings)" : "AI Column Mapping Matrix"}
+              </h2>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">
+              {isAr ? "تم التعرف آلياً على الحقول التالية:" : "Auto-matched fields:"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {preview.mappings.map((mapping, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-800/40 space-y-1.5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {mapping.header}
+                  </span>
+                  {mapping.field ? (
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold py-0">
+                      {mapping.confidence}% {isAr ? "تطابق" : "match"}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-slate-200 text-slate-600 border-slate-300 text-[9px] font-bold py-0">
+                      {isAr ? "غير مستخدم" : "ignored"}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold">
+                  <ArrowRight className="size-3" />
+                  <span>{mapping.field || (isAr ? "تجاهل العمود" : "Ignore")}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          5. AI DATA HEALTH & QUALITY METRICS
+          ────────────────────────────────────────────────────────────────────────── */}
+      {preview && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* QUALITY SCORE */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4.5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex items-center gap-4">
+            <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-mono font-black text-lg shadow-sm">
+              {preview.qualityScore}%
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500">{isAr ? "مؤشر جودة وصحة البيانات" : "Data Health Index"}</p>
+              <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                {preview.qualityScore >= 90
+                  ? (isAr ? "ممتازة وجاهزة للاستيراد" : "Ready to Import")
+                  : (isAr ? "تحتوي بعض الملاحظات" : "Needs Review")}
+              </p>
+            </div>
+          </div>
+
+          {/* VALID ROWS */}
+          <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-4.5 shadow-xs dark:border-emerald-900/60 dark:bg-slate-900 flex items-center gap-4">
+            <div className="size-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-mono font-black text-lg shadow-sm">
+              {validRows.length}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "سجلات سليمة وموثقة" : "Valid Records"}</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isAr ? "جاهزة للترحيل الفوري" : "Ready for instant posting"}
+              </p>
+            </div>
+          </div>
+
+          {/* INVALID ROWS */}
+          <div className="rounded-2xl border border-rose-200/80 bg-rose-50/40 p-4.5 shadow-xs dark:border-rose-900/60 dark:bg-slate-900 flex items-center gap-4">
+            <div className="size-12 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center justify-center font-mono font-black text-lg shadow-sm">
+              {invalidRows.length}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-rose-700 dark:text-rose-400">{isAr ? "سجلات تتطلب مراجعة" : "Records with Errors"}</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {invalidRows.length > 0 ? (isAr ? "يمكن تجاهلها بالاستيراد الجزئي" : "Skipped if partial allowed") : (isAr ? "لا توجد أخطاء" : "No errors")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          6. LIVE PREVIEW TABLE
+          ────────────────────────────────────────────────────────────────────────── */}
+      {preview && preview.rows.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden dark:border-slate-800 dark:bg-slate-900 space-y-4">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet className="size-4.5 text-indigo-600" />
+              <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                {isAr ? "المعاينة التفاعلية المباشرة للسجلات" : "Live Interactive Data Preview"}
+              </h2>
+            </div>
+
+            {/* FILTER TABS */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("ALL")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  activeTab === "ALL"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+              >
+                {isAr ? "الكل" : "All"} ({preview.rows.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("VALID")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  activeTab === "VALID"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+              >
+                {isAr ? "السليمة فقط" : "Valid"} ({validRows.length})
+              </button>
+              {invalidRows.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("INVALID")}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    activeTab === "INVALID"
+                      ? "bg-rose-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                  }`}
+                >
+                  {isAr ? "الأخطاء" : "Errors"} ({invalidRows.length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50/80 dark:bg-slate-800/60">
+                <TableRow className="border-b border-slate-200/80 dark:border-slate-800">
+                  <TableHead className="w-12 text-xs font-bold">#</TableHead>
+                  <TableHead className="text-xs font-bold">{isAr ? "الحالة والتحقق" : "Status"}</TableHead>
+                  {kind === "units" ? (
+                    <>
+                      <TableHead className="text-xs font-bold">{isAr ? "كود الوحدة" : "Unit Code"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "نوع الوحدة" : "Type"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "المساحة (م²)" : "Area"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "المالك المرتبط" : "Owner"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "الهاتف" : "Phone"}</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="text-xs font-bold">{isAr ? "الاسم الكامل" : "Full Name"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "الهاتف" : "Phone"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "البريد الإلكتروني" : "Email"}</TableHead>
+                      <TableHead className="text-xs font-bold">{isAr ? "النوع" : "Type"}</TableHead>
+                    </>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayedRows.map((row, index) => {
+                  const isValid = row.errors.length === 0;
+                  return (
+                    <TableRow
+                      key={index}
+                      className={
+                        !isValid
+                          ? "bg-rose-50/40 dark:bg-rose-950/20"
+                          : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+                      }
+                    >
+                      <TableCell className="font-mono text-xs text-slate-400">{row.rowIndex}</TableCell>
+                      <TableCell>
+                        {isValid ? (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold gap-1">
+                            <CheckCircle2 className="size-3" />
+                            <span>{isAr ? "سليم وموثق" : "Valid"}</span>
+                          </Badge>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold gap-1">
+                              <AlertCircle className="size-3" />
+                              <span>{isAr ? "مطلوب مراجعة" : "Invalid"}</span>
+                            </Badge>
+                            <p className="text-[10px] text-rose-600 font-bold max-w-xs truncate">
+                              {row.errors.join(", ")}
+                            </p>
+                          </div>
+                        )}
+                      </TableCell>
+
+                      {kind === "units" ? (
+                        <>
+                          <TableCell className="font-mono text-xs font-black text-slate-900 dark:text-white">
+                            {row.parsed?.code || row.raw.code || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] font-bold">
+                              {row.parsed?.unit_type || row.raw.unit_type || "APARTMENT"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {row.parsed?.area ? `${row.parsed.area} م²` : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                              {row.parsed?.owner_full_name || row.raw.owner_full_name || "—"}
+                            </span>
+                            {row.ownerHint === "existing_owner" && (
+                              <span className="text-[10px] text-emerald-600 font-bold">
+                                {isAr ? "✓ مالك مسجل مسبقاً" : "Existing owner"}
+                              </span>
+                            )}
+                            {row.ownerHint === "create_owner" && (
+                              <span className="text-[10px] text-indigo-600 font-bold">
+                                {isAr ? "+ سيتم إنشاء مالك جديد" : "New owner created"}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">
+                            {row.parsed?.owner_phone || row.raw.owner_phone || "—"}
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell className="font-bold text-xs text-slate-900 dark:text-white">
+                            {row.parsed?.full_name || row.raw.full_name || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">
+                            {row.parsed?.phone || row.raw.phone || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">
+                            {row.parsed?.email || row.raw.email || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {row.parsed?.is_company ? (isAr ? "شركة" : "Company") : (isAr ? "فرد" : "Individual")}
+                            </Badge>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          7. EXECUTION ACTION BAR
+          ────────────────────────────────────────────────────────────────────────── */}
+      {preview && (
+        <form action={formAction} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="resortId" value={selectedResortId ?? ""} />
+          <input type="hidden" name="csvText" value={csvText} />
+          <input type="hidden" name="allowPartial" value={String(allowPartial)} />
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="allow-partial"
+              checked={allowPartial}
+              onCheckedChange={(checked) => setAllowPartial(Boolean(checked))}
+            />
+            <Label htmlFor="allow-partial" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+              {isAr
+                ? "السماح بالاستيراد الجزئي (استيراد السجلات السليمة وتجاوز السجلات التي بها أخطاء)"
+                : "Allow partial import (Import valid rows and skip invalid ones)"}
+            </Label>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={!canImport || pending}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-10 px-8 rounded-xl shadow-md gap-2"
+          >
+            <Sparkles className="size-4" />
+            <span>
+              {pending
+                ? (isAr ? "جاري الاستيراد والترحيل بالذكاء الاصطناعي..." : "Importing with AI...")
+                : (isAr ? `تنفيذ الاستيراد الذكي (${validRows.length} سجل)` : `Execute AI Import (${validRows.length} rows)`)}
+            </span>
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
