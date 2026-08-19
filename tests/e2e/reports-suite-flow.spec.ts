@@ -15,34 +15,42 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
   }) => {
     test.setTimeout(90_000);
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-    const uniqueSuffix = randomUUID().slice(0, 8);
-    const ownerEmail = `fin-reporter-${uniqueSuffix}@resortos.local`;
-    const orgSlug = `fin-hub-${uniqueSuffix}`;
-
-    // 1. Create User
-    const { data: authUser, error: authErr } =
-      await admin.auth.admin.createUser({
-        email: ownerEmail,
-        password: STAFF_PASSWORD,
-        email_confirm: true,
-      });
-    expect(authErr).toBeNull();
-    const userId = authUser.user!.id;
-
-    // 2. Create Organization
-    const { data: org } = await admin
+    // 1. Create Organization
+    const orgSlug = `fin-hub-${Date.now()}`;
+    const { data: org, error: orgErr } = await admin
       .from("organizations")
       .insert({
-        name: `شركة عقار للتقارير ${uniqueSuffix}`,
+        name: `شركة عقار للتقارير ${Date.now()}`,
         slug: orgSlug,
         default_currency: "EGP",
         status: "ACTIVE",
       })
       .select("id")
       .single();
+    expect(orgErr).toBeNull();
     const orgId = org!.id;
 
-    // 3. Assign TENANT_OWNER role
+    // 2. Clone tenant roles
+    await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
+
+    // 3. Create Tenant Owner user
+    const ownerEmail = `fin-reporter-${Date.now()}@aqarbooks-test.local`;
+    const { data: authUser, error: authErr } =
+      await admin.auth.admin.createUser({
+        email: ownerEmail,
+        password: STAFF_PASSWORD,
+        email_confirm: true,
+        user_metadata: { full_name: "مدير التقارير المالية" },
+      });
+    expect(authErr).toBeNull();
+    const userId = authUser.user!.id;
+
+    await admin.from("profiles").upsert({
+      id: userId,
+      full_name: "مدير التقارير المالية",
+      locale: "ar",
+    });
+
     const { data: ownerRole } = await admin
       .from("roles")
       .select("id")
@@ -59,6 +67,7 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await admin.from("organization_memberships").insert({
       user_id: userId,
       organization_id: orgId,
+      status: "active",
       role: "OWNER",
     });
 
