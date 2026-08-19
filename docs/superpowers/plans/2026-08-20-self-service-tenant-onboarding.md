@@ -267,6 +267,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { CURRENCY_CODES } from "@/lib/currency";
 
 const ENTITY_TYPES = [
   "DEVELOPER",
@@ -279,13 +280,18 @@ const ENTITY_TYPES = [
   "OTHER",
 ] as const;
 
+// Both enums are server-side allowlists, not just UI conveniences: the RPC
+// itself only enforces entity_type (a CHECK constraint on organizations),
+// not currency (default_currency has no CHECK constraint), so this is the
+// only place a bogus/unsupported currency code gets rejected before it
+// reaches the database.
 const onboardingSchema = z.object({
   orgName: z.string().min(2).max(150),
   entityType: z.enum(ENTITY_TYPES),
   customLabel: z.string().optional(),
   resortName: z.string().min(2),
   resortCode: z.string().optional(),
-  currency: z.string().length(3),
+  currency: z.enum(CURRENCY_CODES),
 });
 
 export type OnboardingState = {
@@ -1208,21 +1214,19 @@ test("a freshly confirmed user completes onboarding and lands on a working dashb
 });
 
 test("visiting /onboarding a second time after finishing it redirects to the dashboard", async ({ page }) => {
-  const { data: rpcData, error } = await admin.rpc("create_organization_onboarding", {
+  // create_organization_onboarding reads auth.uid() -- it must be called as
+  // the real signed-in user, not the service-role admin client (which has no
+  // auth.uid() and would just fail with UNAUTHORIZED). One call, no throwaway
+  // first attempt.
+  const client = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+  const { error: signInErr } = await client.auth.signInWithPassword({ email, password });
+  if (signInErr) throw signInErr;
+
+  const { data: rpcData, error } = await client.rpc("create_organization_onboarding", {
     p_org_name: "شركة اختبار إعادة الزيارة",
     p_entity_type: "OTHER",
     p_entity_type_custom_label: "اختبار",
     p_resort_name: "مشروع اختبار",
-  }).then(async (res) => {
-    // service-role calls run with no auth.uid(); sign in as the real user first for this RPC to attribute correctly.
-    const client = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
-    await client.auth.signInWithPassword({ email, password });
-    return client.rpc("create_organization_onboarding", {
-      p_org_name: "شركة اختبار إعادة الزيارة",
-      p_entity_type: "OTHER",
-      p_entity_type_custom_label: "اختبار",
-      p_resort_name: "مشروع اختبار",
-    });
   });
   if (error) throw error;
   organizationId = rpcData?.organization_id;
@@ -1272,13 +1276,37 @@ With `npm run dev` running:
 
 Using the Admin API, create a user with `email_confirm: true` and no organization membership, sign in as them, go to `/ar/dashboard`. Confirm the "أنشئ مؤسستك الآن" button is visible and clicking it lands on `/ar/onboarding`. Clean up the test user afterward the same way the other scripts in this plan do (`admin.auth.admin.deleteUser`).
 
-- [ ] **Step 3: Final full-suite check**
+---
 
-Run: `npx vitest run tests/onboarding.integration.test.ts --reporter=verbose`
-Expected: all 5 tests PASS.
+### Task 13: Full-suite verification and tree review
 
-Run: `npx playwright test tests/e2e/onboarding-wizard.spec.ts --reporter=list`
-Expected: both tests PASS.
+**Files:** none — verification only. This is the plan's final gate: nothing in this feature is "done" until every step below passes and the working tree is clean of anything unintended.
+
+- [ ] **Step 1: Run the project's own full test command**
+
+Run: `npm run test:all`
+Expected: every suite it chains passes, including `tests/onboarding.integration.test.ts` and `tests/e2e/onboarding-wizard.spec.ts` from this plan.
+
+- [ ] **Step 2: Typecheck the whole project, not just the files touched here**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
-Expected: no errors.
+Expected: no errors anywhere in the project (a change in `dashboard/page.tsx` or `auth-shell.tsx` could in principle affect a type elsewhere that a single-file check wouldn't catch).
+
+- [ ] **Step 3: Confirm the app actually builds for production**
+
+Run: `npm run build:next`
+Expected: build succeeds with no errors. (`npm run build` runs the Cloudflare adapter on top of this — use `build:next` here since the goal is catching Next.js/TypeScript build breakage specifically, not re-verifying the Cloudflare pipeline.)
+
+- [ ] **Step 4: Review the working tree before calling this finished**
+
+Run: `git status --short`
+Expected: only the files this plan's tasks intentionally created or modified (Task 1–10's file list) appear, each already committed by its own task. No stray files (e.g. leftover `.qa-scratch`-style debug scripts, accidentally-modified unrelated files, or `.env`/secret files) should be present. If anything unexpected shows up, investigate it before considering the feature complete — don't commit it blindly and don't discard it without understanding what it is.
+
+- [ ] **Step 5: Mark every task's checkboxes `[x]` in this plan file**
+
+Only after Steps 1–4 above genuinely pass — this file is the execution record, not a wishlist. Go back through Tasks 1–12 and flip each `- [ ]` to `- [x]` for the steps actually completed and verified, then commit the plan file itself:
+
+```bash
+git add docs/superpowers/plans/2026-08-20-self-service-tenant-onboarding.md
+git commit -m "docs: mark self-service tenant onboarding plan complete"
+```
