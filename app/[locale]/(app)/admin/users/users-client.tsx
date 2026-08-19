@@ -29,13 +29,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -419,32 +412,30 @@ export function UsersClient({
           </div>
 
           {/* STATUS FILTER */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 text-xs w-36 bg-white dark:bg-slate-900 font-bold">
-              <SelectValue placeholder={isAr ? "الحالة" : "Status"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{isAr ? "كافة الحالات" : "All Statuses"}</SelectItem>
-              <SelectItem value="active">{isAr ? "نشط" : "Active"}</SelectItem>
-              <SelectItem value="invited">{isAr ? "تمت الدعوة" : "Invited"}</SelectItem>
-              <SelectItem value="suspended">{isAr ? "مجمد / معلق" : "Suspended"}</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 px-3 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 cursor-pointer shadow-sm"
+          >
+            <option value="ALL">{isAr ? "كافة الحالات" : "All Statuses"}</option>
+            <option value="active">{isAr ? "نشط" : "Active"}</option>
+            <option value="invited">{isAr ? "تمت الدعوة" : "Invited"}</option>
+            <option value="suspended">{isAr ? "مجمد / معلق" : "Suspended"}</option>
+          </select>
 
           {/* ROLE FILTER */}
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="h-9 text-xs w-44 bg-white dark:bg-slate-900 font-bold">
-              <SelectValue placeholder={isAr ? "الدور الوظيفي" : "Role"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{isAr ? "كافة الأدوار" : "All Roles"}</SelectItem>
-              {roles.map((r) => (
-                <SelectItem key={r.key} value={r.key}>
-                  {isAr ? r.name_ar : r.name_en}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="h-9 px-3 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 cursor-pointer shadow-sm"
+          >
+            <option value="ALL">{isAr ? "كافة الأدوار" : "All Roles"}</option>
+            {roles.map((r) => (
+              <option key={r.key} value={r.key}>
+                {isAr ? r.name_ar : r.name_en}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* VIEW MODE TOGGLE */}
@@ -738,18 +729,17 @@ export function UsersClient({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">{isAr ? "الدور الوظيفي والصلاحيات *" : "Assigned Role *"}</Label>
-              <Select value={inviteRoleKey} onValueChange={setInviteRoleKey}>
-                <SelectTrigger className="h-9 text-xs bg-slate-50 dark:bg-slate-800 font-bold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.key} value={role.key} className="text-xs font-bold">
-                      {isAr ? role.name_ar : role.name_en} ({role.key})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={inviteRoleKey}
+                onChange={(e) => setInviteRoleKey(e.target.value)}
+                className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+              >
+                {roles.map((role) => (
+                  <option key={role.key} value={role.key}>
+                    {isAr ? role.name_ar : role.name_en} ({role.key})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <DialogFooter className="pt-3 flex items-center justify-between">
@@ -803,18 +793,17 @@ export function UsersClient({
           <div className="space-y-4 pt-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">{isAr ? "الدور الوظيفي الجديد" : "New Role"}</Label>
-              <Select value={selectedNewRoleId} onValueChange={setSelectedNewRoleId}>
-                <SelectTrigger className="h-9 text-xs bg-slate-50 dark:bg-slate-800 font-bold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id} className="text-xs font-bold">
-                      {isAr ? role.name_ar : role.name_en} ({role.key})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={selectedNewRoleId}
+                onChange={(e) => setSelectedNewRoleId(e.target.value)}
+                className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+              >
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {isAr ? role.name_ar : role.name_en} ({role.key})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <DialogFooter className="pt-3 flex items-center justify-between">
