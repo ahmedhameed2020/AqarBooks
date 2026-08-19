@@ -155,6 +155,9 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
       .single();
 
     // 6. Sign in through UI
+    page.on("console", (msg) => console.log("PAGE CONSOLE:", msg.text()));
+    page.on("pageerror", (err) => console.log("PAGE ERROR:", err.message));
+
     await page.goto(`${baseURL}/ar/login`);
     await page.waitForLoadState("domcontentloaded");
     await page.fill('input[type="email"]', ownerEmail);
@@ -164,6 +167,7 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
 
     // 7. Go to /finance/einvoice
     await page.goto(`${baseURL}/ar/finance/einvoice`);
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("h1")).toContainText("الفوترة والإقرارات الضريبية الإلكترونية");
     await expect(page.locator("text=إنشاء فاتورة إلكترونية جديدة")).toBeVisible();
 
