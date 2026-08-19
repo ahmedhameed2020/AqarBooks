@@ -1,3 +1,18 @@
+export const CURRENCY_CODES = [
+  "EGP",
+  "SAR",
+  "AED",
+  "KWD",
+  "QAR",
+  "BHD",
+  "OMR",
+  "USD",
+  "EUR",
+  "GBP",
+] as const;
+
+export type CurrencyCode = (typeof CURRENCY_CODES)[number];
+
 export function getCurrencyLabel(currencyCode: string | undefined | null, isAr: boolean): string {
   const map: Record<string, { ar: string; en: string }> = {
     EGP: { ar: "ج.م", en: "EGP" },
