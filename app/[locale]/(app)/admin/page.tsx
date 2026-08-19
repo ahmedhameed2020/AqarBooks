@@ -22,18 +22,27 @@ export default async function AdminProfilePage({
   const canManage = await hasPermission(organization.id, "tenant.settings.manage");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-xl font-semibold">{isAr ? "الملف التعريفي" : "Organization profile"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr ? "معرّف: " : "Slug: "}
-          {organization.slug}
+        <h1 className="text-xl font-black text-slate-950 dark:text-white">
+          {isAr ? "إعدادات الكيان والامتثال الضريبي" : "Organization Profile & Tax Identity"}
+        </h1>
+        <p className="text-xs text-slate-500 font-medium mt-0.5">
+          {isAr
+            ? "البيانات الأساسية للمنشأة، تحديد دولة الكيان، الربط الضريبي التلقائي، والعملة الافتراضية."
+            : "Legal entity information, home country jurisdiction, automatic statutory tax binding, and default currency."}
         </p>
       </div>
       <ProfileForm
         organizationId={organization.id}
         name={organization.name}
-        defaultCurrency={organization.default_currency}
+        defaultCurrency={organization.default_currency || "EGP"}
+        taxJurisdiction={(organization.tax_jurisdiction as any) || "EG"}
+        taxId={organization.tax_id || ""}
+        address={organization.address || ""}
+        phone={organization.phone || ""}
+        email={organization.email || ""}
+        entityType={organization.entity_type || ""}
         locale={locale}
         readOnly={!canManage}
       />

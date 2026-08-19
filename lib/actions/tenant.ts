@@ -10,6 +10,12 @@ const updateProfileSchema = z.object({
   organizationId: z.string().uuid(),
   name: z.string().min(2).max(200),
   defaultCurrency: z.string().length(3),
+  taxJurisdiction: z.enum(["EG", "SA", "AE", "EG_ETA", "SA_ZATCA", "AE_PEPPOL"]).optional().nullable(),
+  taxId: z.string().max(50).optional().nullable(),
+  address: z.string().max(300).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  entityType: z.string().max(100).optional().nullable(),
 });
 
 export async function updateOrganizationProfile(
@@ -19,19 +25,61 @@ export async function updateOrganizationProfile(
   const parsed = updateProfileSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
-    defaultCurrency: formData.get("defaultCurrency"),
+    defaultCurrency: formData.get("defaultCurrency") || "EGP",
+    taxJurisdiction: formData.get("taxJurisdiction") || undefined,
+    taxId: formData.get("taxId") || undefined,
+    address: formData.get("address") || undefined,
+    phone: formData.get("phone") || undefined,
+    email: formData.get("email") || undefined,
+    entityType: formData.get("entityType") || undefined,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const supabase = await createClient();
+  
+  // Normalize jurisdiction
+  let jur = parsed.data.taxJurisdiction || "EG";
+  if (jur === "EG_ETA") jur = "EG";
+  if (jur === "SA_ZATCA") jur = "SA";
+  if (jur === "AE_PEPPOL") jur = "AE";
+
+  const eInvoiceJur = jur === "EG" ? "EG_ETA" : jur === "SA" ? "SA_ZATCA" : "AE_PEPPOL";
+
   const { error } = await supabase
     .from("organizations")
-    .update({ name: parsed.data.name, default_currency: parsed.data.defaultCurrency })
+    .update({
+      name: parsed.data.name,
+      default_currency: parsed.data.defaultCurrency,
+      tax_jurisdiction: jur,
+      tax_id: parsed.data.taxId || null,
+      address: parsed.data.address || null,
+      phone: parsed.data.phone || null,
+      email: parsed.data.email || null,
+      entity_type: parsed.data.entityType || null,
+    })
     .eq("id", parsed.data.organizationId);
 
   if (error) return { ok: false, error: error.message };
 
+  // Automated Tax Integration Sync:
+  // Automatically upsert or update the corresponding E-Invoice profile for this jurisdiction
+  if (parsed.data.taxId) {
+    try {
+      await supabase.rpc("upsert_einvoice_profile", {
+        p_organization_id: parsed.data.organizationId,
+        p_jurisdiction: eInvoiceJur,
+        p_environment: "SANDBOX",
+        p_taxpayer_id: parsed.data.taxId,
+        p_branch_code: "0",
+        p_activity_code: null,
+      });
+    } catch {
+      // Non-blocking sync fallback
+    }
+  }
+
   revalidatePath("/[locale]/admin", "page");
+  revalidatePath("/[locale]/finance/einvoice", "page");
   return { ok: true };
 }
 
