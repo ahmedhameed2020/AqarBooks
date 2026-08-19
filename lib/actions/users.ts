@@ -37,7 +37,21 @@ export async function inviteUserAction(
 
   const adminClient = createAdminClient();
 
-  // 1. Invite or find auth user
+  // 1. Find role for this organization
+  const { data: roleData, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id")
+    .or(`organization_id.eq.${parsed.data.organizationId},organization_id.is.null`)
+    .eq("key", parsed.data.roleKey)
+    .single();
+
+  if (roleErr || !roleData) {
+    return { ok: false, error: "role_not_found" };
+  }
+
+  let invitedUserId: string | null = null;
+
+  // 2. Invite or find auth user
   const { data: invited, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(parsed.data.email);
 
@@ -51,39 +65,48 @@ export async function inviteUserAction(
     if (!existingUser) {
       return { ok: false, error: inviteError?.message ?? "invite_failed" };
     }
-
-    // Add existing user to organization
-    const { error: memErr } = await adminClient.rpc("add_organization_member", {
-      p_organization_id: parsed.data.organizationId,
-      p_user_id: existingUser.id,
-      p_role_key: parsed.data.roleKey,
-    });
-
-    if (memErr) return { ok: false, error: memErr.message };
-
-    // Update profile full_name if provided and currently empty
-    if (parsed.data.fullName) {
-      await adminClient
-        .from("profiles")
-        .update({ full_name: parsed.data.fullName })
-        .eq("id", existingUser.id);
-    }
+    invitedUserId = existingUser.id;
   } else {
-    // New user created via invite
-    const { error: memErr } = await adminClient.rpc("add_organization_member", {
-      p_organization_id: parsed.data.organizationId,
-      p_user_id: invited.user.id,
-      p_role_key: parsed.data.roleKey,
+    invitedUserId = invited.user.id;
+  }
+
+  // 3. Upsert membership
+  const { error: memErr } = await adminClient
+    .from("organization_memberships")
+    .upsert({
+      organization_id: parsed.data.organizationId,
+      user_id: invitedUserId,
+      status: "invited",
     });
 
-    if (memErr) return { ok: false, error: memErr.message };
+  if (memErr) return { ok: false, error: memErr.message };
 
-    if (parsed.data.fullName) {
-      await adminClient
-        .from("profiles")
-        .update({ full_name: parsed.data.fullName })
-        .eq("id", invited.user.id);
-    }
+  // 4. Assign role
+  await adminClient
+    .from("user_role_assignments")
+    .delete()
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", invitedUserId);
+
+  const { error: assignErr } = await adminClient
+    .from("user_role_assignments")
+    .insert({
+      organization_id: parsed.data.organizationId,
+      user_id: invitedUserId,
+      role_id: roleData.id,
+      created_by: currentUser.id,
+    });
+
+  if (assignErr) return { ok: false, error: assignErr.message };
+
+  // 5. Update profile full name if provided
+  if (parsed.data.fullName) {
+    await adminClient
+      .from("profiles")
+      .upsert({
+        id: invitedUserId,
+        full_name: parsed.data.fullName,
+      });
   }
 
   revalidatePath("/[locale]/admin/users", "page");
