@@ -10,22 +10,23 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
+const TEST_PASSWORD = "TestPassword123!";
+
 const createdUserIds: string[] = [];
 const createdOrgIds: string[] = [];
 
 async function newSignedInUser(): Promise<{ userId: string; client: SupabaseClient }> {
   const email = `onboarding-rpc-${Date.now()}-${Math.random().toString(36).slice(2)}@resortos-test.local`;
-  const password = "TestPassword123!";
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
+    password: TEST_PASSWORD,
     email_confirm: true,
   });
   if (createErr) throw createErr;
   createdUserIds.push(created.user.id);
 
   const client = createClient(url, anonKey, { auth: { persistSession: false } });
-  const { error: signInErr } = await client.auth.signInWithPassword({ email, password });
+  const { error: signInErr } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD });
   if (signInErr) throw signInErr;
 
   return { userId: created.user.id, client };
@@ -107,6 +108,7 @@ describe("create_organization_onboarding RPC", () => {
       p_entity_type_custom_label: "Vitest custom label",
       p_resort_name: "Vitest Project Two",
     });
+    if (second.data?.organization_id) createdOrgIds.push(second.data.organization_id);
 
     expect(second.error).toBeDefined();
     expect(second.error?.message).toMatch(/^ALREADY_HAS_ORGANIZATION:/);
