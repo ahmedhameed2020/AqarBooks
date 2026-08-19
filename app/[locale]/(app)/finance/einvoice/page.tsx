@@ -100,7 +100,7 @@ export default async function EInvoicePage({
       .limit(100),
     supabase
       .from("dues")
-      .select("id, amount, description, unit_id, units(id, unit_number, property_id, owner_name)")
+      .select("id, amount, description, unit_id, units(id, code, property_id)")
       .eq("organization_id", organization.id),
     supabase
       .from("revenue_natures")
@@ -143,14 +143,13 @@ export default async function EInvoicePage({
 
   const currency = orgData?.default_currency || organization.default_currency || "EGP";
 
-  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number; description?: string; ownerName?: string }>();
+  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number; description?: string }>();
   for (const d of duesRaw ?? []) {
-    const u = d.units as { id?: string; unit_number?: string; owner_name?: string } | null;
+    const u = d.units as { id?: string; code?: string } | null;
     dueUnitMap.set(d.id, {
-      unitNumber: u?.unit_number,
+      unitNumber: u?.code,
       amount: Number(d.amount),
       description: d.description || undefined,
-      ownerName: u?.owner_name || undefined,
     });
   }
 
