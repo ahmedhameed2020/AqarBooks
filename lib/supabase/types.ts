@@ -42,6 +42,10 @@ export type Database = {
           tax_enforcement_disabled_reason: string | null;
           output_tax_account_id: string | null;
           input_tax_account_id: string | null;
+          brand_color: string | null;
+          logo_url: string | null;
+          commercial_registry: string | null;
+          tagline: string | null;
           created_at: string;
           updated_at: string;
           created_by: string | null;
@@ -61,6 +65,10 @@ export type Database = {
           phone?: string | null;
           email?: string | null;
           tax_id?: string | null;
+          brand_color?: string | null;
+          logo_url?: string | null;
+          commercial_registry?: string | null;
+          tagline?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
@@ -209,6 +217,7 @@ export type Database = {
           organization_id: string | null;
           property_id: string | null;
           created_at: string;
+          created_by: string | null;
         };
         Insert: {
           id?: string;
@@ -216,8 +225,41 @@ export type Database = {
           role_id: string;
           organization_id?: string | null;
           property_id?: string | null;
+          created_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_role_assignments"]["Row"]>;
+        Relationships: [];
+      };
+      permissions: {
+        Row: { id: string; key: string; description: string | null };
+        Insert: { id?: string; key: string; description?: string | null };
+        Update: Partial<Database["public"]["Tables"]["permissions"]["Row"]>;
+        Relationships: [];
+      };
+      organization_finance_settings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          online_payments_clearing_account_id: string | null;
+          security_deposit_liability_account_id: string | null;
+          commission_expense_account_id: string | null;
+          commission_payable_account_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          online_payments_clearing_account_id?: string | null;
+          security_deposit_liability_account_id?: string | null;
+          commission_expense_account_id?: string | null;
+          commission_payable_account_id?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["organization_finance_settings"]["Row"]
+        >;
         Relationships: [];
       };
       role_permissions: {
@@ -2673,6 +2715,23 @@ export type Database = {
           total_credit: number;
           balance: number;
         }[];
+      };
+      issue_dues: {
+        Args: {
+          p_organization_id: string;
+          p_resort_id: string;
+          p_unit_ids: string[];
+          p_due_type_id: string;
+          p_receivable_account_id: string;
+          p_amount: number;
+          p_amount_by_unit_type?: Record<string, unknown> | null;
+          p_issue_date?: string;
+          p_due_date?: string;
+          p_description?: string | null;
+          p_ip_address?: string | null;
+          p_user_agent?: string | null;
+        };
+        Returns: Record<string, unknown>;
       };
       get_cash_position: {
         Args: { p_organization_id: string; p_as_of_date: string };

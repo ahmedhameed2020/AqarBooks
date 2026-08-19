@@ -69,8 +69,29 @@ export default async function OwnerStatementPage({
   // 2. Fetch dues and payments to calculate financials
   const { data: duesData } = await supabase
     .from("dues")
-    .select("id, unit_id, amount, paid_amount, status, due_date, due_types(name_ar, name_en)")
+    .select("id, unit_id, amount, status, due_date, due_types(name_ar, name_en)")
     .eq("organization_id", organization.id);
+
+  // dues carry no paid_amount; collection is the sum of allocations from
+  // posted payments.
+  const [{ data: dueAllocations }, { data: postedPayments }] = await Promise.all([
+    supabase
+      .from("payment_allocations")
+      .select("due_id, amount, payment_id")
+      .in("due_id", (duesData ?? []).map((d) => d.id)),
+    supabase
+      .from("payments")
+      .select("id")
+      .eq("organization_id", organization.id)
+      .eq("status", "POSTED"),
+  ]);
+
+  const postedPaymentIds = new Set((postedPayments ?? []).map((p) => p.id));
+  const paidByDue = new Map<string, number>();
+  for (const a of dueAllocations ?? []) {
+    if (!postedPaymentIds.has(a.payment_id)) continue;
+    paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + Number(a.amount));
+  }
 
   // 3. Map owners
   const ownersMap = new Map<string, OwnerItem>();
@@ -96,9 +117,9 @@ export default async function OwnerStatementPage({
 
     // Unit financial calculation from dues
     const unitDues = duesData?.filter((d) => d.unit_id === unit.id) || [];
-    const totalCollected = unitDues.reduce((sum, d) => sum + Number(d.paid_amount || 0), 0);
+    const totalCollected = unitDues.reduce((sum, d) => sum + (paidByDue.get(d.id) ?? 0), 0);
     const totalOutstanding = unitDues.reduce(
-      (sum, d) => sum + (Number(d.amount || 0) - Number(d.paid_amount || 0)),
+      (sum, d) => sum + Math.max(0, Number(d.amount || 0) - (paidByDue.get(d.id) ?? 0)),
       0
     );
 

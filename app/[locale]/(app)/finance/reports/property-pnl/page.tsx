@@ -63,7 +63,7 @@ export default async function PropertyPnlPage({
   // 1. Fetch Resorts / Properties
   const { data: resortsData } = await supabase
     .from("resorts")
-    .select("id, name, slug")
+    .select("id, name, code")
     .eq("organization_id", organization.id)
     .order("name", { ascending: true });
 
@@ -76,13 +76,13 @@ export default async function PropertyPnlPage({
   // 3. Fetch Dues (Revenues)
   const { data: duesData } = await supabase
     .from("dues")
-    .select("id, resort_id, amount, paid_amount, status")
+    .select("id, property_id, amount, status")
     .eq("organization_id", organization.id);
 
   // 4. Fetch Supplier Invoices / Expenses per resort
   const { data: invoicesData } = await supabase
     .from("supplier_invoices")
-    .select("id, resort_id, total_amount, paid_amount, status")
+    .select("id, property_id, amount, status")
     .eq("organization_id", organization.id);
 
   const unitsCountMap = new Map<string, number>();
@@ -92,20 +92,21 @@ export default async function PropertyPnlPage({
     }
   });
 
+  // dues and supplier_invoices are scoped by property_id, not resort_id.
   const duesByResort = new Map<string, { totalDues: number; paidDues: number }>();
   duesData?.forEach((d) => {
-    const rId = d.resort_id || "MAIN";
+    const rId = d.property_id || "MAIN";
     const cur = duesByResort.get(rId) || { totalDues: 0, paidDues: 0 };
     cur.totalDues += Number(d.amount || 0);
-    cur.paidDues += Number(d.paid_amount || 0);
+    cur.paidDues += d.status === "PAID" ? Number(d.amount || 0) : 0;
     duesByResort.set(rId, cur);
   });
 
   const expensesByResort = new Map<string, number>();
   invoicesData?.forEach((inv) => {
-    const rId = inv.resort_id || "MAIN";
+    const rId = inv.property_id || "MAIN";
     const cur = expensesByResort.get(rId) || 0;
-    expensesByResort.set(rId, cur + Number(inv.total_amount || 0));
+    expensesByResort.set(rId, cur + Number(inv.amount || 0));
   });
 
   const rows: PropertyPnlRow[] = (resortsData || []).map((r) => {

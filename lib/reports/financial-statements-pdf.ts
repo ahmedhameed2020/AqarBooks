@@ -30,8 +30,12 @@ export interface FinancialStatementPdfData {
   rows: Record<string, any>[];
   totalRow?: Record<string, any>;
   summaries?: ReportPdfSummaryItem[];
+  /** Alias for `summaries` used by the report clients. */
+  summaryCards?: ReportPdfSummaryItem[];
   notes?: string[];
   includeCoverPage?: boolean;
+  /** Accepted for call-site symmetry with the Excel export; unused here. */
+  filename?: string;
 }
 
 export function generateFinancialStatementPdf(
@@ -54,7 +58,7 @@ export function generateFinancialStatementPdf(
     columns,
     rows,
     totalRow,
-    summaries = [],
+    summaries = data.summaryCards ?? [],
     notes = [],
     includeCoverPage = true,
   } = data;

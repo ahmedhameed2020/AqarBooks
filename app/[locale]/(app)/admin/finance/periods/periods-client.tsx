@@ -135,7 +135,7 @@ export function PeriodsClient({
         setPeriods((prev) =>
           prev.map((p) => (p.id === statusModalPeriod.id ? { ...p, status: targetStatus } : p))
         );
-        toast.add({
+        toast({
           type: "success",
           title: isAr ? "تم تحديث حالة الفترة بنجاح" : "Period Status Updated",
           description: isAr
@@ -144,7 +144,7 @@ export function PeriodsClient({
         });
         setStatusModalPeriod(null);
       } else {
-        toast.add({
+        toast({
           type: "error",
           title: isAr ? "تعذر تعديل الحالة" : "Update Failed",
           description: res.error || (isAr ? "حدث خطأ غير متوقع" : "Unknown error"),
@@ -162,7 +162,7 @@ export function PeriodsClient({
     startTransition(async () => {
       const res = await recognizePendingDuesAction({ ok: true }, formData);
       if (res.ok) {
-        toast.add({
+        toast({
           type: "success",
           title: isAr ? "تم ترحيل والاعتراف بالمستحقات" : "Dues Recognized in Ledger",
           description: isAr
@@ -170,7 +170,7 @@ export function PeriodsClient({
             : `All dues for ${period.name} posted to GL`,
         });
       } else {
-        toast.add({
+        toast({
           type: "error",
           title: isAr ? "تعذر ترحيل المستحقات" : "Recognition Failed",
           description: res.error || (isAr ? "حدث خطأ أثناء الترحيل" : "Unknown error"),
@@ -752,7 +752,7 @@ export function PeriodsClient({
               ) : (
                 <Button
                   onClick={() => {
-                    toast.add({
+                    toast({
                       type: "success",
                       title: isAr ? "تم إتمام إقفال السنة وترحيل الأرصدة الافتتاحية" : "Year Closed & Balances Rolled Over",
                       description: isAr

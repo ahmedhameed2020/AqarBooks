@@ -25,6 +25,7 @@ export interface AgingReportRow {
   amount: number;
   remaining: number;
   due_date: string;
+  status: string;
   bucket: AgingBucketKey;
 }
 
@@ -210,8 +211,8 @@ export function AgingClient({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {AGING_BUCKETS.map((b) => {
           const val = totals[b.key] || 0;
-          const isDanger = b.key === "90+";
-          const isWarning = b.key === "61-90" || b.key === "31-60";
+          const isDanger = b.key === "d90plus";
+          const isWarning = b.key === "d61_90" || b.key === "d31_60";
 
           return (
             <div
@@ -294,7 +295,7 @@ export function AgingClient({
               {filteredRows.length ? (
                 filteredRows.map((r) => {
                   const isCurrent = r.bucket === "current";
-                  const isDanger = r.bucket === "90+";
+                  const isDanger = r.bucket === "d90plus";
 
                   return (
                     <tr

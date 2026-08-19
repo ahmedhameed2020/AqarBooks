@@ -53,9 +53,9 @@ export interface AccountClientProps {
     };
   };
   profile: {
-    full_name?: string;
-    avatar_url?: string;
-    locale?: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
+    locale?: string | null;
   } | null;
   organizationName: string;
   userRole: string;

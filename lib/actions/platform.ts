@@ -18,11 +18,13 @@ const createOrganizationSchema = z.object({
   planKey: z.enum(["STARTER", "PROFESSIONAL", "ENTERPRISE"]).nullable(),
 });
 
-export type ActionResult =
+export type ActionResult<T extends object = object> =
   // `id` is optional and only set by actions whose forms need to link
   // somewhere after success (e.g. CreateUnitForm's toast action button) --
-  // every other `{ ok: true }` caller is unaffected.
-  | { ok: true; id?: string }
+  // every other `{ ok: true }` caller is unaffected. `T` lets an action carry
+  // extra success payload, under `data`, without every caller having to know
+  // about it.
+  | { ok: true; id?: string; data?: T }
   | { ok: false; error: string };
 
 export async function createOrganization(

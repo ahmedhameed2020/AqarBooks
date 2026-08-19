@@ -70,10 +70,10 @@ export default async function CamAllocationPage({
   // 2. Fetch shared facility expenses (Supplier Invoices / Expenses)
   const { data: expensesData } = await supabase
     .from("supplier_invoices")
-    .select("total_amount, resort_id")
+    .select("amount, property_id")
     .eq("organization_id", organization.id);
 
-  const totalSharedExpense = (expensesData || []).reduce((s, e) => s + Number(e.total_amount || 0), 0) || 185000;
+  const totalSharedExpense = (expensesData || []).reduce((s, e) => s + Number(e.amount || 0), 0);
 
   // Assume units have area or standard template area
   const unitList = unitsData || [];

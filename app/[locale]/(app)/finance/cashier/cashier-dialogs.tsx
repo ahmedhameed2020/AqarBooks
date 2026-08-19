@@ -615,7 +615,8 @@ export function CollectDueDialog({
   );
 
   // Update amount when due selection changes
-  const handleDueChange = (id: string) => {
+  const handleDueChange = (id: string | null) => {
+    if (!id) return;
     setSelectedDueId(id);
     const due = dues.find((d) => d.id === id);
     if (due) {

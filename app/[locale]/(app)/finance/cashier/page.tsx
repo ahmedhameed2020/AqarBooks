@@ -79,6 +79,7 @@ export default async function CashierPage({
     { data: allocationsRaw },
     { data: postedPaymentsRaw },
     { data: orgData },
+    { data: ownershipsRaw },
   ] = await Promise.all([
     supabase
       .from("cashboxes")
@@ -112,7 +113,7 @@ export default async function CashierPage({
       .limit(1),
     supabase
       .from("dues")
-      .select("id, unit_id, member_id, title, due_date, amount, status")
+      .select("id, unit_id, description, due_date, amount, status")
       .eq("organization_id", organization.id)
       .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"])
       .order("due_date", { ascending: true }),
@@ -133,7 +134,21 @@ export default async function CashierPage({
       .select("default_currency")
       .eq("id", organization.id)
       .maybeSingle(),
+    // `dues` links to a unit, not a member; the payer is the unit's current owner.
+    supabase
+      .from("unit_ownerships")
+      .select("unit_id, member_id, is_primary_contact")
+      .eq("organization_id", organization.id)
+      .is("end_date", null),
   ]);
+
+  // Current owner per unit, preferring the primary contact when a unit is co-owned.
+  const ownerByUnit = new Map<string, string>();
+  for (const o of ownershipsRaw ?? []) {
+    if (o.is_primary_contact || !ownerByUnit.has(o.unit_id)) {
+      ownerByUnit.set(o.unit_id, o.member_id);
+    }
+  }
 
   const currency = orgData?.default_currency || "EGP";
   const currencyLabel = getCurrencyLabel(currency, isAr);
@@ -216,8 +231,8 @@ export default async function CashierPage({
         id: d.id,
         unit_id: d.unit_id,
         unit_code: unitCodeMap.get(d.unit_id) || (isAr ? "وحدة" : "Unit"),
-        member_id: d.member_id,
-        title: d.title || (isAr ? "مستحق خدمات" : "Service Due"),
+        member_id: ownerByUnit.get(d.unit_id) ?? null,
+        title: d.description || (isAr ? "مستحق خدمات" : "Service Due"),
         due_date: d.due_date,
         original_amount: orig,
         remaining_amount: remaining,

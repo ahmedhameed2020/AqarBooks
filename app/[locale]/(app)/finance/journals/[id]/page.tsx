@@ -81,7 +81,7 @@ export default async function JournalEntryDetailPage({
 
   const voucherData = {
     organizationName: org?.name || "AqarBooks",
-    entryNumber: entry.entry_number,
+    entryNumber: entry.entry_number != null ? String(entry.entry_number) : null,
     entryDate: entry.entry_date,
     description: entry.description,
     sourceType: entry.source_type || "MANUAL",

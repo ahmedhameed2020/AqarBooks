@@ -63,21 +63,32 @@ export default async function PdcReportPage({
   // Fetch cheques with bank details
   const { data: chequesData } = await supabase
     .from("cheques")
-    .select("id, number, amount, due_date, status, type, drawer_name, beneficiary_name, created_at, banks(name_ar, name_en)")
+    .select(
+      "id, cheque_number, amount, due_date, status, direction, created_at, member_id, members(full_name), bank_accounts(banks(name_ar, name_en))"
+    )
     .eq("organization_id", organization.id)
     .order("due_date", { ascending: true });
 
   const rows: PdcChequeRow[] = (chequesData || []).map((c) => {
-    const bank = c.banks as unknown as { name_ar?: string; name_en?: string } | null;
+    // cheques reach a bank through bank_accounts, and carry no drawer/beneficiary
+    // of their own — for an incoming cheque the member is the drawer and the
+    // organization the beneficiary, and the reverse for an outgoing one.
+    const account = c.bank_accounts as unknown as
+      | { banks?: { name_ar?: string; name_en?: string } | null }
+      | null;
+    const bank = account?.banks ?? null;
+    const member = c.members as unknown as { full_name?: string } | null;
+    const memberName = member?.full_name || "—";
+    const direction = c.direction || "INCOMING";
     return {
       id: c.id,
-      number: c.number,
+      number: c.cheque_number,
       amount: Number(c.amount || 0),
       dueDate: c.due_date,
       status: c.status || "RECEIVED",
-      type: c.type || "INCOMING",
-      drawerName: c.drawer_name || "—",
-      beneficiaryName: c.beneficiary_name || "—",
+      type: direction,
+      drawerName: direction === "INCOMING" ? memberName : organization.name,
+      beneficiaryName: direction === "INCOMING" ? organization.name : memberName,
       bankName: (isAr ? bank?.name_ar : bank?.name_en) || bank?.name_ar || "البنك الرئيسي",
       createdAt: c.created_at ? c.created_at.slice(0, 10) : "—",
     };

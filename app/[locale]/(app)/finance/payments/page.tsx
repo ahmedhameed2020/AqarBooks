@@ -93,7 +93,7 @@ export default async function PaymentsPage({
       .eq("status", "OPEN"),
     supabase
       .from("payments")
-      .select("id, receipt_number, amount, unallocated_amount, method, payment_date, status, member_id, reference, memo")
+      .select("id, receipt_number, amount, unallocated_amount, method, payment_date, status, member_id, receipt_no, memo")
       .eq("organization_id", organization.id)
       .order("payment_date", { ascending: false })
       .limit(300),
@@ -146,14 +146,14 @@ export default async function PaymentsPage({
   // Map Payments
   const payments: PaymentItem[] = (paymentsRaw ?? []).map((p) => ({
     id: p.id,
-    receipt_number: p.receipt_number,
+    receipt_number: p.receipt_number != null ? String(p.receipt_number) : "",
     amount: Number(p.amount),
     unallocated_amount: Number(p.unallocated_amount ?? 0),
     method: p.method,
     payment_date: p.payment_date,
     status: p.status,
     member_name: p.member_id ? memberMap.get(p.member_id) : undefined,
-    reference: p.reference,
+    reference: p.receipt_no,
     memo: p.memo,
     allocations: allocationsByPayment.get(p.id) || [],
   }));

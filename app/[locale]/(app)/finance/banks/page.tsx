@@ -104,7 +104,7 @@ export default async function BanksPage({
       .order("full_name"),
     supabase
       .from("cheques")
-      .select("id, cheque_number, amount, status, due_date, cheque_date, bank_account_id, member_id, direction, note")
+      .select("id, cheque_number, amount, status, due_date, cheque_date, bank_account_id, member_id, direction")
       .eq("organization_id", organization.id)
       .order("cheque_date", { ascending: false }),
     supabase
@@ -196,7 +196,6 @@ export default async function BanksPage({
       member_id: c.member_id,
       member_name: c.member_id ? memberMap.get(c.member_id) : undefined,
       direction: c.direction,
-      note: c.note,
     };
   });
 

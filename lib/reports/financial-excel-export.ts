@@ -11,15 +11,21 @@ export interface ExcelColumnConfig {
 export interface ExcelExportData {
   filename: string;
   sheetName?: string;
-  reportTitle: string;
+  reportTitle?: string;
+  /** Alias for `reportTitle` used by the report clients. */
+  title?: string;
   organizationName: string;
   taxNumber?: string | null;
-  currencyLabel: string;
-  dateRangeLabel: string;
+  currencyLabel?: string;
+  /** Alias for `currencyLabel` used by the report clients. */
+  currency?: string;
+  dateRangeLabel?: string;
   columns: ExcelColumnConfig[];
   rows: Record<string, any>[];
   totalRow?: Record<string, any>;
   summaries?: { label: string; value: string | number }[];
+  /** Alias for `summaries` used by the report clients. */
+  summaryCards?: { label: string; value: string | number }[];
 }
 
 export async function exportFinancialStatementToExcel(
@@ -30,16 +36,16 @@ export async function exportFinancialStatementToExcel(
   const {
     filename,
     sheetName,
-    reportTitle,
     organizationName,
     taxNumber,
-    currencyLabel,
-    dateRangeLabel,
     columns,
     rows,
     totalRow,
-    summaries = [],
   } = data;
+  const reportTitle = data.reportTitle ?? data.title ?? "";
+  const currencyLabel = data.currencyLabel ?? data.currency ?? "";
+  const dateRangeLabel = data.dateRangeLabel ?? "";
+  const summaries = data.summaries ?? data.summaryCards ?? [];
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "AqarBooks ERP";

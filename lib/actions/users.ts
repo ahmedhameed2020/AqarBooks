@@ -182,13 +182,13 @@ export async function changeUserRoleAction(
 const updateStatusSchema = z.object({
   organizationId: z.string().uuid(),
   userId: z.string().uuid(),
-  status: z.enum(["active", "invited", "suspended", "inactive"]),
+  status: z.enum(["active", "invited", "suspended"]),
 });
 
 export async function updateUserStatusAction(
   organizationId: string,
   userId: string,
-  status: "active" | "invited" | "suspended" | "inactive",
+  status: "active" | "invited" | "suspended",
 ): Promise<ActionResult> {
   const parsed = updateStatusSchema.safeParse({ organizationId, userId, status });
   if (!parsed.success) return { ok: false, error: "invalid_input" };

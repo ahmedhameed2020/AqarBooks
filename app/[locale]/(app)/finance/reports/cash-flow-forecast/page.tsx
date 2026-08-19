@@ -60,34 +60,67 @@ export default async function CashFlowForecastPage({
 
   const supabase = await createClient();
 
-  // 1. Fetch current cash balance from bank accounts
-  const { data: banksData } = await supabase
-    .from("banks")
-    .select("id, name_ar, name_en, opening_balance")
-    .eq("organization_id", organization.id);
+  // 1. Opening cash comes from the general ledger — `banks` holds no balance.
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: cashPosition } = await supabase.rpc("get_cash_position", {
+    p_organization_id: organization.id,
+    p_as_of_date: today,
+  });
 
-  const initialCash = (banksData || []).reduce((s, b) => s + Number(b.opening_balance || 0), 0) || 350000;
+  const initialCash = Number(cashPosition ?? 0);
 
   // 2. Fetch Incoming and Outgoing Cheques
   const { data: chequesData } = await supabase
     .from("cheques")
-    .select("amount, type, due_date, status")
+    .select("id, amount, direction, due_date, status")
     .eq("organization_id", organization.id)
     .in("status", ["RECEIVED", "DEPOSITED"]);
 
   // 3. Fetch Due Receivables (Inflows)
   const { data: duesData } = await supabase
     .from("dues")
-    .select("amount, paid_amount, due_date, status")
+    .select("id, amount, due_date, status")
     .eq("organization_id", organization.id)
-    .in("status", ["ACTIVE", "OVERDUE"]);
+    .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"]);
 
   // 4. Fetch Unpaid Supplier Invoices (Outflows)
   const { data: invoicesData } = await supabase
     .from("supplier_invoices")
-    .select("total_amount, paid_amount, due_date, status")
+    .select("id, amount, due_date, status")
     .eq("organization_id", organization.id)
-    .in("status", ["APPROVED", "SUBMITTED", "PARTIALLY_PAID"]);
+    .in("status", ["POSTED", "PARTIALLY_PAID"]);
+
+  // Neither dues nor supplier_invoices store a paid amount; both are settled
+  // through their allocation tables.
+  const [{ data: dueAllocations }, { data: postedPayments }, { data: supplierAllocations }] =
+    await Promise.all([
+      supabase
+        .from("payment_allocations")
+        .select("due_id, amount, payment_id")
+        .in("due_id", (duesData ?? []).map((d) => d.id)),
+      supabase
+        .from("payments")
+        .select("id")
+        .eq("organization_id", organization.id)
+        .eq("status", "POSTED"),
+      supabase
+        .from("supplier_payment_allocations")
+        .select("invoice_id, amount, reversed_at")
+        .in("invoice_id", (invoicesData ?? []).map((i) => i.id)),
+    ]);
+
+  const postedPaymentIds = new Set((postedPayments ?? []).map((p) => p.id));
+  const paidByDue = new Map<string, number>();
+  for (const a of dueAllocations ?? []) {
+    if (!postedPaymentIds.has(a.payment_id)) continue;
+    paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + Number(a.amount));
+  }
+
+  const paidByInvoice = new Map<string, number>();
+  for (const a of supplierAllocations ?? []) {
+    if (a.reversed_at) continue;
+    paidByInvoice.set(a.invoice_id, (paidByInvoice.get(a.invoice_id) ?? 0) + Number(a.amount));
+  }
 
   const now = Date.now();
   const getDaysDiff = (dStr?: string | null) => {
@@ -109,23 +142,23 @@ export default async function CashFlowForecastPage({
 
     // Inflows from Cheques + Dues
     const incomingCheques = (chequesData || [])
-      .filter((c) => c.type === "INCOMING" && getDaysDiff(c.due_date) >= prevDays && getDaysDiff(c.due_date) <= b.maxDays)
+      .filter((c) => c.direction === "INCOMING" && getDaysDiff(c.due_date) >= prevDays && getDaysDiff(c.due_date) <= b.maxDays)
       .reduce((s, c) => s + Number(c.amount || 0), 0);
 
     const rentInflows = (duesData || [])
       .filter((d) => getDaysDiff(d.due_date) >= prevDays && getDaysDiff(d.due_date) <= b.maxDays)
-      .reduce((s, d) => s + Math.max(0, Number(d.amount || 0) - Number(d.paid_amount || 0)), 0);
+      .reduce((s, d) => s + Math.max(0, Number(d.amount || 0) - (paidByDue.get(d.id) ?? 0)), 0);
 
     const totalInflow = incomingCheques + rentInflows + (b.maxDays <= 30 ? 45000 : 30000);
 
     // Outflows from Outgoing Cheques + Supplier Invoices + Fixed OpEx
     const outgoingCheques = (chequesData || [])
-      .filter((c) => c.type === "OUTGOING" && getDaysDiff(c.due_date) >= prevDays && getDaysDiff(c.due_date) <= b.maxDays)
+      .filter((c) => c.direction === "OUTGOING" && getDaysDiff(c.due_date) >= prevDays && getDaysDiff(c.due_date) <= b.maxDays)
       .reduce((s, c) => s + Number(c.amount || 0), 0);
 
     const supplierOutflow = (invoicesData || [])
       .filter((inv) => getDaysDiff(inv.due_date) >= prevDays && getDaysDiff(inv.due_date) <= b.maxDays)
-      .reduce((s, inv) => s + Math.max(0, Number(inv.total_amount || 0) - Number(inv.paid_amount || 0)), 0);
+      .reduce((s, inv) => s + Math.max(0, Number(inv.amount || 0) - (paidByInvoice.get(inv.id) ?? 0)), 0);
 
     const fixedOpsCost = b.maxDays <= 30 ? 25000 : 20000;
     const totalOutflow = outgoingCheques + supplierOutflow + fixedOpsCost;

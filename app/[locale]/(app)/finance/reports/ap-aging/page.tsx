@@ -63,16 +63,31 @@ export default async function ApAgingPage({
   // 1. Fetch suppliers
   const { data: suppliersData } = await supabase
     .from("suppliers")
-    .select("id, name, phone, email, tax_id")
+    .select("id, name, contact_phone, contact_email, tax_number")
     .eq("organization_id", organization.id)
     .order("name", { ascending: true });
 
   // 2. Fetch unpaid supplier invoices
   const { data: invoicesData } = await supabase
     .from("supplier_invoices")
-    .select("id, supplier_id, invoice_number, total_amount, paid_amount, due_date, status, suppliers(id, name, phone, email)")
+    .select(
+      "id, supplier_id, invoice_number, amount, due_date, status, suppliers(id, name, contact_phone, contact_email)"
+    )
     .eq("organization_id", organization.id)
-    .in("status", ["APPROVED", "PARTIALLY_PAID", "OVERDUE", "SUBMITTED"]);
+    .in("status", ["POSTED", "PARTIALLY_PAID"]);
+
+  // supplier_invoices stores no paid_amount; settlement lives in the
+  // allocations, ignoring any that have been reversed.
+  const { data: supplierAllocations } = await supabase
+    .from("supplier_payment_allocations")
+    .select("invoice_id, amount, reversed_at")
+    .in("invoice_id", (invoicesData ?? []).map((i) => i.id));
+
+  const paidByInvoice = new Map<string, number>();
+  for (const a of supplierAllocations ?? []) {
+    if (a.reversed_at) continue;
+    paidByInvoice.set(a.invoice_id, (paidByInvoice.get(a.invoice_id) ?? 0) + Number(a.amount));
+  }
 
   // Calculate Aging Buckets for each supplier
   const supplierAgingMap = new Map<
@@ -96,8 +111,8 @@ export default async function ApAgingPage({
     supplierAgingMap.set(sup.id, {
       supplierId: sup.id,
       supplierName: sup.name,
-      phone: sup.phone || "",
-      email: sup.email || "",
+      phone: sup.contact_phone || "",
+      email: sup.contact_email || "",
       invoicesCount: 0,
       bucket0_30: 0,
       bucket31_60: 0,
@@ -111,14 +126,16 @@ export default async function ApAgingPage({
   (invoicesData || []).forEach((inv) => {
     const supId = inv.supplier_id;
     if (!supId) return;
-    const sup = inv.suppliers as unknown as { name?: string; phone?: string; email?: string } | null;
+    const sup = inv.suppliers as unknown as
+      | { name?: string; contact_phone?: string; contact_email?: string }
+      | null;
 
     if (!supplierAgingMap.has(supId)) {
       supplierAgingMap.set(supId, {
         supplierId: supId,
         supplierName: sup?.name || "مورد غير معرف",
-        phone: sup?.phone || "",
-        email: sup?.email || "",
+        phone: sup?.contact_phone || "",
+        email: sup?.contact_email || "",
         invoicesCount: 0,
         bucket0_30: 0,
         bucket31_60: 0,
@@ -129,7 +146,7 @@ export default async function ApAgingPage({
     }
 
     const entry = supplierAgingMap.get(supId)!;
-    const balance = Math.max(0, Number(inv.total_amount || 0) - Number(inv.paid_amount || 0));
+    const balance = Math.max(0, Number(inv.amount || 0) - (paidByInvoice.get(inv.id) ?? 0));
     if (balance <= 0) return;
 
     entry.invoicesCount += 1;

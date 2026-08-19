@@ -15,7 +15,20 @@ const updateProfileSchema = z.object({
   address: z.string().max(300).optional().nullable(),
   phone: z.string().max(50).optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal("")),
-  entityType: z.string().max(100).optional().nullable(),
+  // must match the organizations.entity_type enum, not just any string
+  entityType: z
+    .enum([
+      "DEVELOPER",
+      "FACILITY_MANAGEMENT",
+      "OWNERS_ASSOCIATION",
+      "INDIVIDUAL_OWNER",
+      "TOURIST_RESORT",
+      "TOURIST_VILLAGE",
+      "RESIDENTIAL_COMPOUND",
+      "OTHER",
+    ])
+    .optional()
+    .nullable(),
   brandColor: z.string().max(20).optional().nullable(),
   logoUrl: z.string().max(500).optional().nullable(),
   tagline: z.string().max(300).optional().nullable(),
@@ -51,7 +64,7 @@ export async function updateOrganizationProfile(
 
   const eInvoiceJur = jur === "EG" ? "EG_ETA" : jur === "SA" ? "SA_ZATCA" : "AE_PEPPOL";
 
-  const updatePayload: Record<string, any> = {
+  const updatePayload = {
     name: parsed.data.name,
     default_currency: parsed.data.defaultCurrency,
     tax_jurisdiction: jur,

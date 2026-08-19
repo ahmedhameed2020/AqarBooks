@@ -63,7 +63,9 @@ export default async function VatReturnPage({
   // 1. Fetch tax decisions
   const { data: decisionsData } = await supabase
     .from("tax_decisions")
-    .select("id, source_type, source_id, taxable_base, vat_rate, vat_amount, gross_amount, decided_at, is_exempt, revenue_nature, units(code)")
+    .select(
+      "id, source_type, source_id, taxable_base, vat_amount, gross_amount, decided_at, revenue_nature"
+    )
     .eq("organization_id", organization.id)
     .order("decided_at", { ascending: false });
 
@@ -76,8 +78,13 @@ export default async function VatReturnPage({
 
   // 3. Compute VAT aggregates
   const items = decisionsData || [];
-  const standardRateSupplies = items.filter((i) => !i.is_exempt && Number(i.vat_rate) > 0);
-  const exemptSupplies = items.filter((i) => i.is_exempt || Number(i.vat_rate) === 0);
+  // tax_decisions stores no rate or exempt flag; both follow from the amounts.
+  const effectiveRate = (i: { taxable_base: number | null; vat_amount: number | null }) => {
+    const base = Number(i.taxable_base || 0);
+    return base > 0 ? Number(i.vat_amount || 0) / base : 0;
+  };
+  const standardRateSupplies = items.filter((i) => Number(i.vat_amount || 0) > 0);
+  const exemptSupplies = items.filter((i) => Number(i.vat_amount || 0) === 0);
 
   const outputTaxableBase = standardRateSupplies.reduce((s, i) => s + Number(i.taxable_base || 0), 0);
   const outputVatTotal = standardRateSupplies.reduce((s, i) => s + Number(i.vat_amount || 0), 0);
@@ -102,14 +109,14 @@ export default async function VatReturnPage({
     decisionsCount: items.length,
     decisions: items.map((i) => ({
       id: i.id,
-      unitCode: (i.units as unknown as { code?: string } | null)?.code || `#${i.source_id.slice(0, 8)}`,
+      unitCode: `#${i.source_id.slice(0, 8)}`,
       nature: i.revenue_nature,
       date: i.decided_at,
       base: Number(i.taxable_base || 0),
-      rate: Number(i.vat_rate || 0),
+      rate: effectiveRate(i),
       vat: Number(i.vat_amount || 0),
       gross: Number(i.gross_amount || 0),
-      isExempt: Boolean(i.is_exempt),
+      isExempt: Number(i.vat_amount || 0) === 0,
     })),
   };
 

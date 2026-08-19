@@ -76,9 +76,11 @@ export default async function JournalsPage({
       .order("created_at", { ascending: false })
       .limit(300),
     supabase
+      // journal_entry_lines carries no organization_id of its own; it is scoped
+      // through its parent entry.
       .from("journal_entry_lines")
-      .select("journal_entry_id, debit, credit")
-      .eq("organization_id", organization.id),
+      .select("journal_entry_id, debit, credit, journal_entries!inner(organization_id)")
+      .eq("journal_entries.organization_id", organization.id),
     supabase
       .from("organizations")
       .select("default_currency")
@@ -103,7 +105,7 @@ export default async function JournalsPage({
     const totals = entryTotals.get(e.id) || { debit: 0, credit: 0, count: 0 };
     return {
       id: e.id,
-      entry_number: e.entry_number,
+      entry_number: e.entry_number != null ? String(e.entry_number) : null,
       entry_date: e.entry_date,
       description: e.description,
       status: e.status,

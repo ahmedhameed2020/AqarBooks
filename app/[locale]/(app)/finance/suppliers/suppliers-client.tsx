@@ -64,7 +64,7 @@ export type SupplierInvoiceItem = {
 
 export type PurchaseOrderItem = {
   id: string;
-  order_number?: string | null;
+  order_number?: string | number | null;
   supplier_id: string;
   supplier_name: string;
   description: string;
@@ -153,7 +153,7 @@ export function SuppliersClient({
     const q = searchQuery.toLowerCase().trim();
     return orders.filter(
       (o) =>
-        (o.order_number || "").toLowerCase().includes(q) ||
+        String(o.order_number ?? "").toLowerCase().includes(q) ||
         o.supplier_name.toLowerCase().includes(q) ||
         o.description.toLowerCase().includes(q)
     );

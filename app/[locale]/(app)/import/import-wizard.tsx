@@ -109,7 +109,10 @@ export function ImportWizard({
       } else {
         toast.show({
           title: isAr ? "فشل الاستيراد" : "Import Failed",
-          description: res.failures?.[0]?.message || (isAr ? "يرجى مراجعة الأخطاء." : "Check errors."),
+          description:
+            res.validationErrors?.[0]?.errors?.[0] ||
+            res.error ||
+            (isAr ? "يرجى مراجعة الأخطاء." : "Check errors."),
           variant: "error",
         });
       }

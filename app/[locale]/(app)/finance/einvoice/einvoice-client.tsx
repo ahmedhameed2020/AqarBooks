@@ -88,7 +88,7 @@ export type EInvoiceProfileData = {
   id: string;
   jurisdiction: string;
   environment: string;
-  taxpayer_id: string;
+  taxpayer_id: string | null;
   branch_code?: string | null;
   activity_code?: string | null;
   status: string;

@@ -30,6 +30,7 @@ export default async function UsersPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale as Locale);
+  const isAr = locale === "ar";
 
   const currentUser = await getCurrentUser();
   const organization = currentUser ? await getPrimaryOrganization(currentUser.id) : null;
