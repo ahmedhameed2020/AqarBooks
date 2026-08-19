@@ -133,6 +133,7 @@ export default async function AppShellLayout({
                 { href: "/admin/finance/periods", labelAr: "الفترات والسنوات المالية", labelEn: "Fiscal Periods" },
                 { href: "/finance/budgets", labelAr: "الموازنات التقديرية", labelEn: "Fiscal Budgets" },
                 { href: "/finance/assets", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets" },
+                { href: "/finance/projects", labelAr: "المشاريع والأعمال تحت التنفيذ", labelEn: "Projects & WIP" },
                 { href: "/finance/exchange-rates", labelAr: "أسعار الصرف", labelEn: "Exchange Rates" },
                 { href: "/admin/finance/accounting-accounts", labelAr: "الحسابات المعيَّنة", labelEn: "Designated Accounts" },
                 { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },

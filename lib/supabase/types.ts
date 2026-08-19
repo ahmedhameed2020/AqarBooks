@@ -341,6 +341,14 @@ export type Database = {
           name_ar: string;
           name_en: string;
           is_active: boolean;
+          // Added by the WIP costing work; the table pre-dated it.
+          wip_account_id: string | null;
+          cost_of_sales_account_id: string | null;
+          status: "PLANNING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+          start_date: string | null;
+          expected_completion_date: string | null;
+          budget_amount: number | null;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -350,6 +358,12 @@ export type Database = {
           name_ar: string;
           name_en: string;
           is_active?: boolean;
+          wip_account_id?: string | null;
+          cost_of_sales_account_id?: string | null;
+          status?: string;
+          start_date?: string | null;
+          expected_completion_date?: string | null;
+          budget_amount?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["projects"]["Row"]>;
         Relationships: [];
@@ -2347,6 +2361,33 @@ export type Database = {
       };
     };
     Functions: {
+      list_projects: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string; code: string; name_ar: string; name_en: string;
+          status: string; accounts_set: boolean;
+          budget_amount: number | null; capitalised: number; released: number;
+          wip_balance: number; budget_variance: number | null;
+        }[];
+      };
+      project_wip_summary: {
+        Args: { p_project_id: string };
+        Returns: { capitalised: number; released: number; wip_balance: number }[];
+      };
+      capitalise_project_cost: {
+        Args: {
+          p_project_id: string; p_amount: number; p_credit_account_id: string;
+          p_entry_date: string; p_description: string;
+        };
+        Returns: string;
+      };
+      release_project_wip: {
+        Args: {
+          p_project_id: string; p_amount: number;
+          p_entry_date: string; p_description?: string | null;
+        };
+        Returns: string;
+      };
       list_dunning_candidates: {
         Args: { p_organization_id: string; p_as_of?: string };
         Returns: {
