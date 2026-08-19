@@ -44,14 +44,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Table,
   TableBody,
   TableCell,
@@ -665,43 +657,34 @@ export function UsersClient({
                       </Button>
 
                       {!user.isCurrentUser && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="size-7 p-0">
-                              <MoreVertical className="size-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="text-xs font-semibold">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setStatusModalUser(user);
-                                setTargetStatus(user.status === "suspended" ? "active" : "suspended");
-                              }}
-                            >
-                              {user.status === "suspended" ? (
-                                <>
-                                  <Unlock className="size-3.5 me-2 text-emerald-600" />
-                                  <span>{isAr ? "إعادة تنشيط الحساب" : "Activate Account"}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Lock className="size-3.5 me-2 text-rose-600" />
-                                  <span>{isAr ? "تجميد الحساب" : "Suspend Account"}</span>
-                                </>
-                              )}
-                            </DropdownMenuItem>
+                        <>
+                          <Button
+                            onClick={() => {
+                              setStatusModalUser(user);
+                              setTargetStatus(user.status === "suspended" ? "active" : "suspended");
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className={`size-7 p-0 ${
+                              user.status === "suspended"
+                                ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                : "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            }`}
+                            title={user.status === "suspended" ? (isAr ? "تنشيط الحساب" : "Activate") : (isAr ? "تجميد الحساب" : "Suspend")}
+                          >
+                            {user.status === "suspended" ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
+                          </Button>
 
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuItem
-                              onClick={() => handleRemoveUser(user)}
-                              className="text-rose-600 focus:text-rose-600"
-                            >
-                              <Trash2 className="size-3.5 me-2" />
-                              <span>{isAr ? "حذف المستخدم من المنشأة" : "Remove from Org"}</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          <Button
+                            onClick={() => handleRemoveUser(user)}
+                            variant="ghost"
+                            size="sm"
+                            className="size-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title={isAr ? "حذف المستخدم" : "Remove"}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
