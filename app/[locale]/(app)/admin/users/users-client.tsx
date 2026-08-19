@@ -149,6 +149,22 @@ export function UsersClient({
     startTransition(async () => {
       const res = await inviteUserAction({ ok: true }, formData);
       if (res.ok) {
+        const role = roles.find((r) => r.key === inviteRoleKey);
+        const newUser: UserItem = {
+          id: `temp-${Date.now()}`,
+          userId: `temp-${Date.now()}`,
+          email: inviteEmail.trim(),
+          fullName: inviteFullName.trim() || null,
+          status: "invited",
+          roleId: role?.id || null,
+          roleKey: role?.key || inviteRoleKey,
+          roleNameAr: role?.name_ar || null,
+          roleNameEn: role?.name_en || null,
+          createdAt: new Date().toISOString(),
+          isCurrentUser: false,
+        };
+        setUsers((prev) => [newUser, ...prev]);
+
         toast.add({
           type: "success",
           title: isAr ? "تم إرسال الدعوة بنجاح" : "Invitation Sent",
@@ -159,8 +175,6 @@ export function UsersClient({
         setIsInviteOpen(false);
         setInviteEmail("");
         setInviteFullName("");
-        // Reload or update local list
-        window.location.reload();
       } else {
         toast.add({
           type: "error",
