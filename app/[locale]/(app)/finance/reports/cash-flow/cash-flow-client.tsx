@@ -343,8 +343,14 @@ export function CashFlowClient({
                 </td>
               </tr>
 
-              {/* SECTIONS */}
-              {SECTIONS.map((sec) => {
+            </tbody>
+
+            {/* SECTIONS -- each is its own <tbody>, a SIBLING of the opening
+                row's. Nested inside it, as they were, no HTML parser allows:
+                the browser closes the outer <tbody> and reparents them, so the
+                client DOM stops matching the server HTML and React discards and
+                re-renders the whole tree on every load. */}
+            {SECTIONS.map((sec) => {
                 const secRows = rows.filter((r) => r.section === sec.key);
                 const secTotal = secRows.reduce((s, r) => s + r.amount, 0);
 
@@ -382,7 +388,6 @@ export function CashFlowClient({
                   </tbody>
                 );
               })}
-            </tbody>
 
             {/* CLOSING CASH FOOTER */}
             <tfoot className="bg-slate-900 text-white font-bold border-t-2 border-slate-900">

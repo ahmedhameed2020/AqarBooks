@@ -63,12 +63,16 @@ export function AgingClient({
 
   const filteredTotal = filteredRows.reduce((s, r) => s + r.remaining, 0);
 
+  // Keyed by the canonical AgingBucketKey, not by display strings. Keyed
+  // "1-30"/"31-60"/"61-90"/"90+" it matched nothing, so every export fell
+  // through to the raw key and printed `d1_30` to the operator, and the
+  // "> 90 days" summary reported 0 no matter what was outstanding.
   const bucketLabelMap: Record<string, { ar: string; en: string }> = {
     current: { ar: "غير متأخر (ساري)", en: "Current" },
-    "1-30": { ar: "١ - ٣٠ يوم", en: "1-30 Days" },
-    "31-60": { ar: "٣١ - ٦٠ يوم", en: "31-60 Days" },
-    "61-90": { ar: "٦١ - ٩٠ يوم", en: "61-90 Days" },
-    "90+": { ar: "أكثر من ٩٠ يوم", en: "90+ Days" },
+    d1_30: { ar: "١ - ٣٠ يوم", en: "1-30 Days" },
+    d31_60: { ar: "٣١ - ٦٠ يوم", en: "31-60 Days" },
+    d61_90: { ar: "٦١ - ٩٠ يوم", en: "61-90 Days" },
+    d90plus: { ar: "أكثر من ٩٠ يوم", en: "90+ Days" },
   };
 
   const fmt = (n: number) =>
@@ -107,7 +111,7 @@ export function AgingClient({
         },
         summaries: [
           { label: isAr ? "إجمالي الذمم المعلقة" : "Total Receivables", value: grandTotal, highlight: true },
-          { label: isAr ? "أكثر من 90 يوم (خطر)" : "> 90 Days High Risk", value: totals["90+"] || 0 },
+          { label: isAr ? "أكثر من 90 يوم (خطر)" : "> 90 Days High Risk", value: totals["d90plus"] || 0 },
         ],
         notes: [
           isAr
@@ -157,7 +161,7 @@ export function AgingClient({
         summaries: [
           { label: isAr ? "إجمالي الذمم" : "Total Receivables", value: grandTotal },
           { label: isAr ? "ساري (غير متأخر)" : "Current", value: totals["current"] || 0 },
-          { label: isAr ? "متأخر > 90 يوم" : "> 90 Days Overdue", value: totals["90+"] || 0 },
+          { label: isAr ? "متأخر > 90 يوم" : "> 90 Days Overdue", value: totals["d90plus"] || 0 },
         ],
       },
       locale

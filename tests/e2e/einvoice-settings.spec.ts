@@ -128,7 +128,7 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
   // Save identifying details.
   const eg = section(page, "EG_ETA");
   await eg.locator("#tax-EG_ETA").fill(org.taxpayerId);
-  await eg.getByRole("button", { name: /Save details/i }).click();
+  await eg.getByRole("button", { name: /Save Settings/i }).click();
 
   await expect(eg.getByText(/Configured — not verified/i)).toBeVisible({ timeout: 15_000 });
 
@@ -145,7 +145,7 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
 
   // Filing cannot be switched on from CONFIGURED.
   await expect(
-    section(page, "EG_ETA").getByRole("button", { name: /Switch filing on/i }),
+    section(page, "EG_ETA").getByRole("button", { name: /Activate Auto-Filing/i }),
   ).toBeDisabled();
 
   const { data: profile } = await admin
@@ -193,7 +193,7 @@ test("shows VERIFIED then ACTIVE only when the database genuinely says so", asyn
   const eg = section(page, "EG_ETA");
   await expect(eg.getByText(/Verified — filing off/i)).toBeVisible();
   // Now the toggle is genuinely available.
-  const toggle = eg.getByRole("button", { name: /Switch filing on/i });
+  const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
   await expect(toggle).toBeEnabled();
   await toggle.click();
 
@@ -240,15 +240,19 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
 
   // Editing a branch code is a correction, not a different filer: verification
   // must survive it.
+  const beforeSave = await eg.getAttribute("data-profile-updated");
   await eg.locator("#branch-EG_ETA").fill("BR-2");
-  await eg.getByRole("button", { name: /Save details/i }).click();
-  await expect(eg.getByText(/Active — filing on/i)).toBeVisible({ timeout: 15_000 });
+  await eg.getByRole("button", { name: /Save Settings/i }).click();
+  await expect(eg.getByText(/Active — filing on/i)).toBeVisible({ timeout: 40_000 });
   // That assertion cannot detect this save landing, because the badge does not
-  // change when verification survives. Waiting for the revalidation to settle
-  // is therefore required: ProfileForm remounts on save, and typing into the
-  // form while that remount is still in flight loses the input. Without this
-  // the test raced ahead and asserted on a field the remount had just reset.
-  await page.waitForLoadState("networkidle");
+  // change when verification survives -- and `networkidle` is not a barrier
+  // either: the remount arrives after it and silently resets the field typed
+  // below. `data-profile-updated` mirrors ProfileForm's remount key, so this
+  // is the one signal meaning both "the save landed" and "the form has already
+  // remounted".
+  await expect(eg).not.toHaveAttribute("data-profile-updated", beforeSave ?? "", {
+    timeout: 40_000,
+  });
   // Confirm against the database, not just the badge, that nothing was dropped.
   const { data: afterBranch } = await admin
     .from("einvoice_profiles").select("status, enabled, taxpayer_id").eq("id", profile!.id).single();
@@ -268,7 +272,7 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
   const eg2 = section(page, "EG_ETA");
   await eg2.locator("#tax-EG_ETA").fill("TAX-DIFFERENT-FILER");
   await expect(eg2.locator("#tax-EG_ETA")).toHaveValue("TAX-DIFFERENT-FILER");
-  await eg2.getByRole("button", { name: /Save details/i }).click();
+  await eg2.getByRole("button", { name: /Save Settings/i }).click();
   await expect(eg2.getByText(/does not match the organization/i)).toBeVisible({ timeout: 15_000 });
 
   const { data: unchanged } = await admin
@@ -324,7 +328,7 @@ test("a user without the permission cannot see settings detail", async ({ browse
   const body = await page.locator("body").innerText();
   expect(body).toMatch(/don't have permission|You don't have/i);
   expect(body, "internal detail must not leak").not.toContain(org.taxpayerId);
-  await expect(page.getByRole("button", { name: /Save details/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Save Settings/i })).toHaveCount(0);
 
   await ctx.close();
   await cleanUp(admin, org.orgId);

@@ -15,6 +15,7 @@ import {
   type RevenueNatureItem,
   type FormOption,
 } from "./einvoice-client";
+import { ProfileForm, FilingToggle } from "./einvoice-forms";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -235,6 +236,97 @@ export default async function EInvoicePage({
 
   return (
     <div className="space-y-6">
+      {/* ──────────────────────────────────────────────────────────────────────
+          FILING PROFILES -- the ONLY place an operator can set the taxpayer id,
+          choose the environment, or switch filing on. `einvoice-forms.tsx` and
+          its two server actions exist but nothing imported them, so the whole
+          surface was unreachable in the product while the page still displayed
+          the values as read-only text. This has now been lost twice; the
+          regression spec that covers it is restored alongside this.
+          ────────────────────────────────────────────────────────────────────── */}
+      <section aria-label={isAr ? "ملفات الربط الضريبي" : "Filing profiles"} className="space-y-3">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+          {isAr ? "ملفات الربط بالمصالح الضريبية" : "Tax Authority Filing Profiles"}
+        </h2>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          {OFFERED.map((jur) => {
+            const profile = profiles.find((p) => p.jurisdiction === jur) ?? null;
+
+            // Four derived states. ACTIVE is never claimed from configuration
+            // alone: it needs a real verification write, which only a genuine
+            // authority round-trip performs.
+            const label = !profile
+              ? isAr ? "غير مُعد" : "Not configured"
+              : profile.enabled
+                ? isAr ? "مفعّل — الإرسال يعمل" : "Active — filing on"
+                : profile.verified_at
+                  ? isAr ? "مُتحقق منه — الإرسال متوقف" : "Verified — filing off"
+                  : isAr ? "مُعد — لم يُتحقق منه" : "Configured — not verified";
+
+            return (
+              <div
+                key={jur}
+                data-jurisdiction={jur}
+                // Mirrors the ProfileForm remount key below so a test can wait
+                // for a save to have actually landed. The remount resets the
+                // uncontrolled inputs, so anything typed before it arrives is
+                // silently discarded.
+                data-profile-updated={profile?.updated_at ?? "new"}
+                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{jur}</span>
+                  <span className="text-[11px] font-semibold text-slate-500">{label}</span>
+                </div>
+
+                {profile?.last_verification_error && (
+                  <p role="alert" className="text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                    {profile.last_verification_error}
+                  </p>
+                )}
+
+                {canManage ? (
+                  <>
+                    <ProfileForm
+                      // Remount on every save. The inputs are uncontrolled, so
+                      // `defaultValue` applies only at mount: without this key a
+                      // save-and-revalidate leaves stale values in the DOM and
+                      // the NEXT save posts what the previous render put there
+                      // rather than what the operator typed. Here that means a
+                      // save can carry the PREVIOUS taxpayer id, which the ADR
+                      // 0002 identity guard then has nothing to object to -- so
+                      // it succeeds silently. Not cosmetic.
+                      key={`${jur}-${profile?.updated_at ?? "new"}`}
+                      organizationId={organization.id}
+                      jurisdiction={jur}
+                      environment={(profile?.environment as "SANDBOX" | "PRODUCTION") ?? "SANDBOX"}
+                      taxpayerId={profile?.taxpayer_id ?? null}
+                      branchCode={profile?.branch_code ?? null}
+                      activityCode={profile?.activity_code ?? null}
+                      locale={locale}
+                    />
+                    {profile && (
+                      <FilingToggle
+                        profileId={profile.id}
+                        enabled={profile.enabled}
+                        // Only a recorded verification unlocks filing.
+                        canEnable={Boolean(profile.verified_at)}
+                        locale={locale}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    {isAr ? "للاطلاع فقط." : "View only."}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <EInvoiceClient
         taxDecisions={taxDecisions}
         revenueNatures={revenueNatures}
