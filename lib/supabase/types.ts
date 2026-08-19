@@ -2058,6 +2058,11 @@ export type Database = {
       };
       supplier_invoices: {
         Row: {
+          currency: string | null;
+          exchange_rate: number | null;
+          foreign_net_amount: number | null;
+          foreign_discount_amount: number | null;
+          foreign_amount: number | null;
           id: string;
           organization_id: string;
           property_id: string;
@@ -2288,6 +2293,36 @@ export type Database = {
       };
     };
     Functions: {
+      post_supplier_invoice_in_currency: {
+        Args: {
+          p_organization_id: string;
+          p_resort_id: string;
+          p_supplier_id: string;
+          p_purchase_order_id: string | null;
+          p_invoice_number: string;
+          p_expense_account_id: string;
+          p_net_amount: number;
+          p_discount_amount: number;
+          p_vat_rate: number;
+          p_vat_account_id: string | null;
+          p_wht_rate: number;
+          p_wht_account_id: string | null;
+          p_invoice_date: string;
+          p_due_date: string;
+          p_fiscal_period_id: string;
+          p_currency: string | null;
+          p_exchange_rate?: number | null;
+        };
+        Returns: string;
+      };
+      settle_supplier_invoice_fx_difference: {
+        Args: {
+          p_invoice_id: string;
+          p_settlement_date: string;
+          p_settlement_rate: number;
+        };
+        Returns: string;
+      };
       set_fx_difference_accounts: {
         Args: {
           p_organization_id: string;

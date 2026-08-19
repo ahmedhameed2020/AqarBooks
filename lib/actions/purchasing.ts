@@ -270,6 +270,14 @@ const postInvoiceSchema = z.object({
   invoiceDate: z.string().min(1),
   dueDate: z.string().min(1),
   fiscalPeriodId: z.string().uuid(),
+  // Empty means the organisation's own currency, which is what every existing
+  // caller sends. The wrapper treats that as the identity case and delegates
+  // to the original RPC unchanged.
+  currency: z.string().trim().length(3).transform((c) => c.toUpperCase()).optional(),
+  // Optional: a contracted rate overrides the registry. Omitted means "use the
+  // recorded rate", and if none exists the database refuses rather than
+  // assuming 1:1.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 
 export async function postSupplierInvoiceAction(
@@ -292,11 +300,16 @@ export async function postSupplierInvoiceAction(
     invoiceDate: formData.get("invoiceDate"),
     dueDate: formData.get("dueDate"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
+    currency: (formData.get("currency") as string) || undefined,
+    exchangeRate: (formData.get("exchangeRate") as string) || undefined,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("post_supplier_invoice", {
+  // Always the currency-aware wrapper: with a null currency it delegates
+  // straight to `post_supplier_invoice`, so the local path is byte-identical
+  // to what it was and there is no second code path to keep in step.
+  const { error } = await supabase.rpc("post_supplier_invoice_in_currency", {
     p_organization_id: parsed.data.organizationId,
     p_resort_id: parsed.data.resortId,
     p_supplier_id: parsed.data.supplierId,
@@ -312,6 +325,43 @@ export async function postSupplierInvoiceAction(
     p_invoice_date: parsed.data.invoiceDate,
     p_due_date: parsed.data.dueDate,
     p_fiscal_period_id: parsed.data.fiscalPeriodId,
+    p_currency: parsed.data.currency ?? null,
+    p_exchange_rate: parsed.data.exchangeRate ?? null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/finance/suppliers", "page");
+  return { ok: true };
+}
+
+const settleFxSchema = z.object({
+  invoiceId: z.string().uuid(),
+  settlementDate: z.string().min(1),
+  settlementRate: z.coerce.number().positive(),
+});
+
+/**
+ * Records the realised difference between the rate an invoice was booked at
+ * and the rate it was settled at. Separate from payment on purpose: the
+ * payment moves cash, this recognises the currency movement, and conflating
+ * them would hide which of the two an entry represents.
+ */
+export async function settleSupplierInvoiceFxAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = settleFxSchema.safeParse({
+    invoiceId: formData.get("invoiceId"),
+    settlementDate: formData.get("settlementDate"),
+    settlementRate: formData.get("settlementRate"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("settle_supplier_invoice_fx_difference", {
+    p_invoice_id: parsed.data.invoiceId,
+    p_settlement_date: parsed.data.settlementDate,
+    p_settlement_rate: parsed.data.settlementRate,
   });
 
   if (error) return { ok: false, error: error.message };

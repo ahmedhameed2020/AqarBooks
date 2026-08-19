@@ -138,18 +138,28 @@ test("staff posts a supplier invoice with VAT + WHT through the real form, and t
 
   await page.goto("/en/finance/suppliers");
 
-  // Scope everything to PostInvoiceForm specifically -- this page also
-  // renders CreateSupplierForm/CreateRequestForm/CreateOrderForm above it,
-  // each with their own comboboxes, so unscoped nth()/getByRole() selectors
-  // would be ambiguous.
-  const form = page.locator("form").filter({ has: page.locator('input[name="netAmount"]') });
+  // Posting an invoice is a dialog now and its fields are state-bound rather
+  // than named, so they are addressed by type and order: invoice number, then
+  // net / discount / VAT rate / WHT rate among the numbers, then the two dates.
+  await page.getByRole("button", { name: /Post Invoice/i }).click();
+  const form = page.getByRole("dialog", { name: /Post Supplier Invoice/i });
+  await expect(form).toBeVisible();
 
   const invoiceNumber = `E2E-INV-${runSuffix}`;
-  await form.locator('input[name="invoiceNumber"]').fill(invoiceNumber);
-  await form.locator('input[name="netAmount"]').fill("1000");
-  await form.locator('input[name="vatRate"]').fill("14");
-  await form.locator('input[name="invoiceDate"]').fill("2026-01-15");
-  await form.locator('input[name="dueDate"]').fill("2026-02-15");
+  const numbers = form.locator('input[type="number"]');
+  const dates = form.locator('input[type="date"]');
+  // getByRole, not a bare input selector: each base-ui Select also renders a
+  // hidden input, and `.first()` would match one of those.
+  await form.getByRole("textbox").first().fill(invoiceNumber);
+  await numbers.nth(0).fill("1000");
+  await numbers.nth(2).fill("14"); // VAT rate; nth(1) is the discount
+  await dates.nth(0).fill("2026-01-15");
+  await dates.nth(1).fill("2026-02-15");
+
+  // The currency field is deliberately left EMPTY here. That is the whole
+  // point of this test after the multi-currency work: an invoice with no
+  // currency must post exactly as it always did.
+  await expect(form.getByPlaceholder("EUR")).toHaveValue("");
 
   // Supplier/expense-account/fiscal-period/VAT-account are @base-ui Select
   // comboboxes -- each one renders BOTH a hidden native <select> (for real
@@ -165,19 +175,30 @@ test("staff posts a supplier invoice with VAT + WHT through the real form, and t
     await option.click();
   }
 
-  // In this form's own DOM order: supplier, expense account, fiscal
-  // period, VAT account, WHT account.
+  // Three comboboxes: supplier, expense account, fiscal period. The VAT and
+  // WHT accounts are resolved server-side now, which is why the old picks for
+  // them are gone.
   await pickOption(0, "E2E Invoice Supplier");
   await pickOption(1);
   await pickOption(2);
-  await pickOption(3, /VAT Payable/);
 
-  await form.getByRole("button", { name: "Post supplier invoice" }).click();
+  await form.getByRole("button", { name: /Post Invoice/i }).click();
+  await expect(form).toBeHidden({ timeout: 40_000 });
 
-  // Gross = net 1000 + VAT (14% of 1000) 140 = 1140.
+  // Gross = net 1000 + VAT (14% of 1000) 140 = 1140. The list formats with a
+  // thousands separator.
   const row = page.locator("tr", { hasText: invoiceNumber });
-  await expect(row).toBeVisible({ timeout: 10_000 });
-  await expect(row).toContainText("1140.00");
+  await expect(row).toBeVisible({ timeout: 40_000 });
+  await expect(row).toContainText(/1,?140\.00/);
+
+  // And the invoice carries NO currency metadata: the local path is untouched.
+  const { data: posted } = await admin
+    .from("supplier_invoices")
+    .select("currency, exchange_rate, foreign_amount")
+    .eq("organization_id", org!.id).eq("invoice_number", invoiceNumber).single();
+  expect(posted!.currency, "a local invoice records no currency").toBeNull();
+  expect(posted!.exchange_rate).toBeNull();
+  expect(posted!.foreign_amount).toBeNull();
 
   await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", org!.id);
 });

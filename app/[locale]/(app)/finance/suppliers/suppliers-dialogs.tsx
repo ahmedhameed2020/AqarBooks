@@ -447,6 +447,10 @@ export function PostInvoiceDialog({
   const [whtAccountId, setWhtAccountId] = useState<string>(liabilityAccounts[0]?.id ?? "");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
+  // Empty = the organisation's own currency, which is the overwhelming case and
+  // the one that must stay exactly as it was.
+  const [invoiceCurrency, setInvoiceCurrency] = useState("");
+  const [exchangeRate, setExchangeRate] = useState("");
 
   // Live Totals
   const net = Number(netAmount) || 0;
@@ -490,6 +494,8 @@ export function PostInvoiceDialog({
       formData.set("vatRate", vatRate || "0");
       if (vRate > 0) formData.set("vatAccountId", vatAccountId);
       formData.set("whtRate", whtRate || "0");
+      if (invoiceCurrency.trim()) formData.set("currency", invoiceCurrency.trim().toUpperCase());
+      if (invoiceCurrency.trim() && exchangeRate.trim()) formData.set("exchangeRate", exchangeRate.trim());
       if (wRate > 0) formData.set("whtAccountId", whtAccountId);
       formData.set("invoiceDate", invoiceDate);
       formData.set("dueDate", dueDate);
@@ -711,6 +717,54 @@ export function PostInvoiceDialog({
                   onChange={(e) => setDueDate(e.target.value)}
                   className="font-mono text-xs font-bold text-rose-600"
                 />
+              </div>
+            </div>
+
+            {/* Foreign currency. Left blank the invoice is in the organisation's
+                own currency and nothing about the posting changes -- which is
+                why this sits below the amounts rather than above them, so the
+                common case is never asked a question it does not have. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5 text-start">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isAr ? "عملة الفاتورة (اتركها فارغة للعملة المحلية)" : "Invoice currency (blank = local)"}
+                </Label>
+                <Input
+                  value={invoiceCurrency}
+                  onChange={(e) => setInvoiceCurrency(e.target.value)}
+                  maxLength={3}
+                  placeholder="EUR"
+                  dir="ltr"
+                  className="text-xs font-mono uppercase"
+                />
+              </div>
+
+              <div className="space-y-1.5 text-start">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isAr ? "سعر الصرف (اختياري)" : "Exchange rate (optional)"}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.00000001"
+                  min="0"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  disabled={!invoiceCurrency.trim()}
+                  dir="ltr"
+                  className="text-xs font-mono"
+                />
+                {/* Says what blank MEANS, because a blank rate silently
+                    defaulting to 1 is the failure this whole feature exists to
+                    prevent. */}
+                <p className="text-[10px] text-slate-500">
+                  {invoiceCurrency.trim()
+                    ? isAr
+                      ? `اتركه فارغًا لاستعمال السعر المسجَّل. 1 ${invoiceCurrency.trim().toUpperCase()} = هذا العدد من ${currencyLabel}`
+                      : `Leave blank to use the recorded rate. 1 ${invoiceCurrency.trim().toUpperCase()} = this many ${currencyLabel}`
+                    : isAr
+                      ? "يُفعَّل عند إدخال عملة أجنبية."
+                      : "Enabled once a foreign currency is entered."}
+                </p>
               </div>
             </div>
 

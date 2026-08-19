@@ -23,6 +23,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+import { SettleFxForm, type ForeignInvoice } from "./fx-settlement-forms";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -97,7 +99,7 @@ export default async function SuppliersPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("supplier_invoices")
-      .select("id, invoice_number, amount, status, supplier_id, due_date")
+      .select("id, invoice_number, amount, status, supplier_id, due_date, currency, exchange_rate, foreign_amount")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -138,6 +140,20 @@ export default async function SuppliersPage({
   }
 
   // Map Invoices
+  // Foreign-currency invoices only. Kept out of the main table on purpose: the
+  // settlement difference is a separate act from paying the invoice, and mixing
+  // the two controls invites posting one while meaning the other.
+  const foreignInvoices: ForeignInvoice[] = (invoicesRaw ?? [])
+    .filter((inv) => inv.currency && inv.exchange_rate && inv.foreign_amount)
+    .map((inv) => ({
+      id: inv.id,
+      invoice_number: inv.invoice_number,
+      currency: inv.currency as string,
+      exchange_rate: Number(inv.exchange_rate),
+      foreign_amount: Number(inv.foreign_amount),
+      base_amount: Number(inv.amount),
+    }));
+
   const invoices: SupplierInvoiceItem[] = (invoicesRaw ?? []).map((inv) => {
     const totalAmount = Number(inv.amount);
     const paid = paidByInvoice.get(inv.id) ?? 0;
@@ -322,6 +338,41 @@ export default async function SuppliersPage({
               : "Please define a property/resort before managing suppliers."}
           </p>
         </div>
+      )}
+
+      {foreignInvoices.length > 0 && (
+        <section
+          aria-label={isAr ? "فروق تسوية العملة" : "Currency settlement differences"}
+          className="space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+        >
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            {isAr ? "فواتير بعملة أجنبية" : "Foreign-currency invoices"}
+          </h2>
+          <p className="text-xs text-slate-500">
+            {isAr
+              ? "سُجِّلت بسعر يومها. إن سُدِّدت بسعر آخر، رحّل الفرق هنا — وهو فعل منفصل عن السداد نفسه."
+              : "Booked at the rate of their own day. If settled at a different rate, post the difference here -- a separate act from paying the invoice itself."}
+          </p>
+
+          <div className="space-y-3">
+            {foreignInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                data-fx-invoice={inv.invoice_number}
+                className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs" dir="ltr">
+                  <span className="font-mono font-bold">{inv.invoice_number}</span>
+                  <span className="font-mono text-slate-500">
+                    {inv.foreign_amount} {inv.currency} @ {inv.exchange_rate} ={" "}
+                    {inv.base_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} {currency}
+                  </span>
+                </div>
+                <SettleFxForm invoice={inv} baseCurrencyLabel={currency} locale={locale} />
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
