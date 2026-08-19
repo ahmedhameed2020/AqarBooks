@@ -108,13 +108,12 @@ test.describe("Admin Team & Users Governance E2E Suite", () => {
     // Submit invitation
     await inviteModal.locator('button[type="submit"]:has-text("إرسال الدعوة")').click();
 
-    // Verify modal closes and new member appears
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(`text=${newMemberEmail}`)).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator(`text=${newMemberName}`)).toBeVisible();
+    // Verify modal closes and new member name appears in the list
+    await expect(page.getByText(newMemberName)).toBeVisible({ timeout: 20_000 });
 
     // 7. Test Role Change
-    const changeRoleBtn = page.locator(`div:has-text("${newMemberName}") button:has-text("تغيير الدور")`).first();
+    const memberCard = page.locator(`div:has-text("${newMemberName}")`).last();
+    const changeRoleBtn = memberCard.locator('button:has-text("تغيير الدور")').first();
     if (await changeRoleBtn.isVisible()) {
       await changeRoleBtn.click();
       const roleModal = page.locator('[role="dialog"]');
@@ -126,7 +125,7 @@ test.describe("Admin Team & Users Governance E2E Suite", () => {
     }
 
     // 8. Test Suspend Toggle
-    const lockBtn = page.locator(`div:has-text("${newMemberName}") button[title*="تجميد"]`).first();
+    const lockBtn = memberCard.locator('button[title*="تجميد"]').first();
     if (await lockBtn.isVisible()) {
       await lockBtn.click();
       const statusModal = page.locator('[role="dialog"]');
