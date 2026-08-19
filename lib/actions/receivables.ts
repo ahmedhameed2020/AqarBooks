@@ -98,17 +98,16 @@ export async function issueDueAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  const { error } = await supabase.rpc("issue_due", {
+  const { error } = await supabase.rpc("issue_dues", {
     p_organization_id: parsed.data.organizationId,
     p_resort_id: parsed.data.resortId,
-    p_unit_id: parsed.data.unitId,
+    p_unit_ids: [parsed.data.unitId],
     p_due_type_id: parsed.data.dueTypeId,
     p_receivable_account_id: parsed.data.receivableAccountId,
     p_amount: parsed.data.amount,
     p_issue_date: parsed.data.issueDate,
     p_due_date: parsed.data.dueDate,
     p_description: parsed.data.description ?? null,
-    p_fiscal_period_id: parsed.data.fiscalPeriodId,
   });
 
   if (error) return { ok: false, error: error.message };
