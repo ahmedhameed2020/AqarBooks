@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Link } from "@/i18n/navigation";
 import {
   FileCheck2,
@@ -21,10 +21,36 @@ import {
   Globe,
   Settings,
   ExternalLink,
+  Plus,
+  Printer,
+  FileSpreadsheet,
+  QrCode,
+  Eye,
+  Zap,
+  Tag,
+  Receipt,
+  User,
+  MapPin,
+  Check,
+  X,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
+import { issueDueAction } from "@/lib/actions/receivables";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
+import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
 import { getCurrencyLabel } from "@/lib/currency";
 
 export type TaxDecisionItem = {
@@ -32,6 +58,9 @@ export type TaxDecisionItem = {
   source_type: string;
   source_id: string;
   unit_code?: string;
+  unit_id?: string;
+  owner_name?: string;
+  description?: string;
   nature_name: string;
   taxable_base: number;
   vat_rate: number;
@@ -48,6 +77,22 @@ export type RevenueNatureItem = {
   is_derived: boolean;
   standard_rate?: string;
 };
+
+export type EInvoiceProfileData = {
+  id: string;
+  jurisdiction: string;
+  environment: string;
+  taxpayer_id: string;
+  branch_code?: string | null;
+  activity_code?: string | null;
+  status: string;
+  enabled: boolean;
+  verified_at?: string | null;
+  last_verification_error?: string | null;
+  updated_at?: string | null;
+};
+
+export type FormOption = { id: string; label: string };
 
 const JURISDICTION_INFO: Record<
   string,
@@ -77,8 +122,8 @@ const JURISDICTION_INFO: Record<
     standardVat: "14%",
   },
   SA: {
-    nameAr: "المملكة العربية السعودية",
-    nameEn: "Saudi Arabia",
+    arName: "المملكة العربية السعودية",
+    enName: "Saudi Arabia",
     authorityAr: "هيئة الزكاة والضريبة والجمارك (منظومة فاتورة - ZATCA)",
     authorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
     flag: "🇸🇦",
@@ -113,25 +158,81 @@ const JURISDICTION_INFO: Record<
 export function EInvoiceClient({
   taxDecisions,
   revenueNatures,
+  profiles = [],
+  organizationId,
+  organizationName,
   organizationJurisdiction = "EG",
   organizationTaxId,
+  organizationAddress,
+  organizationPhone,
   currency = "EGP",
   locale,
+  resorts = [],
+  units = [],
+  dueTypes = [],
+  receivableAccounts = [],
+  periods = [],
 }: {
   taxDecisions: TaxDecisionItem[];
   revenueNatures: RevenueNatureItem[];
+  profiles?: EInvoiceProfileData[];
+  organizationId: string;
+  organizationName: string;
   organizationJurisdiction?: string;
   organizationTaxId?: string | null;
+  organizationAddress?: string | null;
+  organizationPhone?: string | null;
   currency?: string;
   locale: string;
+  resorts?: FormOption[];
+  units?: (FormOption & { propertyId?: string; ownerName?: string })[];
+  dueTypes?: FormOption[];
+  receivableAccounts?: FormOption[];
+  periods?: FormOption[];
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
-  const [activeTab, setActiveTab] = useState<"DECISIONS" | "NATURES">("DECISIONS");
+  const [activeTab, setActiveTab] = useState<"DECISIONS" | "CREATE_INFO" | "NATURES" | "PROFILES">("DECISIONS");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Create Invoice Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedResortId, setSelectedResortId] = useState(resorts[0]?.id || "");
+  const [selectedUnitId, setSelectedUnitId] = useState(units[0]?.id || "");
+  const [selectedDueTypeId, setSelectedDueTypeId] = useState(dueTypes[0]?.id || "");
+  const [selectedReceivableAccountId, setSelectedReceivableAccountId] = useState(receivableAccounts[0]?.id || "");
+  const [selectedPeriodId, setSelectedPeriodId] = useState(periods[0]?.id || "");
+  const [invoiceAmount, setInvoiceAmount] = useState<number | "">("");
+  const [invoiceDescription, setInvoiceDescription] = useState("");
+  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = useState(
+    new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  );
+
+  // View / Print Tax Invoice Modal state
+  const [viewInvoiceDecision, setViewInvoiceDecision] = useState<TaxDecisionItem | null>(null);
+
   const currentJur = JURISDICTION_INFO[organizationJurisdiction] || JURISDICTION_INFO.EG;
+
+  // Filtered units based on selected resort
+  const filteredUnits = useMemo(() => {
+    if (!selectedResortId) return units;
+    const matched = units.filter((u) => !u.propertyId || u.propertyId === selectedResortId);
+    return matched.length > 0 ? matched : units;
+  }, [units, selectedResortId]);
+
+  // Tax calculation helper for create modal
+  const calculatedTax = useMemo(() => {
+    const base = Number(invoiceAmount) || 0;
+    const isExempt = selectedDueTypeId ? false : false;
+    const rate = isExempt ? 0 : organizationJurisdiction.startsWith("SA") ? 15 : organizationJurisdiction.startsWith("AE") ? 5 : 14;
+    const vat = (base * rate) / 100;
+    const gross = base + vat;
+    return { base, rate, vat, gross };
+  }, [invoiceAmount, selectedDueTypeId, organizationJurisdiction]);
 
   const filteredDecisions = useMemo(() => {
     if (!searchQuery.trim()) return taxDecisions;
@@ -139,6 +240,8 @@ export function EInvoiceClient({
     return taxDecisions.filter(
       (td) =>
         (td.unit_code || "").toLowerCase().includes(q) ||
+        (td.owner_name || "").toLowerCase().includes(q) ||
+        (td.description || "").toLowerCase().includes(q) ||
         td.nature_name.toLowerCase().includes(q) ||
         td.decided_at.includes(q)
     );
@@ -155,12 +258,243 @@ export function EInvoiceClient({
     );
   }, [revenueNatures, searchQuery]);
 
+  // Handle Form Submission for Create E-Invoice
+  const handleIssueInvoiceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedResortId || !selectedUnitId || !selectedDueTypeId || !selectedPeriodId || !invoiceAmount) {
+      toast.add({
+        type: "error",
+        title: isAr ? "يرجى تعبئة كافة الحقول المطلوبة" : "Missing Required Fields",
+        description: isAr ? "تأكد من اختيار الوحدة، نوع المطالبة، المبلغ، والفترة المالية." : "Please fill in all mandatory invoice fields.",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("organizationId", organizationId);
+    formData.append("resortId", selectedResortId);
+    formData.append("unitId", selectedUnitId);
+    formData.append("dueTypeId", selectedDueTypeId);
+    formData.append("receivableAccountId", selectedReceivableAccountId || (receivableAccounts[0]?.id || ""));
+    formData.append("fiscalPeriodId", selectedPeriodId);
+    formData.append("amount", String(invoiceAmount));
+    formData.append("issueDate", issueDate);
+    formData.append("dueDate", dueDate);
+    if (invoiceDescription) formData.append("description", invoiceDescription);
+
+    startTransition(async () => {
+      const res = await issueDueAction({ ok: true }, formData);
+      if (res.ok) {
+        toast.add({
+          type: "success",
+          title: isAr ? "تم إصدار الفاتورة الضريبية الإلكترونية بنجاح" : "E-Invoice Issued Successfully",
+          description: isAr
+            ? `تم قيد الفاتورة بمبلغ ${Number(invoiceAmount).toLocaleString()} ${currencyLabel} وتوليد القرار الضريبي وختمه.`
+            : `Invoice recorded with amount ${invoiceAmount} ${currencyLabel} and tax decision stamped.`,
+        });
+        setIsCreateModalOpen(false);
+        setInvoiceAmount("");
+        setInvoiceDescription("");
+      } else {
+        toast.add({
+          type: "error",
+          title: isAr ? "تعذر إصدار الفاتورة" : "Invoice Issuance Failed",
+          description: res.error || (isAr ? "حدث خطأ غير متوقع أثناء المعالجة" : "Unknown error"),
+        });
+      }
+    });
+  };
+
+  // Export Matrix
+  const handleExportExcel = () => {
+    const rows = filteredDecisions.map((td) => ({
+      unit: td.unit_code || `#${td.source_id.slice(0, 8)}`,
+      nature: td.nature_name,
+      date: td.decided_at,
+      base: td.taxable_base,
+      rate: `${td.vat_rate}%`,
+      vat: td.vat_amount,
+      gross: td.gross_amount,
+      status: td.is_exempt ? (isAr ? "معفى 0%" : "Exempt") : isAr ? "مختوم ضريبياً" : "Stamped",
+    }));
+
+    exportFinancialStatementToExcel({
+      title: isAr ? "سجل الفواتير والإقرارات الضريبية الإلكترونية" : "Statutory Tax Invoices & Decisions Register",
+      organizationName,
+      currency: currencyLabel,
+      columns: [
+        { header: isAr ? "الوحدة / المستند" : "Unit / Document", key: "unit" },
+        { header: isAr ? "نوع الإيراد" : "Revenue Nature", key: "nature" },
+        { header: isAr ? "تاريخ القرار" : "Decision Date", key: "date" },
+        { header: isAr ? "الوعاء الخاضع" : "Taxable Base", key: "base", isNumber: true },
+        { header: isAr ? "نسبة الضريبة" : "VAT Rate", key: "rate" },
+        { header: isAr ? "مبلغ الضريبة" : "VAT Amount", key: "vat", isNumber: true },
+        { header: isAr ? "الإجمالي بالضريبة" : "Gross Total", key: "gross", isNumber: true },
+        { header: isAr ? "الحالة" : "Status", key: "status" },
+      ],
+      rows,
+      filename: `Tax_Invoices_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    });
+  };
+
+  const handleExportPdf = () => {
+    const rows = filteredDecisions.map((td) => ({
+      unit: td.unit_code || `#${td.source_id.slice(0, 8)}`,
+      nature: td.nature_name,
+      date: td.decided_at,
+      base: td.taxable_base.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      rate: `${td.vat_rate}%`,
+      vat: td.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      gross: td.gross_amount.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      status: td.is_exempt ? (isAr ? "معفى 0%" : "Exempt") : isAr ? "مختوم" : "Stamped",
+    }));
+
+    generateFinancialStatementPdf({
+      title: isAr ? "سجل الفواتير والقرارات الضريبية الإلكترونية" : "Statutory Tax Invoices & Decisions Register",
+      subtitle: isAr ? "تقرير الامتثال لمنظومة الفوترة الإلكترونية والإقرارات الضريبية" : "Statutory E-Invoicing Compliance Report",
+      organizationName,
+      taxNumber: organizationTaxId || undefined,
+      currencyLabel,
+      dateRangeLabel: new Date().toISOString().slice(0, 10),
+      columns: [
+        { header: isAr ? "الوحدة / المستند" : "Unit / Doc", key: "unit", align: "start" },
+        { header: isAr ? "نوع الإيراد" : "Revenue Nature", key: "nature", align: "start" },
+        { header: isAr ? "التاريخ" : "Date", key: "date", align: "center" },
+        { header: isAr ? "الوعاء الصافي" : "Base", key: "base", align: "end", isNumber: true },
+        { header: isAr ? "النسبة" : "Rate", key: "rate", align: "center" },
+        { header: isAr ? "الضريبة" : "VAT", key: "vat", align: "end", isNumber: true },
+        { header: isAr ? "الإجمالي" : "Gross", key: "gross", align: "end", isNumber: true },
+        { header: isAr ? "الحالة" : "Status", key: "status", align: "center" },
+      ],
+      rows,
+      summaryCards: [
+        { label: isAr ? "إجمالي الفواتير" : "Total Invoices", value: `${taxDecisions.length}` },
+        {
+          label: isAr ? "إجمالي الضريبة" : "Total VAT",
+          value: `${taxDecisions.reduce((s, d) => s + d.vat_amount, 0).toLocaleString()} ${currencyLabel}`,
+        },
+        {
+          label: isAr ? "الإجمالي الشامل" : "Gross Total",
+          value: `${taxDecisions.reduce((s, d) => s + d.gross_amount, 0).toLocaleString()} ${currencyLabel}`,
+        },
+      ],
+      filename: `Tax_Invoices_${new Date().toISOString().slice(0, 10)}.pdf`,
+    });
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* ──────────────────────────────────────────────────────────────────────────
-          ACTIVE TAX JURISDICTION COMPLIANCE BANNER
+          EXECUTIVE LIGHT-THEME HEADER WITH PRIMARY CREATE CTA
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/40 dark:from-purple-950/30 dark:via-slate-900 dark:to-slate-900 p-4 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
+              <span className="flex size-6 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-950/50">
+                <Landmark className="size-3.5 text-purple-600" />
+              </span>
+              <span>{isAr ? "الإدارة المالية والضريبية" : "Tax & Compliance"}</span>
+              <span>/</span>
+              <span className="text-slate-800 dark:text-slate-200 font-extrabold">
+                {isAr ? "الفوترة الإلكترونية والإقرارات" : "E-Invoicing Suite"}
+              </span>
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+              {isAr ? "الفوترة والإقرارات الضريبية الإلكترونية" : "E-Invoicing & Statutory Tax Compliance"}
+            </h1>
+            <p className="text-xs text-slate-500 max-w-2xl font-medium">
+              {isAr
+                ? "إصدار الفواتير الضريبية المعتمدة، تطبيق القواعد الضريبية آلياً، والربط اللحظي مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA)."
+                : "Issue statutory tax invoices, auto-calculate VAT, and integrate with Egyptian Tax Authority (ETA) & ZATCA."}
+            </p>
+          </div>
+
+          {/* ACTIONS: PRIMARY CREATE INVOICE BUTTON */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              size="sm"
+              className="h-9.5 px-4.5 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/20 gap-2 cursor-pointer transition-all"
+            >
+              <Plus className="size-4" />
+              <span>{isAr ? "إنشاء فاتورة إلكترونية جديدة" : "Issue New E-Invoice"}</span>
+            </Button>
+
+            <Button
+              onClick={handleExportExcel}
+              variant="outline"
+              size="sm"
+              className="h-9 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 gap-1.5"
+            >
+              <FileSpreadsheet className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "تصدير إكسل" : "Excel"}</span>
+            </Button>
+
+            <Button
+              onClick={handleExportPdf}
+              variant="outline"
+              size="sm"
+              className="h-9 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 gap-1.5"
+            >
+              <FileText className="size-3.5 text-rose-600" />
+              <span>{isAr ? "تصدير PDF" : "PDF"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* TOP SUMMARY STATS */}
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-5 border-t border-slate-100 dark:border-slate-800">
+          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500">{isAr ? "إجمالي الوعاء الخاضع" : "Taxable Base"}</span>
+              <DollarSign className="size-4 text-purple-600" />
+            </div>
+            <p className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">
+              {taxDecisions.reduce((s, d) => s + d.taxable_base, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
+            </p>
+            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "صافي قيمة التوريدات" : "Net sales base"}</span>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500">{isAr ? "ضريبة القيمة المضافة" : "Output VAT"}</span>
+              <Percent className="size-4 text-emerald-600" />
+            </div>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+              {taxDecisions.reduce((s, d) => s + d.vat_amount, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
+            </p>
+            <span className="text-[10px] text-emerald-600/80 block mt-0.5">{isAr ? "محصلة ومختومة ضريبياً" : "Collected VAT"}</span>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500">{isAr ? "الفواتير والقرارات" : "Stamped Invoices"}</span>
+              <FileCheck2 className="size-4 text-blue-600" />
+            </div>
+            <p className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">{taxDecisions.length}</p>
+            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "مكتملة ومختومة 100%" : "Audited records"}</span>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500">{isAr ? "الامتثال والربط" : "Compliance Link"}</span>
+              <ShieldCheck className="size-4 text-indigo-600" />
+            </div>
+            <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1 font-mono">
+              {currentJur.flag} {organizationJurisdiction}
+            </p>
+            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "معتمد وجاهز للربط" : "Ready"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          ACTIVE TAX JURISDICTION BANNER
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-purple-200/80 bg-white p-4.5 shadow-xs dark:border-purple-900/50 dark:bg-slate-900">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-3xl">{currentJur.flag}</span>
@@ -169,66 +503,84 @@ export function EInvoiceClient({
                 <h2 className="text-sm font-black text-slate-900 dark:text-white">
                   {isAr ? currentJur.arName : currentJur.enName} — {isAr ? currentJur.authorityAr : currentJur.authorityEn}
                 </h2>
-                <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                  {isAr ? "✓ مربوط بإعدادات الكيان" : "Linked via Entity"}
+                <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
+                  {isAr ? "✓ مربوط بالمنشأة" : "Linked"}
                 </Badge>
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-0.5">
                 <span>
-                  {isAr ? "الرقم الضريبي للمنشأة: " : "Tax ID: "}
+                  {isAr ? "الرقم الضريبي: " : "Tax ID: "}
                   <strong className="font-mono text-slate-900 dark:text-white">{organizationTaxId || "—"}</strong>
                 </span>
                 <span>•</span>
                 <span>
                   {isAr ? "الضريبة القياسية: " : "Standard VAT: "}
-                  <strong className="text-purple-700 dark:text-purple-300">{currentJur.standardVat}</strong>
+                  <strong className="text-purple-700 dark:text-purple-300 font-black">{currentJur.standardVat}</strong>
                 </span>
               </div>
             </div>
           </div>
 
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-bold h-8 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300">
-              <Settings className="size-3.5" />
-              <span>{isAr ? "إعدادات الربط بالكيان" : "Entity Tax Settings"}</span>
-              <ExternalLink className="size-3" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs font-bold h-8.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300"
+              >
+                <Settings className="size-3.5" />
+                <span>{isAr ? "إعدادات الربط والشهادات" : "Tax Link Settings"}</span>
+                <ExternalLink className="size-3" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MAIN ACTION TOOLBAR & MODULE TABS
+          FUNCTIONAL NAVIGATION TABS & TOOLBAR
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         {/* Module Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
           <button
             onClick={() => setActiveTab("DECISIONS")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
               activeTab === "DECISIONS"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <FileCheck2 className="size-3.5 text-blue-600" />
-            <span>{isAr ? "سجل القرارات والفواتير الضريبية" : "Tax Decisions Register"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1">
+            <FileCheck2 className="size-3.5 text-purple-600" />
+            <span>{isAr ? "سجل الفواتير والمطالبات الضريبية" : "Tax Invoices Register"}</span>
+            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1 font-mono">
               {taxDecisions.length}
             </Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("CREATE_INFO")}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === "CREATE_INFO"
+                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <Zap className="size-3.5 text-indigo-600" />
+            <span>{isAr ? "إرشادات ودليل الفوترة" : "Invoicing Guide"}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("NATURES")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
               activeTab === "NATURES"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <Scale className="size-3.5 text-purple-600" />
+            <Scale className="size-3.5 text-blue-600" />
             <span>{isAr ? "دليل تصنيفات الإيراد والقواعد الضريبية" : "Revenue Tax Rules"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1">
+            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1 font-mono">
               {revenueNatures.length}
             </Badge>
           </button>
@@ -240,20 +592,21 @@ export function EInvoiceClient({
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={isAr ? "بحث في القرارات أو التصنيفات..." : "Search decisions or natures..."}
-            className="ps-9 text-xs h-9"
+            placeholder={isAr ? "بحث في الفواتير أو الوحدات..." : "Search invoices or units..."}
+            className="ps-9 text-xs h-9 bg-slate-50 dark:bg-slate-800"
           />
         </div>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 1: TAX DECISIONS REGISTER
+          TAB 1: TAX INVOICES & DECISIONS REGISTER
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "DECISIONS" && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-start">
-              <thead className="bg-slate-900 text-white dark:bg-slate-800/90 font-bold border-b border-slate-800">
+              {/* CLEAN LIGHT THEME TABLE HEADER */}
+              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3.5 text-start">{isAr ? "الوحدة / المستند" : "Unit / Document"}</th>
                   <th className="p-3.5 text-start">{isAr ? "نوع الإيراد الضريبي" : "Revenue Tax Nature"}</th>
@@ -263,6 +616,7 @@ export function EInvoiceClient({
                   <th className="p-3.5 text-end">{isAr ? "ضريبة القيمة المضافة" : "VAT Amount"}</th>
                   <th className="p-3.5 text-end">{isAr ? "الإجمالي بالضريبة" : "Gross Total"}</th>
                   <th className="p-3.5 text-center">{isAr ? "الحالة" : "Status"}</th>
+                  <th className="p-3.5 text-center">{isAr ? "الإجراءات" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -274,7 +628,7 @@ export function EInvoiceClient({
                     >
                       <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
                         <div className="flex items-center gap-1.5">
-                          <FileCheck2 className="size-3.5 text-blue-600 shrink-0" />
+                          <FileCheck2 className="size-3.5 text-purple-600 shrink-0" />
                           <span>{td.unit_code || `#${td.source_id.slice(0, 8)}`}</span>
                         </div>
                       </td>
@@ -325,12 +679,36 @@ export function EInvoiceClient({
                           {isAr ? "✓ قرار مختوم" : "Stamped"}
                         </Badge>
                       </td>
+
+                      <td className="p-3.5 text-center">
+                        <Button
+                          onClick={() => setViewInvoiceDecision(td)}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px] font-bold px-2.5 gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                        >
+                          <Eye className="size-3" />
+                          <span>{isAr ? "عرض الفاتورة" : "View"}</span>
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-10 text-center text-slate-400 text-xs">
-                      {isAr ? "لا توجد قرارات ضريبية مسجلة بعد" : "No tax decisions found"}
+                    <td colSpan={9} className="p-12 text-center text-slate-400 text-xs">
+                      <div className="flex flex-col items-center gap-2">
+                        <FileCheck2 className="size-8 text-slate-300" />
+                        <p>{isAr ? "لا توجد فواتير أو قرارات ضريبية مسجلة بعد" : "No tax invoices or decisions recorded yet"}</p>
+                        <Button
+                          onClick={() => setIsCreateModalOpen(true)}
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 text-xs font-bold text-purple-600 border-purple-200 gap-1.5"
+                        >
+                          <Plus className="size-3.5" />
+                          <span>{isAr ? "إنشاء أول فاتورة إلكترونية الآن" : "Create First Invoice"}</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -341,13 +719,63 @@ export function EInvoiceClient({
       )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 2: REVENUE TAX NATURES & RULES
+          TAB 2: INVOICING GUIDE & FUNCTIONAL WALKTHROUGH
+          ────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "CREATE_INFO" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950">
+              <Plus className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "1. إنشاء الفاتورة والمطالبة" : "1. Invoice Issuance"}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {isAr
+                ? "يمكنك إنشاء فاتورة ضريبية إلكترونية مباشرة من هذه الصفحة بالضغط على زر «إنشاء فاتورة إلكترونية جديدة» بالأعلى، أو من شاشة المستحقات."
+                : "Issue invoices directly from this page using the top button or via receivables screen."}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950">
+              <Scale className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "2. التكييف والختم الضريبي الآلي" : "2. Automated Tax Stamping"}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {isAr
+                ? "يقوم المحرك الضريبي بفحص نوع الإيراد وتحديد خضوعه للضريبة القياسية أو الإعفاء، وتوليد القرار الضريبي وختمه فورياً بدفتر الأستاذ."
+                : "Automatic tax rules engine applies standard VAT or exemption and stamps decision snapshot."}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950">
+              <QrCode className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "3. طباعة الفاتورة والباركود الضريبي" : "3. Official Print & QR"}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {isAr
+                ? "توليد الفاتورة الضريبية الرسمية المعتمدة بصيغة PDF وتضمين رمز الاستجابة السريع (QR Code) المتوافق مع متطلبات الهيئة."
+                : "Print official compliant invoice with QR code and statutory metadata."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          TAB 3: REVENUE TAX NATURES & RULES
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "NATURES" && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-start">
-              <thead className="bg-slate-900 text-white dark:bg-slate-800/90 font-bold border-b border-slate-800">
+              {/* CLEAN LIGHT THEME TABLE HEADER */}
+              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3.5 text-start">{isAr ? "كود البند الضريبي" : "Nature Code"}</th>
                   <th className="p-3.5 text-start">{isAr ? "المسمى (بالعربية)" : "Arabic Title"}</th>
@@ -394,7 +822,7 @@ export function EInvoiceClient({
                           </span>
                         ) : (
                           <span className="text-purple-600 dark:text-purple-400 font-bold">
-                            {isAr ? "خاضع بالنسبة الأساسية 14%" : "Standard Rate 14%"}
+                            {isAr ? `خاضع بالنسبة القياسية (${currentJur.standardVat})` : `Standard Rate ${currentJur.standardVat}`}
                           </span>
                         )}
                       </td>
@@ -412,6 +840,286 @@ export function EInvoiceClient({
           </div>
         </div>
       )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          MODAL 1: CREATE & ISSUE E-INVOICE WIZARD
+          ────────────────────────────────────────────────────────────────────────── */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-xl rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center gap-2">
+              <Plus className="size-5 text-purple-600" />
+              <span>{isAr ? "إنشاء وإصدار فاتورة ضريبية إلكترونية" : "Issue New Statutory Tax Invoice"}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              {isAr
+                ? "إصدار مطالبة مالية وفاتورة ضريبية رسمية للوحدة مع الختم والتكييف الضريبي المعتمد."
+                : "Issue unit financial demand with statutory tax stamp and GL posting."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleIssueInvoiceSubmit} className="space-y-4 pt-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* RESORT */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? "المشروع / الكيان العقاري *" : "Property / Project *"}</Label>
+                <select
+                  value={selectedResortId}
+                  onChange={(e) => setSelectedResortId(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  required
+                >
+                  {resorts.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* UNIT */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? "الوحدة العقارية المستهدفة *" : "Target Unit *"}</Label>
+                <select
+                  value={selectedUnitId}
+                  onChange={(e) => setSelectedUnitId(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  required
+                >
+                  {filteredUnits.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.label} {u.ownerName ? `(${u.ownerName})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DUE TYPE / REVENUE NATURE */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? "نوع الإيراد / المطالبة *" : "Due Type / Revenue Nature *"}</Label>
+                <select
+                  value={selectedDueTypeId}
+                  onChange={(e) => setSelectedDueTypeId(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  required
+                >
+                  {dueTypes.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* FISCAL PERIOD */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? "الفترة المالية المحاسبية *" : "Fiscal Period *"}</Label>
+                <select
+                  value={selectedPeriodId}
+                  onChange={(e) => setSelectedPeriodId(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  required
+                >
+                  {periods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* AMOUNT */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? `قيمة الفاتورة (الوعاء الصافي) (${currencyLabel}) *` : `Invoice Base Amount (${currencyLabel}) *`}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  required
+                  value={invoiceAmount}
+                  onChange={(e) => setInvoiceAmount(e.target.value ? Number(e.target.value) : "")}
+                  placeholder="0.00"
+                  className="text-xs h-9 bg-slate-50 dark:bg-slate-800 font-mono font-bold"
+                />
+              </div>
+
+              {/* DATES */}
+              <div className="space-y-1.5">
+                <Label className="font-bold">{isAr ? "تاريخ الاستحقاق *" : "Due Date *"}</Label>
+                <Input
+                  type="date"
+                  required
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="text-xs h-9 bg-slate-50 dark:bg-slate-800 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* DESCRIPTION */}
+            <div className="space-y-1.5">
+              <Label className="font-bold">{isAr ? "بيان الفاتورة / الوصف التفصيلي" : "Invoice Description"}</Label>
+              <Input
+                type="text"
+                value={invoiceDescription}
+                onChange={(e) => setInvoiceDescription(e.target.value)}
+                placeholder={isAr ? "مثال: مقابل خدمات صيانة وتشغيل الربع السنوي" : "e.g. Q1 Maintenance levy"}
+                className="text-xs h-9 bg-slate-50 dark:bg-slate-800"
+              />
+            </div>
+
+            {/* REAL-TIME TAX CALCULATION PREVIEW */}
+            <div className="rounded-2xl bg-purple-50/70 dark:bg-purple-950/20 p-3.5 border border-purple-200/80 dark:border-purple-900/50 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
+                <span>{isAr ? "الوعاء الصافي (قبل الضريبة):" : "Net Base Amount:"}</span>
+                <span className="font-mono font-bold">{calculatedTax.base.toLocaleString()} {currencyLabel}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-purple-700 dark:text-purple-400">
+                <span>{isAr ? `ضريبة القيمة المضافة (${calculatedTax.rate}%):` : `VAT (${calculatedTax.rate}%):`}</span>
+                <span className="font-mono font-bold">{calculatedTax.vat.toLocaleString()} {currencyLabel}</span>
+              </div>
+              <div className="pt-2 border-t border-purple-200/60 dark:border-purple-900/60 flex items-center justify-between font-black text-sm text-slate-950 dark:text-white">
+                <span>{isAr ? "إجمالي الفاتورة المطلوب سدادها:" : "Gross Payable Total:"}</span>
+                <span className="font-mono text-purple-700 dark:text-purple-300">{calculatedTax.gross.toLocaleString()} {currencyLabel}</span>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-3 flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-xs font-bold h-9"
+              >
+                {isAr ? "إلغاء" : "Cancel"}
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={isPending || !invoiceAmount}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 shadow-sm"
+              >
+                {isPending ? <span>{isAr ? "جاري الإصدار..." : "Issuing..."}</span> : <span>{isAr ? "إصدار وختم الفاتورة فوراً" : "Issue Tax Invoice"}</span>}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          MODAL 2: OFFICIAL TAX INVOICE PREVIEW & PRINT
+          ────────────────────────────────────────────────────────────────────────── */}
+      <Dialog open={Boolean(viewInvoiceDecision)} onOpenChange={(open) => !open && setViewInvoiceDecision(null)}>
+        <DialogContent className="max-w-2xl rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="size-5 text-purple-600" />
+                <span>{isAr ? "فاتورة ضريبية رسمية معتمدة" : "Statutory Tax Invoice"}</span>
+              </div>
+              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
+                {isAr ? "مختومة ضريبياً" : "Stamped"}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+
+          {viewInvoiceDecision && (
+            <div className="space-y-4 pt-2 text-xs">
+              {/* INVOICE BILLING SHEET */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-5 space-y-4">
+                {/* SELLER & INVOICE META */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{isAr ? "المورد / المنشأة" : "Seller"}</span>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">{organizationName}</h3>
+                    <p className="text-slate-500 font-medium">{isAr ? "الرقم الضريبي: " : "Tax ID: "}<strong className="font-mono text-slate-800 dark:text-slate-200">{organizationTaxId || "—"}</strong></p>
+                  </div>
+
+                  <div className="text-start sm:text-end space-y-1 font-mono">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase">{isAr ? "رقم الفاتورة والقرار" : "Invoice #"}</span>
+                    <p className="font-black text-sm text-purple-600">#{viewInvoiceDecision.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="text-slate-500 text-[11px]">{isAr ? "تاريخ الإصدار: " : "Date: "}{viewInvoiceDecision.decided_at}</p>
+                  </div>
+                </div>
+
+                {/* BUYER / UNIT */}
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-700 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block">{isAr ? "العميل / الوحدة المستفيدة:" : "Customer / Unit:"}</span>
+                    <span className="font-black text-slate-900 dark:text-white text-xs">{viewInvoiceDecision.unit_code || `#${viewInvoiceDecision.source_id.slice(0, 8)}`}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">{isAr ? "المعاملة الضريبية:" : "Tax Nature:"}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{viewInvoiceDecision.nature_name}</span>
+                  </div>
+                </div>
+
+                {/* LINE ITEMS TABLE */}
+                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="p-2.5 text-start">{isAr ? "البند / البيان" : "Item"}</th>
+                        <th className="p-2.5 text-end">{isAr ? "الوعاء الصافي" : "Net Base"}</th>
+                        <th className="p-2.5 text-center">{isAr ? "الضريبة" : "VAT %"}</th>
+                        <th className="p-2.5 text-end">{isAr ? "مبلغ الضريبة" : "VAT Amount"}</th>
+                        <th className="p-2.5 text-end">{isAr ? "الإجمالي" : "Total"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2.5 font-medium">{viewInvoiceDecision.nature_name}</td>
+                        <td className="p-2.5 text-end font-mono">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</td>
+                        <td className="p-2.5 text-center font-mono font-bold">{viewInvoiceDecision.vat_rate}%</td>
+                        <td className="p-2.5 text-end font-mono text-purple-600 font-bold">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</td>
+                        <td className="p-2.5 text-end font-mono font-black text-slate-900 dark:text-white">{viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* TOTALS SUMMARY */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="size-12 text-slate-800 dark:text-slate-200 border p-1 rounded-lg bg-white" />
+                    <span className="text-[10px] text-slate-400 max-w-[140px]">{isAr ? "رمز التحقق والختم الضريبي الرقمي المعتمد" : "Compliant Statutory QR Stamp"}</span>
+                  </div>
+
+                  <div className="space-y-1 text-end">
+                    <div className="text-[11px] text-slate-500">{isAr ? "الصافي: " : "Net: "}<span className="font-mono font-bold">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</span></div>
+                    <div className="text-[11px] text-purple-600 font-bold">{isAr ? "الضريبة: " : "VAT: "}<span className="font-mono">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</span></div>
+                    <div className="text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
+                      {isAr ? "الإجمالي النهائي: " : "Gross Total: "}<span className="font-mono text-purple-700 dark:text-purple-400">{viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2 flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewInvoiceDecision(null)}
+                  className="text-xs font-bold h-9"
+                >
+                  {isAr ? "إغلاق" : "Close"}
+                </Button>
+
+                <Button
+                  onClick={() => window.print()}
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 shadow-sm"
+                >
+                  <Printer className="size-3.5" />
+                  <span>{isAr ? "طباعة الفاتورة الضريبية" : "Print Invoice"}</span>
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

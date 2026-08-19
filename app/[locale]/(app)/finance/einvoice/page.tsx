@@ -7,26 +7,17 @@ import type { Locale } from "@/i18n/routing";
 import type { Jurisdiction } from "@/lib/einvoice/types";
 import { supportedJurisdictions } from "@/lib/einvoice/registry";
 import { getCurrencyLabel } from "@/lib/currency";
-import {
-  FileCheck2,
-  ShieldCheck,
-  Building2,
-  Calendar,
-  Layers,
-  DollarSign,
-  AlertCircle,
-  CheckCircle2,
-  Landmark,
-  Percent,
-  Receipt,
-  Scale,
-} from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import {
   EInvoiceClient,
   type EInvoiceProfileData,
   type TaxDecisionItem,
   type RevenueNatureItem,
+  type FormOption,
 } from "./einvoice-client";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const OFFERED: Jurisdiction[] = supportedJurisdictions();
 
@@ -90,6 +81,11 @@ export default async function EInvoicePage({
     { data: decisionsRaw },
     { data: duesRaw },
     { data: naturesRaw },
+    { data: resortsRaw },
+    { data: unitsRaw },
+    { data: dueTypesRaw },
+    { data: accountsRaw },
+    { data: periodsRaw },
     { data: orgData },
   ] = await Promise.all([
     supabase
@@ -104,28 +100,57 @@ export default async function EInvoicePage({
       .limit(100),
     supabase
       .from("dues")
-      .select("id, amount, units(unit_number)")
+      .select("id, amount, description, unit_id, units(id, unit_number, property_id, owner_name)")
       .eq("organization_id", organization.id),
     supabase
       .from("revenue_natures")
       .select("code, name_ar, name_en, is_derived")
       .order("sort_order"),
     supabase
+      .from("resorts")
+      .select("id, name")
+      .eq("organization_id", organization.id)
+      .order("name"),
+    supabase
+      .from("units")
+      .select("id, code, property_id, owner_name")
+      .eq("organization_id", organization.id)
+      .order("code"),
+    supabase
+      .from("due_types")
+      .select("id, name_ar, name_en, default_revenue_account_id")
+      .eq("organization_id", organization.id)
+      .order("name_ar"),
+    supabase
+      .from("chart_of_accounts")
+      .select("id, code, name_ar, name_en, category")
+      .eq("organization_id", organization.id)
+      .eq("is_group", false)
+      .eq("is_active", true)
+      .order("code"),
+    supabase
+      .from("fiscal_periods")
+      .select("id, name, status")
+      .eq("organization_id", organization.id)
+      .eq("status", "OPEN")
+      .order("start_date", { ascending: true }),
+    supabase
       .from("organizations")
-      .select("default_currency")
+      .select("name, tax_id, tax_jurisdiction, default_currency, address, phone")
       .eq("id", organization.id)
       .maybeSingle(),
   ]);
 
-  const currency = orgData?.default_currency || "EGP";
-  const currencyLabel = getCurrencyLabel(currency, isAr);
+  const currency = orgData?.default_currency || organization.default_currency || "EGP";
 
-  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number }>();
+  const dueUnitMap = new Map<string, { unitNumber?: string; amount?: number; description?: string; ownerName?: string }>();
   for (const d of duesRaw ?? []) {
-    const u = d.units as { unit_number?: string } | null;
+    const u = d.units as { id?: string; unit_number?: string; owner_name?: string } | null;
     dueUnitMap.set(d.id, {
       unitNumber: u?.unit_number,
       amount: Number(d.amount),
+      description: d.description || undefined,
+      ownerName: u?.owner_name || undefined,
     });
   }
 
@@ -145,6 +170,8 @@ export default async function EInvoicePage({
       source_type: td.source_type,
       source_id: td.source_id,
       unit_code: dueInfo?.unitNumber ? (isAr ? `الوحدة ${dueInfo.unitNumber}` : `Unit ${dueInfo.unitNumber}`) : undefined,
+      owner_name: dueInfo?.ownerName,
+      description: dueInfo?.description,
       nature_name: natureMap.get(td.revenue_nature) || td.revenue_nature,
       taxable_base: base,
       vat_rate: rate,
@@ -157,7 +184,7 @@ export default async function EInvoicePage({
 
   const profiles: EInvoiceProfileData[] = (profilesRaw ?? []).map((p) => ({
     id: p.id,
-    jurisdiction: p.jurisdiction as Jurisdiction,
+    jurisdiction: p.jurisdiction,
     environment: p.environment,
     taxpayer_id: p.taxpayer_id,
     branch_code: p.branch_code,
@@ -176,134 +203,54 @@ export default async function EInvoicePage({
     is_derived: n.is_derived,
   }));
 
-  // KPI calculations
-  const totalTaxableBase = taxDecisions.reduce((sum, d) => sum + d.taxable_base, 0);
-  const totalOutputVat = taxDecisions.reduce((sum, d) => sum + d.vat_amount, 0);
-  const activeProfilesCount = profiles.filter((p) => p.status === "ACTIVE" || p.enabled).length;
+  const resorts: FormOption[] = (resortsRaw ?? []).map((r) => ({
+    id: r.id,
+    label: r.name,
+  }));
+
+  const units = (unitsRaw ?? []).map((u) => ({
+    id: u.id,
+    label: u.code,
+    propertyId: u.property_id,
+    ownerName: u.owner_name,
+  }));
+
+  const dueTypes: FormOption[] = (dueTypesRaw ?? []).map((d) => ({
+    id: d.id,
+    label: isAr ? d.name_ar : d.name_en,
+  }));
+
+  const receivableAccounts: FormOption[] = (accountsRaw ?? [])
+    .filter((a) => a.category === "ASSET")
+    .map((a) => ({
+      id: a.id,
+      label: `${a.code} - ${isAr ? a.name_ar : a.name_en}`,
+    }));
+
+  const periods: FormOption[] = (periodsRaw ?? []).map((p) => ({
+    id: p.id,
+    label: p.name,
+  }));
 
   return (
     <div className="space-y-6">
-      {/* ──────────────────────────────────────────────────────────────────────────
-          PAGE HEADER
-          ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
-              <Landmark className="size-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
-                {isAr ? "الفوترة والإقرارات الضريبية الإلكترونية" : "E-Invoicing & Statutory Tax Compliance"}
-              </h1>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                {isAr
-                  ? "إدارة منظومات الفوترة والربط مع مصلحة الضرائب (ETA / ZATCA / PEPPOL) وقرارات الوعاء الضريبي."
-                  : "Tax authority integration profiles, statutory compliance, and revenue tax decision stamps."}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          EXECUTIVE TAX COMPLIANCE KPIS
-          ────────────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* KPI 1: Total Stamped Tax Decisions */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
-          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {isAr ? "القرارات الضريبية المعتمدة" : "Stamped Tax Decisions"}
-            </span>
-            <div className="rounded-xl p-2 bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-              <FileCheck2 className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-              {taxDecisions.length}
-            </span>
-            <span className="text-xs text-slate-500 font-semibold">{isAr ? "قرار مختوم" : "records"}</span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-            <span>{isAr ? "تخضع للرقابة والامتثال الضريبي" : "Legally stamped & frozen"}</span>
-          </div>
-        </div>
-
-        {/* KPI 2: Total Taxable Base */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
-          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {isAr ? "الوعاء الضريبي الخاضع" : "Taxable Base Volume"}
-            </span>
-            <div className="rounded-xl p-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <DollarSign className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-              {totalTaxableBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-xs text-slate-500 font-semibold">{currencyLabel}</span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-            <span>{isAr ? "إجمالي صافي الإيرادات المسجلة" : "Net revenue before VAT"}</span>
-          </div>
-        </div>
-
-        {/* KPI 3: Output VAT */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
-          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {isAr ? "ضريبة القيمة المضافة المحتسبة" : "Output VAT (Generated)"}
-            </span>
-            <div className="rounded-xl p-2 bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
-              <Percent className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-              {totalOutputVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-xs text-slate-500 font-semibold">{currencyLabel}</span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-purple-600 font-bold">
-            <span>{isAr ? "ضريبة المخرجات المستحقة لمصلحة الضرائب" : "Payable output VAT"}</span>
-          </div>
-        </div>
-
-        {/* KPI 4: Integration Readiness */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-md">
-          <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {isAr ? "حالة الربط الضريبي" : "Tax Authority Status"}
-            </span>
-            <div className="rounded-xl p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-              <ShieldCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-              {activeProfilesCount > 0 ? (isAr ? "جاهز ومفعل" : "Live & Active") : (isAr ? "بيئة تجريبية" : "Sandbox")}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-            <span>{OFFERED.length} {isAr ? "منظومات ضريبية مدعومة" : "tax jurisdictions"}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          MAIN CLIENT HUB (TABS & REGISTERS)
-          ────────────────────────────────────────────────────────────────────────── */}
       <EInvoiceClient
         taxDecisions={taxDecisions}
         revenueNatures={revenueNatures}
-        organizationJurisdiction={(organization.tax_jurisdiction as string) || "EG"}
-        organizationTaxId={organization.tax_id}
+        profiles={profiles}
+        organizationId={organization.id}
+        organizationName={orgData?.name || organization.name}
+        organizationJurisdiction={(orgData?.tax_jurisdiction as string) || (organization.tax_jurisdiction as string) || "EG"}
+        organizationTaxId={orgData?.tax_id || organization.tax_id}
+        organizationAddress={orgData?.address}
+        organizationPhone={orgData?.phone}
         currency={currency}
         locale={locale}
+        resorts={resorts}
+        units={units}
+        dueTypes={dueTypes}
+        receivableAccounts={receivableAccounts}
+        periods={periods}
       />
     </div>
   );
