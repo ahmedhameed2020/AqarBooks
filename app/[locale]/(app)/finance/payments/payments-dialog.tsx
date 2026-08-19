@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "@/i18n/navigation";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import {
   CheckCircle2,
   Receipt,
   User,
+  ArrowUpRight,
 } from "lucide-react";
 import { recordPaymentAction } from "@/lib/actions/receivables";
 import { useToast } from "@/components/ui/toast";
@@ -85,10 +87,28 @@ export function RecordPaymentDialog({
   const [method, setMethod] = useState<string>("CASH");
   const [depositAccountId, setDepositAccountId] = useState<string>(depositAccounts[0]?.id ?? "");
   const [fiscalPeriodId, setFiscalPeriodId] = useState<string>(periods[0]?.id ?? "");
-  const [amount, setAmount] = useState("");
+  const [selectedDueId, setSelectedDueId] = useState<string>(dues[0]?.id ?? "");
+  const [amount, setAmount] = useState<string>(dues[0]?.remaining ? dues[0].remaining.toString() : "");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [reference, setReference] = useState("");
-  const [selectedDueId, setSelectedDueId] = useState<string>("");
+
+  // Sync default due and amount when dues change
+  useEffect(() => {
+    if (dues.length > 0 && !selectedDueId) {
+      setSelectedDueId(dues[0].id);
+      setAmount(dues[0].remaining.toString());
+    }
+  }, [dues, selectedDueId]);
+
+  const handleDueChange = (dueId: string) => {
+    setSelectedDueId(dueId);
+    const target = dues.find((d) => d.id === dueId);
+    if (target && target.remaining > 0) {
+      setAmount(target.remaining.toString());
+    }
+  };
+
+  const selectedDue = dues.find((d) => d.id === selectedDueId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,11 +119,19 @@ export function RecordPaymentDialog({
       return;
     }
 
+    if (!selectedDueId) {
+      setErrorMsg(isAr ? "يجب اختيار المطالبة أو الاستحقاق المراد توزيع الدفعة عليه" : "Please select the due to allocate payment to");
+      return;
+    }
+
     startTransition(async () => {
       const formData = new FormData();
       formData.set("organizationId", organizationId);
       formData.set("resortId", resortId);
       formData.set("memberId", memberId);
+      if (selectedDue?.unitId) {
+        formData.set("unitId", selectedDue.unitId);
+      }
       formData.set("method", method);
       formData.set("depositAccountId", depositAccountId);
       formData.set("fiscalPeriodId", fiscalPeriodId);
@@ -111,11 +139,9 @@ export function RecordPaymentDialog({
       formData.set("paymentDate", paymentDate);
       if (reference.trim()) formData.set("reference", reference.trim());
 
-      // If due selected, allocate full or partial
-      if (selectedDueId) {
-        const allocations = [{ dueId: selectedDueId, amount: Number(amount) }];
-        formData.set("allocations", JSON.stringify(allocations));
-      }
+      // Allocate against selected due
+      const allocations = [{ dueId: selectedDueId, amount: Number(amount) }];
+      formData.set("allocations", JSON.stringify(allocations));
 
       const res = await recordPaymentAction({ ok: true }, formData);
 
@@ -128,8 +154,6 @@ export function RecordPaymentDialog({
             : `Recorded payment of ${Number(amount).toLocaleString()} ${currencyLabel}`,
         });
         onOpenChange(false);
-        setAmount("");
-        setReference("");
         router.refresh();
       } else {
         setErrorMsg(res.error || (isAr ? "فشل تسجيل الدفعة" : "Failed to record payment"));
@@ -160,6 +184,49 @@ export function RecordPaymentDialog({
               <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
                 <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
                 <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* If no dues exist, show warning */}
+            {dues.length === 0 ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+                <p className="font-bold mb-2">
+                  {isAr
+                    ? "لا توجد مطالبات أو مستحقات مفتوحة حالياً للتحصيل."
+                    : "No open dues available for payment allocation."}
+                </p>
+                <Link
+                  href="/finance/dues"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:underline font-bold"
+                >
+                  <span>{isAr ? "الانتقال لصفحة المستحقات لإصدار مطالبة" : "Go to Dues page to issue a demand"}</span>
+                  <ArrowUpRight className="size-3" />
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-1.5 text-start">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isAr ? "المطالبة / المستحق المراد سداده وإسقاط الدفعة عليه *" : "Target Due Demand *"}
+                </Label>
+                <Select
+                  value={selectedDueId}
+                  onValueChange={(val) => handleDueChange(val ?? "")}
+                  items={dues.map((d) => ({
+                    value: d.id,
+                    label: `${d.label} (متبقي: ${d.remaining.toLocaleString()} ${currencyLabel})`,
+                  }))}
+                >
+                  <SelectTrigger className="w-full text-xs font-bold">
+                    <SelectValue placeholder={isAr ? "اختر المطالبة..." : "Select due..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dues.map((d) => (
+                      <SelectItem key={d.id} value={d.id} className="text-xs">
+                        {d.label} — ({isAr ? "متبقي:" : "Rem:"} {d.remaining.toLocaleString()} {currencyLabel})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -277,28 +344,6 @@ export function RecordPaymentDialog({
               </div>
             </div>
 
-            {/* Allocate against open due item */}
-            {dues.length > 0 && (
-              <div className="space-y-1.5 text-start pt-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "إسقاط وتخصيص الدفعة على مطالبة (اختياري)" : "Allocate to Open Due (Optional)"}
-                </Label>
-                <Select value={selectedDueId} onValueChange={(val) => setSelectedDueId(val ?? "")} items={[{ value: "", label: isAr ? "— دفعة تحت الحساب (غير مخصصة) —" : "— Unallocated Deposit —" }, ...dues.map((d) => ({ value: d.id, label: `${d.label} (متبقي: ${d.remaining.toLocaleString()} ${currencyLabel})` })) ]}>
-                  <SelectTrigger className="w-full text-xs">
-                    <SelectValue placeholder={isAr ? "اختر المطالبة..." : "Select due..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">{isAr ? "— دفعة تحت الحساب (غير مخصصة) —" : "— Unallocated Deposit —"}</SelectItem>
-                    {dues.map((d) => (
-                      <SelectItem key={d.id} value={d.id} className="text-xs">
-                        {d.label} ({isAr ? "متبقي:" : "Rem:"} {d.remaining.toLocaleString()} {currencyLabel})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-1.5 text-start">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 {isAr ? "المرجع / رقم الشيك أو الإشعار البنكي" : "Reference / Cheque #"}
@@ -316,7 +361,11 @@ export function RecordPaymentDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !memberId || !depositAccountId || !amount || Number(amount) <= 0} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5">
+            <Button
+              type="submit"
+              disabled={isPending || !memberId || !depositAccountId || !amount || Number(amount) <= 0 || dues.length === 0}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
+            >
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
               <span>{isAr ? "حفظ وترحيل سند القبض" : "Record Receipt"}</span>
             </Button>

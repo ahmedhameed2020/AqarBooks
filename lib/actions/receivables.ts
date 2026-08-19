@@ -133,6 +133,11 @@ export async function recordPaymentAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
+  const mappedAllocations = parsed.data.allocations.map((a) => ({
+    due_id: a.dueId,
+    amount: a.amount,
+  }));
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("record_payment", {
     p_organization_id: parsed.data.organizationId,
@@ -144,7 +149,7 @@ export async function recordPaymentAction(
     p_payment_date: parsed.data.paymentDate,
     p_deposit_account_id: parsed.data.depositAccountId,
     p_fiscal_period_id: parsed.data.fiscalPeriodId,
-    p_allocations: parsed.data.allocations,
+    p_allocations: mappedAllocations,
     p_idempotency_key: randomUUID(),
   });
 
