@@ -22,12 +22,21 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
         slug: orgSlug,
         default_currency: "EGP",
         status: "ACTIVE",
-        tax_id: "123-456-789",
       })
       .select("id")
       .single();
     expect(orgError).toBeNull();
     const orgId = org!.id;
+
+    // 1b. Create E-Invoice Profile
+    await admin.from("einvoice_profiles").insert({
+      organization_id: orgId,
+      jurisdiction: "EG_ETA",
+      environment: "SANDBOX",
+      taxpayer_id: "123-456-789",
+      status: "ACTIVE",
+      enabled: true,
+    });
 
     // 2. Clone tenant roles
     await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });

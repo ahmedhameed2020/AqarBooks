@@ -136,7 +136,7 @@ export default async function EInvoicePage({
       .order("start_date", { ascending: true }),
     supabase
       .from("organizations")
-      .select("name, tax_id, tax_jurisdiction, default_currency, address, phone")
+      .select("id, name, slug, default_currency")
       .eq("id", organization.id)
       .maybeSingle(),
   ]);
@@ -169,7 +169,6 @@ export default async function EInvoicePage({
       source_type: td.source_type,
       source_id: td.source_id,
       unit_code: dueInfo?.unitNumber ? (isAr ? `الوحدة ${dueInfo.unitNumber}` : `Unit ${dueInfo.unitNumber}`) : undefined,
-      owner_name: dueInfo?.ownerName,
       description: dueInfo?.description,
       nature_name: natureMap.get(td.revenue_nature) || td.revenue_nature,
       taxable_base: base,
@@ -230,6 +229,10 @@ export default async function EInvoicePage({
     label: p.name,
   }));
 
+  const primaryProfile = profiles[0];
+  const jurisdiction = primaryProfile?.jurisdiction || "EG";
+  const taxId = primaryProfile?.taxpayer_id || null;
+
   return (
     <div className="space-y-6">
       <EInvoiceClient
@@ -238,10 +241,8 @@ export default async function EInvoicePage({
         profiles={profiles}
         organizationId={organization.id}
         organizationName={orgData?.name || organization.name}
-        organizationJurisdiction={(orgData?.tax_jurisdiction as string) || (organization.tax_jurisdiction as string) || "EG"}
-        organizationTaxId={orgData?.tax_id || organization.tax_id}
-        organizationAddress={orgData?.address}
-        organizationPhone={orgData?.phone}
+        organizationJurisdiction={jurisdiction}
+        organizationTaxId={taxId}
         currency={currency}
         locale={locale}
         resorts={resorts}
