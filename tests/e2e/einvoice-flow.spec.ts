@@ -143,13 +143,28 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
       .select("id")
       .single();
 
+    const { data: revAccount } = await admin
+      .from("chart_of_accounts")
+      .insert({
+        organization_id: orgId,
+        code: "4101",
+        name_ar: "إيرادات خدمات وصيانة",
+        name_en: "Maintenance Revenue",
+        category: "REVENUE",
+        normal_balance: "CREDIT",
+        is_group: false,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+
     const { data: dueType } = await admin
       .from("due_types")
       .insert({
         organization_id: orgId,
         name_ar: "رسوم خدمات صيانة دورية",
         name_en: "Periodic Maintenance Levy",
-        default_revenue_account_id: recAccount!.id,
+        default_revenue_account_id: revAccount!.id,
       })
       .select("id")
       .single();
