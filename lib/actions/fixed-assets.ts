@@ -102,3 +102,42 @@ export async function runDepreciation(
   // failure, because re-running a closed month is the normal case.
   return { ok: true, id: String(data ?? 0) };
 }
+
+
+const disposeSchema = z.object({
+  assetId: z.string().uuid(),
+  disposalDate: z.string().min(1),
+  // Zero is legitimate: scrapping an asset yields nothing and books the whole
+  // remaining book value as a loss.
+  proceeds: z.coerce.number().min(0),
+  proceedsAccountId: z.string().uuid(),
+  reason: z.string().max(300).optional(),
+});
+
+export async function disposeAsset(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = disposeSchema.safeParse({
+    assetId: formData.get("assetId"),
+    disposalDate: formData.get("disposalDate"),
+    proceeds: formData.get("proceeds") || 0,
+    proceedsAccountId: formData.get("proceedsAccountId"),
+    reason: (formData.get("reason") as string) || undefined,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  const d = parsed.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("dispose_fixed_asset", {
+    p_asset_id: d.assetId,
+    p_disposal_date: d.disposalDate,
+    p_proceeds: d.proceeds,
+    p_proceeds_account_id: d.proceedsAccountId,
+    p_reason: d.reason ?? null,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(PATH, "page");
+  return { ok: true };
+}

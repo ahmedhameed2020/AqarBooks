@@ -134,6 +134,7 @@ export default async function AppShellLayout({
                 { href: "/finance/budgets", labelAr: "الموازنات التقديرية", labelEn: "Fiscal Budgets" },
                 { href: "/finance/assets", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets" },
                 { href: "/finance/exchange-rates", labelAr: "أسعار الصرف", labelEn: "Exchange Rates" },
+                { href: "/admin/finance/accounting-accounts", labelAr: "الحسابات المعيَّنة", labelEn: "Designated Accounts" },
                 { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },
               ],
             },

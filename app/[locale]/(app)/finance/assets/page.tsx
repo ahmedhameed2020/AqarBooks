@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrencyLabel } from "@/lib/currency";
 import type { Locale } from "@/i18n/routing";
-import { RegisterAssetForm, RunDepreciationForm, type Option } from "./asset-forms";
+import { RegisterAssetForm, RunDepreciationForm, DisposeAssetForm, type Option } from "./asset-forms";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -118,6 +118,18 @@ export default async function FixedAssetsPage({
   // list rather than a separate one -- there is no CONTRA category.
   const accumulatedAccounts = assetAccounts;
 
+  // Proceeds land in a cash, bank or receivable account -- any active asset
+  // account qualifies, so the same list serves.
+  const cashAccounts: Option[] = assetAccounts;
+  const disposableAssets = assets
+    .filter((a) => a.status !== "DISPOSED")
+    .map((a) => ({
+      id: a.id,
+      // The book value is in the label so the operator sees what disposing at
+      // a given price will actually produce before choosing the asset.
+      label: `${a.code} — ${isAr ? a.name_ar : a.name_en} (${money(n(a.net_book_value))} ${currencyLabel})`,
+    }));
+
   const periodOptions: Option[] = (periods ?? []).map((p) => ({
     id: p.id,
     label: `${p.name} (${p.start_date} → ${p.end_date})`,
@@ -192,6 +204,22 @@ export default async function FixedAssetsPage({
               locale={locale}
             />
           )}
+        </section>
+      )}
+
+      {canManage && disposableAssets.length > 0 && (
+        <section aria-label={isAr ? "استبعاد أصل" : "Dispose an asset"} className="space-y-3 rounded-lg border p-4">
+          <h2 className="text-sm font-medium">{isAr ? "استبعاد أصل" : "Dispose an asset"}</h2>
+          {/* Said before the operator acts, not after: the entry closes the
+              depreciation ACTUALLY POSTED, so an asset with unposted periods
+              carries a higher book value and shows a larger loss. The
+              instalments column in the register below is where they check. */}
+          <p className="text-xs text-muted-foreground">
+            {isAr
+              ? "الاستبعاد يُقفل الإهلاك المُرحَّل فعلًا. إن بقيت فترات لم تُرحَّل، شغّل الإهلاك حتى تاريخ الاستبعاد أولًا وإلا ظهرت الخسارة أكبر من حقيقتها."
+              : "Disposal closes the depreciation ACTUALLY POSTED. If periods remain unposted, run depreciation up to the disposal date first or the loss will look larger than it is."}
+          </p>
+          <DisposeAssetForm assets={disposableAssets} cashAccounts={cashAccounts} locale={locale} />
         </section>
       )}
 

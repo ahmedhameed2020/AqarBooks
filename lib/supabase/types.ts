@@ -42,6 +42,10 @@ export type Database = {
           tax_enforcement_disabled_reason: string | null;
           output_tax_account_id: string | null;
           input_tax_account_id: string | null;
+          fx_gain_account_id: string | null;
+          fx_loss_account_id: string | null;
+          asset_disposal_gain_account_id: string | null;
+          asset_disposal_loss_account_id: string | null;
           brand_color: string | null;
           logo_url: string | null;
           commercial_registry: string | null;
@@ -2284,6 +2288,50 @@ export type Database = {
       };
     };
     Functions: {
+      set_fx_difference_accounts: {
+        Args: {
+          p_organization_id: string;
+          p_gain_account_id: string | null;
+          p_loss_account_id: string | null;
+        };
+        Returns: undefined;
+      };
+      check_fx_readiness: {
+        Args: { p_organization_id: string };
+        Returns: {
+          ready: boolean;
+          gain_account_id: string | null;
+          loss_account_id: string | null;
+          reason: string | null;
+        }[];
+      };
+      set_asset_disposal_accounts: {
+        Args: {
+          p_organization_id: string;
+          p_gain_account_id: string | null;
+          p_loss_account_id: string | null;
+        };
+        Returns: undefined;
+      };
+      check_asset_disposal_readiness: {
+        Args: { p_organization_id: string };
+        Returns: {
+          ready: boolean;
+          gain_account_id: string | null;
+          loss_account_id: string | null;
+          reason: string | null;
+        }[];
+      };
+      dispose_fixed_asset: {
+        Args: {
+          p_asset_id: string;
+          p_disposal_date: string;
+          p_proceeds: number;
+          p_proceeds_account_id: string;
+          p_reason?: string | null;
+        };
+        Returns: string;
+      };
       list_exchange_rates: {
         Args: { p_organization_id: string };
         Returns: {
