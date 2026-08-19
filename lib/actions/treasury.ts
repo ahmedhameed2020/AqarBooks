@@ -100,7 +100,7 @@ const payFromSessionSchema = z.object({
   organizationId: z.string().uuid(),
   resortId: z.string().uuid(),
   sessionId: z.string().uuid(),
-  unitId: z.string().uuid(),
+  unitId: z.string().uuid().nullish(),
   depositAccountId: z.string().uuid(),
   fiscalPeriodId: z.string().uuid(),
   amount: z.coerce.number().positive(),
@@ -116,7 +116,7 @@ export async function payDueFromCashierAction(
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
     sessionId: formData.get("sessionId"),
-    unitId: formData.get("unitId"),
+    unitId: formData.get("unitId") || undefined,
     depositAccountId: formData.get("depositAccountId"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
     amount: formData.get("amount"),
@@ -126,11 +126,22 @@ export async function payDueFromCashierAction(
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("record_payment", {
+
+  let resolvedUnitId = parsed.data.unitId;
+  if (!resolvedUnitId) {
+    const { data: due } = await supabase
+      .from("dues")
+      .select("unit_id")
+      .eq("id", parsed.data.dueId)
+      .maybeSingle();
+    resolvedUnitId = due?.unit_id || null;
+  }
+
+  const { data: paymentId, error } = await supabase.rpc("record_payment", {
     p_organization_id: parsed.data.organizationId,
     p_resort_id: parsed.data.resortId,
     p_member_id: null,
-    p_unit_id: parsed.data.unitId,
+    p_unit_id: resolvedUnitId,
     p_amount: parsed.data.amount,
     p_method: "CASH",
     p_payment_date: parsed.data.paymentDate,
@@ -144,7 +155,10 @@ export async function payDueFromCashierAction(
   if (error) return { ok: false, error: error.message };
   revalidatePath("/[locale]/finance/cashier", "page");
   revalidatePath("/[locale]/finance/dues", "page");
-  return { ok: true };
+  revalidatePath("/[locale]/finance/payments", "page");
+  revalidatePath("/ar/finance/cashier", "page");
+  revalidatePath("/en/finance/cashier", "page");
+  return { ok: true, data: { paymentId } };
 }
 
 const createBankAccountSchema = z.object({
