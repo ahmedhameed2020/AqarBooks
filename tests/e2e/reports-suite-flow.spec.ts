@@ -113,10 +113,10 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await page.goto(`${baseURL}/ar/finance/reports`);
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("h1")).toContainText("مركز التقارير والقوائم المالية");
-    await expect(page.locator("text=جدول الإيجارات وحصر العقود (Rent Roll)")).toBeVisible();
-    await expect(page.locator("text=كشف حساب وتوزيعات أرباح الملاك")).toBeVisible();
-    await expect(page.locator("text=إقرار ضريبة القيمة المضافة ومطابقة الضرائب")).toBeVisible();
-    await expect(page.locator("text=سجل الشيكات الآجلة وأوراق القبض (PDC)")).toBeVisible();
+    await expect(page.locator("text=جدول الإيجارات وحصر العقود (Rent Roll)").first()).toBeVisible();
+    await expect(page.locator("text=كشف حساب وتوزيعات أرباح الملاك").first()).toBeVisible();
+    await expect(page.locator("text=إقرار ضريبة القيمة المضافة ومطابقة الضرائب").first()).toBeVisible();
+    await expect(page.locator("text=سجل الشيكات الآجلة وأوراق القبض (PDC)").first()).toBeVisible();
 
     // 6. Test Rent Roll Page
     await page.goto(`${baseURL}/ar/finance/reports/rent-roll`);
