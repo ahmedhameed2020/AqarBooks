@@ -81,6 +81,7 @@ export async function issueDueAction(
     p_due_date: parsed.data.dueDate,
     p_description: parsed.data.description ?? null,
     p_fiscal_period_id: parsed.data.fiscalPeriodId,
+    p_idempotency_key: randomUUID(),
   });
 
   if (error) return { ok: false, error: error.message };
@@ -89,8 +90,8 @@ export async function issueDueAction(
 }
 
 const allocationSchema = z.object({
-  due_id: z.string().uuid(),
-  amount: z.number().positive(),
+  dueId: z.string().uuid(),
+  amount: z.coerce.number().positive(),
 });
 
 const recordPaymentSchema = z.object({
@@ -99,20 +100,21 @@ const recordPaymentSchema = z.object({
   memberId: z.string().uuid().optional(),
   unitId: z.string().uuid().optional(),
   amount: z.coerce.number().positive(),
-  method: z.enum(["CASH", "BANK_TRANSFER", "CHEQUE", "OTHER"]),
+  method: z.enum(["CASH", "BANK_TRANSFER", "CHEQUE", "POS", "ONLINE", "OTHER"]),
   paymentDate: z.string().min(1),
   depositAccountId: z.string().uuid(),
   fiscalPeriodId: z.string().uuid(),
-  allocations: z.array(allocationSchema).min(1),
+  allocations: z.array(allocationSchema),
 });
 
 export async function recordPaymentAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
-  let allocationsRaw: unknown;
+  let allocationsRaw: unknown = [];
   try {
-    allocationsRaw = JSON.parse(String(formData.get("allocations") ?? "[]"));
+    const raw = formData.get("allocations");
+    if (raw) allocationsRaw = JSON.parse(String(raw));
   } catch {
     return { ok: false, error: "invalid_input" };
   }
@@ -123,11 +125,11 @@ export async function recordPaymentAction(
     memberId: formData.get("memberId") || undefined,
     unitId: formData.get("unitId") || undefined,
     amount: formData.get("amount"),
-    method: formData.get("method"),
+    method: formData.get("method") || "CASH",
     paymentDate: formData.get("paymentDate"),
     depositAccountId: formData.get("depositAccountId"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
-    allocations: allocationsRaw,
+    allocations: Array.isArray(allocationsRaw) ? allocationsRaw : [],
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -150,4 +152,37 @@ export async function recordPaymentAction(
   revalidatePath("/[locale]/finance/payments", "page");
   revalidatePath("/[locale]/finance/dues", "page");
   return { ok: true };
+}
+
+const issueCreditNoteSchema = z.object({
+  dueId: z.string().uuid(),
+  grossAmount: z.coerce.number().positive(),
+  reason: z.string().min(1).max(500),
+  creditDate: z.string().min(1),
+});
+
+export async function issueCreditNoteAction(
+  _prevState: ActionResult<{ creditNoteId?: string }>,
+  formData: FormData,
+): Promise<ActionResult<{ creditNoteId?: string }>> {
+  const parsed = issueCreditNoteSchema.safeParse({
+    dueId: formData.get("dueId"),
+    grossAmount: formData.get("grossAmount"),
+    reason: formData.get("reason"),
+    creditDate: formData.get("creditDate"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("issue_credit_note", {
+    p_due_id: parsed.data.dueId,
+    p_gross_amount: parsed.data.grossAmount,
+    p_reason: parsed.data.reason,
+    p_credit_date: parsed.data.creditDate,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/finance/credit-notes", "page");
+  revalidatePath("/[locale]/finance/dues", "page");
+  return { ok: true, data: { creditNoteId: data } };
 }
