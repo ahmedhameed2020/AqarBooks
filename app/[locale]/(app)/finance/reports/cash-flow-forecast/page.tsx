@@ -149,7 +149,8 @@ export default async function CashFlowForecastPage({
       .filter((d) => getDaysDiff(d.due_date) >= prevDays && getDaysDiff(d.due_date) <= b.maxDays)
       .reduce((s, d) => s + Math.max(0, Number(d.amount || 0) - (paidByDue.get(d.id) ?? 0)), 0);
 
-    const totalInflow = incomingCheques + rentInflows + (b.maxDays <= 30 ? 45000 : 30000);
+    // Only committed, recorded inflows -- no assumed "other income".
+    const totalInflow = incomingCheques + rentInflows;
 
     // Outflows from Outgoing Cheques + Supplier Invoices + Fixed OpEx
     const outgoingCheques = (chequesData || [])
@@ -160,8 +161,9 @@ export default async function CashFlowForecastPage({
       .filter((inv) => getDaysDiff(inv.due_date) >= prevDays && getDaysDiff(inv.due_date) <= b.maxDays)
       .reduce((s, inv) => s + Math.max(0, Number(inv.amount || 0) - (paidByInvoice.get(inv.id) ?? 0)), 0);
 
-    const fixedOpsCost = b.maxDays <= 30 ? 25000 : 20000;
-    const totalOutflow = outgoingCheques + supplierOutflow + fixedOpsCost;
+    // Likewise no assumed fixed operating cost -- an outflow has to exist as a
+    // cheque or a supplier invoice to appear here.
+    const totalOutflow = outgoingCheques + supplierOutflow;
 
     const netChange = totalInflow - totalOutflow;
     const startBal = runningBalance;

@@ -34,9 +34,6 @@ export interface PropertyPnlRow {
   maintenanceRevenue: number;
   otherIncome: number;
   totalRevenue: number;
-  maintenanceExpense: number;
-  utilitiesExpense: number;
-  adminExpense: number;
   totalExpense: number;
   netOperatingIncome: number;
   profitMargin: number;
@@ -141,8 +138,6 @@ export function PropertyPnlClient({
         rent: r.rentalRevenue,
         services: r.maintenanceRevenue + r.otherIncome,
         rev: r.totalRevenue,
-        maintExp: r.maintenanceExpense,
-        opsExp: r.utilitiesExpense + r.adminExpense,
         exp: r.totalExpense,
         noi: r.netOperatingIncome,
         margin: `${r.profitMargin.toFixed(1)}%`,
@@ -293,8 +288,6 @@ export function PropertyPnlClient({
                 <th className="p-3.5 text-end">{isAr ? "إيراد الإيجارات" : "Rental Revenue"}</th>
                 <th className="p-3.5 text-end">{isAr ? "إيراد الصيانة والخدمات" : "Services Revenue"}</th>
                 <th className="p-3.5 text-end">{isAr ? "إجمالي الإيرادات" : "Total Revenue"}</th>
-                <th className="p-3.5 text-end">{isAr ? "مصاريف الصيانة" : "Maintenance Exp"}</th>
-                <th className="p-3.5 text-end">{isAr ? "مصاريف المرافق والتشغيل" : "Ops Exp"}</th>
                 <th className="p-3.5 text-end">{isAr ? "إجمالي المصروفات" : "Total Expenses"}</th>
                 <th className="p-3.5 text-end">{isAr ? "صافي الدخل (NOI)" : "NOI"}</th>
                 <th className="p-3.5 text-center">{isAr ? "هامش الربح" : "Margin"}</th>
@@ -328,14 +321,6 @@ export function PropertyPnlClient({
 
                     <td className="p-3.5 text-end font-bold text-emerald-700 dark:text-emerald-400">
                       {r.totalRevenue.toLocaleString()} <span className="text-[10px] text-slate-400">{currencyLabel}</span>
-                    </td>
-
-                    <td className="p-3.5 text-end text-rose-600 font-medium">
-                      -{r.maintenanceExpense.toLocaleString()} <span className="text-[10px] text-slate-400">{currencyLabel}</span>
-                    </td>
-
-                    <td className="p-3.5 text-end text-rose-600 font-medium">
-                      -{(r.utilitiesExpense + r.adminExpense).toLocaleString()} <span className="text-[10px] text-slate-400">{currencyLabel}</span>
                     </td>
 
                     <td className="p-3.5 text-end font-bold text-rose-600">

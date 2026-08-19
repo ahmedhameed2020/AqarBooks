@@ -69,7 +69,13 @@ export default async function VatReturnPage({
     .eq("organization_id", organization.id)
     .order("decided_at", { ascending: false });
 
-  // 2. Fetch tax profile
+  // 2. Fetch recorded input tax
+  const { data: inputTaxData } = await supabase
+    .from("input_tax_decisions")
+    .select("taxable_base, tax_amount, recoverable_amount, recoverability")
+    .eq("organization_id", organization.id);
+
+  // 3. Fetch tax profile
   const { data: profilesData } = await supabase
     .from("einvoice_profiles")
     .select("jurisdiction, taxpayer_id, environment")
@@ -90,9 +96,10 @@ export default async function VatReturnPage({
   const outputVatTotal = standardRateSupplies.reduce((s, i) => s + Number(i.vat_amount || 0), 0);
   const exemptBaseTotal = exemptSupplies.reduce((s, i) => s + Number(i.taxable_base || 0), 0);
 
-  // Input VAT simulation from expenses (or 0 if no separate table)
-  const inputTaxableBase = outputTaxableBase * 0.25;
-  const inputVatTotal = outputVatTotal * 0.25;
+  // Input VAT comes from the recorded input tax decisions -- only the
+  // recoverable portion is deductible against output tax.
+  const inputTaxableBase = (inputTaxData || []).reduce((s, i) => s + Number(i.taxable_base || 0), 0);
+  const inputVatTotal = (inputTaxData || []).reduce((s, i) => s + Number(i.recoverable_amount || 0), 0);
 
   const netVatPayable = Math.max(0, outputVatTotal - inputVatTotal);
 

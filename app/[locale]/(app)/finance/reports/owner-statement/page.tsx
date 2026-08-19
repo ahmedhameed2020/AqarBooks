@@ -123,10 +123,10 @@ export default async function OwnerStatementPage({
       0
     );
 
-    // Standard 10% management commission + 5% maintenance reserve simulation or actual
-    const managementFee = totalCollected * 0.10;
-    const maintenanceExpenses = totalCollected * 0.05;
-    const netPayout = Math.max(0, totalCollected - managementFee - maintenanceExpenses);
+    // No management fee or maintenance reserve is configured anywhere in the
+    // schema, so the statement reports what was actually collected rather than
+    // deducting assumed percentages from it.
+    const netPayout = totalCollected;
 
     unitStatements.push({
       ownerId: mem.id,
@@ -135,8 +135,6 @@ export default async function OwnerStatementPage({
       resortName: unit.resorts?.name || "الكيان الرئيسي",
       grossCollected: totalCollected,
       outstandingReceivables: totalOutstanding,
-      managementFee,
-      maintenanceExpenses,
       netPayout,
       lastUpdated: new Date().toISOString().slice(0, 10),
     });

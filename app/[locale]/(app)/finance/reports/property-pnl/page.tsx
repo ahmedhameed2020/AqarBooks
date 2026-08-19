@@ -73,11 +73,21 @@ export default async function PropertyPnlPage({
     .select("id, property_id")
     .eq("organization_id", organization.id);
 
-  // 3. Fetch Dues (Revenues)
+  // 3. Fetch Dues (Revenues), classified by the due type's approved revenue
+  // nature rather than by an assumed split.
   const { data: duesData } = await supabase
     .from("dues")
-    .select("id, property_id, amount, status")
+    .select("id, property_id, amount, status, due_type_id")
     .eq("organization_id", organization.id);
+
+  const { data: revenueNatures } = await supabase
+    .from("due_type_revenue_natures")
+    .select("due_type_id, revenue_nature")
+    .eq("organization_id", organization.id);
+
+  const natureByDueType = new Map(
+    (revenueNatures ?? []).map((n) => [n.due_type_id, n.revenue_nature]),
+  );
 
   // 4. Fetch Supplier Invoices / Expenses per resort
   const { data: invoicesData } = await supabase
@@ -93,12 +103,22 @@ export default async function PropertyPnlPage({
   });
 
   // dues and supplier_invoices are scoped by property_id, not resort_id.
-  const duesByResort = new Map<string, { totalDues: number; paidDues: number }>();
+  type RevenueSplit = { rent: number; fees: number; other: number; total: number };
+  const emptySplit = (): RevenueSplit => ({ rent: 0, fees: 0, other: 0, total: 0 });
+
+  const duesByResort = new Map<string, RevenueSplit>();
   duesData?.forEach((d) => {
     const rId = d.property_id || "MAIN";
-    const cur = duesByResort.get(rId) || { totalDues: 0, paidDues: 0 };
-    cur.totalDues += Number(d.amount || 0);
-    cur.paidDues += d.status === "PAID" ? Number(d.amount || 0) : 0;
+    const cur = duesByResort.get(rId) || emptySplit();
+    const amount = Number(d.amount || 0);
+    const nature = d.due_type_id ? natureByDueType.get(d.due_type_id) : undefined;
+
+    if (nature?.endsWith("_RENT")) cur.rent += amount;
+    else if (nature) cur.fees += amount;
+    // An unclassified due type is reported as other income, never guessed at.
+    else cur.other += amount;
+
+    cur.total += amount;
     duesByResort.set(rId, cur);
   });
 
@@ -110,16 +130,14 @@ export default async function PropertyPnlPage({
   });
 
   const rows: PropertyPnlRow[] = (resortsData || []).map((r) => {
-    const revInfo = duesByResort.get(r.id) || { totalDues: 0, paidDues: 0 };
-    const rentalRevenue = revInfo.totalDues * 0.65;
-    const maintenanceRevenue = revInfo.totalDues * 0.25;
-    const otherIncome = revInfo.totalDues * 0.10;
-    const totalRevenue = revInfo.totalDues;
+    const revInfo = duesByResort.get(r.id) || emptySplit();
+    const rentalRevenue = revInfo.rent;
+    const maintenanceRevenue = revInfo.fees;
+    const otherIncome = revInfo.other;
+    const totalRevenue = revInfo.total;
 
-    const totalExpense = expensesByResort.get(r.id) || totalRevenue * 0.35;
-    const maintenanceExpense = totalExpense * 0.50;
-    const utilitiesExpense = totalExpense * 0.30;
-    const adminExpense = totalExpense * 0.20;
+    // No invoices means no expense -- not a percentage of revenue.
+    const totalExpense = expensesByResort.get(r.id) || 0;
 
     const netOperatingIncome = totalRevenue - totalExpense;
     const profitMargin = totalRevenue > 0 ? (netOperatingIncome / totalRevenue) * 100 : 0;
@@ -132,9 +150,6 @@ export default async function PropertyPnlPage({
       maintenanceRevenue,
       otherIncome,
       totalRevenue,
-      maintenanceExpense,
-      utilitiesExpense,
-      adminExpense,
       totalExpense,
       netOperatingIncome,
       profitMargin,

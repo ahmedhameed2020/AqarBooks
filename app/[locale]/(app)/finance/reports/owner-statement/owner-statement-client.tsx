@@ -47,8 +47,6 @@ export interface OwnerUnitStatement {
   resortName: string;
   grossCollected: number;
   outstandingReceivables: number;
-  managementFee: number;
-  maintenanceExpenses: number;
   netPayout: number;
   lastUpdated: string;
 }
@@ -101,14 +99,6 @@ export function OwnerStatementClient({
       (sum, s) => sum + s.outstandingReceivables,
       0
     );
-    const totalManagementFee = filteredStatements.reduce(
-      (sum, s) => sum + s.managementFee,
-      0
-    );
-    const totalMaintenance = filteredStatements.reduce(
-      (sum, s) => sum + s.maintenanceExpenses,
-      0
-    );
     const totalNetPayout = filteredStatements.reduce(
       (sum, s) => sum + s.netPayout,
       0
@@ -117,8 +107,6 @@ export function OwnerStatementClient({
     return {
       totalCollected,
       totalOutstanding,
-      totalManagementFee,
-      totalMaintenance,
       totalNetPayout,
       unitsCount: filteredStatements.length,
     };
@@ -133,8 +121,6 @@ export function OwnerStatementClient({
         `👤 *المالك المستفيد:* ${ownerName}\n` +
         `🏠 *عدد الوحدات:* ${metrics.unitsCount}\n` +
         `💵 *إجمالي الإيراد المحصل:* ${metrics.totalCollected.toLocaleString()} ${currencyLabel}\n` +
-        `💼 *عمولة الإدارة والتشغيل:* -${metrics.totalManagementFee.toLocaleString()} ${currencyLabel}\n` +
-        `🔧 *مصاريف الصيانة والتشغيل:* -${metrics.totalMaintenance.toLocaleString()} ${currencyLabel}\n` +
         `💳 *صافي الربح المستحق للتحويل:* ${metrics.totalNetPayout.toLocaleString()} ${currencyLabel}\n` +
         `📅 *تاريخ التقرير:* ${new Date().toISOString().slice(0, 10)}\n\n` +
         `شاكرين لكم ثقتكم بنا.`
@@ -143,8 +129,6 @@ export function OwnerStatementClient({
         `👤 *Owner:* ${ownerName}\n` +
         `🏠 *Units Count:* ${metrics.unitsCount}\n` +
         `💵 *Gross Collected:* ${metrics.totalCollected.toLocaleString()} ${currencyLabel}\n` +
-        `💼 *Management Fees:* -${metrics.totalManagementFee.toLocaleString()} ${currencyLabel}\n` +
-        `🔧 *Maintenance Expenses:* -${metrics.totalMaintenance.toLocaleString()} ${currencyLabel}\n` +
         `💳 *Net Payout Amount:* ${metrics.totalNetPayout.toLocaleString()} ${currencyLabel}\n` +
         `📅 *Date:* ${new Date().toISOString().slice(0, 10)}\n\n` +
         `Thank you for your partnership.`;
@@ -165,14 +149,10 @@ export function OwnerStatementClient({
     const body = isAr
       ? `عزيزي المالك/ة ${ownerName}،\n\nنرفق لكم ملخص كشف الحساب المالي وصافي التوزيعات المستحقة:\n\n` +
         `• إجمالي الإيراد المحصل: ${metrics.totalCollected.toLocaleString()} ${currencyLabel}\n` +
-        `• عمولة الإدارة والتشغيل: ${metrics.totalManagementFee.toLocaleString()} ${currencyLabel}\n` +
-        `• مصاريف الصيانة والخدمات: ${metrics.totalMaintenance.toLocaleString()} ${currencyLabel}\n` +
         `• صافي المبلغ القابل للتحويل: ${metrics.totalNetPayout.toLocaleString()} ${currencyLabel}\n\n` +
         `مع أطيب التحيات،\n${organizationName}`
       : `Dear ${ownerName},\n\nPlease find the summary of your owner distribution statement:\n\n` +
         `• Gross Collected: ${metrics.totalCollected.toLocaleString()} ${currencyLabel}\n` +
-        `• Management Fees: ${metrics.totalManagementFee.toLocaleString()} ${currencyLabel}\n` +
-        `• Maintenance Expenses: ${metrics.totalMaintenance.toLocaleString()} ${currencyLabel}\n` +
         `• Net Payout Payable: ${metrics.totalNetPayout.toLocaleString()} ${currencyLabel}\n\n` +
         `Best regards,\n${organizationName}`;
 
@@ -194,22 +174,16 @@ export function OwnerStatementClient({
         { header: isAr ? "الوحدة" : "Unit", key: "unit", align: "start" },
         { header: isAr ? "المشروع" : "Property", key: "property", align: "start" },
         { header: isAr ? "المحصل" : "Collected", key: "collected", align: "end", isNumber: true },
-        { header: isAr ? "عمولة الإدارة" : "Mgmt Fee", key: "fee", align: "end", isNumber: true },
-        { header: isAr ? "مصاريف الصيانة" : "Maintenance", key: "maint", align: "end", isNumber: true },
         { header: isAr ? "صافي المستحق" : "Net Payout", key: "payout", align: "end", isNumber: true },
       ],
       rows: filteredStatements.map((s) => ({
         unit: s.unitCode,
         property: s.resortName,
         collected: `${s.grossCollected.toLocaleString()} ${currencyLabel}`,
-        fee: `-${s.managementFee.toLocaleString()} ${currencyLabel}`,
-        maint: `-${s.maintenanceExpenses.toLocaleString()} ${currencyLabel}`,
         payout: `${s.netPayout.toLocaleString()} ${currencyLabel}`,
       })),
       summaryCards: [
         { label: isAr ? "إجمالي المحصل" : "Total Collected", value: `${metrics.totalCollected.toLocaleString()} ${currencyLabel}` },
-        { label: isAr ? "إجمالي عمولات الإدارة" : "Management Fees", value: `${metrics.totalManagementFee.toLocaleString()} ${currencyLabel}` },
-        { label: isAr ? "مصاريف الصيانة" : "Maintenance", value: `${metrics.totalMaintenance.toLocaleString()} ${currencyLabel}` },
         { label: isAr ? "صافي الأرباح القابلة للتحويل" : "Net Owner Payout", value: `${metrics.totalNetPayout.toLocaleString()} ${currencyLabel}` },
       ],
       filename: `Owner_Statement_${ownerName}_${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -235,8 +209,6 @@ export function OwnerStatementClient({
         unit: s.unitCode,
         property: s.resortName,
         collected: s.grossCollected,
-        fee: s.managementFee,
-        maint: s.maintenanceExpenses,
         payout: s.netPayout,
         outstanding: s.outstandingReceivables,
       })),
@@ -343,7 +315,6 @@ export function OwnerStatementClient({
               <Percent className="size-4 text-purple-600" />
             </div>
             <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-1 font-mono">
-              -{metrics.totalManagementFee.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
             </p>
             <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "10% أتعاب إدارة المنشأة" : "Standard mgmt fee"}</span>
@@ -355,7 +326,6 @@ export function OwnerStatementClient({
               <ShieldAlert className="size-4 text-amber-600" />
             </div>
             <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">
-              -{metrics.totalMaintenance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
             </p>
             <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "مصاريف خدمات منفذة" : "Repairs & ops"}</span>
@@ -417,8 +387,6 @@ export function OwnerStatementClient({
                 <th className="p-3.5 text-start">{isAr ? "الوحدة العقارية" : "Unit Code"}</th>
                 <th className="p-3.5 text-start">{isAr ? "المشروع / المنتجع" : "Property"}</th>
                 <th className="p-3.5 text-end">{isAr ? "إجمالي المحصل" : "Gross Collected"}</th>
-                <th className="p-3.5 text-end">{isAr ? "عمولة الإدارة" : "Management Fee"}</th>
-                <th className="p-3.5 text-end">{isAr ? "مصاريف الصيانة" : "Maintenance"}</th>
                 <th className="p-3.5 text-end">{isAr ? "صافي المستحق للمالك" : "Net Owner Payout"}</th>
                 <th className="p-3.5 text-end">{isAr ? "المتأخرات المعلقة" : "Outstanding"}</th>
                 <th className="p-3.5 text-center">{isAr ? "الحالة" : "Status"}</th>
@@ -444,16 +412,6 @@ export function OwnerStatementClient({
 
                     <td className="p-3.5 text-end font-mono font-bold text-slate-900 dark:text-white">
                       {s.grossCollected.toLocaleString()}{" "}
-                      <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
-                    </td>
-
-                    <td className="p-3.5 text-end font-mono text-purple-600 dark:text-purple-400 font-bold">
-                      -{s.managementFee.toLocaleString()}{" "}
-                      <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
-                    </td>
-
-                    <td className="p-3.5 text-end font-mono text-amber-600 dark:text-amber-400 font-bold">
-                      -{s.maintenanceExpenses.toLocaleString()}{" "}
                       <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
                     </td>
 
