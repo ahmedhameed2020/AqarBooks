@@ -166,6 +166,30 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("سجل التدقيق والحركات الملغاة ومكافحة التلاعب");
     await expect(page.locator("text=إجمالي الحركات الموثقة").first()).toBeVisible();
 
+    // 14. Test CAM Allocation Page
+    await page.goto(`${baseURL}/ar/finance/reports/cam-allocation`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM)");
+    await expect(page.locator("text=معدل تكلفة المتر المربع").first()).toBeVisible();
+
+    // 15. Test Cash Flow Forecast Page
+    await page.goto(`${baseURL}/ar/finance/reports/cash-flow-forecast`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("تقرير توقعات التدفق النقدي والسيولة المستقبلية");
+    await expect(page.locator("text=الرصيد النقدي الفعلي الحالي").first()).toBeVisible();
+
+    // 16. Test CAPEX vs OPEX Page
+    await page.goto(`${baseURL}/ar/finance/reports/capex-opex`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX)");
+    await expect(page.locator("text=إنفاق رأسمالي (CAPEX)").first()).toBeVisible();
+
+    // 17. Test Lease Expirations Page
+    await page.goto(`${baseURL}/ar/finance/reports/lease-expirations`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("تقرير جداول انتهاء العقود ومعدل دوران الإشغال");
+    await expect(page.locator("text=إجمالي العقود النشطة").first()).toBeVisible();
+
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
   });
