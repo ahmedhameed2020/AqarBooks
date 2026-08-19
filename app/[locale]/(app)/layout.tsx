@@ -132,6 +132,7 @@ export default async function AppShellLayout({
                 { href: "/finance/journals", labelAr: "قيود اليومية المحاسبية", labelEn: "Journal Entries" },
                 { href: "/admin/finance/periods", labelAr: "الفترات والسنوات المالية", labelEn: "Fiscal Periods" },
                 { href: "/finance/budgets", labelAr: "الموازنات التقديرية", labelEn: "Fiscal Budgets" },
+                { href: "/finance/assets", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets" },
                 { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },
               ],
             },

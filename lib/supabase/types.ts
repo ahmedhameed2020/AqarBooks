@@ -967,6 +967,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      fixed_assets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string | null;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          asset_account_id: string;
+          accumulated_depreciation_account_id: string;
+          depreciation_expense_account_id: string;
+          acquisition_date: string;
+          acquisition_cost: number;
+          salvage_value: number;
+          useful_life_months: number;
+          method: string;
+          status: "ACTIVE" | "FULLY_DEPRECIATED" | "DISPOSED";
+          disposal_date: string | null;
+          disposal_proceeds: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          property_id?: string | null;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          asset_account_id: string;
+          accumulated_depreciation_account_id: string;
+          depreciation_expense_account_id: string;
+          acquisition_date: string;
+          acquisition_cost: number;
+          salvage_value?: number;
+          useful_life_months: number;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["fixed_assets"]["Row"]>;
+        Relationships: [];
+      };
+      fixed_asset_depreciation: {
+        Row: {
+          id: string;
+          organization_id: string;
+          fixed_asset_id: string;
+          fiscal_period_id: string;
+          entry_date: string;
+          amount: number;
+          journal_entry_id: string | null;
+          posted_by: string | null;
+          posted_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          fixed_asset_id: string;
+          fiscal_period_id: string;
+          entry_date: string;
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["fixed_asset_depreciation"]["Row"]>;
+        Relationships: [];
+      };
       credit_notes: {
         Row: {
           id: string;
@@ -2197,6 +2260,32 @@ export type Database = {
       };
     };
     Functions: {
+      list_fixed_assets: {
+        Args: { p_organization_id: string };
+        Returns: {
+          id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          status: string;
+          acquisition_date: string;
+          acquisition_cost: number;
+          salvage_value: number;
+          useful_life_months: number;
+          accumulated: number;
+          net_book_value: number;
+          remaining: number;
+          periods_posted: number;
+        }[];
+      };
+      post_depreciation_for_period: {
+        Args: { p_organization_id: string; p_fiscal_period_id: string };
+        Returns: number;
+      };
+      depreciable_remaining: {
+        Args: { p_asset_id: string };
+        Returns: number;
+      };
       current_member_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
