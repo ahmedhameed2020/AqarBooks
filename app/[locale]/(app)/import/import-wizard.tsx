@@ -27,8 +27,6 @@ import {
   type ImportPreviewRow,
   type MemberImportRow,
   type UnitImportRow,
-  MEMBER_HEADER_DICTIONARY,
-  UNIT_HEADER_DICTIONARY,
 } from "@/lib/import-schemas";
 import {
   Sparkles,
@@ -49,8 +47,10 @@ import {
   FileCheck,
   Layers,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import ExcelJS from "exceljs";
 
 const SAMPLE_UNITS_CSV = `code,building_code,zone_code,unit_type,floor_number,area,owner_full_name,owner_phone,owner_email,share_percentage
 A-101,B1,Z1,شقة,1,125.5,أحمد عبد الحميد,01001234567,ahmed@example.com,100
@@ -90,6 +90,7 @@ export function ImportWizard({
   const [csvText, setCsvText] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isParsingExcel, setIsParsingExcel] = useState(false);
   const [activeTab, setActiveTab] = useState<"ALL" | "VALID" | "INVALID">("ALL");
   const [customMappings, setCustomMappings] = useState<Record<string, string>>({});
   const [isPasting, setIsPasting] = useState(false);
@@ -99,7 +100,7 @@ export function ImportWizard({
       const res = await importPropertyCsvAction(prev, formData);
       if (res.ok) {
         toast.show({
-          title: isAr ? "تم الاستيراد بنجاح! 🎉" : "Import Completed Successfully! 🎉",
+          title: isAr ? "تم الاستيراد والترحيل بنجاح! 🎉" : "Import Completed Successfully! 🎉",
           description: isAr
             ? `تم استيراد ${res.importedRows} سجل بنجاح إلى قاعدة البيانات.`
             : `Successfully imported ${res.importedRows} records.`,
@@ -178,32 +179,163 @@ export function ImportWizard({
     router.replace(`${window.location.pathname}?${params.toString()}`);
   };
 
+  /**
+   * Universal File Parser: Supports .xlsx, .xls, .csv, .tsv
+   */
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setFileError(null);
     setFileName(file.name);
+    const lowerName = file.name.toLowerCase();
+
     try {
-      const text = await file.text();
-      setCsvText(text);
-      toast.show({
-        title: isAr ? "تم قراءة الملف بالذكاء الاصطناعي 🧠" : "AI Parsed File",
-        description: isAr ? "تم التعرف التلقائي على الأعمدة وتنسيق البيانات." : "Columns auto-mapped successfully.",
-        variant: "success",
-      });
-    } catch {
-      setFileError(isAr ? "فشل قراءة الملف." : "Could not read file.");
+      if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+        setIsParsingExcel(true);
+        const workbook = new ExcelJS.Workbook();
+        const buffer = await file.arrayBuffer();
+        await workbook.xlsx.load(buffer);
+
+        const worksheet = workbook.worksheets[0];
+        if (!worksheet) {
+          throw new Error("Empty worksheet");
+        }
+
+        const rows: string[][] = [];
+        worksheet.eachRow((row) => {
+          const values: string[] = [];
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            let val = cell.value;
+            if (val && typeof val === "object" && "result" in val) {
+              val = (val as any).result;
+            }
+            if (val && typeof val === "object" && "text" in val) {
+              val = (val as any).text;
+            }
+            values[colNumber - 1] = val !== null && val !== undefined ? String(val).trim() : "";
+          });
+          if (values.some((v) => v !== "")) {
+            rows.push(values);
+          }
+        });
+
+        const csvContent = rows
+          .map((r) => r.map((c) => `"${(c || "").replace(/"/g, '""')}"`).join(","))
+          .join("\n");
+
+        setCsvText(csvContent);
+        setIsParsingExcel(false);
+
+        toast.show({
+          title: isAr ? "تمت قراءة ملف Excel بالذكاء الاصطناعي 📊" : "Excel Parsed with AI 📊",
+          description: isAr
+            ? `تم تحليل ${rows.length - 1} صف ومطابقة الأعمدة آلياً.`
+            : `Parsed ${rows.length - 1} rows and auto-mapped columns.`,
+          variant: "success",
+        });
+      } else {
+        const text = await file.text();
+        setCsvText(text);
+        toast.show({
+          title: isAr ? "تم قراءة الملف بالذكاء الاصطناعي 🧠" : "AI Parsed File",
+          description: isAr ? "تم التعرف التلقائي على الأعمدة وتنسيق البيانات." : "Columns auto-mapped successfully.",
+          variant: "success",
+        });
+      }
+    } catch (err: any) {
+      setIsParsingExcel(false);
+      setFileError(isAr ? "فشل قراءة الملف. تأكد من سلامة ملف Excel أو CSV." : "Could not read file.");
     }
   };
 
-  const downloadSampleTemplate = (type: ImportKind) => {
-    const sample = type === "units" ? SAMPLE_UNITS_CSV : SAMPLE_MEMBERS_CSV;
-    const blob = new Blob(["\uFEFF" + sample], { type: "text/csv;charset=utf-8;" });
+  /**
+   * Download sample Excel workbook (.xlsx)
+   */
+  const downloadExcelTemplate = async (type: ImportKind) => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(type === "units" ? "الوحدات" : "الأعضاء");
+
+    if (type === "units") {
+      sheet.columns = [
+        { header: "كود الوحدة", key: "code", width: 15 },
+        { header: "المبنى", key: "building_code", width: 12 },
+        { header: "المنطقة", key: "zone_code", width: 12 },
+        { header: "نوع الوحدة", key: "unit_type", width: 15 },
+        { header: "الدور", key: "floor_number", width: 10 },
+        { header: "المساحة (م2)", key: "area", width: 15 },
+        { header: "اسم المالك", key: "owner_full_name", width: 22 },
+        { header: "هاتف المالك", key: "owner_phone", width: 18 },
+        { header: "بريد المالك", key: "owner_email", width: 25 },
+        { header: "نسبة الملكية", key: "share_percentage", width: 14 },
+      ];
+
+      sheet.addRow({
+        code: "A-101",
+        building_code: "B1",
+        zone_code: "Z1",
+        unit_type: "شقة",
+        floor_number: 1,
+        area: 125.5,
+        owner_full_name: "أحمد عبد الحميد",
+        owner_phone: "01001234567",
+        owner_email: "ahmed@example.com",
+        share_percentage: 100,
+      });
+      sheet.addRow({
+        code: "V-204",
+        building_code: "B2",
+        zone_code: "Z1",
+        unit_type: "فيلا",
+        floor_number: 0,
+        area: 320.0,
+        owner_full_name: "مروان الشريف",
+        owner_phone: "+201098765432",
+        owner_email: "marwan@example.com",
+        share_percentage: 100,
+      });
+    } else {
+      sheet.columns = [
+        { header: "الاسم الكامل", key: "full_name", width: 25 },
+        { header: "رقم الهاتف", key: "phone", width: 18 },
+        { header: "البريد الإلكتروني", key: "email", width: 25 },
+        { header: "هل شركة؟", key: "is_company", width: 12 },
+      ];
+
+      sheet.addRow({
+        full_name: "أحمد عبد الحميد",
+        phone: "01001234567",
+        email: "ahmed@example.com",
+        is_company: "لا",
+      });
+      sheet.addRow({
+        full_name: "شركة الأهرام للتطوير العقاري",
+        phone: "+201200000000",
+        email: "info@ahram-dev.com",
+        is_company: "نعم",
+      });
+    }
+
+    // Style header row
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4F46E5" },
+    };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = type === "units" ? "aqarbooks_units_smart_template.csv" : "aqarbooks_members_smart_template.csv";
+    a.download =
+      type === "units"
+        ? "aqarbooks_units_smart_template.xlsx"
+        : "aqarbooks_members_smart_template.xlsx";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -227,42 +359,41 @@ export function ImportWizard({
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
       {/* ──────────────────────────────────────────────────────────────────────────
-          1. AI ASSISTANT HERO BANNER
+          1. CLEAN EXECUTIVE HERO BANNER (MATCHES LIGHT & DARK MODES)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 p-6 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-3 py-1 text-xs font-bold gap-1.5 backdrop-blur-md">
-                <BrainCircuit className="size-4 text-indigo-400 animate-pulse" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 px-3 py-1 text-xs font-bold gap-1.5 shadow-2xs">
+                <BrainCircuit className="size-4 text-indigo-600 dark:text-indigo-400" />
                 <span>{isAr ? "المستورد الذكي بالذكاء الاصطناعي" : "AI Smart Importer 2.0"}</span>
               </Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold">
-                {isAr ? "مطابقة دلالية 100%" : "Semantic Mapping"}
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 text-[10px] font-bold">
+                {isAr ? "يدعم Excel و CSV" : "Supports Excel (.xlsx) & CSV"}
               </Badge>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 dark:text-white">
               {isAr ? "استيراد ومعالجة البيانات العقارية بالذكاء الاصطناعي" : "AI Universal Real Estate Data Import Studio"}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-medium">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl font-medium">
               {isAr
-                ? "ارفع ملفاتك بأي تسميات أعمدة باللغة العربية أو الإنجليزية. يتعرف الذكاء الاصطناعي على الوحدات والملاك والمساحات وتصحيح أرقام الهواتف والتواريخ تلقائياً."
-                : "Upload CSV or Excel files with any Arabic/English headers. AI handles column mapping, data cleaning, and validation automatically."}
+                ? "ارفع ملفات Excel (.xlsx, .xls) أو CSV بأي تسميات أعمدة عربية أو إنجليزية. يقوم الذكاء الاصطناعي بالمطابقة الدلالية، تنظيف الهواتف، وتصحيح التواريخ والمساحات آلياً."
+                : "Upload Excel (.xlsx/.xls) or CSV files with any Arabic/English headers. AI handles column mapping, data cleaning, and validation automatically."}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Button
               type="button"
-              onClick={() => downloadSampleTemplate(kind)}
-              variant="outline"
+              onClick={() => downloadExcelTemplate(kind)}
               size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold h-9 px-4 gap-1.5 rounded-xl backdrop-blur-md"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 gap-1.5 rounded-xl shadow-xs"
             >
-              <Download className="size-3.5" />
-              <span>{isAr ? "تحميل النموذج الذكي (CSV)" : "Download Smart Template"}</span>
+              <FileSpreadsheet className="size-4" />
+              <span>{isAr ? "تحميل نموذج إكسيل (.xlsx)" : "Download Excel (.xlsx)"}</span>
             </Button>
           </div>
         </div>
@@ -366,13 +497,13 @@ export function ImportWizard({
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          3. STEP 2: DRAG & DROP OR PASTE FILE
+          3. STEP 2: DRAG & DROP EXCEL / CSV OR PASTE
           ────────────────────────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <Sparkles className="size-4 text-indigo-600" />
-            <span>{isAr ? "3. رفع ملف البيانات أو اللصق المباشر من إكسيل" : "3. Upload File or Paste from Excel"}</span>
+            <span>{isAr ? "3. رفع ملف Excel (.xlsx, .xls) أو CSV أو اللصق المباشر" : "3. Upload Excel / CSV or Paste from Sheet"}</span>
           </Label>
 
           <button
@@ -393,21 +524,25 @@ export function ImportWizard({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt,.tsv"
+              accept=".xlsx,.xls,.csv,.txt,.tsv"
               onChange={handleFileChange}
               className="hidden"
             />
             <div className="size-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <UploadCloud className="size-7" />
+              {isParsingExcel ? (
+                <RefreshCw className="size-7 animate-spin" />
+              ) : (
+                <UploadCloud className="size-7" />
+              )}
             </div>
 
             <p className="text-sm font-black text-slate-900 dark:text-white">
-              {fileName ? fileName : (isAr ? "اسحب وأفلت ملف CSV هنا، أو انقر للاختيار" : "Drop CSV file here or click to browse")}
+              {fileName ? fileName : (isAr ? "اسحب وأفلت ملف Excel أو CSV هنا، أو انقر للاختيار" : "Drop Excel (.xlsx) or CSV file here or click to browse")}
             </p>
             <p className="text-xs text-slate-400 mt-1">
               {isAr
-                ? "يدعم ملفات CSV و TSV المشفرة بـ UTF-8 بأسماء أعمدة عربية أو إنجليزية."
-                : "Supports UTF-8 CSV/TSV with Arabic or English column headers."}
+                ? "يدعم ملفات Microsoft Excel (.xlsx, .xls) وملفات CSV المشفرة بأسماء أعمدة عربية أو إنجليزية."
+                : "Supports Microsoft Excel (.xlsx, .xls) and CSV files with Arabic or English column headers."}
             </p>
           </div>
         ) : (
