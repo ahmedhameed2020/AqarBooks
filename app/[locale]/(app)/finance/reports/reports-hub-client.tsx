@@ -479,18 +479,18 @@ export function ReportsHubClient({
   }, []);
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className="w-full max-w-full min-w-0 overflow-hidden space-y-4 pb-12">
       {/* ──────────────────────────────────────────────────────────────────────────
-          1. COMPACT EXECUTIVE PULSE HEADER (SLIM & MODERN)
+          1. COMPACT EXECUTIVE PULSE HEADER (100% RESPONSIVE & BOUNDED)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm font-black">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm font-black shrink-0">
               <FileSpreadsheet className="size-5 text-emerald-400 dark:text-emerald-600" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-lg font-black tracking-tight text-slate-950 dark:text-white">
                   {isAr ? "مركز التقارير والقوائم المالية" : "Financial & Real Estate Reports Hub"}
                 </h1>
@@ -498,7 +498,7 @@ export function ReportsHubClient({
                   {ALL_REPORTS.length} {isAr ? "تقريراً معتمداً" : "Reports"}
                 </Badge>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5 truncate max-w-md">
                 {isAr
                   ? `منظومة التقارير الحية المعتمدة لمنشأة «${organizationName}»`
                   : `Live certified statutory & property reports for ${organizationName}.`}
@@ -506,39 +506,39 @@ export function ReportsHubClient({
             </div>
           </div>
 
-          {/* Quick Metrics Bar (Horizontal Compact) */}
-          <div className="flex items-center gap-2 overflow-x-auto text-xs font-mono">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+          {/* Quick Metrics (Responsive Grid) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:w-auto text-xs font-mono">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 min-w-0">
               <TrendingUp className="size-3.5 text-emerald-600 shrink-0" />
-              <div>
-                <span className="text-[9px] text-slate-400 block font-sans">{isAr ? "الإيرادات" : "Revenue"}</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">{fmt(totalRevenue)}</span>
+              <div className="min-w-0">
+                <span className="text-[9px] text-slate-400 block font-sans truncate">{isAr ? "الإيرادات" : "Revenue"}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 truncate block">{fmt(totalRevenue)}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 min-w-0">
               <TrendingDown className="size-3.5 text-rose-600 shrink-0" />
-              <div>
-                <span className="text-[9px] text-slate-400 block font-sans">{isAr ? "المصروفات" : "Expenses"}</span>
-                <span className="font-bold text-rose-600">{fmt(totalExpense)}</span>
+              <div className="min-w-0">
+                <span className="text-[9px] text-slate-400 block font-sans truncate">{isAr ? "المصروفات" : "Expenses"}</span>
+                <span className="font-bold text-rose-600 truncate block">{fmt(totalExpense)}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 min-w-0">
               <ShieldCheck className="size-3.5 text-emerald-700 shrink-0" />
-              <div>
-                <span className="text-[9px] text-emerald-800 dark:text-emerald-300 block font-sans">{isAr ? "صافي الفائض" : "Net Surplus"}</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-300">
+              <div className="min-w-0">
+                <span className="text-[9px] text-emerald-800 dark:text-emerald-300 block font-sans truncate">{isAr ? "صافي الفائض" : "Net Surplus"}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 truncate block">
                   {netSurplus >= 0 ? `+${fmt(netSurplus)}` : fmt(netSurplus)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 min-w-0">
               <Wallet className="size-3.5 text-blue-700 shrink-0" />
-              <div>
-                <span className="text-[9px] text-blue-800 dark:text-blue-300 block font-sans">{isAr ? "السيولة" : "Cash"}</span>
-                <span className="font-bold text-blue-700 dark:text-blue-300">{fmt(cashPosition)}</span>
+              <div className="min-w-0">
+                <span className="text-[9px] text-blue-800 dark:text-blue-300 block font-sans truncate">{isAr ? "السيولة" : "Cash"}</span>
+                <span className="font-bold text-blue-700 dark:text-blue-300 truncate block">{fmt(cashPosition)}</span>
               </div>
             </div>
           </div>
@@ -546,28 +546,37 @@ export function ReportsHubClient({
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          2. QUICK LAUNCH PINNED BAR (TOP 4 FREQUENT REPORTS)
+          2. QUICK LAUNCH PINNED BAR (COMPACT & WRAPPING)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-3 px-4 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-2">
+      <div className="w-full min-w-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-3 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2 shrink-0">
           <Sparkles className="size-4 text-amber-400 shrink-0 animate-pulse" />
           <span className="text-xs font-black tracking-wide">
-            {isAr ? "التقارير الأكثر استخداماً (Quick Launch):" : "Most Frequently Used Reports:"}
+            {isAr ? "الوصول السريع:" : "Quick Launch:"}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
           {quickLaunchReports.map((qr) => {
             const QIcon = qr.icon;
+            const shortLabel =
+              qr.id === "rent-roll"
+                ? (isAr ? "جدول الإيجارات (Rent Roll)" : "Rent Roll")
+                : qr.id === "trial-balance"
+                ? (isAr ? "ميزان المراجعة" : "Trial Balance")
+                : qr.id === "owner-statement"
+                ? (isAr ? "كشف حساب الملاك" : "Owner Statement")
+                : (isAr ? "إقرار الضرائب (VAT)" : "VAT Return");
+
             return (
               <Link
                 key={qr.id}
                 href={qr.href}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-bold text-white transition-all backdrop-blur-xs shadow-2xs hover:scale-102"
               >
-                <QIcon className="size-3.5 text-emerald-400" />
-                <span>{isAr ? qr.titleAr.split("(")[0].trim() : qr.titleEn}</span>
-                <ArrowUpRight className="size-3 opacity-60" />
+                <QIcon className="size-3.5 text-emerald-400 shrink-0" />
+                <span>{shortLabel}</span>
+                <ArrowUpRight className="size-3 opacity-60 shrink-0" />
               </Link>
             );
           })}
@@ -575,21 +584,21 @@ export function ReportsHubClient({
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          3. CONTROLS: CATEGORIES, INSTANT SEARCH, AND VIEW SWITCHER
+          3. CONTROLS: CATEGORIES + SEARCH & VIEW SWITCHER
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        {/* Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 scrollbar-none">
+      <div className="w-full min-w-0 space-y-2.5 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        {/* Category Pills (Wrapping on Desktop, Scrollable on Mobile) */}
+        <div className="flex flex-wrap items-center gap-1.5 w-full">
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.key;
             return (
               <button
                 key={cat.key}
                 onClick={() => setSelectedCategory(cat.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
                   isSelected
                     ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 border border-slate-200/50 dark:border-slate-700/50"
                 }`}
               >
                 <span>{isAr ? cat.labelAr : cat.labelEn}</span>
@@ -607,35 +616,36 @@ export function ReportsHubClient({
           })}
         </div>
 
-        {/* Search & View Switcher */}
-        <div className="flex items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
-          <div className="relative w-full sm:w-60">
+        {/* Search & View Mode row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAr ? "بحث في 19 تقريراً..." : "Search 19 reports..."}
-              className="ps-8 text-xs h-8.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+              placeholder={isAr ? "بحث في 19 تقريراً وقائمة مالية..." : "Search 19 reports..."}
+              className="ps-8 text-xs h-8.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl w-full"
             />
           </div>
 
           {/* View Mode Toggle Buttons */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 self-end sm:self-auto">
             <button
               onClick={() => changeView("SECTIONS")}
               title={isAr ? "عرض المجموعات المنظمة" : "Sectional View"}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 px-2.5 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === "SECTIONS"
                   ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
               }`}
             >
               <Layers className="size-3.5" />
+              <span className="text-[11px] hidden sm:inline">{isAr ? "مجموعات" : "Sections"}</span>
             </button>
             <button
               onClick={() => changeView("GRID")}
               title={isAr ? "عرض الشبكة المدمجة" : "Grid View"}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 px-2.5 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === "GRID"
                   ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
@@ -647,17 +657,19 @@ export function ReportsHubClient({
                 <span className="bg-current rounded-2xs" />
                 <span className="bg-current rounded-2xs" />
               </div>
+              <span className="text-[11px] hidden sm:inline">{isAr ? "شبكة" : "Grid"}</span>
             </button>
             <button
               onClick={() => changeView("LIST")}
               title={isAr ? "عرض الجدول والقائمة" : "List View"}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 px-2.5 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === "LIST"
                   ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
               }`}
             >
               <FileText className="size-3.5" />
+              <span className="text-[11px] hidden sm:inline">{isAr ? "جدول" : "Table"}</span>
             </button>
           </div>
         </div>
@@ -667,7 +679,7 @@ export function ReportsHubClient({
           4A. VIEW 1: CATEGORIZED SECTIONS (MOST INTUITIVE & PROFESSIONAL)
           ────────────────────────────────────────────────────────────────────────── */}
       {viewMode === "SECTIONS" && (
-        <div className="space-y-5">
+        <div className="w-full min-w-0 space-y-4">
           {categoryGroups.map((group) => {
             const groupReports = filteredReports.filter((r) => r.category === group.key);
             if (groupReports.length === 0) return null;
@@ -675,37 +687,37 @@ export function ReportsHubClient({
             return (
               <div
                 key={group.key}
-                className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900"
+                className="w-full min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900"
               >
                 {/* Group Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
-                  <div>
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 mb-3">
+                  <div className="min-w-0">
                     <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                       <span>{isAr ? group.titleAr : group.titleEn}</span>
                       <Badge variant="secondary" className="text-[10px] font-mono py-0">
                         {groupReports.length}
                       </Badge>
                     </h2>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
                       {isAr ? group.descAr : group.descEn}
                     </p>
                   </div>
                 </div>
 
-                {/* Group Items Grid (Horizontal Compact Cards) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Group Items Grid (Horizontal Compact Cards - Fits cleanly on all viewports) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full min-w-0">
                   {groupReports.map((r) => {
                     const Icon = r.icon;
                     return (
                       <Link
                         key={r.id}
                         href={r.href}
-                        className="group flex items-start gap-3 p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 hover:bg-white hover:border-slate-400 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-800/40 dark:hover:bg-slate-800 dark:hover:border-slate-600"
+                        className="group flex items-start gap-3 p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 hover:bg-white hover:border-slate-400 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-800/40 dark:hover:bg-slate-800 dark:hover:border-slate-600 min-w-0 overflow-hidden"
                       >
                         <div
-                          className={`flex size-10 items-center justify-center rounded-xl bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}
+                          className={`flex size-9 items-center justify-center rounded-xl bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}
                         >
-                          <Icon className="size-5" />
+                          <Icon className="size-4.5" />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -749,28 +761,28 @@ export function ReportsHubClient({
           4B. VIEW 2: COMPACT MODERN GRID (MINIMALIST & SLIM)
           ────────────────────────────────────────────────────────────────────────── */}
       {viewMode === "GRID" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 w-full min-w-0">
           {filteredReports.map((r) => {
             const Icon = r.icon;
             return (
               <Link
                 key={r.id}
                 href={r.href}
-                className="group flex flex-col justify-between p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:border-indigo-400 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700"
+                className="group flex flex-col justify-between p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:border-indigo-400 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 min-w-0 overflow-hidden"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <div
-                      className={`flex size-9 items-center justify-center rounded-xl bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shadow-2xs`}
+                      className={`flex size-8.5 items-center justify-center rounded-xl bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shadow-2xs`}
                     >
-                      <Icon className="size-4.5" />
+                      <Icon className="size-4" />
                     </div>
                     <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 dark:bg-slate-800">
                       {isAr ? r.badgeAr : r.badgeEn}
                     </Badge>
                   </div>
 
-                  <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                  <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400 transition-colors truncate">
                     {isAr ? r.titleAr : r.titleEn}
                   </h3>
                   <p className="text-[10px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
@@ -799,7 +811,7 @@ export function ReportsHubClient({
           4C. VIEW 3: COMPACT DATA TABLE / LIST (DENSE & FAST)
           ────────────────────────────────────────────────────────────────────────── */}
       {viewMode === "LIST" && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-start">
               <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
@@ -820,17 +832,17 @@ export function ReportsHubClient({
                       className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <td className="p-3 font-bold text-slate-900 dark:text-white">
-                        <Link href={r.href} className="flex items-center gap-2 hover:text-indigo-600">
+                        <Link href={r.href} className="flex items-center gap-2 hover:text-indigo-600 truncate">
                           <div
                             className={`flex size-7 items-center justify-center rounded-lg bg-gradient-to-br ${r.bgGradient} ${r.colorClass} shrink-0`}
                           >
                             <Icon className="size-3.5" />
                           </div>
-                          <span>{isAr ? r.titleAr : r.titleEn}</span>
+                          <span className="truncate">{isAr ? r.titleAr : r.titleEn}</span>
                         </Link>
                       </td>
 
-                      <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
+                      <td className="p-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
                         {r.category === "REAL_ESTATE" && (isAr ? "التشغيل العقاري" : "Real Estate")}
                         {r.category === "STATUTORY" && (isAr ? "الحسابات الختامية" : "Statutory")}
                         {r.category === "TAX" && (isAr ? "الضرائب والامتثال" : "Tax")}
@@ -844,13 +856,13 @@ export function ReportsHubClient({
                         {isAr ? r.descAr : r.descEn}
                       </td>
 
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center whitespace-nowrap">
                         <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-800">
                           {isAr ? r.badgeAr : r.badgeEn}
                         </Badge>
                       </td>
 
-                      <td className="p-3 text-end">
+                      <td className="p-3 text-end whitespace-nowrap">
                         <Link
                           href={r.href}
                           className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 font-bold text-[11px] transition-all dark:bg-slate-800 dark:text-slate-200"
