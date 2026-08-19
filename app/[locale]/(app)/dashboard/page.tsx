@@ -40,8 +40,8 @@ export default async function DashboardPage({
     <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
       <h1 className="text-xl font-semibold">{t("welcome")}</h1>
       <p className="max-w-md text-sm text-muted-foreground">{t("noOrganization")}</p>
-      <Link href="/onboarding" locale={locale as Locale} className={buttonVariants({ variant: "default" })}>
-        {t("createOrganizationCta")}
+      <Link href="/onboarding" locale={locale as Locale} className={buttonVariants({ variant: "default", size: "lg" }) + " mt-2"}>
+        {t("createOrganization")}
       </Link>
     </div>
   );

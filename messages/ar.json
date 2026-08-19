@@ -25,7 +25,7 @@
     "welcome": "مرحبًا",
     "signedInAs": "مسجّل الدخول باسم",
     "noOrganization": "حسابك غير مرتبط بأي منظمة بعد. تواصل مع مدير المنصة.",
-    "createOrganizationCta": "أنشئ مؤسستك الآن",
+    "createOrganization": "أنشئ مؤسستك الآن",
     "platformAdmin": "مدير المنصة العام"
   },
   "home": {
