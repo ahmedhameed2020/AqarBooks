@@ -109,7 +109,6 @@ export async function issueDueAction(
     p_due_date: parsed.data.dueDate,
     p_description: parsed.data.description ?? null,
     p_fiscal_period_id: parsed.data.fiscalPeriodId,
-    p_idempotency_key: randomUUID(),
   });
 
   if (error) return { ok: false, error: error.message };
