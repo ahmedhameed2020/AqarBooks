@@ -1,6 +1,6 @@
 # Self-Service Tenant Onboarding Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Let a newly registered tenant create their organization themselves right after confirming their email, instead of landing on a dead-end dashboard with no organization and no way to create one.
 
@@ -47,7 +47,7 @@ tests/e2e/
 **Files:**
 - Modify: `lib/currency.ts`
 
-- [ ] **Step 1: Add the exported code list**
+- [x] **Step 1: Add the exported code list**
 
 The wizard's currency `<select>` needs the same 10 codes `getCurrencyLabel` already knows about, in one place so the dropdown and the label function can never drift apart. Add this export above the existing `getCurrencyLabel` function:
 
@@ -72,12 +72,12 @@ export function getCurrencyLabel(currencyCode: string | undefined | null, isAr: 
 
 (The rest of `getCurrencyLabel`'s body is unchanged — only the new export and the `export function` line above it are added.)
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no new errors mentioning `lib/currency.ts`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/currency.ts
@@ -93,7 +93,7 @@ git commit -m "feat(onboarding): export CURRENCY_CODES from lib/currency"
 
 This RPC already exists and was manually verified working during the audit — this task turns that manual verification into a repeatable automated test, so a future migration can't silently break it. Run against the same live project the other `tests/*.integration.test.ts` files use (`.env.local`).
 
-- [ ] **Step 1: Write the test file**
+- [x] **Step 1: Write the test file**
 
 ```ts
 import { describe, it, expect, afterAll } from "vitest";
@@ -237,12 +237,12 @@ describe("create_organization_onboarding RPC", () => {
 });
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `npx vitest run tests/onboarding.integration.test.ts --reporter=verbose`
 Expected: all 5 tests PASS (this documents already-verified live behavior — it is not expected to fail first, since the RPC under test was not written as part of this plan).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/onboarding.integration.test.ts
@@ -256,7 +256,7 @@ git commit -m "test(onboarding): add regression coverage for create_organization
 **Files:**
 - Create: `lib/actions/onboarding.ts`
 
-- [ ] **Step 1: Write the action**
+- [x] **Step 1: Write the action**
 
 Mirrors `signIn`'s pattern in `lib/actions/auth.ts` (extra bound args before `prevState`/`formData`, so it plugs into `useActionState` via `.bind(null, locale)`), and parses the RPC's `"CODE: message"` error format to route the error back to the exact field that caused it — the same `"CODE: text"` shape already observed live (`UNAUTHORIZED: يرجى تسجيل الدخول أولاً`, etc.) in Task 2's test.
 
@@ -366,12 +366,12 @@ export async function completeOnboarding(
 }
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `lib/actions/onboarding.ts`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/actions/onboarding.ts
@@ -385,7 +385,7 @@ git commit -m "feat(onboarding): add completeOnboarding server action"
 **Files:**
 - Create: `app/[locale]/onboarding/entity-type-step.tsx`
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 This is a pure controlled-input component — it has no `name` attributes and never touches `FormData` directly. Task 6's wizard owns the single source of truth (its own `useState`) and submits everything through its own consolidated hidden inputs, which is what makes it safe for Task 6 to unmount this component entirely when the user is on step 2 (needed for a real step-change animation, not just a CSS show/hide).
 
@@ -520,12 +520,12 @@ export function EntityTypeStep({
 }
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `entity-type-step.tsx`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/\[locale\]/onboarding/entity-type-step.tsx
@@ -539,7 +539,7 @@ git commit -m "feat(onboarding): add entity-type selection step component"
 **Files:**
 - Create: `app/[locale]/onboarding/first-project-step.tsx`
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 Same rule as `EntityTypeStep` (Task 4): pure controlled inputs, no `name` attributes — the wizard's hidden inputs (Task 6) are what actually get submitted.
 
@@ -631,12 +631,12 @@ export function FirstProjectStep({
 }
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `first-project-step.tsx`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/\[locale\]/onboarding/first-project-step.tsx
@@ -652,7 +652,7 @@ git commit -m "feat(onboarding): add first-project step component"
 
 This is the only file in the feature responsible for cross-step state, client-side validation before advancing, and the actual form submission. The step components (Task 4, Task 5) are pure controlled presentational components with no `name` attributes — this wizard is the single source of truth for every field's value (its own `useState`) and the only place that touches `FormData`, via one consolidated block of `<input type="hidden">`s that stay mounted regardless of which step is visually showing. That decoupling is what makes it safe to conditionally *unmount* the inactive step component (instead of just CSS-hiding it) — which is what makes a real entrance animation possible: `key={step}` forces React to remount the step's wrapper on every change, and `tw-animate-css`'s `animate-in` utilities (already imported globally in `app/globals.css`) replay on that remount. A `display:none` show/hide toggle cannot animate this way — there's no intermediate frame to transition through — which is why the two are structured differently here.
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 ```tsx
 "use client";
@@ -843,12 +843,12 @@ export function OnboardingWizard({ locale }: { locale: string }) {
 
 Note on `zoom-in-95` over a directional slide: `tw-animate-css`'s `slide-in-from-*` utilities are physical (left/right), not logical, so under `dir="rtl"` a `slide-in-from-right` reads as "backwards" instead of "forward" — getting that right for both directions needs per-locale class swapping. A subtle scale+fade reads as intentional forward motion in *either* direction without that complexity, which is the better trade for a two-step form (a heavier per-locale directional treatment would be reasonable to revisit later, but isn't worth the complexity for this first pass).
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `onboarding-wizard.tsx`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/\[locale\]/onboarding/onboarding-wizard.tsx
@@ -862,7 +862,7 @@ git commit -m "feat(onboarding): add two-step onboarding wizard shell"
 **Files:**
 - Create: `app/[locale]/onboarding/page.tsx`
 
-- [ ] **Step 1: Write the page**
+- [x] **Step 1: Write the page**
 
 Mirrors `app/[locale]/auth/register/page.tsx`'s structure exactly (same `AuthShell`, same locale/redirect handling), with the two guards this route specifically needs: no session → login; already has a membership → dashboard (matching the RPC's own `ALREADY_HAS_ORGANIZATION` check, so a user who already finished onboarding never sees this form again).
 
@@ -963,12 +963,12 @@ export default async function OnboardingPage({
 }
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `app/[locale]/onboarding/page.tsx`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/\[locale\]/onboarding/page.tsx
@@ -984,7 +984,7 @@ git commit -m "feat(onboarding): add /onboarding route with auth + already-onboa
 
 The signup confirmation email currently sends a freshly confirmed user to `/ar/dashboard` (a leftover from before this route existed) instead of the onboarding wizard it's meant to feed.
 
-- [ ] **Step 1: Update both CTA links**
+- [x] **Step 1: Update both CTA links**
 
 In `supabase/templates/confirmation.html`, both occurrences (English CTA and Arabic CTA) of:
 
@@ -998,7 +998,7 @@ become:
 next=/ar/onboarding
 ```
 
-- [ ] **Step 2: Verify the substitution**
+- [x] **Step 2: Verify the substitution**
 
 Run: `grep -c "next=/ar/onboarding" supabase/templates/confirmation.html`
 Expected: `2`
@@ -1006,7 +1006,7 @@ Expected: `2`
 Run: `grep -c "next=/ar/dashboard" supabase/templates/confirmation.html`
 Expected: `0`
 
-- [ ] **Step 3: Push the template to the live project**
+- [x] **Step 3: Push the template to the live project**
 
 ```bash
 RESEND_API_KEY="<your Resend API key>" supabase config push --yes
@@ -1014,7 +1014,7 @@ RESEND_API_KEY="<your Resend API key>" supabase config push --yes
 
 Review the printed diff before it applies — it should touch only `[email.template.confirmation]`'s `content` field, nothing under `site_url`, `mfa`, or the other email templates. If anything else shows up in the diff, stop and investigate before continuing (this file previously caused an unrelated-settings regression — see the `fix(auth): pin full auth config...` commit in this repo's history for what that looked like).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add supabase/templates/confirmation.html
@@ -1032,7 +1032,7 @@ git commit -m "fix(auth): route confirmation email to /onboarding instead of the
 
 For any account that reaches the dead-end "not linked to an organization" state — pre-existing stuck accounts from before this fix, or edge cases like a revoked invite — give it a real way out instead of only "contact the platform admin".
 
-- [ ] **Step 1: Add the message key**
+- [x] **Step 1: Add the message key**
 
 In `messages/ar.json`, inside the `"dashboard"` object, add a new key after `"noOrganization"`:
 
@@ -1048,7 +1048,7 @@ In `messages/en.json`, the same object, same position:
     "createOrganizationCta": "Create your organization now",
 ```
 
-- [ ] **Step 2: Add the button to the empty state**
+- [x] **Step 2: Add the button to the empty state**
 
 In `app/[locale]/(app)/dashboard/page.tsx`, add the `Link` import and the button:
 
@@ -1078,12 +1078,12 @@ Then replace the final return block:
   );
 ```
 
-- [ ] **Step 3: Verify it compiles**
+- [x] **Step 3: Verify it compiles**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors mentioning `dashboard/page.tsx`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "app/[locale]/(app)/dashboard/page.tsx" messages/ar.json messages/en.json
@@ -1100,7 +1100,7 @@ git commit -m "feat(dashboard): add create-organization CTA to the no-org empty 
 
 Both files reference image files that don't exist in `public/images/` (`executive-boardroom.jpg`, `commercial-towers.jpg` — leftovers from before the AqarBooks rebrand), causing a real 400 on every load of the register, verify-email, and (as of Task 7) onboarding pages. `public/images/` actually contains `aqarbooks-hero.jpg`, `aqarbooks-entities.jpg`, `aqarbooks-cashier.jpg`, `aqarbooks-ledger.jpg`.
 
-- [ ] **Step 1: Fix the register page's image**
+- [x] **Step 1: Fix the register page's image**
 
 In `app/[locale]/auth/register/page.tsx`, change:
 
@@ -1114,7 +1114,7 @@ to:
       imageSrc="/images/aqarbooks-hero.jpg"
 ```
 
-- [ ] **Step 2: Fix AuthShell's default image**
+- [x] **Step 2: Fix AuthShell's default image**
 
 In `components/auth/auth-shell.tsx`, change:
 
@@ -1130,12 +1130,12 @@ to:
 
 (This default is what `verify-email` and any other `AuthShell` consumer that doesn't pass its own `imageSrc` falls back to — `register/page.tsx` and `onboarding/page.tsx` both pass their own explicit `imageSrc` already, so they're unaffected by this default.)
 
-- [ ] **Step 3: Verify no more references to the missing files**
+- [x] **Step 3: Verify no more references to the missing files**
 
 Run: `grep -rn "executive-boardroom\|commercial-towers" app components`
 Expected: no output.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/\[locale\]/auth/register/page.tsx components/auth/auth-shell.tsx
@@ -1151,7 +1151,7 @@ git commit -m "fix(auth): replace broken hero image references with existing ass
 
 Tests the wizard itself in isolation from the email-confirmation flow (already covered by the RPC test in Task 2 and the manual audit) — creates an already-confirmed user directly via the Admin API, signs in as them through the real login page, and drives the two-step form.
 
-- [ ] **Step 1: Write the spec**
+- [x] **Step 1: Write the spec**
 
 ```ts
 import { test, expect } from "@playwright/test";
@@ -1242,12 +1242,12 @@ test("visiting /onboarding a second time after finishing it redirects to the das
 });
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `npx playwright test tests/e2e/onboarding-wizard.spec.ts --reporter=list`
 Expected: both tests PASS. (Requires the dev server running at the port `playwright.config.ts`'s `baseURL` points to — start it first with `npm run dev` if it isn't already running.)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/e2e/onboarding-wizard.spec.ts
@@ -1260,7 +1260,7 @@ git commit -m "test(e2e): cover the onboarding wizard happy path and re-visit re
 
 **Files:** none — verification only.
 
-- [ ] **Step 1: Repeat the exact journey from the audit**
+- [x] **Step 1: Repeat the exact journey from the audit**
 
 With `npm run dev` running:
 
@@ -1272,7 +1272,7 @@ With `npm run dev` running:
 6. Confirm the dashboard now renders `TenantDashboard` (real data), not the empty state.
 7. Log out, log back in, confirm you land directly on the dashboard (not onboarding again).
 
-- [ ] **Step 2: Confirm the dashboard safety-net CTA**
+- [x] **Step 2: Confirm the dashboard safety-net CTA**
 
 Using the Admin API, create a user with `email_confirm: true` and no organization membership, sign in as them, go to `/ar/dashboard`. Confirm the "أنشئ مؤسستك الآن" button is visible and clicking it lands on `/ar/onboarding`. Clean up the test user afterward the same way the other scripts in this plan do (`admin.auth.admin.deleteUser`).
 
@@ -1282,31 +1282,67 @@ Using the Admin API, create a user with `email_confirm: true` and no organizatio
 
 **Files:** none — verification only. This is the plan's final gate: nothing in this feature is "done" until every step below passes and the working tree is clean of anything unintended.
 
-- [ ] **Step 1: Run the project's own full test command**
+- [x] **Step 1: Run the project's own full test command**
 
 Run: `npm run test:all`
 Expected: every suite it chains passes, including `tests/onboarding.integration.test.ts` and `tests/e2e/onboarding-wizard.spec.ts` from this plan.
 
-- [ ] **Step 2: Typecheck the whole project, not just the files touched here**
+- [x] **Step 2: Typecheck the whole project, not just the files touched here**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors anywhere in the project (a change in `dashboard/page.tsx` or `auth-shell.tsx` could in principle affect a type elsewhere that a single-file check wouldn't catch).
 
-- [ ] **Step 3: Confirm the app actually builds for production**
+- [x] **Step 3: Confirm the app actually builds for production**
 
 Run: `npm run build:next`
 Expected: build succeeds with no errors. (`npm run build` runs the Cloudflare adapter on top of this — use `build:next` here since the goal is catching Next.js/TypeScript build breakage specifically, not re-verifying the Cloudflare pipeline.)
 
-- [ ] **Step 4: Review the working tree before calling this finished**
+- [x] **Step 4: Review the working tree before calling this finished**
 
 Run: `git status --short`
 Expected: only the files this plan's tasks intentionally created or modified (Task 1–10's file list) appear, each already committed by its own task. No stray files (e.g. leftover `.qa-scratch`-style debug scripts, accidentally-modified unrelated files, or `.env`/secret files) should be present. If anything unexpected shows up, investigate it before considering the feature complete — don't commit it blindly and don't discard it without understanding what it is.
 
-- [ ] **Step 5: Mark every task's checkboxes `[x]` in this plan file**
+- [x] **Step 5: Mark every task's checkboxes `[x]` in this plan file**
 
-Only after Steps 1–4 above genuinely pass — this file is the execution record, not a wishlist. Go back through Tasks 1–12 and flip each `- [ ]` to `- [x]` for the steps actually completed and verified, then commit the plan file itself:
+Only after Steps 1–4 above genuinely pass — this file is the execution record, not a wishlist. Go back through Tasks 1–12 and flip each `- [x]` to `- [x]` for the steps actually completed and verified, then commit the plan file itself:
 
 ```bash
 git add docs/superpowers/plans/2026-08-20-self-service-tenant-onboarding.md
 git commit -m "docs: mark self-service tenant onboarding plan complete"
 ```
+
+---
+
+## Execution notes (added after completion)
+
+All 13 tasks implemented via subagent-driven development (fresh implementer +
+spec-compliance reviewer + code-quality reviewer per task), all committed to
+`master` with the user's explicit consent. Notable findings during execution,
+worth keeping for future reference:
+
+- **`platform_audit_logs` has no `ON DELETE CASCADE`** on its `organization_id`/
+  `actor_id` foreign keys. Every test/script that creates an org via
+  `create_organization_onboarding` and later tries to delete it must delete
+  the matching `platform_audit_logs` row(s) first, or the delete silently
+  fails (Supabase JS doesn't throw on an unchecked error) and leaks data.
+  Hit and fixed twice independently (Task 2's Vitest test, Task 11's
+  Playwright test) — worth an actual `ON DELETE CASCADE` migration at some
+  point so this stops being a trap for every future test that touches this
+  table.
+- **`supabase/config.toml` drifted from the live project** between an earlier
+  session and this one (`site_url`, `additional_redirect_urls`, `sender_name`
+  had been updated directly via the Supabase Dashboard). A blind
+  `supabase config push --yes` during Task 8 briefly reverted those live
+  values before being caught and corrected. Always preview a config push
+  diff (`echo n | supabase config push`) before applying with `--yes` when
+  this file hasn't been touched in a while.
+- **`tests/dunning.integration.test.ts` has a genuine, reproducible, unrelated
+  failure** (`dunning_notices_channel_check` rejects `"EMAIL"` as a channel
+  value) discovered incidentally while running the full suite for this
+  plan's Task 13. Confirmed unrelated to this feature (last touched by
+  commits `e0b1a4a`/`ad8a9e4`, nothing this plan changed). Not fixed here —
+  out of scope — but flagged for separate follow-up.
+- `npm run test:all` did not previously include a way to run new integration
+  test files automatically (it's a curated `&&` chain of per-file scripts,
+  not a blanket `vitest run`). Added `test:onboarding` and appended it to the
+  chain so this plan's Task 2 test is covered going forward.
