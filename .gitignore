@@ -44,6 +44,9 @@ next-env.d.ts
 # superpowers brainstorming scratch
 .superpowers/
 
+# ad-hoc QA/verification scratch scripts (not part of the test suite)
+.qa-scratch/
+
 # cloudflare
 /.open-next/
 /.wrangler/

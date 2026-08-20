@@ -30,7 +30,8 @@
     "test:supplier-fx": "vitest run tests/supplier-invoice-fx.integration.test.ts",
     "test:dunning": "vitest run tests/dunning.integration.test.ts",
     "test:project-wip": "vitest run tests/project-wip.integration.test.ts",
-    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review && npm run test:tax-decision-contract && npm run test:tax-enforcement && npm run test:output-vat && npm run test:buyer-identity && npm run test:input-tax && npm run test:einvoice-emission && npm run test:credit-notes && npm run test:fixed-assets && npm run test:exchange-rates && npm run test:fx-difference && npm run test:asset-disposal && npm run test:supplier-fx && npm run test:dunning && npm run test:project-wip",
+    "test:onboarding": "vitest run tests/onboarding.integration.test.ts",
+    "test:all": "npm run test:sql && npm run test:payment-idempotency && npm run test:member-portal && npm run test:einvoice && npm run test:einvoice-identity && npm run test:revenue-classification && npm run test:tax-mapping-review && npm run test:tax-decision-contract && npm run test:tax-enforcement && npm run test:output-vat && npm run test:buyer-identity && npm run test:input-tax && npm run test:einvoice-emission && npm run test:credit-notes && npm run test:fixed-assets && npm run test:exchange-rates && npm run test:fx-difference && npm run test:asset-disposal && npm run test:supplier-fx && npm run test:dunning && npm run test:project-wip && npm run test:onboarding",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
