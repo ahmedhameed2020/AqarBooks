@@ -51,8 +51,8 @@ export function LoginForm({
         <label className="text-xs font-bold text-slate-700 block">
           {isAr ? "البريد الإلكتروني المهني" : "Business Email"}
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <Mail className="size-4" />
           </div>
           <input
@@ -82,8 +82,8 @@ export function LoginForm({
             {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
           </Link>
         </div>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <Lock className="size-4" />
           </div>
           <input

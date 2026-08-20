@@ -39,37 +39,13 @@ export default async function VerifyEmailPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "الخطوة الأخيرة" : "Final Step"}
-      title={isAr ? "تأكيد البريد الإلكتروني" : "Check Your Email"}
+      eyebrow={isAr ? "خطوة أخيرة" : "One last step"}
+      title={isAr ? "تحقّق من بريدك" : "Check your email"}
       subtitle={
         isAr
-          ? "أرسلنا رابط التفعيل إلى بريدك الإلكتروني لإتمام التحقق من هويتك."
-          : "We sent an activation link to your email to verify your organization identity."
+          ? "أرسلنا إليك رابط تفعيل. افتحه لتكتمل التهيئة."
+          : "We sent you an activation link. Open it and you're set."
       }
-      panelTitle={
-        isAr
-          ? "حوكمة الدخول والتحقق الرقمي المعتمد"
-          : "Digital Identity & Access Verification."
-      }
-      panelSubtitle={
-        isAr
-          ? "حماية المنظومة المالية تتطلب التأكد من ملكية البريد المؤسسي قبل فتح القيود."
-          : "Enterprise financial safety requires verified organizational credentials before ledger activation."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "فوري", label: "إرسال التفعيل" },
-              { value: "١٠٠٪", label: "أمان وموثوقية" },
-              { value: "٢٤ ساعة", label: "صلاحية الرابط" },
-            ]
-          : [
-              { value: "Instant", label: "Delivery" },
-              { value: "100%", label: "Verified" },
-              { value: "24 Hours", label: "Link Expiry" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <div className="space-y-6 text-center">

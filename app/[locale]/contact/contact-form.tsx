@@ -17,7 +17,7 @@ export function ContactForm({ locale }: { locale: string }) {
 
   return (
     <form action={formAction} className="marketing space-y-5 rounded-xl border border-[var(--mk-border)] bg-[var(--mk-bg-elevated)] p-6 sm:p-8">
-      <div className="absolute -left-[9999px] opacity-0" aria-hidden="true">
+      <div className="absolute h-px w-px overflow-hidden opacity-0" aria-hidden="true">
         <label htmlFor="website">Website</label>
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
@@ -59,15 +59,15 @@ export function ContactForm({ locale }: { locale: string }) {
         </p>
       )}
       {state.ok && (
-        <p role="status" className="text-sm text-[var(--mk-accent)]">
-          {isAr ? "تم إرسال رسالتك، هنرد عليك قريبًا." : "Message sent — we'll reply soon."}
+        <p role="status" className="text-sm text-[var(--mk-cyan)]">
+          {isAr ? "تم إرسال رسالتك، وسنرد عليك قريبًا." : "Message sent, we'll reply soon."}
         </p>
       )}
 
       <Button
         type="submit"
         disabled={pending}
-        className="w-full bg-[var(--mk-accent)] text-[var(--mk-bg)] hover:opacity-90"
+        className="w-full bg-[var(--mk-accent)] text-white hover:opacity-90"
       >
         {pending ? (isAr ? "جارٍ الإرسال..." : "Sending...") : isAr ? "إرسال" : "Send Message"}
       </Button>

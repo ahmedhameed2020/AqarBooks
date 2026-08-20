@@ -59,33 +59,9 @@ export default async function OnboardingPage({
       title={isAr ? "جهّز مؤسستك" : "Set Up Your Organization"}
       subtitle={
         isAr
-          ? "خطوتين بسيطتين وتبقى منظومتك المالية جاهزة."
+          ? "خطوتان بسيطتان وتصبح منظومتك المالية جاهزة."
           : "Two simple steps and your financial workspace is ready."
       }
-      panelTitle={
-        isAr
-          ? "كل مؤسسة عقارية تستحق بداية واضحة"
-          : "Every real estate entity deserves a clear start."
-      }
-      panelSubtitle={
-        isAr
-          ? "من هنا هتقدر تدير كل مشاريعك ووحداتك وحساباتك من مكان واحد."
-          : "From here you'll manage every project, unit, and ledger in one place."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "خطوتين", label: "لإنشاء المؤسسة" },
-              { value: "فوري", label: "تفعيل الحساب" },
-              { value: "١٠٠٪", label: "عزل مالي RLS" },
-            ]
-          : [
-              { value: "2 Steps", label: "To create your org" },
-              { value: "Instant", label: "Account activation" },
-              { value: "100%", label: "RLS isolation" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-entities.jpg"
       locale={locale}
     >
       <OnboardingWizard locale={locale} />

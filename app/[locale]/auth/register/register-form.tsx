@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail, User, Check, RefreshCw, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, Check, RefreshCw, AlertCircle, X } from "lucide-react";
 import { signUpAction } from "@/lib/actions/auth";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 
 export function RegisterForm({ locale }: { locale: string }) {
   const isAr = locale === "ar";
@@ -85,8 +86,8 @@ export function RegisterForm({ locale }: { locale: string }) {
         <label className="text-xs font-bold text-slate-700 block">
           {isAr ? "الاسم الكامل" : "Full Name"}
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <User className="size-4" />
           </div>
           <input
@@ -105,8 +106,8 @@ export function RegisterForm({ locale }: { locale: string }) {
         <label className="text-xs font-bold text-slate-700 block">
           {isAr ? "البريد الإلكتروني المهني" : "Business Email"}
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <Mail className="size-4" />
           </div>
           <input
@@ -128,13 +129,16 @@ export function RegisterForm({ locale }: { locale: string }) {
           <label className="text-xs font-bold text-slate-700 block">
             {isAr ? "كلمة المرور" : "Password"}
           </label>
-          <div className="relative">
+          <div className="group relative">
+            <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
+              <Lock className="size-4" />
+            </div>
             <input
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-3.5 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
               required
               minLength={8}
             />
@@ -147,6 +151,7 @@ export function RegisterForm({ locale }: { locale: string }) {
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
+          <PasswordStrengthMeter password={password} isAr={isAr} />
         </div>
 
         {/* Confirm Password */}
@@ -154,13 +159,20 @@ export function RegisterForm({ locale }: { locale: string }) {
           <label className="text-xs font-bold text-slate-700 block">
             {isAr ? "تأكيد كلمة المرور" : "Confirm Password"}
           </label>
-          <div className="relative">
+          <div className="group relative">
+            <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
+              <Lock className="size-4" />
+            </div>
             <input
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-3.5 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+              className={`w-full rounded-lg border bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                confirmPassword && password !== confirmPassword
+                  ? "border-red-300 focus:border-red-500 focus:ring-red-500/10"
+                  : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+              }`}
               required
               minLength={8}
             />
@@ -173,27 +185,55 @@ export function RegisterForm({ locale }: { locale: string }) {
               {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
+          {confirmPassword && (
+            <p
+              className={`flex items-center gap-1 pt-1 text-[10px] font-bold ${
+                password === confirmPassword ? "text-emerald-600" : "text-red-600"
+              }`}
+            >
+              {password === confirmPassword ? (
+                <Check className="size-3" />
+              ) : (
+                <X className="size-3" />
+              )}
+              {password === confirmPassword
+                ? isAr
+                  ? "كلمتا المرور متطابقتان"
+                  : "Passwords match"
+                : isAr
+                  ? "كلمتا المرور غير متطابقتين"
+                  : "Passwords don't match"}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Terms & Privacy Checkbox */}
       <div className="pt-2 flex items-start gap-2.5 text-start">
-        <input
-          type="checkbox"
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={acceptTerms}
           id="acceptTerms"
-          checked={acceptTerms}
-          onChange={(e) => setAcceptTerms(e.target.checked)}
-          className="mt-0.5 size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          required
-        />
+          onClick={() => setAcceptTerms((v) => !v)}
+          className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer ${
+            acceptTerms
+              ? "border-blue-600 bg-blue-600 text-white"
+              : "border-slate-300 bg-white hover:border-blue-400"
+          }`}
+        >
+          {acceptTerms && <Check className="size-3" strokeWidth={3} />}
+        </button>
         <label
           htmlFor="acceptTerms"
+          onClick={() => setAcceptTerms((v) => !v)}
           className="text-xs text-slate-600 select-none cursor-pointer leading-relaxed"
         >
           {isAr ? "أوافق على " : "I agree to "}
           <Link
             href="/terms"
             locale={locale as Locale}
+            onClick={(e) => e.stopPropagation()}
             className="font-bold text-blue-600 hover:underline"
           >
             {isAr ? "شروط الخدمة" : "Terms of Service"}
@@ -202,6 +242,7 @@ export function RegisterForm({ locale }: { locale: string }) {
           <Link
             href="/privacy"
             locale={locale as Locale}
+            onClick={(e) => e.stopPropagation()}
             className="font-bold text-blue-600 hover:underline"
           >
             {isAr ? "سياسة الخصوصية وحماية البيانات" : "Privacy Policy"}

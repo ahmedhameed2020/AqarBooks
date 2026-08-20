@@ -51,37 +51,13 @@ export default async function LoginPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "مرحباً بعودتك" : "Welcome Back"}
-      title={isAr ? "تسجيل الدخول إلى حسابك" : "Sign In to Your Account"}
+      eyebrow={isAr ? "تسجيل الدخول" : "Sign in"}
+      title={isAr ? "عُد إلى دفاترك" : "Back to your books"}
       subtitle={
         isAr
-          ? "أصولك، عقودك، والقيود المحاسبية لمنشأتك — في لوحة تحكم مالية واحدة."
-          : "Your properties, contracts, and financial ledgers — one calm dashboard."
+          ? "كل شيء كما تركته تمامًا."
+          : "Everything exactly where you left it."
       }
-      panelTitle={
-        isAr
-          ? "حوكمة مالية متكاملة تحت السيطرة المطلقة"
-          : "Real estate finances, beautifully under control."
-      }
-      panelSubtitle={
-        isAr
-          ? "تتبع كافة القيود، المحافظ، وكشوف الملاك بدقة محاسبية غير قابلة للتشكيك."
-          : "Track every unit, contract, and balance sheet ledger from a single source of truth."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "٢٫٤B+", label: "أصول مدارة" },
-              { value: "١٠٠٪", label: "توازن قيود" },
-              { value: "٩٩٫٩٪", label: "جاهزية SLA" },
-            ]
-          : [
-              { value: "2.4B+", label: "AUM" },
-              { value: "100%", label: "Balanced" },
-              { value: "99.9%", label: "Uptime" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <LoginForm locale={locale as Locale} redirectTo={redirectTo} />

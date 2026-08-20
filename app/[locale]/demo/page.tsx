@@ -12,7 +12,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "طلب عرض توضيحي — عقار بوكس (AqarBooks)" : "Request a Demo — AqarBooks",
+    title: isAr ? "طلب عرض توضيحي: عقار بوكس (AqarBooks)" : "Request a Demo: AqarBooks",
     robots: { index: false, follow: true },
   };
 }
@@ -37,7 +37,7 @@ export default async function DemoPage({
             </h1>
             <p className="mt-3 text-sm text-[var(--mk-text-muted)]">
               {isAr
-                ? "احكيلنا عن منتجعك، وفريقنا هيتواصل معاك لتحديد موعد."
+                ? "أخبرنا عن كيانك العقاري، وسيتواصل معك فريقنا لتحديد موعد."
                 : "Tell us about your resort, and our team will reach out to schedule a walkthrough."}
             </p>
           </div>

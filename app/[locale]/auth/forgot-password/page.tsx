@@ -51,37 +51,13 @@ export default async function ForgotPasswordPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "أمان الحساب" : "Account Security"}
-      title={isAr ? "استعادة كلمة المرور" : "Reset Your Password"}
+      eyebrow={isAr ? "استعادة الدخول" : "Account recovery"}
+      title={isAr ? "نسيت كلمة المرور؟" : "Forgot your password?"}
       subtitle={
         isAr
-          ? "سنساعدك على استعادة الوصول إلى حسابك المالي وبيانات منشأتك."
-          : "We'll help you securely recover access to your financial workspace."
+          ? "لا مشكلة. أدخل بريدك وسنرسل إليك رابط تعيين جديد."
+          : "It happens. Enter your email and we'll send you a reset link."
       }
-      panelTitle={
-        isAr
-          ? "أعلى معايير الأمان والتحكم المالي المؤسسي"
-          : "Enterprise-grade security and financial control."
-      }
-      panelSubtitle={
-        isAr
-          ? "تشفير كامل، عزل بيانات RLS على مستوى كل قيد، وتوثيق دخول متعدد المستويات."
-          : "End-to-end encryption, strict RLS isolation per ledger, and robust multi-factor governance."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "٢٥٦-bit", label: "تشفير مصرفي" },
-              { value: "١٠٠٪", label: "حماية بيانات" },
-              { value: "٢٤/٧", label: "مراقبة الأمان" },
-            ]
-          : [
-              { value: "256-bit", label: "Bank Security" },
-              { value: "100%", label: "Data Safety" },
-              { value: "24/7", label: "Monitoring" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <ForgotPasswordForm locale={locale as Locale} />

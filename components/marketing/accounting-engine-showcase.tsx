@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Calculator, FileCheck, ShieldAlert, Sparkles, Receipt, Split, Check } from "lucide-react";
+import { Reveal } from "@/components/marketing/reveal";
 
 export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
   const [activeFeature, setActiveFeature] = useState<"ledger" | "cashier">("ledger");
@@ -11,7 +12,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
     <section id="accounting-engine" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#060a18]">
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <Reveal className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-950/40 px-4 py-1.5 text-xs font-bold text-blue-300 mb-4 shadow-[0_0_20px_-4px_rgba(59,130,246,0.5)]">
             <Calculator className="size-3.5 text-blue-400" />
             <span>{isAr ? "المحرك المحاسبي المعتمد لمصر والخليج" : "Egypt & GCC Enterprise Accounting Engine"}</span>
@@ -19,20 +20,20 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             {isAr ? (
               <>
-                محاسبة حقيقية بقيد مزدوج <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">ومتوافقة مع الضرائب والفوترة الإلكترونية</span>
+                محاسبة حقيقية بقيد مزدوج <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-cyan-400">ومتوافقة مع الضرائب والفوترة الإلكترونية</span>
               </>
             ) : (
               <>
-                True Double-Entry Ledger <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">& Tax / e-Invoicing Compliant</span>
+                True Double-Entry Ledger <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-cyan-400">& Tax / e-Invoicing Compliant</span>
               </>
             )}
           </h2>
           <p className="mt-4 text-base text-slate-400 leading-relaxed font-normal">
             {isAr
-              ? "ليس مجرد جدول تحصيل سطحي — AqarBooks يمتلك محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، حساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية ZATCA."
-              : "Not just a billing sheet — AqarBooks features a full general ledger engine: balanced journal entries, hierarchical COA, automated VAT calculation (14% Egypt / 15% KSA), WHT management, and ZATCA e-Invoicing."}
+              ? "ليس مجرد جدول تحصيل سطحي. يقوم عقار بوكس على محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، احتساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية ZATCA."
+              : "Not just a billing sheet. AqarBooks runs on a full general ledger engine: balanced journal entries, hierarchical COA, automated VAT calculation (14% Egypt / 15% KSA), WHT management, and ZATCA e-Invoicing."}
           </p>
-        </div>
+        </Reveal>
 
         {/* Feature Toggle Buttons */}
         <div className="flex justify-center mb-12">
@@ -42,7 +43,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
               onClick={() => setActiveFeature("ledger")}
               className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeFeature === "ledger"
-                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/50"
+                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-900/50"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -53,7 +54,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
               onClick={() => setActiveFeature("cashier")}
               className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeFeature === "cashier"
-                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/50"
+                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-900/50"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -76,7 +77,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#060a18]/90 via-transparent to-transparent" />
                 <div className="absolute bottom-4 start-4 end-4 flex items-center justify-between">
-                  <span className="rounded-xl bg-[#0b1126]/90 border border-purple-500/40 px-3.5 py-1.5 text-xs font-mono font-bold text-purple-200 backdrop-blur-md shadow-xl">
+                  <span className="rounded-xl bg-[#0b1126]/90 border border-blue-500/40 px-3.5 py-1.5 text-xs font-mono font-bold text-cyan-200 backdrop-blur-md shadow-xl">
                     {isAr ? "معاينة قيود اليومية والمطابقة الضريبية الإقليمية" : "Live Journal Posting & Regional Tax Breakdown"}
                   </span>
                 </div>
@@ -102,8 +103,8 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-purple-500/40">
-                  <div className="size-9 rounded-lg bg-purple-950/90 border border-purple-500/40 flex items-center justify-center shrink-0 mt-0.5 text-purple-400">
+                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-blue-500/40">
+                  <div className="size-9 rounded-lg bg-blue-950/90 border border-blue-500/40 flex items-center justify-center shrink-0 mt-0.5 text-cyan-400">
                     <Receipt className="size-4.5" />
                   </div>
                   <div>
@@ -118,13 +119,13 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-indigo-500/40">
-                  <div className="size-9 rounded-lg bg-slate-900 border border-slate-700/60 flex items-center justify-center shrink-0 mt-0.5 text-indigo-400">
+                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-blue-500/40">
+                  <div className="size-9 rounded-lg bg-slate-900 border border-slate-700/60 flex items-center justify-center shrink-0 mt-0.5 text-blue-400">
                     <ShieldAlert className="size-4.5" />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">
-                      {isAr ? "عدم تعديل القيود — التصحيح بالعكس فقط" : "Immutable Ledger & Audit Reversals"}
+                      {isAr ? "عدم تعديل القيود، التصحيح بالعكس فقط" : "Immutable Ledger & Audit Reversals"}
                     </h4>
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed font-normal">
                       {isAr
@@ -159,8 +160,8 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
             {/* Feature Bullet Points */}
             <div className="lg:col-span-5 space-y-4">
               <div className="space-y-3.5">
-                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-purple-500/40">
-                  <div className="size-9 rounded-lg bg-purple-950/90 border border-purple-500/40 flex items-center justify-center shrink-0 mt-0.5 text-purple-400">
+                <div className="p-4 rounded-xl border border-slate-800 bg-[#0b1126]/80 shadow-md flex items-start gap-3.5 transition-all hover:border-blue-500/40">
+                  <div className="size-9 rounded-lg bg-blue-950/90 border border-blue-500/40 flex items-center justify-center shrink-0 mt-0.5 text-cyan-400">
                     <Receipt className="size-4.5" />
                   </div>
                   <div>

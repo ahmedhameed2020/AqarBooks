@@ -7,7 +7,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
   return (
     <div className="relative mx-auto w-full max-w-5xl">
       {/* Ambient background glow behind visual */}
-      <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/25 via-blue-600/20 to-purple-600/25 rounded-3xl blur-3xl -z-10 opacity-75" />
+      <div className="absolute -inset-4 bg-gradient-to-r from-blue-600/25 via-blue-600/20 to-blue-600/25 rounded-3xl blur-3xl -z-10 opacity-75" />
 
       {/* Main Container Card */}
       <div className="overflow-hidden rounded-2xl border border-[var(--mk-border-strong)] bg-[#070c1e] shadow-[0_25px_80px_-15px_rgba(0,0,0,0.9)] relative group">
@@ -44,12 +44,12 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#060a18] via-transparent to-transparent opacity-85" />
 
           {/* Floating Badge 1: Atomic Double Entry */}
-          <div className="absolute top-6 start-6 animate-float-badge rounded-xl border border-purple-500/40 bg-[#0b1126]/90 p-3.5 shadow-2xl backdrop-blur-md hidden sm:flex items-center gap-3">
-            <div className="size-9 rounded-lg bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-xs">
+          <div className="absolute top-6 start-6 animate-float-badge rounded-xl border border-blue-500/40 bg-[#0b1126]/90 p-3.5 shadow-2xl backdrop-blur-md hidden sm:flex items-center gap-3">
+            <div className="size-9 rounded-lg bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-cyan-300 shadow-xs">
               <Scale className="size-4.5" />
             </div>
             <div>
-              <p className="text-[11px] font-mono font-bold text-purple-300">
+              <p className="text-[11px] font-mono font-bold text-cyan-300">
                 {isAr ? "توازن محاسبي ذري" : "Atomic Balance"}
               </p>
               <p className="text-xs font-extrabold text-white">
@@ -93,7 +93,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-center font-mono text-xs">
               <div className="border-e border-slate-700/60 last:border-0 pe-2">
                 <p className="text-[10px] text-slate-400">{isAr ? "هيكل المحاسبة" : "Accounting Engine"}</p>
-                <p className="text-xs font-bold text-purple-300 mt-0.5">{isAr ? "قيد مزدوج حقيقي" : "Double-Entry"}</p>
+                <p className="text-xs font-bold text-cyan-300 mt-0.5">{isAr ? "قيد مزدوج حقيقي" : "Double-Entry"}</p>
               </div>
               <div className="border-e border-slate-700/60 last:border-0 pe-2">
                 <p className="text-[10px] text-slate-400">{isAr ? "الكيانات المدعومة" : "Entity Support"}</p>
@@ -105,7 +105,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
               </div>
               <div>
                 <p className="text-[10px] text-slate-400">{isAr ? "العملات المدعومة" : "Currencies"}</p>
-                <p className="text-xs font-bold text-indigo-300 mt-0.5">EGP • SAR • AED • USD</p>
+                <p className="text-xs font-bold text-cyan-300 mt-0.5">EGP • SAR • AED • USD</p>
               </div>
             </div>
           </div>

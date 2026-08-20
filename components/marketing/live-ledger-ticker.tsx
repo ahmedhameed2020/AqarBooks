@@ -111,8 +111,8 @@ export function LiveLedgerTicker({ isAr }: { isAr: boolean }) {
   return (
     <div className="w-full overflow-hidden border-y border-[var(--mk-border)] bg-[var(--mk-bg-elevated)]/80 backdrop-blur-md py-3 shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4">
-        <div className="flex shrink-0 items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/60 px-3.5 py-1 text-xs font-bold text-purple-300 shadow-xs">
-          <span className="size-2 rounded-full bg-purple-400 animate-pulse" />
+        <div className="flex shrink-0 items-center gap-2 rounded-full border border-blue-500/30 bg-blue-950/60 px-3.5 py-1 text-xs font-bold text-cyan-300 shadow-xs">
+          <span className="size-2 rounded-full bg-cyan-400 animate-pulse" />
           <span>{isAr ? "محرك الترحيل اللحظي (Atomic Ledger)" : "Live Atomic Ledger"}</span>
         </div>
 
@@ -125,9 +125,9 @@ export function LiveLedgerTicker({ isAr }: { isAr: boolean }) {
             {duplicatedEvents.map((evt, idx) => (
               <div
                 key={`${evt.id}-${idx}`}
-                className="flex items-center gap-3 rounded-xl border border-[var(--mk-border)] bg-[var(--mk-surface)]/90 px-4 py-1.5 text-xs text-white shadow-xs transition-all hover:border-purple-500/50"
+                className="flex items-center gap-3 rounded-xl border border-[var(--mk-border)] bg-[var(--mk-surface)]/90 px-4 py-1.5 text-xs text-white shadow-xs transition-all hover:border-blue-500/50"
               >
-                <span className="font-mono font-bold text-purple-400">{evt.ref}</span>
+                <span className="font-mono font-bold text-cyan-400">{evt.ref}</span>
                 <span className="text-slate-600">|</span>
                 <span className="font-bold text-white">{isAr ? evt.typeAr : evt.typeEn}</span>
                 <span className="hidden text-slate-400 sm:inline font-normal">

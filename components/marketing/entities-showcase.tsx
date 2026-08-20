@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Building2, Home, Landmark, Palmtree, Store, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { Reveal } from "@/components/marketing/reveal";
 
 export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -135,23 +136,23 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
   return (
     <section id="entities" className="relative py-24 px-6 overflow-hidden bg-[#060a18]">
       {/* Background ambient lighting */}
-      <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-purple-950/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-blue-950/20 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="mx-auto max-w-6xl relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-4 py-1.5 text-xs font-bold text-purple-300 mb-4 shadow-[0_0_20px_-4px_rgba(139,92,246,0.5)]">
-            <ShieldCheck className="size-3.5 text-purple-400" />
+        <Reveal className="text-center max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-950/40 px-4 py-1.5 text-xs font-bold text-cyan-300 mb-4 shadow-[0_0_20px_-4px_rgba(59,130,246,0.5)]">
+            <ShieldCheck className="size-3.5 text-cyan-400" />
             <span>{isAr ? "المرونة الهيكلية لأسواق مصر والخليج" : "Egypt & GCC Real Estate Models"}</span>
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             {isAr ? (
               <>
-                نظام واحد يدير <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">الكيانات العقارية الخمسة</span> بكفاءة
+                نظام واحد يدير <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">الكيانات العقارية الخمسة</span> بكفاءة
               </>
             ) : (
               <>
-                One Engine Powering <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">All 5 Real Estate Entities</span>
+                One Engine Powering <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">All 5 Real Estate Entities</span>
               </>
             )}
           </h2>
@@ -160,7 +161,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
               ? "على عكس البرامج المحدودة بنوع عقار واحد، صُمم عقار بوكس بدليل حسابات مرن يخدم القرى السياحية (الساحل والبحر الأحمر)، الأبراج السكنية والتجارية (دبي، الرياض، القاهرة)، الفلل، واتحادات الملاك وملاك الشاغلين."
               : "Unlike single-purpose tools, AqarBooks provides native accounting architecture tuned for coastal resorts, residential towers, private villas, commercial retail plazas, and HOAs across Egypt & GCC."}
           </p>
-        </div>
+        </Reveal>
 
         {/* Visual Architectural Composite Render */}
         <div className="mb-10 overflow-hidden rounded-2xl border border-[var(--mk-border-strong)] bg-[#070c1e] shadow-2xl relative group">
@@ -174,7 +175,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#060a18] via-transparent to-transparent opacity-90" />
             <div className="absolute bottom-4 start-6 end-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 rounded-xl bg-[#060a18]/90 backdrop-blur-md px-4 py-2 border border-purple-500/40 text-xs font-bold text-purple-200 shadow-xl">
+              <div className="flex items-center gap-2 rounded-xl bg-[#060a18]/90 backdrop-blur-md px-4 py-2 border border-blue-500/40 text-xs font-bold text-cyan-200 shadow-xl">
                 <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{isAr ? "دليل حسابات شجري مخصص لكل نوع كيان عقاري" : "Custom Chart of Accounts for Each Entity Type"}</span>
               </div>
@@ -197,21 +198,21 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
                 onClick={() => setActiveTab(idx)}
                 className={`flex flex-col items-start gap-2.5 p-4 rounded-xl border text-start transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "border-purple-500/80 bg-gradient-to-b from-purple-950/70 to-[var(--mk-surface)] shadow-[0_0_30px_-5px_rgba(139,92,246,0.4)] ring-1 ring-purple-500/50"
-                    : "border-[var(--mk-border)] bg-[var(--mk-surface)]/70 hover:border-purple-500/40 hover:bg-[var(--mk-surface)]"
+                    ? "border-blue-500/80 bg-gradient-to-b from-blue-950/70 to-[var(--mk-surface)] shadow-[0_0_30px_-5px_rgba(59,130,246,0.4)] ring-1 ring-blue-500/50"
+                    : "border-[var(--mk-border)] bg-[var(--mk-surface)]/70 hover:border-blue-500/40 hover:bg-[var(--mk-surface)]"
                 }`}
               >
                 <div
                   className={`size-9 rounded-lg flex items-center justify-center transition-colors ${
                     isSelected
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/50"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/50"
                       : "bg-[#0b1126] text-slate-400"
                   }`}
                 >
                   <Icon className="size-4.5" />
                 </div>
                 <div>
-                  <p className={`text-xs font-bold transition-colors ${isSelected ? "text-purple-200" : "text-white"}`}>
+                  <p className={`text-xs font-bold transition-colors ${isSelected ? "text-cyan-200" : "text-white"}`}>
                     {isAr ? ent.titleAr.split("/")[0] : ent.titleEn.split("&")[0]}
                   </p>
                   <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5 font-normal">
@@ -227,7 +228,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
         <div className="glass-card rounded-2xl p-6 sm:p-8 border border-[var(--mk-border-strong)] bg-[var(--mk-surface)] shadow-2xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-lg bg-purple-950/80 px-3 py-1 text-xs font-mono font-bold text-purple-300 border border-purple-500/40">
+              <div className="inline-flex items-center gap-2 rounded-lg bg-blue-950/80 px-3 py-1 text-xs font-mono font-bold text-cyan-300 border border-blue-500/40">
                 <span>{isAr ? current.badgeAr : current.badgeEn}</span>
               </div>
               <h3 className="text-2xl font-extrabold text-white">
@@ -240,7 +241,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
               <div className="pt-2 space-y-2.5">
                 {(isAr ? current.pointsAr : current.pointsEn).map((pt, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-slate-200 font-medium">
-                    <CheckCircle2 className="size-4.5 text-purple-400 shrink-0" />
+                    <CheckCircle2 className="size-4.5 text-cyan-400 shrink-0" />
                     <span>{pt}</span>
                   </div>
                 ))}
@@ -252,7 +253,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
                 <span className="text-slate-400 font-sans">
                   {isAr ? "دليل الحسابات المرتبط:" : "Mapped GL Accounts:"}
                 </span>
-                <span className="text-purple-300 font-extrabold text-sm">1000 - 5999</span>
+                <span className="text-cyan-300 font-extrabold text-sm">1000 - 5999</span>
               </div>
               <div className="space-y-2.5 font-mono">
                 <div className="flex justify-between text-[11px]">
@@ -265,14 +266,14 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-400 font-sans">{isAr ? "آلية التعديل والتصحيح:" : "Correction Policy:"}</span>
-                  <span className="text-purple-300 font-bold">{isAr ? "عكس القيد (Reversal)" : "Reversal Only"}</span>
+                  <span className="text-cyan-300 font-bold">{isAr ? "عكس القيد (Reversal)" : "Reversal Only"}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-400 font-sans">{isAr ? "التوافق الضريبي الإقليمي:" : "Regional Tax:"}</span>
                   <span className="text-emerald-300 font-bold">VAT (EG/KSA) • ZATCA</span>
                 </div>
               </div>
-              <div className="rounded-lg bg-[#0b1126] p-3.5 border border-purple-500/30 text-[11px] text-slate-300 leading-relaxed font-sans shadow-inner">
+              <div className="rounded-lg bg-[#0b1126] p-3.5 border border-blue-500/30 text-[11px] text-slate-300 leading-relaxed font-sans shadow-inner">
                 {isAr
                   ? "✓ جاهز فوراً للربط مع الضرائب المصرية (VAT / WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA) وإصدار السندات المعتمدة."
                   : "✓ Pre-configured for Egyptian Tax (VAT/WHT) and Saudi ZATCA e-invoicing standards."}

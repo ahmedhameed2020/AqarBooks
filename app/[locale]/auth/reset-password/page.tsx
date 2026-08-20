@@ -36,37 +36,13 @@ export default async function ResetPasswordPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "تحديث الأمان" : "Security Update"}
-      title={isAr ? "تعيين كلمة مرور جديدة" : "Set a New Password"}
+      eyebrow={isAr ? "كلمة مرور جديدة" : "New password"}
+      title={isAr ? "اختر كلمة مرور جديدة" : "Choose a new password"}
       subtitle={
         isAr
-          ? "أدخل كلمة المرور الجديدة وتأكيدها لتأمين حسابك."
-          : "Enter your new password below to secure your workspace."
+          ? "اجعلها قوية، فهي مفاتيح دفاترك."
+          : "Make it strong. These are the keys to your books."
       }
-      panelTitle={
-        isAr
-          ? "أمان القيود والحسابات يبدأ من كلمة المرور"
-          : "Ledger-level security starts with strong authentication."
-      }
-      panelSubtitle={
-        isAr
-          ? "نضمن سرية بياناتك المالية ومحافظك العقارية عبر بروتوكولات حماية متطورة."
-          : "Ensuring total financial privacy and multi-entity protection across all assets."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "٨+ خانات", label: "الحد الأدنى" },
-              { value: "١٠٠٪", label: "تشفير تام" },
-              { value: "آمن", label: "بروتوكول HTTPS" },
-            ]
-          : [
-              { value: "8+ chars", label: "Min Length" },
-              { value: "100%", label: "Encrypted" },
-              { value: "Secure", label: "HTTPS / TLS" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <Suspense fallback={null}>

@@ -12,7 +12,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "تواصل معنا — عقار بوكس (AqarBooks)" : "Contact Us — AqarBooks",
+    title: isAr ? "تواصل معنا: عقار بوكس (AqarBooks)" : "Contact Us: AqarBooks",
     robots: { index: false, follow: true },
   };
 }
@@ -36,7 +36,7 @@ export default async function ContactPage({
               {isAr ? "تواصل معنا" : "Contact Us"}
             </h1>
             <p className="mt-3 text-sm text-[var(--mk-text-muted)]">
-              {isAr ? "عندك سؤال؟ ابعتلنا وهنرد عليك في أقرب وقت." : "Have a question? Send us a message and we'll get back to you."}
+              {isAr ? "لديك سؤال؟ أرسل لنا رسالة وسنرد عليك في أقرب وقت." : "Have a question? Send us a message and we'll get back to you."}
             </p>
           </div>
           <ContactForm locale={locale} />

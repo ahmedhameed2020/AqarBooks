@@ -8,6 +8,8 @@ import { HeroVisual } from "@/components/marketing/hero-visual";
 import { LiveLedgerTicker } from "@/components/marketing/live-ledger-ticker";
 import { EntitiesShowcase } from "@/components/marketing/entities-showcase";
 import { AccountingEngineShowcase } from "@/components/marketing/accounting-engine-showcase";
+import { LogoMark } from "@/components/marketing/logo-mark";
+import { Reveal } from "@/components/marketing/reveal";
 import {
   ShieldCheck,
   Building,
@@ -32,8 +34,8 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "عقار بوكس (AqarBooks) — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات (مصر والخليج)"
-    : "AqarBooks — Enterprise Real Estate & Resort Accounting ERP (Egypt & GCC)";
+    ? "عقار بوكس (AqarBooks): النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات (مصر والخليج)"
+    : "AqarBooks: Enterprise Real Estate & Resort Accounting ERP (Egypt & GCC)";
   const description = isAr
     ? "نظام محاسبي متكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الضرائب المصرية (VAT/WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
     : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with Egyptian Tax & Saudi ZATCA e-invoicing.";
@@ -104,8 +106,8 @@ const SECURITY_PILLARS = [
   {
     titleAr: "عزل RLS تام بين العقارات والشركات",
     titleEn: "Database Row-Level Security (RLS)",
-    descAr: "كل جدول مالي محمي بسياسات Row-Level Security مشددة من داخل PostgreSQL — بيانات كل عقار أو اتحاد ملاك معزولة جذرياً.",
-    descEn: "Every sensitive table enforces default-deny Row-Level Security inside PostgreSQL — strict tenant isolation guaranteed.",
+    descAr: "كل جدول مالي محمي بسياسات Row-Level Security مشددة من داخل PostgreSQL، وبيانات كل عقار أو اتحاد ملاك معزولة جذرياً.",
+    descEn: "Every sensitive table enforces default-deny Row-Level Security inside PostgreSQL, guaranteeing strict tenant isolation.",
   },
   {
     titleAr: "عدم التعديل المباشر (Immutable Ledger)",
@@ -199,7 +201,7 @@ const FAQ = [
     qAr: "هل يدعم عقار بوكس (AqarBooks) متطلبات السوق المصري والسوق الخليجي؟",
     qEn: "Does AqarBooks support Egyptian and GCC market requirements?",
     aAr: "نعم، النظام مصمم خصيصاً للشركات العقارية في مصر ودول الخليج؛ فهو يدعم ضريبة القيمة المضافة 14% (مصر) و 15% (السعودية) و 5% (الإمارات)، وضرائب الخصم والتحصيل WHT، وجاهزية الفاتورة الإلكترونية وزاتكا ZATCA، مع دليل حسابات معرب ومطابق للمعايير المحاسبية المعتمدة.",
-    aEn: "Yes — AqarBooks is natively tailored for Egypt and the GCC: supporting Egyptian 14% VAT & WHT, Saudi 15% VAT & ZATCA e-invoicing Phase 2, UAE 5% VAT, multi-currencies (EGP, SAR, AED, USD), and localized Arabic Chart of Accounts.",
+    aEn: "Yes. AqarBooks is natively tailored for Egypt and the GCC, supporting Egyptian 14% VAT & WHT, Saudi 15% VAT & ZATCA e-invoicing Phase 2, UAE 5% VAT, multi-currencies (EGP, SAR, AED, USD), and a localized Arabic Chart of Accounts.",
   },
   {
     qAr: "كيف يختلف عقار بوكس عن برامج إدارة العقارات التقليدية؟",
@@ -211,19 +213,19 @@ const FAQ = [
     qAr: "هل يمكن إدارة اتحاد شاغلين أو جمعية ملاك مع توزيع المصروفات بحسب الحصص؟",
     qEn: "Can it manage an HOA / Mollak association with pro-rata area expense distribution?",
     aAr: "نعم، يدعم النظام توزيع المصروفات المشتركة (حراسة، صيانة مصاعد، إنارة عامة) بحسب نسبة كل وحدة في ملكية الأرض والأجزاء المشتركة، مع إصدار مطالبات موثقة ومتابعة مديونيات الأعضاء.",
-    aEn: "Yes — common operational expenses are automatically apportioned based on each unit's official pro-rata ownership share with audited statements.",
+    aEn: "Yes. Common operational expenses are automatically apportioned based on each unit's official pro-rata ownership share, with audited statements.",
   },
   {
     qAr: "كيف يضمن النظام عدم التلاعب المالي وسرية الحسابات؟",
     qEn: "How does AqarBooks prevent financial tampering and protect tenant data?",
     aAr: "من خلال ركيزتين أساسيتين: الأولى هي عزل البيانات الصارم عبر تقنية Row-Level Security في PostgreSQL، والثانية هي عدم إمكانية تعديل أو حذف القيود المرحّلة إطلاقاً (أي تصحيح يتم عبر قيد عكسي موثّق مع سجل تدقيق غير قابل للحذف).",
-    aEn: "Through two strict pillars: database-level Row-Level Security (RLS) for complete multi-tenant isolation, and an immutable ledger where posted entries cannot be edited — corrections require logged reversing entries.",
+    aEn: "Through two strict pillars: database-level Row-Level Security (RLS) for complete multi-tenant isolation, and an immutable ledger where posted entries cannot be edited. Corrections require logged reversing entries.",
   },
   {
     qAr: "هل النظام ثنائي اللغة (عربي بالكامل وإنجليزي)؟",
     qEn: "Is the platform fully bilingual (Arabic RTL and English LTR)?",
     aAr: "نعم، الواجهة كاملة، شجرة الحسابات، سندات القبض، والتقارير المالية مبنية من الأساس لتدعم اللغة العربية RTL والإنجليزية LTR بخطوط عصرية ومظهر احترافي فائق.",
-    aEn: "Yes — the complete UI, Chart of Accounts, receipt vouchers, and financial statements are natively designed for Arabic (RTL) and English (LTR) with modern high-contrast typography.",
+    aEn: "Yes. The complete UI, Chart of Accounts, receipt vouchers, and financial statements are natively designed for Arabic (RTL) and English (LTR) with modern high-contrast typography.",
   },
 ] as const;
 
@@ -248,7 +250,7 @@ export default async function LandingPage({
   };
 
   return (
-    <div className="marketing relative flex min-h-full flex-1 flex-col bg-[#060a18] text-[#f8fafc] selection:bg-purple-900 selection:text-purple-100">
+    <div className="marketing relative flex min-h-full flex-1 flex-col bg-[#060a18] text-[#f8fafc] selection:bg-blue-900 selection:text-cyan-100">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -260,10 +262,9 @@ export default async function LandingPage({
         {/* Animated Background Flow Lines & Luminous Laser Currents */}
         <FlowLinesBackground />
 
-        <div className="relative z-10 mx-auto max-w-4xl">
+        <Reveal className="relative z-10 mx-auto max-w-4xl">
           {/* Top Trust Signal Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/40 bg-[#0b1126]/90 px-4 py-1.5 text-xs text-purple-200 shadow-[0_0_25px_-4px_rgba(139,92,246,0.6)] backdrop-blur-md transition-transform hover:scale-105">
-            <span className="size-2 rounded-full bg-purple-400 animate-pulse" />
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/40 bg-[#0b1126]/90 px-4 py-1.5 text-xs text-cyan-200 shadow-[0_0_25px_-4px_rgba(59,130,246,0.6)] backdrop-blur-md transition-transform hover:scale-105">
             <span className="font-bold">
               {isAr
                 ? "قيد مزدوج حقيقي • متوافق مع الضرائب المصرية (VAT/WHT) ومنظومة زاتكا (ZATCA)"
@@ -275,16 +276,16 @@ export default async function LandingPage({
           <h1 className="text-balance text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.2]">
             {isAr ? (
               <>
-                النظام المحاسبي المتكامل لإدارة{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">
-                  العقارات والمنتجعات
+                نظام محاسبي متكامل لإدارة{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">
+                  الكيانات العقارية
                 </span>
               </>
             ) : (
               <>
-                Enterprise Accounting ERP for{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-blue-400">
-                  Real Estate & Resorts
+                Integrated Accounting for{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">
+                  Every Real Estate Entity
                 </span>
               </>
             )}
@@ -293,8 +294,8 @@ export default async function LandingPage({
           {/* Subtitle */}
           <p className="mx-auto mt-6 max-w-2xl text-balance text-base text-slate-300 sm:text-lg leading-relaxed font-normal">
             {isAr
-              ? "عقار بوكس (AqarBooks) يوحّد قيود اليومية، حسابات جمعيات واتحادات الملاك، الأبراج السكنية، القرى السياحية، المراكز التجارية، والخزينة في منصة مالية واحدة آمنة وغير قابلة للتعديل العشوائي."
-              : "AqarBooks unifies general ledger postings, HOA community finances, residential towers, tourist resorts, retail plazas, and cashbox sessions into one secure, audit-proof ERP platform across Egypt & GCC."}
+              ? "قيود اليومية، اتحادات الملاك، الأبراج، المنتجعات، والخزينة، كلهم في منصة مالية واحدة آمنة ومحصّنة ضد التعديل العشوائي."
+              : "General ledger, HOA finances, towers, resorts, and cashbox sessions, unified in one secure, audit-proof ERP across Egypt & the GCC."}
           </p>
 
           {/* Dual CTAs */}
@@ -302,18 +303,18 @@ export default async function LandingPage({
             <Link
               href="/demo"
               locale={locale as Locale}
-              className="glow-btn-primary rounded-xl px-7 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-lg shadow-purple-900/50"
+              className="glow-btn-primary rounded-xl px-7 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-lg shadow-blue-900/50"
             >
               {isAr ? "طلب عرض توضيحي حي" : "Request a Live Demo"}
             </Link>
             <a
               href="#entities"
-              className="rounded-xl border border-slate-700/80 bg-[#0b1126]/90 px-6 py-3.5 text-sm font-bold text-slate-200 transition-all hover:border-purple-500/50 hover:bg-[#0f1733] hover:text-white"
+              className="rounded-xl border border-slate-700/80 bg-[#0b1126]/90 px-6 py-3.5 text-sm font-bold text-slate-200 transition-all hover:border-blue-500/50 hover:bg-[#0f1733] hover:text-white"
             >
               {isAr ? "استكشف الكيانات المدعومة" : "Explore Entity Models"}
             </a>
           </div>
-        </div>
+        </Reveal>
 
         {/* Ultra-realistic Visual Hero Asset Card */}
         <div className="mt-14">
@@ -333,9 +334,9 @@ export default async function LandingPage({
       {/* Full Core Modules Grid */}
       <section id="features" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#070c1e]">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-4 py-1 text-xs font-bold text-purple-300 mb-4 shadow-[0_0_20px_-4px_rgba(139,92,246,0.5)]">
-              <Layers className="size-3.5 text-purple-400" />
+          <Reveal className="text-center max-w-3xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-950/40 px-4 py-1 text-xs font-bold text-cyan-300 mb-4 shadow-[0_0_20px_-4px_rgba(59,130,246,0.5)]">
+              <Layers className="size-3.5 text-cyan-400" />
               <span>{isAr ? "الموديولات الوظيفية" : "Functional ERP Modules"}</span>
             </div>
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
@@ -346,20 +347,20 @@ export default async function LandingPage({
                 ? "بنية متماسكة تشمل القيود، التحصيل، الصناديق، الشيكات، وإقرارات الضرائب لمصر والخليج."
                 : "A cohesive infrastructure covering journals, billing, cashboxes, cheques, and regional tax compliance."}
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {MODULES.map((m) => {
               const Icon = m.icon;
               return (
                 <div
                   key={m.key}
-                  className="glass-card rounded-2xl p-7 border border-slate-800 bg-[#0b1126]/80 hover:border-purple-500/50 transition-all group shadow-md hover:shadow-xl cursor-pointer"
+                  className="glass-card rounded-2xl p-7 border border-slate-800 bg-[#0b1126]/80 hover:border-blue-500/50 transition-all group shadow-md hover:shadow-xl cursor-pointer"
                 >
-                  <div className="size-11 rounded-xl bg-gradient-to-tr from-purple-950 to-blue-950 border border-purple-500/40 flex items-center justify-center text-purple-300 mb-4 transition-transform group-hover:scale-110 shadow-xs">
+                  <div className="size-11 rounded-xl bg-gradient-to-tr from-blue-950 to-slate-900 border border-blue-500/40 flex items-center justify-center text-cyan-300 mb-4 transition-transform group-hover:scale-110 shadow-xs">
                     <Icon className="size-5.5" />
                   </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                  <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
                     {isAr ? m.titleAr : m.titleEn}
                   </h3>
                   <p className="mt-2 text-xs leading-relaxed text-slate-400 font-normal">
@@ -368,37 +369,48 @@ export default async function LandingPage({
                 </div>
               );
             })}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Security, Immutability & Audit Trail Section */}
       <section id="security" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#060a18]">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-950/40 px-4 py-1 text-xs font-bold text-purple-300 mb-4 shadow-[0_0_20px_-4px_rgba(139,92,246,0.5)]">
-              <Lock className="size-3.5 text-purple-400" />
-              <span>{isAr ? "الأمان والنزاهة المحاسبية" : "Enterprise Financial Security"}</span>
-            </div>
+          <Reveal className="max-w-3xl mb-14">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               {isAr
-                ? "مصمم للأموال الحقيقية — أمان مشدد وتدقيق غير قابل للتلاعب"
-                : "Built for Real Capital — Maximum Security & Audit Immutability"}
+                ? "مصمم للأموال الحقيقية: أمان مشدد وتدقيق غير قابل للتلاعب"
+                : "Built for Real Capital: Maximum Security & Audit Immutability"}
             </h2>
             <p className="mt-3 text-sm text-slate-400 font-normal">
               {isAr
                 ? "لا مكان للأخطاء العشوائية أو حذف المعاملات المالية الحساسة."
                 : "Zero tolerance for accidental overrides or unaudited write operations."}
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid gap-6 sm:grid-cols-3">
-            {SECURITY_PILLARS.map((p, idx) => (
+          <Reveal className="grid gap-6 lg:grid-cols-2">
+            {/* Lead pillar: wide featured row, not another equal card */}
+            <div className="lg:col-span-2 rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/50 to-[#0b1126] p-8 flex flex-col sm:flex-row items-start gap-6 shadow-md">
+              <div className="size-14 shrink-0 rounded-2xl bg-blue-950 border border-blue-500/40 flex items-center justify-center text-cyan-300 shadow-xs">
+                <ShieldCheck className="size-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {isAr ? SECURITY_PILLARS[0].titleAr : SECURITY_PILLARS[0].titleEn}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400 font-normal max-w-2xl">
+                  {isAr ? SECURITY_PILLARS[0].descAr : SECURITY_PILLARS[0].descEn}
+                </p>
+              </div>
+            </div>
+
+            {SECURITY_PILLARS.slice(1).map((p, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl border border-slate-800 bg-[#0b1126]/90 p-7 space-y-3.5 shadow-md transition-all hover:border-purple-500/40"
+                className="rounded-2xl border border-slate-800 bg-[#0b1126]/90 p-7 space-y-3.5 shadow-md transition-all hover:border-blue-500/40"
               >
-                <div className="size-10 rounded-xl bg-purple-950/90 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-xs">
+                <div className="size-10 rounded-xl bg-blue-950/90 border border-blue-500/40 flex items-center justify-center text-cyan-300 shadow-xs">
                   <ShieldCheck className="size-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white">
@@ -409,14 +421,14 @@ export default async function LandingPage({
                 </p>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Pricing Plans */}
       <section id="pricing" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#070c1e]">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center max-w-3xl mx-auto mb-14">
+          <Reveal className="text-center max-w-3xl mx-auto mb-14">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               {isAr ? "باقات واضحة تناسب حجم نشاطك العقاري" : "Plans Tailored to Your Property Portfolio"}
             </h2>
@@ -425,20 +437,20 @@ export default async function LandingPage({
                 ? "سواء كنت تدير برجاً سكنياً واحداً أو محفظة منتجعات ومراكز تجارية متعددة في مصر أو الخليج."
                 : "Whether managing a single residential tower or a multi-resort commercial portfolio across the region."}
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid gap-8 sm:grid-cols-3">
+          <Reveal className="grid gap-8 sm:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.key}
                 className={`rounded-2xl p-8 flex flex-col justify-between transition-all ${
                   plan.highlighted
-                    ? "border-2 border-purple-500 bg-gradient-to-b from-purple-950/60 via-[#0b1126] to-[#0b1126] shadow-[0_0_40px_-5px_rgba(139,92,246,0.4)] relative ring-2 ring-purple-500/30"
+                    ? "border-2 border-blue-500 bg-gradient-to-b from-blue-950/60 via-[#0b1126] to-[#0b1126] shadow-[0_0_40px_-5px_rgba(59,130,246,0.4)] relative ring-2 ring-blue-500/30"
                     : "border border-slate-800 bg-[#0b1126]/90 shadow-md"
                 }`}
               >
                 {plan.highlighted && (
-                  <span className="absolute -top-3.5 start-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-1 text-[11px] font-extrabold text-white uppercase tracking-wider shadow-md">
+                  <span className="absolute -top-3.5 start-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-1 text-[11px] font-extrabold text-white uppercase tracking-wider shadow-md">
                     {isAr ? "الأكثر طلباً" : "Most Popular"}
                   </span>
                 )}
@@ -454,7 +466,7 @@ export default async function LandingPage({
                   <div className="my-6 border-t border-slate-800 pt-6 space-y-3.5">
                     {(isAr ? plan.featuresAr : plan.featuresEn).map((feat, i) => (
                       <div key={i} className="flex items-start gap-2.5 text-xs text-slate-200 font-medium">
-                        <Check className="size-4 text-purple-400 shrink-0 mt-0.5" />
+                        <Check className="size-4 text-cyan-400 shrink-0 mt-0.5" />
                         <span>{feat}</span>
                       </div>
                     ))}
@@ -474,31 +486,31 @@ export default async function LandingPage({
                 </Link>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section id="faq" className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-[#060a18]">
         <div className="mx-auto max-w-3xl">
-          <div className="text-center mb-12">
+          <Reveal className="text-center mb-12">
             <h2 className="text-3xl font-extrabold tracking-tight text-white">
               {isAr ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
             </h2>
             <p className="mt-2 text-sm text-slate-400 font-normal">
               {isAr ? "إجابات مباشرة عن المحاسبة، الأمان، والتوافق الضريبي الإقليمي." : "Direct answers on accounting, security, and regional tax compliance."}
             </p>
-          </div>
+          </Reveal>
 
-          <div className="space-y-4">
+          <Reveal className="space-y-4">
             {FAQ.map((item, idx) => (
               <details
                 key={idx}
-                className="group rounded-2xl border border-slate-800 bg-[#0b1126]/90 px-6 py-4.5 open:border-purple-500/50 open:bg-[#0f1733] transition-all shadow-md"
+                className="group rounded-2xl border border-slate-800 bg-[#0b1126]/90 px-6 py-4.5 open:border-blue-500/50 open:bg-[#0f1733] transition-all shadow-md"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold text-white">
                   <span>{isAr ? item.qAr : item.qEn}</span>
-                  <span className="ms-4 text-purple-400 transition-transform duration-200 group-open:rotate-45 font-mono text-lg font-bold">
+                  <span className="ms-4 text-cyan-400 transition-transform duration-200 group-open:rotate-45 font-mono text-lg font-bold">
                     +
                   </span>
                 </summary>
@@ -507,15 +519,15 @@ export default async function LandingPage({
                 </p>
               </details>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Final Conversion CTA */}
       <section className="relative py-24 px-6 border-t border-[var(--mk-border)] bg-gradient-to-b from-[#070c1e] to-[#050814] text-center overflow-hidden">
-        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-600/20 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="relative z-10 mx-auto max-w-3xl space-y-6">
+        <Reveal className="relative z-10 mx-auto max-w-3xl space-y-6">
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             {isAr
               ? "جاهز لترقية الإدارة المالية لعقاراتك في مصر والخليج؟"
@@ -530,7 +542,7 @@ export default async function LandingPage({
             <Link
               href="/demo"
               locale={locale as Locale}
-              className="glow-btn-primary rounded-xl px-8 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-xl shadow-purple-900/60"
+              className="glow-btn-primary rounded-xl px-8 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 shadow-xl shadow-blue-900/60"
             >
               {isAr ? "طلب عرض تجريبي مخصص" : "Request a Tailored Demo"}
             </Link>
@@ -542,30 +554,28 @@ export default async function LandingPage({
               {isAr ? "تواصل مع المبيعات" : "Contact Sales"}
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-[var(--mk-border)] bg-[#040711] px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-slate-400 sm:flex-row">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-blue-600 text-white font-bold text-xs shadow-md shadow-purple-900/50">
-              A
-            </div>
+            <LogoMark className="size-7" />
             <span className="font-extrabold text-white">
               {isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks"}
             </span>
-            <span>— © {new Date().getFullYear()} {isAr ? "جميع الحقوق محفوظة (مصر ودول الخليج)." : "All rights reserved (Egypt & GCC)."}</span>
+            <span className="text-slate-500">{isAr ? "جميع الحقوق محفوظة" : "All rights reserved"} · © {new Date().getFullYear()} {isAr ? "(مصر ودول الخليج)" : "(Egypt & GCC)"}</span>
           </div>
 
           <div className="flex items-center gap-6 font-bold">
-            <Link href="/contact" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
+            <Link href="/contact" locale={locale as Locale} className="hover:text-cyan-300 transition-colors">
               {isAr ? "تواصل معنا" : "Contact"}
             </Link>
-            <Link href="/demo" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
+            <Link href="/demo" locale={locale as Locale} className="hover:text-cyan-300 transition-colors">
               {isAr ? "طلب عرض تجريبي" : "Request a Demo"}
             </Link>
-            <Link href="/login" locale={locale as Locale} className="hover:text-purple-300 transition-colors">
+            <Link href="/login" locale={locale as Locale} className="hover:text-cyan-300 transition-colors">
               {isAr ? "تسجيل الدخول" : "Sign in"}
             </Link>
           </div>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cairo, Plus_Jakarta_Sans } from "next/font/google";
+import { Cairo, Plus_Jakarta_Sans, IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -18,6 +18,20 @@ const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const plexArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-plex-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -63,7 +77,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={direction}
-      className={`${cairo.variable} ${jakartaSans.variable} h-full antialiased font-sans`}
+      className={`${cairo.variable} ${jakartaSans.variable} ${plexArabic.variable} ${plexMono.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>

@@ -4,9 +4,9 @@ export function FlowLinesBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-[#060a18]">
       {/* Subtle radial ambient gradients on Dark Blue */}
-      <div className="absolute -top-40 start-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-b from-purple-600/20 via-blue-600/15 to-transparent rounded-full blur-[140px] opacity-75" />
-      <div className="absolute top-[35%] -start-40 w-[600px] h-[600px] bg-gradient-to-tr from-purple-900/30 via-indigo-900/20 to-transparent rounded-full blur-[130px]" />
-      <div className="absolute top-[65%] -end-40 w-[650px] h-[650px] bg-gradient-to-tl from-blue-900/30 via-purple-900/20 to-transparent rounded-full blur-[130px]" />
+      <div className="absolute -top-40 start-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-b from-blue-600/20 via-blue-600/15 to-transparent rounded-full blur-[140px] opacity-75" />
+      <div className="absolute top-[35%] -start-40 w-[600px] h-[600px] bg-gradient-to-tr from-blue-900/30 via-blue-900/20 to-transparent rounded-full blur-[130px]" />
+      <div className="absolute top-[65%] -end-40 w-[650px] h-[650px] bg-gradient-to-tl from-blue-900/30 via-blue-900/20 to-transparent rounded-full blur-[130px]" />
 
       {/* Grid Pattern overlay for crisp precision */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
@@ -20,14 +20,14 @@ export function FlowLinesBackground() {
       >
         <defs>
           <linearGradient id="flow-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.7" />
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.7" />
             <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.4" />
           </linearGradient>
 
           <linearGradient id="flow-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#2563EB" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="#A78BFA" stopOpacity="0.7" />
+            <stop offset="50%" stopColor="#22D3EE" stopOpacity="0.7" />
             <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.4" />
           </linearGradient>
 
@@ -74,11 +74,11 @@ export function FlowLinesBackground() {
         />
 
         {/* Ambient Floating Glow Nodes */}
-        <circle cx="450" cy="120" r="4" fill="#A78BFA" className="animate-ping opacity-60" />
+        <circle cx="450" cy="120" r="4" fill="#22D3EE" className="animate-ping opacity-60" />
         <circle cx="850" cy="180" r="5" fill="#60A5FA" className="animate-pulse" />
-        <circle cx="1150" cy="340" r="4" fill="#C4B5FD" className="animate-ping opacity-50" />
+        <circle cx="1150" cy="340" r="4" fill="#7DD3FC" className="animate-ping opacity-50" />
         <circle cx="280" cy="420" r="3.5" fill="#38BDF8" className="animate-pulse" />
-        <circle cx="1020" cy="420" r="4.5" fill="#A78BFA" className="animate-pulse" />
+        <circle cx="1020" cy="420" r="4.5" fill="#22D3EE" className="animate-pulse" />
       </svg>
     </div>
   );

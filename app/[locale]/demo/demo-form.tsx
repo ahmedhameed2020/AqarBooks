@@ -25,7 +25,7 @@ export function DemoForm({ locale }: { locale: string }) {
   return (
     <form action={formAction} className="marketing space-y-5 rounded-xl border border-[var(--mk-border)] bg-[var(--mk-bg-elevated)] p-6 sm:p-8">
       {/* Honeypot -- hidden from real users via CSS, bots tend to fill every field. */}
-      <div className="absolute -left-[9999px] opacity-0" aria-hidden="true">
+      <div className="absolute h-px w-px overflow-hidden opacity-0" aria-hidden="true">
         <label htmlFor="website">Website</label>
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
@@ -114,21 +114,21 @@ export function DemoForm({ locale }: { locale: string }) {
         </p>
       )}
       {state.ok && (
-        <p role="status" className="text-sm text-[var(--mk-accent)]">
-          {isAr ? "تم استلام طلبك، هنتواصل معاك قريبًا." : "Request received — we'll be in touch soon."}
+        <p role="status" className="text-sm text-[var(--mk-cyan)]">
+          {isAr ? "تم استلام طلبك، وسنتواصل معك قريبًا." : "Request received, we'll be in touch soon."}
         </p>
       )}
 
       <Button
         type="submit"
         disabled={pending}
-        className="w-full bg-[var(--mk-accent)] text-[var(--mk-bg)] hover:opacity-90"
+        className="w-full bg-[var(--mk-accent)] text-white hover:opacity-90"
       >
         {pending ? (isAr ? "جارٍ الإرسال..." : "Submitting...") : isAr ? "طلب عرض توضيحي" : "Request a Demo"}
       </Button>
       <p className="text-center text-xs text-[var(--mk-text-muted)]">
         {isAr
-          ? "لن نستخدم بياناتك إلا للتواصل بخصوص طلبك."
+          ? "لن نستخدم بياناتك إلا للتواصل بشأن طلبك."
           : "We'll only use your details to follow up on this request."}
       </p>
     </form>

@@ -2,11 +2,12 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Lock, Check, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Check, RefreshCw, AlertCircle, CheckCircle2, X } from "lucide-react";
 import { updatePasswordAction } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 
 export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
@@ -114,8 +115,8 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         <label className="text-xs font-bold text-slate-700 block">
           {isAr ? "كلمة المرور الجديدة" : "New Password"}
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <Lock className="size-4" />
           </div>
           <input
@@ -136,6 +137,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
+        <PasswordStrengthMeter password={password} isAr={isAr} />
       </div>
 
       {/* Confirm New Password */}
@@ -143,8 +145,8 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         <label className="text-xs font-bold text-slate-700 block">
           {isAr ? "تأكيد كلمة المرور الجديدة" : "Confirm New Password"}
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400">
+        <div className="group relative">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
             <Lock className="size-4" />
           </div>
           <input
@@ -152,7 +154,11 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+            className={`w-full rounded-lg border bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+              confirmPassword && password !== confirmPassword
+                ? "border-red-300 focus:border-red-500 focus:ring-red-500/10"
+                : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
+            }`}
             required
             minLength={8}
           />
@@ -165,6 +171,22 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
             {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
+        {confirmPassword && (
+          <p
+            className={`flex items-center gap-1 pt-1 text-[10px] font-bold ${
+              password === confirmPassword ? "text-emerald-600" : "text-red-600"
+            }`}
+          >
+            {password === confirmPassword ? <Check className="size-3" /> : <X className="size-3" />}
+            {password === confirmPassword
+              ? isAr
+                ? "كلمتا المرور متطابقتان"
+                : "Passwords match"
+              : isAr
+                ? "كلمتا المرور غير متطابقتين"
+                : "Passwords don't match"}
+          </p>
+        )}
       </div>
 
       {/* Submit Button */}

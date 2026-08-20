@@ -51,37 +51,13 @@ export default async function RegisterPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "ابدأ الآن" : "Get Started"}
-      title={isAr ? "إنشاء حساب مؤسسي جديد" : "Create Your Enterprise Account"}
+      eyebrow={isAr ? "حساب جديد" : "New account"}
+      title={isAr ? "ابدأ دفاترك من اليوم الأول" : "Start your books right"}
       subtitle={
         isAr
-          ? "جهّز منظومتك المالية والمحاسبية لكياناتك العقارية في أقل من دقيقتين."
-          : "Set up your multi-entity financial workspace in under two minutes."
+          ? "حساب واحد يدير جميع كياناتك العقارية. التهيئة تستغرق دقيقتين."
+          : "One account runs all your properties. Setup takes two minutes."
       }
-      panelTitle={
-        isAr
-          ? "محفظتك العقارية تستحق أدوات مالية أدق وأرقى"
-          : "Your real estate portfolio deserves institutional tools."
-      }
-      panelSubtitle={
-        isAr
-          ? "انضم إلى الكيانات والصناديق العقارية التي تدير آلاف الوحدات والأصول بوضوح تام."
-          : "Join real estate funds and holding companies managing thousands of assets with clarity."
-      }
-      stats={
-        isAr
-          ? [
-              { value: "٢ دقيقة", label: "زمن التهيئة" },
-              { value: "١٠٠٪", label: "عزل مالي RLS" },
-              { value: "مجاناً", label: "للتجربة والعرض" },
-            ]
-          : [
-              { value: "2 min", label: "Setup time" },
-              { value: "100%", label: "RLS Isolation" },
-              { value: "Free", label: "Trial Demo" },
-            ]
-      }
-      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <RegisterForm locale={locale} />

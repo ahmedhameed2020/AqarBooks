@@ -65,8 +65,8 @@ export function FirstProjectStep({
         />
         <p className="text-[11px] text-slate-400">
           {isAr
-            ? "يتولّد تلقائيًا من اسم المشروع، وتقدر تعدّله"
-            : "Auto-generated from the project name — feel free to edit it"}
+            ? "يُولَّد تلقائيًا من اسم المشروع، ويمكنك تعديله"
+            : "Auto-generated from the project name. You can edit it."}
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export function FirstProjectStep({
             const isolatedCode = `${LRI}${code}${PDI}`;
             return (
               <option key={code} value={code}>
-                {label === code ? isolatedCode : `${isolatedCode} — ${label}`}
+                {label === code ? isolatedCode : `${isolatedCode} · ${label}`}
               </option>
             );
           })}

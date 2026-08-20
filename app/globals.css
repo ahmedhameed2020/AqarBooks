@@ -137,7 +137,7 @@
   }
 }
 
-/* Marketing site theme: Enterprise Fintech Dark Blue + Deep Purple + Metallic
+/* Marketing site theme: Enterprise Fintech Dark Blue + Cyan + Metallic
    Slate -- deliberately separate from the app-shell shadcn tokens above.
    Scoped under .marketing so it never leaks into /dashboard, /admin,
    /finance, etc. */
@@ -147,13 +147,13 @@
   --mk-surface: #0f1733;
   --mk-surface-hover: #162248;
   --mk-border: rgba(148, 163, 184, 0.12);
-  --mk-border-strong: rgba(139, 92, 246, 0.28);
-  --mk-border-focus: rgba(139, 92, 246, 0.55);
+  --mk-border-strong: rgba(59, 130, 246, 0.28);
+  --mk-border-focus: rgba(59, 130, 246, 0.55);
   --mk-text: #f8fafc;
   --mk-text-muted: #94a3b8;
   --mk-text-dim: #64748b;
-  --mk-accent: #7c3aed;
-  --mk-accent-light: #a78bfa;
+  --mk-accent: #2563eb;
+  --mk-accent-light: #7dd3fc;
   --mk-accent-blue: #3b82f6;
   --mk-accent-blue-deep: #1d4ed8;
   --mk-cyan: #38bdf8;
@@ -239,15 +239,15 @@
 @keyframes pulse-ring {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 12px rgba(139, 92, 246, 0);
+    box-shadow: 0 0 0 12px rgba(37, 99, 235, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
   }
 }
 
@@ -306,8 +306,8 @@
 }
 
 .glass-card:hover {
-  border-color: rgba(139, 92, 246, 0.45);
-  box-shadow: 0 16px 40px -10px rgba(124, 58, 237, 0.3);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 16px 40px -10px rgba(37, 99, 235, 0.3);
   transform: translateY(-3px);
 }
 
@@ -327,14 +327,14 @@
 }
 
 .glow-btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
   color: #ffffff;
-  box-shadow: 0 0 24px -4px rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 24px -4px rgba(37, 99, 235, 0.5);
   transition: all 0.2s ease;
 }
 
 .glow-btn-primary:hover {
-  box-shadow: 0 0 32px 0px rgba(124, 58, 237, 0.75);
+  box-shadow: 0 0 32px 0px rgba(37, 99, 235, 0.75);
   transform: translateY(-1px);
 }
 
@@ -431,4 +431,4 @@
   display: none;
   width: 0;
   height: 0;
-}
+}
