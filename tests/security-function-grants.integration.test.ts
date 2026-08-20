@@ -3,7 +3,7 @@
  * Phase 1 security regression guard — function EXECUTE grant posture.
  *
  * WHY THIS EXISTS
- * During Phase 1, migration 4 (20261001000004_phase1_revoke_anon_function_execute)
+ * During Phase 1, migration 4 (20260820190630_phase1_revoke_anon_function_execute)
  * revoked EXECUTE from PUBLIC and anon but issued an unconditional
  * `GRANT EXECUTE ... TO authenticated` in the same loop. That granted
  * `authenticated` direct access to nine internal functions it had never had,
@@ -54,7 +54,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
 /**
  * Approved baseline: the exact set of SECURITY DEFINER application functions
  * that `authenticated` may execute, as of Phase 1 close (2026-08-20,
- * migrations 20261001000001-6). 169 entries.
+ * migrations 20260820190233-6). 169 entries.
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",

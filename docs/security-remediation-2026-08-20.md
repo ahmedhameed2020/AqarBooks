@@ -51,12 +51,12 @@ otherwise untouched call to `post_payment_internal`.
 
 | # | File | Effect |
 |---|---|---|
-| 1 | `20261001000001_phase1_pin_function_search_path` | Pins `search_path` on 17 functions (all SECURITY INVOKER — hardening debt, not escalation) |
-| 2 | `20261001000002_phase1_lease_rent_generation_runs_rls` | Enables RLS, adds SELECT policy mirroring `due_generation_runs`, revokes all anon grants |
-| 3 | `20261001000003_phase1_record_payment_collapse` | Drops 9-arg **then** 11-arg; hardens surviving 12-arg to `has_financial_permission` |
-| 4 | `20261001000004_phase1_revoke_anon_function_execute` | Revokes EXECUTE from `PUBLIC` **and** `anon` on 202 application functions |
-| 5 | `20261001000005_phase1_fix_internal_function_overgrant` | Repairs the regression migration 4 introduced |
-| 6 | `20261001000006_phase1_security_grant_inventory` | Adds the read-only inventory function the regression test asserts against |
+| 1 | `20260820190233_phase1_pin_function_search_path` | Pins `search_path` on 17 functions (all SECURITY INVOKER — hardening debt, not escalation) |
+| 2 | `20260820190307_phase1_lease_rent_generation_runs_rls` | Enables RLS, adds SELECT policy mirroring `due_generation_runs`, revokes all anon grants |
+| 3 | `20260820190446_phase1_record_payment_collapse` | Drops 9-arg **then** 11-arg; hardens surviving 12-arg to `has_financial_permission` |
+| 4 | `20260820190630_phase1_revoke_anon_function_execute` | Revokes EXECUTE from `PUBLIC` **and** `anon` on 202 application functions |
+| 5 | `20260820191859_phase1_fix_internal_function_overgrant` | Repairs the regression migration 4 introduced |
+| 6 | `20260820192502_phase1_security_grant_inventory` | Adds the read-only inventory function the regression test asserts against |
 
 ### Two places where order is load-bearing
 
