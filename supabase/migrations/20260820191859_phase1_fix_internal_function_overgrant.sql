@@ -1,7 +1,7 @@
 -- Phase 1 security remediation — migration 5 of 4 (corrective)
 --
 -- Repairs a regression introduced by migration 4
--- (20261001000004_phase1_revoke_anon_function_execute).
+-- (20260820190630_phase1_revoke_anon_function_execute).
 --
 -- WHAT WENT WRONG
 -- Migration 4 looped over every application function and executed an
