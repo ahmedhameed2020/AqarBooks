@@ -14,13 +14,17 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
+// Module-level mutable state shared between beforeEach/afterEach and the
+// tests themselves. This is only safe because playwright.config.ts pins
+// workers: 1 / fullyParallel: false for this project -- do not introduce
+// parallelism here without re-deriving per-test state instead.
 let email: string;
 let password: string;
 let userId: string;
 let organizationId: string | undefined;
 
 test.beforeEach(async () => {
-  email = `e2e-onboarding-${Date.now()}@resortos-test.local`;
+  email = `e2e-onboarding-${Date.now()}-${Math.random().toString(36).slice(2)}@resortos-test.local`;
   password = "TestPassword123!";
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -33,10 +37,28 @@ test.beforeEach(async () => {
 
 test.afterEach(async () => {
   if (organizationId) {
-    await admin.from("organizations").delete().eq("id", organizationId);
+    // The onboarding RPC writes a platform_audit_logs row referencing the
+    // organization, and that FK has no ON DELETE CASCADE -- deleting the
+    // organization first fails silently (Supabase JS doesn't throw on a
+    // PostgREST error unless you check it), leaving orphaned test orgs
+    // behind. Clear the audit log row first.
+    const { error: auditError } = await admin
+      .from("platform_audit_logs")
+      .delete()
+      .eq("organization_id", organizationId);
+    if (auditError) {
+      console.error(`Failed to clean up audit logs for organization ${organizationId}:`, auditError.message);
+    }
+    const { error: orgError } = await admin.from("organizations").delete().eq("id", organizationId);
+    if (orgError) {
+      console.error(`Failed to clean up test organization ${organizationId}:`, orgError.message);
+    }
     organizationId = undefined;
   }
-  await admin.auth.admin.deleteUser(userId);
+  const { error: userError } = await admin.auth.admin.deleteUser(userId);
+  if (userError) {
+    console.error(`Failed to clean up test user ${userId}:`, userError.message);
+  }
 });
 
 test("a freshly confirmed user completes onboarding and lands on a working dashboard", async ({ page }) => {
@@ -68,8 +90,11 @@ test("a freshly confirmed user completes onboarding and lands on a working dashb
     .select("organization_id, status")
     .eq("user_id", userId)
     .maybeSingle();
-  expect(membership?.status).toBe("active");
+  // Record the org id for afterEach cleanup before asserting -- the org is
+  // already created by this point regardless of assertion outcome, so
+  // capturing it first ensures a failed assertion doesn't leak the row.
   organizationId = membership?.organization_id;
+  expect(membership?.status).toBe("active");
 });
 
 test("visiting /onboarding a second time after finishing it redirects to the dashboard", async ({ page }) => {
