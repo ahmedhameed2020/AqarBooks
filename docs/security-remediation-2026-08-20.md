@@ -148,6 +148,44 @@ replaces Supabase's password-policy wording with a generic bilingual message,
 so a rejected password will not tell the invitee *why* — acceptable today,
 a likely support-ticket source once the HaveIBeenPwned check is on.
 
+## 7b. Migration history is not reconcilable — `db push` is prohibited
+
+**Do not run `supabase db push` against production, or any environment relying
+on this history, until the migration drift is formally resolved in Phase 2.**
+
+A full parity check on 2026-08-20 found:
+
+```
+repo migration files                             212
+versions in supabase_migrations.schema_migrations 143
+overlap                                            6   ← only the Phase 1 six
+```
+
+Two compounding causes, both predating this work. The 108 foundational files
+(`20260810`–`20260813`) were applied but never recorded — the history begins at
+`20260814`. Everything after that was applied via MCP under generated versions
+that do not match the authored filenames, sometimes splitting one repo file
+into several recorded migrations.
+
+`db push` would therefore treat 206 already-applied migrations as pending and
+re-run them.
+
+**Nothing is lost.** The DDL is fully tracked; a sample of the forty apparently
+missing migrations was found in feature-grouped files under different names —
+e.g. `compute_input_tax_split` lives inside
+`20260923000001_supplier_invoice_posting_respects_eligibility.sql`. The defect
+is in the migration *ledger*, not the content.
+
+It is left documented rather than repaired because rewriting
+`schema_migrations` on a live production database is more dangerous than
+describing it precisely. Reconciliation is the first item in the Phase 2
+backlog.
+
+The Phase 1 six were renamed to match `schema_migrations`, which makes them
+inconsistent with the repo's own naming convention. That is deliberate:
+**historical accuracy outranks naming consistency**, and those six are the
+correct starting point for reconciliation rather than an exception to fix.
+
 ## 8. Deliberately not addressed — Phase 2 backlog
 
 | Item | Why deferred |
