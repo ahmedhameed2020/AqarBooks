@@ -66,7 +66,7 @@ export default async function ResetPasswordPage({
               { value: "Secure", label: "HTTPS / TLS" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <Suspense fallback={null}>

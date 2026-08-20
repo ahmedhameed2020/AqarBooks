@@ -34,7 +34,7 @@ export function AuthShell({
     { value: "١٠٠٪", label: "توازن قيود" },
     { value: "٩٩٫٩٪", label: "جاهزية SLA" },
   ],
-  imageSrc = "/images/commercial-towers.jpg",
+  imageSrc = "/images/aqarbooks-hero.jpg",
   locale = "ar",
   children,
 }: AuthShellProps) {

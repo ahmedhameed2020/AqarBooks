@@ -69,7 +69,7 @@ export default async function VerifyEmailPage({
               { value: "24 Hours", label: "Link Expiry" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <div className="space-y-6 text-center">

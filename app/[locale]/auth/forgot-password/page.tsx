@@ -81,7 +81,7 @@ export default async function ForgotPasswordPage({
               { value: "24/7", label: "Monitoring" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <ForgotPasswordForm locale={locale as Locale} />

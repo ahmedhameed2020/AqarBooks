@@ -81,7 +81,7 @@ export default async function RegisterPage({
               { value: "Free", label: "Trial Demo" },
             ]
       }
-      imageSrc="/images/executive-boardroom.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <RegisterForm locale={locale} />

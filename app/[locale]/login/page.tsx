@@ -81,7 +81,7 @@ export default async function LoginPage({
               { value: "99.9%", label: "Uptime" },
             ]
       }
-      imageSrc="/images/commercial-towers.jpg"
+      imageSrc="/images/aqarbooks-hero.jpg"
       locale={locale}
     >
       <LoginForm locale={locale as Locale} redirectTo={redirectTo} />
