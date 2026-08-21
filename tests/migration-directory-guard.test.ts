@@ -37,10 +37,11 @@
  * role, and zero rows in all 92 tenant tables.
  *
  * WHAT A PASS HERE DOES NOT MEAN
- * Nothing about production. Until the ledger cutover runs, production's
- * `supabase_migrations.schema_migrations` still holds 143 rows that no repo
- * version corresponds to. `supabase db push` against production remains
- * prohibited by ADR 0004 regardless of this test.
+ * Nothing about production. The Step 7 cutover ran on 2026-08-21 and production's
+ * `supabase_migrations.schema_migrations` now holds exactly one row, the baseline
+ * -- but this suite does not measure that, and a pass here is not evidence of it.
+ * `supabase db push` against production remains prohibited by ADR 0004 regardless
+ * of this test.
  *
  * This suite reads the filesystem only. It opens no database connection.
  */
