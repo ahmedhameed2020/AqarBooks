@@ -1,44 +1,67 @@
 /**
- * Step 6 guard — the migrations directory must stay empty of SQL.
+ * Migration directory guard.
  *
  * WHY THIS EXISTS
  * Step 6 moved 228 files out of `supabase/migrations/` into
- * `supabase/migrations-archive/2026-08-21-pre-squash/`. Two things keep the
- * Supabase CLI from treating the archived files as live migrations:
+ * `supabase/migrations-archive/2026-08-21-pre-squash/`, leaving the directory
+ * with no SQL at all. Two things keep the Supabase CLI from treating the
+ * archived files as live migrations:
  *
  *   1. the archive is outside the directory the CLI scans, and
  *   2. in CLI v2.78.1, files in a subdirectory are invisible anyway --
  *      not listed, not pushed, not even warned about.
  *
- * Both are conditions, not guarantees. (2) is undocumented behaviour of one
- * CLI version; a future release that walked the tree recursively would
- * silently resurrect 228 migrations. (1) holds only for as long as nobody
- * puts a .sql file back.
+ * Both are conditions, not guarantees. This test is the part that notices when
+ * a condition stops being true. It exists because a command exiting 0 proves it
+ * ran, not that the directory holds what we intend it to hold.
  *
- * This test is the part that notices when a condition stops being true. It
- * exists because a command exiting 0 proves it ran, not that the directory
- * holds what we intend it to hold.
+ * WHAT CHANGED, AND WHY IT IS AN AMENDMENT RATHER THAN A RELAXATION
+ * The original assertion was "zero .sql files, ever". That was correct for the
+ * interval between Step 6 and the baseline activation, and it was written
+ * precisely so that reintroducing a migration could not pass unnoticed.
  *
- * WHAT IT DOES NOT MEAN
- * A passing test here says nothing about production. `supabase_migrations.
- * schema_migrations` still carries 143 rows that no repo version corresponds
- * to, and the CLI reporting "Remote database is up to date" against an empty
- * directory only means there is no local migration left to push. The
- * `supabase db push` prohibition in ADR 0004 stands until Step 7 reconciles
- * the ledger itself.
+ * The baseline activation reintroduces exactly one, deliberately:
+ *
+ *   20260821105505_baseline.sql   956,400 bytes
+ *   sha256 cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7
+ *
+ * So the assertion is not loosened to "some .sql files are fine". It is
+ * re-pointed at a named allowlist of one, pinned by size and digest. Adding a
+ * second migration, or altering this one's bytes, still fails -- which is the
+ * property the original test was protecting.
+ *
+ * That file was proven before being admitted: applied on its own to a freshly
+ * created, empty Supabase project, it reproduced production's schema, security
+ * posture and reference state across all sixteen classes of the recovered
+ * Step 5 comparator, with 456 reference rows, one global PLATFORM_SUPER_ADMIN
+ * role, and zero rows in all 92 tenant tables.
+ *
+ * WHAT A PASS HERE DOES NOT MEAN
+ * Nothing about production. Until the ledger cutover runs, production's
+ * `supabase_migrations.schema_migrations` still holds 143 rows that no repo
+ * version corresponds to. `supabase db push` against production remains
+ * prohibited by ADR 0004 regardless of this test.
  *
  * This suite reads the filesystem only. It opens no database connection.
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const MIGRATIONS = "supabase/migrations";
 const ARCHIVE = "supabase/migrations-archive";
 const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
 
-/** Exactly what `supabase/migrations/` is allowed to contain after Step 6. */
-const PERMITTED = ["README.md", ".gitkeep"].sort();
+/** The one migration allowed to be active, pinned by name, size and digest. */
+const BASELINE = {
+  file: "20260821105505_baseline.sql",
+  bytes: 956400,
+  sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7",
+} as const;
+
+/** Exactly what `supabase/migrations/` is allowed to contain. */
+const PERMITTED = ["README.md", ".gitkeep", BASELINE.file].sort();
 
 /** The Supabase CLI's own rule, read out of the v2.78.1 binary. */
 const CLI_MIGRATION_PATTERN = /^([0-9]+)_(.*)\.sql$/;
@@ -58,30 +81,40 @@ function readLedger(): string[] {
     .split("\n");
 }
 
-describe("Step 6 — migrations directory contains no live migrations", () => {
+describe("migrations directory holds exactly the approved baseline", () => {
   it("supabase/migrations holds exactly the permitted files and nothing else", () => {
     const entries = readdirSync(MIGRATIONS).sort();
     expect(entries).toEqual(PERMITTED);
   });
 
-  it("supabase/migrations contains zero .sql files at any depth", () => {
+  it("exactly one file is parsed as a migration by the CLI, and it is the baseline", () => {
+    const parsed = readdirSync(MIGRATIONS).filter((f) =>
+      CLI_MIGRATION_PATTERN.test(f),
+    );
+    expect(parsed).toEqual([BASELINE.file]);
+  });
+
+  it("the baseline migration is byte-for-byte the proven candidate", () => {
+    const p = join(MIGRATIONS, BASELINE.file);
+    const raw = readFileSync(p);
+    expect(statSync(p).size).toBe(BASELINE.bytes);
+    expect(raw.length).toBe(BASELINE.bytes);
+    expect(createHash("sha256").update(raw).digest("hex")).toBe(BASELINE.sha256);
+  });
+
+  it("no .sql file exists at any depth other than the baseline", () => {
     const walk = (dir: string): string[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
         e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
       );
-    const sql = walk(MIGRATIONS).filter((p) => p.toLowerCase().endsWith(".sql"));
-    expect(sql).toEqual([]);
+    const sql = walk(MIGRATIONS)
+      .filter((p) => p.toLowerCase().endsWith(".sql"))
+      .map((p) => p.replace(/\\/g, "/"));
+    expect(sql).toEqual([`${MIGRATIONS}/${BASELINE.file}`]);
   });
 
-  it("nothing in supabase/migrations would be parsed as a migration by the CLI", () => {
-    const parsed = readdirSync(MIGRATIONS).filter((f) =>
-      CLI_MIGRATION_PATTERN.test(f),
-    );
-    expect(parsed).toEqual([]);
-  });
-
-  // Anti-vacuity: the three assertions above would all pass if the archive had
-  // been deleted rather than moved aside. These prove the history still exists.
+  // Anti-vacuity: the assertions above would all pass if the archive had been
+  // deleted rather than moved aside. These prove the history still exists.
   it("the archive still holds all 228 files (the move was not a deletion)", () => {
     expect(existsSync(ARCHIVED_FILES)).toBe(true);
     const archived = readdirSync(ARCHIVED_FILES).filter((f) => f.endsWith(".sql"));

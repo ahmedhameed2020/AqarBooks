@@ -1,6 +1,11 @@
 # supabase/migrations
 
-**This directory is intentionally empty of SQL.**
+**This directory holds exactly one migration: the baseline.**
+
+```
+20260821105505_baseline.sql   956,400 bytes
+sha256 cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7
+```
 
 The 228 migration files that used to live here were moved on 2026-08-21 to:
 
@@ -26,26 +31,39 @@ and those six are aligned only because they were renamed by hand during the
 Phase 1 security work. The ledger's earliest row is `20260814092045`; the entire
 foundational schema is applied in the database and unrecorded in the ledger.
 
-Replaying these files against production was therefore never a safe operation,
+Replaying those files against production was therefore never a safe operation,
 and leaving them here implied it was.
+
+## What the baseline file is
+
+Generated deterministically from the five frozen evidence files under
+[`../baseline/`](../baseline/), in the order their headers state — the security
+preamble first, because it fixes default privileges so no function is created
+already granted to `anon`. Those five are not modified by generation and still
+hash to the values in `../baseline/MANIFEST.md`.
+
+It was proven before being admitted here: applied on its own to a freshly
+created, empty Supabase project, it reproduced production's schema, security
+posture and reference state across all sixteen classes of the Step 5 comparator,
+with 456 reference rows, exactly one global `PLATFORM_SUPER_ADMIN` role, and zero
+rows in all 92 tenant tables.
 
 ## What this does NOT mean
 
-An empty directory is not a reconciled database.
+**Production's ledger has not been changed.**
 
-`supabase db push` remains **prohibited** by
-[ADR 0004](../../docs/adr/0004-security-baseline-freeze.md). Production's ledger
-still holds 143 rows, 137 of which correspond to no repository version. Moving
-files changed nothing about that. If the CLI reports *"Remote database is up to
-date"* against this directory, it means only that there is no local migration
-left to push — not that the drift is resolved.
+`supabase db push` against production remains **prohibited** by
+[ADR 0004](../../docs/adr/0004-security-baseline-freeze.md). Production still
+holds 143 ledger rows, 137 of which correspond to no repository version, and the
+baseline version is not among them. Until the ledger cutover runs and is
+verified, the repository and production name different histories — and the CLI
+will say so.
 
-## Adding a new migration
+## Adding another migration
 
-Don't, yet. The baseline squash is incomplete: `supabase/baseline/` holds a
-verified reproduction of production's schema, but the ledger has not been
-rewritten to match it (Step 7). Until that is done and ADR 0004 is lifted, a new
-file here would join a directory whose relationship to production is undefined.
+Not yet. Until the cutover is complete and ADR 0004 is lifted, a second file here
+would join a directory whose relationship to production is still undefined.
 
-`tests/migration-directory-guard.test.ts` fails if a `.sql` file appears here.
-That guard is deliberate — please read the manifest before working around it.
+`tests/migration-directory-guard.test.ts` fails if any `.sql` file other than the
+baseline appears here, or if the baseline's bytes change. That guard is
+deliberate — read the archive manifest before working around it.

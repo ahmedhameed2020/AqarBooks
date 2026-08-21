@@ -8,3 +8,12 @@
 #
 # -text disables all end-of-line conversion for this directory.
 supabase/baseline/** -text
+
+# The baseline migration carries 573 CR bytes, inherited from the 31 production
+# function definitions that contain them. Those bytes are part of the artifact
+# that was proven on a scratch project, and its SHA-256 is asserted by
+# tests/migration-directory-guard.test.ts. Without this rule git normalises the
+# file on commit -- measured: the blob loses all 573 CRs, becomes 955,827 bytes
+# and hashes be95ddfe…, so the repository would hold a different file from the
+# one that was verified.
+supabase/migrations/20260821105505_baseline.sql -text
