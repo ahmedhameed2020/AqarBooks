@@ -1,0 +1,10 @@
+# Step 5 baseline artifacts are evidence, not source.
+#
+# Their SHA-256 hashes are recorded in supabase/baseline/MANIFEST.md and were
+# proven by the Step 5 reproduction gate. core.autocrlf is true in this
+# environment, so without this rule git would normalise line endings on commit
+# or checkout and silently change the bytes — turning a verified artifact into
+# a different file while the manifest still claimed the old hash.
+#
+# -text disables all end-of-line conversion for this directory.
+supabase/baseline/** -text
