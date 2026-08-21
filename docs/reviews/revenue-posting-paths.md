@@ -79,7 +79,7 @@
 والقاعدة. الإنفاذ عندئذٍ حقيقي لمن دخل النطاق، ولا يُسقط من لم يدخله.
 
 `organizations.tax_jurisdiction` — المُضاف في
-[migration الإصلاح](../../supabase/migrations/20260914000001_tax_decision_derive_from_source.sql)
+[migration الإصلاح](../../supabase/migrations-archive/2026-08-21-pre-squash/20260914000001_tax_decision_derive_from_source.sql)
 — يصلح مفتاحًا لهذا الدخول: صفة قانونية صريحة، تبقى `null` حتى تُسجَّل عمدًا.
 
 ## الاختبار السابع
