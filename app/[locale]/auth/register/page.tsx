@@ -59,6 +59,7 @@ export default async function RegisterPage({
           : "One account runs all your properties. Setup takes two minutes."
       }
       locale={locale}
+      maxWidth="xl"
     >
       <RegisterForm locale={locale} />
     </AuthShell>

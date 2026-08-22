@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { KeyboardEvent } from "react";
-import { Check, Globe, ShieldCheck, Coins } from "lucide-react";
+import { Check, Globe, ShieldCheck, Coins, Sparkles } from "lucide-react";
 import { SUPPORTED_COUNTRIES, type CountryInfo } from "@/lib/countries";
 import { CURRENCY_CODES, getCurrencyLabel } from "@/lib/currency";
 
@@ -47,20 +47,22 @@ export function CountryStep({
     <div className="space-y-6 text-start">
       {/* Country Selection Header */}
       <div className="space-y-1">
-        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700">
-          <Globe className="size-4 text-blue-600" />
-          {isAr ? "اختر الدولة أو السوق المستهدف" : "Select Country or Target Market"}
-        </label>
+        <div className="flex items-center gap-2">
+          <Globe className="size-4.5 text-blue-600" />
+          <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+            {isAr ? "اختر الدولة أو السوق المالي المستهدف" : "Select Target Market / Country"}
+          </label>
+        </div>
         <p className="text-xs text-slate-500">
           {isAr
-            ? "سيتم ضبط العملة الافتراضية والأنظمة الضريبية والمالية تلقائياً بحسب الدولة"
-            : "Default currency, tax regulations, and accounting standards will be configured automatically"}
+            ? "سيتم تخصيص العملة، الضرائب، ونماذج الحسابات فوراً بما يتوافق مع أنظمة دولتك"
+            : "Currency, tax regulations, and charts of accounts are customized to match your country"}
         </p>
       </div>
 
-      {/* Countries Grid */}
+      {/* Countries Grid (4 columns on sm/md screens) */}
       <div
-        className="grid grid-cols-2 sm:grid-cols-2 gap-2.5"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
         role="radiogroup"
         aria-label={isAr ? "اختيار الدولة" : "Country selection"}
       >
@@ -78,33 +80,43 @@ export function CountryStep({
               tabIndex={isSelected ? 0 : -1}
               onClick={() => onSelectCountry(country)}
               onKeyDown={(e) => handleCountryKeyDown(e, idx)}
-              className={`group relative flex items-start gap-3 rounded-xl border p-3 text-start transition-all duration-200 cursor-pointer ${
+              className={`group relative flex flex-col items-center justify-between rounded-2xl border p-3.5 text-center transition-all duration-200 cursor-pointer ${
                 isSelected
-                  ? "border-blue-600 bg-blue-50/70 shadow-sm ring-2 ring-blue-600/20"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
+                  ? "border-blue-600 bg-blue-50/90 shadow-md ring-2 ring-blue-600/30 scale-[1.02]"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-xs"
               }`}
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-100 text-lg shadow-2xs">
+              {/* Checkmark badge */}
+              {isSelected && (
+                <span className="absolute top-2 end-2 flex size-4 items-center justify-center rounded-full bg-blue-600 text-white shadow-xs">
+                  <Check className="size-2.5 stroke-[3]" />
+                </span>
+              )}
+
+              {/* Large Flag Badge */}
+              <div className="flex size-11 items-center justify-center rounded-xl bg-white border border-slate-100 text-2xl shadow-xs transition-transform group-hover:scale-105">
                 {country.flag}
               </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
+              {/* Country Name */}
+              <div className="mt-2.5 w-full">
+                <span
+                  className={`block truncate text-xs font-bold ${
+                    isSelected ? "text-blue-950" : "text-slate-800"
+                  }`}
+                >
+                  {isAr ? country.nameAr : country.nameEn}
+                </span>
+
+                {/* Default Currency Tag */}
+                <div className="mt-1.5 flex justify-center">
                   <span
-                    className={`block truncate text-xs font-bold ${
-                      isSelected ? "text-blue-950" : "text-slate-800"
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                      isSelected
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-600 group-hover:bg-slate-200"
                     }`}
                   >
-                    {isAr ? country.nameAr : country.nameEn}
-                  </span>
-                  {isSelected && (
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
-                      <Check className="size-2.5 stroke-[3]" />
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
                     {country.defaultCurrency}
                   </span>
                 </div>
@@ -115,14 +127,17 @@ export function CountryStep({
       </div>
 
       {/* Auto-configured Financial Standard Banner */}
-      <div className="rounded-xl border border-blue-100 bg-linear-to-br from-blue-50/80 to-slate-50 p-3.5 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
-          <ShieldCheck className="size-4 text-blue-600 shrink-0" />
-          <span>
-            {isAr ? "التهيئة المالية والضريبية الذكية:" : "Smart Financial & Tax Preset:"}
-          </span>
+      <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/90 via-slate-50 to-indigo-50/50 p-4 space-y-2 shadow-2xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-950">
+            <ShieldCheck className="size-4 text-blue-600 shrink-0" />
+            <span>
+              {isAr ? "التهيئة والامتثال الضريبي الذكي:" : "Smart Compliance & Accounting Preset:"}
+            </span>
+          </div>
+          <span className="text-base">{currentCountry.flag}</span>
         </div>
-        <p className="text-xs leading-relaxed text-slate-600">
+        <p className="text-xs leading-relaxed text-slate-600 font-medium">
           {isAr ? currentCountry.taxNoteAr : currentCountry.taxNoteEn}
         </p>
       </div>
@@ -141,7 +156,7 @@ export function CountryStep({
         <select
           value={currency}
           onChange={(e) => onCurrencyChange(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-medium"
+          className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-medium"
         >
           {CURRENCY_CODES.map((code) => {
             const label = getCurrencyLabel(code, isAr);

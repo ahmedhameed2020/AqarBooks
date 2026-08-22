@@ -63,6 +63,7 @@ export default async function OnboardingPage({
           : "3 simple, smart steps to configure your financial and real estate workspace."
       }
       locale={locale}
+      maxWidth="2xl"
     >
       <OnboardingWizard locale={locale} />
     </AuthShell>
