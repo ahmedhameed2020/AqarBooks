@@ -13,6 +13,7 @@ import {
   ImportLinesForm,
   MatchLineForm,
 } from "./reconciliation-actions";
+import { BankReconciliationAiPanel } from "@/components/ai/bank-reconciliation-ai-panel";
 import { Scale, CheckCircle2, AlertTriangle, ArrowLeft, ArrowRight, Landmark } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -217,6 +218,11 @@ export default async function ReconciliationDetailPage({
 
       {canManage && isDraft && (
         <div className="space-y-3">
+          <BankReconciliationAiPanel
+            statementId={statement.id}
+            organizationId={organization.id}
+            locale={locale}
+          />
           <ImportLinesForm
             organizationId={organization.id}
             statementId={statement.id}

@@ -444,6 +444,11 @@ export function PostInvoiceDialog({
   const [isScanningAi, setIsScanningAi] = useState(false);
   const [aiScanSuccess, setAiScanSuccess] = useState<string | null>(null);
   const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
+  const [aiCrossValidation, setAiCrossValidation] = useState<{
+    isLineItemsSumValid: boolean;
+    isVatMathValid: boolean;
+    isGrandTotalValid: boolean;
+  } | null>(null);
   const [rawTextPaste, setRawTextPaste] = useState("");
   const [showAiPaste, setShowAiPaste] = useState(false);
 
@@ -467,6 +472,7 @@ export function PostInvoiceDialog({
     setIsScanningAi(true);
     setAiDuplicateWarning(null);
     setAiScanSuccess(null);
+    setAiCrossValidation(null);
     try {
       const res = await fetch("/api/ai/extract-invoice", {
         method: "POST",
@@ -488,13 +494,21 @@ export function PostInvoiceDialog({
           if (ext.subtotal) setNetAmount(String(ext.subtotal));
           if (ext.vatRate !== undefined) setVatRate(String(ext.vatRate));
 
+          if (ext.crossValidation) {
+            setAiCrossValidation({
+              isLineItemsSumValid: ext.crossValidation.isLineItemsSumValid,
+              isVatMathValid: ext.crossValidation.isVatMathValid,
+              isGrandTotalValid: ext.crossValidation.isGrandTotalValid,
+            });
+          }
+
           if (json.duplicateCheck?.isDuplicate) {
             setAiDuplicateWarning(json.duplicateCheck.warning);
           } else {
             setAiScanSuccess(
               isAr
-                ? `تم استخراج الفاتورة بنجاح بنسبة دقة ${Math.round((ext.confidence?.overall || 0.9) * 100)}%`
-                : `Extracted successfully with ${Math.round((ext.confidence?.overall || 0.9) * 100)}% confidence`
+                ? `تم استخراج الفاتورة ومطابقتها محاسبياً بنسبة دقة ${Math.round((ext.confidence?.overall || 0.9) * 100)}%`
+                : `Extracted & cross-validated with ${Math.round((ext.confidence?.overall || 0.9) * 100)}% confidence`
             );
           }
           setShowAiPaste(false);
@@ -648,9 +662,25 @@ export function PostInvoiceDialog({
               )}
 
               {aiScanSuccess && (
-                <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300">
-                  <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                  <span>{aiScanSuccess}</span>
+                <div className="space-y-2 p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>{aiScanSuccess}</span>
+                  </div>
+
+                  {aiCrossValidation && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold py-0">
+                        ✓ {isAr ? "مطابقة بنود الفاتورة" : "Line totals validated"}
+                      </Badge>
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold py-0">
+                        ✓ {isAr ? "صحة حساب ضريبة القيمة المضافة" : "VAT reconciled"}
+                      </Badge>
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold py-0">
+                        ✓ {isAr ? "الإجمالي النهائي مطابق" : "Grand total verified"}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               )}
 

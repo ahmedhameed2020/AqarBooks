@@ -35,15 +35,15 @@ export async function POST(req: Request) {
       taxNumber: s.tax_number || undefined,
     }));
 
-    // 2. Perform AI Document Extraction
-    const extracted = await extractInvoiceFromTextOrOcr(documentText, availableSuppliers, locale);
+    // 2. Perform AI Document Extraction with Tenant Scoping
+    const extracted = await extractInvoiceFromTextOrOcr(documentText, availableSuppliers, organizationId || user.id, locale);
 
     // 3. Match Supplier in database (Exact or Fuzzy)
     let matchedSupplierId: string | null = null;
     if (extracted.supplierName) {
-      const normExtracted = extracted.supplierName.toLowerCase().replace(/[\s\-_]/g, "");
+      const normExtracted = extracted.supplierName.toLowerCase().replace(/[\s\-_/\\#]/g, "");
       const exactMatch = (suppliers || []).find((s) => {
-        const normS = s.name.toLowerCase().replace(/[\s\-_]/g, "");
+        const normS = s.name.toLowerCase().replace(/[\s\-_/\\#]/g, "");
         return normS.includes(normExtracted) || normExtracted.includes(normS);
       });
       if (exactMatch) {
@@ -51,25 +51,52 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Duplicate Invoice Detection (Fingerprint & Invoice Number checks)
+    // 4. Graded Duplicate Detection (EXACT, PROBABLE, POSSIBLE, UNIQUE)
+    let duplicateSeverity: "EXACT_DUPLICATE" | "PROBABLE_DUPLICATE" | "POSSIBLE_DUPLICATE" | "UNIQUE" = "UNIQUE";
     let isDuplicate = false;
     let duplicateWarning: string | null = null;
+    let matchedInvoiceNumber: string | undefined;
+    let matchedAmount: number | undefined;
 
-    if (extracted.invoiceNumber && matchedSupplierId) {
+    const normInvNum = (extracted.invoiceNumber || "").toLowerCase().replace(/[\s\-_/\\#]/g, "");
+
+    if (normInvNum && matchedSupplierId) {
+      // Query supplier invoices for this supplier
       const { data: existingInvoices } = await supabase
         .from("supplier_invoices")
-        .select("id, invoice_number, amount, due_date")
+        .select("id, invoice_number, amount, due_date, currency")
         .eq("organization_id", organizationId || user.id)
         .eq("supplier_id", matchedSupplierId)
-        .eq("invoice_number", extracted.invoiceNumber.trim())
-        .limit(1);
+        .limit(100);
 
-      if (existingInvoices && existingInvoices.length > 0) {
-        const existing = existingInvoices[0];
-        isDuplicate = true;
-        duplicateWarning = isAr
-          ? `تنبيه أمني: تم العثور على فاتورة سابقة مسجلة بنفس الرقم (${existing.invoice_number}) بمبلغ ${existing.amount}.`
-          : `Warning: Duplicate invoice detected with matching number (${existing.invoice_number}) for amount ${existing.amount}.`;
+      for (const inv of existingInvoices || []) {
+        const existingNorm = (inv.invoice_number || "").toLowerCase().replace(/[\s\-_/\\#]/g, "");
+        const isSameNumber = existingNorm === normInvNum;
+        const isSameAmount = Math.abs(inv.amount - extracted.total) <= 0.05;
+
+        if (isSameNumber && isSameAmount) {
+          duplicateSeverity = "EXACT_DUPLICATE";
+          isDuplicate = true;
+          matchedInvoiceNumber = inv.invoice_number;
+          matchedAmount = inv.amount;
+          duplicateWarning = isAr
+            ? `تطابق تام ومؤكد (Exact Duplicate): توجد فاتورة مسجلة بالفعل بنفس الرقم (${inv.invoice_number}) وبنفس المبلغ (${inv.amount}).`
+            : `Exact Duplicate: An invoice with matching number (${inv.invoice_number}) and amount (${inv.amount}) is already recorded.`;
+          break;
+        } else if (isSameNumber) {
+          duplicateSeverity = "PROBABLE_DUPLICATE";
+          isDuplicate = true;
+          matchedInvoiceNumber = inv.invoice_number;
+          matchedAmount = inv.amount;
+          duplicateWarning = isAr
+            ? `تطابق مرجح (Probable Duplicate): يوجد رقم فاتورة متطابق (${inv.invoice_number}) بمبلغ (${inv.amount}) يختلف عن المسجل حالياً.`
+            : `Probable Duplicate: Invoice number (${inv.invoice_number}) matches an existing invoice of amount (${inv.amount}).`;
+        } else if (isSameAmount && duplicateSeverity === "UNIQUE") {
+          duplicateSeverity = "POSSIBLE_DUPLICATE";
+          duplicateWarning = isAr
+            ? `تطابق محتمل (Possible Duplicate): تم العثور على فاتورة للمورد نفسه بنفس القيمة (${inv.amount}) برقم مختلف (${inv.invoice_number}).`
+            : `Possible Duplicate: Found an invoice for the same supplier with identical amount (${inv.amount}).`;
+        }
       }
     }
 
@@ -78,8 +105,11 @@ export async function POST(req: Request) {
       extracted,
       matchedSupplierId,
       duplicateCheck: {
+        severity: duplicateSeverity,
         isDuplicate,
         warning: duplicateWarning,
+        matchedInvoiceNumber,
+        matchedAmount,
       },
     });
   } catch (err) {
