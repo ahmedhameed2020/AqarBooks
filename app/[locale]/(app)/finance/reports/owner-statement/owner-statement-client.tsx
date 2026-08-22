@@ -57,18 +57,20 @@ export function OwnerStatementClient({
   organizationName,
   currency,
   locale,
+  initialOwnerId,
 }: {
   owners: OwnerItem[];
   unitStatements: OwnerUnitStatement[];
   organizationName: string;
   currency: string;
   locale: string;
+  initialOwnerId?: string;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
 
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>(
-    owners[0]?.id || "ALL"
+    (initialOwnerId && owners.some((o) => o.id === initialOwnerId) ? initialOwnerId : owners[0]?.id) || "ALL"
   );
   const [searchQuery, setSearchQuery] = useState("");
 

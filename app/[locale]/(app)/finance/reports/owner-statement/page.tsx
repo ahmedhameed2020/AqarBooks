@@ -26,10 +26,14 @@ export async function generateMetadata({
 
 export default async function OwnerStatementPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ member?: string; owner?: string }>;
 }) {
   const { locale } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const requestedMemberId = sp.member || sp.owner;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -147,6 +151,7 @@ export default async function OwnerStatementPage({
       organizationName={organization.name}
       currency={organization.default_currency || "EGP"}
       locale={locale}
+      initialOwnerId={requestedMemberId}
     />
   );
 }

@@ -5,7 +5,15 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      {
+        source: "/:locale/finance/reports/owner-statements",
+        destination: "/:locale/finance/reports/owner-statement",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

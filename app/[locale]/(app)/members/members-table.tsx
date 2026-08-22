@@ -269,7 +269,7 @@ export function MembersTable({
                         )}
 
                         <Link
-                          href={`/finance/reports/owner-statements?member=${member.id}`}
+                          href={`/finance/reports/owner-statement?member=${member.id}`}
                           locale={locale}
                           title={isAr ? "كشف حساب المالك" : "Owner Statement"}
                           className="flex size-7 items-center justify-center rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
