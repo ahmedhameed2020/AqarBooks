@@ -35,7 +35,12 @@ import {
   CreditCard,
   Percent,
   Receipt,
+  Sparkles,
+  UploadCloud,
+  ShieldAlert,
+  FileCheck,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   createSupplierAction,
   postSupplierInvoiceAction,
@@ -435,6 +440,13 @@ export function PostInvoiceDialog({
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // AI OCR Scanner State
+  const [isScanningAi, setIsScanningAi] = useState(false);
+  const [aiScanSuccess, setAiScanSuccess] = useState<string | null>(null);
+  const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
+  const [rawTextPaste, setRawTextPaste] = useState("");
+  const [showAiPaste, setShowAiPaste] = useState(false);
+
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id ?? "");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [expenseAccountId, setExpenseAccountId] = useState<string>(expenseAccounts[0]?.id ?? "");
@@ -447,10 +459,53 @@ export function PostInvoiceDialog({
   const [whtAccountId, setWhtAccountId] = useState<string>(liabilityAccounts[0]?.id ?? "");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
-  // Empty = the organisation's own currency, which is the overwhelming case and
-  // the one that must stay exactly as it was.
   const [invoiceCurrency, setInvoiceCurrency] = useState("");
   const [exchangeRate, setExchangeRate] = useState("");
+
+  const handleProcessAiOcr = async (text: string) => {
+    if (!text.trim()) return;
+    setIsScanningAi(true);
+    setAiDuplicateWarning(null);
+    setAiScanSuccess(null);
+    try {
+      const res = await fetch("/api/ai/extract-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentText: text,
+          organizationId,
+          locale,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.extracted) {
+          const ext = json.extracted;
+          if (json.matchedSupplierId) setSupplierId(json.matchedSupplierId);
+          if (ext.invoiceNumber) setInvoiceNumber(ext.invoiceNumber);
+          if (ext.invoiceDate) setInvoiceDate(ext.invoiceDate);
+          if (ext.dueDate) setDueDate(ext.dueDate);
+          if (ext.subtotal) setNetAmount(String(ext.subtotal));
+          if (ext.vatRate !== undefined) setVatRate(String(ext.vatRate));
+
+          if (json.duplicateCheck?.isDuplicate) {
+            setAiDuplicateWarning(json.duplicateCheck.warning);
+          } else {
+            setAiScanSuccess(
+              isAr
+                ? `تم استخراج الفاتورة بنجاح بنسبة دقة ${Math.round((ext.confidence?.overall || 0.9) * 100)}%`
+                : `Extracted successfully with ${Math.round((ext.confidence?.overall || 0.9) * 100)}% confidence`
+            );
+          }
+          setShowAiPaste(false);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsScanningAi(false);
+    }
+  };
 
   // Live Totals
   const net = Number(netAmount) || 0;
@@ -541,6 +596,72 @@ export function PostInvoiceDialog({
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <DialogBody className="p-5 space-y-4 overflow-y-auto flex-1">
+            {/* AI Document Scanner Bar */}
+            <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/40 via-white to-indigo-50/30 p-3.5 shadow-xs dark:border-purple-900/40 dark:from-purple-950/20 dark:via-slate-900 dark:to-indigo-950/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-purple-600 text-white shadow-xs">
+                    <Sparkles className="size-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      {isAr ? "الماسح الذكي للفواتير (AI OCR Capture)" : "AI Invoice OCR Scanner"}
+                    </span>
+                    <p className="text-[10px] text-slate-400">
+                      {isAr ? "استخراج تلقائي للأرقام والمورد والضرائب مع كشف التكرار" : "Auto-extract fields & detect duplicates"}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAiPaste(!showAiPaste)}
+                  className="h-7 text-xs font-bold rounded-lg border-purple-200 hover:bg-purple-50 dark:border-purple-800 text-purple-700 dark:text-purple-300 gap-1 cursor-pointer"
+                >
+                  <FileText className="size-3" />
+                  <span>{showAiPaste ? (isAr ? "إغلاق" : "Close") : (isAr ? "لصق نص / OCR الفاتورة" : "Paste Invoice Text")}</span>
+                </Button>
+              </div>
+
+              {showAiPaste && (
+                <div className="space-y-2 pt-2 border-t border-purple-100 dark:border-purple-900/30">
+                  <textarea
+                    rows={3}
+                    value={rawTextPaste}
+                    onChange={(e) => setRawTextPaste(e.target.value)}
+                    placeholder={isAr ? "انسخ والصق نص الفاتورة أو بياناتها هنا..." : "Paste raw invoice text or OCR output here..."}
+                    className="w-full p-2.5 rounded-xl border border-purple-200 bg-white text-xs font-mono dark:border-purple-900 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isScanningAi || !rawTextPaste.trim()}
+                    onClick={() => handleProcessAiOcr(rawTextPaste)}
+                    className="w-full h-8 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className={`size-3.5 ${isScanningAi ? "animate-spin" : ""}`} />
+                    <span>{isScanningAi ? (isAr ? "جاري الاستخراج بالذكاء الاصطناعي..." : "Extracting...") : (isAr ? "استخراج وتعبئة الحقول آلياً" : "Extract & Auto-Fill")}</span>
+                  </Button>
+                </div>
+              )}
+
+              {aiScanSuccess && (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300">
+                  <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                  <span>{aiScanSuccess}</span>
+                </div>
+              )}
+
+              {aiDuplicateWarning && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-300">
+                  <ShieldAlert className="size-4 text-amber-600 shrink-0" />
+                  <span>{aiDuplicateWarning}</span>
+                </div>
+              )}
+            </div>
+
             {errorMsg && (
               <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
                 <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
