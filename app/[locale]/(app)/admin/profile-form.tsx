@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 import { updateOrganizationProfile } from "@/lib/actions/tenant";
 import type { ActionResult } from "@/lib/actions/platform";
+import {
+  ProfileForm as EInvoiceProfileForm,
+  FilingToggle,
+} from "@/app/[locale]/(app)/finance/einvoice/einvoice-forms";
 
 const JURISDICTION_COUNTRY_MAP: Record<
   string,
@@ -397,11 +401,16 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-            <ShieldCheck className="size-4 text-purple-600" />
-            <span>{isAr ? "الرقم الضريبي وإعدادات الفوترة الإلكترونية" : "Tax ID & E-Invoice Profiles"}</span>
-          </h3>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="size-4 text-purple-600" />
+              <span>{isAr ? "الرقم الضريبي وبوابات الربط الإلكتروني (ETA / ZATCA)" : "Tax Identity & Gateway Gateways"}</span>
+            </h3>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+              Statutory E-Invoicing
+            </span>
+          </div>
 
           <div className="space-y-1.5 text-start">
             <Label htmlFor="taxId" className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -422,6 +431,102 @@ export function ProfileForm({
                 ? "يُدرج هذا الرقم رسمياً في ترويسة كافة الفواتير، الإقرارات، والمستندات الضريبية الإلكترونية المرفوعة لمصلحة الضرائب."
                 : "Included in invoice headers and statutory filings submitted to the tax authority."}
             </p>
+          </div>
+
+          {/* E-INVOICE AUTHORITY GATEWAY CREDENTIALS */}
+          <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>{isAr ? "إعدادات وتفويض بوابات الفاتورة الإلكترونية" : "Filing Gateways & Authority Gateways"}</span>
+              </h4>
+              <span className="text-[10px] text-slate-400">
+                {isAr ? "تشفير AES-256 للبيانات الحساسة" : "AES-256 encrypted"}
+              </span>
+            </div>
+
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              {(["EG_ETA", "SA_ZATCA"] as const).map((jur) => {
+                const profile = einvoiceProfiles.find((p) => p.jurisdiction === jur) ?? null;
+                const isEg = jur.startsWith("EG");
+                const isSa = jur.startsWith("SA");
+                const flag = isEg ? "🇪🇬" : isSa ? "🇸🇦" : "🇦🇪";
+                const title = isEg
+                  ? isAr ? "مصلحة الضرائب المصرية (ETA)" : "Egyptian Tax Authority (ETA)"
+                  : isSa
+                  ? isAr ? "هيئة الزكاة والضريبة والجمارك (ZATCA)" : "ZATCA Fatoora (Saudi Arabia)"
+                  : isAr ? "الهيئة الاتحادية للضرائب" : "Federal Tax Authority";
+
+                const label = !profile
+                  ? isAr ? "غير مُعد" : "Not configured"
+                  : profile.enabled
+                  ? isAr ? "مفعّل — الإرسال يعمل" : "Active — filing on"
+                  : profile.verified_at
+                  ? isAr ? "مُتحقق منه — بانتظار التفعيل" : "Verified — ready"
+                  : isAr ? "مُعد — بانتظار التحقق" : "Configured — unverified";
+
+                return (
+                  <div
+                    key={jur}
+                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{flag}</span>
+                        <div>
+                          <span className="font-mono text-[11px] font-black text-slate-900 dark:text-white block">
+                            {jur}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {title}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          !profile
+                            ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                            : profile.enabled
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                            : profile.verified_at
+                            ? "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                            : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+
+                    {!readOnly ? (
+                      <div className="space-y-2.5">
+                        <EInvoiceProfileForm
+                          key={`${jur}-${profile?.updated_at ?? "new"}`}
+                          organizationId={organizationId}
+                          jurisdiction={jur}
+                          environment={(profile?.environment as "SANDBOX" | "PRODUCTION") ?? "SANDBOX"}
+                          taxpayerId={profile?.taxpayer_id ?? null}
+                          branchCode={profile?.branch_code ?? null}
+                          activityCode={profile?.activity_code ?? null}
+                          locale={locale}
+                        />
+                        {profile && (
+                          <FilingToggle
+                            profileId={profile.id}
+                            enabled={profile.enabled}
+                            canEnable={Boolean(profile.verified_at)}
+                            locale={locale}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-400">
+                        {isAr ? "للاطلاع فقط (غير مصرح بالتعديل)." : "View only."}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

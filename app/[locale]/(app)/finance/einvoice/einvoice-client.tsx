@@ -640,8 +640,19 @@ export function EInvoiceClient({
                 className="h-10 px-4 text-xs font-bold border-purple-200 bg-white/90 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/40 rounded-2xl gap-1.5 transition-all shadow-2xs"
               >
                 <Tag className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>{isAr ? "كتالوج وتكويد الأصناف (GS1/EGS)" : "Item Coding (GS1)"}</span>
+                <span>{isAr ? "كتالوج وتكويد الأصناف (GS1)" : "Item Coding (GS1)"}</span>
                 <ArrowUpRight className="size-3 opacity-60" />
+              </Button>
+            </Link>
+
+            <Link href="/admin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 px-4 text-xs font-bold border-slate-200 bg-white/90 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 rounded-2xl gap-1.5 transition-all shadow-2xs"
+              >
+                <Settings className="size-3.5 text-purple-600" />
+                <span>{isAr ? "إعدادات بوابات الربط" : "Gateway Settings"}</span>
               </Button>
             </Link>
 
@@ -762,67 +773,77 @@ export function EInvoiceClient({
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          RENDER SERVER-SIDE FILING PROFILES (COMPACT COLLAPSIBLE PANEL)
+          MODULE NAVIGATION TABS (FULL-WIDTH CLEAN SEGMENTED CONTROL)
           ────────────────────────────────────────────────────────────────────────── */}
-      {profilesSlot}
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          FUNCTIONAL NAVIGATION TABS & ADVANCED TOOLBAR
-          ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-        {/* Module Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/70 p-1 rounded-xl overflow-x-auto">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-1.5 shadow-2xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
           <button
             onClick={() => setActiveTab("DECISIONS")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "DECISIONS"
-                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
             }`}
           >
-            <FileCheck2 className="size-3.5 text-purple-600 dark:text-purple-400" />
+            <FileCheck2 className={`size-4 ${activeTab === "DECISIONS" ? "text-white" : "text-purple-600 dark:text-purple-400"}`} />
             <span>{isAr ? "سجل الفواتير والمطالبات الضريبية" : "Tax Invoices Register"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 ms-0.5 font-mono font-bold">
+            <span
+              className={`text-[10px] h-5 px-2 rounded-full font-mono font-bold inline-flex items-center justify-center ${
+                activeTab === "DECISIONS"
+                  ? "bg-white/20 text-white"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
               {taxDecisions.length}
-            </Badge>
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab("NATURES")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "NATURES"
-                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
             }`}
           >
-            <Scale className="size-3.5 text-blue-600 dark:text-blue-400" />
+            <Scale className={`size-4 ${activeTab === "NATURES" ? "text-white" : "text-blue-600 dark:text-blue-400"}`} />
             <span>{isAr ? "دليل تصنيفات الإيراد والقواعد الضريبية" : "Revenue Tax Rules"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 ms-0.5 font-mono font-bold">
+            <span
+              className={`text-[10px] h-5 px-2 rounded-full font-mono font-bold inline-flex items-center justify-center ${
+                activeTab === "NATURES"
+                  ? "bg-white/20 text-white"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
               {revenueNatures.length}
-            </Badge>
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab("GUIDE")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "GUIDE"
-                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
             }`}
           >
-            <Zap className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+            <Zap className={`size-4 ${activeTab === "GUIDE" ? "text-white" : "text-amber-500"}`} />
             <span>{isAr ? "دورة حياة الفاتورة والإرشادات" : "Invoicing Lifecycle"}</span>
           </button>
         </div>
+      </div>
 
-        {/* Filters & Search Toolbar */}
-        {activeTab === "DECISIONS" && (
+      {/* ──────────────────────────────────────────────────────────────────────────
+          DEDICATED FILTER & SEARCH TOOLBAR (CLEAN, SPACIOUS, UNCONGESTED)
+          ────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "DECISIONS" && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+          {/* Side 1: Quick Filter Chips + Sort */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tax Treatment Quick Filter */}
-            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/70 p-1 rounded-xl text-xs font-bold">
+            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-bold">
               <button
                 onClick={() => setFilterTaxTreatment("ALL")}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   filterTaxTreatment === "ALL"
                     ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-900 dark:text-white"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
@@ -832,7 +853,7 @@ export function EInvoiceClient({
               </button>
               <button
                 onClick={() => setFilterTaxTreatment("TAXABLE")}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   filterTaxTreatment === "TAXABLE"
                     ? "bg-white text-purple-700 shadow-2xs dark:bg-slate-900 dark:text-purple-400"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
@@ -842,7 +863,7 @@ export function EInvoiceClient({
               </button>
               <button
                 onClick={() => setFilterTaxTreatment("EXEMPT")}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   filterTaxTreatment === "EXEMPT"
                     ? "bg-white text-emerald-700 shadow-2xs dark:bg-slate-900 dark:text-emerald-400"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
@@ -855,34 +876,33 @@ export function EInvoiceClient({
             {/* Sort Toggle */}
             <button
               onClick={() => setSortBy(sortBy === "NEWEST" ? "HIGHEST_AMOUNT" : "NEWEST")}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-all"
-              title={isAr ? "ترتيب حسب" : "Sort by"}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-all"
             >
               <ArrowUpDown className="size-3.5 text-purple-600" />
               <span>{sortBy === "NEWEST" ? (isAr ? "الأحدث" : "Newest") : isAr ? "الأعلى مبلغاً" : "Highest Amount"}</span>
             </button>
-
-            {/* Search Input */}
-            <div className="relative w-full sm:w-56">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isAr ? "بحث في الفواتير أو الوحدات..." : "Search invoices, units..."}
-                className="ps-8.5 text-xs h-9 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border-slate-200 dark:border-slate-700"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
           </div>
-        )}
-      </div>
+
+          {/* Side 2: Search Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isAr ? "بحث برقم الفاتورة أو كود الوحدة..." : "Search by invoice # or unit..."}
+              className="ps-9 text-xs h-9 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border-slate-200 dark:border-slate-700"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
           TAB 1: TAX INVOICES & DECISIONS REGISTER

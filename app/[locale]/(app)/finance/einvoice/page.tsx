@@ -232,167 +232,26 @@ export default async function EInvoicePage({
 
   const primaryProfile = profiles[0];
   const jurisdiction = primaryProfile?.jurisdiction || "EG";
-  const taxId = primaryProfile?.taxpayer_id || null;
-
-  const filingProfilesSection = (
-    <details
-      open
-      key="filing-profiles-section"
-      className="group rounded-3xl border border-slate-200/80 bg-white/95 dark:border-slate-800/80 dark:bg-slate-900/95 shadow-sm transition-all overflow-hidden backdrop-blur-md"
-    >
-      <summary className="flex items-center justify-between p-4 sm:px-6 cursor-pointer select-none bg-slate-50/70 hover:bg-slate-100/70 dark:bg-slate-900/70 dark:hover:bg-slate-800/60 transition-colors list-none">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/20">
-            <Shield className="size-4.5" />
-          </div>
-          <div>
-            <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>{isAr ? "بوابات الربط والامتثال بالمصالح وهيئات الضرائب" : "Tax Authority Gateways & Compliance Profiles"}</span>
-              <span className="rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[9px] font-mono font-black px-1.5 py-0.2">
-                ETA / ZATCA
-              </span>
-            </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              {isAr ? "إعدادات الربط المباشر، المفاتيح المشفرة، وبيانات الاعتماد الرسمية لكل ولاية ضريبية" : "Direct API credentials, encrypted keys, and statutory parameters"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-3 py-1.5 rounded-xl border border-purple-200/60 dark:border-purple-800/60">
-          <span className="group-open:hidden">{isAr ? "إظهار بوابات الربط ▾" : "Show Gateways ▾"}</span>
-          <span className="hidden group-open:inline">{isAr ? "طي بوابات الربط ▴" : "Collapse ▴"}</span>
-        </div>
-      </summary>
-
-      <section
-        aria-label={isAr ? "ملفات الربط الضريبي" : "Filing profiles"}
-        className="p-4 sm:p-6 pt-3 space-y-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-950/30"
-      >
-        <div className="grid gap-4 lg:grid-cols-2">
-          {OFFERED.map((jur) => {
-            const profile = profiles.find((p) => p.jurisdiction === jur) ?? null;
-
-            const label = !profile
-              ? isAr ? "غير مُعد" : "Not configured"
-              : profile.enabled
-                ? isAr ? "مفعّل — الإرسال اللحظي يعمل" : "Active — auto-filing"
-                : profile.verified_at
-                  ? isAr ? "مُتحقق منه — بانتظار التفعيل" : "Verified — ready"
-                  : isAr ? "مُعد — بانتظار التحقق" : "Configured — unverified";
-
-            const isEg = jur.startsWith("EG");
-            const isSa = jur.startsWith("SA");
-            const flag = isEg ? "🇪🇬" : isSa ? "🇸🇦" : "🇦🇪";
-            const title = isEg
-              ? isAr ? "مصلحة الضرائب المصرية (ETA - الفاتورة والإيصال)" : "Egyptian Tax Authority (ETA E-Invoice & Receipt)"
-              : isSa
-              ? isAr ? "هيئة الزكاة والضريبة والجمارك (ZATCA - فاتورة)" : "Zakat, Tax & Customs Authority (ZATCA Fatoora)"
-              : isAr ? "الهيئة الاتحادية للضرائب" : "Federal Tax Authority";
-
-            return (
-              <div
-                key={jur}
-                data-jurisdiction={jur}
-                data-profile-updated={profile?.updated_at ?? "new"}
-                className="space-y-3 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800/90 dark:bg-slate-900/90 transition-all hover:border-purple-300 dark:hover:border-purple-800"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl shrink-0">{flag}</span>
-                    <div>
-                      <span className="font-mono text-xs font-black text-slate-900 dark:text-white block">
-                        {jur}
-                      </span>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {title}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${
-                        !profile
-                          ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
-                          : profile.enabled
-                          ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
-                          : profile.verified_at
-                          ? "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-800"
-                          : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${
-                          profile?.enabled
-                            ? "bg-emerald-500 animate-pulse"
-                            : profile?.verified_at
-                            ? "bg-blue-500"
-                            : "bg-slate-400"
-                        }`}
-                      />
-                      <span>{label}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {profile?.last_verification_error && (
-                  <p role="alert" className="text-[11px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-2 rounded-xl border border-rose-200 dark:border-rose-900/50">
-                    {profile.last_verification_error}
-                  </p>
-                )}
-
-                {canManage ? (
-                  <div className="space-y-3 pt-1">
-                    <ProfileForm
-                      key={`${jur}-${profile?.updated_at ?? "new"}`}
-                      organizationId={organization.id}
-                      jurisdiction={jur}
-                      environment={(profile?.environment as "SANDBOX" | "PRODUCTION") ?? "SANDBOX"}
-                      taxpayerId={profile?.taxpayer_id ?? null}
-                      branchCode={profile?.branch_code ?? null}
-                      activityCode={profile?.activity_code ?? null}
-                      locale={locale}
-                    />
-                    {profile && (
-                      <FilingToggle
-                        profileId={profile.id}
-                        enabled={profile.enabled}
-                        canEnable={Boolean(profile.verified_at)}
-                        locale={locale}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500">
-                    {isAr ? "للاطلاع فقط (غير مصرح بالتعديل)." : "View only."}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-    </details>
-  );
-
   return (
     <div className="space-y-6">
       <EInvoiceClient
-        taxDecisions={taxDecisions}
-        revenueNatures={revenueNatures}
+        taxDecisions={taxDecisions ?? []}
+        revenueNatures={revenueNatures ?? []}
         profiles={profiles}
         organizationId={organization.id}
-        organizationName={orgData?.name || organization.name}
-        organizationJurisdiction={jurisdiction}
-        organizationTaxId={taxId}
-        currency={currency}
+        organizationName={organization.name}
+        organizationJurisdiction={organization.tax_jurisdiction || jurisdiction}
+        organizationTaxId={organization.tax_id || primaryProfile?.taxpayer_id || null}
+        organizationAddress={organization.address || null}
+        organizationPhone={organization.phone || null}
+        currency={organization.default_currency || "EGP"}
         locale={locale}
         resorts={resorts}
         units={units}
         dueTypes={dueTypes}
         receivableAccounts={receivableAccounts}
         periods={periods}
-        profilesSlot={filingProfilesSection}
+        profilesSlot={null}
       />
     </div>
   );
