@@ -239,6 +239,7 @@ export default async function AppShellLayout({
                 { href: "/admin", labelAr: "إعدادات المنشأة والبراند", labelEn: "Organization Profile" },
                 { href: "/admin/users", labelAr: "المستخدمون وفريق العمل", labelEn: "Team & Users" },
                 { href: "/admin/roles", labelAr: "الصلاحيات والمصفوفة", labelEn: "Roles & Permissions" },
+                { href: "/admin/ai-governance", labelAr: "حوكمة الذكاء الاصطناعي (Shadow Pilot)", labelEn: "AI Governance & Pilot" },
                 { href: "/finance/payment-providers", labelAr: "بوابات الدفع الإلكتروني", labelEn: "Payment Gateways" },
               ],
             },
