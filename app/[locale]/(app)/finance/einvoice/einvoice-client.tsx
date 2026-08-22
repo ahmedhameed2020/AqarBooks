@@ -587,33 +587,38 @@ export function EInvoiceClient({
       {/* ──────────────────────────────────────────────────────────────────────────
           EXECUTIVE HERO HEADER & WORKSPACE TOOLBAR
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 p-6 sm:p-7 shadow-xs dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/60 to-slate-100/40 p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950">
         {/* Subtle background glow effect */}
-        <div className="pointer-events-none absolute -end-24 -top-24 size-96 rounded-full bg-purple-500/5 blur-3xl dark:bg-purple-500/10" />
-        <div className="pointer-events-none absolute -start-24 -bottom-24 size-96 rounded-full bg-indigo-500/5 blur-3xl dark:bg-indigo-500/10" />
+        <div className="pointer-events-none absolute -end-24 -top-24 size-96 rounded-full bg-purple-500/10 blur-3xl dark:bg-purple-500/15" />
+        <div className="pointer-events-none absolute -start-24 -bottom-24 size-96 rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/15" />
 
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            {/* Breadcrumb path */}
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
-              <span className="flex size-6.5 items-center justify-center rounded-lg bg-purple-100/70 dark:bg-purple-950/70 shadow-2xs">
-                <Landmark className="size-3.5 text-purple-600 dark:text-purple-400" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2.5">
+            {/* Breadcrumb & Jurisdiction Badges */}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+              <span className="flex size-7 items-center justify-center rounded-xl bg-purple-100/80 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 shadow-2xs">
+                <Landmark className="size-4 text-purple-600 dark:text-purple-400" />
               </span>
-              <span>{isAr ? "الإدارة المالية والضريبية" : "Tax & Finance"}</span>
+              <span className="text-purple-700 dark:text-purple-300 font-extrabold">{isAr ? "الإدارة المالية والضريبية" : "Tax & Finance"}</span>
               <span className="text-slate-300 dark:text-slate-700">/</span>
-              <span className="font-extrabold text-slate-800 dark:text-slate-200">
+              <span className="text-slate-900 dark:text-white font-black">
                 {isAr ? "منظومة الفوترة الإلكترونية والإقرارات" : "E-Invoicing & Statutory Compliance"}
+              </span>
+              <span className="ms-1 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-200 text-[10px] font-mono font-bold shadow-2xs">
+                <span>{currentJur.flag}</span>
+                <span>{currentJur.arName}</span>
+                <span>• {currentJur.standardVat} VAT</span>
               </span>
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+            <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl lg:text-4xl">
               {isAr ? "الفوترة والإقرارات الضريبية الإلكترونية" : "E-Invoicing & Statutory Tax Compliance"}
             </h1>
 
-            <p className="max-w-2xl text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="max-w-2xl text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
               {isAr
-                ? "إصدار الفواتير الضريبية المعتمدة، تطبيق القواعد الضريبية آلياً، والربط اللحظي مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
-                : "Issue statutory tax invoices, auto-calculate VAT, and integrate in real-time with Egyptian Tax Authority (ETA) & ZATCA."}
+                ? "إصدار الفواتير الضريبية المعتمدة للوحدات العقارية، احتساب الوعاء والضريبة آلياً، والتكامل اللحظي مع منظومة الفاتورة والإيصال الإلكتروني (ETA بمصر) وهيئة الزكاة والضريبة والجمارك (ZATCA بالسعودية)."
+                : "Issue statutory real estate tax invoices, auto-calculate VAT rates, and synchronize in real-time with ETA (Egypt) & ZATCA (Saudi Arabia)."}
             </p>
           </div>
 
@@ -622,20 +627,20 @@ export function EInvoiceClient({
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               size="sm"
-              className="h-10 px-5 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/20 rounded-xl gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="h-10 px-5 text-xs font-black bg-gradient-to-r from-purple-600 via-indigo-600 to-slate-900 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/25 rounded-2xl gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="size-4" />
-              <span>{isAr ? "إنشاء فاتورة إلكترونية جديدة" : "Issue New E-Invoice"}</span>
+              <span>{isAr ? "إصدار فاتورة ضريبية جديدة" : "Issue New E-Invoice"}</span>
             </Button>
 
             <Link href="/finance/einvoice-items">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 px-4 text-xs font-bold border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 rounded-xl gap-1.5 transition-all"
+                className="h-10 px-4 text-xs font-bold border-purple-200 bg-white/90 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/40 rounded-2xl gap-1.5 transition-all shadow-2xs"
               >
                 <Tag className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>{isAr ? "كتالوج وتكويد الأصناف" : "Item Coding"}</span>
+                <span>{isAr ? "كتالوج وتكويد الأصناف (GS1/EGS)" : "Item Coding (GS1)"}</span>
                 <ArrowUpRight className="size-3 opacity-60" />
               </Button>
             </Link>
@@ -645,109 +650,109 @@ export function EInvoiceClient({
                 onClick={handleExportExcel}
                 variant="outline"
                 size="sm"
-                className="h-10 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100/70 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80 rounded-xl gap-1.5 transition-all"
+                className="h-10 px-3.5 text-xs font-bold border-slate-200 bg-white/90 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 rounded-2xl gap-1.5 transition-all shadow-2xs"
               >
                 <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                <span>{isAr ? "تصدير إكسل" : "Excel"}</span>
+                <span>{isAr ? "إكسل" : "Excel"}</span>
               </Button>
 
               <Button
                 onClick={handleExportPdf}
                 variant="outline"
                 size="sm"
-                className="h-10 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100/70 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80 rounded-xl gap-1.5 transition-all"
+                className="h-10 px-3.5 text-xs font-bold border-slate-200 bg-white/90 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 rounded-2xl gap-1.5 transition-all shadow-2xs"
               >
                 <FileText className="size-3.5 text-rose-600" />
-                <span>{isAr ? "تصدير PDF" : "PDF"}</span>
+                <span>{isAr ? "PDF" : "PDF"}</span>
               </Button>
             </div>
           </div>
         </div>
 
         {/* ──────────────────────────────────────────────────────────────────────
-            EXECUTIVE KPI METRIC CARDS (4 METRICS)
+            EXECUTIVE KPI METRIC CARDS (4 BENTO METRICS)
             ────────────────────────────────────────────────────────────────────── */}
-        <div className="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4 pt-6 border-t border-slate-200/60 dark:border-slate-800">
+        <div className="mt-7 grid grid-cols-2 gap-3.5 sm:grid-cols-4 pt-6 border-t border-slate-200/70 dark:border-slate-800/80">
           {/* 1. Taxable Base */}
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-purple-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-purple-800">
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-4.5 shadow-xs transition-all hover:border-purple-300 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-purple-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                 {isAr ? "إجمالي الوعاء الخاضع" : "Taxable Base"}
               </span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
-                <DollarSign className="size-3.5" />
+              <span className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400 shadow-2xs">
+                <DollarSign className="size-4" />
               </span>
             </div>
-            <p className="mt-2 text-xl font-black font-mono text-slate-900 dark:text-white sm:text-2xl">
+            <p className="mt-2.5 text-xl font-black font-mono tracking-tight text-slate-950 dark:text-white sm:text-2xl">
               {totalTaxableBase.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="text-xs font-bold text-slate-400 ms-1 font-sans">{currencyLabel}</span>
+              <span className="text-xs font-bold text-slate-400 ms-1.5 font-sans">{currencyLabel}</span>
             </p>
-            <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
-              {isAr ? "صافي قيمة التوريدات والخدمات" : "Net revenue base"}
+            <span className="mt-1 block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+              {isAr ? "صافي إيرادات الخدمات والمطالبات" : "Net statutory revenue base"}
             </span>
           </div>
 
           {/* 2. Output VAT */}
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-emerald-800">
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-4.5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-emerald-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {isAr ? "ضريبة القيمة المضافة" : "Output VAT"}
+                {isAr ? "ضريبة القيمة المضافة الصادرة" : "Output Output VAT"}
               </span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                <Percent className="size-3.5" />
+              <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 shadow-2xs">
+                <Percent className="size-4" />
               </span>
             </div>
-            <p className="mt-2 text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+            <p className="mt-2.5 text-xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">
               {totalVatAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="text-xs font-bold text-slate-400 ms-1 font-sans">{currencyLabel}</span>
+              <span className="text-xs font-bold text-slate-400 ms-1.5 font-sans">{currencyLabel}</span>
             </p>
-            <span className="mt-1 block text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
-              {isAr ? `مختومة ضريبياً بنسبة ${currentJur.standardVat}` : `Standard VAT at ${currentJur.standardVat}`}
+            <span className="mt-1 block text-[11px] font-semibold text-emerald-600/90 dark:text-emerald-400/90">
+              {isAr ? `مختومة ضريبياً بنسبة ${currentJur.standardVat}` : `Calculated VAT at ${currentJur.standardVat}`}
             </span>
           </div>
 
           {/* 3. Stamped Invoices */}
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-blue-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-blue-800">
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-4.5 shadow-xs transition-all hover:border-blue-300 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-blue-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {isAr ? "الفواتير والقرارات" : "Stamped Invoices"}
+                {isAr ? "الفواتير والقرارات المعتمدة" : "Stamped Invoices"}
               </span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-                <FileCheck2 className="size-3.5" />
+              <span className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 shadow-2xs">
+                <FileCheck2 className="size-4" />
               </span>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <p className="text-xl font-black font-mono text-slate-900 dark:text-white sm:text-2xl">
+            <div className="mt-2.5 flex items-baseline gap-2">
+              <p className="text-xl font-black font-mono tracking-tight text-slate-950 dark:text-white sm:text-2xl">
                 {taxDecisions.length}
               </p>
               {exemptDecisionsCount > 0 && (
                 <span className="text-[11px] font-bold text-slate-500">
-                  ({exemptDecisionsCount} {isAr ? "معفى" : "exempt"})
+                  ({exemptDecisionsCount} {isAr ? "معفى 0%" : "exempt"})
                 </span>
               )}
             </div>
-            <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            <span className="mt-1 block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
               {isAr ? "سجلات محاسبية مدققة 100%" : "Audited statutory records"}
             </span>
           </div>
 
           {/* 4. Compliance Link Status */}
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-indigo-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-indigo-800">
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-4.5 shadow-xs transition-all hover:border-indigo-300 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-indigo-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {isAr ? "الامتثال والربط الضريبي" : "Compliance Link"}
+                {isAr ? "حالة الامتثال والربط الضريبي" : "Compliance Link"}
               </span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-                <ShieldCheck className="size-3.5" />
+              <span className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 shadow-2xs">
+                <ShieldCheck className="size-4" />
               </span>
             </div>
-            <p className="mt-2 text-base font-black text-indigo-600 dark:text-indigo-400 sm:text-lg flex items-center gap-1.5">
+            <p className="mt-2.5 text-base font-black text-indigo-700 dark:text-indigo-300 sm:text-lg flex items-center gap-1.5">
               <span>{currentJur.flag}</span>
               <span>{organizationJurisdiction}</span>
             </p>
-            <span className="mt-1 block text-[11px] font-medium text-indigo-600/80 dark:text-indigo-400/80">
+            <span className="mt-1 block text-[11px] font-semibold text-indigo-600/90 dark:text-indigo-400/90">
               {activeProfilesCount > 0
-                ? isAr ? "✓ الإرسال الآلي مفعّل" : "Active & Auto-filing"
+                ? isAr ? "✓ الإرسال اللحظي مفعّل" : "Active & Auto-filing"
                 : verifiedProfilesCount > 0
                 ? isAr ? "مُتحقق منه — جاهز للتفعيل" : "Verified — ready"
                 : isAr ? "بانتظار إعداد الربط" : "Setup needed"}
@@ -1087,71 +1092,102 @@ export function EInvoiceClient({
           TAB 2: REVENUE TAX NATURES & STATUTORY RULES
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "NATURES" && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-start">
-              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800/90 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="p-3.5 text-start">{isAr ? "كود البند الضريبي" : "Nature Code"}</th>
-                  <th className="p-3.5 text-start">{isAr ? "المسمى (بالعربية)" : "Arabic Title"}</th>
-                  <th className="p-3.5 text-start">{isAr ? "المسمى (بالإنجليزية)" : "English Title"}</th>
-                  <th className="p-3.5 text-center">{isAr ? "نوع التوريد" : "Supply Type"}</th>
-                  <th className="p-3.5 text-end">{isAr ? "المعاملة الضريبية المعتمدة" : "Statutory Tax Rule"}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredNatures.length > 0 ? (
-                  filteredNatures.map((n) => (
-                    <tr
-                      key={n.code}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group"
-                    >
-                      <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <Scale className="size-3.5 text-slate-400 shrink-0" />
-                          <span>{n.code}</span>
-                        </div>
-                      </td>
+        <div className="space-y-4">
+          <div className="p-4.5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+                <Scale className="size-4.5" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-950 dark:text-white">
+                  {isAr ? "دليل المعاملات الضريبية للأنشطة العقارية" : "Real Estate Statutory Tax Classification Matrix"}
+                </h3>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  {isAr
+                    ? `التكييف القانوني الآلي وفقاً لأحكام قانون الضريبة على القيمة المضافة الساري (${currentJur.arName}).`
+                    : `Statutory tax classifications according to applicable VAT legislation (${currentJur.enName}).`}
+                </p>
+              </div>
+            </div>
 
-                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">
-                        {n.name_ar}
-                      </td>
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-mono text-[11px]">
+                {currentJur.standardVat} Standard Rate
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                0% Residential Exemption
+              </span>
+            </div>
+          </div>
 
-                      <td className="p-3.5 text-slate-600 dark:text-slate-400 font-medium">
-                        {n.name_en}
-                      </td>
+          <div className="overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-start">
+                <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800/90 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="p-4 text-start">{isAr ? "كود البند الضريبي" : "Nature Code"}</th>
+                    <th className="p-4 text-start">{isAr ? "المسمى العربي" : "Arabic Title"}</th>
+                    <th className="p-4 text-start">{isAr ? "المسمى الإنجليزي" : "English Title"}</th>
+                    <th className="p-4 text-center">{isAr ? "نوع التوريد" : "Supply Type"}</th>
+                    <th className="p-4 text-end">{isAr ? "المعاملة الضريبية المعتمدة" : "Statutory Tax Rule"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {filteredNatures.length > 0 ? (
+                    filteredNatures.map((n) => (
+                      <tr
+                        key={n.code}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors group"
+                      >
+                        <td className="p-4 font-mono font-bold text-slate-900 dark:text-white">
+                          <div className="flex items-center gap-2">
+                            <span className="flex size-6 items-center justify-center rounded-md bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
+                              <Scale className="size-3" />
+                            </span>
+                            <span>{n.code}</span>
+                          </div>
+                        </td>
 
-                      <td className="p-3.5 text-center">
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-mono border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300"
-                        >
-                          {n.is_derived ? (isAr ? "مشتق من الأصل" : "Derived") : isAr ? "توريد مباشر" : "Direct Supply"}
-                        </Badge>
-                      </td>
+                        <td className="p-4 font-bold text-slate-950 dark:text-white text-xs">
+                          {n.name_ar}
+                        </td>
 
-                      <td className="p-3.5 text-end font-semibold text-slate-800 dark:text-slate-200">
-                        {n.code.includes("RESIDENTIAL_RENT") || n.code.includes("RESIDENTIAL_UNIT_SALE") ? (
-                          <Badge className="text-[10px] bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 font-bold">
-                            {isAr ? "معفى من الضريبة 0%" : "Tax Exempt (0%)"}
+                        <td className="p-4 text-slate-600 dark:text-slate-400 font-medium">
+                          {n.name_en}
+                        </td>
+
+                        <td className="p-4 text-center">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-mono border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300 font-bold"
+                          >
+                            {n.is_derived ? (isAr ? "مشتق من الأصل" : "Derived") : isAr ? "توريد مباشر" : "Direct Supply"}
                           </Badge>
-                        ) : (
-                          <Badge className="text-[10px] bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 font-black">
-                            {isAr ? `خاضع بالنسبة القياسية (${currentJur.standardVat})` : `Standard Rate (${currentJur.standardVat})`}
-                          </Badge>
-                        )}
+                        </td>
+
+                        <td className="p-4 text-end font-semibold">
+                          {n.code.includes("RESIDENTIAL_RENT") || n.code.includes("RESIDENTIAL_UNIT_SALE") ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                              {isAr ? "✓ إعفاء ضريبي (0% معفى بنص القانون)" : "Tax Exempt (0% by Law)"}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-purple-50 text-purple-800 border border-purple-200 dark:bg-purple-950/80 dark:text-purple-300 dark:border-purple-800">
+                              {isAr ? `✓ خاضع بالنسبة القياسية (${currentJur.standardVat})` : `Standard Taxable (${currentJur.standardVat})`}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-12 text-center text-slate-400 text-xs">
+                        {isAr ? "لا توجد تصنيفات ضريبية مطابقة" : "No tax natures found"}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="p-10 text-center text-slate-400 text-xs">
-                      {isAr ? "لا توجد تصنيفات ضريبية مطابقة" : "No tax natures found"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1160,47 +1196,49 @@ export function EInvoiceClient({
           TAB 3: INVOICING LIFECYCLE & STATUTORY GUIDE
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "GUIDE" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/70">
-              <Plus className="size-5" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs transition-all hover:border-purple-300 dark:hover:border-purple-800">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/80 shadow-2xs">
+                <Plus className="size-5.5" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {isAr ? "1. إصدار المطالبة والفاتورة" : "1. Invoice Issuance"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {isAr
+                  ? "يتم إصدار الفاتورة الضريبية للوحدة مع تحديد المورد والمشتري، وتحديد نوع الإيراد، وربطها بالحساب المدين والدائن في دفتر الأستاذ العام."
+                  : "Issue unit tax invoice with seller/buyer IDs, revenue classification, and atomic double-entry posting."}
+              </p>
             </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "1. إنشاء الفاتورة والمطالبة" : "1. Invoice Issuance"}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {isAr
-                ? "يمكنك إنشاء فاتورة ضريبية إلكترونية مباشرة من هذه الصفحة بالضغط على زر «إنشاء فاتورة إلكترونية جديدة» بالأعلى، أو تلقائياً من شاشة المستحقات والمطالبات الدورية."
-                : "Issue invoices directly from this page using the top CTA or automatically via periodic receivables billing."}
-            </p>
-          </div>
 
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/70">
-              <Scale className="size-5" />
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs transition-all hover:border-blue-300 dark:hover:border-blue-800">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 shadow-2xs">
+                <Scale className="size-5.5" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {isAr ? "2. التكييف والختم الضريبي الآلي" : "2. Automated Tax Stamping"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {isAr
+                  ? "يقوم المحرك الضريبي بفحص نوع الإيراد وتحديد خضوعه للضريبة القياسية أو الإعفاء، وتوليد لقطة القرار الضريبي (Tax Decision Snapshot) وختمها فورياً."
+                  : "Automatic tax rules engine determines VAT rate or exemption and stamps an immutable decision snapshot."}
+              </p>
             </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "2. التكييف والختم الضريبي الآلي" : "2. Automated Tax Stamping"}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {isAr
-                ? "يقوم المحرك الضريبي بفحص نوع الإيراد وتحديد خضوعه للضريبة القياسية أو الإعفاء، وتوليد لقطة القرار الضريبي (Tax Decision Snapshot) وختمها فورياً بدفتر الأستاذ."
-                : "Automatic tax rules engine determines VAT rate or exemption and stamps an immutable decision snapshot."}
-            </p>
-          </div>
 
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/70">
-              <Share2 className="size-5" />
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs transition-all hover:border-emerald-300 dark:hover:border-emerald-800">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/80 shadow-2xs">
+                <Share2 className="size-5.5" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                {isAr ? "3. الإرسال للضرائب والتوزيع المباشر" : "3. Multi-Channel Distribution & QR"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {isAr
+                  ? "توليد الفاتورة الضريبية الرسمية المعتمدة مع رمز الاستجابة السريع (QR Code)، مع إمكانية الطباعة الفورية وتصدير PDF والإرسال بنقرة واحدة عبر واتساب والبريد الإلكتروني."
+                  : "Share official compliant invoices via WhatsApp, Email, instant Print, or export to standard PDF."}
+              </p>
             </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "3. التوزيع متعدد القنوات والطباعة" : "3. Multi-Channel Distribution"}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {isAr
-                ? "توليد الفاتورة الضريبية الرسمية المعتمدة مع رمز الاستجابة السريع (QR Code)، مع إمكانية الطباعة الفورية وتصدير PDF والإرسال بنقرة واحدة عبر واتساب والبريد الإلكتروني."
-                : "Share official compliant invoices via WhatsApp, Email, instant Print, or export to standard PDF."}
-            </p>
           </div>
         </div>
       )}
