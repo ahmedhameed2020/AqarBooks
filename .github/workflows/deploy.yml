@@ -1,0 +1,91 @@
+name: Deploy to Cloudflare
+
+# Why this exists: production once served 404s for eight days because master
+# was only ever deployed by hand and the last manual deploy predated commits
+# 7236d57 / f98171c. Every merge to master now ships itself, and the smoke
+# check below turns "deployed but broken" into a red badge instead of a
+# user-reported bug.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Never let two deploys race for the same worker.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # No env: block here on purpose.
+      #
+      # NEXT_PUBLIC_* are inlined into the bundle at build time and come from
+      # the committed .env.production -- they are public by design (RLS, not
+      # obscurity, enforces access) and live in git precisely so no build
+      # machine needs per-machine setup. Duplicating them into GitHub secrets
+      # would fork the source of truth.
+      #
+      # SUPABASE_SERVICE_ROLE_KEY is deliberately ABSENT. If it were present at
+      # build time, OpenNext would inline it into .open-next/cloudflare/
+      # next-env.mjs and ship it inside the worker script in plaintext. Instead
+      # it is stored as an encrypted Cloudflare secret and read from
+      # process.env at request time -- see the lazy resolve() in
+      # lib/env/server.ts, which exists for exactly this reason.
+      - name: Build
+        run: npx opennextjs-cloudflare build
+
+      # --keep-vars stops the deploy from clearing runtime vars/bindings that
+      # were set outside this config (including the secret above).
+      - name: Deploy
+        run: npx opennextjs-cloudflare deploy -- --keep-vars
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Guards the exact failure class that motivated this workflow: a deploy
+      # that reports success while routes 404. Retries because edge
+      # propagation is not instant.
+      - name: Smoke check production routes
+        run: |
+          set -uo pipefail
+          fail=0
+          check() {
+            path="$1"; want="$2"; code=""
+            for _ in $(seq 1 10); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "https://aqarbooks.com$path" || echo "000")
+              [ "$code" = "$want" ] && { echo "OK    $path -> $code"; return 0; }
+              sleep 6
+            done
+            echo "FAIL  $path -> $code (expected $want)"
+            fail=1
+          }
+          # Public marketing + legal pages must render.
+          check /en            200
+          check /en/terms      200
+          check /en/privacy    200
+          # Onboarding must resolve and redirect anonymous visitors to login.
+          # A 404 here means the route did not ship; a 200 would mean the auth
+          # guard regressed.
+          check /en/onboarding 307
+          check /ar/onboarding 307
+          # Auth guard on a protected route.
+          check /en/dashboard  307
+          exit $fail
+
+# Deliberately NOT run here: npm run test:all. Those suites execute against the
+# live production Supabase project and create real rows -- a leftover-org purge
+# was already needed once. They must stay a manual, supervised step until they
+# target a disposable database.
