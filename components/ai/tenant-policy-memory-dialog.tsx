@@ -81,11 +81,22 @@ export function TenantPolicyMemoryDialog({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-xs text-purple-600 dark:text-purple-400">
+                      {pol.policyCode || "TP-0001"}
+                    </span>
                     <span className="font-black text-xs text-slate-900 dark:text-white">
                       {pol.vendorPattern.split("|")[0]}
                     </span>
-                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
-                      ✓ {isAr ? "سياسة معتمدة" : "Approved Policy"} (v{pol.version})
+                    <Badge
+                      className={`text-[10px] font-bold ${
+                        pol.status === "ACTIVE"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : pol.status === "CANDIDATE"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      ✓ {pol.status === "ACTIVE" ? (isAr ? "سياسة نشطة" : "Active Policy") : pol.status} (v{pol.version})
                     </Badge>
                   </div>
 
@@ -109,6 +120,12 @@ export function TenantPolicyMemoryDialog({
                     </span>
                   </div>
                 </div>
+
+                {pol.approvedBy && (
+                  <div className="text-[10px] text-slate-400 font-mono pt-1">
+                    {isAr ? `معتمد بواسطة: ${pol.approvedBy} · سارية المفعول من: ${pol.effectiveFrom}` : `Approved by: ${pol.approvedBy} · Effective: ${pol.effectiveFrom}`}
+                  </div>
+                )}
               </div>
             ))}
           </div>

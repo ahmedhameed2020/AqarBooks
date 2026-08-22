@@ -1,12 +1,14 @@
 export type PolicyStatus = 
+  | "ACTIVE"
   | "APPROVED" 
-  | "HIGH_CONFIDENCE_CANDIDATE" 
-  | "SUGGESTED_PATTERN" 
-  | "OBSERVATION" 
+  | "CANDIDATE" 
+  | "OBSERVED" 
+  | "SUPERSEDED"
   | "DISABLED";
 
 export type TenantAccountingPolicy = {
   id: string;
+  policyCode?: string; // e.g. TP-0042
   tenantId: string;
   vendorPattern: string;
   descriptionPattern?: string;
@@ -18,12 +20,14 @@ export type TenantAccountingPolicy = {
   learnedFromApprovalsCount: number;
   status: PolicyStatus;
   version: number;
+  approvedBy?: string;
   lastUsedAt?: string;
 };
 
 // Default seed policies for real-estate management ERP
 export const DEFAULT_REAL_ESTATE_POLICIES: Omit<TenantAccountingPolicy, "id" | "tenantId">[] = [
   {
+    policyCode: "TP-0012",
     vendorPattern: "OTIS|مصر للمصاعد|شندلر|تيسن كروب",
     descriptionPattern: "مصعد|صيانة دورية|elevator",
     preferredAccountId: "",
@@ -32,10 +36,12 @@ export const DEFAULT_REAL_ESTATE_POLICIES: Omit<TenantAccountingPolicy, "id" | "
     vatTreatment: "INPUT_VAT_14",
     effectiveFrom: "2026-01-01",
     learnedFromApprovalsCount: 25,
-    status: "APPROVED",
-    version: 1,
+    status: "ACTIVE",
+    version: 3,
+    approvedBy: "Finance Admin",
   },
   {
+    policyCode: "TP-0024",
     vendorPattern: "فودافون|أورانج|we|اتصالات|vodafone|orange",
     descriptionPattern: "انترنت|فاتورة خط|تليفون|اتصالات",
     preferredAccountId: "",
@@ -44,10 +50,12 @@ export const DEFAULT_REAL_ESTATE_POLICIES: Omit<TenantAccountingPolicy, "id" | "
     vatTreatment: "INPUT_VAT_14",
     effectiveFrom: "2026-01-01",
     learnedFromApprovalsCount: 40,
-    status: "APPROVED",
-    version: 1,
+    status: "ACTIVE",
+    version: 2,
+    approvedBy: "Finance Admin",
   },
   {
+    policyCode: "TP-0038",
     vendorPattern: "شركة الكهرباء|كهرباء جنوب|شركة مياه",
     descriptionPattern: "استهلاك|عداد|كهرباء|مياه|مرافق",
     preferredAccountId: "",
@@ -56,10 +64,12 @@ export const DEFAULT_REAL_ESTATE_POLICIES: Omit<TenantAccountingPolicy, "id" | "
     vatTreatment: "NONE",
     effectiveFrom: "2026-01-01",
     learnedFromApprovalsCount: 50,
-    status: "APPROVED",
-    version: 1,
+    status: "ACTIVE",
+    version: 4,
+    approvedBy: "Finance Admin",
   },
   {
+    policyCode: "TP-0042",
     vendorPattern: "البنك الأهلي|بنك مصر|cib|qnb",
     descriptionPattern: "عمولة|مصاريف بنكية|دمغة|bank fee|comm",
     preferredAccountId: "",
@@ -68,7 +78,8 @@ export const DEFAULT_REAL_ESTATE_POLICIES: Omit<TenantAccountingPolicy, "id" | "
     vatTreatment: "NONE",
     effectiveFrom: "2026-01-01",
     learnedFromApprovalsCount: 30,
-    status: "APPROVED",
+    status: "ACTIVE",
     version: 1,
+    approvedBy: "Finance Admin",
   },
 ];

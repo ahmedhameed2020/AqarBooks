@@ -1,7 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, CheckCircle2, AlertCircle, HelpCircle, ArrowDownRight, Check, X, ShieldCheck } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import {
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  ArrowDownRight,
+  Check,
+  X,
+  ShieldCheck,
+  AlertTriangle,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -161,6 +173,27 @@ export function JournalCopilotCard({
               </span>
             </div>
           </div>
+
+          {/* Subledger Route Guard Banner (ERP Best Practice) */}
+          {proposal.subledgerRouteGuard?.isSubledgerCandidate && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-300 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-semibold">{proposal.subledgerRouteGuard.warningMessage}</span>
+              </div>
+              <Link href={proposal.subledgerRouteGuard.targetUrl}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 h-7 text-[11px] font-bold border-amber-400 bg-white hover:bg-amber-100 text-amber-950 dark:bg-slate-900 dark:text-amber-200 gap-1 cursor-pointer"
+                >
+                  <span>{proposal.subledgerRouteGuard.actionLabel}</span>
+                  <ExternalLink className="size-3" />
+                </Button>
+              </Link>
+            </div>
+          )}
 
           {/* Table Preview */}
           <div className="overflow-x-auto">
