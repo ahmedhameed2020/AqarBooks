@@ -18,11 +18,29 @@ import {
   CreditCard,
   ChevronRight,
   Clock,
+  Landmark,
+  ShieldCheck,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+type HeaderNotification = {
+  id: string;
+  category: "FINANCIAL" | "LEASES" | "TAX" | "SECURITY" | "SYSTEM";
+  severity: "CRITICAL" | "WARNING" | "INFO" | "SUCCESS";
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  timestamp: string;
+  isRead: boolean;
+  actionUrl?: string;
+  actionLabelAr?: string;
+  actionLabelEn?: string;
+  channel?: "WHATSAPP" | "EMAIL" | "SYSTEM" | "SMS";
+};
 
 export function SiteHeader({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
@@ -30,6 +48,49 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const other = routing.locales.find((l) => l !== locale)!;
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Synchronized notifications state from localStorage
+  const [notifications, setNotifications] = useState<HeaderNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    const loadNotifications = () => {
+      try {
+        let items: HeaderNotification[] = [];
+        const globalSaved = localStorage.getItem("aqarbooks-global-notifications");
+        if (globalSaved !== null) {
+          items = JSON.parse(globalSaved);
+        } else {
+          // Check any org-specific key
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith("aqarbooks-notifications-list-")) {
+              const val = localStorage.getItem(key);
+              if (val !== null) {
+                items = JSON.parse(val);
+                break;
+              }
+            }
+          }
+        }
+        setNotifications(items);
+        const unread = items.filter((n) => !n.isRead).length;
+        setUnreadCount(unread);
+      } catch (e) {
+        console.error("Error syncing notifications in SiteHeader", e);
+      }
+    };
+
+    loadNotifications();
+
+    window.addEventListener("aqarbooks-notifications-updated", loadNotifications);
+    window.addEventListener("storage", loadNotifications);
+
+    return () => {
+      window.removeEventListener("aqarbooks-notifications-updated", loadNotifications);
+      window.removeEventListener("storage", loadNotifications);
+    };
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -186,9 +247,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             className="relative flex size-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <Bell className="size-4" />
-            <span className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold ring-2 ring-white dark:ring-slate-900">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold ring-2 ring-white dark:ring-slate-900 animate-in zoom-in-75 duration-150">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {showNotifications && (
@@ -202,9 +265,15 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                   <span className="text-xs font-black text-slate-900 dark:text-white">
                     {isAr ? "التنبيهات العاجلة" : "Urgent Alerts"}
                   </span>
-                  <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[9px] font-bold py-0">
-                    3 {isAr ? "جديدة" : "new"}
-                  </Badge>
+                  {unreadCount > 0 ? (
+                    <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[9px] font-bold py-0">
+                      {unreadCount} {isAr ? "جديدة" : "new"}
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      {isAr ? "(فارغ)" : "(Empty)"}
+                    </span>
+                  )}
                 </div>
                 <Link
                   href="/notifications"
@@ -218,56 +287,61 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
               {/* RECENT NOTIFICATIONS PREVIEW */}
               <div className="space-y-1.5 py-2">
-                <Link
-                  href="/finance/reports/pdc-register"
-                  locale={locale}
-                  onClick={() => setShowNotifications(false)}
-                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                >
-                  <div className="size-7 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <CreditCard className="size-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {isAr ? "4 شيكات تستحق خلال 3 أيام (145,000 ج.م)" : "4 PDCs due in 3 days (145k EGP)"}
+                {notifications.length === 0 ? (
+                  <div className="py-6 px-4 text-center space-y-1.5">
+                    <CheckCircle2 className="size-8 text-emerald-500 mx-auto" />
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {isAr ? "لا توجد تنبيهات جديدة" : "No new notifications"}
                     </p>
-                    <p className="text-[10px] text-slate-400">منذ 10 دقائق</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/finance/reports/lease-expirations"
-                  locale={locale}
-                  onClick={() => setShowNotifications(false)}
-                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                >
-                  <div className="size-7 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <Building2 className="size-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {isAr ? "عقد الوحدة V-204 ينتهي قريباً" : "Unit V-204 lease expiring soon"}
+                    <p className="text-[10px] text-slate-400">
+                      {isAr ? "كافة المعاملات محدثة وموثقة بنجاح." : "All transactions are up to date."}
                     </p>
-                    <p className="text-[10px] text-slate-400">منذ ساعتين</p>
                   </div>
-                </Link>
-
-                <Link
-                  href="/finance/reports/vat-return"
-                  locale={locale}
-                  onClick={() => setShowNotifications(false)}
-                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                >
-                  <div className="size-7 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <Clock className="size-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {isAr ? "اقتراب موعد تقديم الإقرار الضريبي" : "VAT Return submission deadline"}
-                    </p>
-                    <p className="text-[10px] text-slate-400">اليوم 09:30 ص</p>
-                  </div>
-                </Link>
+                ) : (
+                  notifications.slice(0, 3).map((notif) => {
+                    const isCritical = notif.severity === "CRITICAL";
+                    const isWarning = notif.severity === "WARNING";
+                    return (
+                      <Link
+                        key={notif.id}
+                        href={notif.actionUrl || "/notifications"}
+                        locale={locale}
+                        onClick={() => setShowNotifications(false)}
+                        className={`flex items-start gap-2.5 p-2 rounded-xl transition-colors ${
+                          !notif.isRead
+                            ? isCritical
+                              ? "bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/20"
+                              : isWarning
+                              ? "bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-950/20"
+                              : "bg-indigo-50/40 hover:bg-indigo-50 dark:bg-indigo-950/20"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <div
+                          className={`size-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                            isCritical
+                              ? "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
+                              : isWarning
+                              ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                              : "bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400"
+                          }`}
+                        >
+                          {notif.category === "FINANCIAL" && <CreditCard className="size-3.5" />}
+                          {notif.category === "LEASES" && <Building2 className="size-3.5" />}
+                          {notif.category === "TAX" && <Landmark className="size-3.5" />}
+                          {notif.category === "SECURITY" && <ShieldCheck className="size-3.5" />}
+                          {notif.category === "SYSTEM" && <Bell className="size-3.5" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {isAr ? notif.titleAr : notif.titleEn}
+                          </p>
+                          <p className="text-[10px] text-slate-400">{notif.timestamp}</p>
+                        </div>
+                      </Link>
+                    );
+                  })
+                )}
               </div>
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

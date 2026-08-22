@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Filter,
   RefreshCw,
+  RotateCcw
 } from "lucide-react";
 
 export type NotificationItem = {
@@ -62,7 +63,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     descriptionEn: "4 cheques total 145,000 EGP are due for deposit at CIB and NBE.",
     timestamp: "منذ 10 دقائق",
     isRead: false,
-    actionUrl: "/finance/reports/pdc-register",
+    actionUrl: "/finance/reports/pdc",
     actionLabelAr: "معاينة حافظة الشيكات",
     actionLabelEn: "View PDC Register",
     channel: "SYSTEM",
@@ -141,6 +142,11 @@ export function NotificationsClient({
   const isAr = locale === "ar";
   const toast = useToast();
 
+  const STORAGE_KEY = `aqarbooks-notifications-list-${organizationId}`;
+  const CHANNELS_KEY = `aqarbooks-notifications-channels-${organizationId}`;
+  const RULES_KEY = `aqarbooks-notifications-rules-${organizationId}`;
+
+  const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"FEED" | "CHANNELS" | "RULES">("FEED");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -158,11 +164,70 @@ export function NotificationsClient({
   const [vatReminderDays, setVatReminderDays] = useState("5");
   const [autoReceiptWhatsapp, setAutoReceiptWhatsapp] = useState(true);
 
+  // Load from localStorage on client mount
+  useEffect(() => {
+    setIsMounted(true);
+    try {
+      const savedNotifs = localStorage.getItem(STORAGE_KEY);
+      if (savedNotifs !== null) {
+        setNotifications(JSON.parse(savedNotifs));
+      }
+
+      const savedChannels = localStorage.getItem(CHANNELS_KEY);
+      if (savedChannels !== null) {
+        const parsed = JSON.parse(savedChannels);
+        if (parsed.whatsapp !== undefined) setWhatsappEnabled(parsed.whatsapp);
+        if (parsed.email !== undefined) setEmailEnabled(parsed.email);
+        if (parsed.sms !== undefined) setSmsEnabled(parsed.sms);
+        if (parsed.inApp !== undefined) setInAppEnabled(parsed.inApp);
+      }
+
+      const savedRules = localStorage.getItem(RULES_KEY);
+      if (savedRules !== null) {
+        const parsed = JSON.parse(savedRules);
+        if (parsed.pdcDays) setPdcDays(parsed.pdcDays);
+        if (parsed.leaseDays) setLeaseDays(parsed.leaseDays);
+        if (parsed.vatDays) setVatReminderDays(parsed.vatDays);
+        if (parsed.autoReceipt !== undefined) setAutoReceiptWhatsapp(parsed.autoReceipt);
+      }
+    } catch (e) {
+      console.error("Error reading notifications from localStorage", e);
+    }
+  }, [STORAGE_KEY, CHANNELS_KEY, RULES_KEY]);
+
+  const saveNotificationsToStorage = (newList: NotificationItem[]) => {
+    setNotifications(newList);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+      localStorage.setItem("aqarbooks-global-notifications", JSON.stringify(newList));
+      window.dispatchEvent(new CustomEvent("aqarbooks-notifications-updated"));
+    } catch (e) {
+      console.error("Error saving notifications to localStorage", e);
+    }
+  };
+
+  const saveChannelsToStorage = (channels: { whatsapp: boolean; email: boolean; sms: boolean; inApp: boolean }) => {
+    try {
+      localStorage.setItem(CHANNELS_KEY, JSON.stringify(channels));
+    } catch (e) {
+      console.error("Error saving channels to localStorage", e);
+    }
+  };
+
+  const saveRulesToStorage = (rules: { pdcDays: string; leaseDays: string; vatDays: string; autoReceipt: boolean }) => {
+    try {
+      localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+    } catch (e) {
+      console.error("Error saving rules to localStorage", e);
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const criticalCount = notifications.filter((n) => n.severity === "CRITICAL" && !n.isRead).length;
 
   const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    const updated = notifications.map((n) => ({ ...n, isRead: true }));
+    saveNotificationsToStorage(updated);
     toast.show({
       title: isAr ? "تم تحديد الكل كمقروء" : "All Marked as Read",
       description: isAr ? "تم تحديث حالة كافة التنبيهات بنجاح." : "All notifications marked as read.",
@@ -171,20 +236,53 @@ export function NotificationsClient({
   };
 
   const toggleReadStatus = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: !n.isRead } : n))
+    const updated = notifications.map((n) =>
+      n.id === id ? { ...n, isRead: !n.isRead } : n
     );
+    saveNotificationsToStorage(updated);
   };
 
   const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const updated = notifications.filter((n) => n.id !== id);
+    saveNotificationsToStorage(updated);
     toast.show({
-      title: isAr ? "تم حذف التنبيه" : "Notification Deleted",
+      title: isAr ? "تم حذف التنبيه نهائياً" : "Notification Deleted",
       variant: "default",
     });
   };
 
+  const clearAllNotifications = () => {
+    saveNotificationsToStorage([]);
+    toast.show({
+      title: isAr ? "تم مسح كافة التنبيهات" : "All Notifications Cleared",
+      description: isAr ? "تم تفريغ مركز الإشعارات بنجاح." : "Notification feed has been emptied.",
+      variant: "default",
+    });
+  };
+
+  const restoreSampleNotifications = () => {
+    saveNotificationsToStorage(INITIAL_NOTIFICATIONS);
+    toast.show({
+      title: isAr ? "تمت استعادة التنبيهات النموذجية" : "Sample Alerts Restored",
+      description: isAr ? "تم تحميل إشعارات الفحص التجريبية بنجاح." : "Sample notifications loaded.",
+      variant: "success",
+    });
+  };
+
   const testBroadcast = () => {
+    const newAlert: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      category: "SYSTEM",
+      severity: "INFO",
+      titleAr: "تنبيه تجريبي من مركز الإشعارات 🔔",
+      titleEn: "Test Broadcast Alert 🔔",
+      descriptionAr: `تم فحص قنوات التسليم للمنظمة (${organizationName}) وتأكيد جاهزية النظام.`,
+      descriptionEn: `Delivery channels verified successfully for organization (${organizationName}).`,
+      timestamp: isAr ? "الآن" : "Just now",
+      isRead: false,
+      channel: "SYSTEM",
+    };
+    saveNotificationsToStorage([newAlert, ...notifications]);
     toast.show({
       title: isAr ? "تم إرسال إشعار تجريبي بنجاح 🔔" : "Test Notification Sent 🔔",
       description: isAr
@@ -202,6 +300,7 @@ export function NotificationsClient({
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
+      
       {/* ──────────────────────────────────────────────────────────────────────────
           1. HEADER & KPI OVERVIEW
           ────────────────────────────────────────────────────────────────────────── */}
@@ -232,17 +331,32 @@ export function NotificationsClient({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              onClick={markAllAsRead}
-              variant="outline"
-              size="sm"
-              disabled={unreadCount === 0}
-              className="text-xs font-bold h-9 px-3.5 gap-1.5 rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-800"
-            >
-              <Check className="size-3.5 text-indigo-600" />
-              <span>{isAr ? "تحديد الكل كمقروء" : "Mark All Read"}</span>
-            </Button>
+            {notifications.length > 0 && (
+              <>
+                <Button
+                  type="button"
+                  onClick={markAllAsRead}
+                  variant="outline"
+                  size="sm"
+                  disabled={unreadCount === 0}
+                  className="text-xs font-bold h-9 px-3.5 gap-1.5 rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-800"
+                >
+                  <Check className="size-3.5 text-indigo-600" />
+                  <span>{isAr ? "تحديد الكل كمقروء" : "Mark All Read"}</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={clearAllNotifications}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold h-9 px-3.5 gap-1.5 rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400"
+                >
+                  <Trash2 className="size-3.5" />
+                  <span>{isAr ? "مسح الكل" : "Clear All"}</span>
+                </Button>
+              </>
+            )}
 
             <Button
               type="button"
@@ -270,13 +384,15 @@ export function NotificationsClient({
 
           <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/40">
             <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{isAr ? "شيكات وعقود قريبة" : "PDC & Leases Due"}</p>
-            <p className="text-xl font-black text-amber-700 dark:text-amber-300 mt-1">2</p>
+            <p className="text-xl font-black text-amber-700 dark:text-amber-300 mt-1">
+              {notifications.filter((n) => n.category === "FINANCIAL" || n.category === "LEASES").length}
+            </p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/40">
             <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "قنوات الإرسال النشطة" : "Active Channels"}</p>
             <p className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-1">
-              {[whatsappEnabled, emailEnabled, inAppEnabled].filter(Boolean).length} / 4
+              {[whatsappEnabled, emailEnabled, inAppEnabled, smsEnabled].filter(Boolean).length} / 4
             </p>
           </div>
         </div>
@@ -336,6 +452,7 @@ export function NotificationsClient({
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "FEED" && (
         <div className="space-y-4">
+          
           {/* CATEGORY FILTER PILLS */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -380,14 +497,29 @@ export function NotificationsClient({
           {/* NOTIFICATION CARDS LIST */}
           <div className="space-y-3">
             {filteredNotifications.length === 0 ? (
-              <div className="p-12 text-center rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 space-y-2">
-                <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
-                <p className="text-sm font-black text-slate-900 dark:text-white">
-                  {isAr ? "لا توجد تنبيهات جديدة في هذا التصنيف" : "No notifications in this filter"}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {isAr ? "كافة المعاملات والمستندات محدثة وموثقة." : "All transactions are up to date."}
-                </p>
+              <div className="p-12 text-center rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 space-y-4">
+                <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
+                <div>
+                  <p className="text-base font-black text-slate-900 dark:text-white">
+                    {isAr ? "مركز الإشعارات فارغ حالياً" : "Notification Feed is Empty"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {isAr ? "تم مسح كافة التنبيهات السابقة، وسيتم إظهار التنبيهات الجديدة تلقائياً عند استحقاق المعاملات." : "All previous alerts have been cleared. New alerts will appear automatically."}
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    onClick={restoreSampleNotifications}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-xs font-bold rounded-xl"
+                  >
+                    <RotateCcw className="size-3.5 text-primary" />
+                    <span>{isAr ? "استعادة التنبيهات التجريبية للمعاينة" : "Restore Sample Alerts"}</span>
+                  </Button>
+                </div>
               </div>
             ) : (
               filteredNotifications.map((notif) => {
@@ -466,11 +598,15 @@ export function NotificationsClient({
                             <Clock className="size-3" />
                             <span>{notif.timestamp}</span>
                           </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Smartphone className="size-3" />
-                            <span>{notif.channel}</span>
-                          </span>
+                          {notif.channel && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Smartphone className="size-3" />
+                                <span>{notif.channel}</span>
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -504,9 +640,10 @@ export function NotificationsClient({
                         onClick={() => deleteNotification(notif.id)}
                         variant="ghost"
                         size="sm"
-                        className="h-8 px-2 text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+                        className="h-8 px-2 text-xs font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        title={isAr ? "حذف التنبيه نهائياً" : "Delete Notification"}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-4" />
                       </Button>
                     </div>
                   </div>
@@ -518,213 +655,215 @@ export function NotificationsClient({
       )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 2: DELIVERY CHANNELS CONFIG
+          TAB 2: DELIVERY CHANNELS CONFIGURATION
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "CHANNELS" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* WHATSAPP BUSINESS */}
-          <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          
+          {/* WHATSAPP CHANNEL */}
+          <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                <div className="size-10 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center">
                   <Smartphone className="size-5" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-black text-slate-900 dark:text-white">
-                    {isAr ? "بوابة WhatsApp Business API" : "WhatsApp Business Gateway"}
-                  </h2>
-                  <p className="text-[11px] text-slate-400">
-                    {isAr ? "إرسال سندات القبض وتذكيرات الإيجار فورياً" : "Auto-send receipts and rent reminders"}
+                  <h3 className="text-sm font-black text-slate-950 dark:text-white">
+                    {isAr ? "تنبيهات الواتساب الرسمية (WhatsApp Cloud API)" : "WhatsApp Cloud API"}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {isAr ? "إرسال سندات القبض وتذكير الشيكات مباشرة للملاك" : "Instant receipts & PDC due reminders to owners"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={whatsappEnabled}
-                  onChange={(e) => setWhatsappEnabled(e.target.checked)}
-                  className="size-4 accent-emerald-600 rounded cursor-pointer"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = !whatsappEnabled;
+                  setWhatsappEnabled(val);
+                  saveChannelsToStorage({ whatsapp: val, email: emailEnabled, sms: smsEnabled, inApp: inAppEnabled });
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  whatsappEnabled
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800"
+                }`}
+              >
+                {whatsappEnabled ? (isAr ? "مفعّل" : "Active") : (isAr ? "معطّل" : "Disabled")}
+              </button>
             </div>
 
             <div className="space-y-3 pt-2 text-xs">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "معرّف حساب واتساب التجاري (WABA ID)" : "WABA Account ID"}
-                </Label>
-                <Input
-                  defaultValue="WABA_9921849102"
-                  disabled={!whatsappEnabled}
-                  className="text-xs h-9 font-mono rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 font-semibold">{isAr ? "رقم الهاتف المعتمد للمنشأة:" : "Business Phone:"}</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">+20 100 000 8821</span>
               </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "رمز التوثيق الدائم (System User Token)" : "Permanent Access Token"}
-                </Label>
-                <Input
-                  type="password"
-                  defaultValue="EAAGm0PX4ZC50BA..."
-                  disabled={!whatsappEnabled}
-                  className="text-xs h-9 font-mono rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* EMAIL NOTIFICATIONS */}
-          <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                  <Mail className="size-5" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-black text-slate-900 dark:text-white">
-                    {isAr ? "الملخص البريدي والإشعارات (Email Digest)" : "Email Notifications & Reports"}
-                  </h2>
-                  <p className="text-[11px] text-slate-400">
-                    {isAr ? "إرسال التقارير اليومية وكشوف الحسابات" : "Daily digests & statements delivery"}
-                  </p>
-                </div>
-              </div>
-
-              <input
-                type="checkbox"
-                checked={emailEnabled}
-                onChange={(e) => setEmailEnabled(e.target.checked)}
-                className="size-4 accent-blue-600 rounded cursor-pointer"
-              />
-            </div>
-
-            <div className="space-y-3 pt-2 text-xs">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "البريد الإلكتروني المعتمد للمراسلات" : "Sender Email Address"}
-                </Label>
-                <Input
-                  defaultValue="accounting@aqarbooks.com"
-                  disabled={!emailEnabled}
-                  className="text-xs h-9 font-mono rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "اسم المرسل في البريد (Sender Display Name)" : "Sender Display Name"}
-                </Label>
-                <Input
-                  defaultValue={organizationName}
-                  disabled={!emailEnabled}
-                  className="text-xs h-9 rounded-xl bg-slate-50 dark:bg-slate-800 font-bold"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 3: AUTOMATED RULES
-          ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "RULES" && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h2 className="text-sm font-black text-slate-950 dark:text-white">
-              {isAr ? "ضبط قواعد التذكير التلقائي (Automated Smart Triggers)" : "Automated Smart Triggers"}
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isAr
-                ? "حدد الفترات الزمنية لإرسال التنبيهات المسبقة للمحاسبين والمستأجرين."
-                : "Set lead times for automatic notifications to accountants and tenants."}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "تذكير استحقاق الشيكات البنكية (PDC Lead Time)" : "PDC Due Reminder"}
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={pdcDays}
-                  onChange={(e) => setPdcDays(e.target.value)}
-                  className="w-24 h-9 text-xs font-mono font-bold rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
-                <span className="text-xs text-slate-500 font-bold">{isAr ? "أيام قبل تاريخ الاستحقاق" : "days before due date"}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "تذكير انتهاء عقود الإيجار (Lease Expiry Lead Time)" : "Lease Expiration Reminder"}
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={leaseDays}
-                  onChange={(e) => setLeaseDays(e.target.value)}
-                  className="w-24 h-9 text-xs font-mono font-bold rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
-                <span className="text-xs text-slate-500 font-bold">{isAr ? "يوماً قبل انتهاء العقد" : "days before lease expiry"}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "تذكير موعد الإقرار الضريبي (VAT Return Lead Time)" : "VAT Return Deadline Reminder"}
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={vatReminderDays}
-                  onChange={(e) => setVatReminderDays(e.target.value)}
-                  className="w-24 h-9 text-xs font-mono font-bold rounded-xl bg-slate-50 dark:bg-slate-800"
-                />
-                <span className="text-xs text-slate-500 font-bold">{isAr ? "أيام قبل الموعد النهائي" : "days before ETA deadline"}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "إرسال سند القبض عبر WhatsApp تلقائياً" : "Auto-send Receipt via WhatsApp"}
-              </Label>
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  checked={autoReceiptWhatsapp}
-                  onChange={(e) => setAutoReceiptWhatsapp(e.target.checked)}
-                  className="size-4 accent-indigo-600 rounded cursor-pointer"
-                />
-                <span className="text-xs text-slate-600 dark:text-slate-300 font-bold">
-                  {isAr ? "إرسال نسخة رقمية للمستأجر فور تسجيل السداد" : "Instantly send digital receipt upon payment"}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 font-semibold">{isAr ? "حالة ربط الـ Webhook:" : "Webhook Status:"}</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>{isAr ? "متصل ومؤمّن" : "Connected & Verified"}</span>
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end border-t border-slate-100 dark:border-slate-800">
-            <Button
+          {/* EMAIL CHANNEL */}
+          <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 flex items-center justify-center">
+                  <Mail className="size-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-950 dark:text-white">
+                    {isAr ? "البريد الإلكتروني المالي (Transactional Email)" : "Transactional Email"}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {isAr ? "تصدير كشوف الحسابات والإقرارات الضريبية والمطالبات" : "Statements, VAT returns & invoices delivery"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const val = !emailEnabled;
+                  setEmailEnabled(val);
+                  saveChannelsToStorage({ whatsapp: whatsappEnabled, email: val, sms: smsEnabled, inApp: inAppEnabled });
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  emailEnabled
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800"
+                }`}
+              >
+                {emailEnabled ? (isAr ? "مفعّل" : "Active") : (isAr ? "معطّل" : "Disabled")}
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-2 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 font-semibold">{isAr ? "خادم الإرسال المعتمد:" : "SMTP Gateway:"}</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">smtp.resortos.com (TLS)</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-300 font-semibold">{isAr ? "تشفير التوقيع (DKIM / SPF):" : "DKIM / SPF Sign:"}</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>{isAr ? "مطابق ومعتمد 100%" : "Passing (100%)"}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          TAB 3: AUTOMATED REMINDER RULES
+          ────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "RULES" && (
+        <div className="p-6 sm:p-8 rounded-3xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-6">
+          <div>
+            <h2 className="text-base font-black text-slate-950 dark:text-white">
+              {isAr ? "ضبط قواعد التنبيهات المالية الذكية" : "Smart Financial Reminder Rules"}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {isAr
+                ? "حدد عدد الأيام المسبقة التي يقوم النظام فيها بإرسال التنبيهات وتوليد المطالبات المالية آلياً."
+                : "Set lead times for automated payment reminders, PDC processing, and lease renewals."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            
+            <div className="p-4.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <Label className="text-xs font-bold text-slate-900 dark:text-white block">
+                {isAr ? "تنبيه الشيكات الآجلة (PDC)" : "PDC Cheque Due Reminder"}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={pdcDays}
+                  onChange={(e) => {
+                    setPdcDays(e.target.value);
+                    saveRulesToStorage({ pdcDays: e.target.value, leaseDays, vatDays: vatReminderDays, autoReceipt: autoReceiptWhatsapp });
+                  }}
+                  className="h-9 text-xs font-mono font-bold rounded-xl w-24"
+                />
+                <span className="text-xs text-slate-500 font-semibold">{isAr ? "أيام قبل الاستحقاق" : "days before due"}</span>
+              </div>
+            </div>
+
+            <div className="p-4.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <Label className="text-xs font-bold text-slate-900 dark:text-white block">
+                {isAr ? "تنبيه انتهاء عقود الإيجار" : "Lease Expiry Reminder"}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={leaseDays}
+                  onChange={(e) => {
+                    setLeaseDays(e.target.value);
+                    saveRulesToStorage({ pdcDays, leaseDays: e.target.value, vatDays: vatReminderDays, autoReceipt: autoReceiptWhatsapp });
+                  }}
+                  className="h-9 text-xs font-mono font-bold rounded-xl w-24"
+                />
+                <span className="text-xs text-slate-500 font-semibold">{isAr ? "يوماً قبل الانتهاء" : "days before expiry"}</span>
+              </div>
+            </div>
+
+            <div className="p-4.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <Label className="text-xs font-bold text-slate-900 dark:text-white block">
+                {isAr ? "تذكير الإقرار الضريبي (VAT)" : "VAT Submission Reminder"}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={vatReminderDays}
+                  onChange={(e) => {
+                    setVatReminderDays(e.target.value);
+                    saveRulesToStorage({ pdcDays, leaseDays, vatDays: e.target.value, autoReceipt: autoReceiptWhatsapp });
+                  }}
+                  className="h-9 text-xs font-mono font-bold rounded-xl w-24"
+                />
+                <span className="text-xs text-slate-500 font-semibold">{isAr ? "أيام قبل الموعد" : "days before cutoff"}</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="p-4.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                {isAr ? "إرسال سند القبض عبر الواتساب فور السداد الإلكتروني" : "Auto WhatsApp Receipt on Payment"}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {isAr ? "يتم إرسال رابط الفاتورة وسند القبض المشفر للمستأجر بمجرد إتمام التحصيل عبر فوري أو البطاقة." : "Instantly dispatch signed digital receipt to tenant WhatsApp after Fawry checkout."}
+              </p>
+            </div>
+
+            <button
               type="button"
               onClick={() => {
-                toast.show({
-                  title: isAr ? "تم حفظ قواعد التنبيهات بنجاح" : "Rules Saved",
-                  description: isAr ? "تم تطبيق مواعيد التذكيرات المحدثة." : "Automated reminder rules updated.",
-                  variant: "success",
-                });
+                const val = !autoReceiptWhatsapp;
+                setAutoReceiptWhatsapp(val);
+                saveRulesToStorage({ pdcDays, leaseDays, vatDays: vatReminderDays, autoReceipt: val });
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-6 rounded-xl shadow-xs gap-1.5"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                autoReceiptWhatsapp
+                  ? "bg-emerald-600 text-white"
+                  : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+              }`}
             >
-              <CheckCircle2 className="size-4" />
-              <span>{isAr ? "حفظ القواعد والمواعيد" : "Save Rules"}</span>
-            </Button>
+              {autoReceiptWhatsapp ? (isAr ? "مفعّل" : "Active") : (isAr ? "معطّل" : "Disabled")}
+            </button>
           </div>
         </div>
       )}
+
     </div>
   );
 }
