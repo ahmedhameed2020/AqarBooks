@@ -14,10 +14,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
 
-  const title = isAr ? "تجهيز مؤسستك | AqarBooks" : "Set Up Your Organization | AqarBooks";
+  const title = isAr ? "تهيئة منظومتك العقارية | AqarBooks" : "Set Up Your Real Estate Workspace | AqarBooks";
   const description = isAr
-    ? "أنشئ مؤسستك وأول مشروع عقاري لك على AqarBooks."
-    : "Create your organization and first real estate project on AqarBooks.";
+    ? "اختر دولتك وجهّز مؤسستك ومشروعك العقاري الأول على AqarBooks في دقائق."
+    : "Select your country and configure your real estate workspace and first project on AqarBooks.";
 
   return { title, description };
 }
@@ -55,12 +55,12 @@ export default async function OnboardingPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "الخطوة الأخيرة" : "Last Step"}
-      title={isAr ? "جهّز مؤسستك" : "Set Up Your Organization"}
+      eyebrow={isAr ? "إعداد الحساب الجديد" : "New Account Setup"}
+      title={isAr ? "انطلق مع AqarBooks" : "Launch with AqarBooks"}
       subtitle={
         isAr
-          ? "خطوتان بسيطتان وتصبح منظومتك المالية جاهزة."
-          : "Two simple steps and your financial workspace is ready."
+          ? "3 خطوات ذكية وبسيطة لتهيئة منظومتك المحاسبية والعقارية فوراً."
+          : "3 simple, smart steps to configure your financial and real estate workspace."
       }
       locale={locale}
     >

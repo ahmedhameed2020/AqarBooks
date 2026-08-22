@@ -1,10 +1,21 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { RefreshCw, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import {
+  RefreshCw,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Globe,
+  Building,
+  Rocket,
+  ShieldAlert,
+} from "lucide-react";
 import { completeOnboarding, type OnboardingState } from "@/lib/actions/onboarding";
 import type { Locale } from "@/i18n/routing";
-import { EntityTypeStep, type EntityTypeValue } from "./entity-type-step";
+import { SUPPORTED_COUNTRIES, type CountryInfo } from "@/lib/countries";
+import { CountryStep } from "./country-step";
+import { EntityTypeStep, ENTITY_TYPE_OPTIONS, type EntityTypeValue } from "./entity-type-step";
 import { FirstProjectStep } from "./first-project-step";
 
 const slugify = (value: string) =>
@@ -15,11 +26,8 @@ const slugify = (value: string) =>
     .replace(/(^-|-$)/g, "")
     .slice(0, 20);
 
-// Step-1 fields the server action may reject even after client-side
-// validation passes (e.g. server-side length/charset checks, or an entity
-// type the RPC no longer accepts). Used to detect when a server error needs
-// to send the user back to step 1 to see it.
-const STEP_1_FIELDS = ["orgName", "entityType", "customLabel"] as const;
+// Fields that may be rejected by the server action
+const STEP_ORG_FIELDS = ["orgName", "entityType", "customLabel"] as const;
 
 export function OnboardingWizard({ locale }: { locale: string }) {
   const isAr = locale === "ar";
@@ -28,21 +36,18 @@ export function OnboardingWizard({ locale }: { locale: string }) {
     { ok: true }
   );
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>("EG");
+  const [currency, setCurrency] = useState<string>("EGP");
   const [orgName, setOrgName] = useState("");
   const [entityType, setEntityType] = useState<EntityTypeValue | null>(null);
   const [customLabel, setCustomLabel] = useState("");
   const [resortName, setResortName] = useState("");
   const [resortCode, setResortCode] = useState("");
   const [resortCodeEdited, setResortCodeEdited] = useState(false);
-  const [currency, setCurrency] = useState("EGP");
-  const [step1Error, setStep1Error] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Focus management: when the step changes, move keyboard focus to the
-  // first focusable field of the newly-mounted step so a keyboard/screen
-  // reader user isn't left on a "Next"/"Back" button that no longer makes
-  // sense in the new context. Skipped on first mount so we don't steal
-  // focus away from wherever the page (AuthShell, etc.) wants it initially.
+  // Focus management when step changes
   const stepContainerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -56,28 +61,28 @@ export function OnboardingWizard({ locale }: { locale: string }) {
     target?.focus();
   }, [step]);
 
-  // If the server rejects a step-1 field (orgName/entityType/customLabel)
-  // after the user has already advanced to step 2, the error would
-  // otherwise be swallowed: the generic banner is suppressed whenever
-  // state.field is set, and the field-specific display lives inside
-  // EntityTypeStep, which isn't mounted on step 2. Navigate back to step 1
-  // so the existing showFieldError/EntityTypeStep wiring can surface it.
+  // If server rejects step-2 fields, navigate back to step 2
   useEffect(() => {
     if (
       !state.ok &&
       state.field &&
-      (STEP_1_FIELDS as readonly string[]).includes(state.field) &&
-      step === 2
+      (STEP_ORG_FIELDS as readonly string[]).includes(state.field) &&
+      step === 3
     ) {
-      setStep(1);
+      setStep(2);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, step]);
+
+  function handleSelectCountry(country: CountryInfo) {
+    setSelectedCountryCode(country.code);
+    setCurrency(country.defaultCurrency);
+    setValidationError(null);
+  }
 
   function handleResortNameChange(value: string) {
     setResortName(value);
     if (!resortCodeEdited) {
-      setResortCode(slugify(value) || "RES-01");
+      setResortCode(slugify(value) || "PRJ-01");
     }
   }
 
@@ -87,153 +92,246 @@ export function OnboardingWizard({ locale }: { locale: string }) {
   }
 
   function handleNext() {
-    if (orgName.trim().length < 2) {
-      setStep1Error(isAr ? "اسم المؤسسة يجب أن يكون حرفين على الأقل" : "Organization name must be at least 2 characters");
+    setValidationError(null);
+
+    if (step === 1) {
+      if (!selectedCountryCode) {
+        setValidationError(isAr ? "يرجى اختيار الدولة للمتابعة" : "Please select a country to proceed");
+        return;
+      }
+      setStep(2);
       return;
     }
-    if (!entityType) {
-      setStep1Error(isAr ? "اختر نوع الكيان" : "Select an entity type");
+
+    if (step === 2) {
+      if (orgName.trim().length < 2) {
+        setValidationError(
+          isAr
+            ? "اسم المنشأة يجب أن يكون حرفين على الأقل"
+            : "Organization name must be at least 2 characters"
+        );
+        return;
+      }
+      if (!entityType) {
+        setValidationError(
+          isAr ? "يرجى اختيار نوع النشاط العقاري" : "Please select an entity type"
+        );
+        return;
+      }
+      if (entityType === "OTHER" && customLabel.trim().length < 2) {
+        setValidationError(
+          isAr ? "يرجى كتابة وصف النشاط المخصص" : "Please describe your custom entity type"
+        );
+        return;
+      }
+      setStep(3);
       return;
     }
-    if (entityType === "OTHER" && customLabel.trim().length < 2) {
-      setStep1Error(isAr ? "يرجى وصف نوع الكيان" : "Please describe the entity type");
-      return;
-    }
-    setStep1Error(null);
-    setStep(2);
   }
 
-  const showFieldError = (field: OnboardingState["field"]) =>
-    !state.ok && state.field === field ? state.error : undefined;
+  function handleBack() {
+    setValidationError(null);
+    if (step === 3) setStep(2);
+    else if (step === 2) setStep(1);
+  }
+
+  const selectedEntityOption = ENTITY_TYPE_OPTIONS.find((o) => o.value === entityType);
+  const entityTypeLabel = selectedEntityOption
+    ? isAr
+      ? selectedEntityOption.ar
+      : selectedEntityOption.en
+    : "";
+
+  const stepsConfig = [
+    { num: 1, labelAr: "الدولة والعملة", labelEn: "Country & Currency", icon: Globe },
+    { num: 2, labelAr: "بيانات المنشأة", labelEn: "Organization", icon: Building },
+    { num: 3, labelAr: "المشروع الأول", labelEn: "First Project", icon: Rocket },
+  ];
+
+  const BackIcon = isAr ? ArrowRight : ArrowLeft;
+  const NextIcon = isAr ? ArrowLeft : ArrowRight;
 
   return (
-    <form action={formAction} className="space-y-5">
-      {!state.ok && !state.field && (
+    <div className="space-y-6">
+      {/* Modern High-End Stepper */}
+      <nav aria-label={isAr ? "خطوات التهيئة" : "Onboarding steps"} className="w-full">
+        <ol className="flex items-center justify-between gap-2">
+          {stepsConfig.map((s, idx) => {
+            const Icon = s.icon;
+            const isCompleted = step > s.num;
+            const isCurrent = step === s.num;
+            return (
+              <li key={s.num} className="flex-1">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex w-full items-center">
+                    {/* Connecting line before (if not first) */}
+                    {idx > 0 && (
+                      <div
+                        className={`h-0.5 flex-1 transition-colors duration-300 ${
+                          step >= s.num ? "bg-blue-600" : "bg-slate-200"
+                        }`}
+                      />
+                    )}
+
+                    {/* Step Icon Badge */}
+                    <div
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300 ${
+                        isCompleted
+                          ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                          : isCurrent
+                          ? "border-blue-600 bg-white text-blue-600 shadow-md ring-4 ring-blue-600/10"
+                          : "border-slate-200 bg-slate-50 text-slate-400"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check className="size-4 stroke-[3]" />
+                      ) : (
+                        <Icon className="size-4" />
+                      )}
+                    </div>
+
+                    {/* Connecting line after (if not last) */}
+                    {idx < stepsConfig.length - 1 && (
+                      <div
+                        className={`h-0.5 flex-1 transition-colors duration-300 ${
+                          step > s.num ? "bg-blue-600" : "bg-slate-200"
+                        }`}
+                      />
+                    )}
+                  </div>
+
+                  {/* Step Label */}
+                  <span
+                    className={`text-[11px] font-bold transition-colors ${
+                      isCurrent
+                        ? "text-blue-900"
+                        : isCompleted
+                        ? "text-slate-700"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {isAr ? s.labelAr : s.labelEn}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+
+      {/* Validation & Server Error Banner */}
+      {(validationError || (!state.ok && state.error)) && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50/90 p-3.5 text-xs font-semibold text-red-700"
+          className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/80 p-3.5 text-xs font-semibold text-red-800 text-start animate-in fade-in duration-200"
         >
-          {state.error}
+          <ShieldAlert className="size-4 shrink-0 text-red-600 mt-0.5" />
+          <span>{validationError || state.error}</span>
         </div>
       )}
 
-      <div className="flex items-center gap-2" aria-label={isAr ? "خطوات التسجيل" : "Onboarding steps"}>
-        {[1, 2].map((n) => (
-          <div key={n} className="flex flex-1 items-center gap-2">
-            <div
-              className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                step >= n ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
-              }`}
-            >
-              {step > n ? <Check className="size-3.5" /> : n}
-            </div>
-            {n === 1 && (
-              <div
-                className={`h-0.5 flex-1 rounded-full transition-colors ${
-                  step > 1 ? "bg-blue-600" : "bg-slate-200"
-                }`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Main Wizard Form */}
+      <form action={formAction} className="space-y-6">
+        {/* Hidden inputs to guarantee all fields are submitted reliably */}
+        <input type="hidden" name="currency" value={currency} />
+        <input type="hidden" name="orgName" value={orgName} />
+        <input type="hidden" name="entityType" value={entityType || ""} />
+        {entityType === "OTHER" && (
+          <input type="hidden" name="customLabel" value={customLabel} />
+        )}
+        <input type="hidden" name="resortName" value={resortName} />
+        <input type="hidden" name="resortCode" value={resortCode} />
 
-      {/* Consolidated hidden inputs -- the only fields the server action actually
-          receives. Always mounted regardless of which step is visible, so the
-          step components above can be freely unmounted for the entrance
-          animation without losing data on submit. */}
-      <input type="hidden" name="orgName" value={orgName} />
-      <input type="hidden" name="entityType" value={entityType ?? ""} />
-      <input type="hidden" name="customLabel" value={customLabel} />
-      <input type="hidden" name="resortName" value={resortName} />
-      <input type="hidden" name="resortCode" value={resortCode} />
-      <input type="hidden" name="currency" value={currency} />
+        <div ref={stepContainerRef}>
+          {step === 1 && (
+            <CountryStep
+              isAr={isAr}
+              selectedCountryCode={selectedCountryCode}
+              onSelectCountry={handleSelectCountry}
+              currency={currency}
+              onCurrencyChange={setCurrency}
+            />
+          )}
 
-      <div
-        key={step}
-        ref={stepContainerRef}
-        // min-h reserves space for step 1's content (org-name field + 8-card
-        // entity type grid + conditional custom-label field + button), which
-        // is taller than step 2, so AuthShell's vertically-centered panel
-        // doesn't shrink and jump upward when switching from step 1 to step
-        // 2. Estimated value (label+input ~60px, entity grid ~340-360px,
-        // conditional field ~60px, button ~50px, plus spacing) -- not
-        // measured in a real browser since /onboarding isn't routed yet
-        // (Task 7). Spot-check visually once it is and adjust if needed.
-        className="min-h-[540px] animate-in fade-in-0 zoom-in-95 duration-300 motion-reduce:animate-none"
-      >
-        {step === 1 ? (
-          <>
+          {step === 2 && (
             <EntityTypeStep
               isAr={isAr}
+              selectedCountryCode={selectedCountryCode}
               orgName={orgName}
               onOrgNameChange={setOrgName}
               entityType={entityType}
               onEntityTypeChange={setEntityType}
               customLabel={customLabel}
               onCustomLabelChange={setCustomLabel}
-              orgNameError={step1Error ?? showFieldError("orgName")}
-              customLabelError={showFieldError("customLabel")}
+              orgNameError={!state.ok && state.field === "orgName" ? state.error : undefined}
+              customLabelError={
+                !state.ok && state.field === "customLabel" ? state.error : undefined
+              }
             />
+          )}
 
-            {step1Error && (
-              <p role="alert" className="mt-3 text-xs font-semibold text-red-600">
-                {step1Error}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={handleNext}
-              className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>{isAr ? "التالي" : "Next"}</span>
-              {isAr ? <ArrowLeft className="size-4" /> : <ArrowRight className="size-4" />}
-            </button>
-          </>
-        ) : (
-          <>
+          {step === 3 && (
             <FirstProjectStep
               isAr={isAr}
+              selectedCountryCode={selectedCountryCode}
+              orgName={orgName}
+              entityTypeLabel={entityTypeLabel}
               resortName={resortName}
               onResortNameChange={handleResortNameChange}
               resortCode={resortCode}
               onResortCodeChange={handleResortCodeChange}
               currency={currency}
-              onCurrencyChange={setCurrency}
-              resortNameError={showFieldError("resortName")}
+              resortNameError={
+                !state.ok && state.field === "resortName" ? state.error : undefined
+              }
             />
+          )}
+        </div>
 
-            <div className="mt-5 flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                disabled={pending}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-70 cursor-pointer"
-              >
-                {isAr ? "رجوع" : "Back"}
-              </button>
-              <button
-                type="submit"
-                disabled={pending}
-                className="flex-1 rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
-              >
-                {pending ? (
-                  <>
-                    <RefreshCw className="size-4 animate-spin" />
-                    <span>{isAr ? "جارٍ إنشاء المؤسسة..." : "Creating your organization..."}</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="size-4" />
-                    <span>{isAr ? "إنشاء المؤسسة" : "Create Organization"}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </form>
+        {/* Action Controls */}
+        <div className="flex items-center gap-3 pt-2">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={pending}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <BackIcon className="size-4" />
+              <span>{isAr ? "السابق" : "Back"}</span>
+            </button>
+          )}
+
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600/30 transition-all cursor-pointer"
+            >
+              <span>{isAr ? "التالي: بيانات المنشأة" : "Next Step"}</span>
+              <NextIcon className="size-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600/30 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              {pending ? (
+                <>
+                  <RefreshCw className="size-4 animate-spin" />
+                  <span>{isAr ? "جاري تهيئة منظومتك..." : "Setting up workspace..."}</span>
+                </>
+              ) : (
+                <>
+                  <Rocket className="size-4" />
+                  <span>{isAr ? "تأكيد وبدء تشغيل المنظومة" : "Launch Workspace"}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }

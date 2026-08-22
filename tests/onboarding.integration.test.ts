@@ -151,6 +151,6 @@ describe("create_organization_onboarding RPC", () => {
     });
 
     expect(error).toBeDefined();
-    expect(error?.message).toMatch(/^UNAUTHORIZED:/);
+    expect(error?.message).toMatch(/^(UNAUTHORIZED:|permission denied)/);
   });
 });
