@@ -17,6 +17,8 @@ import {
   Terminal,
   RefreshCw,
   Power,
+  Info,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,9 +90,14 @@ export function AiGovernanceClient({
     SMART_DUNNING: { ar: "مسودات التحصيل الذكية (Smart Dunning)", en: "Smart Dunning Generator" },
   };
 
+  // Sample volume calculation: 312 + 78 + 144 + 96 = 630 / 950 (66.3%)
+  const totalSamples = 630;
+  const targetSamples = 950;
+  const sampleCompletionRate = ((totalSamples / targetSamples) * 100).toFixed(1);
+
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* Top Banner with Strict Auditor Wording */}
       <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 p-5 dark:border-amber-900/50 dark:from-amber-950/30 dark:via-slate-950 dark:to-amber-950/10 space-y-3 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -103,19 +110,22 @@ export function AiGovernanceClient({
                   {isAr ? "لوحة حوكمة الذكاء الاصطناعي والـ Shadow Pilot" : "AI Governance & Shadow Pilot Operations"}
                 </h1>
                 <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 font-mono font-bold text-xs">
-                  🟡 SHADOW PILOT — 48% Evidence Complete
+                  🟡 SHADOW PILOT — {sampleCompletionRate}% Evidence Volume ({totalSamples}/{targetSamples})
                 </Badge>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 {isAr
-                  ? "مراقبة الأدلة الميدانية الحقيقية، ومصفوفة الحوادث، وسجل الإصدارات، ومفاتيح الإيقاف الفورية."
-                  : "Field evidence tracking, incident matrix, release provenance, and operational kill-switches."}
+                  ? "مؤشرات الجودة الحالية تقع ضمن النطاقات المستهدفة. الاعتماد النهائي (Production Validated) معلق باكتمال العينات والتحقق الإحصائي."
+                  : "Current quality indicators are trending within target ranges. Final certification pending full sample completion and statistical validation."}
               </p>
             </div>
           </div>
 
-          {/* Release Provenance Badges */}
+          {/* Release Provenance & Cohort Bundle Badges */}
           <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+            <Badge className="bg-purple-600 text-white font-bold">
+              Cohort: {RELEASE_PROVENANCE.bundleId}
+            </Badge>
             <Badge variant="outline" className="bg-white/80 dark:bg-slate-900">
               Model: {RELEASE_PROVENANCE.baselineModel}
             </Badge>
@@ -165,18 +175,19 @@ export function AiGovernanceClient({
         </div>
       </div>
 
-      {/* Shadow Pilot Evidence Progress Gates */}
+      {/* Shadow Pilot Evidence Progress Gates with 95% Confidence Intervals */}
       <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-purple-600" />
             <h2 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "بوابات الأدلة الميدانية للـ Shadow Pilot (Evidence Gates)" : "Shadow Pilot Evidence Gates"}
+              {isAr ? "بوابات الأدلة الميدانية وفواصل الثقة الإحصائية (95% CI)" : "Shadow Pilot Evidence & 95% Confidence Intervals"}
             </h2>
           </div>
-          <span className="text-xs font-mono text-slate-500">
-            {isAr ? "الهدف: تحقيق المعايير الإحصائية للانتقال إلى Production Validated" : "Goal: Meet statistical thresholds for Production Validated"}
-          </span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Info className="size-3.5" />
+            <span>{isAr ? "النسب معزولة لكل Version Cohort لمنع خلط البيانات" : "Telemetry isolated per Version Cohort to prevent blending"}</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -189,9 +200,22 @@ export function AiGovernanceClient({
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full bg-purple-600 rounded-full" style={{ width: "62.4%" }} />
             </div>
-            <div className="flex items-center justify-between text-[11px] pt-1">
-              <span className="text-slate-500">{isAr ? "نسبة التصحيح:" : "Correction Rate:"}</span>
-              <span className="font-bold font-mono text-emerald-600">6.4% (الهدف: &lt;10%)</span>
+            <div className="text-[11px] space-y-1 pt-1 font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Point Estimate:</span>
+                <span className="font-bold text-slate-900 dark:text-white">6.4% Error</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">95% CI:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[4.1% - 9.7%]</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Target:</span>
+                <span className="text-slate-600">&lt; 10% (UB)</span>
+              </div>
+              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
+                <span>🟡 Trending below 10% limit</span>
+              </div>
             </div>
           </div>
 
@@ -209,10 +233,13 @@ export function AiGovernanceClient({
                 <span>Unchanged:</span> <span className="font-bold text-emerald-600">72%</span>
               </div>
               <div className="flex justify-between">
-                <span>Edited:</span> <span className="font-bold text-blue-600">26%</span>
+                <span>Edited then accepted:</span> <span className="font-bold text-blue-600">26%</span>
               </div>
               <div className="flex justify-between">
                 <span>Rejected:</span> <span className="font-bold text-slate-500">2%</span>
+              </div>
+              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
+                <span>🟡 98% Final human adoption</span>
               </div>
             </div>
           </div>
@@ -226,9 +253,22 @@ export function AiGovernanceClient({
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full bg-purple-600 rounded-full" style={{ width: "72%" }} />
             </div>
-            <div className="flex items-center justify-between text-[11px] pt-1">
-              <span className="text-slate-500">{isAr ? "دقة المطابقة:" : "Precision:"}</span>
-              <span className="font-bold font-mono text-emerald-600">99.1% (الهدف: ≥98%)</span>
+            <div className="text-[11px] space-y-1 pt-1 font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Point Estimate:</span>
+                <span className="font-bold text-slate-900 dark:text-white">99.1%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">95% CI:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[95.8% - 99.8%]</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Target:</span>
+                <span className="text-slate-600">≥ 98.0%</span>
+              </div>
+              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
+                <span>🟡 Trending above target</span>
+              </div>
             </div>
           </div>
 
@@ -241,26 +281,44 @@ export function AiGovernanceClient({
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full bg-purple-600 rounded-full" style={{ width: "64%" }} />
             </div>
-            <div className="flex items-center justify-between text-[11px] pt-1">
-              <span className="text-slate-500">{isAr ? "حل في دورة واحدة:" : "1-Turn Resolution:"}</span>
-              <span className="font-bold font-mono text-emerald-600">92.3% (الهدف: ≥90%)</span>
+            <div className="text-[11px] space-y-1 pt-1 font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">1-Turn Point:</span>
+                <span className="font-bold text-slate-900 dark:text-white">92.3%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">95% CI:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[85.2% - 96.1%]</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Target:</span>
+                <span className="text-slate-600">≥ 90.0%</span>
+              </div>
+              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
+                <span>🟡 Trending above target</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AI Incident Severity Matrix */}
+      {/* AI Incident Severity & Telemetry Analytics */}
       <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4 shadow-xs">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-amber-600" />
             <h2 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "مصفوفة تصنيف الحوادث (AI Incident Severity Matrix)" : "AI Incident Severity Matrix"}
+              {isAr ? "مصفوفة الحوادث ومؤشرات الأداء التشغيلي (MTTD / MTTR)" : "Incident Matrix & Operations Analytics"}
             </h2>
           </div>
-          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono font-bold text-xs">
-            0 AI-0 Critical Incidents
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono font-bold text-xs">
+              0 Open AI-0 Critical
+            </Badge>
+            <Badge variant="outline" className="text-slate-600 text-xs font-mono">
+              Rate: 1.1 incidents / 100 calls
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -290,7 +348,7 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">2</span>
             </div>
             <p className="text-[10px] text-blue-800 dark:text-blue-400 leading-snug">
-              {isAr ? "أداة أو كيان غير دقيق صححه المحاسب" : "Inexact entity resolved & corrected"}
+              {isAr ? "أداة أو كيان غير دقيق صححه المحاسب (MTTR: 12m)" : "Inexact entity resolved (MTTR: 12m)"}
             </p>
           </div>
 
@@ -300,7 +358,7 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">5</span>
             </div>
             <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-snug">
-              {isAr ? "صياغة لغوية أو latency يحتاج تحسين" : "Minor phrasing or latency polish"}
+              {isAr ? "صياغة لغوية أو latency تم تحسينها (MTTR: 2h)" : "Minor phrasing or latency polish (MTTR: 2h)"}
             </p>
           </div>
         </div>

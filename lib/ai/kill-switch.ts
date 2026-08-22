@@ -21,13 +21,14 @@ export type OperationalKillSwitchState = {
 };
 
 export const RELEASE_PROVENANCE = {
+  bundleId: "CERT-2026-08-A",
   modelProvider: "google_gemini",
   baselineModel: "gemini-2.5-flash",
   candidateModel: "gemini-3.7-flash",
   promptVersion: "p_ask_v1.4",
   toolRegistryVersion: "t_reg_v1.2",
   groundingEngineVersion: "ge_v1.0",
-  deploymentSha: process.env.CF_PAGES_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "42791df",
+  deploymentSha: process.env.CF_PAGES_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "c2e4770",
   buildDate: "2026-08-22",
   validationStatus: "PRE_PRODUCTION_CERTIFIED", // 🟡 Pre-Production Certified -> 🟢 Production Validated
 } as const;
