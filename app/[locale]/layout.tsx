@@ -61,10 +61,79 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "app" });
+  const isAr = locale === "ar";
+  const title = isAr
+    ? "عقار بوكس (AqarBooks) | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
+    : "AqarBooks | Real Estate & Resort Accounting ERP";
+  const description = isAr
+    ? "النظام المحاسبي المتكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الفاتورة الإلكترونية والضرائب (ETA & ZATCA)."
+    : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with ETA & ZATCA e-invoicing.";
+  const siteUrl = `https://aqarbooks.com/${locale}`;
+  const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero.jpg";
 
   return {
-    title: t("name"),
+    metadataBase: new URL("https://aqarbooks.com"),
+    title: {
+      default: title,
+      template: isAr ? "%s | عقار بوكس" : "%s | AqarBooks",
+    },
+    description,
+    applicationName: "AqarBooks",
+    keywords: [
+      "محاسبة عقارات",
+      "برنامج محاسبة القرى السياحية",
+      "إدارة المنتجعات السياحية",
+      "فاتورة إلكترونية مصر",
+      "زاتكا السعودية",
+      "إدارة الأملاك والوحدات",
+      "Real Estate Accounting ERP",
+      "Resort Management System",
+      "Double Entry Accounting",
+      "ZATCA E-Invoicing",
+      "ETA Tax Invoices",
+      "AqarBooks",
+    ],
+    authors: [{ name: "AqarBooks", url: "https://aqarbooks.com" }],
+    creator: "AqarBooks Inc.",
+    publisher: "AqarBooks",
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
+    openGraph: {
+      type: "website",
+      locale: isAr ? "ar_EG" : "en_US",
+      alternateLocale: isAr ? ["en_US"] : ["ar_EG"],
+      url: siteUrl,
+      title,
+      description,
+      siteName: isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks ERP",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: isAr ? "عقار بوكس — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات" : "AqarBooks Real Estate Accounting ERP",
+          type: "image/jpeg",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+      creator: "@aqarbooks",
+      site: "@aqarbooks",
+    },
+    alternates: {
+      canonical: siteUrl,
+      languages: {
+        ar: "https://aqarbooks.com/ar",
+        en: "https://aqarbooks.com/en",
+      },
+    },
   };
 }
 

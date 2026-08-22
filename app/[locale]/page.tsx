@@ -40,13 +40,40 @@ export async function generateMetadata({
     ? "نظام محاسبي متكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الضرائب المصرية (VAT/WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
     : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with Egyptian Tax & Saudi ZATCA e-invoicing.";
 
+  const siteUrl = `https://aqarbooks.com/${locale}`;
+  const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero.jpg";
+
   return {
+    metadataBase: new URL("https://aqarbooks.com"),
     title,
     description,
-    openGraph: { title, description, locale: isAr ? "ar_EG" : "en_US", type: "website" },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: {
+      title,
+      description,
+      url: siteUrl,
+      siteName: isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks ERP",
+      locale: isAr ? "ar_EG" : "en_US",
+      type: "website",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: isAr ? "عقار بوكس — النظام المحاسبي المتكامل لإدارة العقارات" : "AqarBooks Real Estate Accounting ERP",
+          type: "image/jpeg",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+      creator: "@aqarbooks",
+    },
     alternates: {
-      languages: { ar: "/ar", en: "/en" },
+      canonical: siteUrl,
+      languages: { ar: "https://aqarbooks.com/ar", en: "https://aqarbooks.com/en" },
     },
   };
 }
