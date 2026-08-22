@@ -17,7 +17,11 @@ import {
   Layers,
   DollarSign,
   ChevronRight,
+  Printer,
+  Download,
 } from "lucide-react";
+import ExcelJS from "exceljs";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +168,267 @@ export function SuppliersClient({
     setRecordPaymentOpen(true);
   };
 
+  const handleExportPdf = () => {
+    if (activeTab === "INVOICES") {
+      const totalAmount = filteredInvoices.reduce((s, i) => s + i.amount, 0);
+      const totalPaid = filteredInvoices.reduce((s, i) => s + i.paid_amount, 0);
+      const totalRemaining = filteredInvoices.reduce((s, i) => s + i.remaining_amount, 0);
+
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "سجل فواتير الموردين والذمم الدائنة" : "Supplier Invoices & Payables Log",
+          subtitle: isAr ? "كشف فواتير الموردين والمسدد والمتبقي وتواريخ الاستحقاق" : "Supplier invoices, payments, remaining balances and due dates",
+          organizationName: "AqarBooks",
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "رقم الفاتورة" : "Invoice #", key: "num", align: "start", width: "16%" },
+            { header: isAr ? "المورد" : "Supplier", key: "supplier", align: "start", width: "26%" },
+            { header: isAr ? "تاريخ الاستحقاق" : "Due Date", key: "dueDate", align: "center", width: "16%" },
+            { header: isAr ? "المبلغ" : "Total", key: "amount", align: "end", isNumber: true, width: "14%" },
+            { header: isAr ? "المسدد" : "Paid", key: "paid", align: "end", isNumber: true, width: "14%" },
+            { header: isAr ? "المتبقي" : "Remaining", key: "remaining", align: "end", isNumber: true, width: "14%" },
+          ],
+          rows: filteredInvoices.map((inv) => ({
+            num: inv.invoice_number,
+            supplier: inv.supplier_name,
+            dueDate: inv.due_date,
+            amount: inv.amount,
+            paid: inv.paid_amount,
+            remaining: inv.remaining_amount,
+          })),
+          totalRow: {
+            num: isAr ? "الإجمالي" : "Total",
+            supplier: "",
+            dueDate: "",
+            amount: totalAmount,
+            paid: totalPaid,
+            remaining: totalRemaining,
+          },
+          summaryCards: [
+            { label: isAr ? "عدد الفواتير" : "Total Invoices", value: filteredInvoices.length },
+            {
+              label: isAr ? "إجمالي قيمة الفواتير" : "Total Invoiced",
+              value: `${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+            },
+            {
+              label: isAr ? "إجمالي المتبقي سداده" : "Total Payables Remaining",
+              value: `${totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+              highlight: true,
+            },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
+    } else if (activeTab === "SUPPLIERS") {
+      const totalBilled = filteredSuppliers.reduce((s, sup) => s + sup.total_billed, 0);
+      const totalPaid = filteredSuppliers.reduce((s, sup) => s + sup.total_paid, 0);
+      const totalRemaining = filteredSuppliers.reduce((s, sup) => s + sup.remaining_balance, 0);
+
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "دليل الموردين المعتمدين وأرصدة الحسابات" : "Approved Suppliers & Balances Directory",
+          subtitle: isAr ? "بيان الموردين وبيانات التواصل والفوترة والأرصدة المستحقة" : "Suppliers directory, contact info, billing totals and balances",
+          organizationName: "AqarBooks",
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "اسم المورد" : "Supplier Name", key: "name", align: "start", width: "25%" },
+            { header: isAr ? "التصنيف" : "Category", key: "category", align: "start", width: "15%" },
+            { header: isAr ? "الهاتف" : "Phone", key: "phone", align: "center", width: "15%" },
+            { header: isAr ? "إجمالي الفواتير" : "Billed", key: "billed", align: "end", isNumber: true, width: "15%" },
+            { header: isAr ? "المسدد" : "Paid", key: "paid", align: "end", isNumber: true, width: "15%" },
+            { header: isAr ? "الرصيد المستحق" : "Balance Due", key: "balance", align: "end", isNumber: true, width: "15%" },
+          ],
+          rows: filteredSuppliers.map((sup) => ({
+            name: sup.name,
+            category: sup.category || "—",
+            phone: sup.contact_phone || "—",
+            billed: sup.total_billed,
+            paid: sup.total_paid,
+            balance: sup.remaining_balance,
+          })),
+          totalRow: {
+            name: isAr ? "الإجمالي" : "Total",
+            category: "",
+            phone: "",
+            billed: totalBilled,
+            paid: totalPaid,
+            balance: totalRemaining,
+          },
+          summaryCards: [
+            { label: isAr ? "إجمالي الموردين" : "Total Suppliers", value: filteredSuppliers.length },
+            {
+              label: isAr ? "إجمالي المطالبات المفوترة" : "Total Billed",
+              value: `${totalBilled.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+            },
+            {
+              label: isAr ? "إجمالي المستحقات القائمة" : "Total Payables Outstanding",
+              value: `${totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+              highlight: true,
+            },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
+    } else {
+      const totalOrdersAmount = filteredOrders.reduce((s, o) => s + o.amount, 0);
+
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "سجل أوامر الشراء والتوريد" : "Purchase Orders Registry",
+          subtitle: isAr ? "بيان أوامر الشراء والتوريد المعتمدة والجارية" : "Purchase orders log, suppliers and estimated values",
+          organizationName: "AqarBooks",
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "رقم الأمر" : "Order #", key: "num", align: "center", width: "15%" },
+            { header: isAr ? "المورد" : "Supplier", key: "supplier", align: "start", width: "25%" },
+            { header: isAr ? "البيان / الوصف" : "Description", key: "desc", align: "start", width: "35%" },
+            { header: isAr ? "القيمة التقديرية" : "Estimated Value", key: "amount", align: "end", isNumber: true, width: "15%" },
+            { header: isAr ? "الحالة" : "Status", key: "status", align: "center", width: "10%" },
+          ],
+          rows: filteredOrders.map((o) => ({
+            num: `#${o.order_number || "—"}`,
+            supplier: o.supplier_name,
+            desc: o.description,
+            amount: o.amount,
+            status: o.status,
+          })),
+          totalRow: {
+            num: isAr ? "الإجمالي" : "Total",
+            supplier: "",
+            desc: "",
+            amount: totalOrdersAmount,
+            status: "",
+          },
+          summaryCards: [
+            { label: isAr ? "عدد الأوامر" : "Total Orders", value: filteredOrders.length },
+            {
+              label: isAr ? "إجمالي القيمة التقديرية" : "Total Orders Value",
+              value: `${totalOrdersAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+              highlight: true,
+            },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "AqarBooks";
+    workbook.created = new Date();
+
+    if (activeTab === "INVOICES") {
+      const worksheet = workbook.addWorksheet(isAr ? "فواتير الموردين" : "Supplier Invoices", {
+        views: [{ rightToLeft: isAr }],
+      });
+      worksheet.columns = [
+        { header: isAr ? "رقم الفاتورة" : "Invoice #", width: 18 },
+        { header: isAr ? "المورد" : "Supplier", width: 30 },
+        { header: isAr ? "تاريخ الاستحقاق" : "Due Date", width: 16 },
+        { header: isAr ? "مبلغ الفاتورة" : "Total Amount", width: 18 },
+        { header: isAr ? "المسدد" : "Paid", width: 18 },
+        { header: isAr ? "المتبقي" : "Remaining", width: 18 },
+        { header: isAr ? "الحالة" : "Status", width: 16 },
+      ];
+      worksheet.getRow(1).eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF581C87" } };
+      });
+      for (const inv of filteredInvoices) {
+        const row = worksheet.addRow([
+          inv.invoice_number,
+          inv.supplier_name,
+          inv.due_date,
+          inv.amount,
+          inv.paid_amount,
+          inv.remaining_amount,
+          inv.status,
+        ]);
+        row.getCell(4).numFmt = "#,##0.00";
+        row.getCell(5).numFmt = "#,##0.00";
+        row.getCell(6).numFmt = "#,##0.00";
+      }
+    } else if (activeTab === "SUPPLIERS") {
+      const worksheet = workbook.addWorksheet(isAr ? "دليل الموردين" : "Suppliers", {
+        views: [{ rightToLeft: isAr }],
+      });
+      worksheet.columns = [
+        { header: isAr ? "اسم المورد" : "Supplier Name", width: 30 },
+        { header: isAr ? "التصنيف" : "Category", width: 18 },
+        { header: isAr ? "الرقم الضريبي" : "Tax #", width: 18 },
+        { header: isAr ? "الهاتف" : "Phone", width: 18 },
+        { header: isAr ? "البريد الإلكتروني" : "Email", width: 25 },
+        { header: isAr ? "إجمالي الفواتير" : "Billed", width: 18 },
+        { header: isAr ? "المسدد" : "Paid", width: 18 },
+        { header: isAr ? "الرصيد المستحق" : "Balance", width: 18 },
+      ];
+      worksheet.getRow(1).eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
+      });
+      for (const s of filteredSuppliers) {
+        const row = worksheet.addRow([
+          s.name,
+          s.category || "—",
+          s.tax_number || "—",
+          s.contact_phone || "—",
+          s.contact_email || "—",
+          s.total_billed,
+          s.total_paid,
+          s.remaining_balance,
+        ]);
+        row.getCell(6).numFmt = "#,##0.00";
+        row.getCell(7).numFmt = "#,##0.00";
+        row.getCell(8).numFmt = "#,##0.00";
+      }
+    } else {
+      const worksheet = workbook.addWorksheet(isAr ? "أوامر الشراء" : "Purchase Orders", {
+        views: [{ rightToLeft: isAr }],
+      });
+      worksheet.columns = [
+        { header: isAr ? "رقم الأمر" : "Order #", width: 16 },
+        { header: isAr ? "المورد" : "Supplier", width: 30 },
+        { header: isAr ? "البيان / الوصف" : "Description", width: 35 },
+        { header: isAr ? "القيمة التقديرية" : "Amount", width: 18 },
+        { header: isAr ? "الحالة" : "Status", width: 16 },
+      ];
+      worksheet.getRow(1).eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
+      });
+      for (const o of filteredOrders) {
+        const row = worksheet.addRow([
+          `#${o.order_number || "—"}`,
+          o.supplier_name,
+          o.description,
+          o.amount,
+          o.status,
+        ]);
+        row.getCell(4).numFmt = "#,##0.00";
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Suppliers_${activeTab}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
@@ -221,7 +486,7 @@ export function SuppliersClient({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
           {/* Search */}
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:w-48">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <Input
               value={searchQuery}
@@ -230,6 +495,26 @@ export function SuppliersClient({
               className="ps-9 text-xs h-9"
             />
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print PDF"}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Download className="size-3.5 text-emerald-600" />
+            <span>{isAr ? "تصدير Excel" : "Export Excel"}</span>
+          </Button>
 
           <Button
             onClick={() => setCreateSupplierOpen(true)}

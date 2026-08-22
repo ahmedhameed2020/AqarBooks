@@ -25,7 +25,10 @@ import {
   ShieldCheck,
   DollarSign,
   Check,
+  Download,
 } from "lucide-react";
+import ExcelJS from "exceljs";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +178,171 @@ export function BanksClient({
     );
   };
 
+  const handleExportPdf = () => {
+    if (activeTab === "ACCOUNTS") {
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "دليل الحسابات البنكية للمنشأة" : "Company Bank Accounts Directory",
+          subtitle: isAr ? "بيان الحسابات البنكية المعتمدة وأرقام الآيبان وحسابات الأستاذ العام" : "Bank accounts, IBAN numbers, and GL account mappings",
+          organizationName: organizationName || "AqarBooks",
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "اسم الحساب" : "Account Name", key: "accName", align: "start", width: "25%" },
+            { header: isAr ? "البنك" : "Bank", key: "bank", align: "start", width: "25%" },
+            { header: isAr ? "رقم الحساب / الآيبان" : "Account # / IBAN", key: "accNum", align: "start", width: "30%" },
+            { header: isAr ? "حساب الأستاذ العام" : "GL Account", key: "gl", align: "center", width: "20%" },
+          ],
+          rows: bankAccounts.map((acc) => ({
+            accName: acc.account_name,
+            bank: (isAr ? acc.bank_name_ar : acc.bank_name_en) || "—",
+            accNum: acc.account_number,
+            gl: acc.gl_account_code ? `${acc.gl_account_code} - ${acc.gl_account_name || ""}` : (isAr ? "1120 - البنوك" : "1120 - Banks"),
+          })),
+          summaryCards: [
+            { label: isAr ? "عدد الحسابات البنكية" : "Total Bank Accounts", value: bankAccounts.length },
+            { label: isAr ? "عدد البنوك المعتمدة" : "Total Banks", value: banks.length },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
+    } else {
+      const totalAmount = filteredCheques.reduce((s, c) => s + c.amount, 0);
+      const clearedAmount = filteredCheques.filter((c) => c.status === "CLEARED").reduce((s, c) => s + c.amount, 0);
+      const inPortfolioAmount = filteredCheques.filter((c) => c.status === "RECEIVED" || c.status === "DEPOSITED").reduce((s, c) => s + c.amount, 0);
+
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "حافظة الشيكات وأوراق القبض (PDC)" : "Cheques & Notes Receivable Portfolio",
+          subtitle: isAr ? "بيان الشيكات الواردة وحالات التحصيل والإيداع وتواريخ الاستحقاق" : "Cheques log, drawer details, bank accounts, status and due dates",
+          organizationName: organizationName || "AqarBooks",
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "رقم الشيك" : "Cheque #", key: "num", align: "start", width: "16%" },
+            { header: isAr ? "الساحب / العميل" : "Drawer / Member", key: "drawer", align: "start", width: "24%" },
+            { header: isAr ? "الحساب البنكي" : "Bank Account", key: "bankAcc", align: "start", width: "20%" },
+            { header: isAr ? "تاريخ الاستحقاق" : "Due Date", key: "dueDate", align: "center", width: "14%" },
+            { header: isAr ? "المبلغ" : "Amount", key: "amount", align: "end", isNumber: true, width: "14%" },
+            { header: isAr ? "الحالة" : "Status", key: "status", align: "center", width: "12%" },
+          ],
+          rows: filteredCheques.map((c) => ({
+            num: c.cheque_number,
+            drawer: c.member_name || (isAr ? "عميل خارجي" : "External Client"),
+            bankAcc: c.bank_account_name || c.bank_name || "—",
+            dueDate: c.due_date,
+            amount: c.amount,
+            status:
+              c.status === "CLEARED"
+                ? isAr ? "محصل" : "Cleared"
+                : c.status === "DEPOSITED"
+                ? isAr ? "تحت التحصيل" : "Deposited"
+                : c.status === "RETURNED"
+                ? isAr ? "مرتد" : "Returned"
+                : c.status === "CANCELLED"
+                ? isAr ? "ملغى" : "Cancelled"
+                : isAr ? "بالخزينة" : "Received",
+          })),
+          totalRow: {
+            num: isAr ? "الإجمالي" : "Total",
+            drawer: "",
+            bankAcc: "",
+            dueDate: "",
+            amount: totalAmount,
+            status: "",
+          },
+          summaryCards: [
+            { label: isAr ? "إجمالي الشيكات" : "Total Cheques", value: filteredCheques.length },
+            {
+              label: isAr ? "شيكات تحت التحصيل" : "In Portfolio / Deposited",
+              value: `${inPortfolioAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+            },
+            {
+              label: isAr ? "إجمالي الشيكات المحصلة" : "Total Cleared",
+              value: `${clearedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+              highlight: true,
+            },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "AqarBooks";
+    workbook.created = new Date();
+
+    if (activeTab === "ACCOUNTS") {
+      const worksheet = workbook.addWorksheet(isAr ? "الحسابات البنكية" : "Bank Accounts", {
+        views: [{ rightToLeft: isAr }],
+      });
+      worksheet.columns = [
+        { header: isAr ? "اسم الحساب" : "Account Name", width: 25 },
+        { header: isAr ? "البنك" : "Bank", width: 25 },
+        { header: isAr ? "رقم الحساب / الآيبان" : "Account # / IBAN", width: 32 },
+        { header: isAr ? "حساب الأستاذ العام" : "GL Account", width: 25 },
+      ];
+      worksheet.getRow(1).eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } };
+      });
+      for (const acc of bankAccounts) {
+        worksheet.addRow([
+          acc.account_name,
+          (isAr ? acc.bank_name_ar : acc.bank_name_en) || "—",
+          acc.account_number,
+          acc.gl_account_code ? `${acc.gl_account_code} - ${acc.gl_account_name || ""}` : (isAr ? "1120 - البنوك" : "1120 - Banks"),
+        ]);
+      }
+    } else {
+      const worksheet = workbook.addWorksheet(isAr ? "حافظة الشيكات" : "Cheques Portfolio", {
+        views: [{ rightToLeft: isAr }],
+      });
+      worksheet.columns = [
+        { header: isAr ? "رقم الشيك" : "Cheque #", width: 18 },
+        { header: isAr ? "الساحب / العميل" : "Drawer / Member", width: 28 },
+        { header: isAr ? "الحساب البنكي" : "Bank Account", width: 25 },
+        { header: isAr ? "تاريخ الاستحقاق" : "Due Date", width: 16 },
+        { header: isAr ? "مبلغ الشيك" : "Amount", width: 18 },
+        { header: isAr ? "الحالة" : "Status", width: 16 },
+        { header: isAr ? "ملاحظات" : "Notes", width: 25 },
+      ];
+      worksheet.getRow(1).eachCell((c) => {
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF065F46" } };
+      });
+      for (const c of filteredCheques) {
+        const row = worksheet.addRow([
+          c.cheque_number,
+          c.member_name || (isAr ? "عميل خارجي" : "External Client"),
+          c.bank_account_name || c.bank_name || "—",
+          c.due_date,
+          c.amount,
+          c.status,
+          c.note || "—",
+        ]);
+        row.getCell(5).numFmt = "#,##0.00";
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Banks_${activeTab}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
@@ -216,6 +384,26 @@ export function BanksClient({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print PDF"}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Download className="size-3.5 text-emerald-600" />
+            <span>{isAr ? "تصدير Excel" : "Export Excel"}</span>
+          </Button>
+
           <Link href="/finance/banks/reconciliation">
             <Button variant="outline" className="text-xs font-bold gap-1.5 h-9 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300">
               <Scale className="size-3.5" />

@@ -18,7 +18,11 @@ import {
   Layers,
   DollarSign,
   ArrowUpRight,
+  Printer,
+  Download,
 } from "lucide-react";
+import ExcelJS from "exceljs";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -106,20 +110,143 @@ export function DuesClient({
     });
   }, [dues, selectedUnit, statusFilter, searchQuery]);
 
+  const handleExportPdf = () => {
+    const totalAmount = filteredDues.reduce((s, d) => s + d.amount, 0);
+    const totalPaid = filteredDues.reduce((s, d) => s + d.paid_amount, 0);
+    const totalRemaining = filteredDues.reduce((s, d) => s + d.remaining_amount, 0);
+
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "سجل استحقاقات ومطالبات الوحدات" : "Property Units Dues & Demands Registry",
+        subtitle: isAr
+          ? `بيان المطالبات والاستحقاقات الدورية والتحصيلات — ${statusFilter === "ALL" ? "جميع الحالات" : statusFilter}`
+          : `Units dues, periodic demands, collections and outstanding balances — Status: ${statusFilter}`,
+        organizationName: "AqarBooks",
+        currencyLabel: currency,
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "الوحدة" : "Unit", key: "unit", align: "start", width: "16%" },
+          { header: isAr ? "نوع المستحق والبيان" : "Due Type & Memo", key: "type", align: "start", width: "28%" },
+          { header: isAr ? "تاريخ الاستحقاق" : "Due Date", key: "dueDate", align: "center", width: "16%" },
+          { header: isAr ? "مبلغ المستحق" : "Total Due", key: "amount", align: "end", isNumber: true, width: "14%" },
+          { header: isAr ? "المسدد" : "Paid", key: "paid", align: "end", isNumber: true, width: "13%" },
+          { header: isAr ? "المتبقي" : "Remaining", key: "remaining", align: "end", isNumber: true, width: "13%" },
+        ],
+        rows: filteredDues.map((d) => ({
+          unit: d.unit_code,
+          type: d.due_type_name ? `${d.due_type_name}${d.description ? ` (${d.description})` : ""}` : d.description || "—",
+          dueDate: d.due_date,
+          amount: d.amount,
+          paid: d.paid_amount,
+          remaining: d.remaining_amount,
+        })),
+        totalRow: {
+          unit: isAr ? "الإجمالي" : "Total",
+          type: "",
+          dueDate: "",
+          amount: totalAmount,
+          paid: totalPaid,
+          remaining: totalRemaining,
+        },
+        summaryCards: [
+          { label: isAr ? "عدد المطالبات" : "Total Demands", value: filteredDues.length },
+          {
+            label: isAr ? "إجمالي المطالبات" : "Total Billed Dues",
+            value: `${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+          },
+          {
+            label: isAr ? "إجمالي المتأخرات المتبقية" : "Total Open Arrears",
+            value: `${totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+            highlight: true,
+          },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "AqarBooks";
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet(isAr ? "مستحقات الوحدات" : "Unit Dues", {
+      views: [{ rightToLeft: isAr }],
+    });
+
+    const headers = [
+      isAr ? "كود الوحدة" : "Unit Code",
+      isAr ? "نوع المستحق" : "Due Type",
+      isAr ? "البيان / الوصف" : "Memo / Description",
+      isAr ? "تاريخ الاستحقاق" : "Due Date",
+      isAr ? "مبلغ المستحق" : "Total Due",
+      isAr ? "المسدد" : "Paid",
+      isAr ? "المتبقي" : "Remaining",
+      isAr ? "حالة السداد" : "Status",
+    ];
+
+    worksheet.columns = [
+      { header: headers[0], width: 16 },
+      { header: headers[1], width: 24 },
+      { header: headers[2], width: 30 },
+      { header: headers[3], width: 16 },
+      { header: headers[4], width: 18 },
+      { header: headers[5], width: 18 },
+      { header: headers[6], width: 18 },
+      { header: headers[7], width: 16 },
+    ];
+
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
+      cell.alignment = { horizontal: isAr ? "right" : "left", vertical: "middle" };
+    });
+
+    for (const d of filteredDues) {
+      const row = worksheet.addRow([
+        d.unit_code,
+        d.due_type_name || (isAr ? "مطالبة دورية" : "Standard Due"),
+        d.description || "—",
+        d.due_date,
+        d.amount,
+        d.paid_amount,
+        d.remaining_amount,
+        d.status,
+      ]);
+      row.getCell(5).numFmt = "#,##0.00";
+      row.getCell(6).numFmt = "#,##0.00";
+      row.getCell(7).numFmt = "#,##0.00";
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Dues_${statusFilter}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────────────────
-          MAIN ACTION TOOLBAR & FILTERS
+          MAIN ACTION TOOLBAR & FILTER CONTROLS
           ────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         {/* Search & Unit Filter */}
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
-          <div className="relative w-full sm:w-64">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-48">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAr ? "بحث برقم الوحدة، البند، أو التاريخ..." : "Search dues..."}
+              placeholder={isAr ? "بحث بالوحدة أو البيان..." : "Search unit or memo..."}
               className="ps-9 text-xs h-9"
             />
           </div>
@@ -164,6 +291,26 @@ export function DuesClient({
               </button>
             ))}
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print PDF"}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            className="text-xs font-bold gap-1.5 h-9 border-slate-200 dark:border-slate-700"
+          >
+            <Download className="size-3.5 text-emerald-600" />
+            <span>{isAr ? "تصدير Excel" : "Export Excel"}</span>
+          </Button>
 
           {/* Create Due Type */}
           <Button
