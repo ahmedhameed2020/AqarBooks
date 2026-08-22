@@ -54,10 +54,11 @@ export async function askAqarBooks(params: {
 
   // Determine needed tools from intent heuristics & query semantics
   const toolsToRun = new Set<string>();
-  if (/تحصيل|collection|نسبة|rate|سداد/i.test(sanitizedQuery)) toolsToRun.add("get_collection_rate");
-  if (/متأخرات|مديونية|overdue|receivable|مستحقات/i.test(sanitizedQuery)) toolsToRun.add("get_receivables_summary");
-  if (/سيولة|نقدية|بنك|رصيد|cash|balance/i.test(sanitizedQuery)) toolsToRun.add("get_cash_position");
+  if (/معدل التحصيل|نسبة التحصيل|collection rate|التحصيل الإجمالي/i.test(sanitizedQuery)) toolsToRun.add("get_collection_rate");
+  if (/متأخرات|مديونية|overdue|receivable|مستحقات|الفلوس اللي عليه|شاليه|وحدة/i.test(sanitizedQuery)) toolsToRun.add("get_receivables_summary");
+  if (/سيولة|نقدية|بنك|بنوك|رصيد|كاش|cash|balance|cib|الاهلي|الأهلي/i.test(sanitizedQuery)) toolsToRun.add("get_cash_position");
   if (/مورد|فواتير|aging|ap|مستخلص/i.test(sanitizedQuery)) toolsToRun.add("get_supplier_aging");
+  if (/تحصيل|collection|سداد/i.test(sanitizedQuery) && !toolsToRun.has("get_receivables_summary")) toolsToRun.add("get_collection_rate");
   if (/ملخص|عام|مؤشرات|kpi|overview/i.test(sanitizedQuery) || toolsToRun.size === 0) toolsToRun.add("get_financial_kpi_snapshot");
 
   // Execute authorized tools

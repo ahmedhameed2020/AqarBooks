@@ -15,11 +15,11 @@ export async function resolveEntitiesInText(
   tenantId: string,
   userQuery: string
 ): Promise<ResolvedEntity[]> {
-  const supabase = await createClient();
   const queryLower = userQuery.toLowerCase().trim();
   const resolved: ResolvedEntity[] = [];
 
   try {
+    const supabase = await createClient();
     // 1. Resolve Properties / Resorts
     const { data: properties } = await (supabase as any)
       .from("resorts")

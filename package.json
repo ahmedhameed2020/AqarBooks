@@ -8,6 +8,7 @@
     "build:next": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:ai-eval": "vitest run tests/ai-certification.eval.test.ts",
     "test:member-portal": "vitest run tests/member-portal-invitation.integration.test.ts",
     "test:sql": "vitest run tests/pgtap.integration.test.ts",
     "test:payment-idempotency": "vitest run tests/record-online-payment-concurrency.integration.test.ts",
