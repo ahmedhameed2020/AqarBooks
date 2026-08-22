@@ -18,6 +18,7 @@ import {
   ArrowUpDown,
   X,
   Plus,
+  Printer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
   cashFlowSectionLabel,
 } from "@/lib/accounting/account-labels";
 import { EditAccountDialog } from "./edit-account-dialog";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import ExcelJS from "exceljs";
 
 export type AccountRow = {
@@ -258,6 +260,48 @@ export function AccountsClient({
     }
   };
 
+  const handleExportPdf = () => {
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "دليل وشجرة الحسابات المحاسبية" : "Chart of Accounts Registry",
+        subtitle: isAr
+          ? "دليل الحسابات وتصنيفاتها وقوائم التدفقات النقدية"
+          : "Full account hierarchy and cash flow assignments",
+        organizationName: organizationName || "AqarBooks",
+        currencyLabel: "—",
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "رمز الحساب" : "Account Code", key: "code", align: "start", width: "16%" },
+          { header: isAr ? "اسم الحساب" : "Account Name", key: "name", align: "start", width: "32%" },
+          { header: isAr ? "التصنيف" : "Category", key: "category", align: "center", width: "16%" },
+          { header: isAr ? "الرصيد الطبيعي" : "Normal Balance", key: "normalBalance", align: "center", width: "16%" },
+          { header: isAr ? "قسم التدفقات النقدية" : "Cash Flow Section", key: "cashFlow", align: "start", width: "20%" },
+        ],
+        rows: tree.map((a) => ({
+          code: a.code,
+          name: isAr ? a.name_ar : a.name_en,
+          category: categoryLabel(a.category, isAr),
+          normalBalance:
+            a.normal_balance === "DEBIT" ? (isAr ? "مدين" : "Debit") : isAr ? "دائن" : "Credit",
+          cashFlow: cashFlowSectionLabel(a.cash_flow_section, isAr),
+        })),
+        summaryCards: [
+          { label: isAr ? "إجمالي الحسابات" : "Total Accounts", value: accounts.length },
+          {
+            label: isAr ? "الحسابات النشطة" : "Active Accounts",
+            value: accounts.filter((a) => a.is_active).length,
+          },
+          {
+            label: isAr ? "الحسابات التجميعية" : "Group Accounts",
+            value: accounts.filter((a) => a.is_group).length,
+          },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Interactive Metrics Cards & Category Filters */}
@@ -423,6 +467,18 @@ export function AccountsClient({
             </button>
           </div>
 
+          {/* Export to PDF Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!accounts.length}
+            className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print / PDF"}</span>
+          </Button>
+
           {/* Export to Excel Button */}
           <Button
             type="button"
@@ -431,7 +487,7 @@ export function AccountsClient({
             disabled={isExporting || !accounts.length}
             className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
           >
-            <Download className="size-3.5 text-blue-600" />
+            <Download className="size-3.5 text-emerald-600" />
             <span>{isExporting ? (isAr ? "جاري التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
           </Button>
         </div>

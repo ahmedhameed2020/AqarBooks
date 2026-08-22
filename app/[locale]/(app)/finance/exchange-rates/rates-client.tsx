@@ -6,6 +6,7 @@ import {
   Plus,
   Coins,
   Download,
+  Printer,
   Calendar,
   CheckCircle2,
   TrendingUp,
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { getCurrencyLabel } from "@/lib/currency";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import ExcelJS from "exceljs";
 import { RecordRateForm } from "./rate-forms";
 
@@ -171,6 +173,41 @@ export function RatesClient({
     }
   };
 
+  const handleExportPdf = () => {
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "سجل أسعار الصرف والعملات المتعددة" : "Exchange Rates Registry",
+        subtitle: isAr
+          ? `أسعار الصرف الرسمية مقابل عملة المؤسسة الأساسية (${baseCurrency})`
+          : `Official exchange rates against base currency (${baseCurrency})`,
+        organizationName: organizationName || "AqarBooks",
+        currencyLabel: baseCurrency,
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "العملة الأجنبية" : "Foreign Currency", key: "foreign", align: "start", width: "20%" },
+          { header: isAr ? "العملة الأساسية" : "Base Currency", key: "base", align: "start", width: "20%" },
+          { header: isAr ? "سعر الصرف (1 وحدة =)" : "Rate (1 Unit =)", key: "rate", align: "end", isNumber: true, width: "25%" },
+          { header: isAr ? "تاريخ السعر" : "Rate Date", key: "date", align: "center", width: "15%" },
+          { header: isAr ? "المصدر" : "Source", key: "source", align: "start", width: "20%" },
+        ],
+        rows: filtered.map((r) => ({
+          foreign: r.foreign_currency,
+          base: r.base_currency,
+          rate: Number(r.base_per_unit).toFixed(4),
+          date: r.rate_date,
+          source: r.source || "—",
+        })),
+        summaryCards: [
+          { label: isAr ? "العملة الأساسية للمؤسسة" : "Base Currency", value: baseCurrency, highlight: true },
+          { label: isAr ? "عدد العملات المسجلة" : "Currencies Tracked", value: foreignCurrencies.length },
+          { label: isAr ? "إجمالي سجلات الأسعار" : "Total Rate Entries", value: rates.length },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Currency Pair Highlight Cards */}
@@ -291,7 +328,19 @@ export function RatesClient({
             </select>
           )}
 
-          {/* Export */}
+          {/* Export PDF */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!rates.length}
+            className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print / PDF"}</span>
+          </Button>
+
+          {/* Export Excel */}
           <Button
             type="button"
             variant="outline"
@@ -299,7 +348,7 @@ export function RatesClient({
             disabled={isExporting || !rates.length}
             className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
           >
-            <Download className="size-3.5 text-blue-600" />
+            <Download className="size-3.5 text-emerald-600" />
             <span>{isExporting ? (isAr ? "جاري التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
           </Button>
 

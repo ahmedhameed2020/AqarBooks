@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Clock,
   Download,
+  Printer,
   Users,
   Coins,
   Layers,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getCurrencyLabel } from "@/lib/currency";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import ExcelJS from "exceljs";
 import { PolicyForm, RaiseStageForm, NoticeActions, type NoticeRow } from "./dunning-forms";
 
@@ -218,6 +220,55 @@ export function DunningClient({
     }
   };
 
+  const handleExportPdf = () => {
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "تقرير التحصيل والمستحقات المتأخرة" : "Collections & Overdue Dunning Report",
+        subtitle: isAr
+          ? "كشف تفصيلي بالمستحقات المتأخرة، عدد أيام التأخير، ومراحل الإشعار"
+          : "Itemized overdue invoices, aging delay days, and dunning stages",
+        organizationName: organizationName || "AqarBooks",
+        currencyLabel: currency,
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "العميل / العضو" : "Member / Owner", key: "member", align: "start", width: "22%" },
+          { header: isAr ? "البيان" : "Description", key: "desc", align: "start", width: "24%" },
+          { header: isAr ? "تاريخ الاستحقاق" : "Due Date", key: "date", align: "center", width: "14%" },
+          { header: isAr ? "أيام التأخير" : "Days Overdue", key: "days", align: "center", width: "12%" },
+          { header: isAr ? "المبلغ المستحق" : "Outstanding", key: "amount", align: "end", isNumber: true, width: "14%" },
+          { header: isAr ? "مرحلة الإشعار" : "Stage", key: "stage", align: "start", width: "14%" },
+        ],
+        rows: filteredCandidates.map((c) => ({
+          member: c.member_name || (isAr ? "غير مربوط" : "Unlinked"),
+          desc: c.description,
+          date: c.due_date,
+          days: `${c.days_overdue} ${isAr ? "يوم" : "d"}`,
+          amount: n(c.outstanding),
+          stage: isAr ? c.stage_name_ar : c.stage_name_en,
+        })),
+        totalRow: {
+          member: isAr ? "الإجمالي" : "Total",
+          desc: "",
+          date: "",
+          days: "",
+          amount: totalPendingAmount,
+          stage: "",
+        },
+        summaryCards: [
+          {
+            label: isAr ? "إجمالي المتأخرات المؤهلة" : "Eligible Overdue",
+            value: `${totalPendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+            highlight: true,
+          },
+          { label: isAr ? "عدد الفواتير المتأخرة" : "Overdue Invoices", value: candidates.length },
+          { label: isAr ? "الإشعارات الصادرة" : "Notices Raised", value: notices.length },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Financial KPI Cards */}
@@ -389,7 +440,19 @@ export function DunningClient({
             </select>
           )}
 
-          {/* Export */}
+          {/* Export PDF */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!candidates.length}
+            className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "كشف PDF" : "Statement PDF"}</span>
+          </Button>
+
+          {/* Export Excel */}
           <Button
             type="button"
             variant="outline"
@@ -397,7 +460,7 @@ export function DunningClient({
             disabled={isExporting || !candidates.length}
             className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
           >
-            <Download className="size-3.5 text-blue-600" />
+            <Download className="size-3.5 text-emerald-600" />
             <span>{isExporting ? (isAr ? "جاري التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
           </Button>
 

@@ -17,11 +17,13 @@ import {
   PieChart,
   HardHat,
   ArrowRightLeft,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getCurrencyLabel } from "@/lib/currency";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import ExcelJS from "exceljs";
 import { ProjectForm, CapitaliseForm, ReleaseForm, type Option } from "./project-forms";
 
@@ -204,6 +206,61 @@ export function ProjectsClient({
     }
   };
 
+  const handleExportPdf = () => {
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "سجل المشاريع وتكاليف الأعمال تحت التنفيذ" : "Projects & WIP Cost Register",
+        subtitle: isAr
+          ? "متابعة موازنات المشاريع الإنشائية، التكاليف المرسملة، والمتحرر للمبيعات"
+          : "Project construction budgets, capitalised WIP, and cost of sales releases",
+        organizationName: organizationName || "AqarBooks",
+        currencyLabel: currency,
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "كود المشروع" : "Code", key: "code", align: "start", width: "12%" },
+          { header: isAr ? "اسم المشروع" : "Project Name", key: "name", align: "start", width: "26%" },
+          { header: isAr ? "الميزانية" : "Budget", key: "budget", align: "end", isNumber: true, width: "15%" },
+          { header: isAr ? "المرسمل (WIP)" : "Capitalised", key: "capitalised", align: "end", isNumber: true, width: "15%" },
+          { header: isAr ? "المتحرر للمبيعات" : "Released", key: "released", align: "end", isNumber: true, width: "15%" },
+          { header: isAr ? "رصيد WIP الحالي" : "WIP Balance", key: "wipBal", align: "end", isNumber: true, width: "17%" },
+        ],
+        rows: filtered.map((p) => ({
+          code: p.code,
+          name: isAr ? p.name_ar : p.name_en,
+          budget: n(p.budget_amount) || "—",
+          capitalised: n(p.capitalised),
+          released: n(p.released),
+          wipBal: n(p.wip_balance),
+        })),
+        totalRow: {
+          code: isAr ? "الإجمالي" : "Total",
+          name: "",
+          budget: totalBudget,
+          capitalised: totalCapitalised,
+          released: totalReleased,
+          wipBal: totalWipBalance,
+        },
+        summaryCards: [
+          {
+            label: isAr ? "إجمالي الميزانيات المعتمدة" : "Total Budgets",
+            value: `${totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+          },
+          {
+            label: isAr ? "إجمالي التكاليف المرسملة" : "Capitalised Costs",
+            value: `${totalCapitalised.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+          },
+          {
+            label: isAr ? "رصيد الأعمال الجارية الحالي" : "Current WIP Balance",
+            value: `${totalWipBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+            highlight: true,
+          },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Financial KPI Cards */}
@@ -332,7 +389,19 @@ export function ProjectsClient({
             <option value="COMPLETED">{isAr ? "مكتمل" : "Completed"}</option>
           </select>
 
-          {/* Export */}
+          {/* Export PDF */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!projects.length}
+            className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print / PDF"}</span>
+          </Button>
+
+          {/* Export Excel */}
           <Button
             type="button"
             variant="outline"
@@ -340,7 +409,7 @@ export function ProjectsClient({
             disabled={isExporting || !projects.length}
             className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
           >
-            <Download className="size-3.5 text-blue-600" />
+            <Download className="size-3.5 text-emerald-600" />
             <span>{isExporting ? (isAr ? "جاري التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
           </Button>
 

@@ -7,6 +7,7 @@ import {
   Play,
   Trash2,
   Download,
+  Printer,
   Building2,
   TrendingDown,
   Layers,
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getCurrencyLabel } from "@/lib/currency";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import ExcelJS from "exceljs";
 import { RegisterAssetForm, RunDepreciationForm, DisposeAssetForm, type Option } from "./asset-forms";
 
@@ -198,6 +200,61 @@ export function AssetsClient({
     }
   };
 
+  const handleExportPdf = () => {
+    generateFinancialStatementPdf(
+      {
+        title: isAr ? "سجل الأصول الثابتة والإهلاك" : "Fixed Assets & Depreciation Register",
+        subtitle: isAr
+          ? "بيان الأصول الثابتة، تكلفة الاقتناء، مجمع الإهلاك، وصافي القيمة الدفترية"
+          : "Fixed asset costs, accumulated straight-line depreciation, and net book values",
+        organizationName: organizationName || "AqarBooks",
+        currencyLabel: currency,
+        dateRangeLabel: new Date().toISOString().slice(0, 10),
+        columns: [
+          { header: isAr ? "كود الأصل" : "Code", key: "code", align: "start", width: "12%" },
+          { header: isAr ? "اسم الأصل" : "Asset Name", key: "name", align: "start", width: "24%" },
+          { header: isAr ? "تاريخ الاقتناء" : "Acquired", key: "date", align: "center", width: "14%" },
+          { header: isAr ? "تكلفة الشراء" : "Cost", key: "cost", align: "end", isNumber: true, width: "16%" },
+          { header: isAr ? "مجمع الإهلاك" : "Accumulated", key: "accumulated", align: "end", isNumber: true, width: "16%" },
+          { header: isAr ? "القيمة الدفترية" : "Book Value", key: "bookVal", align: "end", isNumber: true, width: "18%" },
+        ],
+        rows: filtered.map((a) => ({
+          code: a.code,
+          name: isAr ? a.name_ar : a.name_en,
+          date: a.acquisition_date,
+          cost: n(a.acquisition_cost),
+          accumulated: n(a.accumulated),
+          bookVal: n(a.net_book_value),
+        })),
+        totalRow: {
+          code: isAr ? "الإجمالي" : "Total",
+          name: "",
+          date: "",
+          cost: totalCost,
+          accumulated: totalAccumulated,
+          bookVal: totalBookValue,
+        },
+        summaryCards: [
+          {
+            label: isAr ? "إجمالي التكلفة التاريخية" : "Total Acquisition Cost",
+            value: `${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+          },
+          {
+            label: isAr ? "مجمع الإهلاك المتراكم" : "Accumulated Depreciation",
+            value: `${totalAccumulated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+          },
+          {
+            label: isAr ? "صافي القيمة الدفترية" : "Net Book Value",
+            value: `${totalBookValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`,
+            highlight: true,
+          },
+        ],
+        includeCoverPage: false,
+      },
+      locale
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Interactive KPI Financial Metric Cards */}
@@ -333,7 +390,19 @@ export function AssetsClient({
             <option value="DISPOSED">{isAr ? "المستبعدة / خردة" : "Disposed"}</option>
           </select>
 
-          {/* Export */}
+          {/* Export PDF */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={!assets.length}
+            className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{isAr ? "طباعة / PDF" : "Print / PDF"}</span>
+          </Button>
+
+          {/* Export Excel */}
           <Button
             type="button"
             variant="outline"
@@ -341,7 +410,7 @@ export function AssetsClient({
             disabled={isExporting || !assets.length}
             className="h-10 rounded-xl border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 hover:bg-slate-50 gap-2 cursor-pointer"
           >
-            <Download className="size-3.5 text-blue-600" />
+            <Download className="size-3.5 text-emerald-600" />
             <span>{isExporting ? (isAr ? "جاري التصدير..." : "Exporting...") : (isAr ? "تصدير Excel" : "Export Excel")}</span>
           </Button>
 
