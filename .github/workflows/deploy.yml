@@ -89,6 +89,11 @@ jobs:
           check /en/platform/subscriptions 307
           check /en/platform/system        307
           check /en/platform/settings      307
+          # Proves the worker can still act with its service-role credentials.
+          # A 503 means the encrypted secret is missing, rotated or revoked --
+          # a failure invisible from every other route, because the admin-client
+          # paths fall back to the same redirect they give for bad input.
+          check /api/health    200
           exit $fail
 
 # Deliberately NOT run here: npm run test:all. Those suites execute against the
