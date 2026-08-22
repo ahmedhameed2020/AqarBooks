@@ -6,39 +6,89 @@ export type AiFeatureKey =
   | "BANK_RECON_AI"
   | "SMART_DUNNING";
 
+export type AiIncidentSeverity = 
+  | "AI_0_CRITICAL"   // Cross-tenant leak, unauthorized financial write, security breach
+  | "AI_1_HIGH"       // Erroneous financial figure or hazardous matching intercepted before posting
+  | "AI_2_MEDIUM"     // Incorrect tool / entity resolved, corrected by human
+  | "AI_3_LOW";       // Weak phrasing, latency, minor UX polish
+
+export type OperationalKillSwitchState = {
+  feature: AiFeatureKey;
+  isEnabled: boolean;
+  changedBy: string;
+  changedAt: string;
+  reason: string;
+};
+
 export const RELEASE_PROVENANCE = {
   modelProvider: "google_gemini",
-  modelVersion: "gemini-2.5-flash",
+  baselineModel: "gemini-2.5-flash",
+  candidateModel: "gemini-3.7-flash",
   promptVersion: "p_ask_v1.4",
   toolRegistryVersion: "t_reg_v1.2",
   groundingEngineVersion: "ge_v1.0",
-  deploymentSha: process.env.CF_PAGES_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "e5d11dc",
+  deploymentSha: process.env.CF_PAGES_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "42791df",
   buildDate: "2026-08-22",
+  validationStatus: "PRE_PRODUCTION_CERTIFIED", // 🟡 Pre-Production Certified -> 🟢 Production Validated
 } as const;
+
+// In-memory operational kill switches (immediate runtime toggles without redeploy)
+const operationalSwitches = new Map<AiFeatureKey, OperationalKillSwitchState>();
 
 /**
  * 3-Tier Granular AI Kill Switch:
- * 1. Global Platform Switch
+ * 1. Global Platform Switch (Environment + Runtime Map)
  * 2. Feature-Level Switch
  * 3. Tenant-Level Opt-out
  */
-export function isAiFeatureEnabled(feature: AiFeatureKey, tenantSettings?: { aiDisabled?: boolean; disabledFeatures?: string[] }): boolean {
-  // 1. Platform-level kill switch via environment variable
+export function isAiFeatureEnabled(
+  feature: AiFeatureKey,
+  tenantSettings?: { aiDisabled?: boolean; disabledFeatures?: string[] }
+): boolean {
+  // 1. Check in-memory operational runtime overrides
+  const globalRuntime = operationalSwitches.get("PLATFORM_GLOBAL");
+  if (globalRuntime && !globalRuntime.isEnabled) return false;
+
+  const featureRuntime = operationalSwitches.get(feature);
+  if (featureRuntime && !featureRuntime.isEnabled) return false;
+
+  // 2. Platform-level kill switch via environment variable
   if (process.env.AI_KILL_SWITCH_ALL === "true" || process.env.NEXT_PUBLIC_AI_KILL_SWITCH_ALL === "true") {
     return false;
   }
 
-  // 2. Feature-level kill switch via environment variable
+  // 3. Feature-level kill switch via environment variable
   const envKey = `AI_KILL_SWITCH_${feature}`;
   if (process.env[envKey] === "true") {
     return false;
   }
 
-  // 3. Tenant-level opt-out
+  // 4. Tenant-level opt-out
   if (tenantSettings) {
     if (tenantSettings.aiDisabled) return false;
     if (tenantSettings.disabledFeatures?.includes(feature)) return false;
   }
 
   return true;
+}
+
+/**
+ * Audited operational toggle for fast incident mitigation.
+ */
+export function toggleOperationalKillSwitch(params: {
+  feature: AiFeatureKey;
+  isEnabled: boolean;
+  changedBy: string;
+  reason: string;
+}): OperationalKillSwitchState {
+  const state: OperationalKillSwitchState = {
+    feature: params.feature,
+    isEnabled: params.isEnabled,
+    changedBy: params.changedBy,
+    changedAt: new Date().toISOString(),
+    reason: params.reason,
+  };
+
+  operationalSwitches.set(params.feature, state);
+  return state;
 }

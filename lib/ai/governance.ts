@@ -26,6 +26,20 @@ export function sanitizePrompt(text: string): string {
     .replace(/(?:password|secret|token|apikey)\s*[:=]\s*[^\s]+/gi, "[REDACTED_SECRET]");
 }
 
+export type HumanCorrectionAction = "ACCEPTED_UNCHANGED" | "EDITED_THEN_ACCEPTED" | "REJECTED";
+
+export type HumanCorrectionDelta = {
+  organizationId: string;
+  userId: string;
+  featureKey: "OCR" | "JOURNAL_COPILOT" | "BANK_RECON" | "ASK_AQARBOOKS";
+  action: HumanCorrectionAction;
+  aiProposed: any;
+  humanAccepted: any;
+  differenceSummary?: string;
+  fieldCountTotal?: number;
+  fieldCountCorrected?: number;
+};
+
 /**
  * Records AI interaction in audit log for transparency, security, and usage monitoring.
  */
@@ -47,5 +61,29 @@ export async function recordAiAuditLog(entry: AiAuditEntry): Promise<void> {
     });
   } catch {
     // Silently ignore if audit table is not yet created in PostgreSQL
+  }
+}
+
+/**
+ * Records differential human modifications to AI suggestions
+ * to power the Shadow Pilot Telemetry and Continuous Quality Metrics.
+ */
+export async function recordHumanCorrectionDelta(delta: HumanCorrectionDelta): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await (supabase as any).from("ai_human_corrections").insert({
+      organization_id: delta.organizationId,
+      user_id: delta.userId,
+      feature_key: delta.featureKey,
+      action: delta.action,
+      ai_proposed: typeof delta.aiProposed === "object" ? JSON.stringify(delta.aiProposed) : String(delta.aiProposed),
+      human_accepted: typeof delta.humanAccepted === "object" ? JSON.stringify(delta.humanAccepted) : String(delta.humanAccepted),
+      difference_summary: delta.differenceSummary ?? null,
+      field_count_total: delta.fieldCountTotal ?? null,
+      field_count_corrected: delta.fieldCountCorrected ?? null,
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // Non-blocking telemetry
   }
 }
