@@ -22,95 +22,89 @@ export default async function ChartOfAccountsPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
-  // chart_of_accounts SELECT stays broadly readable to any org member at
-  // the RLS layer (chart_of_accounts_select_member, is_org_member) --
-  // deliberately NOT tightened, since it's a shared reference table read
-  // by 8+ other finance pages (cashier, banks, suppliers, dues, payments,
-  // general-ledger, etc.) across roles that legitimately need to resolve
-  // account names/codes without needing full chart-of-accounts management
-  // rights. This page-level gate only protects the ADMINISTRATION view
-  // (full listing + create-account form) specifically, matching the same
-  // pattern already used by finance/reports/aging/page.tsx.
   const canViewAccounts = await hasPermission(organization.id, "finance.accounts.view");
   if (!canViewAccounts) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">{isAr ? "دليل الحسابات" : "Chart of Accounts"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr ? "لا تملك صلاحية عرض دليل الحسابات." : "You don't have permission to view the chart of accounts."}
+      <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-start">
+        <h1 className="text-xl font-bold text-red-900">
+          {isAr ? "دليل الحسابات" : "Chart of Accounts"}
+        </h1>
+        <p className="text-sm text-red-700">
+          {isAr
+            ? "لا تملك صلاحية عرض دليل وشجرة الحسابات المحاسبية."
+            : "You do not have permission to view the chart of accounts."}
         </p>
       </div>
     );
   }
 
-  // Writes are gated by the chart_of_accounts_manage RLS policy. Mirroring it
-  // here keeps the create and edit affordances from being offered to a
-  // read-only member whose submit would only ever be rejected.
   const canManage = await hasPermission(organization.id, "finance.accounts.manage");
 
   const supabase = await createClient();
   const { data: accounts } = await supabase
     .from("chart_of_accounts")
     .select(
-      "id, code, name_ar, name_en, parent_id, category, normal_balance, is_group, is_active, is_used, requires_cost_center, is_cash_equivalent, cash_flow_section",
+      "id, code, name_ar, name_en, parent_id, category, normal_balance, is_group, is_active, is_used, requires_cost_center, is_cash_equivalent, cash_flow_section"
     )
     .eq("organization_id", organization.id);
 
   const rows = (accounts ?? []) as AccountRow[];
 
-  const { data: templates } = await supabase.from("coa_templates").select("key, name_ar, name_en");
+  const { data: templates } = await supabase
+    .from("coa_templates")
+    .select("key, name_ar, name_en");
   const template = templates?.[0];
-
-  const postable = rows.filter((a) => !a.is_group).length;
-  const perCategory = ACCOUNT_CATEGORIES.map((category) => ({
-    category,
-    count: rows.filter((a) => a.category === category).length,
-  })).filter((entry) => entry.count > 0);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">{isAr ? "دليل الحسابات" : "Chart of Accounts"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr
-            ? "الهيكل المحاسبي الذي تُرحَّل إليه كل القيود. الحسابات التجميعية لا يُقيَّد عليها مباشرة."
-            : "The account structure every journal entry posts into. Group accounts are not directly postable."}
-        </p>
+      {/* Top Header & Context */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div className="space-y-1 text-start">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              {isAr ? "دليل وشجرة الحسابات" : "Chart of Accounts"}
+            </h1>
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200/60">
+              {isAr ? "الهيكل المالي الموحد" : "Unified Ledger"}
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            {isAr
+              ? "الهيكل المحاسبي الشامل للقيود اليومية ومراكز التكلفة والتدفقات النقدية وفق المعايير المحاسبية المعتمدة."
+              : "Comprehensive accounting structure governing journal entries, cost centers, and cash flow classifications."}
+          </p>
+        </div>
+
+        {canManage && rows.length > 0 && (
+          <CreateAccountForm
+            organizationId={organization.id}
+            accounts={rows}
+            locale={locale}
+          />
+        )}
       </div>
 
-      {rows.length > 0 && (
-        <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-muted-foreground">{isAr ? "إجمالي الحسابات" : "Total accounts"}</dt>
-            <dd className="font-semibold tabular-nums">{rows.length}</dd>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-muted-foreground">{isAr ? "قابلة للترحيل" : "Postable"}</dt>
-            <dd className="font-semibold tabular-nums">{postable}</dd>
-          </div>
-          {perCategory.map(({ category, count }) => (
-            <div key={category} className="flex items-baseline gap-1.5">
-              <dt className="text-muted-foreground">{categoryLabel(category, isAr)}</dt>
-              <dd className="font-semibold tabular-nums">{count}</dd>
-            </div>
-          ))}
-        </dl>
+      {/* Empty State with Template Cloning */}
+      {!rows.length && template && canManage && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+          <CloneTemplateForm
+            organizationId={organization.id}
+            templateKey={template.key}
+            templateName={isAr ? template.name_ar : template.name_en}
+            locale={locale}
+          />
+        </div>
       )}
 
-      {!rows.length && template && canManage && (
-        <CloneTemplateForm
-          organizationId={organization.id}
-          templateKey={template.key}
-          templateName={isAr ? template.name_ar : template.name_en}
+      {/* Main Interactive Accounts Table & Dashboard */}
+      {rows.length > 0 && (
+        <AccountsClient
+          accounts={rows}
+          canManage={canManage}
           locale={locale}
+          organizationName={organization.name}
         />
       )}
-
-      {canManage && (
-        <CreateAccountForm organizationId={organization.id} accounts={rows} locale={locale} />
-      )}
-
-      <AccountsClient accounts={rows} canManage={canManage} locale={locale} />
     </div>
   );
 }
