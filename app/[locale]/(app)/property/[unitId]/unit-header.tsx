@@ -8,19 +8,28 @@ import { BackButton } from "../back-button";
 import { OccupancyBadge, type UnitRow } from "../units-table";
 import { unitTypeLabel, UNIT_TYPE_ICONS } from "@/lib/units/unit-type-labels";
 import { UnitBalanceBadge } from "../unit-balance-badge";
+import { UnitStatementButton } from "./unit-statement-button";
 
 export function UnitHeader({
   unit,
   locale,
   currency,
+  organizationName = "AqarBooks",
+  resortName = "",
   registeredDate,
   lastPayment,
+  dues = [],
+  payments = [],
 }: {
   unit: UnitRow;
   locale: string;
   currency: string;
+  organizationName?: string;
+  resortName?: string;
   registeredDate: string | null;
   lastPayment: { amount: number; payment_date: string } | null;
+  dues?: { date: string; type: string; amount: number; status: string }[];
+  payments?: { date: string; method: string; amount: number }[];
 }) {
   const isAr = locale === "ar";
   const settled = unit.balance <= 0;
@@ -36,8 +45,7 @@ export function UnitHeader({
     <div className="space-y-4">
       <BackButton locale={locale} />
 
-      {/* Status spine: a single glance-able signal (settled vs. in arrears)
-          carried by the accent border, instead of leading with a loud badge. */}
+      {/* Status spine */}
       <div
         className={cn(
           "relative overflow-hidden rounded-3xl border border-s-4 border-border/60 bg-gradient-to-br from-primary/[0.05] via-card to-card p-6 shadow-xs",
@@ -62,10 +70,19 @@ export function UnitHeader({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <UnitStatementButton
+              organizationName={organizationName}
+              resortName={resortName}
+              currency={currency}
+              unit={unit}
+              dues={dues}
+              payments={payments}
+              locale={locale}
+            />
             <Link
               href={`/finance/payments?unit=${unit.id}`}
               locale={locale}
-              className={buttonVariants({ size: "sm", className: "gap-1.5" })}
+              className={buttonVariants({ size: "sm", className: "gap-1.5 rounded-xl text-xs font-bold" })}
             >
               <CreditCard className="size-3.5" />
               {isAr ? "سداد دفعة" : "Record Payment"}
@@ -73,7 +90,7 @@ export function UnitHeader({
             <Link
               href={`/finance/dues?unit=${unit.id}`}
               locale={locale}
-              className={buttonVariants({ variant: "outline", size: "sm", className: "gap-1.5" })}
+              className={buttonVariants({ variant: "outline", size: "sm", className: "gap-1.5 rounded-xl text-xs font-bold" })}
             >
               <Plus className="size-3.5" />
               {isAr ? "إصدار مستحق" : "Issue Due"}
@@ -113,7 +130,6 @@ export function UnitHeader({
             value={lastPayment ? <Money amount={lastPayment.amount} currency={currency} locale={locale} /> : "—"}
             hint={lastPayment?.payment_date}
             icon={<Clock3 className="size-5" />}
-            tone="info"
           />
         </div>
       </div>

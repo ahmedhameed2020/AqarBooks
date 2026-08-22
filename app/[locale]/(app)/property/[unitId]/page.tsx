@@ -169,8 +169,21 @@ export default async function UnitDetailPage({
         unit={unit}
         locale={locale}
         currency={currency}
+        organizationName={organization.name}
+        resortName={organization.name}
         registeredDate={registeredDate}
         lastPayment={lastPayment}
+        dues={(dueRows ?? []).map((d) => ({
+          date: d.due_date,
+          type: dueTypeName.get(d.due_type_id) ?? (isAr ? "مطالبة مالية" : "Fee Due"),
+          amount: d.amount,
+          status: d.status,
+        }))}
+        payments={(postedPayRows ?? []).map((p) => ({
+          date: p.payment_date,
+          method: p.method || "CASH",
+          amount: p.amount,
+        }))}
       />
       <UnitDetailTabs
         labels={{

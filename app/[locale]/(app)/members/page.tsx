@@ -323,7 +323,11 @@ export default async function MembersPage({
           </div>
         ) : (
           <div className="space-y-4">
-            <MembersFilters locale={locale} />
+            <MembersFilters
+              locale={locale}
+              organizationName={organization.name}
+              currency={currency}
+            />
             <MembersTable
               members={members ?? []}
               unitCodesByMember={unitCodesByMember}

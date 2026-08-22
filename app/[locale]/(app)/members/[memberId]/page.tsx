@@ -25,6 +25,7 @@ import { PaymentsTable } from "../../property/payments-table";
 import { AddMemberDialog } from "../add-member-dialog";
 import { SendReminderDialog } from "../send-reminder-dialog";
 import { InviteToPortalDialog } from "./invite-to-portal-dialog";
+import { MemberStatementButton } from "./member-statement-button";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 // TODO: `./member-statement-dialog`, `./member-tags`, `./member-activity`,
@@ -130,6 +131,33 @@ export default async function MemberDetailPage({
     .eq("organization_id", organization.id)
     .order("code");
 
+  const { data: memberDues } = await supabase
+    .from("dues")
+    .select("id, amount, due_date, status, due_type_id, unit_id")
+    .eq("organization_id", organization.id)
+    .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
+    .order("due_date", { ascending: true });
+
+  const dueTypeIds = [...new Set((memberDues ?? []).map((d) => d.due_type_id))];
+  const { data: dueTypes } = dueTypeIds.length
+    ? await supabase.from("due_types").select("id, name_ar, name_en").in("id", dueTypeIds)
+    : { data: [] };
+  const dueTypeName = new Map((dueTypes ?? []).map((t) => [t.id, isAr ? t.name_ar : t.name_en]));
+
+  const formattedDues = (memberDues ?? []).map((d) => ({
+    date: d.due_date,
+    type: dueTypeName.get(d.due_type_id) ?? (isAr ? "مطالبة مالية" : "Fee Due"),
+    amount: d.amount,
+    unitCode: unitById.get(d.unit_id)?.code ?? null,
+    status: d.status,
+  }));
+
+  const formattedPayments = (payments ?? []).map((p) => ({
+    date: p.payment_date,
+    method: "PAYMENT",
+    amount: p.amount,
+  }));
+
   return (
     <main className="space-y-6 p-6">
       <Link
@@ -167,7 +195,6 @@ export default async function MemberDetailPage({
               <span>{isAr ? "بلا بيانات تواصل" : "No contact info"}</span>
             )}
           </div>
-          {/* TODO: MemberTags was never implemented -- removed, see top-of-file TODO. */}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -182,17 +209,19 @@ export default async function MemberDetailPage({
                 building_name_en: u.building_name_en,
               }))}
               locale={locale}
-              // TODO: AddMemberDialog has no `defaultTab`/`defaultMemberId`
-              // support (its tab always starts on "member" and
-              // LinkOwnershipForm's member picker always starts empty) --
-              // these props were passed here but never wired up anywhere,
-              // so opening this dialog from the member page doesn't
-              // actually preselect "Link ownership" + this member yet.
-              // Dropped rather than silently accepted as no-ops; wiring
-              // real default-tab/default-member support is member-CRM-
-              // adjacent UI work, out of scope for this baseline cleanup.
             />
           )}
+
+          <MemberStatementButton
+            organizationName={organization.name}
+            propertyName={organization.name}
+            currency={currency}
+            memberName={member.full_name}
+            dues={formattedDues}
+            payments={formattedPayments}
+            locale={locale}
+          />
+
           <SendReminderDialog
             memberId={member.id}
             organizationId={organization.id}
@@ -209,7 +238,7 @@ export default async function MemberDetailPage({
               </Button>
             }
           />
-          {/* TODO: MemberStatementDialog was never implemented -- removed, see top-of-file TODO. */}
+
           <InviteToPortalDialog
             memberId={member.id}
             memberName={member.full_name}

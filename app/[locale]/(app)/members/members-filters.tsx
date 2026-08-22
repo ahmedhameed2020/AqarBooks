@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Download, Search, X, Filter, UserCheck, AlertCircle, Sparkles } from "lucide-react";
+import { Download, Search, X, Filter, UserCheck, AlertCircle, Sparkles, Printer, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,11 +14,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { exportMembersCsvAction } from "@/lib/actions/members-export";
 import { useMembersNav } from "./members-nav-context";
-import { buildMembersCsv, downloadCsv } from "./csv";
+import { buildMembersCsv, buildMembersXlsxBuffer, downloadCsv, downloadXlsxBuffer } from "./csv";
+import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 
 const ALL = "__all__";
 
-export function MembersFilters({ locale }: { locale: string }) {
+export function MembersFilters({
+  locale,
+  organizationName = "AqarBooks",
+  currency = "EGP",
+}: {
+  locale: string;
+  organizationName?: string;
+  currency?: string;
+}) {
   const isAr = locale === "ar";
   const { get, pushParams } = useMembersNav();
   const q = get("q");
@@ -63,10 +72,66 @@ export function MembersFilters({ locale }: { locale: string }) {
     pushParams({ [key]: undefined, page: undefined });
   }
 
-  async function exportAll() {
+  async function handleExportExcel() {
     startExport(async () => {
       const rows = await exportMembersCsvAction({ q, ownership, arrears });
-      downloadCsv(`members-${Date.now()}.csv`, buildMembersCsv(rows, isAr));
+      const buffer = await buildMembersXlsxBuffer(rows, isAr);
+      downloadXlsxBuffer(`Members_Owners_${new Date().toISOString().slice(0, 10)}.xlsx`, buffer);
+    });
+  }
+
+  async function handleExportPdf() {
+    startExport(async () => {
+      const rows = await exportMembersCsvAction({ q, ownership, arrears });
+      const totalBalance = rows.reduce((s, r) => s + (r.total_balance || 0), 0);
+      const withArrears = rows.filter((r) => r.has_arrears).length;
+
+      generateFinancialStatementPdf(
+        {
+          title: isAr ? "سجل الملاك والمستأجرين والأعضاء" : "Members & Owners Directory",
+          subtitle: isAr
+            ? "كشف ببيانات الأعضاء والملاك، عدد الوحدات المملوكة، والأرصدة والذمم المالية"
+            : "Directory of members, owned property units, and financial balances",
+          organizationName,
+          currencyLabel: currency,
+          dateRangeLabel: new Date().toISOString().slice(0, 10),
+          columns: [
+            { header: isAr ? "الاسم الكامل" : "Full Name", key: "name", align: "start", width: "26%" },
+            { header: isAr ? "البريد الإلكتروني" : "Email", key: "email", align: "start", width: "22%" },
+            { header: isAr ? "رقم الهاتف" : "Phone", key: "phone", align: "center", width: "16%" },
+            { header: isAr ? "الوحدات" : "Units", key: "units", align: "center", isNumber: true, width: "10%" },
+            { header: isAr ? "الرصيد المالي" : "Balance", key: "balance", align: "end", isNumber: true, width: "16%" },
+            { header: isAr ? "الحالة" : "Status", key: "status", align: "center", width: "10%" },
+          ],
+          rows: rows.map((r) => ({
+            name: r.full_name,
+            email: r.email || "—",
+            phone: r.phone || "—",
+            units: r.units_count,
+            balance: r.total_balance,
+            status: r.has_arrears ? (isAr ? "متأخر" : "Arrears") : isAr ? "منتظم" : "Current",
+          })),
+          totalRow: {
+            name: isAr ? "الإجمالي" : "Total",
+            email: "",
+            phone: "",
+            units: rows.reduce((s, r) => s + (r.units_count || 0), 0),
+            balance: totalBalance,
+            status: "",
+          },
+          summaryCards: [
+            { label: isAr ? "إجمالي الأعضاء" : "Total Members", value: rows.length },
+            { label: isAr ? "عليهم متأخرات" : "With Arrears", value: withArrears },
+            {
+              label: isAr ? "إجمالي الأرصدة القائمة" : "Total Outstanding",
+              value: `${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`,
+              highlight: true,
+            },
+          ],
+          includeCoverPage: false,
+        },
+        locale
+      );
     });
   }
 
@@ -82,7 +147,7 @@ export function MembersFilters({ locale }: { locale: string }) {
               value={qDraft}
               onChange={(e) => setQDraft(e.target.value)}
               placeholder={isAr ? "بحث سريع بالاسم، الهاتف، أو البريد… (/)" : "Search by name, phone, or email… (/)"}
-              className="w-full ps-9 h-9.5 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+              className="w-full ps-9 h-10 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
             />
           </div>
 
@@ -91,7 +156,7 @@ export function MembersFilters({ locale }: { locale: string }) {
             value={ownership || undefined}
             onValueChange={(v) => pushParams({ ownership: (v === ALL ? undefined : v) as any, page: undefined })}
           >
-            <SelectTrigger className="w-36 h-9.5 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+            <SelectTrigger className="w-40 h-10 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700">
               <SelectValue placeholder={isAr ? "حالة الملكية" : "Ownership"} />
             </SelectTrigger>
             <SelectContent>
@@ -105,9 +170,9 @@ export function MembersFilters({ locale }: { locale: string }) {
           <button
             type="button"
             onClick={() => pushParams({ arrears: arrears === "1" ? undefined : "1", page: undefined })}
-            className={`flex items-center gap-1.5 h-9.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 h-10 px-3.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
               arrears === "1"
-                ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 shadow-xs"
                 : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
             }`}
           >
@@ -116,18 +181,28 @@ export function MembersFilters({ locale }: { locale: string }) {
           </button>
         </div>
 
-        {/* EXPORT CSV BUTTON */}
+        {/* EXPORT BUTTONS (PDF + EXCEL) */}
         <div className="flex items-center gap-2 shrink-0">
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            onClick={exportAll}
+            onClick={handleExportPdf}
             disabled={exporting}
-            className="h-9 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 gap-1.5"
+            className="h-10 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 gap-1.5 cursor-pointer"
           >
-            <Download className="size-3.5" />
-            <span>{exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير القائمة (CSV)" : "Export CSV"}</span>
+            <Printer className="size-3.5 text-purple-600" />
+            <span>{exporting ? (isAr ? "جارٍ التوليد…" : "Generating…") : isAr ? "طباعة / PDF" : "Print / PDF"}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="h-10 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 gap-1.5 cursor-pointer"
+          >
+            <Download className="size-3.5 text-emerald-600" />
+            <span>{exporting ? (isAr ? "جارٍ التصدير…" : "Exporting…") : isAr ? "تصدير Excel" : "Export Excel"}</span>
           </Button>
         </div>
       </div>
