@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -86,11 +86,15 @@ export function PolicyForm({
     { ok: true }
   );
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -211,7 +215,7 @@ export function PolicyForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -219,7 +223,7 @@ export function PolicyForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ الحفظ..." : "Saving...") : isAr ? "حفظ المرحلة" : "Save Stage"}
             </Button>
@@ -323,7 +327,7 @@ export function RaiseStageForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إغلاق" : "Close"}
               </Button>
@@ -331,7 +335,7 @@ export function RaiseStageForm({
             <Button
               type="submit"
               disabled={pending || stages.length === 0}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 gap-1.5"
+              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 gap-1.5 cursor-pointer"
             >
               <BellRing className="size-3.5" />
               <span>{pending ? (isAr ? "جارٍ الإصدار..." : "Raising...") : isAr ? "إصدار الإشعارات" : "Raise Notices"}</span>
@@ -357,11 +361,15 @@ export function NoticeActions({
     { ok: true }
   );
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id) {
+    if (submitted.current && !pending && state.ok && state.id) {
       setDeliverOpen(false);
+      submitted.current = false;
     }
-  }, [state]);
+  }, [state, pending]);
 
   const handleDownloadPdf = () => {
     generateDunningNoticePdf(
@@ -389,7 +397,7 @@ export function NoticeActions({
         variant="ghost"
         size="sm"
         onClick={handleDownloadPdf}
-        className="h-8 gap-1 px-2 text-xs font-bold text-blue-700 hover:bg-blue-50"
+        className="h-8 gap-1 px-2 text-xs font-bold text-blue-700 hover:bg-blue-50 cursor-pointer"
       >
         <Printer className="size-3.5" />
         <span>{isAr ? "PDF" : "PDF"}</span>
@@ -402,7 +410,7 @@ export function NoticeActions({
             variant="outline"
             size="sm"
             onClick={() => setDeliverOpen(true)}
-            className="h-8 gap-1 px-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 border-emerald-300"
+            className="h-8 gap-1 px-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 border-emerald-300 cursor-pointer"
           >
             <Send className="size-3.5" />
             <span>{isAr ? "تسليم" : "Deliver"}</span>
@@ -468,14 +476,14 @@ export function NoticeActions({
                     type="button"
                     variant="outline"
                     onClick={() => setDeliverOpen(false)}
-                    className="rounded-xl text-xs font-bold"
+                    className="rounded-xl text-xs font-bold cursor-pointer"
                   >
                     {isAr ? "إلغاء" : "Cancel"}
                   </Button>
                   <Button
                     type="submit"
                     disabled={pending}
-                    className="rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700"
+                    className="rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 cursor-pointer"
                   >
                     {pending ? (isAr ? "جارٍ الحفظ..." : "Saving...") : isAr ? "تأكيد التسليم" : "Confirm Delivery"}
                   </Button>

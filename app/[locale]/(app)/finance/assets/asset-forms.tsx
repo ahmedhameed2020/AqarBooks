@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,6 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle2,
-  Coins,
-  Calendar,
-  Sparkles,
 } from "lucide-react";
 import { createFixedAsset, runDepreciation, disposeAsset } from "@/lib/actions/fixed-assets";
 import type { ActionResult } from "@/lib/actions/platform";
@@ -96,11 +93,15 @@ export function RegisterAssetForm({
 
   const accumList = deprAccounts || accumulatedAccounts || [];
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -304,7 +305,7 @@ export function RegisterAssetForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -312,7 +313,7 @@ export function RegisterAssetForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ الحفظ..." : "Saving...") : isAr ? "تسجيل الأصل" : "Register Asset"}
             </Button>
@@ -412,7 +413,7 @@ export function RunDepreciationForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إغلاق" : "Close"}
               </Button>
@@ -420,7 +421,7 @@ export function RunDepreciationForm({
             <Button
               type="submit"
               disabled={pending || periods.length === 0}
-              className="rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-700 gap-1.5"
+              className="rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-700 gap-1.5 cursor-pointer"
             >
               <Play className="size-3.5 fill-white" />
               <span>{pending ? (isAr ? "جارٍ الترحيل..." : "Posting...") : isAr ? "ترحيل الإهلاك" : "Run Depreciation"}</span>
@@ -461,11 +462,15 @@ export function DisposeAssetForm({
 
   const today = new Date().toISOString().slice(0, 10);
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -554,7 +559,7 @@ export function DisposeAssetForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -562,7 +567,7 @@ export function DisposeAssetForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-rose-600 text-xs font-bold text-white hover:bg-rose-700"
+              className="rounded-xl bg-rose-600 text-xs font-bold text-white hover:bg-rose-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ الاستبعاد..." : "Disposing...") : isAr ? "تأكيد الاستبعاد" : "Confirm Disposal"}
             </Button>

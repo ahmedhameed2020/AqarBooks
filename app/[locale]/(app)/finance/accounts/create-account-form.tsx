@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
-import { Plus, X, FolderPlus, Sparkles, AlertCircle, Check } from "lucide-react";
+import { useActionState, useState, useEffect, useRef } from "react";
+import { Plus, FolderPlus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { createAccount } from "@/lib/actions/accounting";
 import type { ActionResult } from "@/lib/actions/platform";
@@ -58,11 +59,15 @@ export function CreateAccountForm({
     ok: true,
   });
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && open) {
+    if (submitted.current && !pending && state.ok) {
       setOpen(false);
+      submitted.current = false;
     }
-  }, [state, open]);
+  }, [state, pending]);
 
   return (
     <>
@@ -274,14 +279,14 @@ export function CreateAccountForm({
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
               <Button
                 type="submit"
                 disabled={pending}
-                className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
               >
                 {pending
                   ? isAr

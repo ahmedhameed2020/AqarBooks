@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,6 @@ import {
   HardHat,
   ArrowRightLeft,
   AlertCircle,
-  Coins,
-  Calendar,
-  CheckCircle2,
 } from "lucide-react";
 import {
   saveProject,
@@ -82,11 +79,15 @@ export function ProjectForm({
     { ok: true }
   );
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -243,7 +244,7 @@ export function ProjectForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -251,7 +252,7 @@ export function ProjectForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ الحفظ..." : "Saving...") : isAr ? "حفظ المشروع" : "Save Project"}
             </Button>
@@ -282,11 +283,15 @@ export function CapitaliseForm({
   );
   const today = new Date().toISOString().slice(0, 10);
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -409,7 +414,7 @@ export function CapitaliseForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -417,7 +422,7 @@ export function CapitaliseForm({
             <Button
               type="submit"
               disabled={pending || projects.length === 0}
-              className="rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-700"
+              className="rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ الترحيل..." : "Posting...") : isAr ? "رسملة التكلفة" : "Capitalise Cost"}
             </Button>
@@ -446,11 +451,15 @@ export function ReleaseForm({
   );
   const today = new Date().toISOString().slice(0, 10);
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -554,7 +563,7 @@ export function ReleaseForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -562,7 +571,7 @@ export function ReleaseForm({
             <Button
               type="submit"
               disabled={pending || projects.length === 0}
-              className="rounded-xl bg-purple-600 text-xs font-bold text-white hover:bg-purple-700"
+              className="rounded-xl bg-purple-600 text-xs font-bold text-white hover:bg-purple-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ التحويل..." : "Posting...") : isAr ? "تحرير إلى تكلفة المبيعات" : "Release Cost"}
             </Button>

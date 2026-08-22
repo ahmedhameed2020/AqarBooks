@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Coins, ArrowRightLeft, AlertCircle, Calendar } from "lucide-react";
+import { ArrowRightLeft, AlertCircle } from "lucide-react";
 import { recordExchangeRate } from "@/lib/actions/exchange-rates";
 import type { ActionResult } from "@/lib/actions/platform";
 import { CURRENCY_CODES } from "@/lib/currency";
@@ -63,11 +63,15 @@ export function RecordRateForm({
   );
   const today = new Date().toISOString().slice(0, 10);
 
+  const submitted = useRef(false);
+  if (pending) submitted.current = true;
+
   useEffect(() => {
-    if (state.ok && state.id && onOpenChange) {
+    if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
+      submitted.current = false;
     }
-  }, [state, onOpenChange]);
+  }, [state, pending, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -179,7 +183,7 @@ export function RecordRateForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold"
+                className="rounded-xl text-xs font-bold cursor-pointer"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -187,7 +191,7 @@ export function RecordRateForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
             >
               {pending ? (isAr ? "جارٍ التسجيل..." : "Recording...") : isAr ? "تسجيل السعر" : "Record Rate"}
             </Button>
