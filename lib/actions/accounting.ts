@@ -6,15 +6,24 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 
+const ACCOUNT_CATEGORIES = ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as const;
+const CASH_FLOW_SECTIONS = ["OPERATING", "INVESTING", "FINANCING"] as const;
+
 const createAccountSchema = z.object({
   organizationId: z.string().uuid(),
   code: z.string().min(1).max(20),
   nameAr: z.string().min(1).max(200),
   nameEn: z.string().min(1).max(200),
   parentId: z.string().uuid().nullable(),
-  category: z.enum(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"]),
+  category: z.enum(ACCOUNT_CATEGORIES),
   normalBalance: z.enum(["DEBIT", "CREDIT"]),
   isGroup: z.boolean(),
+  // The cash flow statement reads these two columns off the chart of accounts.
+  // Accounts seeded from a template arrive classified; anything added by hand
+  // used to land unclassified with no way to fix it, which silently dropped the
+  // account from the statement.
+  isCashEquivalent: z.boolean(),
+  cashFlowSection: z.enum(CASH_FLOW_SECTIONS).nullable(),
 });
 
 export async function createAccount(
@@ -30,6 +39,8 @@ export async function createAccount(
     category: formData.get("category"),
     normalBalance: formData.get("normalBalance"),
     isGroup: formData.get("isGroup") === "on",
+    isCashEquivalent: formData.get("isCashEquivalent") === "on",
+    cashFlowSection: (formData.get("cashFlowSection") as string) || null,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -43,9 +54,98 @@ export async function createAccount(
     category: parsed.data.category,
     normal_balance: parsed.data.normalBalance,
     is_group: parsed.data.isGroup,
+    is_cash_equivalent: parsed.data.isCashEquivalent,
+    cash_flow_section: parsed.data.cashFlowSection,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mapAccountError(error) };
+  revalidatePath("/[locale]/finance/accounts", "page");
+  return { ok: true };
+}
+
+/**
+ * Postgres messages name constraints and columns, so they are translated to
+ * codes the form knows how to render rather than echoed to the browser. RLS
+ * denials surface as an empty result rather than an error, which is why the
+ * no-rows case below is reported as a permission problem.
+ */
+function mapAccountError(error: { code?: string; message: string }): string {
+  if (error.code === "23505") return "duplicate_code";
+  if (error.code === "23503") return "invalid_parent";
+  if (error.code === "42501") return "forbidden";
+  console.error("chart_of_accounts write failed:", error);
+  return "write_failed";
+}
+
+const updateAccountSchema = z.object({
+  accountId: z.string().uuid(),
+  nameAr: z.string().min(1).max(200),
+  nameEn: z.string().min(1).max(200),
+  parentId: z.string().uuid().nullable(),
+  isActive: z.boolean(),
+  requiresCostCenter: z.boolean(),
+  isCashEquivalent: z.boolean(),
+  cashFlowSection: z.enum(CASH_FLOW_SECTIONS).nullable(),
+});
+
+export async function updateAccount(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = updateAccountSchema.safeParse({
+    accountId: formData.get("accountId"),
+    nameAr: formData.get("nameAr"),
+    nameEn: formData.get("nameEn"),
+    parentId: (formData.get("parentId") as string) || null,
+    isActive: formData.get("isActive") === "on",
+    requiresCostCenter: formData.get("requiresCostCenter") === "on",
+    isCashEquivalent: formData.get("isCashEquivalent") === "on",
+    cashFlowSection: (formData.get("cashFlowSection") as string) || null,
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const { accountId, parentId } = parsed.data;
+  if (parentId === accountId) return { ok: false, error: "parent_cycle" };
+
+  const supabase = await createClient();
+
+  // Reparenting can close a loop (A under B, then B under A), which no
+  // constraint catches and which makes the tree walk recurse forever. Walk up
+  // from the proposed parent and refuse if this account is already an ancestor.
+  if (parentId) {
+    const { data: rows, error: readError } = await supabase
+      .from("chart_of_accounts")
+      .select("id, parent_id");
+    if (readError) return { ok: false, error: mapAccountError(readError) };
+
+    const parentOf = new Map((rows ?? []).map((r) => [r.id, r.parent_id]));
+    let cursor: string | null | undefined = parentId;
+    const seen = new Set<string>();
+    while (cursor) {
+      if (cursor === accountId) return { ok: false, error: "parent_cycle" };
+      if (seen.has(cursor)) break;
+      seen.add(cursor);
+      cursor = parentOf.get(cursor) ?? null;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("chart_of_accounts")
+    .update({
+      name_ar: parsed.data.nameAr,
+      name_en: parsed.data.nameEn,
+      parent_id: parentId,
+      is_active: parsed.data.isActive,
+      requires_cost_center: parsed.data.requiresCostCenter,
+      is_cash_equivalent: parsed.data.isCashEquivalent,
+      cash_flow_section: parsed.data.cashFlowSection,
+    })
+    .eq("id", accountId)
+    .select("id");
+
+  if (error) return { ok: false, error: mapAccountError(error) };
+  if (!data?.length) return { ok: false, error: "forbidden" };
+
   revalidatePath("/[locale]/finance/accounts", "page");
   return { ok: true };
 }

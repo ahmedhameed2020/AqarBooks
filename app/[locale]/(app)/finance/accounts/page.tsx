@@ -1,44 +1,13 @@
 import { setRequestLocale } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
+import { ACCOUNT_CATEGORIES, categoryLabel } from "@/lib/accounting/account-labels";
 import { CreateAccountForm } from "./create-account-form";
 import { CloneTemplateForm } from "./clone-template-form";
-
-function sortByHierarchy<
-  T extends { id: string; parent_id: string | null; code: string },
->(accounts: T[]): (T & { depth: number })[] {
-  const byParent = new Map<string | null, T[]>();
-  for (const account of accounts) {
-    const list = byParent.get(account.parent_id) ?? [];
-    list.push(account);
-    byParent.set(account.parent_id, list);
-  }
-  for (const list of byParent.values()) {
-    list.sort((a, b) => a.code.localeCompare(b.code));
-  }
-
-  const result: (T & { depth: number })[] = [];
-  function walk(parentId: string | null, depth: number) {
-    for (const account of byParent.get(parentId) ?? []) {
-      result.push({ ...account, depth });
-      walk(account.id, depth + 1);
-    }
-  }
-  walk(null, 0);
-  return result;
-}
+import { AccountsClient, type AccountRow } from "./accounts-client";
 
 export default async function ChartOfAccountsPage({
   params,
@@ -74,24 +43,61 @@ export default async function ChartOfAccountsPage({
     );
   }
 
+  // Writes are gated by the chart_of_accounts_manage RLS policy. Mirroring it
+  // here keeps the create and edit affordances from being offered to a
+  // read-only member whose submit would only ever be rejected.
+  const canManage = await hasPermission(organization.id, "finance.accounts.manage");
+
   const supabase = await createClient();
   const { data: accounts } = await supabase
     .from("chart_of_accounts")
-    .select("id, code, name_ar, name_en, parent_id, category, normal_balance, is_group, is_active")
+    .select(
+      "id, code, name_ar, name_en, parent_id, category, normal_balance, is_group, is_active, is_used, requires_cost_center, is_cash_equivalent, cash_flow_section",
+    )
     .eq("organization_id", organization.id);
 
-  const sorted = sortByHierarchy(accounts ?? []);
+  const rows = (accounts ?? []) as AccountRow[];
 
   const { data: templates } = await supabase.from("coa_templates").select("key, name_ar, name_en");
   const template = templates?.[0];
 
+  const postable = rows.filter((a) => !a.is_group).length;
+  const perCategory = ACCOUNT_CATEGORIES.map((category) => ({
+    category,
+    count: rows.filter((a) => a.category === category).length,
+  })).filter((entry) => entry.count > 0);
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-1">
         <h1 className="text-xl font-semibold">{isAr ? "دليل الحسابات" : "Chart of Accounts"}</h1>
+        <p className="text-sm text-muted-foreground">
+          {isAr
+            ? "الهيكل المحاسبي الذي تُرحَّل إليه كل القيود. الحسابات التجميعية لا يُقيَّد عليها مباشرة."
+            : "The account structure every journal entry posts into. Group accounts are not directly postable."}
+        </p>
       </div>
 
-      {!accounts?.length && template && (
+      {rows.length > 0 && (
+        <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{isAr ? "إجمالي الحسابات" : "Total accounts"}</dt>
+            <dd className="font-semibold tabular-nums">{rows.length}</dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{isAr ? "قابلة للترحيل" : "Postable"}</dt>
+            <dd className="font-semibold tabular-nums">{postable}</dd>
+          </div>
+          {perCategory.map(({ category, count }) => (
+            <div key={category} className="flex items-baseline gap-1.5">
+              <dt className="text-muted-foreground">{categoryLabel(category, isAr)}</dt>
+              <dd className="font-semibold tabular-nums">{count}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {!rows.length && template && canManage && (
         <CloneTemplateForm
           organizationId={organization.id}
           templateKey={template.key}
@@ -100,46 +106,11 @@ export default async function ChartOfAccountsPage({
         />
       )}
 
-      <CreateAccountForm organizationId={organization.id} accounts={accounts ?? []} locale={locale} />
+      {canManage && (
+        <CreateAccountForm organizationId={organization.id} accounts={rows} locale={locale} />
+      )}
 
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{isAr ? "الرمز" : "Code"}</TableHead>
-              <TableHead>{isAr ? "الاسم" : "Name"}</TableHead>
-              <TableHead>{isAr ? "التصنيف" : "Category"}</TableHead>
-              <TableHead>{isAr ? "الرصيد الطبيعي" : "Normal balance"}</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sorted.length ? (
-              sorted.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-mono text-xs">{account.code}</TableCell>
-                  <TableCell style={{ paddingInlineStart: `${account.depth * 1.25 + 1}rem` }}>
-                    <span className={account.is_group ? "font-semibold" : ""}>
-                      {isAr ? account.name_ar : account.name_en}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{account.category}</TableCell>
-                  <TableCell className="text-muted-foreground">{account.normal_balance}</TableCell>
-                  <TableCell>
-                    {account.is_group && <Badge variant="outline">{isAr ? "تجميعي" : "Group"}</Badge>}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  {isAr ? "لا توجد حسابات بعد" : "No accounts yet"}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <AccountsClient accounts={rows} canManage={canManage} locale={locale} />
     </div>
   );
 }

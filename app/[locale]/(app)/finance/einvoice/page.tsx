@@ -7,7 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import type { Jurisdiction } from "@/lib/einvoice/types";
 import { supportedJurisdictions } from "@/lib/einvoice/registry";
 import { getCurrencyLabel } from "@/lib/currency";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Shield } from "lucide-react";
 import {
   EInvoiceClient,
   type EInvoiceProfileData,
@@ -234,28 +234,41 @@ export default async function EInvoicePage({
   const jurisdiction = primaryProfile?.jurisdiction || "EG";
   const taxId = primaryProfile?.taxpayer_id || null;
 
-  return (
-    <div className="space-y-6">
-      {/* ──────────────────────────────────────────────────────────────────────
-          FILING PROFILES -- the ONLY place an operator can set the taxpayer id,
-          choose the environment, or switch filing on. `einvoice-forms.tsx` and
-          its two server actions exist but nothing imported them, so the whole
-          surface was unreachable in the product while the page still displayed
-          the values as read-only text. This has now been lost twice; the
-          regression spec that covers it is restored alongside this.
-          ────────────────────────────────────────────────────────────────────── */}
-      <section aria-label={isAr ? "ملفات الربط الضريبي" : "Filing profiles"} className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-          {isAr ? "ملفات الربط بالمصالح الضريبية" : "Tax Authority Filing Profiles"}
-        </h2>
+  const filingProfilesSection = (
+    <details
+      open
+      key="filing-profiles-section"
+      className="group rounded-2xl border border-slate-200/90 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-all"
+    >
+      <summary className="flex items-center justify-between p-3.5 sm:px-4 cursor-pointer select-none bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-900/50 dark:hover:bg-slate-800/50 transition-colors list-none rounded-2xl">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+            <Shield className="size-3.5" />
+          </div>
+          <div>
+            <h2 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <span>{isAr ? "ملفات الربط والامتثال بالمصالح الضريبية" : "Tax Authority Filing Profiles & Gateways"}</span>
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {isAr ? "إعدادات وبيانات الاعتماد المشفرة لـ ETA (مصر) و ZATCA (السعودية)" : "Encrypted credentials for ETA & ZATCA"}
+            </p>
+          </div>
+        </div>
 
+        <div className="flex items-center gap-2 text-[11px] font-bold text-purple-700 dark:text-purple-400">
+          <span className="group-open:hidden">{isAr ? "إظهار الإعدادات ▾" : "Show Settings ▾"}</span>
+          <span className="hidden group-open:inline">{isAr ? "طي الإعدادات ▴" : "Collapse ▴"}</span>
+        </div>
+      </summary>
+
+      <section
+        aria-label={isAr ? "ملفات الربط الضريبي" : "Filing profiles"}
+        className="p-3.5 sm:p-4 pt-1 space-y-3 border-t border-slate-100 dark:border-slate-800"
+      >
         <div className="grid gap-3 lg:grid-cols-2">
           {OFFERED.map((jur) => {
             const profile = profiles.find((p) => p.jurisdiction === jur) ?? null;
 
-            // Four derived states. ACTIVE is never claimed from configuration
-            // alone: it needs a real verification write, which only a genuine
-            // authority round-trip performs.
             const label = !profile
               ? isAr ? "غير مُعد" : "Not configured"
               : profile.enabled
@@ -264,39 +277,54 @@ export default async function EInvoicePage({
                   ? isAr ? "مُتحقق منه — الإرسال متوقف" : "Verified — filing off"
                   : isAr ? "مُعد — لم يُتحقق منه" : "Configured — not verified";
 
+            const isEg = jur.startsWith("EG");
+            const isSa = jur.startsWith("SA");
+            const flag = isEg ? "🇪🇬" : isSa ? "🇸🇦" : "🇦🇪";
+            const title = isEg
+              ? isAr ? "مصلحة الضرائب المصرية (ETA)" : "Egyptian Tax Authority (ETA)"
+              : isSa
+              ? isAr ? "هيئة الزكاة والضريبة (ZATCA)" : "Zakat, Tax & Customs Authority (ZATCA)"
+              : isAr ? "الهيئة الاتحادية للضرائب" : "Federal Tax Authority";
+
             return (
               <div
                 key={jur}
                 data-jurisdiction={jur}
-                // Mirrors the ProfileForm remount key below so a test can wait
-                // for a save to have actually landed. The remount resets the
-                // uncontrolled inputs, so anything typed before it arrives is
-                // silently discarded.
                 data-profile-updated={profile?.updated_at ?? "new"}
-                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                className="space-y-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-800/30"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{jur}</span>
-                  <span className="text-[11px] font-semibold text-slate-500">{label}</span>
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{flag}</span>
+                    <span className="font-mono text-xs font-black text-slate-900 dark:text-white">
+                      {jur} — {title}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      !profile
+                        ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                        : profile.enabled
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                        : profile.verified_at
+                        ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                        : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                    }`}
+                  >
+                    {label}
+                  </span>
                 </div>
 
                 {profile?.last_verification_error && (
-                  <p role="alert" className="text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                  <p role="alert" className="text-[10px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50">
                     {profile.last_verification_error}
                   </p>
                 )}
 
                 {canManage ? (
-                  <>
+                  <div className="space-y-2.5">
                     <ProfileForm
-                      // Remount on every save. The inputs are uncontrolled, so
-                      // `defaultValue` applies only at mount: without this key a
-                      // save-and-revalidate leaves stale values in the DOM and
-                      // the NEXT save posts what the previous render put there
-                      // rather than what the operator typed. Here that means a
-                      // save can carry the PREVIOUS taxpayer id, which the ADR
-                      // 0002 identity guard then has nothing to object to -- so
-                      // it succeeds silently. Not cosmetic.
                       key={`${jur}-${profile?.updated_at ?? "new"}`}
                       organizationId={organization.id}
                       jurisdiction={jur}
@@ -310,14 +338,13 @@ export default async function EInvoicePage({
                       <FilingToggle
                         profileId={profile.id}
                         enabled={profile.enabled}
-                        // Only a recorded verification unlocks filing.
                         canEnable={Boolean(profile.verified_at)}
                         locale={locale}
                       />
                     )}
-                  </>
+                  </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[10px] text-slate-500">
                     {isAr ? "للاطلاع فقط." : "View only."}
                   </p>
                 )}
@@ -326,7 +353,11 @@ export default async function EInvoicePage({
           })}
         </div>
       </section>
+    </details>
+  );
 
+  return (
+    <div className="space-y-6">
       <EInvoiceClient
         taxDecisions={taxDecisions}
         revenueNatures={revenueNatures}
@@ -342,6 +373,7 @@ export default async function EInvoicePage({
         dueTypes={dueTypes}
         receivableAccounts={receivableAccounts}
         periods={periods}
+        profilesSlot={filingProfilesSection}
       />
     </div>
   );

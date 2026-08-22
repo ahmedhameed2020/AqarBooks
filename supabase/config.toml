@@ -16,8 +16,13 @@ project_id = "aqarbooks"
 # exact values confirmed live on the project immediately before that push.
 
 [auth]
-site_url = "https://aqarbooks.com/**"
-additional_redirect_urls = ["http://aqarbooks.com/**", "https://aqarbooks.com/auth/callback", "https://aqarbooks.com/ar/auth/reset-password", "http://localhost:3000/**", "http://localhost:3100/**"]
+# NOTE: site_url must be a bare origin. It is interpolated verbatim into the
+# email templates as `{{ .SiteURL }}` -- a wildcard here (it was once set to
+# "https://aqarbooks.com/ar/**") ships literal `**` inside every confirmation
+# link and every one of them 404s. Wildcards belong in additional_redirect_urls
+# only, which is a match list and never rendered into a URL.
+site_url = "https://aqarbooks.com"
+additional_redirect_urls = ["https://aqarbooks.com/**", "http://aqarbooks.com/**", "https://aqarbooks.com/auth/callback", "https://aqarbooks.com/ar/auth/reset-password", "http://localhost:3000/**", "http://localhost:3100/**"]
 
 [auth.mfa.totp]
 enroll_enabled = true

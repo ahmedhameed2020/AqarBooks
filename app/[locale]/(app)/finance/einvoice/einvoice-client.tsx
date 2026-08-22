@@ -38,8 +38,15 @@ import {
   Mail,
   MessageCircle,
   Download,
-  Edit3,
   Copy,
+  ArrowUpDown,
+  Filter,
+  Sparkles,
+  Info,
+  BadgeCheck,
+  ShieldAlert,
+  ArrowUpRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +107,7 @@ export type EInvoiceProfileData = {
 
 export type FormOption = { id: string; label: string };
 
-const JURISDICTION_INFO: Record<
+export const JURISDICTION_INFO: Record<
   string,
   {
     arName: string;
@@ -109,23 +116,29 @@ const JURISDICTION_INFO: Record<
     authorityEn: string;
     flag: string;
     standardVat: string;
+    portalNameAr: string;
+    portalNameEn: string;
   }
 > = {
   EG: {
     arName: "جمهورية مصر العربية",
     enName: "Egypt",
     authorityAr: "مصلحة الضرائب المصرية (منظومة الفاتورة والإيصال الإلكتروني - ETA)",
-    authorityEn: "Egyptian Tax Authority (ETA E-Invoicing / E-Receipt)",
+    authorityEn: "Egyptian Tax Authority (ETA E-Invoicing & E-Receipt)",
     flag: "🇪🇬",
     standardVat: "14%",
+    portalNameAr: "البوابة الإلكترونية لمصلحة الضرائب المصرية",
+    portalNameEn: "ETA Taxpayer Portal",
   },
   EG_ETA: {
     arName: "جمهورية مصر العربية",
     enName: "Egypt",
     authorityAr: "مصلحة الضرائب المصرية (منظومة الفاتورة والإيصال الإلكتروني - ETA)",
-    authorityEn: "Egyptian Tax Authority (ETA E-Invoicing / E-Receipt)",
+    authorityEn: "Egyptian Tax Authority (ETA E-Invoicing & E-Receipt)",
     flag: "🇪🇬",
     standardVat: "14%",
+    portalNameAr: "البوابة الإلكترونية لمصلحة الضرائب المصرية",
+    portalNameEn: "ETA Taxpayer Portal",
   },
   SA: {
     arName: "المملكة العربية السعودية",
@@ -134,6 +147,8 @@ const JURISDICTION_INFO: Record<
     authorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
     flag: "🇸🇦",
     standardVat: "15%",
+    portalNameAr: "بوابة زاتكا للفوترة الإلكترونية (فاتورة)",
+    portalNameEn: "ZATCA Fatoora Portal",
   },
   SA_ZATCA: {
     arName: "المملكة العربية السعودية",
@@ -142,6 +157,8 @@ const JURISDICTION_INFO: Record<
     authorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
     flag: "🇸🇦",
     standardVat: "15%",
+    portalNameAr: "بوابة زاتكا للفوترة الإلكترونية (فاتورة)",
+    portalNameEn: "ZATCA Fatoora Portal",
   },
   AE: {
     arName: "دولة الإمارات العربية المتحدة",
@@ -150,6 +167,8 @@ const JURISDICTION_INFO: Record<
     authorityEn: "Federal Tax Authority (FTA PEPPOL Network)",
     flag: "🇦🇪",
     standardVat: "5%",
+    portalNameAr: "بوابة الهيئة الاتحادية للضرائب",
+    portalNameEn: "FTA Tax Portal",
   },
   AE_PEPPOL: {
     arName: "دولة الإمارات العربية المتحدة",
@@ -158,6 +177,8 @@ const JURISDICTION_INFO: Record<
     authorityEn: "Federal Tax Authority (FTA PEPPOL Network)",
     flag: "🇦🇪",
     standardVat: "5%",
+    portalNameAr: "بوابة الهيئة الاتحادية للضرائب",
+    portalNameEn: "FTA Tax Portal",
   },
 };
 
@@ -178,6 +199,7 @@ export function EInvoiceClient({
   dueTypes = [],
   receivableAccounts = [],
   periods = [],
+  profilesSlot,
 }: {
   taxDecisions: TaxDecisionItem[];
   revenueNatures: RevenueNatureItem[];
@@ -195,14 +217,17 @@ export function EInvoiceClient({
   dueTypes?: FormOption[];
   receivableAccounts?: FormOption[];
   periods?: FormOption[];
+  profilesSlot?: React.ReactNode;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const [activeTab, setActiveTab] = useState<"DECISIONS" | "CREATE_INFO" | "NATURES" | "PROFILES">("DECISIONS");
+  const [activeTab, setActiveTab] = useState<"DECISIONS" | "PROFILES" | "NATURES" | "GUIDE">("DECISIONS");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterTaxTreatment, setFilterTaxTreatment] = useState<"ALL" | "TAXABLE" | "EXEMPT">("ALL");
+  const [sortBy, setSortBy] = useState<"NEWEST" | "HIGHEST_AMOUNT">("NEWEST");
 
   // Create Invoice Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -220,12 +245,13 @@ export function EInvoiceClient({
 
   // View / Print Tax Invoice Modal state
   const [viewInvoiceDecision, setViewInvoiceDecision] = useState<TaxDecisionItem | null>(null);
-
-  // Edit Invoice Note Modal state
-  const [editInvoiceDecision, setEditInvoiceDecision] = useState<TaxDecisionItem | null>(null);
-  const [editNote, setEditNote] = useState("");
+  const [copiedInvoiceId, setCopiedInvoiceId] = useState<string | null>(null);
 
   const currentJur = JURISDICTION_INFO[organizationJurisdiction] || JURISDICTION_INFO.EG;
+
+  // Active profiles count and status
+  const activeProfilesCount = profiles.filter((p) => p.enabled).length;
+  const verifiedProfilesCount = profiles.filter((p) => Boolean(p.verified_at)).length;
 
   // Filtered units based on selected resort
   const filteredUnits = useMemo(() => {
@@ -237,25 +263,53 @@ export function EInvoiceClient({
   // Tax calculation helper for create modal
   const calculatedTax = useMemo(() => {
     const base = Number(invoiceAmount) || 0;
-    const isExempt = selectedDueTypeId ? false : false;
-    const rate = isExempt ? 0 : organizationJurisdiction.startsWith("SA") ? 15 : organizationJurisdiction.startsWith("AE") ? 5 : 14;
+    const isExempt = false;
+    const rate = isExempt
+      ? 0
+      : organizationJurisdiction.startsWith("SA")
+      ? 15
+      : organizationJurisdiction.startsWith("AE")
+      ? 5
+      : 14;
     const vat = (base * rate) / 100;
     const gross = base + vat;
     return { base, rate, vat, gross };
-  }, [invoiceAmount, selectedDueTypeId, organizationJurisdiction]);
+  }, [invoiceAmount, organizationJurisdiction]);
 
+  // Filtered & Sorted Decisions
   const filteredDecisions = useMemo(() => {
-    if (!searchQuery.trim()) return taxDecisions;
-    const q = searchQuery.toLowerCase().trim();
-    return taxDecisions.filter(
-      (td) =>
-        (td.unit_code || "").toLowerCase().includes(q) ||
-        (td.owner_name || "").toLowerCase().includes(q) ||
-        (td.description || "").toLowerCase().includes(q) ||
-        td.nature_name.toLowerCase().includes(q) ||
-        td.decided_at.includes(q)
-    );
-  }, [taxDecisions, searchQuery]);
+    let list = [...taxDecisions];
+
+    // Filter by tax treatment
+    if (filterTaxTreatment === "TAXABLE") {
+      list = list.filter((td) => !td.is_exempt && td.vat_rate > 0);
+    } else if (filterTaxTreatment === "EXEMPT") {
+      list = list.filter((td) => td.is_exempt || td.vat_rate === 0);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (td) =>
+          td.id.toLowerCase().includes(q) ||
+          (td.unit_code || "").toLowerCase().includes(q) ||
+          (td.owner_name || "").toLowerCase().includes(q) ||
+          (td.description || "").toLowerCase().includes(q) ||
+          td.nature_name.toLowerCase().includes(q) ||
+          td.decided_at.includes(q)
+      );
+    }
+
+    // Sort
+    if (sortBy === "HIGHEST_AMOUNT") {
+      list.sort((a, b) => b.gross_amount - a.gross_amount);
+    } else {
+      list.sort((a, b) => new Date(b.decided_at).getTime() - new Date(a.decided_at).getTime());
+    }
+
+    return list;
+  }, [taxDecisions, searchQuery, filterTaxTreatment, sortBy]);
 
   const filteredNatures = useMemo(() => {
     if (!searchQuery.trim()) return revenueNatures;
@@ -267,6 +321,35 @@ export function EInvoiceClient({
         n.code.toLowerCase().includes(q)
     );
   }, [revenueNatures, searchQuery]);
+
+  // Aggregate stats
+  const totalTaxableBase = useMemo(() => {
+    return taxDecisions.reduce((sum, td) => sum + td.taxable_base, 0);
+  }, [taxDecisions]);
+
+  const totalVatAmount = useMemo(() => {
+    return taxDecisions.reduce((sum, td) => sum + td.vat_amount, 0);
+  }, [taxDecisions]);
+
+  const totalGrossAmount = useMemo(() => {
+    return taxDecisions.reduce((sum, td) => sum + td.gross_amount, 0);
+  }, [taxDecisions]);
+
+  const exemptDecisionsCount = useMemo(() => {
+    return taxDecisions.filter((td) => td.is_exempt || td.vat_rate === 0).length;
+  }, [taxDecisions]);
+
+  // Copy invoice ID
+  const handleCopyInvoiceId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedInvoiceId(id);
+    toast?.add({
+      type: "success",
+      title: isAr ? "تم نسخ المعرف" : "ID Copied",
+      description: id,
+    });
+    setTimeout(() => setCopiedInvoiceId(null), 2000);
+  };
 
   // Handle Form Submission for Create E-Invoice
   const handleIssueInvoiceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -320,13 +403,13 @@ export function EInvoiceClient({
     });
   };
 
-  // 1. WhatsApp Share
+  // WhatsApp Share
   const handleShareInvoiceWhatsApp = (td: TaxDecisionItem) => {
     const invNumber = td.id.slice(0, 8).toUpperCase();
     const unit = td.unit_code || `#${td.source_id.slice(0, 8)}`;
     const text = isAr
       ? `📄 *فاتورة ضريبية إلكترونية معتمدة*\n` +
-        `🏢 *المنشأة:* ${organizationName}\n` +
+        `🏢 *المنشأة الموردة:* ${organizationName}\n` +
         `🔢 *الرقم الضريبي:* ${organizationTaxId || "—"}\n` +
         `🏷️ *رقم الفاتورة:* #${invNumber}\n` +
         `🏠 *الوحدة:* ${unit}\n` +
@@ -352,7 +435,7 @@ export function EInvoiceClient({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // 2. Email Share
+  // Email Share
   const handleShareInvoiceEmail = (td: TaxDecisionItem) => {
     const invNumber = td.id.slice(0, 8).toUpperCase();
     const unit = td.unit_code || `#${td.source_id.slice(0, 8)}`;
@@ -384,7 +467,7 @@ export function EInvoiceClient({
     window.location.href = mailtoUrl;
   };
 
-  // 3. Single Invoice PDF Export
+  // Single Invoice PDF Export
   const handleExportSingleInvoicePdf = (td: TaxDecisionItem) => {
     const invNumber = td.id.slice(0, 8).toUpperCase();
     generateFinancialStatementPdf({
@@ -488,11 +571,11 @@ export function EInvoiceClient({
         { label: isAr ? "إجمالي الفواتير" : "Total Invoices", value: `${taxDecisions.length}` },
         {
           label: isAr ? "إجمالي الضريبة" : "Total VAT",
-          value: `${taxDecisions.reduce((s, d) => s + d.vat_amount, 0).toLocaleString()} ${currencyLabel}`,
+          value: `${totalVatAmount.toLocaleString()} ${currencyLabel}`,
         },
         {
           label: isAr ? "الإجمالي الشامل" : "Gross Total",
-          value: `${taxDecisions.reduce((s, d) => s + d.gross_amount, 0).toLocaleString()} ${currencyLabel}`,
+          value: `${totalGrossAmount.toLocaleString()} ${currencyLabel}`,
         },
       ],
       filename: `Tax_Invoices_${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -502,230 +585,311 @@ export function EInvoiceClient({
   return (
     <div className="space-y-6 pb-12">
       {/* ──────────────────────────────────────────────────────────────────────────
-          EXECUTIVE LIGHT-THEME HEADER WITH PRIMARY CREATE CTA
+          EXECUTIVE HERO HEADER & WORKSPACE TOOLBAR
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1.5">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 p-6 sm:p-7 shadow-xs dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+        {/* Subtle background glow effect */}
+        <div className="pointer-events-none absolute -end-24 -top-24 size-96 rounded-full bg-purple-500/5 blur-3xl dark:bg-purple-500/10" />
+        <div className="pointer-events-none absolute -start-24 -bottom-24 size-96 rounded-full bg-indigo-500/5 blur-3xl dark:bg-indigo-500/10" />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            {/* Breadcrumb path */}
             <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
-              <span className="flex size-6 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-950/50">
-                <Landmark className="size-3.5 text-purple-600" />
+              <span className="flex size-6.5 items-center justify-center rounded-lg bg-purple-100/70 dark:bg-purple-950/70 shadow-2xs">
+                <Landmark className="size-3.5 text-purple-600 dark:text-purple-400" />
               </span>
-              <span>{isAr ? "الإدارة المالية والضريبية" : "Tax & Compliance"}</span>
-              <span>/</span>
-              <span className="text-slate-800 dark:text-slate-200 font-extrabold">
-                {isAr ? "الفوترة الإلكترونية والإقرارات" : "E-Invoicing Suite"}
+              <span>{isAr ? "الإدارة المالية والضريبية" : "Tax & Finance"}</span>
+              <span className="text-slate-300 dark:text-slate-700">/</span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                {isAr ? "منظومة الفوترة الإلكترونية والإقرارات" : "E-Invoicing & Statutory Compliance"}
               </span>
             </div>
+
             <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
               {isAr ? "الفوترة والإقرارات الضريبية الإلكترونية" : "E-Invoicing & Statutory Tax Compliance"}
             </h1>
-            <p className="text-xs text-slate-500 max-w-2xl font-medium">
+
+            <p className="max-w-2xl text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
               {isAr
-                ? "إصدار الفواتير الضريبية المعتمدة، تطبيق القواعد الضريبية آلياً، والربط اللحظي مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA)."
-                : "Issue statutory tax invoices, auto-calculate VAT, and integrate with Egyptian Tax Authority (ETA) & ZATCA."}
+                ? "إصدار الفواتير الضريبية المعتمدة، تطبيق القواعد الضريبية آلياً، والربط اللحظي مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
+                : "Issue statutory tax invoices, auto-calculate VAT, and integrate in real-time with Egyptian Tax Authority (ETA) & ZATCA."}
             </p>
           </div>
 
-          {/* ACTIONS: PRIMARY CREATE INVOICE BUTTON */}
+          {/* ACTIONS: PRIMARY CTAS */}
           <div className="flex flex-wrap items-center gap-2.5">
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               size="sm"
-              className="h-9.5 px-4.5 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/20 gap-2 cursor-pointer transition-all"
+              className="h-10 px-5 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/20 rounded-xl gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="size-4" />
               <span>{isAr ? "إنشاء فاتورة إلكترونية جديدة" : "Issue New E-Invoice"}</span>
             </Button>
 
-            <Button
-              onClick={handleExportExcel}
-              variant="outline"
-              size="sm"
-              className="h-9 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 gap-1.5"
-            >
-              <FileSpreadsheet className="size-3.5 text-emerald-600" />
-              <span>{isAr ? "تصدير إكسل" : "Excel"}</span>
-            </Button>
-
-            <Button
-              onClick={handleExportPdf}
-              variant="outline"
-              size="sm"
-              className="h-9 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 gap-1.5"
-            >
-              <FileText className="size-3.5 text-rose-600" />
-              <span>{isAr ? "تصدير PDF" : "PDF"}</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* TOP SUMMARY STATS */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-5 border-t border-slate-100 dark:border-slate-800">
-          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">{isAr ? "إجمالي الوعاء الخاضع" : "Taxable Base"}</span>
-              <DollarSign className="size-4 text-purple-600" />
-            </div>
-            <p className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">
-              {taxDecisions.reduce((s, d) => s + d.taxable_base, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
-            </p>
-            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "صافي قيمة التوريدات" : "Net sales base"}</span>
-          </div>
-
-          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">{isAr ? "ضريبة القيمة المضافة" : "Output VAT"}</span>
-              <Percent className="size-4 text-emerald-600" />
-            </div>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
-              {taxDecisions.reduce((s, d) => s + d.vat_amount, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="text-xs font-bold text-slate-400 ms-1">{currencyLabel}</span>
-            </p>
-            <span className="text-[10px] text-emerald-600/80 block mt-0.5">{isAr ? "محصلة ومختومة ضريبياً" : "Collected VAT"}</span>
-          </div>
-
-          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">{isAr ? "الفواتير والقرارات" : "Stamped Invoices"}</span>
-              <FileCheck2 className="size-4 text-blue-600" />
-            </div>
-            <p className="text-xl font-black text-slate-900 dark:text-white mt-1 font-mono">{taxDecisions.length}</p>
-            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "مكتملة ومختومة 100%" : "Audited records"}</span>
-          </div>
-
-          <div className="rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/60 dark:bg-slate-800/40 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">{isAr ? "الامتثال والربط" : "Compliance Link"}</span>
-              <ShieldCheck className="size-4 text-indigo-600" />
-            </div>
-            <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1 font-mono">
-              {currentJur.flag} {organizationJurisdiction}
-            </p>
-            <span className="text-[10px] text-slate-400 block mt-0.5">{isAr ? "معتمد وجاهز للربط" : "Ready"}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          ACTIVE TAX JURISDICTION BANNER
-          ────────────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-purple-200/80 bg-white p-4.5 shadow-xs dark:border-purple-900/50 dark:bg-slate-900">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{currentJur.flag}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-black text-slate-900 dark:text-white">
-                  {isAr ? currentJur.arName : currentJur.enName} — {isAr ? currentJur.authorityAr : currentJur.authorityEn}
-                </h2>
-                <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
-                  {isAr ? "✓ مربوط بالمنشأة" : "Linked"}
-                </Badge>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                <span>
-                  {isAr ? "الرقم الضريبي: " : "Tax ID: "}
-                  <strong className="font-mono text-slate-900 dark:text-white">{organizationTaxId || "—"}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  {isAr ? "الضريبة القياسية: " : "Standard VAT: "}
-                  <strong className="text-purple-700 dark:text-purple-300 font-black">{currentJur.standardVat}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href="/admin">
+            <Link href="/finance/einvoice-items">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs font-bold h-8.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300"
+                className="h-10 px-4 text-xs font-bold border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 rounded-xl gap-1.5 transition-all"
               >
-                <Settings className="size-3.5" />
-                <span>{isAr ? "إعدادات الربط والشهادات" : "Tax Link Settings"}</span>
-                <ExternalLink className="size-3" />
+                <Tag className="size-3.5 text-purple-600 dark:text-purple-400" />
+                <span>{isAr ? "كتالوج وتكويد الأصناف" : "Item Coding"}</span>
+                <ArrowUpRight className="size-3 opacity-60" />
               </Button>
             </Link>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                size="sm"
+                className="h-10 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100/70 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80 rounded-xl gap-1.5 transition-all"
+              >
+                <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                <span>{isAr ? "تصدير إكسل" : "Excel"}</span>
+              </Button>
+
+              <Button
+                onClick={handleExportPdf}
+                variant="outline"
+                size="sm"
+                className="h-10 px-3.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100/70 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80 rounded-xl gap-1.5 transition-all"
+              >
+                <FileText className="size-3.5 text-rose-600" />
+                <span>{isAr ? "تصدير PDF" : "PDF"}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ──────────────────────────────────────────────────────────────────────
+            EXECUTIVE KPI METRIC CARDS (4 METRICS)
+            ────────────────────────────────────────────────────────────────────── */}
+        <div className="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-4 pt-6 border-t border-slate-200/60 dark:border-slate-800">
+          {/* 1. Taxable Base */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-purple-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-purple-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                {isAr ? "إجمالي الوعاء الخاضع" : "Taxable Base"}
+              </span>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
+                <DollarSign className="size-3.5" />
+              </span>
+            </div>
+            <p className="mt-2 text-xl font-black font-mono text-slate-900 dark:text-white sm:text-2xl">
+              {totalTaxableBase.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-xs font-bold text-slate-400 ms-1 font-sans">{currencyLabel}</span>
+            </p>
+            <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
+              {isAr ? "صافي قيمة التوريدات والخدمات" : "Net revenue base"}
+            </span>
+          </div>
+
+          {/* 2. Output VAT */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-emerald-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                {isAr ? "ضريبة القيمة المضافة" : "Output VAT"}
+              </span>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                <Percent className="size-3.5" />
+              </span>
+            </div>
+            <p className="mt-2 text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+              {totalVatAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-xs font-bold text-slate-400 ms-1 font-sans">{currencyLabel}</span>
+            </p>
+            <span className="mt-1 block text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+              {isAr ? `مختومة ضريبياً بنسبة ${currentJur.standardVat}` : `Standard VAT at ${currentJur.standardVat}`}
+            </span>
+          </div>
+
+          {/* 3. Stamped Invoices */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-blue-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-blue-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                {isAr ? "الفواتير والقرارات" : "Stamped Invoices"}
+              </span>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                <FileCheck2 className="size-3.5" />
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-xl font-black font-mono text-slate-900 dark:text-white sm:text-2xl">
+                {taxDecisions.length}
+              </p>
+              {exemptDecisionsCount > 0 && (
+                <span className="text-[11px] font-bold text-slate-500">
+                  ({exemptDecisionsCount} {isAr ? "معفى" : "exempt"})
+                </span>
+              )}
+            </div>
+            <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-slate-500">
+              {isAr ? "سجلات محاسبية مدققة 100%" : "Audited statutory records"}
+            </span>
+          </div>
+
+          {/* 4. Compliance Link Status */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-2xs transition-all hover:border-indigo-300 dark:border-slate-800/80 dark:bg-slate-900/90 dark:hover:border-indigo-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                {isAr ? "الامتثال والربط الضريبي" : "Compliance Link"}
+              </span>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                <ShieldCheck className="size-3.5" />
+              </span>
+            </div>
+            <p className="mt-2 text-base font-black text-indigo-600 dark:text-indigo-400 sm:text-lg flex items-center gap-1.5">
+              <span>{currentJur.flag}</span>
+              <span>{organizationJurisdiction}</span>
+            </p>
+            <span className="mt-1 block text-[11px] font-medium text-indigo-600/80 dark:text-indigo-400/80">
+              {activeProfilesCount > 0
+                ? isAr ? "✓ الإرسال الآلي مفعّل" : "Active & Auto-filing"
+                : verifiedProfilesCount > 0
+                ? isAr ? "مُتحقق منه — جاهز للتفعيل" : "Verified — ready"
+                : isAr ? "بانتظار إعداد الربط" : "Setup needed"}
+            </span>
           </div>
         </div>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          FUNCTIONAL NAVIGATION TABS & TOOLBAR
+          RENDER SERVER-SIDE FILING PROFILES (COMPACT COLLAPSIBLE PANEL)
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      {profilesSlot}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          FUNCTIONAL NAVIGATION TABS & ADVANCED TOOLBAR
+          ────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
         {/* Module Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/70 p-1 rounded-xl overflow-x-auto">
           <button
             onClick={() => setActiveTab("DECISIONS")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
               activeTab === "DECISIONS"
-                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
+                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <FileCheck2 className="size-3.5 text-purple-600" />
+            <FileCheck2 className="size-3.5 text-purple-600 dark:text-purple-400" />
             <span>{isAr ? "سجل الفواتير والمطالبات الضريبية" : "Tax Invoices Register"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1 font-mono">
+            <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 ms-0.5 font-mono font-bold">
               {taxDecisions.length}
             </Badge>
           </button>
 
           <button
-            onClick={() => setActiveTab("CREATE_INFO")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "CREATE_INFO"
-                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            }`}
-          >
-            <Zap className="size-3.5 text-indigo-600" />
-            <span>{isAr ? "إرشادات ودليل الفوترة" : "Invoicing Guide"}</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab("NATURES")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
               activeTab === "NATURES"
-                ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
+                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
             }`}
           >
-            <Scale className="size-3.5 text-blue-600" />
+            <Scale className="size-3.5 text-blue-600 dark:text-blue-400" />
             <span>{isAr ? "دليل تصنيفات الإيراد والقواعد الضريبية" : "Revenue Tax Rules"}</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 ms-1 font-mono">
+            <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 ms-0.5 font-mono font-bold">
               {revenueNatures.length}
             </Badge>
           </button>
+
+          <button
+            onClick={() => setActiveTab("GUIDE")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
+              activeTab === "GUIDE"
+                ? "bg-white text-slate-950 shadow-xs dark:bg-slate-900 dark:text-white"
+                : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <Zap className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>{isAr ? "دورة حياة الفاتورة والإرشادات" : "Invoicing Lifecycle"}</span>
+          </button>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={isAr ? "بحث في الفواتير أو الوحدات..." : "Search invoices or units..."}
-            className="ps-9 text-xs h-9 bg-slate-50 dark:bg-slate-800"
-          />
-        </div>
+        {/* Filters & Search Toolbar */}
+        {activeTab === "DECISIONS" && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tax Treatment Quick Filter */}
+            <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/70 p-1 rounded-xl text-xs font-bold">
+              <button
+                onClick={() => setFilterTaxTreatment("ALL")}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  filterTaxTreatment === "ALL"
+                    ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-900 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                {isAr ? "الكل" : "All"}
+              </button>
+              <button
+                onClick={() => setFilterTaxTreatment("TAXABLE")}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  filterTaxTreatment === "TAXABLE"
+                    ? "bg-white text-purple-700 shadow-2xs dark:bg-slate-900 dark:text-purple-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                {isAr ? "خاضع للضريبة" : "Taxable"}
+              </button>
+              <button
+                onClick={() => setFilterTaxTreatment("EXEMPT")}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  filterTaxTreatment === "EXEMPT"
+                    ? "bg-white text-emerald-700 shadow-2xs dark:bg-slate-900 dark:text-emerald-400"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                {isAr ? "معفى 0%" : "Exempt"}
+              </button>
+            </div>
+
+            {/* Sort Toggle */}
+            <button
+              onClick={() => setSortBy(sortBy === "NEWEST" ? "HIGHEST_AMOUNT" : "NEWEST")}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-all"
+              title={isAr ? "ترتيب حسب" : "Sort by"}
+            >
+              <ArrowUpDown className="size-3.5 text-purple-600" />
+              <span>{sortBy === "NEWEST" ? (isAr ? "الأحدث" : "Newest") : isAr ? "الأعلى مبلغاً" : "Highest Amount"}</span>
+            </button>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-56">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={isAr ? "بحث في الفواتير أو الوحدات..." : "Search invoices, units..."}
+                className="ps-8.5 text-xs h-9 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border-slate-200 dark:border-slate-700"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
           TAB 1: TAX INVOICES & DECISIONS REGISTER
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "DECISIONS" && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-start">
-              {/* CLEAN LIGHT THEME TABLE HEADER */}
-              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
+            <table className="w-full text-xs text-start border-collapse">
+              {/* CLEAN ENTERPRISE TABLE HEADER */}
+              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800/90 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700 select-none">
                 <tr>
-                  <th className="p-3.5 text-start">{isAr ? "الوحدة / المستند" : "Unit / Document"}</th>
+                  <th className="p-3.5 text-start">{isAr ? "رقم الفاتورة / الوحدة" : "Invoice # / Unit"}</th>
                   <th className="p-3.5 text-start">{isAr ? "نوع الإيراد الضريبي" : "Revenue Tax Nature"}</th>
                   <th className="p-3.5 text-start">{isAr ? "تاريخ القرار" : "Decision Date"}</th>
                   <th className="p-3.5 text-end">{isAr ? "الوعاء الخاضع (الصافي)" : "Taxable Base"}</th>
@@ -736,76 +900,113 @@ export function EInvoiceClient({
                   <th className="p-3.5 text-center">{isAr ? "إجراءات الفاتورة" : "Actions"}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredDecisions.length ? (
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {filteredDecisions.length > 0 ? (
                   filteredDecisions.map((td) => (
                     <tr
                       key={td.id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group"
+                      className="hover:bg-purple-50/30 dark:hover:bg-purple-950/10 transition-colors group"
                     >
-                      <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-1.5">
-                          <FileCheck2 className="size-3.5 text-purple-600 shrink-0" />
-                          <span>{td.unit_code || `#${td.source_id.slice(0, 8)}`}</span>
+                      {/* INVOICE & UNIT */}
+                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
+                            <Receipt className="size-3.5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-extrabold text-slate-900 dark:text-white">
+                                {td.unit_code || `#${td.source_id.slice(0, 8)}`}
+                              </span>
+                              <button
+                                onClick={() => handleCopyInvoiceId(td.id)}
+                                title={isAr ? "نسخ معرف القرار" : "Copy Decision ID"}
+                                className="text-slate-400 hover:text-purple-600 transition-colors opacity-0 group-hover:opacity-100"
+                              >
+                                {copiedInvoiceId === td.id ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+                              </button>
+                            </div>
+                            <span className="font-mono text-[10px] text-slate-400 block">
+                              #{td.id.slice(0, 8).toUpperCase()}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
+                      {/* REVENUE NATURE */}
                       <td className="p-3.5 font-bold text-slate-800 dark:text-slate-200">
-                        {td.nature_name}
+                        <div>
+                          <span>{td.nature_name}</span>
+                          {td.description && (
+                            <span className="block text-[10px] text-slate-400 font-normal truncate max-w-xs">
+                              {td.description}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
-                      <td className="p-3.5 font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                        {td.decided_at}
+                      {/* DATE */}
+                      <td className="p-3.5 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="size-3 text-slate-400 shrink-0" />
+                          <span>{td.decided_at}</span>
+                        </div>
                       </td>
 
-                      <td className="p-3.5 text-end font-mono font-bold text-slate-900 dark:text-white text-xs">
+                      {/* TAXABLE BASE */}
+                      <td className="p-3.5 text-end font-mono font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
                         {td.taxable_base.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
-                        <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
+                        <span className="text-[10px] text-slate-400 font-normal font-sans">{currencyLabel}</span>
                       </td>
 
+                      {/* RATE */}
                       <td className="p-3.5 text-center font-mono font-bold">
-                        {td.is_exempt ? (
-                          <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600">
-                            {isAr ? "معفى 0%" : "Exempt"}
+                        {td.is_exempt || td.vat_rate === 0 ? (
+                          <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300">
+                            {isAr ? "معفى 0%" : "Exempt 0%"}
                           </Badge>
                         ) : (
-                          <Badge className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge className="text-[10px] bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-black">
                             {td.vat_rate}%
                           </Badge>
                         )}
                       </td>
 
-                      <td className="p-3.5 text-end font-mono font-bold text-purple-600 dark:text-purple-400 text-xs">
+                      {/* VAT AMOUNT */}
+                      <td className="p-3.5 text-end font-mono font-bold text-purple-600 dark:text-purple-400 text-xs whitespace-nowrap">
                         {td.vat_amount > 0 ? (
                           <>
                             {td.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
-                            <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
+                            <span className="text-[10px] text-slate-400 font-normal font-sans">{currencyLabel}</span>
                           </>
                         ) : (
                           <span className="text-slate-400">0.00</span>
                         )}
                       </td>
 
-                      <td className="p-3.5 text-end font-mono font-black text-sm text-slate-900 dark:text-white">
+                      {/* GROSS AMOUNT */}
+                      <td className="p-3.5 text-end font-mono font-black text-sm text-slate-950 dark:text-white whitespace-nowrap">
                         {td.gross_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
-                        <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
+                        <span className="text-[10px] text-slate-400 font-normal font-sans">{currencyLabel}</span>
                       </td>
 
-                      <td className="p-3.5 text-center">
-                        <Badge className="text-[10px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                      {/* STATUS */}
+                      <td className="p-3.5 text-center whitespace-nowrap">
+                        <Badge className="text-[10px] font-black bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800">
                           {isAr ? "✓ قرار مختوم" : "Stamped"}
                         </Badge>
                       </td>
 
-                      <td className="p-3.5 text-center">
+                      {/* 360° ACTIONS */}
+                      <td className="p-3.5 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1">
                           {/* 1. VIEW / PREVIEW & PRINT */}
                           <Button
                             onClick={() => setViewInvoiceDecision(td)}
                             variant="outline"
                             size="sm"
-                            title={isAr ? "معاينة الفاتورة الضريبية" : "Preview Tax Invoice"}
-                            className="h-7 text-[11px] font-bold px-2 gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                            title={isAr ? "معاينة وطباعة الفاتورة الضريبية" : "Preview & Print Tax Invoice"}
+                            className="h-7.5 text-[11px] font-bold px-2.5 gap-1 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 rounded-lg cursor-pointer transition-all"
                           >
                             <Eye className="size-3" />
                             <span>{isAr ? "معاينة" : "View"}</span>
@@ -817,7 +1018,7 @@ export function EInvoiceClient({
                             variant="ghost"
                             size="sm"
                             title={isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
-                            className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                            className="h-7.5 w-7.5 p-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/40 rounded-lg cursor-pointer"
                           >
                             <MessageCircle className="size-3.5" />
                           </Button>
@@ -828,7 +1029,7 @@ export function EInvoiceClient({
                             variant="ghost"
                             size="sm"
                             title={isAr ? "إرسال عبر البريد الإلكتروني" : "Send via Email"}
-                            className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                            className="h-7.5 w-7.5 p-0 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/40 rounded-lg cursor-pointer"
                           >
                             <Mail className="size-3.5" />
                           </Button>
@@ -839,7 +1040,7 @@ export function EInvoiceClient({
                             variant="ghost"
                             size="sm"
                             title={isAr ? "تصدير الفاتورة PDF" : "Download Invoice PDF"}
-                            className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                            className="h-7.5 w-7.5 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
                           >
                             <Download className="size-3.5" />
                           </Button>
@@ -849,18 +1050,28 @@ export function EInvoiceClient({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={9} className="p-12 text-center text-slate-400 text-xs">
-                      <div className="flex flex-col items-center gap-2">
-                        <FileCheck2 className="size-8 text-slate-300" />
-                        <p>{isAr ? "لا توجد فواتير أو قرارات ضريبية مسجلة بعد" : "No tax invoices or decisions recorded yet"}</p>
+                    <td colSpan={9} className="p-14 text-center text-slate-400">
+                      <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
+                        <div className="flex size-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
+                          <FileCheck2 className="size-7" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                          {searchQuery
+                            ? isAr ? "لا توجد نتائج مطابقة لبحثك" : "No matching invoices found"
+                            : isAr ? "لا توجد فواتير أو قرارات ضريبية مسجلة بعد" : "No tax invoices or decisions recorded yet"}
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          {isAr
+                            ? "يمكنك إصدار أول فاتورة ضريبية مختومة ومعتمدة بالضغط على زر الإنشاء أدناه."
+                            : "Issue your first compliant statutory tax invoice using the button below."}
+                        </p>
                         <Button
                           onClick={() => setIsCreateModalOpen(true)}
                           size="sm"
-                          variant="outline"
-                          className="mt-2 text-xs font-bold text-purple-600 border-purple-200 gap-1.5"
+                          className="mt-2 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-xl gap-1.5 shadow-sm"
                         >
                           <Plus className="size-3.5" />
-                          <span>{isAr ? "إنشاء أول فاتورة إلكترونية الآن" : "Create First Invoice"}</span>
+                          <span>{isAr ? "إنشاء أول فاتورة إلكترونية الآن" : "Issue First E-Invoice"}</span>
                         </Button>
                       </div>
                     </td>
@@ -873,63 +1084,13 @@ export function EInvoiceClient({
       )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 2: INVOICING GUIDE & FUNCTIONAL WALKTHROUGH
-          ────────────────────────────────────────────────────────────────────────── */}
-      {activeTab === "CREATE_INFO" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950">
-              <Plus className="size-5" />
-            </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "1. إنشاء الفاتورة والمطالبة" : "1. Invoice Issuance"}
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {isAr
-                ? "يمكنك إنشاء فاتورة ضريبية إلكترونية مباشرة من هذه الصفحة بالضغط على زر «إنشاء فاتورة إلكترونية جديدة» بالأعلى، أو من شاشة المستحقات."
-                : "Issue invoices directly from this page using the top button or via receivables screen."}
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950">
-              <Scale className="size-5" />
-            </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "2. التكييف والختم الضريبي الآلي" : "2. Automated Tax Stamping"}
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {isAr
-                ? "يقوم المحرك الضريبي بفحص نوع الإيراد وتحديد خضوعه للضريبة القياسية أو الإعفاء، وتوليد القرار الضريبي وختمه فورياً بدفتر الأستاذ."
-                : "Automatic tax rules engine applies standard VAT or exemption and stamps decision snapshot."}
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950">
-              <Share2 className="size-5" />
-            </div>
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "3. الإرسال عبر واتساب والإيميل والطباعة" : "3. Multi-Channel Distribution"}
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {isAr
-                ? "توليد الفاتورة الضريبية الرسمية المعتمدة مع رمز الاستجابة السريع (QR Code)، مع إمكانية الطباعة وتصدير PDF والإرسال عبر واتساب والبريد."
-                : "Share official compliant invoices via WhatsApp, Email, instant Print, or export to PDF."}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ──────────────────────────────────────────────────────────────────────────
-          TAB 3: REVENUE TAX NATURES & RULES
+          TAB 2: REVENUE TAX NATURES & STATUTORY RULES
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "NATURES" && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-start">
-              {/* CLEAN LIGHT THEME TABLE HEADER */}
-              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
+              <thead className="bg-slate-50/90 text-slate-800 dark:bg-slate-800/90 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3.5 text-start">{isAr ? "كود البند الضريبي" : "Nature Code"}</th>
                   <th className="p-3.5 text-start">{isAr ? "المسمى (بالعربية)" : "Arabic Title"}</th>
@@ -939,15 +1100,15 @@ export function EInvoiceClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredNatures.length ? (
+                {filteredNatures.length > 0 ? (
                   filteredNatures.map((n) => (
                     <tr
                       key={n.code}
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-1.5">
-                          <Scale className="size-3.5 text-slate-400" />
+                        <div className="flex items-center gap-2">
+                          <Scale className="size-3.5 text-slate-400 shrink-0" />
                           <span>{n.code}</span>
                         </div>
                       </td>
@@ -965,19 +1126,19 @@ export function EInvoiceClient({
                           variant="outline"
                           className="text-[10px] font-mono border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300"
                         >
-                          {n.is_derived ? (isAr ? "مشتق من الأصل" : "Derived") : (isAr ? "توريد مباشر" : "Direct Supply")}
+                          {n.is_derived ? (isAr ? "مشتق من الأصل" : "Derived") : isAr ? "توريد مباشر" : "Direct Supply"}
                         </Badge>
                       </td>
 
                       <td className="p-3.5 text-end font-semibold text-slate-800 dark:text-slate-200">
                         {n.code.includes("RESIDENTIAL_RENT") || n.code.includes("RESIDENTIAL_UNIT_SALE") ? (
-                          <span className="text-slate-600 dark:text-slate-400 font-bold">
+                          <Badge className="text-[10px] bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 font-bold">
                             {isAr ? "معفى من الضريبة 0%" : "Tax Exempt (0%)"}
-                          </span>
+                          </Badge>
                         ) : (
-                          <span className="text-purple-600 dark:text-purple-400 font-bold">
-                            {isAr ? `خاضع بالنسبة القياسية (${currentJur.standardVat})` : `Standard Rate ${currentJur.standardVat}`}
-                          </span>
+                          <Badge className="text-[10px] bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 font-black">
+                            {isAr ? `خاضع بالنسبة القياسية (${currentJur.standardVat})` : `Standard Rate (${currentJur.standardVat})`}
+                          </Badge>
                         )}
                       </td>
                     </tr>
@@ -991,6 +1152,55 @@ export function EInvoiceClient({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          TAB 3: INVOICING LIFECYCLE & STATUTORY GUIDE
+          ────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "GUIDE" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/70">
+              <Plus className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "1. إنشاء الفاتورة والمطالبة" : "1. Invoice Issuance"}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isAr
+                ? "يمكنك إنشاء فاتورة ضريبية إلكترونية مباشرة من هذه الصفحة بالضغط على زر «إنشاء فاتورة إلكترونية جديدة» بالأعلى، أو تلقائياً من شاشة المستحقات والمطالبات الدورية."
+                : "Issue invoices directly from this page using the top CTA or automatically via periodic receivables billing."}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/70">
+              <Scale className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "2. التكييف والختم الضريبي الآلي" : "2. Automated Tax Stamping"}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isAr
+                ? "يقوم المحرك الضريبي بفحص نوع الإيراد وتحديد خضوعه للضريبة القياسية أو الإعفاء، وتوليد لقطة القرار الضريبي (Tax Decision Snapshot) وختمها فورياً بدفتر الأستاذ."
+                : "Automatic tax rules engine determines VAT rate or exemption and stamps an immutable decision snapshot."}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 space-y-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/70">
+              <Share2 className="size-5" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "3. التوزيع متعدد القنوات والطباعة" : "3. Multi-Channel Distribution"}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isAr
+                ? "توليد الفاتورة الضريبية الرسمية المعتمدة مع رمز الاستجابة السريع (QR Code)، مع إمكانية الطباعة الفورية وتصدير PDF والإرسال بنقرة واحدة عبر واتساب والبريد الإلكتروني."
+                : "Share official compliant invoices via WhatsApp, Email, instant Print, or export to standard PDF."}
+            </p>
           </div>
         </div>
       )}
@@ -1020,7 +1230,7 @@ export function EInvoiceClient({
                 <select
                   value={selectedResortId || resorts[0]?.id || ""}
                   onChange={(e) => setSelectedResortId(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  className="w-full h-9.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
                 >
                   {resorts.map((r) => (
@@ -1037,7 +1247,7 @@ export function EInvoiceClient({
                 <select
                   value={selectedUnitId || filteredUnits[0]?.id || ""}
                   onChange={(e) => setSelectedUnitId(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  className="w-full h-9.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
                 >
                   {filteredUnits.map((u) => (
@@ -1054,7 +1264,7 @@ export function EInvoiceClient({
                 <select
                   value={selectedDueTypeId || dueTypes[0]?.id || ""}
                   onChange={(e) => setSelectedDueTypeId(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  className="w-full h-9.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
                 >
                   {dueTypes.map((d) => (
@@ -1071,7 +1281,7 @@ export function EInvoiceClient({
                 <select
                   value={selectedPeriodId || periods[0]?.id || ""}
                   onChange={(e) => setSelectedPeriodId(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  className="w-full h-9.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
                   required
                 >
                   {periods.map((p) => (
@@ -1093,7 +1303,7 @@ export function EInvoiceClient({
                   value={invoiceAmount}
                   onChange={(e) => setInvoiceAmount(e.target.value ? Number(e.target.value) : "")}
                   placeholder="0.00"
-                  className="text-xs h-9 bg-slate-50 dark:bg-slate-800 font-mono font-bold"
+                  className="text-xs h-9.5 bg-slate-50/80 dark:bg-slate-800 font-mono font-bold"
                 />
               </div>
 
@@ -1105,7 +1315,7 @@ export function EInvoiceClient({
                   required
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="text-xs h-9 bg-slate-50 dark:bg-slate-800 font-mono"
+                  className="text-xs h-9.5 bg-slate-50/80 dark:bg-slate-800 font-mono"
                 />
               </div>
             </div>
@@ -1118,33 +1328,35 @@ export function EInvoiceClient({
                 value={invoiceDescription}
                 onChange={(e) => setInvoiceDescription(e.target.value)}
                 placeholder={isAr ? "مثال: مقابل خدمات صيانة وتشغيل الربع السنوي" : "e.g. Q1 Maintenance levy"}
-                className="text-xs h-9 bg-slate-50 dark:bg-slate-800"
+                className="text-xs h-9.5 bg-slate-50/80 dark:bg-slate-800"
               />
             </div>
 
             {/* REAL-TIME TAX CALCULATION PREVIEW */}
-            <div className="rounded-2xl bg-purple-50/70 dark:bg-purple-950/20 p-3.5 border border-purple-200/80 dark:border-purple-900/50 space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
+            <div className="rounded-2xl bg-purple-50/70 dark:bg-purple-950/20 p-4 border border-purple-200/80 dark:border-purple-900/50 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                 <span>{isAr ? "الوعاء الصافي (قبل الضريبة):" : "Net Base Amount:"}</span>
                 <span className="font-mono font-bold">{calculatedTax.base.toLocaleString()} {currencyLabel}</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-purple-700 dark:text-purple-400">
+              <div className="flex items-center justify-between text-xs text-purple-700 dark:text-purple-400">
                 <span>{isAr ? `ضريبة القيمة المضافة (${calculatedTax.rate}%):` : `VAT (${calculatedTax.rate}%):`}</span>
                 <span className="font-mono font-bold">{calculatedTax.vat.toLocaleString()} {currencyLabel}</span>
               </div>
               <div className="pt-2 border-t border-purple-200/60 dark:border-purple-900/60 flex items-center justify-between font-black text-sm text-slate-950 dark:text-white">
                 <span>{isAr ? "إجمالي الفاتورة المطلوب سدادها:" : "Gross Payable Total:"}</span>
-                <span className="font-mono text-purple-700 dark:text-purple-300">{calculatedTax.gross.toLocaleString()} {currencyLabel}</span>
+                <span className="font-mono text-purple-700 dark:text-purple-300 font-extrabold text-base">
+                  {calculatedTax.gross.toLocaleString()} {currencyLabel}
+                </span>
               </div>
             </div>
 
-            <DialogFooter className="pt-3 flex items-center justify-between">
+            <DialogFooter className="pt-3 flex items-center justify-between gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-xs font-bold h-9"
+                className="text-xs font-bold h-9 rounded-xl"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -1153,7 +1365,7 @@ export function EInvoiceClient({
                 type="submit"
                 disabled={isPending || !invoiceAmount}
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 shadow-sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-sm cursor-pointer"
               >
                 {isPending ? <span>{isAr ? "جاري الإصدار..." : "Issuing..."}</span> : <span>{isAr ? "إصدار وختم الفاتورة فوراً" : "Issue Tax Invoice"}</span>}
               </Button>
@@ -1163,7 +1375,7 @@ export function EInvoiceClient({
       </Dialog>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MODAL 2: OFFICIAL TAX INVOICE PREVIEW & 360° ACTIONS
+          MODAL 2: OFFICIAL TAX INVOICE PREVIEW & 360° ACTIONS (WITH PRINT STYLES)
           ────────────────────────────────────────────────────────────────────────── */}
       <Dialog open={Boolean(viewInvoiceDecision)} onOpenChange={(open) => !open && setViewInvoiceDecision(null)}>
         <DialogContent className="max-w-2xl rounded-3xl p-6">
@@ -1174,21 +1386,24 @@ export function EInvoiceClient({
                 <span>{isAr ? "فاتورة ضريبية رسمية معتمدة" : "Statutory Tax Invoice"}</span>
               </div>
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
-                {isAr ? "مختومة ضريبياً" : "Stamped"}
+                {isAr ? "✓ مختومة ضريبياً" : "Stamped"}
               </Badge>
             </DialogTitle>
           </DialogHeader>
 
           {viewInvoiceDecision && (
             <div className="space-y-4 pt-2 text-xs">
-              {/* INVOICE BILLING SHEET */}
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-5 space-y-4">
+              {/* PRINTABLE INVOICE BILLING SHEET */}
+              <div id="printable-tax-invoice" className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-5 space-y-4">
                 {/* SELLER & INVOICE META */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{isAr ? "المورد / المنشأة" : "Seller"}</span>
                     <h3 className="text-base font-black text-slate-900 dark:text-white">{organizationName}</h3>
-                    <p className="text-slate-500 font-medium">{isAr ? "الرقم الضريبي: " : "Tax ID: "}<strong className="font-mono text-slate-800 dark:text-slate-200">{organizationTaxId || "—"}</strong></p>
+                    <p className="text-slate-500 font-medium">
+                      {isAr ? "الرقم الضريبي: " : "Tax ID: "}
+                      <strong className="font-mono text-slate-800 dark:text-slate-200">{organizationTaxId || "—"}</strong>
+                    </p>
                   </div>
 
                   <div className="text-start sm:text-end space-y-1 font-mono">
@@ -1236,16 +1451,29 @@ export function EInvoiceClient({
 
                 {/* TOTALS SUMMARY */}
                 <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2">
-                    <QrCode className="size-12 text-slate-800 dark:text-slate-200 border p-1 rounded-lg bg-white" />
-                    <span className="text-[10px] text-slate-400 max-w-[140px]">{isAr ? "رمز التحقق والختم الضريبي الرقمي المعتمد" : "Compliant Statutory QR Stamp"}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-13 rounded-xl border border-slate-200 bg-white p-1.5 flex items-center justify-center dark:border-slate-700 dark:bg-slate-800">
+                      <QrCode className="size-10 text-slate-800 dark:text-slate-200" />
+                    </div>
+                    <span className="text-[10px] text-slate-400 max-w-[150px] leading-tight">
+                      {isAr ? "رمز التحقق والختم الضريبي الرقمي المعتمد" : "Compliant Statutory QR Stamp"}
+                    </span>
                   </div>
 
                   <div className="space-y-1 text-end">
-                    <div className="text-[11px] text-slate-500">{isAr ? "الصافي: " : "Net: "}<span className="font-mono font-bold">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</span></div>
-                    <div className="text-[11px] text-purple-600 font-bold">{isAr ? "الضريبة: " : "VAT: "}<span className="font-mono">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</span></div>
+                    <div className="text-[11px] text-slate-500">
+                      {isAr ? "الصافي: " : "Net: "}
+                      <span className="font-mono font-bold">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</span>
+                    </div>
+                    <div className="text-[11px] text-purple-600 font-bold">
+                      {isAr ? "الضريبة: " : "VAT: "}
+                      <span className="font-mono">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</span>
+                    </div>
                     <div className="text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
-                      {isAr ? "الإجمالي النهائي: " : "Gross Total: "}<span className="font-mono text-purple-700 dark:text-purple-400">{viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}</span>
+                      {isAr ? "الإجمالي النهائي: " : "Gross Total: "}
+                      <span className="font-mono text-purple-700 dark:text-purple-400 font-extrabold">
+                        {viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1259,7 +1487,7 @@ export function EInvoiceClient({
                     onClick={() => handleShareInvoiceWhatsApp(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                    className="h-8.5 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl gap-1.5"
                   >
                     <MessageCircle className="size-3.5" />
                     <span>{isAr ? "واتساب" : "WhatsApp"}</span>
@@ -1270,7 +1498,7 @@ export function EInvoiceClient({
                     onClick={() => handleShareInvoiceEmail(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 gap-1.5"
+                    className="h-8.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl gap-1.5"
                   >
                     <Mail className="size-3.5" />
                     <span>{isAr ? "إيميل" : "Email"}</span>
@@ -1281,7 +1509,7 @@ export function EInvoiceClient({
                     onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-rose-200 text-rose-700 hover:bg-rose-50 gap-1.5"
+                    className="h-8.5 text-xs font-bold border-rose-200 text-rose-700 hover:bg-rose-50 rounded-xl gap-1.5"
                   >
                     <Download className="size-3.5" />
                     <span>{isAr ? "تحميل PDF" : "PDF"}</span>
@@ -1293,7 +1521,7 @@ export function EInvoiceClient({
                     variant="outline"
                     size="sm"
                     onClick={() => setViewInvoiceDecision(null)}
-                    className="text-xs font-bold h-8.5"
+                    className="text-xs font-bold h-8.5 rounded-xl"
                   >
                     {isAr ? "إغلاق" : "Close"}
                   </Button>
@@ -1301,7 +1529,7 @@ export function EInvoiceClient({
                   <Button
                     onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8.5 px-4 gap-1.5 shadow-sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8.5 px-4 gap-1.5 rounded-xl shadow-sm cursor-pointer"
                   >
                     <Printer className="size-3.5" />
                     <span>{isAr ? "طباعة الفاتورة" : "Print Invoice"}</span>

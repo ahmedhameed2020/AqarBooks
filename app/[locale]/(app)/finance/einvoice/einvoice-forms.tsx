@@ -74,43 +74,46 @@ export function ProfileForm({
   );
 
   return (
-    <form action={formAction} className="space-y-3.5">
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="jurisdiction" value={jurisdiction} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="space-y-1.5 text-start">
-          <Label htmlFor={`env-${jurisdiction}`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {/* Environment */}
+        <div className="space-y-1 text-start">
+          <Label htmlFor={`env-${jurisdiction}`} className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
             {isAr ? "بيئة التشغيل" : "Environment"}
           </Label>
           <select
             id={`env-${jurisdiction}`}
             name="environment"
             defaultValue={environment}
-            className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-xs font-semibold text-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none"
+            className="w-full h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-[11px] font-bold text-slate-900 dark:text-white shadow-2xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 focus:outline-none transition-all cursor-pointer"
           >
-            <option value="SANDBOX">{isAr ? "بيئة تجريبية (Sandbox)" : "Sandbox (Testing)"}</option>
-            <option value="PRODUCTION">{isAr ? "البيئة الإنتاجية الحية (Production)" : "Live Production"}</option>
+            <option value="SANDBOX">{isAr ? "تجريبية (Sandbox)" : "Sandbox"}</option>
+            <option value="PRODUCTION">{isAr ? "إنتاجية (Production)" : "Production"}</option>
           </select>
         </div>
 
-        <div className="space-y-1.5 text-start">
-          <Label htmlFor={`tax-${jurisdiction}`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            {isAr ? "الرقم الضريبي (Taxpayer ID)" : "Taxpayer ID"}
+        {/* Taxpayer ID */}
+        <div className="space-y-1 text-start">
+          <Label htmlFor={`tax-${jurisdiction}`} className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+            {isAr ? "الرقم الضريبي" : "Taxpayer ID"}
           </Label>
           <Input
             id={`tax-${jurisdiction}`}
             name="taxpayerId"
             defaultValue={taxpayerId ?? ""}
-            placeholder={jurisdiction === "EG_ETA" ? "e.g. 100-234-567" : "e.g. 300000000000003"}
+            placeholder={jurisdiction === "EG_ETA" ? "100-234-567" : "300000000000003"}
             dir="ltr"
-            className="text-xs font-mono"
+            className="h-8 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 px-2.5 focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
           />
         </div>
 
-        <div className="space-y-1.5 text-start">
-          <Label htmlFor={`branch-${jurisdiction}`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            {isAr ? "كود الفرع (Branch Code)" : "Branch Code"}
+        {/* Branch Code */}
+        <div className="space-y-1 text-start">
+          <Label htmlFor={`branch-${jurisdiction}`} className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+            {isAr ? "كود الفرع" : "Branch Code"}
           </Label>
           <Input
             id={`branch-${jurisdiction}`}
@@ -118,42 +121,52 @@ export function ProfileForm({
             defaultValue={branchCode ?? "0"}
             placeholder="0"
             dir="ltr"
-            className="text-xs font-mono"
+            className="h-8 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 px-2.5 focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
           />
         </div>
 
-        <div className="space-y-1.5 text-start">
-          <Label htmlFor={`activity-${jurisdiction}`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            {isAr ? "كود النشاط الضريبي" : "Activity Code"}
+        {/* Activity Code */}
+        <div className="space-y-1 text-start">
+          <Label htmlFor={`activity-${jurisdiction}`} className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+            {isAr ? "كود النشاط" : "Activity Code"}
           </Label>
           <Input
             id={`activity-${jurisdiction}`}
             name="activityCode"
             defaultValue={activityCode ?? ""}
-            placeholder="e.g. 6810"
+            placeholder="6810"
             dir="ltr"
-            className="text-xs font-mono"
+            className="h-8 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 px-2.5 focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
           />
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          <Button
-            type="submit"
-            size="sm"
-            disabled={pending}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 text-xs h-8"
-          >
-            {pending ? <RefreshCw className="size-3 animate-spin" /> : <Save className="size-3" />}
-            <span>{pending ? (isAr ? "جارٍ الحفظ…" : "Saving…") : isAr ? "حفظ إعدادات الربط" : "Save Settings"}</span>
-          </Button>
-          <span className="text-[11px] text-slate-500">
-            {isAr ? "بيانات تعريفية مشفرة ومؤمنة." : "Identifying metadata only."}
-          </span>
+      <Err state={state} isAr={isAr} />
+
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-800">
+        <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+          <Lock className="size-2.5" />
+          <span>{isAr ? "تشفير آمن 256-bit" : "256-bit Encrypted Vault"}</span>
         </div>
 
-        <Err state={state} isAr={isAr} />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={pending}
+          className="h-7 px-3 text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 rounded-lg shadow-2xs gap-1 cursor-pointer transition-all"
+        >
+          {pending ? (
+            <>
+              <RefreshCw className="size-3 animate-spin" />
+              <span>{isAr ? "جاري الحفظ..." : "Saving..."}</span>
+            </>
+          ) : (
+            <>
+              <Save className="size-3" />
+              <span>{isAr ? "حفظ إعدادات الربط" : "Save Settings"}</span>
+            </>
+          )}
+        </Button>
       </div>
     </form>
   );
@@ -177,39 +190,47 @@ export function FilingToggle({
   );
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center justify-between gap-3 w-full">
+    <form action={formAction} className="pt-1.5 border-t border-slate-200/50 dark:border-slate-800">
       <input type="hidden" name="profileId" value={profileId} />
-      <input type="hidden" name="enabled" value={String(!enabled)} />
+      <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+          <div className={`size-1.5 rounded-full ${enabled ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600"}`} />
+          <span>{isAr ? "الإرسال التلقائي:" : "Auto-filing:"}</span>
+          <span className="font-bold text-slate-800 dark:text-slate-200">
+            {enabled ? (isAr ? "مفعّل" : "On") : (isAr ? "متوقف" : "Off")}
+          </span>
+        </div>
+
         <Button
           type="submit"
           size="sm"
-          variant={enabled ? "outline" : "default"}
           disabled={pending || (!enabled && !canEnable)}
-          className={`text-xs font-bold h-8 ${
+          variant={enabled ? "outline" : "default"}
+          className={`h-7 px-3 text-[11px] font-bold rounded-lg cursor-pointer transition-all ${
             enabled
-              ? "border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400"
+              ? "border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-300 dark:hover:bg-rose-950/40"
               : "bg-emerald-600 hover:bg-emerald-700 text-white"
           }`}
         >
           {pending ? (
             <RefreshCw className="size-3 animate-spin" />
           ) : enabled ? (
-            isAr ? "إيقاف الإرسال التلقائي للضرائب" : "Switch Filing Off"
+            <span>{isAr ? "إيقاف الإرسال" : "Switch Filing Off"}</span>
           ) : (
-            isAr ? "تفعيل الإرسال الآلي للفواتير" : "Activate Auto-Filing"
+            <span>{isAr ? "تفعيل الإرسال الآلي" : "Activate Auto-Filing"}</span>
           )}
         </Button>
-
-        {!enabled && !canEnable && (
-          <span className="text-[11px] text-slate-500 font-medium">
-            {isAr
-              ? "💡 يُتاح التفعيل التلقائي بعد التحقق من شهادة التوقيع الإلكتروني وبيانات الاعتماد."
-              : "Unlocks once credentials and digital signature are proven."}
-          </span>
-        )}
       </div>
+
+      {!canEnable && !enabled && (
+        <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+          {isAr
+            ? "💡 يُتاح التفعيل التلقائي بعد التحقق من شهادة التوقيع وبيانات الاعتماد."
+            : "Unlocks once credentials and digital signature are verified."}
+        </p>
+      )}
 
       <Err state={state} isAr={isAr} />
     </form>
