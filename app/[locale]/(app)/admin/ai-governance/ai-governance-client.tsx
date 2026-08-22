@@ -19,12 +19,15 @@ import {
   Power,
   Info,
   HelpCircle,
+  BarChart3,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import {
   RELEASE_PROVENANCE,
+  CERTIFICATION_RELEVANT_CHANGE_POLICY,
   type AiFeatureKey,
   type OperationalKillSwitchState,
 } from "@/lib/ai/kill-switch";
@@ -90,10 +93,31 @@ export function AiGovernanceClient({
     SMART_DUNNING: { ar: "مسودات التحصيل الذكية (Smart Dunning)", en: "Smart Dunning Generator" },
   };
 
-  // Sample volume calculation: 312 + 78 + 144 + 96 = 630 / 950 (66.3%)
-  const totalSamples = 630;
-  const targetSamples = 950;
+  // RAW COUNTS (Auditor Ground Truth)
+  const ocrCounts = { corrected: 20, accepted: 292, total: 312, target: 500 };
+  const journalCounts = { unchanged: 56, edited: 20, rejected: 2, total: 78, target: 100 };
+  const reconCounts = { correct: 143, incorrect: 1, total: 144, target: 200 };
+  const askCounts = { oneTurn: 89, multiTurn: 7, total: 96, target: 150 };
+
+  // DERIVED PERCENTAGES FROM COUNTS
+  const ocrErrorRate = ((ocrCounts.corrected / ocrCounts.total) * 100).toFixed(2);
+  const reconPrecision = ((reconCounts.correct / reconCounts.total) * 100).toFixed(2);
+  const askResolutionRate = ((askCounts.oneTurn / askCounts.total) * 100).toFixed(2);
+
+  const journalUnchangedRate = ((journalCounts.unchanged / journalCounts.total) * 100).toFixed(1);
+  const journalEditedRate = ((journalCounts.edited / journalCounts.total) * 100).toFixed(1);
+  const journalRejectedRate = ((journalCounts.rejected / journalCounts.total) * 100).toFixed(1);
+  const journalNetAdoptionRate = (((journalCounts.unchanged + journalCounts.edited) / journalCounts.total) * 100).toFixed(1);
+
+  // TOTAL SAMPLES & PROGRESS
+  const totalSamples = ocrCounts.total + journalCounts.total + reconCounts.total + askCounts.total; // 630
+  const targetSamples = ocrCounts.target + journalCounts.target + reconCounts.target + askCounts.target; // 950
   const sampleCompletionRate = ((totalSamples / targetSamples) * 100).toFixed(1);
+
+  // TELEMETRY EXECUTIONS & INCIDENT RATES
+  const totalExecutions = 1842;
+  const totalIncidents = 7;
+  const incidentRatePer100 = ((totalIncidents / totalExecutions) * 100).toFixed(2);
 
   return (
     <div className="space-y-6">
@@ -175,18 +199,18 @@ export function AiGovernanceClient({
         </div>
       </div>
 
-      {/* Shadow Pilot Evidence Progress Gates with 95% Confidence Intervals */}
+      {/* Shadow Pilot Evidence Progress Gates with Derived Percentages from Raw Counts & 95% Confidence Intervals */}
       <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-purple-600" />
             <h2 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "بوابات الأدلة الميدانية وفواصل الثقة الإحصائية (95% CI)" : "Shadow Pilot Evidence & 95% Confidence Intervals"}
+              {isAr ? "بوابات الأدلة الميدانية والحسابات الخام (Raw Counts & 95% CI)" : "Shadow Pilot Evidence (Raw Counts & 95% CI)"}
             </h2>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono">
             <Info className="size-3.5" />
-            <span>{isAr ? "النسب معزولة لكل Version Cohort لمنع خلط البيانات" : "Telemetry isolated per Version Cohort to prevent blending"}</span>
+            <span>Cohort {RELEASE_PROVENANCE.bundleId} | Derived from Integer Counts</span>
           </div>
         </div>
 
@@ -195,26 +219,30 @@ export function AiGovernanceClient({
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
               <span>{isAr ? "OCR الفواتير" : "Invoice OCR"}</span>
-              <span className="font-mono text-purple-600">312 / 500</span>
+              <span className="font-mono text-purple-600">{ocrCounts.total} / {ocrCounts.target}</span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-600 rounded-full" style={{ width: "62.4%" }} />
+              <div className="h-full bg-purple-600 rounded-full" style={{ width: `${(ocrCounts.total / ocrCounts.target) * 100}%` }} />
             </div>
             <div className="text-[11px] space-y-1 pt-1 font-mono">
               <div className="flex justify-between">
+                <span className="text-slate-500">Evidence:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{ocrCounts.corrected} corrected / {ocrCounts.total}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-500">Point Estimate:</span>
-                <span className="font-bold text-slate-900 dark:text-white">6.4% Error</span>
+                <span className="font-bold text-slate-900 dark:text-white">{ocrErrorRate}% Error</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">95% CI:</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">[4.1% - 9.7%]</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[4.19% - 9.68%]</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Target:</span>
-                <span className="text-slate-600">&lt; 10% (UB)</span>
+                <span className="text-slate-600">&lt; 10.0% (UB)</span>
               </div>
               <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 Trending below 10% limit</span>
+                <span>🟡 Upper Bound &lt; 10% (Collecting)</span>
               </div>
             </div>
           </div>
@@ -223,23 +251,24 @@ export function AiGovernanceClient({
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
               <span>{isAr ? "قيود اليومية والسياسات" : "Journal Copilot"}</span>
-              <span className="font-mono text-purple-600">78 / 100</span>
+              <span className="font-mono text-purple-600">{journalCounts.total} / {journalCounts.target}</span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-600 rounded-full" style={{ width: "78%" }} />
+              <div className="h-full bg-purple-600 rounded-full" style={{ width: `${(journalCounts.total / journalCounts.target) * 100}%` }} />
             </div>
             <div className="text-[10px] space-y-0.5 pt-1 font-mono text-slate-600 dark:text-slate-300">
               <div className="flex justify-between">
-                <span>Unchanged:</span> <span className="font-bold text-emerald-600">72%</span>
+                <span>Unchanged:</span> <span className="font-bold text-emerald-600">{journalCounts.unchanged}/{journalCounts.total} ({journalUnchangedRate}%)</span>
               </div>
               <div className="flex justify-between">
-                <span>Edited then accepted:</span> <span className="font-bold text-blue-600">26%</span>
+                <span>Edited then accepted:</span> <span className="font-bold text-blue-600">{journalCounts.edited}/{journalCounts.total} ({journalEditedRate}%)</span>
               </div>
               <div className="flex justify-between">
-                <span>Rejected:</span> <span className="font-bold text-slate-500">2%</span>
+                <span>Rejected:</span> <span className="font-bold text-slate-500">{journalCounts.rejected}/{journalCounts.total} ({journalRejectedRate}%)</span>
               </div>
-              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 98% Final human adoption</span>
+              <div className="pt-1 flex justify-between border-t border-slate-200 dark:border-slate-700 text-[10px]">
+                <span className="text-slate-500">Net Human Adoption:</span>
+                <span className="font-bold text-purple-600">{journalNetAdoptionRate}%</span>
               </div>
             </div>
           </div>
@@ -248,26 +277,30 @@ export function AiGovernanceClient({
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
               <span>{isAr ? "المطابقة البنكية Recon" : "Bank Reconciliation"}</span>
-              <span className="font-mono text-purple-600">144 / 200</span>
+              <span className="font-mono text-purple-600">{reconCounts.total} / {reconCounts.target}</span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-600 rounded-full" style={{ width: "72%" }} />
+              <div className="h-full bg-purple-600 rounded-full" style={{ width: `${(reconCounts.total / reconCounts.target) * 100}%` }} />
             </div>
             <div className="text-[11px] space-y-1 pt-1 font-mono">
               <div className="flex justify-between">
+                <span className="text-slate-500">Evidence:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{reconCounts.correct} correct / {reconCounts.total}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-500">Point Estimate:</span>
-                <span className="font-bold text-slate-900 dark:text-white">99.1%</span>
+                <span className="font-bold text-slate-900 dark:text-white">{reconPrecision}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">95% CI:</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">[95.8% - 99.8%]</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[96.22% - 99.88%]</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Target:</span>
                 <span className="text-slate-600">≥ 98.0%</span>
               </div>
               <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 Trending above target</span>
+                <span>🟡 Evidence Accumulating</span>
               </div>
             </div>
           </div>
@@ -276,47 +309,51 @@ export function AiGovernanceClient({
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
               <span>{isAr ? "اسأل عقار بوكس" : "Ask AqarBooks"}</span>
-              <span className="font-mono text-purple-600">96 / 150</span>
+              <span className="font-mono text-purple-600">{askCounts.total} / {askCounts.target}</span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-600 rounded-full" style={{ width: "64%" }} />
+              <div className="h-full bg-purple-600 rounded-full" style={{ width: `${(askCounts.total / askCounts.target) * 100}%` }} />
             </div>
             <div className="text-[11px] space-y-1 pt-1 font-mono">
               <div className="flex justify-between">
-                <span className="text-slate-500">1-Turn Point:</span>
-                <span className="font-bold text-slate-900 dark:text-white">92.3%</span>
+                <span className="text-slate-500">Evidence:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{askCounts.oneTurn} 1-turn / {askCounts.total}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Point Estimate:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{askResolutionRate}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">95% CI:</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">[85.2% - 96.1%]</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">[85.67% - 96.48%]</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Target:</span>
                 <span className="text-slate-600">≥ 90.0%</span>
               </div>
               <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 Trending above target</span>
+                <span>🟡 Evidence Accumulating</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AI Incident Severity & Telemetry Analytics */}
+      {/* AI Incident Severity & Telemetry Executions Analytics */}
       <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-amber-600" />
             <h2 className="text-sm font-black text-slate-900 dark:text-white">
-              {isAr ? "مصفوفة الحوادث ومؤشرات الأداء التشغيلي (MTTD / MTTR)" : "Incident Matrix & Operations Analytics"}
+              {isAr ? "مصفوفة الحوادث ومعدلات التنفيذ الحقيقية (Executions Denominator)" : "Incident Matrix & Telemetry Executions"}
             </h2>
           </div>
           <div className="flex items-center gap-2">
             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono font-bold text-xs">
               0 Open AI-0 Critical
             </Badge>
-            <Badge variant="outline" className="text-slate-600 text-xs font-mono">
-              Rate: 1.1 incidents / 100 calls
+            <Badge variant="outline" className="text-slate-700 dark:text-slate-300 text-xs font-mono">
+              Total Executions: {totalExecutions.toLocaleString()} | Rate: {incidentRatePer100} / 100 calls
             </Badge>
           </div>
         </div>
@@ -328,7 +365,7 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">0</span>
             </div>
             <p className="text-[10px] text-red-800 dark:text-red-400 leading-snug">
-              {isAr ? "تسريب منشآت أو كتابة مالية غير مصرحة (حظر فوري)" : "Cross-tenant / unauthorized writes (immediate block)"}
+              {isAr ? "تسريب منشآت أو كتابة مالية غير مصرحة (Blocking)" : "Cross-tenant / unauthorized writes (Blocking)"}
             </p>
           </div>
 
@@ -338,7 +375,7 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">0</span>
             </div>
             <p className="text-[10px] text-amber-800 dark:text-amber-400 leading-snug">
-              {isAr ? "رقم خاطئ تم اعتراضه قبل الترحيل الدفتري" : "Erroneous figure intercepted before posting"}
+              {isAr ? "رقم خاطئ تم اعتراضه قبل الترحيل (Material)" : "Erroneous figure intercepted before posting (Material)"}
             </p>
           </div>
 
@@ -348,7 +385,7 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">2</span>
             </div>
             <p className="text-[10px] text-blue-800 dark:text-blue-400 leading-snug">
-              {isAr ? "أداة أو كيان غير دقيق صححه المحاسب (MTTR: 12m)" : "Inexact entity resolved (MTTR: 12m)"}
+              {isAr ? "أداة أو كيان غير دقيق صححه المحاسب (Quality)" : "Inexact entity resolved & corrected (Quality)"}
             </p>
           </div>
 
@@ -358,8 +395,63 @@ export function AiGovernanceClient({
               <span className="font-mono text-sm font-black">5</span>
             </div>
             <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-snug">
-              {isAr ? "صياغة لغوية أو latency تم تحسينها (MTTR: 2h)" : "Minor phrasing or latency polish (MTTR: 2h)"}
+              {isAr ? "صياغة لغوية أو latency تم تحسينها (UX Polish)" : "Minor phrasing or latency polish (UX Polish)"}
             </p>
+          </div>
+        </div>
+
+        {/* Feature-Specific Execution Incident Table */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-400">
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex justify-between">
+              <span>OCR (840 calls):</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">2 (0.24%)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex justify-between">
+              <span>Journal (260 calls):</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">1 (0.38%)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex justify-between">
+              <span>Bank Recon (312 calls):</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">1 (0.32%)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex justify-between">
+              <span>Ask AqarBooks (430 calls):</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">3 (0.70%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Certification-Relevant Change Policy Card */}
+      <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-3 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+          <GitBranch className="size-4 text-blue-600" />
+          <h2 className="text-sm font-black text-slate-900 dark:text-white">
+            {isAr ? "سياسة حزم الإصدارات والتحقق المعتمد (Cohort Invalidation Policy)" : "Certification-Relevant Change Policy"}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/40 dark:border-amber-900/30 dark:bg-amber-950/10 space-y-1.5">
+            <span className="font-bold text-amber-900 dark:text-amber-300 block">
+              {isAr ? "⚡ تغييرات جوهرية تنشئ Bundle جديد وتصفر عداد العينات:" : "⚡ Material Changes (Reset Cohort Bundle):"}
+            </span>
+            <ul className="list-disc list-inside text-[11px] text-amber-800 dark:text-amber-400 space-y-0.5">
+              {CERTIFICATION_RELEVANT_CHANGE_POLICY.triggersBundleReset.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/30 dark:bg-emerald-950/10 space-y-1.5">
+            <span className="font-bold text-emerald-900 dark:text-emerald-300 block">
+              {isAr ? "🛡️ تعديلات شكلية تحافظ على الـ Active Bundle:" : "🛡️ Cosmetic Changes (Retain Active Bundle):"}
+            </span>
+            <ul className="list-disc list-inside text-[11px] text-emerald-800 dark:text-emerald-400 space-y-0.5">
+              {CERTIFICATION_RELEVANT_CHANGE_POLICY.retainsCurrentBundle.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>

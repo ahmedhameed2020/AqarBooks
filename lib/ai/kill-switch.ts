@@ -33,6 +33,28 @@ export const RELEASE_PROVENANCE = {
   validationStatus: "PRE_PRODUCTION_CERTIFIED", // 🟡 Pre-Production Certified -> 🟢 Production Validated
 } as const;
 
+/**
+ * Formal Policy on what triggers a Certification Bundle bump vs Cosmetic deploy.
+ * - Material changes create a fresh bundle ID (e.g. CERT-2026-08-B) and reset sample telemetry.
+ * - Cosmetic UI/CSS/i18n changes retain the active certification bundle.
+ */
+export const CERTIFICATION_RELEVANT_CHANGE_POLICY = {
+  triggersBundleReset: [
+    "AI Model / Provider switch",
+    "System Prompt / Instruction revisions",
+    "Tool registry schemas, parameters, or RPC bindings",
+    "Entity resolver heuristics & matching algorithms",
+    "Deterministic grounding validation rules",
+    "Accounting subledger guard logic",
+  ],
+  retainsCurrentBundle: [
+    "Pure UI / CSS / Layout adjustments",
+    "i18n translation labels & typo fixes",
+    "Sidebar / Navigation re-ordering",
+    "Non-AI frontend components",
+  ],
+} as const;
+
 // In-memory operational kill switches (immediate runtime toggles without redeploy)
 const operationalSwitches = new Map<AiFeatureKey, OperationalKillSwitchState>();
 
