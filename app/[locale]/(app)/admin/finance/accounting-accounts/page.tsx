@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { saveFxDifferenceAccounts, saveAssetDisposalAccounts } from "@/lib/actions/accounting-accounts";
 import { AccountPairForm, type Option } from "./account-pair-forms";
+import { ShieldCheck, ArrowRightLeft, Building2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -43,11 +44,11 @@ export default async function AccountingAccountsPage({
   const canManage = await hasPermission(organization.id, "finance.accounts.manage");
   if (!canManage) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">
+      <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-start">
+        <h1 className="text-xl font-bold text-red-900">
           {isAr ? "الحسابات المحاسبية المعيَّنة" : "Designated Accounts"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-red-700">
           {isAr
             ? "لا تملك صلاحية تعيين الحسابات المحاسبية."
             : "You don't have permission to designate accounting accounts."}
@@ -69,7 +70,7 @@ export default async function AccountingAccountsPage({
     supabase
       .from("organizations")
       .select(
-        "fx_gain_account_id, fx_loss_account_id, asset_disposal_gain_account_id, asset_disposal_loss_account_id",
+        "fx_gain_account_id, fx_loss_account_id, asset_disposal_gain_account_id, asset_disposal_loss_account_id"
       )
       .eq("id", organization.id)
       .maybeSingle(),
@@ -86,18 +87,19 @@ export default async function AccountingAccountsPage({
 
   const fxReady = Boolean(org?.fx_gain_account_id && org?.fx_loss_account_id);
   const disposalReady = Boolean(
-    org?.asset_disposal_gain_account_id && org?.asset_disposal_loss_account_id,
+    org?.asset_disposal_gain_account_id && org?.asset_disposal_loss_account_id
   );
 
   const sections = [
     {
       key: "fx",
-      titleAr: "فروق العملة",
-      titleEn: "Currency differences",
+      icon: ArrowRightLeft,
+      titleAr: "حسابات فروق تقييم وتحويل العملة",
+      titleEn: "Currency Differences (FX Gain/Loss)",
       bodyAr:
-        "تنشأ حين تُسدَّد معاملة بعملة أجنبية بسعر يختلف عن سعر يوم تسجيلها. الترحيل يرفض حتى يُعيَّن الحسابان.",
+        "تنشأ حين تُسدَّد معاملة بعملة أجنبية بسعر يختلف عن سعر يوم تسجيلها. الترحيل في النظام يرفض حتى يُعيَّن الحسابان.",
       bodyEn:
-        "Arise when a foreign-currency transaction settles at a rate different from the one it was recorded at. Posting is refused until both are designated.",
+        "Arise when a foreign-currency transaction settles at a rate different from the transaction date. System posting requires both designated.",
       ready: fxReady,
       action: saveFxDifferenceAccounts,
       gain: org?.fx_gain_account_id ?? null,
@@ -105,12 +107,13 @@ export default async function AccountingAccountsPage({
     },
     {
       key: "disposal",
-      titleAr: "استبعاد الأصول الثابتة",
-      titleEn: "Fixed asset disposal",
+      icon: Building2,
+      titleAr: "حسابات أرباح وخسائر استبعاد وتخريد الأصول",
+      titleEn: "Fixed Asset Disposal (Gain/Loss)",
       bodyAr:
-        "الفرق بين المتحصلات والقيمة الدفترية عند بيع أصل أو خردته. الاستبعاد يرفض حتى يُعيَّن الحسابان.",
+        "الفرق بين المتحصلات وصافي القيمة الدفترية عند بيع أصل أو استبعاده كخردة. الاستبعاد في النظام يرفض حتى يُعيَّن الحسابان.",
       bodyEn:
-        "The difference between proceeds and net book value when an asset is sold or scrapped. Disposal is refused until both are designated.",
+        "The variance between disposal proceeds and net book value. Disposal transactions require both designated accounts.",
       ready: disposalReady,
       action: saveAssetDisposalAccounts,
       gain: org?.asset_disposal_gain_account_id ?? null,
@@ -120,60 +123,110 @@ export default async function AccountingAccountsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">
-          {isAr ? "الحسابات المحاسبية المعيَّنة" : "Designated Accounts"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr
-            ? "أين تذهب النتائج التي لا يختار الكود لها حسابًا."
-            : "Where the results land that the software will not pick an account for."}
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-        {isAr
-          ? "يجوز أن يشير حسابا الربح والخسارة إلى الحساب نفسه إن كنت تعرض فروقك في سطر واحد بالصافي — الفصل والدمج كلاهما صحيح، والاختيار اختيارك."
-          : "The gain and loss accounts may point at the SAME account if you present your differences as one net line. Splitting and combining are both valid, and the choice is yours."}
-      </div>
-
-      {sections.map((s) => (
-        <section
-          key={s.key}
-          data-designation={s.key}
-          data-ready={s.ready ? "yes" : "no"}
-          className="space-y-3 rounded-lg border p-4"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-medium">{isAr ? s.titleAr : s.titleEn}</h2>
-            <Badge variant={s.ready ? "secondary" : "outline"}>
-              {s.ready
-                ? isAr ? "معيَّن" : "Designated"
-                : isAr ? "غير معيَّن — الترحيل مرفوض" : "Not set — posting refused"}
-            </Badge>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5 text-start">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              {isAr ? "الحسابات المحاسبية المعيَّنة للنظام" : "System Designated Accounts"}
+            </h1>
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200/60">
+              {isAr ? "إعدادات الأرباح والخسائر" : "Automated Postings"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">{isAr ? s.bodyAr : s.bodyEn}</p>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            {isAr
+              ? "تحديد حسابات الإيرادات والمصروفات التي يرحل إليها النظام الفروق الآلية مثل فروق العملة ونتائج استبعاد الأصول الثابتة."
+              : "Designate specific ledger accounts for automatic system adjustments like currency variances and fixed asset retirements."}
+          </p>
+        </div>
+      </div>
 
-          {revenue.length === 0 || expense.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {isAr
-                ? "يلزم وجود حساب إيراد وحساب مصروف في دليل الحسابات أولًا."
-                : "A revenue account and an expense account must exist in the chart of accounts first."}
-            </p>
-          ) : (
-            <AccountPairForm
-              action={s.action}
-              organizationId={organization.id}
-              idPrefix={s.key}
-              gainAccounts={revenue}
-              lossAccounts={expense}
-              currentGainId={s.gain}
-              currentLossId={s.loss}
-              locale={locale}
-            />
-          )}
-        </section>
-      ))}
+      {/* Overview Notice */}
+      <div className="rounded-2xl border border-blue-200/80 bg-blue-50/50 p-4 text-xs sm:text-sm text-blue-900 flex items-start gap-3">
+        <ShieldCheck className="size-5 shrink-0 text-blue-600 mt-0.5" />
+        <div className="space-y-1 leading-relaxed">
+          <span className="font-bold block">
+            {isAr ? "قاعدة محاسبية هامة:" : "Accounting Rule:"}
+          </span>
+          <p>
+            {isAr
+              ? "يجوز تعيين نفس الحساب لكلا الطرفين (الربح والخسارة) إذا كانت سياسة شركتكم تعرض صافي الفروق في بند واحد بقائمة الدخل. يتم توجيه الفروق الموجبة كدائن والفروق السالبة كمدين."
+              : "You may designate the same account for both gains and losses if your accounting policy presents net differences in a single income statement line."}
+          </p>
+        </div>
+      </div>
+
+      {/* Sections Cards */}
+      <div className="grid grid-cols-1 gap-6">
+        {sections.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.key}
+              data-designation={s.key}
+              data-ready={s.ready ? "yes" : "no"}
+              className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                    <Icon className="size-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900">
+                      {isAr ? s.titleAr : s.titleEn}
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium">
+                      {isAr ? s.bodyAr : s.bodyEn}
+                    </p>
+                  </div>
+                </div>
+
+                <Badge
+                  variant="outline"
+                  className={
+                    s.ready
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 font-bold text-xs"
+                      : "border-amber-300 bg-amber-50 text-amber-700 font-bold text-xs"
+                  }
+                >
+                  {s.ready ? (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="size-3.5" />
+                      {isAr ? "معيَّن بالكامل وجاهز للترحيل" : "Designated & Ready"}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="size-3.5" />
+                      {isAr ? "غير مكتمل — الترحيل الآلي متوقف" : "Pending Designation"}
+                    </span>
+                  )}
+                </Badge>
+              </div>
+
+              {revenue.length === 0 || expense.length === 0 ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900">
+                  {isAr
+                    ? "يلزم وجود حساب إيراد وحساب مصروف في دليل الحسابات أولاً لتعيينهما."
+                    : "Revenue and Expense accounts must exist in the Chart of Accounts first."}
+                </div>
+              ) : (
+                <AccountPairForm
+                  action={s.action}
+                  organizationId={organization.id}
+                  idPrefix={s.key}
+                  gainAccounts={revenue}
+                  lossAccounts={expense}
+                  currentGainId={s.gain}
+                  currentLossId={s.loss}
+                  locale={locale}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

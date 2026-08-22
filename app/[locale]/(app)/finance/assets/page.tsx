@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrencyLabel } from "@/lib/currency";
 import type { Locale } from "@/i18n/routing";
-import { RegisterAssetForm, RunDepreciationForm, DisposeAssetForm, type Option } from "./asset-forms";
+import { AssetsClient, type AssetRow } from "./assets-client";
+import { type Option } from "./asset-forms";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,24 +26,6 @@ export async function generateMetadata({
   };
 }
 
-type AssetRow = {
-  id: string;
-  code: string;
-  name_ar: string;
-  name_en: string;
-  status: string;
-  acquisition_date: string;
-  acquisition_cost: number | string;
-  salvage_value: number | string;
-  useful_life_months: number;
-  accumulated: number | string;
-  net_book_value: number | string;
-  remaining: number | string;
-  periods_posted: number | string;
-};
-
-const n = (v: number | string) => Number(v ?? 0);
-
 export default async function FixedAssetsPage({
   params,
 }: {
@@ -63,19 +44,16 @@ export default async function FixedAssetsPage({
     hasPermission(organization.id, "finance.assets.read"),
   ]);
 
-  // RLS already empties the register for someone without the permission, so
-  // without this the page would render in full with zeroes and a form that
-  // fails on submit. A stated refusal is the honest version.
   if (!canManage && !canRead) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">
+      <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-start">
+        <h1 className="text-xl font-bold text-red-900">
           {isAr ? "الأصول الثابتة والإهلاك" : "Fixed Assets & Depreciation"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-red-700">
           {isAr
             ? "لا تملك صلاحية الاطلاع على سجل الأصول الثابتة."
-            : "You don't have permission to view the fixed asset register."}
+            : "You do not have permission to view the fixed asset register."}
         </p>
       </div>
     );
@@ -102,9 +80,6 @@ export default async function FixedAssetsPage({
 
   const assets = (assetsRaw ?? []) as unknown as AssetRow[];
   const currency = organization.default_currency ?? "EGP";
-  const currencyLabel = getCurrencyLabel(currency, isAr);
-  const money = (v: number) =>
-    v.toLocaleString(isAr ? "ar-EG" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const label = (a: { code: string; name_ar: string; name_en: string }) =>
     `${a.code} — ${isAr ? a.name_ar : a.name_en}`;
@@ -114,173 +89,48 @@ export default async function FixedAssetsPage({
   const expenseAccounts: Option[] = (accounts ?? [])
     .filter((a) => a.category === "EXPENSE")
     .map((a) => ({ id: a.id, label: label(a) }));
-  // Accumulated depreciation is a contra-ASSET, so it is chosen from the same
-  // list rather than a separate one -- there is no CONTRA category.
-  const accumulatedAccounts = assetAccounts;
-
-  // Proceeds land in a cash, bank or receivable account -- any active asset
-  // account qualifies, so the same list serves.
-  const cashAccounts: Option[] = assetAccounts;
-  const disposableAssets = assets
-    .filter((a) => a.status !== "DISPOSED")
-    .map((a) => ({
-      id: a.id,
-      // The book value is in the label so the operator sees what disposing at
-      // a given price will actually produce before choosing the asset.
-      label: `${a.code} — ${isAr ? a.name_ar : a.name_en} (${money(n(a.net_book_value))} ${currencyLabel})`,
-    }));
+  const deprAccounts: Option[] = assetAccounts;
 
   const periodOptions: Option[] = (periods ?? []).map((p) => ({
     id: p.id,
     label: `${p.name} (${p.start_date} → ${p.end_date})`,
   }));
 
-  const totalCost = assets.reduce((s, a) => s + n(a.acquisition_cost), 0);
-  const totalAccum = assets.reduce((s, a) => s + n(a.accumulated), 0);
-  const totalNbv = assets.reduce((s, a) => s + n(a.net_book_value), 0);
-  const active = assets.filter((a) => a.status === "ACTIVE");
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">
-          {isAr ? "الأصول الثابتة والإهلاك" : "Fixed Assets & Depreciation"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isAr
-            ? "القسط الثابت. الإهلاك يُرحَّل مرة واحدة لكل أصل ولكل فترة، وإعادة التشغيل بلا أثر."
-            : "Straight line. Depreciation posts once per asset per period, and re-running is a no-op."}
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-4">
-        {[
-          { k: "count", label: isAr ? "أصول نشطة" : "Active assets", v: String(active.length) },
-          { k: "cost", label: isAr ? "إجمالي التكلفة" : "Total cost", v: money(totalCost) },
-          { k: "accum", label: isAr ? "مجمع الإهلاك" : "Accumulated", v: money(totalAccum) },
-          { k: "nbv", label: isAr ? "القيمة الدفترية" : "Net book value", v: money(totalNbv) },
-        ].map((c) => (
-          <div key={c.k} data-kpi={c.k} className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">{c.label}</p>
-            <p className="mt-1 font-mono text-lg font-semibold" dir="ltr">{c.v}</p>
+      {/* Top Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5 text-start">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              {isAr ? "الأصول الثابتة والإهلاك" : "Fixed Assets & Depreciation"}
+            </h1>
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200/60">
+              {isAr ? "القسط الثابت (Straight-Line)" : "Straight-Line"}
+            </span>
           </div>
-        ))}
-      </div>
-
-      {canManage && (
-        <section aria-label={isAr ? "ترحيل الإهلاك" : "Run depreciation"} className="space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">{isAr ? "ترحيل إهلاك فترة" : "Post a period's depreciation"}</h2>
-          {periodOptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {isAr
-                ? "لا توجد فترة مالية مفتوحة. الإهلاك لا يُرحَّل إلى فترة مقفلة."
-                : "No open fiscal period. Depreciation cannot post into a closed one."}
-            </p>
-          ) : (
-            <RunDepreciationForm
-              organizationId={organization.id}
-              periods={periodOptions}
-              locale={locale}
-            />
-          )}
-        </section>
-      )}
-
-      {canManage && (
-        <section aria-label={isAr ? "تسجيل أصل" : "Register asset"} className="space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">{isAr ? "تسجيل أصل ثابت" : "Register a fixed asset"}</h2>
-          {assetAccounts.length === 0 || expenseAccounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {isAr
-                ? "يلزم وجود حساب أصل وحساب مصروف في دليل الحسابات قبل تسجيل أصل."
-                : "An asset account and an expense account must exist in the chart of accounts first."}
-            </p>
-          ) : (
-            <RegisterAssetForm
-              organizationId={organization.id}
-              assetAccounts={assetAccounts}
-              accumulatedAccounts={accumulatedAccounts}
-              expenseAccounts={expenseAccounts}
-              locale={locale}
-            />
-          )}
-        </section>
-      )}
-
-      {canManage && disposableAssets.length > 0 && (
-        <section aria-label={isAr ? "استبعاد أصل" : "Dispose an asset"} className="space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">{isAr ? "استبعاد أصل" : "Dispose an asset"}</h2>
-          {/* Said before the operator acts, not after: the entry closes the
-              depreciation ACTUALLY POSTED, so an asset with unposted periods
-              carries a higher book value and shows a larger loss. The
-              instalments column in the register below is where they check. */}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
             {isAr
-              ? "الاستبعاد يُقفل الإهلاك المُرحَّل فعلًا. إن بقيت فترات لم تُرحَّل، شغّل الإهلاك حتى تاريخ الاستبعاد أولًا وإلا ظهرت الخسارة أكبر من حقيقتها."
-              : "Disposal closes the depreciation ACTUALLY POSTED. If periods remain unposted, run depreciation up to the disposal date first or the loss will look larger than it is."}
+              ? "سجل الأصول الثابتة، احتساب الإهلاك الدوري بالقسط الثابت، ترحيل القيود، وإدارة الاستبعاد والتخريد."
+              : "Fixed assets register, automated straight-line depreciation, journal postings, and disposal tracking."}
           </p>
-          <DisposeAssetForm assets={disposableAssets} cashAccounts={cashAccounts} locale={locale} />
-        </section>
-      )}
-
-      <section aria-label={isAr ? "السجل" : "Register"} className="space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-medium">{isAr ? "سجل الأصول" : "Asset register"}</h2>
-          <Badge variant="outline">{assets.length}</Badge>
         </div>
+      </div>
 
-        {assets.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {isAr ? "لا أصول مسجّلة بعد." : "No assets registered yet."}
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs">
-                <tr>
-                  <th className="p-2.5 text-start">{isAr ? "الكود" : "Code"}</th>
-                  <th className="p-2.5 text-start">{isAr ? "الأصل" : "Asset"}</th>
-                  <th className="p-2.5 text-end">{isAr ? "التكلفة" : "Cost"}</th>
-                  <th className="p-2.5 text-end">{isAr ? "مجمع الإهلاك" : "Accumulated"}</th>
-                  <th className="p-2.5 text-end">{isAr ? "القيمة الدفترية" : "Net book value"}</th>
-                  <th className="p-2.5 text-end">{isAr ? "أقساط" : "Instalments"}</th>
-                  <th className="p-2.5 text-start">{isAr ? "الحالة" : "Status"}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {assets.map((a) => (
-                  <tr
-                    key={a.id}
-                    data-asset={a.code}
-                    data-status={a.status}
-                    data-nbv={n(a.net_book_value)}
-                  >
-                    <td className="p-2.5 font-mono">{a.code}</td>
-                    <td className="p-2.5">{isAr ? a.name_ar : a.name_en}</td>
-                    <td className="p-2.5 text-end font-mono" dir="ltr">{money(n(a.acquisition_cost))}</td>
-                    <td className="p-2.5 text-end font-mono" dir="ltr">{money(n(a.accumulated))}</td>
-                    <td className="p-2.5 text-end font-mono font-semibold" dir="ltr">
-                      {money(n(a.net_book_value))} <span className="text-xs font-normal text-muted-foreground">{currencyLabel}</span>
-                    </td>
-                    <td className="p-2.5 text-end font-mono" dir="ltr">
-                      {n(a.periods_posted)}/{a.useful_life_months}
-                    </td>
-                    <td className="p-2.5">
-                      <Badge variant={a.status === "ACTIVE" ? "secondary" : "outline"}>
-                        {a.status === "ACTIVE"
-                          ? isAr ? "نشط" : "Active"
-                          : a.status === "FULLY_DEPRECIATED"
-                            ? isAr ? "مُستنفَد" : "Fully depreciated"
-                            : isAr ? "مُستبعَد" : "Disposed"}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {/* Main Interactive Client Table & KPIs */}
+      <AssetsClient
+        assets={assets}
+        assetAccounts={assetAccounts}
+        deprAccounts={deprAccounts}
+        expenseAccounts={expenseAccounts}
+        gainAccounts={assetAccounts}
+        lossAccounts={expenseAccounts}
+        periods={periodOptions}
+        canManage={canManage}
+        locale={locale}
+        currency={currency}
+        organizationName={organization.name}
+      />
     </div>
   );
 }
