@@ -289,18 +289,22 @@ export function AiGovernanceClient({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Point Estimate:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{reconPrecision}%</span>
+                <span className="font-bold text-slate-900 dark:text-white">{reconPrecision}% (≥98% Target)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">95% CI:</span>
                 <span className="font-bold text-slate-700 dark:text-slate-300">[96.22% - 99.88%]</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Target:</span>
-                <span className="text-slate-600">≥ 98.0%</span>
-              </div>
-              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 Evidence Accumulating</span>
+              <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 space-y-0.5 text-[10px] font-sans">
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Volume Gate (≥200):</span> <span className="font-semibold text-amber-600 font-mono">144/200</span>
+                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Quality Gate (≥98%):</span> <span className="font-semibold text-emerald-600 font-mono">99.31% (PASS)</span>
+                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Confidence Gate:</span> <span className="font-semibold text-amber-600 font-mono">⏳ Lower 96.2%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -321,18 +325,22 @@ export function AiGovernanceClient({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Point Estimate:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{askResolutionRate}%</span>
+                <span className="font-bold text-slate-900 dark:text-white">{askResolutionRate}% (≥90% Target)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">95% CI:</span>
                 <span className="font-bold text-slate-700 dark:text-slate-300">[85.67% - 96.48%]</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Target:</span>
-                <span className="text-slate-600">≥ 90.0%</span>
-              </div>
-              <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 font-sans font-semibold">
-                <span>🟡 Evidence Accumulating</span>
+              <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 space-y-0.5 text-[10px] font-sans">
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Volume Gate (≥150):</span> <span className="font-semibold text-amber-600 font-mono">96/150</span>
+                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Quality Gate (≥90%):</span> <span className="font-semibold text-emerald-600 font-mono">92.71% (PASS)</span>
+                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>Confidence Gate:</span> <span className="font-semibold text-amber-600 font-mono">⏳ Lower 85.7%</span>
+                </div>
               </div>
             </div>
           </div>
