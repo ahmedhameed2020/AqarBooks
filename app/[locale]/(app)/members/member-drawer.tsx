@@ -1,14 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Wallet, Building2, ArrowUpRight } from "lucide-react";
+import {
+  Wallet,
+  Building2,
+  ExternalLink,
+  Phone,
+  MessageCircle,
+  Mail,
+  User,
+  Building,
+  Receipt,
+  CircleCheck,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Money } from "@/components/money";
 import { UnitBalanceBadge } from "../property/unit-balance-badge";
-import { MemberAvatar } from "./member-avatar";
 import { useMembersNav } from "./members-nav-context";
 
 export type MemberDrawerData = {
@@ -21,23 +38,6 @@ export type MemberDrawerData = {
   units: { id: string; code: string; balance: number }[];
   dues: { id: string; date: string; type: string; amount: number; status: string }[];
   payments: { id: string; date: string; amount: number; method: string }[];
-};
-
-const DUE_STATUS_LABELS: Record<string, { ar: string; en: string }> = {
-  DRAFT: { ar: "مسودة", en: "Draft" },
-  ISSUED: { ar: "غير مدفوع", en: "Unpaid" },
-  PARTIALLY_PAID: { ar: "مدفوع جزئيًا", en: "Partial" },
-  PAID: { ar: "مدفوع", en: "Paid" },
-  OVERDUE: { ar: "متأخر", en: "Overdue" },
-  VOID: { ar: "ملغى", en: "Void" },
-};
-
-const METHOD_LABELS: Record<string, { ar: string; en: string }> = {
-  CASH: { ar: "نقدًا", en: "Cash" },
-  BANK_TRANSFER: { ar: "تحويل بنكي", en: "Bank transfer" },
-  CHEQUE: { ar: "شيك", en: "Cheque" },
-  OTHER: { ar: "أخرى", en: "Other" },
-  ONLINE: { ar: "دفع إلكتروني", en: "Online Payment" },
 };
 
 export function MemberDrawer({
@@ -55,10 +55,6 @@ export function MemberDrawer({
   const [lastData, setLastData] = useState(data);
 
   useEffect(() => {
-    // Mirrors server-driven `data` (URL state) into local open/lastData so
-    // the Sheet's own close animation can run immediately on user action
-    // (ESC/backdrop/close button) without waiting on the server round-trip
-    // that actually removes ?member= from the URL -- see handleOpenChange.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(data !== null);
     if (data) setLastData(data);
@@ -70,32 +66,65 @@ export function MemberDrawer({
   }
 
   const shown = data ?? lastData;
+  const whatsappNumber = shown?.phone ? shown.phone.replace(/\D/g, "") : null;
+  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 
   return (
     <Sheet open={open} onOpenChange={(next) => handleOpenChange(next)}>
-      <SheetContent>
+      <SheetContent className="sm:max-w-md p-6">
         {shown && (
           <>
-            <SheetHeader>
+            <SheetHeader className="space-y-3 pb-2">
               <div className="flex items-center gap-3">
-                <MemberAvatar id={shown.id} name={shown.fullName} className="size-10 text-sm" />
+                <div className="size-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-lg shadow-md ring-4 ring-indigo-500/10 shrink-0">
+                  {shown.fullName.trim().slice(0, 1)}
+                </div>
                 <div className="min-w-0">
-                  <SheetTitle className="truncate">{shown.fullName}</SheetTitle>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {[shown.email, shown.phone].filter(Boolean).join(" · ") || (isAr ? "بلا بيانات تواصل" : "No contact info")}
+                  <SheetTitle className="truncate text-xl font-black text-slate-900 dark:text-white">
+                    {shown.fullName}
+                  </SheetTitle>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {[shown.email, shown.phone].filter(Boolean).join(" • ") ||
+                      (isAr ? "بلا بيانات تواصل" : "No contact info")}
                   </p>
                 </div>
               </div>
+
+              {/* Quick Communication Chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {shown.phone && (
+                  <a
+                    href={`tel:${shown.phone}`}
+                    dir="ltr"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 transition-colors"
+                  >
+                    <Phone className="size-3 text-indigo-500" />
+                    <span>{shown.phone}</span>
+                  </a>
+                )}
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <MessageCircle className="size-3 fill-emerald-500 text-emerald-500" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+              </div>
             </SheetHeader>
 
-            <SheetBody className="space-y-6">
+            <SheetBody className="space-y-5 pt-2">
+              {/* Financial Balance & Units Bento Card */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border p-3">
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Wallet className="size-3.5" />
-                    {isAr ? "الرصيد الإجمالي" : "Total balance"}
+                <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+                  <p className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                    <Wallet className="size-3.5 text-indigo-500" />
+                    {isAr ? "الرصيد الإجمالي" : "Total Balance"}
                   </p>
-                  <p className="mt-1 text-lg font-semibold">
+                  <p className="mt-1 text-lg font-black tracking-tight">
                     <Money
                       amount={shown.totalBalance}
                       currency={currency}
@@ -104,90 +133,68 @@ export function MemberDrawer({
                     />
                   </p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Building2 className="size-3.5" />
-                    {isAr ? "الوحدات" : "Units"}
+                <div className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-2xs">
+                  <p className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                    <Building2 className="size-3.5 text-purple-500" />
+                    {isAr ? "الوحدات المملوكة" : "Owned Units"}
                   </p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">{shown.unitsCount}</p>
+                  <p className="mt-1 text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                    {shown.unitsCount} <span className="text-xs font-semibold text-slate-400">{isAr ? "وحدة" : "units"}</span>
+                  </p>
                 </div>
               </div>
 
-              <section className="space-y-2">
-                <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "الوحدات المملوكة" : "Owned units"}</h3>
+              {/* Owned Units List */}
+              <section className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {isAr ? "الوحدات والعقارات المسجلة" : "Registered Units"}
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {shown.units.length} {isAr ? "وحدات" : "units"}
+                  </span>
+                </div>
+
                 {shown.units.length ? (
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-2">
                     {shown.units.map((u) => (
-                      <li key={u.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                        <Link href={`/property/${u.id}`} locale={locale} className="font-medium hover:underline">
-                          {u.code}
+                      <li
+                        key={u.id}
+                        className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-card shadow-2xs"
+                      >
+                        <Link
+                          href={`/property/${u.id}`}
+                          locale={locale}
+                          className="font-bold text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5"
+                        >
+                          <Building2 className="size-3.5" />
+                          <span>{u.code}</span>
                         </Link>
                         <UnitBalanceBadge balance={u.balance} currency={currency} locale={locale} />
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">{isAr ? "لا توجد وحدات مملوكة" : "No owned units"}</p>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "آخر الاستحقاقات" : "Recent dues"}</h3>
-                {shown.dues.length ? (
-                  <ul className="space-y-1.5">
-                    {shown.dues.map((d) => {
-                      const label = DUE_STATUS_LABELS[d.status] ?? { ar: d.status, en: d.status };
-                      return (
-                        <li key={d.id} className="flex items-center justify-between text-sm">
-                          <div className="min-w-0">
-                            <p className="truncate">{d.type}</p>
-                            <p className="text-xs text-muted-foreground">{d.date}</p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="font-medium">
-                              <Money amount={d.amount} locale={locale} />
-                            </span>
-                            <Badge variant="outline" className="text-[10px]">{isAr ? label.ar : label.en}</Badge>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{isAr ? "لا توجد استحقاقات" : "No dues"}</p>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "آخر الدفعات" : "Recent payments"}</h3>
-                {shown.payments.length ? (
-                  <ul className="space-y-1.5">
-                    {shown.payments.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between text-sm">
-                        <div>
-                          <p>{isAr ? METHOD_LABELS[p.method]?.ar : METHOD_LABELS[p.method]?.en}</p>
-                          <p className="text-xs text-muted-foreground">{p.date}</p>
-                        </div>
-                        <span className="font-medium">
-                          <Money amount={p.amount} currency={currency} locale={locale} />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{isAr ? "لا توجد دفعات" : "No payments"}</p>
+                  <div className="p-4 text-center rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-border/40 text-xs text-slate-400">
+                    {isAr ? "لا توجد وحدات مسجلة باسم هذا العضو" : "No registered units"}
+                  </div>
                 )}
               </section>
             </SheetBody>
 
-            <SheetFooter>
+            <SheetFooter className="mt-4 pt-2 border-t border-border/60">
               <Link
                 href={`/members/${shown.id}`}
                 locale={locale}
-                className={buttonVariants({ variant: "default", size: "sm", className: "w-full" })}
+                className={buttonVariants({
+                  variant: "default",
+                  size: "sm",
+                  className:
+                    "w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black shadow-md gap-2",
+                })}
               >
-                {isAr ? "الملف الكامل" : "Full profile"}
-                <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+                <span>{isAr ? "عرض الملف الشامل والكامل للمالك" : "View Full Owner Profile"}</span>
+                <ExternalLink className="size-4" />
               </Link>
             </SheetFooter>
           </>
