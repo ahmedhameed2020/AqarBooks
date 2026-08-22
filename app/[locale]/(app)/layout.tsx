@@ -302,7 +302,7 @@ export default async function AppShellLayout({
             userProfile={userProfile}
             signOutAction={boundSignOut}
           />
-          <main className="flex-1 p-6 sm:p-8 min-w-0 bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
+          <main className="flex-1 p-3.5 sm:p-6 md:p-8 min-w-0 max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
         </div>
         <AskAqarBooksDrawer locale={loc} />
       </div>

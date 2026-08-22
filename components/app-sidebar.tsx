@@ -285,6 +285,27 @@ export function AppSidebar({
     return () => window.removeEventListener("keydown", onKey);
   }, [isCollapsed]);
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Mobile sidebar toggle event listener from header
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen((prev) => !prev);
+    const handleClose = () => setMobileOpen(false);
+
+    window.addEventListener("aqarbooks:toggle-mobile-sidebar", handleToggle);
+    window.addEventListener("aqarbooks:close-mobile-sidebar", handleClose);
+
+    return () => {
+      window.removeEventListener("aqarbooks:toggle-mobile-sidebar", handleToggle);
+      window.removeEventListener("aqarbooks:close-mobile-sidebar", handleClose);
+    };
+  }, []);
+
+  // Auto-close on page navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   const toggleSidebarCollapse = () => {
     setIsCollapsed((prev) => {
       const next = !prev;
@@ -363,51 +384,83 @@ export function AppSidebar({
   const userInitials = (userDisplayName[0] || "U").toUpperCase();
 
   return (
-    <aside
-      className={cn(
-        "flex shrink-0 flex-col bg-[#060a18] text-sidebar-foreground border-e border-sidebar-border/40 md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start overflow-hidden transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-full md:w-[68px]" : "w-full md:w-[260px]"
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
+          aria-hidden="true"
+        />
       )}
-    >
-      {/* ──────────────────────────────────────────────────────────────────────────
-          HEADER & SEARCH / COLLAPSE CONTROLS
-          ────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative px-2.5 pt-3 pb-2">
-        {/* Toggle Collapse button row */}
-        <div className={cn("flex items-center pb-2", isCollapsed ? "justify-center" : "justify-between px-1")}>
-          {!isCollapsed && workspaces.length > 1 && (
-            <div className="flex-1 grid grid-cols-2 gap-0.5 rounded-lg bg-white/[0.04] p-0.5 me-2">
-              {workspaces.map((w) => (
-                <button
-                  key={w.key}
-                  type="button"
-                  onClick={() => switchWorkspace(w.key)}
-                  className={cn(
-                    "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer truncate",
-                    activeWorkspace?.key === w.key
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                  )}
-                >
-                  {isAr ? w.labelAr : w.labelEn}
-                </button>
-              ))}
-            </div>
-          )}
 
-          <button
-            type="button"
-            onClick={toggleSidebarCollapse}
-            title={isCollapsed ? (isAr ? "توسيع السايدبار" : "Expand Sidebar") : (isAr ? "تصغير السايدبار (Mini)" : "Collapse Sidebar")}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.04] text-sidebar-foreground/70 hover:bg-white/[0.1] hover:text-white transition-colors cursor-pointer"
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className={cn("size-4", isAr && "rotate-180")} />
-            ) : (
-              <PanelLeftClose className={cn("size-4", isAr && "rotate-180")} />
+      <aside
+        className={cn(
+          "flex shrink-0 flex-col bg-[#060a18] text-sidebar-foreground border-e border-sidebar-border/40 overflow-hidden transition-all duration-300 ease-in-out",
+          // Desktop (Sticky beside main)
+          "md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start md:translate-x-0 md:z-30",
+          isCollapsed ? "md:w-[68px]" : "md:w-[260px]",
+          // Mobile Drawer (Off-canvas slide over)
+          "fixed inset-y-0 start-0 z-50 h-full w-[285px] sm:w-[320px] max-w-[85vw] shadow-2xl md:shadow-none",
+          mobileOpen
+            ? "translate-x-0"
+            : isAr
+            ? "translate-x-full md:translate-x-0"
+            : "-translate-x-full md:translate-x-0"
+        )}
+      >
+        {/* ──────────────────────────────────────────────────────────────────────────
+            HEADER & SEARCH / COLLAPSE CONTROLS
+            ────────────────────────────────────────────────────────────────────────── */}
+        <div className="relative px-2.5 pt-3 pb-2">
+          {/* Toggle Collapse button row & Mobile Close */}
+          <div className={cn("flex items-center pb-2", isCollapsed ? "justify-center" : "justify-between px-1")}>
+            {!isCollapsed && workspaces.length > 1 && (
+              <div className="flex-1 grid grid-cols-2 gap-0.5 rounded-lg bg-white/[0.04] p-0.5 me-2">
+                {workspaces.map((w) => (
+                  <button
+                    key={w.key}
+                    type="button"
+                    onClick={() => switchWorkspace(w.key)}
+                    className={cn(
+                      "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer truncate",
+                      activeWorkspace?.key === w.key
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    {isAr ? w.labelAr : w.labelEn}
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
-        </div>
+
+            <div className="flex items-center gap-1">
+              {/* Desktop Collapse Button */}
+              <button
+                type="button"
+                onClick={toggleSidebarCollapse}
+                title={isCollapsed ? (isAr ? "توسيع السايدبار" : "Expand Sidebar") : (isAr ? "تصغير السايدبار (Mini)" : "Collapse Sidebar")}
+                className="hidden md:flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.04] text-sidebar-foreground/70 hover:bg-white/[0.1] hover:text-white transition-colors cursor-pointer"
+              >
+                {isCollapsed ? (
+                  <PanelLeftOpen className={cn("size-4", isAr && "rotate-180")} />
+                ) : (
+                  <PanelLeftClose className={cn("size-4", isAr && "rotate-180")} />
+                )}
+              </button>
+
+              {/* Mobile Close Button */}
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                title={isAr ? "إغلاق القائمة" : "Close Menu"}
+                className="flex md:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.06] text-sidebar-foreground/80 hover:bg-white/[0.12] hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
 
         {/* Search Bar (Expanded) or Quick Search Icon (Collapsed) */}
         {!isCollapsed ? (
@@ -602,5 +655,6 @@ export function AppSidebar({
         )}
       </div>
     </aside>
+    </>
   );
 }

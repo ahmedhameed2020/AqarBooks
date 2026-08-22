@@ -18,6 +18,7 @@ import {
   CreditCard,
   ChevronRight,
   Clock,
+  Menu,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
@@ -30,6 +31,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const other = routing.locales.find((l) => l !== locale)!;
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const toggleMobileNav = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("aqarbooks:toggle-mobile-sidebar"));
+    }
+  };
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -44,11 +51,21 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   }, [showQuickCreate, showNotifications]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 backdrop-blur-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] dark:border-slate-800/80 dark:bg-slate-950/95">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-3 sm:px-6 backdrop-blur-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.02)] dark:border-slate-800/80 dark:bg-slate-950/95">
       {/* ──────────────────────────────────────────────────────────────────────────
           LEFT / START: BRAND & LIVE STATUS
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          onClick={toggleMobileNav}
+          aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden cursor-pointer"
+        >
+          <Menu className="size-5" />
+        </button>
+
         <Link href="/" locale={locale} className="flex items-center gap-2.5 group">
           <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-slate-900 text-sm font-black text-white shadow-md shadow-indigo-600/20 transition-transform group-hover:scale-105">
             A
