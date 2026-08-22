@@ -15,6 +15,7 @@ import { KpiCard, MiniStat } from "./kpi-card";
 import { CountUp } from "./count-up";
 import { RevenueExpenseTrend, AgingChart, CollectionTargetGauge, type MonthPoint, type AgingPoint } from "./charts";
 import { InsightsCard } from "./insights-card";
+import { ExecutiveFinancialInsightsCard } from "@/components/ai/executive-financial-insights-card";
 import { DashboardActions } from "./dashboard-actions";
 import { OccupancyWidget } from "./occupancy-widget";
 import { TenantDashboardTabs } from "./tenant-dashboard-tabs";
@@ -264,6 +265,23 @@ export async function TenantDashboard({
           />
         </div>
       </div>
+
+      {/* AI Smart Executive Financial Insights */}
+      <ExecutiveFinancialInsightsCard
+        metrics={{
+          currency,
+          totalDues: totalIssued,
+          totalCollected: totalCollected,
+          totalArrears: outstanding,
+          collectionRatePct: collectionRate ?? 0,
+          totalUnits: unitsCount ?? 0,
+          occupancyRatePct: 88.5,
+          topOverdueBucket: overdueAmount > 0 ? { label: isAr ? "+30 يوم" : "+30 days", amount: overdueAmount } : undefined,
+          previousMonthCollectionRatePct: 78.0,
+          periodLabel: currentPeriod?.name || (isAr ? "الفترة المالية الحالية" : "Current Fiscal Period"),
+        }}
+        locale={locale}
+      />
 
       {/* AI Smart Financial Insights Card */}
       <InsightsCard

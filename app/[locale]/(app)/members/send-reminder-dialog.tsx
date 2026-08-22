@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Mail } from "lucide-react";
+import { MessageCircle, Mail, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,16 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { toWhatsAppNumber } from "@/lib/whatsapp";
 
-// TODO: `logReminderSentAction` from `@/lib/actions/member-crm` was
-// referenced here but that module was never implemented -- confirmed via
-// `git log --all` that no commit on any branch ever added
-// `lib/actions/member-crm.ts`. This is member-CRM scope (activity-log
-// auditing of reminders), out of scope for the current baseline cleanup.
-// The dialog's core WhatsApp/email send flow is otherwise fully functional
-// and unaffected; only the audit-log call below was removed pending that
-// feature.
-
-type ReminderTemplateId = "friendly" | "formal" | "final_notice" | "thank_you";
+type ReminderTemplateId = "friendly" | "formal" | "final_notice" | "thank_you" | "ai_custom";
 
 const REMINDER_TEMPLATES: {
   id: ReminderTemplateId;
@@ -115,20 +106,53 @@ export function SendReminderDialog({
   const [templateId, setTemplateId] = useState<ReminderTemplateId>("friendly");
   const [message, setMessage] = useState(() => defaultMessage(isAr, memberName, balance, currency));
 
+  const [loadingAi, setLoadingAi] = useState(false);
+
   function applyTemplate(id: ReminderTemplateId) {
     setTemplateId(id);
     const template = REMINDER_TEMPLATES.find((t) => t.id === id) ?? REMINDER_TEMPLATES[0];
     setMessage(template.build(isAr, memberName, balance, currency));
   }
 
+  async function generateAiDraft() {
+    setLoadingAi(true);
+    setTemplateId("ai_custom");
+    try {
+      const res = await fetch("/api/ai/smart-dunning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: {
+            memberName,
+            balance,
+            currency,
+            organizationName: "AqarBooks",
+            daysOverdue: balance > 0 ? 30 : 0,
+          },
+          locale,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (channel === "whatsapp" && data.whatsappMessage) {
+          setMessage(data.whatsappMessage);
+        } else if (channel === "email" && data.emailBody) {
+          setMessage(data.emailBody);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingAi(false);
+    }
+  }
+
   async function send() {
     if (channel === "whatsapp" && whatsappNumber) {
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
-      // TODO: was logged via logReminderSentAction, see top-of-file TODO.
     } else if (channel === "email" && email) {
-      const subject = isAr ? `تذكير من ${memberName}` : `Reminder`;
+      const subject = isAr ? `تذكير بمستحقات ${memberName}` : `Payment Reminder`;
       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-      // TODO: was logged via logReminderSentAction, see top-of-file TODO.
     }
     setOpen(false);
   }
@@ -150,40 +174,58 @@ export function SendReminderDialog({
       <DialogContent>
         <DialogHeader>
           <div>
-            <DialogTitle>{isAr ? "إرسال تذكير" : "Send reminder"}</DialogTitle>
+            <DialogTitle>{isAr ? "إرسال تذكير ومطالبة مالية" : "Send Payment Reminder"}</DialogTitle>
             <DialogDescription>{memberName}</DialogDescription>
           </div>
         </DialogHeader>
         <DialogBody className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={channel === "whatsapp" ? "default" : "outline"}
+                disabled={!whatsappNumber}
+                onClick={() => setChannel("whatsapp")}
+                className="rounded-xl text-xs font-bold"
+              >
+                <MessageCircle className="size-3.5" />
+                {isAr ? "واتساب" : "WhatsApp"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={channel === "email" ? "default" : "outline"}
+                disabled={!email}
+                onClick={() => setChannel("email")}
+                className="rounded-xl text-xs font-bold"
+              >
+                <Mail className="size-3.5" />
+                {isAr ? "بريد إلكتروني" : "Email"}
+              </Button>
+            </div>
+
             <Button
               type="button"
               size="sm"
-              variant={channel === "whatsapp" ? "default" : "outline"}
-              disabled={!whatsappNumber}
-              onClick={() => setChannel("whatsapp")}
+              variant="outline"
+              disabled={loadingAi}
+              onClick={generateAiDraft}
+              className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950/50 dark:text-purple-300 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
             >
-              <MessageCircle className="size-3.5" />
-              {isAr ? "واتساب" : "WhatsApp"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={channel === "email" ? "default" : "outline"}
-              disabled={!email}
-              onClick={() => setChannel("email")}
-            >
-              <Mail className="size-3.5" />
-              {isAr ? "بريد إلكتروني" : "Email"}
+              <Sparkles className={`size-3.5 text-purple-600 ${loadingAi ? "animate-spin" : ""}`} />
+              <span>{loadingAi ? (isAr ? "جاري الصياغة..." : "Drafting...") : (isAr ? "صياغة ذكية بالـ AI" : "AI Smart Draft")}</span>
             </Button>
           </div>
+
           {!whatsappNumber && !email && (
             <p className="text-sm text-destructive">
               {isAr ? "لا يوجد رقم هاتف أو بريد إلكتروني مسجل لهذا العضو." : "This member has no phone or email on file."}
             </p>
           )}
+
           <div className="space-y-1.5">
-            <p className="text-xs font-bold text-muted-foreground">{isAr ? "قالب جاهز" : "Ready-made template"}</p>
+            <p className="text-xs font-bold text-muted-foreground">{isAr ? "قوالب سريعة:" : "Quick Templates:"}</p>
             <div className="flex flex-wrap gap-1.5">
               {REMINDER_TEMPLATES.map((t) => (
                 <Button
@@ -191,7 +233,7 @@ export function SendReminderDialog({
                   type="button"
                   size="sm"
                   variant={templateId === t.id ? "default" : "outline"}
-                  className="text-xs"
+                  className="text-xs rounded-lg"
                   onClick={() => applyTemplate(t.id)}
                 >
                   {isAr ? t.labelAr : t.labelEn}
@@ -199,10 +241,17 @@ export function SendReminderDialog({
               ))}
             </div>
           </div>
-          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} maxLength={1000} />
+
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={6}
+            maxLength={1000}
+            className="rounded-xl text-xs font-medium"
+          />
         </DialogBody>
         <DialogFooter>
-          <Button type="button" disabled={!canSend} onClick={send}>
+          <Button type="button" disabled={!canSend} onClick={send} className="rounded-xl font-bold">
             {isAr ? "فتح وإرسال" : "Open & send"}
           </Button>
         </DialogFooter>

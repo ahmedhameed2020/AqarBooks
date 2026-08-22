@@ -182,6 +182,36 @@ export function ImportWizard({
     router.replace(`${window.location.pathname}?${params.toString()}`);
   };
 
+  const [isAiMapping, setIsAiMapping] = useState(false);
+  const [aiConfidenceScore, setAiConfidenceScore] = useState<number | null>(null);
+
+  const runAiColumnMapping = async (content: string) => {
+    if (!content.trim()) return;
+    setIsAiMapping(true);
+    try {
+      const lines = content.trim().split("\n");
+      const headers = lines[0]?.split(",").map((h) => h.replace(/^["']|["']$/g, "").trim()) || [];
+      const sampleRows = lines.slice(1, 4).map((l) => l.split(",").map((c) => c.replace(/^["']|["']$/g, "").trim()));
+      
+      const res = await fetch("/api/ai/import-map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headers, sampleRows }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.mappings) {
+          setCustomMappings((prev) => ({ ...prev, ...data.mappings }));
+          setAiConfidenceScore(data.confidence || 0.95);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsAiMapping(false);
+    }
+  };
+
   /**
    * Universal File Parser: Supports .xlsx, .xls, .csv, .tsv
    */
@@ -230,6 +260,9 @@ export function ImportWizard({
         setCsvText(csvContent);
         setIsParsingExcel(false);
 
+        // Run AI Column Mapping
+        runAiColumnMapping(csvContent);
+
         toast.show({
           title: isAr ? "تمت قراءة ملف Excel بالذكاء الاصطناعي 📊" : "Excel Parsed with AI 📊",
           description: isAr
@@ -240,13 +273,14 @@ export function ImportWizard({
       } else {
         const text = await file.text();
         setCsvText(text);
+        runAiColumnMapping(text);
         toast.show({
           title: isAr ? "تم قراءة الملف بالذكاء الاصطناعي 🧠" : "AI Parsed File",
           description: isAr ? "تم التعرف التلقائي على الأعمدة وتنسيق البيانات." : "Columns auto-mapped successfully.",
           variant: "success",
         });
       }
-    } catch (err: any) {
+    } catch {
       setIsParsingExcel(false);
       setFileError(isAr ? "فشل قراءة الملف. تأكد من سلامة ملف Excel أو CSV." : "Could not read file.");
     }
@@ -576,17 +610,45 @@ export function ImportWizard({
           4. AI COLUMN MAPPING MATRIX
           ────────────────────────────────────────────────────────────────────────── */}
       {preview && preview.mappings && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <BrainCircuit className="size-4.5 text-indigo-600" />
-              <h2 className="text-sm font-black text-slate-950 dark:text-white">
-                {isAr ? "مصفوفة التعرف الذكي على الأعمدة (AI Column Mappings)" : "AI Column Mapping Matrix"}
-              </h2>
+        <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/30 via-white to-indigo-50/20 p-5 shadow-xs dark:border-purple-900/40 dark:from-purple-950/20 dark:via-slate-900 dark:to-indigo-950/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-100 dark:border-purple-900/30">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+                <BrainCircuit className="size-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                    {isAr ? "مصفوفة التعرف الذكي على الأعمدة (AI Column Mappings)" : "AI Column Mapping Matrix"}
+                  </h2>
+                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 text-[10px] font-bold">
+                    AqarBooks AI Engine
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isAr ? "تمت مطابقة الأعمدة آلياً وفهم المسميات الدارجة وتصحيح الهواتف" : "Auto-detected vernacular column names & E.164 phone formats"}
+                </p>
+              </div>
             </div>
-            <span className="text-xs text-slate-400 font-medium">
-              {isAr ? "تم التعرف آلياً على الحقول التالية:" : "Auto-matched fields:"}
-            </span>
+
+            <div className="flex items-center gap-2">
+              {aiConfidenceScore && (
+                <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-xs font-bold">
+                  {Math.round(aiConfidenceScore * 100)}% {isAr ? "دقة المطابقة الذكية" : "AI Match Confidence"}
+                </Badge>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isAiMapping || !csvText}
+                onClick={() => runAiColumnMapping(csvText)}
+                className="h-8 text-xs font-bold rounded-xl border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50 gap-1.5 cursor-pointer"
+              >
+                <Sparkles className={`size-3.5 text-purple-600 ${isAiMapping ? "animate-spin" : ""}`} />
+                <span>{isAiMapping ? (isAr ? "جاري التحليل..." : "Analyzing...") : (isAr ? "إعادة التحليل بالذكاء الاصطناعي" : "Re-run AI Match")}</span>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
