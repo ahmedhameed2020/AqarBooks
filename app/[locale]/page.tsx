@@ -587,12 +587,21 @@ export default async function LandingPage({
       {/* Footer */}
       <footer className="border-t border-[var(--mk-border)] bg-[#040711] px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-slate-400 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <LogoMark className="size-7" />
-            <span className="font-extrabold text-white">
-              {isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks"}
-            </span>
-            <span className="text-slate-500">{isAr ? "جميع الحقوق محفوظة" : "All rights reserved"} · © {new Date().getFullYear()} {isAr ? "(مصر ودول الخليج)" : "(Egypt & GCC)"}</span>
+          <div className="flex items-center gap-3">
+            <LogoMark className="size-8.5" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-white">
+                  {isAr ? "عقار بوكس" : "AqarBooks"}
+                </span>
+                <span className="inline-flex rounded-full bg-purple-500/15 text-purple-300 border border-purple-400/30 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
+                  PRO
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap tracking-wide -mt-0.5">
+                {isAr ? "نـظـام الـمـحـاسـبـة وإدارة الـعـقـارات" : "Real Estate Accounting & Management System"}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-6 font-bold">

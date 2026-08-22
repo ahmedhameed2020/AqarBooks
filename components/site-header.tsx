@@ -24,6 +24,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LogoMark } from "@/components/marketing/logo-mark";
 
 export function SiteHeader({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
@@ -67,20 +68,18 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         </button>
 
         <Link href="/" locale={locale} className="flex items-center gap-2.5 group">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-slate-900 text-sm font-black text-white shadow-md shadow-indigo-600/20 transition-transform group-hover:scale-105">
-            A
-          </span>
+          <LogoMark className="size-8.5 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-black tracking-tight text-slate-950 dark:text-white">
                 {isAr ? "عقار بوكس" : "AqarBooks"}
               </span>
-              <span className="hidden sm:inline-flex rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[9px] font-extrabold px-1.5 py-0.2">
+              <span className="inline-flex rounded-full bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
                 PRO
               </span>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 font-mono -mt-0.5">
-              {isAr ? "نظام المحاسبة وإدارة العقارات" : "Real Estate Accounting ERP"}
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 whitespace-nowrap tracking-wide -mt-0.5">
+              {isAr ? "نـظـام الـمـحـاسـبـة وإدارة الـعـقـارات" : "Real Estate Accounting & Management System"}
             </span>
           </div>
         </Link>

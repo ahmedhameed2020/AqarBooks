@@ -40,15 +40,19 @@ export function MarketingNav({ locale }: { locale: Locale }) {
       >
         <Link href="/" locale={locale} className="flex items-center gap-2.5 group">
           <LogoMark className="size-9 transition-transform group-hover:scale-105" />
-          <div className="flex flex-col gap-1">
-            <span className="text-base font-extrabold tracking-tight text-white">
-              {isAr ? "عقار بوكس" : "AqarBooks"}
-            </span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-black tracking-tight text-white">
+                {isAr ? "عقار بوكس" : "AqarBooks"}
+              </span>
+              <span className="inline-flex rounded-full bg-purple-500/15 text-purple-300 border border-purple-400/30 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
+                PRO
+              </span>
+            </div>
             <span
-              className={`text-[10px] font-medium text-cyan-400 whitespace-nowrap ${isAr ? "tracking-[0.02em]" : "tracking-[0.12em]"}`}
-              style={{ fontFamily: isAr ? "var(--font-plex-arabic)" : "var(--font-plex-mono)" }}
+              className="text-[10px] font-bold text-slate-400 whitespace-nowrap tracking-wide -mt-0.5"
             >
-              {isAr ? "محاسبة عقارية بذكاء" : "REAL ESTATE ACCOUNTING"}
+              {isAr ? "نـظـام الـمـحـاسـبـة وإدارة الـعـقـارات" : "Real Estate Accounting & Management System"}
             </span>
           </div>
         </Link>
