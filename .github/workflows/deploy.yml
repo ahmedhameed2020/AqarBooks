@@ -25,8 +25,18 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
+
+      # Pin npm to the major that generated package-lock.json. npm 10 refuses
+      # this lock: @swc/core -- a transitive dependency of next-intl -- declares
+      # @swc/helpers >=0.5.17 as a PEER dependency, so npm 10 tries to add
+      # @swc/helpers@0.5.23, which the lock does not contain, and `npm ci` dies
+      # with "can only install packages when your package.json and
+      # package-lock.json are in sync". npm 11 resolves the same lock cleanly,
+      # which is why it installs fine locally. Regenerating the lock on Windows
+      # does not fix it -- npm there produces a byte-identical tree.
+      - run: npm i -g npm@11
 
       - run: npm ci
 
