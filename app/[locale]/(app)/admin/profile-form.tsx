@@ -10,21 +10,13 @@ import {
   Landmark,
   ShieldCheck,
   MapPin,
-  Phone,
-  Mail,
-  DollarSign,
   Save,
   RefreshCw,
   AlertCircle,
-  CheckCircle2,
-  Sparkles,
-  Layers,
-  Settings,
-  Scale,
   Palette,
-  Image,
   FileText,
   Eye,
+  Check,
 } from "lucide-react";
 import { updateOrganizationProfile } from "@/lib/actions/tenant";
 import type { ActionResult } from "@/lib/actions/platform";
@@ -44,6 +36,7 @@ const JURISDICTION_COUNTRY_MAP: Record<
     taxAuthorityEn: string;
     standardVat: string;
     taxIdHint: string;
+    isSupported: boolean;
   }
 > = {
   EG: {
@@ -55,6 +48,7 @@ const JURISDICTION_COUNTRY_MAP: Record<
     taxAuthorityEn: "Egyptian Tax Authority (ETA E-Invoice / E-Receipt)",
     standardVat: "14%",
     taxIdHint: "رقم التسجيل الضريبي المكون من 9 أرقام (مثال: 100-234-567)",
+    isSupported: true,
   },
   SA: {
     nameAr: "المملكة العربية السعودية",
@@ -62,9 +56,10 @@ const JURISDICTION_COUNTRY_MAP: Record<
     flag: "🇸🇦",
     defaultCurrency: "SAR",
     taxAuthorityAr: "هيئة الزكاة والضريبة والجمارك (منظومة فاتورة ZATCA)",
-    taxAuthorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora)",
+    taxAuthorityEn: "Zakat, Tax and Customs Authority (ZATCA Fatoora Phase 2)",
     standardVat: "15%",
     taxIdHint: "الرقم الضريبي الموحد المكون من 15 رقماً (يبدأ بـ 3)",
+    isSupported: true,
   },
   AE: {
     nameAr: "دولة الإمارات العربية المتحدة",
@@ -75,6 +70,7 @@ const JURISDICTION_COUNTRY_MAP: Record<
     taxAuthorityEn: "Federal Tax Authority (PEPPOL Network)",
     standardVat: "5%",
     taxIdHint: "رقم التسجيل الضريبي TRN المكون من 15 رقماً",
+    isSupported: false,
   },
 };
 
@@ -97,6 +93,9 @@ export function ProfileForm({
   phone,
   email,
   entityType,
+  initialBrandColor = "#1E1B4B",
+  initialLogoUrl = "",
+  initialTagline = "",
   einvoiceProfiles = [],
   locale,
   readOnly,
@@ -110,30 +109,33 @@ export function ProfileForm({
   phone?: string;
   email?: string;
   entityType?: string;
+  initialBrandColor?: string;
+  initialLogoUrl?: string;
+  initialTagline?: string;
   einvoiceProfiles?: any[];
   locale: string;
   readOnly: boolean;
 }) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<"GENERAL" | "TAX" | "BRANDING">("GENERAL");
-  const [selectedCountry, setSelectedCountry] = useState<string>(taxJurisdiction || "EG");
+  const [selectedCountry, setSelectedCountry] = useState<string>(
+    taxJurisdiction === "SA" ? "SA" : "EG"
+  );
   const [currency, setCurrency] = useState<string>(defaultCurrency || "EGP");
   const [taxNumber, setTaxNumber] = useState<string>(taxId || "");
-  const [brandColor, setBrandColorState] = useState<string>("#1E1B4B");
-  const [logoUrl, setLogoUrlState] = useState<string>("");
-  const [tagline, setTaglineState] = useState<string>(isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services");
+  const [brandColor, setBrandColorState] = useState<string>(initialBrandColor || "#1E1B4B");
+  const [logoUrl, setLogoUrlState] = useState<string>(initialLogoUrl || "");
+  const [tagline, setTaglineState] = useState<string>(
+    initialTagline || (isAr ? "للإدارة والخدمات العقارية المتكاملة" : "Property Management & Financial Services")
+  );
 
-  // Load branding from localStorage on mount
+  // Sync to local storage for fast client UI persistence if desired
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedColor = localStorage.getItem("aqarbooks_brand_color");
-      if (savedColor) setBrandColorState(savedColor);
-      const savedLogo = localStorage.getItem("aqarbooks_logo_url");
-      if (savedLogo) setLogoUrlState(savedLogo);
-      const savedTag = localStorage.getItem("aqarbooks_tagline");
-      if (savedTag) setTaglineState(savedTag);
+      if (savedColor && !initialBrandColor) setBrandColorState(savedColor);
     }
-  }, []);
+  }, [initialBrandColor]);
 
   const setBrandColor = (color: string) => {
     setBrandColorState(color);
@@ -156,8 +158,10 @@ export function ProfileForm({
     }
   };
 
-  // Auto-set currency when country changes
   const handleCountryChange = (countryCode: string) => {
+    if (countryCode === "AE") {
+      return; // Handled with informational badge
+    }
     setSelectedCountry(countryCode);
     const countryInfo = JURISDICTION_COUNTRY_MAP[countryCode];
     if (countryInfo) {
@@ -167,7 +171,7 @@ export function ProfileForm({
 
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     updateOrganizationProfile,
-    { ok: true },
+    { ok: true }
   );
 
   const currentCountry = JURISDICTION_COUNTRY_MAP[selectedCountry] || JURISDICTION_COUNTRY_MAP.EG;
@@ -178,65 +182,89 @@ export function ProfileForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="taxJurisdiction" value={selectedCountry} />
       <input type="hidden" name="defaultCurrency" value={currency} />
+      <input type="hidden" name="brandColor" value={brandColor} />
+      <input type="hidden" name="logoUrl" value={logoUrl} />
+      <input type="hidden" name="tagline" value={tagline} />
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MAIN TABS HEADER
+          MAIN TABS SEGMENTED CONTROL
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab("GENERAL")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
-            activeTab === "GENERAL"
-              ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
-          }`}
-        >
-          <Building2 className="size-4 text-purple-500" />
-          <span>{isAr ? "البيانات العامة للكيان والمقر" : "General & Headquarters"}</span>
-        </button>
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1.5 dark:border-slate-800 dark:bg-slate-900/80 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("GENERAL")}
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "GENERAL"
+                ? "bg-white text-slate-950 shadow-xs border border-slate-200/60 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <Building2 className="size-4 text-purple-600 dark:text-purple-400" />
+            <span>{isAr ? "بيانات المنشأة والمقر" : "General & HQ"}</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("TAX")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
-            activeTab === "TAX"
-              ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
-          }`}
-        >
-          <Landmark className="size-4 text-emerald-500" />
-          <span>{isAr ? "دولة المنشأ والامتثال الضريبي" : "Country & Tax Compliance"}</span>
-          {isTaxConfigured ? (
-            <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 ms-1 h-4 px-1">
-              ✓
-            </Badge>
-          ) : (
-            <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 ms-1 h-4 px-1">
-              {isAr ? "غير مكتمل" : "Incomplete"}
-            </Badge>
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("TAX")}
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "TAX"
+                ? "bg-white text-slate-950 shadow-xs border border-slate-200/60 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <Landmark className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isAr ? "دولة المنشأ والامتثال الضريبي" : "Tax & Country"}</span>
+            {isTaxConfigured ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-black text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                ✓
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                {isAr ? "غير مكتمل" : "Incomplete"}
+              </span>
+            )}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("BRANDING")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
-            activeTab === "BRANDING"
-              ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
-          }`}
-        >
-          <Palette className="size-4 text-blue-500" />
-          <span>{isAr ? "الهوية البصرية وأغلفة التقارير" : "Brand Identity & Covers"}</span>
-          <span className="size-2 rounded-full ms-1" style={{ background: brandColor }} />
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("BRANDING")}
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "BRANDING"
+                ? "bg-white text-slate-950 shadow-xs border border-slate-200/60 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <Palette className="size-4 text-blue-600 dark:text-blue-400" />
+            <span>{isAr ? "الهوية البصرية وأغلفة التقارير" : "Branding & Covers"}</span>
+            <span
+              className="size-2.5 rounded-full border border-white shadow-2xs shrink-0"
+              style={{ background: brandColor }}
+            />
+          </button>
+        </div>
       </div>
 
+      {/* ──────────────────────────────────────────────────────────────────────────
+          ERROR ALERT WITH CLEAR ARABIC EXPLANATION
+          ────────────────────────────────────────────────────────────────────────── */}
       {state.ok === false && (
-        <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
-          <AlertCircle className="size-5 shrink-0 text-red-600 dark:text-red-400" />
-          <span>{state.error || (isAr ? "حدث خطأ أثناء حفظ الإعدادات" : "Failed to save profile")}</span>
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-xs font-semibold text-red-800 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-300 shadow-xs animate-in fade-in duration-200"
+        >
+          <AlertCircle className="size-5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold block text-sm">
+              {isAr ? "تعذر حفظ إعدادات المنشأة" : "Failed to update profile"}
+            </span>
+            <p className="text-red-700 dark:text-red-300 font-normal leading-relaxed">
+              {state.error ||
+                (isAr
+                  ? "يرجى التأكد من صحة البيانات المدخلة واختيار دولة المنشأ المدعومة (مصر أو السعودية)."
+                  : "Please verify the submitted details and choose a supported tax jurisdiction (Egypt or Saudi Arabia).")}
+            </p>
+          </div>
         </div>
       )}
 
@@ -244,11 +272,13 @@ export function ProfileForm({
           TAB 1: GENERAL HEADQUARTERS & PROFILE
           ────────────────────────────────────────────────────────────────────────── */}
       <div className={activeTab === "GENERAL" ? "space-y-5" : "hidden"}>
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <Building2 className="size-4 text-purple-600" />
-            <span>{isAr ? "البيانات الأساسية للمنشأة" : "Organization Identity"}</span>
-          </h3>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white">
+              {isAr ? "البيانات الأساسية للمنشأة" : "Organization Identity"}
+            </h3>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5 text-start">
@@ -261,7 +291,7 @@ export function ProfileForm({
                 defaultValue={name}
                 required
                 disabled={readOnly}
-                className="text-xs font-bold"
+                className="text-xs font-bold h-10 rounded-xl"
               />
             </div>
 
@@ -274,7 +304,7 @@ export function ProfileForm({
                 name="entityType"
                 defaultValue={entityType || "FACILITY_MANAGEMENT"}
                 disabled={readOnly}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-xs font-semibold text-slate-900 dark:text-white"
+                className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-xs font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600/30"
               >
                 <option value="FACILITY_MANAGEMENT">{isAr ? "شركة إدارة وتشغيل مرافق وأملاك" : "Facility & Property Management"}</option>
                 <option value="DEVELOPER">{isAr ? "شركة تطوير واستثمار عقاري" : "Real Estate Developer"}</option>
@@ -289,11 +319,13 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <MapPin className="size-4 text-blue-600" />
-            <span>{isAr ? "العنوان والتواصل الرسمي" : "Official Contact & Headquarters"}</span>
-          </h3>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white">
+              {isAr ? "العنوان والتواصل الرسمي" : "Official Contact & Headquarters"}
+            </h3>
+          </div>
 
           <div className="space-y-1.5 text-start">
             <Label htmlFor="address" className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -305,7 +337,7 @@ export function ProfileForm({
               defaultValue={address ?? ""}
               placeholder={isAr ? "مثال: التجمع الخامس، شارع التسعين الشمالي، مبنى 14" : "e.g. 5th Settlement, North 90th St"}
               disabled={readOnly}
-              className="text-xs"
+              className="text-xs h-10 rounded-xl"
             />
           </div>
 
@@ -321,7 +353,7 @@ export function ProfileForm({
                 placeholder="+20 100 000 0000"
                 dir="ltr"
                 disabled={readOnly}
-                className="text-xs font-mono"
+                className="text-xs font-mono h-10 rounded-xl"
               />
             </div>
 
@@ -337,7 +369,7 @@ export function ProfileForm({
                 placeholder="finance@aqarbooks.com"
                 dir="ltr"
                 disabled={readOnly}
-                className="text-xs"
+                className="text-xs h-10 rounded-xl"
               />
             </div>
           </div>
@@ -348,7 +380,7 @@ export function ProfileForm({
           TAB 2: COUNTRY OF ORIGIN & TAX COMPLIANCE
           ────────────────────────────────────────────────────────────────────────── */}
       <div className={activeTab === "TAX" ? "space-y-5" : "hidden"}>
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
           <div>
             <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
               <Landmark className="size-4 text-emerald-600" />
@@ -364,24 +396,35 @@ export function ProfileForm({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
             {Object.entries(JURISDICTION_COUNTRY_MAP).map(([code, info]) => {
               const isSelected = selectedCountry === code;
+              const isAvailable = info.isSupported;
               return (
                 <div
                   key={code}
-                  onClick={() => !readOnly && handleCountryChange(code)}
-                  className={`relative rounded-2xl border p-4 transition-all cursor-pointer flex flex-col justify-between ${
+                  onClick={() => {
+                    if (!readOnly && isAvailable) {
+                      handleCountryChange(code);
+                    }
+                  }}
+                  className={`relative rounded-2xl border p-4 transition-all flex flex-col justify-between ${
                     isSelected
-                      ? "border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-600/20 dark:bg-emerald-950/20 shadow-sm"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                      ? "border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-600/20 dark:bg-emerald-950/20 shadow-xs cursor-pointer"
+                      : isAvailable
+                      ? "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer"
+                      : "border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 opacity-75 cursor-not-allowed"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-2xl">{info.flag}</span>
-                      {isSelected && (
-                        <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
-                          {isAr ? "الدولة النشطة" : "Active"}
-                        </Badge>
-                      )}
+                      {isSelected ? (
+                        <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white shadow-2xs">
+                          {isAr ? "الدولة المعتمدة" : "Active"}
+                        </span>
+                      ) : !isAvailable ? (
+                        <span className="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 text-[9px] font-bold text-slate-600 dark:text-slate-400">
+                          {isAr ? "الربط قريباً" : "Coming Soon"}
+                        </span>
+                      ) : null}
                     </div>
                     <h4 className="font-bold text-xs text-slate-950 dark:text-white">
                       {isAr ? info.nameAr : info.nameEn}
@@ -392,8 +435,14 @@ export function ProfileForm({
                   </div>
 
                   <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    <span>{isAr ? "العملة:" : "Currency:"} <strong className="text-slate-900 dark:text-white font-mono">{info.defaultCurrency}</strong></span>
-                    <span>{isAr ? "الضريبة:" : "VAT:"} <strong className="text-emerald-600 font-mono">{info.standardVat}</strong></span>
+                    <span>
+                      {isAr ? "العملة:" : "Currency:"}{" "}
+                      <strong className="text-slate-900 dark:text-white font-mono">{info.defaultCurrency}</strong>
+                    </span>
+                    <span>
+                      {isAr ? "الضريبة:" : "VAT:"}{" "}
+                      <strong className="text-emerald-600 font-mono">{info.standardVat}</strong>
+                    </span>
                   </div>
                 </div>
               );
@@ -401,7 +450,7 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-5">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
               <ShieldCheck className="size-4 text-purple-600" />
@@ -424,7 +473,7 @@ export function ProfileForm({
               placeholder={currentCountry.taxIdHint}
               dir="ltr"
               disabled={readOnly}
-              className="text-xs font-mono font-bold"
+              className="text-xs font-mono font-bold h-10 rounded-xl"
             />
             <p className="text-[11px] text-slate-500">
               {isAr
@@ -461,15 +510,15 @@ export function ProfileForm({
                   : profile.enabled
                   ? isAr ? "مفعّل — الإرسال يعمل" : "Active — filing on"
                   : profile.verified_at
-                  ? isAr ? "مُتحقق منه — بانتظار التفعيل" : "Verified — ready"
+                  ? isAr ? "مُتحقق منه — جاهز للتفعيل" : "Verified — ready"
                   : isAr ? "مُعد — بانتظار التحقق" : "Configured — unverified";
 
                 return (
                   <div
                     key={jur}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3"
+                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 space-y-3"
                   >
-                    <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <div className="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{flag}</span>
                         <div>
@@ -535,7 +584,7 @@ export function ProfileForm({
           TAB 3: BRAND IDENTITY & PDF COVER PAGE
           ────────────────────────────────────────────────────────────────────────── */}
       <div className={activeTab === "BRANDING" ? "space-y-5" : "hidden"}>
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
           <div>
             <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
               <Palette className="size-4 text-purple-600" />
@@ -558,15 +607,15 @@ export function ProfileForm({
                   onClick={() => setBrandColor(p.hex)}
                   className={`rounded-2xl border p-3 cursor-pointer transition-all flex flex-col items-center gap-2 ${
                     isSelected
-                      ? "border-slate-900 ring-2 ring-purple-600/30 bg-purple-50/40 dark:bg-purple-950/20 shadow-sm"
+                      ? "border-purple-600 ring-2 ring-purple-600/25 bg-purple-50/50 dark:bg-purple-950/20 shadow-xs"
                       : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   }`}
                 >
                   <div
-                    className="size-8 rounded-full shadow-sm flex items-center justify-center text-white"
+                    className="size-8 rounded-full shadow-xs flex items-center justify-center text-white transition-transform hover:scale-105"
                     style={{ background: p.hex }}
                   >
-                    {isSelected && <CheckCircle2 className="size-4" />}
+                    {isSelected && <Check className="size-4 stroke-[3]" />}
                   </div>
                   <span className="text-[11px] font-bold text-slate-900 dark:text-white text-center">
                     {isAr ? p.nameAr : p.nameEn}
@@ -586,24 +635,25 @@ export function ProfileForm({
                 type="color"
                 value={brandColor}
                 onChange={(e) => setBrandColor(e.target.value)}
-                className="size-8 rounded-lg cursor-pointer border border-slate-300 dark:border-slate-700"
+                className="size-9 rounded-xl cursor-pointer border border-slate-300 dark:border-slate-700 p-0.5 bg-white dark:bg-slate-800"
               />
               <Input
-                name="brandColor"
                 value={brandColor}
                 onChange={(e) => setBrandColor(e.target.value)}
-                className="w-28 text-xs font-mono font-bold uppercase"
+                className="w-28 text-xs font-mono font-bold uppercase h-9 rounded-xl"
                 dir="ltr"
               />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <FileText className="size-4 text-blue-600" />
-            <span>{isAr ? "بيانات غلاف التقارير والشعار" : "Report Cover Details & Tagline"}</span>
-          </h3>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white">
+              {isAr ? "بيانات غلاف التقارير والشعار" : "Report Cover Details & Tagline"}
+            </h3>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5 text-start">
@@ -611,12 +661,11 @@ export function ProfileForm({
                 {isAr ? "رابط الشعار الرسمي (Logo URL)" : "Company Logo URL"}
               </Label>
               <Input
-                name="logoUrl"
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
                 placeholder="https://example.com/logo.png"
                 dir="ltr"
-                className="text-xs"
+                className="text-xs h-10 rounded-xl"
               />
             </div>
 
@@ -625,11 +674,10 @@ export function ProfileForm({
                 {isAr ? "الشعار اللفظي للكيان (Tagline)" : "Company Slogan / Tagline"}
               </Label>
               <Input
-                name="tagline"
                 value={tagline}
                 onChange={(e) => setTagline(e.target.value)}
                 placeholder={isAr ? "مثال: للإدارة والاستثمار العقاري المتكامل" : "e.g. Property Management Services"}
-                className="text-xs"
+                className="text-xs h-10 rounded-xl"
               />
             </div>
           </div>
@@ -647,20 +695,35 @@ export function ProfileForm({
               <div className="h-2 rounded-full mb-4" style={{ background: brandColor }} />
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
-                  <h4 className="font-black text-sm" style={{ color: brandColor }}>{name || "عقار بوكس"}</h4>
+                  <h4 className="font-black text-sm" style={{ color: brandColor }}>
+                    {name || (isAr ? "عقار بوكس" : "AqarBooks")}
+                  </h4>
                   <p className="text-[10px] text-slate-500">{tagline}</p>
                 </div>
-                <Badge variant="outline" className="text-[9px] font-bold" style={{ borderColor: brandColor, color: brandColor }}>
+                <Badge
+                  variant="outline"
+                  className="text-[9px] font-bold"
+                  style={{ borderColor: brandColor, color: brandColor }}
+                >
                   {isAr ? "تقرير مالي رسمي" : "Official Report"}
                 </Badge>
               </div>
               <div className="py-6 text-center">
-                <h3 className="font-black text-base text-slate-900 dark:text-white">ميزان المراجعة بالمجاميع والأرصدة</h3>
-                <p className="text-[11px] text-slate-500 mt-1">حتى تاريخ: 2026-08-19 | العملة: {currency}</p>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  {isAr ? "ميزان المراجعة بالمجاميع والأرصدة" : "Trial Balance Statement"}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {isAr ? "الفترة المالية النشطة" : "Active Fiscal Period"} · {isAr ? "العملة:" : "Currency:"} {currency}
+                </p>
               </div>
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-[10px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                <span>{isAr ? "الرقم الضريبي:" : "Tax ID:"} <strong>{taxNumber || "100-234-567"}</strong></span>
-                <span>{isAr ? "موثق ومعتمد" : "Certified"}</span>
+                <span>
+                  {isAr ? "الرقم الضريبي:" : "Tax ID:"}{" "}
+                  <strong className="font-mono">{taxNumber || "100-234-567"}</strong>
+                </span>
+                <span className="text-emerald-600 font-bold">
+                  {isAr ? "معتمد ومطابق للمعايير ✓" : "Certified & Compliant ✓"}
+                </span>
               </div>
             </div>
           </div>
@@ -675,7 +738,7 @@ export function ProfileForm({
           <Button
             type="submit"
             disabled={pending}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 text-xs h-10 px-5 shadow-sm"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 text-xs h-11 px-6 rounded-xl shadow-sm transition-all active:scale-98 cursor-pointer"
           >
             {pending ? <RefreshCw className="size-4 animate-spin" /> : <Save className="size-4" />}
             <span>{isAr ? "حفظ كافة التغييرات والربط التلقائي" : "Save Settings & Sync"}</span>
@@ -685,3 +748,4 @@ export function ProfileForm({
     </form>
   );
 }
+

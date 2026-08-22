@@ -50,6 +50,9 @@ export default async function AdminProfilePage({
         phone={organization.phone || ""}
         email={organization.email || ""}
         entityType={organization.entity_type || ""}
+        initialBrandColor={organization.brand_color || "#1E1B4B"}
+        initialLogoUrl={organization.logo_url || ""}
+        initialTagline={organization.tagline || ""}
         einvoiceProfiles={einvoiceProfiles ?? []}
         locale={locale}
         readOnly={!canManage}

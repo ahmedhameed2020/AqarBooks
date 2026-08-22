@@ -56,13 +56,14 @@ export async function updateOrganizationProfile(
 
   const supabase = await createClient();
   
-  // Normalize jurisdiction
-  let jur = parsed.data.taxJurisdiction || "EG";
-  if (jur === "EG_ETA") jur = "EG";
-  if (jur === "SA_ZATCA") jur = "SA";
-  if (jur === "AE_PEPPOL") jur = "AE";
-
-  const eInvoiceJur = jur === "EG" ? "EG_ETA" : jur === "SA" ? "SA_ZATCA" : "AE_PEPPOL";
+  // Normalize jurisdiction to strictly supported DB values ('EG', 'SA')
+  let rawJur = parsed.data.taxJurisdiction || "EG";
+  let jur: "EG" | "SA" = "EG";
+  if (rawJur === "SA" || rawJur === "SA_ZATCA") {
+    jur = "SA";
+  } else {
+    jur = "EG"; // Defaults to EG for all other inputs
+  }
 
   const updatePayload = {
     name: parsed.data.name,
@@ -73,6 +74,9 @@ export async function updateOrganizationProfile(
     phone: parsed.data.phone || null,
     email: parsed.data.email || null,
     entity_type: parsed.data.entityType || null,
+    brand_color: parsed.data.brandColor || "#1E1B4B",
+    logo_url: parsed.data.logoUrl || null,
+    tagline: parsed.data.tagline || null,
   };
 
   const { error } = await supabase
@@ -80,7 +84,15 @@ export async function updateOrganizationProfile(
     .update(updatePayload)
     .eq("id", parsed.data.organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    if (error.message.includes("organizations_tax_jurisdiction_check")) {
+      return {
+        ok: false,
+        error: "الدولة الضريبية المحددة غير مدعومة حالياً؛ يرجى اختيار جمهورية مصر العربية أو المملكة العربية السعودية.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
 
   // Automated Tax Integration Sync:
   // Automatically upsert or update the corresponding E-Invoice profile for this jurisdiction
@@ -88,14 +100,12 @@ export async function updateOrganizationProfile(
     try {
       await supabase.rpc("upsert_einvoice_profile", {
         p_organization_id: parsed.data.organizationId,
-        p_jurisdiction: eInvoiceJur,
+        p_jurisdiction: jur === "SA" ? "SA_ZATCA" : "EG_ETA",
         p_environment: "SANDBOX",
         p_taxpayer_id: parsed.data.taxId,
-        p_branch_code: "0",
-        p_activity_code: null,
       });
     } catch {
-      // Non-blocking sync fallback
+      // Non-blocking for profile updates
     }
   }
 
