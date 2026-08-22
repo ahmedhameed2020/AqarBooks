@@ -1,8 +1,27 @@
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { redirect, Link } from "@/i18n/navigation";
-import { ArrowRight, Wallet, Building2, CircleCheck, Clock3 } from "lucide-react";
+import {
+  ArrowRight,
+  Wallet,
+  Building2,
+  CircleCheck,
+  Clock3,
+  Phone,
+  Mail,
+  MessageCircle,
+  ExternalLink,
+  ShieldCheck,
+  Layers,
+  FileText,
+  User,
+  Building,
+  DollarSign,
+  TrendingUp,
+  Percent,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,22 +41,23 @@ import { KpiCard } from "../../dashboard/kpi-card";
 import { UnitBalanceBadge } from "../../property/unit-balance-badge";
 import { DuesTable } from "../../property/dues-table";
 import { PaymentsTable } from "../../property/payments-table";
-import { AddMemberDialog } from "../add-member-dialog";
 import { SendReminderDialog } from "../send-reminder-dialog";
 import { InviteToPortalDialog } from "./invite-to-portal-dialog";
 import { MemberStatementButton } from "./member-statement-button";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
-// TODO: `./member-statement-dialog`, `./member-tags`, `./member-activity`,
-// and `./member-documents` were referenced here but never implemented --
-// confirmed via `git log --all` that no commit on any branch in this repo
-// ever added these files. This is member-CRM scope (tags, activity log,
-// document uploads, PDF statement), which is out of scope for the current
-// baseline cleanup. The imports and their JSX usage below were removed
-// pending that feature; see git history for
-// `app/[locale]/(app)/members/[memberId]/page.tsx`.
-// (`./back-to-members-button` was also removed here, but replaced with a
-// plain Link below -- back-navigation isn't CRM scope.)
+import { LinkUnitDialog, type UnitOption } from "./link-unit-dialog";
+import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; memberId: string }>;
+}) {
+  const { locale, memberId } = await params;
+  const isAr = locale === "ar";
+  return {
+    title: isAr ? "الملف المالي للمالك والعقارات | عقار بوكس" : "Owner & Property Portfolio | AqarBooks",
+  };
+}
 
 export default async function MemberDetailPage({
   params,
@@ -55,9 +75,6 @@ export default async function MemberDetailPage({
 
   const supabase = await createClient();
 
-  // Explicit organization_id scoping (not relying on RLS alone), matching
-  // the unit detail page's convention: a memberId from another tenant must
-  // 404, never leak through as a silent empty page.
   const { data: member } = await supabase
     .from("members")
     .select("id, full_name, email, phone, is_company")
@@ -81,7 +98,7 @@ export default async function MemberDetailPage({
 
   const { data: ownerships } = await supabase
     .from("unit_ownerships")
-    .select("unit_id, share_percentage, end_date")
+    .select("unit_id, share_percentage, start_date, end_date")
     .eq("organization_id", organization.id)
     .eq("member_id", memberId);
 
@@ -92,21 +109,17 @@ export default async function MemberDetailPage({
   const unitById = new Map((units ?? []).map((u) => [u.id, u]));
 
   const ownedUnits = (ownerships ?? [])
-    .map((o) => ({ ...o, unit: unitById.get(o.unit_id), isActive: !o.end_date || o.end_date >= today }))
+    .map((o) => ({
+      ...o,
+      unit: unitById.get(o.unit_id),
+      isActive: !o.end_date || o.end_date >= today,
+    }))
     .filter((o) => o.unit)
     .sort((a, b) => {
       if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
-      return b.unit!.balance - a.unit!.balance;
+      return (b.unit?.balance || 0) - (a.unit?.balance || 0);
     });
 
-  // The units_with_financials view attributes only one "current owner" per
-  // unit (by priority), so its owner_id can't be used to sum a co-owner's
-  // balance. "Total balance" here is defined as the sum across this
-  // member's currently-active ownership stakes -- matches /property exactly
-  // whenever they're the sole/primary owner (the common case), but can
-  // differ from /property's per-unit owner_name attribution on a unit with
-  // multiple active co-owners, since each co-owner's page would otherwise
-  // show the unit's full balance.
   const activeUnits = ownedUnits.filter((o) => o.isActive);
   const totalBalance = activeUnits.reduce((s, o) => s + (o.unit?.balance ?? 0), 0);
 
@@ -120,12 +133,7 @@ export default async function MemberDetailPage({
   const totalPaid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const lastPayment = (payments ?? [])[0] ?? null;
 
-  // TODO: this used to also fetch member_tags/member_tag_assignments,
-  // member_activity_log (+ actor profile names), and member_documents to
-  // feed MemberTags/MemberActivity/MemberDocuments below -- those components
-  // were never implemented (see the TODO near the top-of-file imports), so
-  // those queries were removed rather than left running for no consumer.
-  const { data: allUnits } = await supabase
+  const { data: allOrgUnits } = await supabase
     .from("units_with_financials")
     .select("id, code, building_name_ar, building_name_en")
     .eq("organization_id", organization.id)
@@ -158,194 +166,365 @@ export default async function MemberDetailPage({
     amount: p.amount,
   }));
 
+  // Primary contact phone
+  const primaryPhoneObj = (memberPhones ?? []).find((p) => p.is_primary) || (memberPhones ?? [])[0];
+  const displayPhone = primaryPhoneObj?.phone_number || member.phone || null;
+  const whatsappNumber = displayPhone ? displayPhone.replace(/\D/g, "") : null;
+  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
+
   return (
     <main className="space-y-6 p-6">
-      <Link
-        href="/members"
-        locale={locale}
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-      >
-        <ArrowRight className="size-3.5 rtl:-scale-x-100" />
-        {isAr ? "رجوع للأعضاء" : "Back to members"}
-      </Link>
+      {/* Back link */}
+      <div>
+        <Link
+          href="/members"
+          locale={locale}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+          {isAr ? "رجوع لدليل الأعضاء والملاك" : "Back to members"}
+        </Link>
+      </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-xl font-semibold">{member.full_name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {member.email && <span>{member.email}</span>}
-            {(memberPhones ?? []).length > 0 ? (
-              (memberPhones ?? []).map((p) => (
-                <span
-                  key={p.id}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs ${
-                    p.is_primary ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground"
+      {/* Executive Hero Banner & Profile Card */}
+      <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-b from-card via-card to-slate-900/20 p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Identity block */}
+          <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+            <div className="size-16 sm:size-20 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg ring-4 ring-indigo-500/15 shrink-0">
+              {member.full_name.trim().slice(0, 1)}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {member.full_name}
+                </h1>
+                <Badge
+                  variant="outline"
+                  className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                    member.is_company
+                      ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                      : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
                   }`}
-                  dir="ltr"
                 >
-                  <span>{p.phone_number}</span>
-                  <span className="text-[10px] uppercase text-muted-foreground/70">({p.label})</span>
-                  {p.can_receive_whatsapp && <span className="text-[10px] text-emerald-500 font-bold">WA</span>}
-                </span>
-              ))
-            ) : (
-              member.phone && <span dir="ltr">{member.phone}</span>
-            )}
-            {!member.email && (!memberPhones || memberPhones.length === 0) && !member.phone && (
-              <span>{isAr ? "بلا بيانات تواصل" : "No contact info"}</span>
-            )}
-          </div>
-        </div>
+                  {member.is_company ? (
+                    <>
+                      <Building className="size-3 me-1 inline-block" />
+                      {isAr ? "شركة / جهة اعتبارية" : "Corporate"}
+                    </>
+                  ) : (
+                    <>
+                      <User className="size-3 me-1 inline-block" />
+                      {isAr ? "مالك فردي" : "Individual"}
+                    </>
+                  )}
+                </Badge>
+              </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {canManage && (
-            <AddMemberDialog
-              organizationId={organization.id}
-              members={[{ id: member.id, full_name: member.full_name }]}
-              units={(allUnits ?? []).map((u) => ({
-                id: u.id,
-                code: u.code,
-                building_name_ar: u.building_name_ar,
-                building_name_en: u.building_name_en,
-              }))}
+              {/* Contact chips */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {displayPhone && (
+                  <a
+                    href={`tel:${displayPhone}`}
+                    dir="ltr"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold transition-colors"
+                  >
+                    <Phone className="size-3 text-indigo-500" />
+                    <span>{displayPhone}</span>
+                  </a>
+                )}
+
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-semibold border border-emerald-500/30 transition-colors"
+                  >
+                    <MessageCircle className="size-3 fill-emerald-500 text-emerald-500" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+
+                {member.email && (
+                  <a
+                    href={`mailto:${member.email}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium transition-colors"
+                  >
+                    <Mail className="size-3 text-slate-400" />
+                    <span>{member.email}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Toolbar */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-4 lg:pt-0 border-t lg:border-t-0 border-border/60">
+            {canManage && (
+              <LinkUnitDialog
+                organizationId={organization.id}
+                memberId={member.id}
+                memberName={member.full_name}
+                units={(allOrgUnits ?? []).map((u) => ({
+                  id: u.id,
+                  code: u.code,
+                  building_name_ar: u.building_name_ar,
+                  building_name_en: u.building_name_en,
+                }))}
+                locale={locale}
+              />
+            )}
+
+            <Link
+              href={`/finance/reports/owner-statement?member=${member.id}`}
+              locale={locale}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <FileText className="size-3.5 text-indigo-500" />
+              <span>{isAr ? "كشف حساب وتوزيعات المالك" : "Owner Statement"}</span>
+            </Link>
+
+            <MemberStatementButton
+              organizationName={organization.name}
+              propertyName={organization.name}
+              currency={currency}
+              memberName={member.full_name}
+              dues={formattedDues}
+              payments={formattedPayments}
               locale={locale}
             />
-          )}
 
-          <MemberStatementButton
-            organizationName={organization.name}
-            propertyName={organization.name}
-            currency={currency}
-            memberName={member.full_name}
-            dues={formattedDues}
-            payments={formattedPayments}
-            locale={locale}
-          />
+            <SendReminderDialog
+              memberId={member.id}
+              organizationId={organization.id}
+              memberName={member.full_name}
+              phone={member.phone}
+              email={member.email}
+              balance={totalBalance}
+              currency={currency}
+              locale={locale}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <MessageCircle className="size-3.5 text-emerald-500" />
+                  {isAr ? "تذكير بالسداد" : "Remind"}
+                </Button>
+              }
+            />
 
-          <SendReminderDialog
-            memberId={member.id}
-            organizationId={organization.id}
-            memberName={member.full_name}
-            phone={member.phone}
-            email={member.email}
-            balance={totalBalance}
-            currency={currency}
-            locale={locale}
-            trigger={
-              <Button variant="outline" size="sm">
-                <MessageCircle className="size-3.5" />
-                {isAr ? "تذكير" : "Remind"}
-              </Button>
-            }
-          />
-
-          <InviteToPortalDialog
-            memberId={member.id}
-            memberName={member.full_name}
-            locale={locale}
-          />
+            <InviteToPortalDialog
+              memberId={member.id}
+              memberName={member.full_name}
+              locale={locale}
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
+      {/* KPI Bento Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label={isAr ? `الرصيد الإجمالي (${currency})` : `Total balance (${currency})`}
+          label={isAr ? `إجمالي الرصيد المستحق (${currency})` : `Total Outstanding Balance (${currency})`}
           value={<Money amount={totalBalance} locale={locale} tone={totalBalance > 0 ? "negative" : "positive"} />}
-          icon={<Wallet className="size-4.5" />}
+          icon={<Wallet className="size-5" />}
           tone={totalBalance > 0 ? "negative" : "positive"}
+          hint={totalBalance > 0 ? (isAr ? "مطلوب سداده" : "Due for payment") : (isAr ? "الحساب مسوى بالكامل" : "Fully settled")}
         />
         <KpiCard
-          label={isAr ? "الوحدات المملوكة" : "Owned units"}
+          label={isAr ? "العقارات والوحدات المملوكة" : "Owned Properties & Units"}
           value={String(activeUnits.length)}
-          icon={<Building2 className="size-4.5" />}
+          icon={<Building2 className="size-5" />}
+          hint={isAr ? `إجمالي الحصص (${activeUnits.length} وحدة)` : `${activeUnits.length} active units`}
         />
         <KpiCard
-          label={isAr ? `إجمالي المدفوع (${currency})` : `Total paid (${currency})`}
+          label={isAr ? `إجمالي السداد والتحصيل (${currency})` : `Total Paid & Collected (${currency})`}
           value={<Money amount={totalPaid} locale={locale} tone="positive" />}
-          icon={<CircleCheck className="size-4.5" />}
+          icon={<CircleCheck className="size-5" />}
           tone="positive"
+          hint={isAr ? "سندات مقيدة ومثبتة" : "Posted receipts"}
         />
         <KpiCard
-          label={isAr ? "آخر دفعة" : "Last payment"}
+          label={isAr ? "آخر دفعة مسجلة" : "Last Recorded Payment"}
           value={lastPayment ? <Money amount={lastPayment.amount} currency={currency} locale={locale} /> : "—"}
-          hint={lastPayment?.payment_date}
-          icon={<Clock3 className="size-4.5" />}
+          hint={lastPayment?.payment_date || (isAr ? "لا توجد دفعات" : "No payments")}
+          icon={<Clock3 className="size-5" />}
         />
       </div>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">{isAr ? "الوحدات المملوكة" : "Owned units"}</h2>
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{isAr ? "رقم الوحدة" : "Unit"}</TableHead>
-                <TableHead>{isAr ? "المبنى" : "Building"}</TableHead>
-                <TableHead>{isAr ? "المنطقة" : "Zone"}</TableHead>
-                <TableHead>{isAr ? "نسبة الملكية" : "Ownership share"}</TableHead>
-                <TableHead>{isAr ? "حالة الملكية" : "Ownership status"}</TableHead>
-                <TableHead>{isAr ? "رصيد الوحدة" : "Unit balance"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ownedUnits.length ? (
-                ownedUnits.map((o) => (
-                  <TableRow key={o.unit_id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/property/${o.unit_id}`} locale={locale} className="hover:underline">
-                        {o.unit!.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {(isAr ? o.unit!.building_name_ar : o.unit!.building_name_en) ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {(isAr ? o.unit!.zone_name_ar : o.unit!.zone_name_en) ?? "—"}
-                    </TableCell>
-                    <TableCell className="tabular-nums">{o.share_percentage}%</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border-transparent",
-                          o.isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {o.isActive ? (isAr ? "نشطة" : "Active") : (isAr ? "منتهية" : "Ended")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <UnitBalanceBadge balance={o.unit!.balance} currency={currency} locale={locale} />
+      {/* Portfolio Tabs Container */}
+      <Tabs defaultValue="units" className="space-y-4">
+        <TabsList className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
+          <TabsTrigger value="units" className="gap-2 rounded-lg font-bold">
+            <Building2 className="size-4" />
+            <span>{isAr ? "الوحدات العقارية المملوكة" : "Owned Units"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {ownedUnits.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="dues" className="gap-2 rounded-lg font-bold">
+            <FileText className="size-4" />
+            <span>{isAr ? "المطالبات والاستحقاقات" : "Financial Dues"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {formattedDues.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2 rounded-lg font-bold">
+            <DollarSign className="size-4" />
+            <span>{isAr ? "سندات التحصيل والدفع" : "Payments & Receipts"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {formattedPayments.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab 1: Owned Units */}
+        <TabsPanel value="units" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              {isAr ? "قائمة العقارات والوحدات المسجلة باسم المالك" : "Registered Real Estate Units"}
+            </h2>
+            {canManage && (
+              <LinkUnitDialog
+                organizationId={organization.id}
+                memberId={member.id}
+                memberName={member.full_name}
+                units={(allOrgUnits ?? []).map((u) => ({
+                  id: u.id,
+                  code: u.code,
+                  building_name_ar: u.building_name_ar,
+                  building_name_en: u.building_name_en,
+                }))}
+                locale={locale}
+                trigger={
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs font-semibold">
+                    <Building2 className="size-3.5" />
+                    <span>{isAr ? "➕ ربط وحدة إضافية" : "➕ Link Another Unit"}</span>
+                  </Button>
+                }
+              />
+            )}
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-xs">
+            <Table>
+              <TableHeader className="bg-slate-50 dark:bg-slate-900/50">
+                <TableRow>
+                  <TableHead className="font-bold">{isAr ? "كود الوحدة" : "Unit Code"}</TableHead>
+                  <TableHead className="font-bold">{isAr ? "المبنى / العقار" : "Building"}</TableHead>
+                  <TableHead className="font-bold">{isAr ? "المنطقة" : "Zone"}</TableHead>
+                  <TableHead className="font-bold">{isAr ? "نسبة الملكية" : "Ownership Share"}</TableHead>
+                  <TableHead className="font-bold">{isAr ? "حالة الملكية" : "Status"}</TableHead>
+                  <TableHead className="font-bold">{isAr ? "رصيد الذمة للوحدة" : "Unit Balance"}</TableHead>
+                  <TableHead className="text-end font-bold">{isAr ? "الإجراء" : "Action"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ownedUnits.length ? (
+                  ownedUnits.map((o) => (
+                    <TableRow key={o.unit_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                      <TableCell className="font-bold">
+                        <Link
+                          href={`/property/${o.unit_id}`}
+                          locale={locale}
+                          className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5"
+                        >
+                          <span>{o.unit!.code}</span>
+                          <ExternalLink className="size-3 opacity-60" />
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-medium text-slate-700 dark:text-slate-300">
+                        {(isAr ? o.unit!.building_name_ar : o.unit!.building_name_en) ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-slate-500 dark:text-slate-400">
+                        {(isAr ? o.unit!.zone_name_ar : o.unit!.zone_name_en) ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-indigo-600 dark:text-indigo-400 tabular-nums">
+                            {o.share_percentage}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "font-semibold text-[11px] px-2 py-0.5",
+                            o.isActive
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-300"
+                          )}
+                        >
+                          {o.isActive ? (isAr ? "ملكية سارية" : "Active") : (isAr ? "منتهية" : "Ended")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <UnitBalanceBadge balance={o.unit!.balance} currency={currency} locale={locale} />
+                      </TableCell>
+                      <TableCell className="text-end">
+                        <Link
+                          href={`/property/${o.unit_id}`}
+                          locale={locale}
+                          className={buttonVariants({ variant: "ghost", size: "sm" })}
+                        >
+                          <ExternalLink className="size-3.5 text-indigo-500 me-1" />
+                          <span className="text-xs">{isAr ? "بروفايل الوحدة" : "Unit Profile"}</span>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-12 text-center text-slate-400 space-y-2">
+                      <Building2 className="size-8 mx-auto opacity-30" />
+                      <p className="text-sm font-semibold">
+                        {isAr ? "لا توجد وحدات عقارية مربوطة بهذا المالك حتى الآن" : "No owned units linked yet"}
+                      </p>
+                      {canManage && (
+                        <div className="pt-2">
+                          <LinkUnitDialog
+                            organizationId={organization.id}
+                            memberId={member.id}
+                            memberName={member.full_name}
+                            units={(allOrgUnits ?? []).map((u) => ({
+                              id: u.id,
+                              code: u.code,
+                              building_name_ar: u.building_name_ar,
+                              building_name_en: u.building_name_en,
+                            }))}
+                            locale={locale}
+                          />
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    {isAr ? "لا توجد وحدات مملوكة" : "No owned units"}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsPanel>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">{isAr ? "سجل الاستحقاقات" : "Dues history"}</h2>
-        <DuesTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
-      </section>
+        {/* Tab 2: Dues */}
+        <TabsPanel value="dues" className="space-y-3">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            {isAr ? "سجل الاستحقاقات والمطالبات المالية" : "Financial Dues & Invoices"}
+          </h2>
+          <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+            <DuesTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
+          </div>
+        </TabsPanel>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">{isAr ? "سجل الدفعات" : "Payments history"}</h2>
-        <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
-      </section>
-
-      {/*
-        TODO: "Notes & activity" (MemberActivity) and "Documents"
-        (MemberDocuments) were never implemented -- removed, see
-        top-of-file TODO.
-      */}
+        {/* Tab 3: Payments */}
+        <TabsPanel value="payments" className="space-y-3">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            {isAr ? "سجل السندات والمدفوعات المسددة" : "Payments & Receipts Ledger"}
+          </h2>
+          <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+            <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
+          </div>
+        </TabsPanel>
+      </Tabs>
     </main>
   );
 }

@@ -265,6 +265,39 @@ export async function linkOwnershipAction(
   return { ok: true };
 }
 
+const unlinkOwnershipSchema = z.object({
+  organizationId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  memberId: z.string().uuid(),
+});
+
+export async function unlinkOwnershipAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = unlinkOwnershipSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    unitId: formData.get("unitId"),
+    memberId: formData.get("memberId"),
+  });
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from("unit_ownerships")
+    .update({ end_date: today })
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("unit_id", parsed.data.unitId)
+    .eq("member_id", parsed.data.memberId)
+    .is("end_date", null);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/[locale]/members", "page");
+  revalidatePath("/[locale]/property", "page");
+  return { ok: true };
+}
+
 // Unit rental/occupancy (unit_leases). Every action below is a thin wrapper
 // around a security-definer RPC that performs its own has_permission()
 // check -- this file is never the authorization boundary, matching every

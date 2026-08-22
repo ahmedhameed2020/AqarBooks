@@ -113,12 +113,14 @@ export default async function UnitDetailPage({
     .eq("organization_id", organization.id)
     .eq("unit_id", unitId)
     .order("start_date", { ascending: false });
-  const historyMemberIds = [...new Set((ownershipHistoryRows ?? []).map((o) => o.member_id))];
-  const { data: historyMembers } = historyMemberIds.length
-    ? await supabase.from("members").select("id, full_name, phone").in("id", historyMemberIds)
-    : { data: [] };
-  const historyMemberName = new Map((historyMembers ?? []).map((m) => [m.id, m.full_name]));
-  const historyMemberPhone = new Map((historyMembers ?? []).map((m) => [m.id, m.phone]));
+  const { data: allOrgMembers } = await supabase
+    .from("members")
+    .select("id, full_name, phone, email")
+    .eq("organization_id", organization.id)
+    .order("full_name");
+
+  const historyMemberName = new Map((allOrgMembers ?? []).map((m) => [m.id, m.full_name]));
+  const historyMemberPhone = new Map((allOrgMembers ?? []).map((m) => [m.id, m.phone]));
 
   const monthly = buildMonthlyFinancials(
     (dueRows ?? []).map((d) => ({ issue_date: d.issue_date, due_date: d.due_date, amount: d.amount, status: d.status })),
@@ -214,7 +216,16 @@ export default async function UnitDetailPage({
             agingTotals={agingTotals}
           />
         }
-        ownership={<TabOwnership history={ownershipHistory} locale={locale} />}
+        ownership={
+          <TabOwnership
+            organizationId={organization.id}
+            unitId={unitId}
+            unitCode={unit.code}
+            history={ownershipHistory}
+            members={allOrgMembers ?? []}
+            locale={locale}
+          />
+        }
         lease={<TabLease organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />}
         installments={<TabInstallments organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />}
         activity={<TabActivity events={activity} locale={locale} currency={currency} />}
