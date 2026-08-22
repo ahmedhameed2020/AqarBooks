@@ -38,6 +38,16 @@ export const RELEASE_PROVENANCE = {
  * - Material changes create a fresh bundle ID (e.g. CERT-2026-08-B) and reset sample telemetry.
  * - Cosmetic UI/CSS/i18n changes retain the active certification bundle.
  */
+export const PREDEFINED_EVALUATION_CHECKPOINTS = {
+  description: "Fixed evaluation checkpoints to prevent repeated-peeking / optional-stopping bias. Production validation decisions are strictly evaluated only at these fixed sample sizes.",
+  checkpoints: {
+    BANK_RECON: [200, 300, 400, 500],
+    ASK_AQARBOOKS: [150, 250, 350, 450],
+    INVOICE_OCR: [500, 750, 1000],
+    JOURNAL_COPILOT: [100, 200, 300],
+  },
+} as const;
+
 export const CERTIFICATION_RELEVANT_CHANGE_POLICY = {
   triggersBundleReset: [
     "AI Model / Provider switch",

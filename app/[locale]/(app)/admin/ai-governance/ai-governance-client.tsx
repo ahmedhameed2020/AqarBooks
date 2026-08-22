@@ -431,35 +431,99 @@ export function AiGovernanceClient({
         </div>
       </div>
 
-      {/* Certification-Relevant Change Policy Card */}
-      <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-3 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-          <GitBranch className="size-4 text-blue-600" />
-          <h2 className="text-sm font-black text-slate-900 dark:text-white">
-            {isAr ? "سياسة حزم الإصدارات والتحقق المعتمد (Cohort Invalidation Policy)" : "Certification-Relevant Change Policy"}
-          </h2>
+      {/* Certification-Relevant Change Policy & Predefined Checkpoints Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Policy Box */}
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <GitBranch className="size-4 text-blue-600" />
+            <h2 className="text-sm font-black text-slate-900 dark:text-white">
+              {isAr ? "سياسة حزم الإصدارات (Cohort Policy)" : "Certification Cohort Policy"}
+            </h2>
+          </div>
+          <div className="space-y-2 text-xs">
+            <div className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/40 dark:border-amber-900/30 dark:bg-amber-950/10 space-y-1">
+              <span className="font-bold text-amber-900 dark:text-amber-300 block text-[11px]">
+                {isAr ? "⚡ تغييرات جوهرية تنشئ Bundle جديد وتصفر العينات:" : "⚡ Material Changes (Reset Cohort Bundle):"}
+              </span>
+              <ul className="list-disc list-inside text-[10px] text-amber-800 dark:text-amber-400 space-y-0.5">
+                {CERTIFICATION_RELEVANT_CHANGE_POLICY.triggersBundleReset.slice(0, 4).map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/30 dark:bg-emerald-950/10 space-y-1">
+              <span className="font-bold text-emerald-900 dark:text-emerald-300 block text-[11px]">
+                {isAr ? "🛡️ تعديلات شكلية تحافظ على الـ Active Bundle:" : "🛡️ Cosmetic Changes (Retain Active Bundle):"}
+              </span>
+              <ul className="list-disc list-inside text-[10px] text-emerald-800 dark:text-emerald-400 space-y-0.5">
+                {CERTIFICATION_RELEVANT_CHANGE_POLICY.retainsCurrentBundle.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/40 dark:border-amber-900/30 dark:bg-amber-950/10 space-y-1.5">
-            <span className="font-bold text-amber-900 dark:text-amber-300 block">
-              {isAr ? "⚡ تغييرات جوهرية تنشئ Bundle جديد وتصفر عداد العينات:" : "⚡ Material Changes (Reset Cohort Bundle):"}
-            </span>
-            <ul className="list-disc list-inside text-[11px] text-amber-800 dark:text-amber-400 space-y-0.5">
-              {CERTIFICATION_RELEVANT_CHANGE_POLICY.triggersBundleReset.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
+
+        {/* Predefined Checkpoints Box (Anti-Optional-Stopping Guard) */}
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Clock className="size-4 text-indigo-600" />
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                {isAr ? "نقاط التقييم المجدولة (Anti-Optional-Stopping)" : "Fixed Evaluation Checkpoints"}
+              </h2>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono">
+              Prevents Repeated Peeking Bias
+            </Badge>
           </div>
 
-          <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/30 dark:bg-emerald-950/10 space-y-1.5">
-            <span className="font-bold text-emerald-900 dark:text-emerald-300 block">
-              {isAr ? "🛡️ تعديلات شكلية تحافظ على الـ Active Bundle:" : "🛡️ Cosmetic Changes (Retain Active Bundle):"}
-            </span>
-            <ul className="list-disc list-inside text-[11px] text-emerald-800 dark:text-emerald-400 space-y-0.5">
-              {CERTIFICATION_RELEVANT_CHANGE_POLICY.retainsCurrentBundle.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400">
+            {isAr
+              ? "قرارات الاعتماد النهائي (Production Validation) ملزمة فقط عند الوصول لنقاط العينات المحددة مسبقاً:"
+              : "Certification decisions are evaluated strictly at predetermined sample intervals to prevent optional stopping:"}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 block">Bank Reconciliation</span>
+              <div className="flex gap-1 text-[11px] font-bold text-indigo-600">
+                <span className="bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">N=200</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">300</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">400</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">500</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 block">Ask AqarBooks</span>
+              <div className="flex gap-1 text-[11px] font-bold text-indigo-600">
+                <span className="bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">N=150</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">250</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">350</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">450</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 block">Invoice OCR</span>
+              <div className="flex gap-1 text-[11px] font-bold text-indigo-600">
+                <span className="bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">N=500</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">750</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">1000</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 block">Journal Copilot</span>
+              <div className="flex gap-1 text-[11px] font-bold text-indigo-600">
+                <span className="bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">N=100</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">200</span>
+                <span className="bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">300</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
