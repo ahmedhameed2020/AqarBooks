@@ -120,23 +120,26 @@ Format your output as a JSON object:
 /**
  * Cleans and normalizes phone numbers into E.164 standard.
  * e.g., '01012345678' -> '+201012345678'
+ * Note: E.164 compliance validates international structure; live WhatsApp reachability
+ * is resolved during actual dispatch.
  */
-export function normalizePhoneNumber(raw: string): { phone: string; isValidWhatsApp: boolean } {
-  if (!raw) return { phone: "", isValidWhatsApp: false };
+export function normalizePhoneNumber(raw: string): { phone: string; isE164ValidFormat: boolean; isValidWhatsApp: boolean } {
+  if (!raw) return { phone: "", isE164ValidFormat: false, isValidWhatsApp: false };
   const cleaned = raw.replace(/[^\d+]/g, "").trim();
 
   // Egyptian domestic number starting with 01
   if (/^01[0125]\d{8}$/.test(cleaned)) {
-    return { phone: `+2${cleaned}`, isValidWhatsApp: true };
+    return { phone: `+2${cleaned}`, isE164ValidFormat: true, isValidWhatsApp: true };
   }
   // Egyptian number with country code without plus
   if (/^201[0125]\d{8}$/.test(cleaned)) {
-    return { phone: `+${cleaned}`, isValidWhatsApp: true };
+    return { phone: `+${cleaned}`, isE164ValidFormat: true, isValidWhatsApp: true };
   }
   // Already in international format
   if (/^\+\d{10,15}$/.test(cleaned)) {
-    return { phone: cleaned, isValidWhatsApp: true };
+    return { phone: cleaned, isE164ValidFormat: true, isValidWhatsApp: true };
   }
 
-  return { phone: cleaned, isValidWhatsApp: cleaned.length >= 10 };
+  const isValid = cleaned.length >= 10;
+  return { phone: cleaned, isE164ValidFormat: isValid, isValidWhatsApp: isValid };
 }
