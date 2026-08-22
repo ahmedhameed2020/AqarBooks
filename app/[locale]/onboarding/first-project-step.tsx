@@ -1,8 +1,9 @@
 "use client";
 
-import { Building, Sparkles, Layers, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Building, Sparkles, Layers, ShieldCheck, CheckCircle2, DollarSign, Rocket } from "lucide-react";
 import { getCountryByCode } from "@/lib/countries";
 import { getCurrencyLabel } from "@/lib/currency";
+import { CountryFlag } from "@/components/ui/country-flag";
 
 interface FirstProjectStepProps {
   isAr: boolean;
@@ -85,56 +86,58 @@ export function FirstProjectStep({
       </div>
 
       {/* Live Workspace Preview Card */}
-      <div className="overflow-hidden rounded-2xl border border-blue-200/80 bg-linear-to-b from-blue-50/50 via-white to-slate-50 p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between border-b border-blue-100/80 pb-2.5">
+      <div className="overflow-hidden rounded-2xl border border-blue-200/80 bg-linear-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-blue-100/80 pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-blue-600" />
-            <span className="text-xs font-bold text-blue-950">
-              {isAr ? "معاينة المنظومة الجاهزة" : "Live Workspace Summary"}
+            <span className="text-xs font-extrabold text-blue-950">
+              {isAr ? "بطاقة معاينة الحساب والمنظومة" : "Workspace Live Preview"}
             </span>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200">
             <CheckCircle2 className="size-3" />
-            {isAr ? "جاهز للبدء" : "Ready"}
+            {isAr ? "جاهز للتشغيل" : "Ready to Launch"}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">
-              {isAr ? "المؤسسة" : "Organization"}
+        <div className="grid grid-cols-2 gap-4 text-xs">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+              {isAr ? "المنشأة" : "Organization"}
             </span>
-            <span className="font-bold text-slate-800 truncate block">
+            <span className="font-extrabold text-slate-900 truncate block text-sm">
               {orgName.trim() || (isAr ? "—" : "—")}
             </span>
           </div>
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
               {isAr ? "الدولة والعملة" : "Country & Currency"}
             </span>
-            <span className="font-bold text-slate-800 flex items-center gap-1.5">
-              <span>{country.flag}</span>
-              <span>{currency} ({currencyDisplay})</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <CountryFlag countryCode={country.code} className="w-5 h-3.5 rounded-xs" />
+              <span className="font-extrabold text-slate-900">
+                {currency} ({currencyDisplay})
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">
-              {isAr ? "النشاط" : "Entity Type"}
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+              {isAr ? "نوع النشاط" : "Entity Type"}
             </span>
-            <span className="font-semibold text-slate-700 truncate block">
+            <span className="font-bold text-slate-700 truncate block">
               {entityTypeLabel || (isAr ? "—" : "—")}
             </span>
           </div>
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
               {isAr ? "المشروع الأول" : "First Project"}
             </span>
-            <span className="font-semibold text-slate-700 truncate block">
+            <span className="font-bold text-slate-700 truncate block">
               {resortName.trim() || (isAr ? "—" : "—")}{" "}
-              {resortCode ? `(${resortCode})` : ""}
+              {resortCode ? <span className="font-mono text-slate-500">({resortCode})</span> : ""}
             </span>
           </div>
         </div>
