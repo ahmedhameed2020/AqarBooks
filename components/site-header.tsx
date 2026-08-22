@@ -79,7 +79,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               </span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 whitespace-nowrap tracking-wide -mt-0.5">
-              {isAr ? "نـظـام الـمـحـاسـبـة وإدارة الـعـقـارات" : "Real Estate Accounting & Management System"}
+              {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
             </span>
           </div>
         </Link>
