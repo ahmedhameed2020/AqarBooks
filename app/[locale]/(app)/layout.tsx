@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toast";
+import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
@@ -302,6 +303,7 @@ export default async function AppShellLayout({
           />
           <main className="flex-1 p-6 sm:p-8 min-w-0 bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
         </div>
+        <AskAqarBooksDrawer locale={loc} />
       </div>
     </Toaster>
   );
