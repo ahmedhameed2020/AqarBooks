@@ -231,18 +231,20 @@ export function scoreBankReconciliationMatch(
     }
   }
 
-  // Cap score to 100
-  const finalScore = Math.min(100, bestScore);
+  // Normalize score cleanly to 0-100% scale (Max raw points = 120: 40+30+15+10+25)
+  const maxPossibleRaw = 120;
+  const normalizedScore = bestScore > 0 ? Math.min(100, Math.round((bestScore / maxPossibleRaw) * 100)) : 0;
+
   const tier: MatchTier = 
-    finalScore >= 95 ? "STRONG_MATCH" : 
-    finalScore >= 80 ? "SUGGESTED_MATCH" : 
-    finalScore >= 60 ? "NEEDS_REVIEW" : "UNMATCHED";
+    normalizedScore >= 85 ? "STRONG_MATCH" : 
+    normalizedScore >= 70 ? "SUGGESTED_MATCH" : 
+    normalizedScore >= 50 ? "NEEDS_REVIEW" : "UNMATCHED";
 
   return {
     statementLineId: statementLine.id,
     candidateId: bestCandidate?.id,
     candidateLabel: bestCandidate ? `#${bestCandidate.entryNumber ?? "—"} · ${bestCandidate.entryDate} · ${bestCandidate.description ?? ""} (${bestCandidate.amount})` : undefined,
-    score: Math.max(0, finalScore),
+    score: normalizedScore,
     tier,
     matchReasons: bestReasons,
     interpretedMemo,

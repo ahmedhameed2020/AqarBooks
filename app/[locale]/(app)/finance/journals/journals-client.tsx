@@ -18,6 +18,8 @@ import {
   DollarSign,
   Building2,
   ArrowUpRight,
+  Brain,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { getCurrencyLabel } from "@/lib/currency";
 import { generateJournalVoucherPdf } from "@/lib/reports/journal-voucher-pdf";
+import { TenantPolicyMemoryDialog } from "@/components/ai/tenant-policy-memory-dialog";
 
 export type JournalEntryItem = {
   id: string;
@@ -63,6 +66,7 @@ export function JournalsClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "POSTED" | "DRAFT_OR_REVIEW" | "REVERSED">("ALL");
   const [sourceTypeFilter, setSourceTypeFilter] = useState<string>("ALL");
+  const [policyMemoryOpen, setPolicyMemoryOpen] = useState(false);
 
   // Source Types list
   const sourceTypes = useMemo(() => {
@@ -158,6 +162,17 @@ export function JournalsClient({
             </Select>
           )}
 
+          {/* Policy Memory Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPolicyMemoryOpen(true)}
+            className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 font-bold text-xs gap-1.5 h-9 shadow-xs cursor-pointer"
+          >
+            <Brain className="size-3.5 text-purple-600" />
+            <span>{isAr ? "ذاكرة السياسات المحاسبية" : "Policy Memory"}</span>
+          </Button>
+
           {/* New Entry Button */}
           <Link href="/finance/journals/new">
             <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs gap-1.5 h-9 shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
@@ -167,6 +182,13 @@ export function JournalsClient({
           </Link>
         </div>
       </div>
+
+      <TenantPolicyMemoryDialog
+        open={policyMemoryOpen}
+        onOpenChange={setPolicyMemoryOpen}
+        organizationId={entries[0]?.id || "org"}
+        locale={locale}
+      />
 
       {/* ──────────────────────────────────────────────────────────────────────────
           HIGH CONTRAST JOURNAL ENTRIES TABLE

@@ -16,4 +16,4 @@ export const AI_CONFIG = {
   defaultTemperature: 0.1, // Low temperature for accounting/deterministic extraction
 } as const;
 
-export type AiTaskType = "IMPORT_MAPPING" | "FINANCIAL_NARRATIVE" | "SMART_DUNNING" | "INVOICE_OCR" | "BANK_MATCHING";
+export type AiTaskType = "IMPORT_MAPPING" | "FINANCIAL_NARRATIVE" | "SMART_DUNNING" | "INVOICE_OCR" | "BANK_MATCHING" | "JOURNAL_COPILOT";

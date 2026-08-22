@@ -26,6 +26,8 @@ import {
   Scale,
 } from "lucide-react";
 import { getCurrencyLabel } from "@/lib/currency";
+import { JournalCopilotCard } from "@/components/ai/journal-copilot-card";
+import type { JournalEntryProposal } from "@/lib/ai/journal-copilot";
 
 type Account = { id: string; code: string; name_ar: string; name_en: string };
 type Period = { id: string; name: string };
@@ -101,6 +103,22 @@ export function JournalEntryForm({
       })),
   );
 
+  const handleApplyCopilotProposal = (proposal: JournalEntryProposal) => {
+    if (proposal.description) setDescription(proposal.description);
+    if (proposal.entryDate) setEntryDate(proposal.entryDate);
+
+    if (proposal.lines && proposal.lines.length > 0) {
+      const newLines: LineDraft[] = proposal.lines.map((l) => ({
+        key: keySeq++,
+        account_id: l.accountId,
+        description: l.description,
+        debit: l.debit > 0 ? String(l.debit) : "",
+        credit: l.credit > 0 ? String(l.credit) : "",
+      }));
+      setLines(newLines);
+    }
+  };
+
   const fmt = (n: number) =>
     n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -108,6 +126,15 @@ export function JournalEntryForm({
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="lines" value={linesJson} />
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          0. AI JOURNAL COPILOT CARD (SMART RECOMMENDATIONS & POLICY MEMORY)
+          ────────────────────────────────────────────────────────────────────────── */}
+      <JournalCopilotCard
+        organizationId={organizationId}
+        locale={locale}
+        onApplyProposal={handleApplyCopilotProposal}
+      />
 
       {/* ──────────────────────────────────────────────────────────────────────────
           1. HEADER & META CARD
