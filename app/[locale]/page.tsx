@@ -34,11 +34,11 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "عقار بوكس (AqarBooks): النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات (مصر والخليج)"
-    : "AqarBooks: Enterprise Real Estate & Resort Accounting ERP (Egypt & GCC)";
+    ? "عقار بوكس (AqarBooks) | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات (مصر والخليج)"
+    : "AqarBooks | Enterprise Real Estate & Resort Accounting ERP (Egypt & GCC)";
   const description = isAr
-    ? "نظام محاسبي متكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الضرائب المصرية (VAT/WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
-    : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with Egyptian Tax & Saudi ZATCA e-invoicing.";
+    ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية بقيد مزدوج حقيقي. متوافق مع منظومة الضرائب المصرية (VAT/WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
+    : "Enterprise double-entry accounting ERP for real estate entities, resorts, towers, and HOAs. Compliant with Egyptian Tax & Saudi ZATCA e-invoicing.";
 
   const siteUrl = `https://aqarbooks.com/${locale}`;
   const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero.jpg";
@@ -59,7 +59,7 @@ export async function generateMetadata({
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: isAr ? "عقار بوكس — النظام المحاسبي المتكامل لإدارة العقارات" : "AqarBooks Real Estate Accounting ERP",
+          alt: isAr ? "عقار بوكس — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات" : "AqarBooks Real Estate Accounting ERP",
           type: "image/jpeg",
         },
       ],
@@ -305,14 +305,14 @@ export default async function LandingPage({
               <>
                 نظام محاسبي متكامل لإدارة{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">
-                  الكيانات العقارية
+                  العقارات والمنتجعات
                 </span>
               </>
             ) : (
               <>
                 Integrated Accounting for{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">
-                  Every Real Estate Entity
+                  Real Estate & Resorts
                 </span>
               </>
             )}

@@ -66,7 +66,7 @@ export async function generateMetadata({
     ? "عقار بوكس (AqarBooks) | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
     : "AqarBooks | Real Estate & Resort Accounting ERP";
   const description = isAr
-    ? "النظام المحاسبي المتكامل بقيد مزدوج حقيقي لإدارة القرى والمنتجعات السياحية، الأبراج السكنية، الفلل، المحلات التجارية، واتحادات الملاك. متوافق مع منظومة الفاتورة الإلكترونية والضرائب (ETA & ZATCA)."
+    ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية بقيد مزدوج حقيقي. متوافق مع منظومة الفاتورة الإلكترونية والضرائب المصرية (ETA) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
     : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with ETA & ZATCA e-invoicing.";
   const siteUrl = `https://aqarbooks.com/${locale}`;
   const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero.jpg";
