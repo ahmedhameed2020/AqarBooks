@@ -4,10 +4,20 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "@/i18n/navigation";
 import { signIn, type SignInState } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
 import { LogoMark } from "@/components/marketing/logo-mark";
-import { Lock, Mail, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+  HelpCircle,
+  KeyRound,
+  Info,
+} from "lucide-react";
 
 export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspended?: boolean }) {
   const isAr = locale === "ar";
@@ -25,8 +35,8 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
         </h1>
         <p className="text-xs text-slate-500 max-w-xs mx-auto">
           {isAr
-            ? "سجّل دخولك لمتابعة محفظتك العقارية وكشوف الحسابات المعتمدة."
-            : "Sign in to manage your real estate assets and certified statements."}
+            ? "سجّل دخولك ببيانات حسابك لمتابعة محفظتك العقارية وكشوف الحسابات وسداد المستحقات."
+            : "Sign in to manage your real estate assets, certified statements, and payments."}
         </p>
       </div>
 
@@ -64,9 +74,18 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="portal-login-password" className="text-xs font-bold">
-            {isAr ? "كلمة المرور" : "Password"}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="portal-login-password" className="text-xs font-bold">
+              {isAr ? "كلمة المرور" : "Password"}
+            </Label>
+            <Link
+              href="/auth/forgot-password"
+              locale={locale}
+              className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
+            </Link>
+          </div>
           <div className="relative">
             <Input
               id="portal-login-password"
@@ -85,7 +104,9 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
           <div className="flex items-center gap-2 p-3 text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl">
             <AlertCircle className="size-4 shrink-0" />
             <span>
-              {isAr ? "بيانات تسجيل الدخول غير صحيحة، يرجى التحقق وإعادة المحاولة." : "Invalid credentials"}
+              {isAr
+                ? "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق وإعادة المحاولة."
+                : "Invalid credentials. Please verify your email and password."}
             </span>
           </div>
         )}
@@ -98,14 +119,27 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin me-2" />
-              {isAr ? "جاري التحقق والدخول..." : "Signing in..."}
+              {isAr ? "جاري تسجيل الدخول..." : "Signing in..."}
             </>
           ) : (
-            isAr ? "دخول لبوابة الملاك" : "Sign in to Portal"
+            isAr ? "تسجيل الدخول لبوابة الملاك" : "Sign In to Portal"
           )}
         </Button>
 
-        <div className="flex items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-400 font-medium">
+        {/* Informative Guidance Card for Owners */}
+        <div className="p-3.5 rounded-2xl border border-border/60 bg-slate-50/70 dark:bg-slate-900/70 space-y-1.5 text-start">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <Info className="size-3.5 text-indigo-500 shrink-0" />
+            <span>{isAr ? "إرشادات دخول الملاك الجدد:" : "New Owner Access Instructions:"}</span>
+          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            {isAr
+              ? "يتم تفعيل الحساب وتعيين كلمة المرور أول مرة عبر رابط الدعوة المعتمد المرسل من إدارة المنتجع أو الكيان العقاري عبر رسائل واتساب أو البريد الإلكتروني."
+              : "Account activation and password setup are completed via the official invitation link sent to your registered WhatsApp or email by the property management."}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-slate-400 font-medium">
           <ShieldCheck className="size-3.5 text-emerald-500" />
           <span>{isAr ? "نظام آمن ومشفر بالكامل عبر عقار بوكس" : "Secured & Encrypted by AqarBooks"}</span>
         </div>
