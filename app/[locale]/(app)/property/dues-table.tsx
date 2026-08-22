@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { Money } from "@/components/money";
+import { DuesExportButton } from "./dues-export-button";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   DRAFT: { ar: "مسودة", en: "Draft", variant: "outline" },
@@ -21,9 +22,6 @@ const STATUS_LABELS: Record<string, { ar: string; en: string; variant: "default"
 
 const RECORD_LIMIT = 50;
 
-// Accepts either a unitId (used on the unit detail page) or a memberId (for
-// the member profile page, once it exists -- filters through the member's
-// currently-active unit ownerships since dues have no direct member_id).
 export async function DuesTable({
   organizationId,
   unitId,
@@ -62,8 +60,6 @@ export async function DuesTable({
   if (unitId) {
     query = query.eq("unit_id", unitId);
   } else if (unitIds) {
-    // .in() with an empty array is unreliable across postgrest versions, so
-    // force a no-match filter instead when the member owns no active units.
     query = unitIds.length ? query.in("unit_id", unitIds) : query.eq("unit_id", "00000000-0000-0000-0000-000000000000");
   }
 
@@ -75,8 +71,24 @@ export async function DuesTable({
     : { data: [] };
   const dueTypeNameById = new Map((dueTypes ?? []).map((t) => [t.id, isAr ? t.name_ar : t.name_en]));
 
+  const exportList = (dues ?? []).map((d) => ({
+    date: d.due_date,
+    type: dueTypeNameById.get(d.due_type_id) ?? d.description ?? "—",
+    amount: d.amount,
+    status: (STATUS_LABELS[d.status] ? (isAr ? STATUS_LABELS[d.status].ar : STATUS_LABELS[d.status].en) : d.status),
+    description: d.description,
+  }));
+
   return (
     <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <DuesExportButton
+          dues={exportList}
+          currency={currency}
+          locale={locale}
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>

@@ -5,6 +5,7 @@ import { Money } from "@/components/money";
 import { createClient } from "@/lib/supabase/server";
 import { CreateInstallmentPlanDialog } from "./create-installment-plan-dialog";
 import { CancelInstallmentPlanButton } from "./installment-plan-action-buttons";
+import { InstallmentExportButton } from "./installment-export-button";
 
 const STATUS_LABEL: Record<string, { ar: string; en: string; className: string }> = {
   ACTIVE: { ar: "نشطة", en: "Active", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
@@ -34,7 +35,7 @@ export async function TabInstallments({
   const isAr = locale === "ar";
   const supabase = await createClient();
 
-  const [{ data: plans }, { data: members }, { data: dueTypes }, { data: accounts }] = await Promise.all([
+  const [{ data: plans }, { data: members }, { data: dueTypes }, { data: accounts }, { data: unitRow }] = await Promise.all([
     supabase
       .from("installment_plans")
       .select("id, buyer_member_id, status, total_price, down_payment, installment_count, installment_frequency, starts_on, cancel_reason, created_at")
@@ -49,6 +50,12 @@ export async function TabInstallments({
       .eq("organization_id", organizationId)
       .eq("is_group", false)
       .eq("category", "ASSET"),
+    supabase
+      .from("units")
+      .select("code")
+      .eq("id", unitId)
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
   ]);
 
   const memberName = new Map((members ?? []).map((m) => [m.id, m.full_name]));
@@ -117,12 +124,27 @@ export async function TabInstallments({
                   </span>
                 </div>
               </div>
-              <CancelInstallmentPlanButton planId={activePlan.id} locale={locale} />
+              <div className="flex items-center gap-2">
+                <InstallmentExportButton
+                  buyerName={memberName.get(activePlan.buyer_member_id) ?? "Buyer"}
+                  unitCode={unitRow?.code ?? unitId}
+                  currency={currency}
+                  totalPrice={activePlan.total_price}
+                  downPayment={activePlan.down_payment}
+                  installmentCount={activePlan.installment_count}
+                  frequency={activePlan.installment_frequency}
+                  schedule={schedule}
+                  locale={locale}
+                />
+                <CancelInstallmentPlanButton planId={activePlan.id} locale={locale} />
+              </div>
             </div>
           </section>
 
           <section className="space-y-2">
-            <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "جدول الأقساط" : "Installment schedule"}</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "جدول الأقساط" : "Installment schedule"}</h3>
+            </div>
             <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
               <Table>
                 <TableHeader>

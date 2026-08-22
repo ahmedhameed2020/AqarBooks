@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { Money } from "@/components/money";
+import { PaymentsExportButton } from "./payments-export-button";
 
 const METHOD_LABELS: Record<string, { ar: string; en: string }> = {
   CASH: { ar: "نقدًا", en: "Cash" },
@@ -29,14 +30,6 @@ type Row = {
   status: string;
 };
 
-// Accepts either a unitId (unit detail page) or a memberId (member profile
-// page). These are NOT symmetric: payments.member_id is set directly by the
-// real "record payment" form, but that form has no unit field at all --
-// payments.unit_id is always null in production data. The only reliable
-// unit-level link is payment_allocations -> dues.unit_id (same source the
-// units_with_financials view uses for total_paid). So the unitId path shows
-// the amount actually allocated to this unit's dues, which can be less than
-// a payment's full amount if one payment covered dues on multiple units.
 export async function PaymentsTable({
   organizationId,
   unitId,
@@ -113,8 +106,24 @@ export async function PaymentsTable({
     }));
   }
 
+  const exportList = rows.map((r) => ({
+    paymentDate: r.paymentDate,
+    method: METHOD_LABELS[r.method] ? (isAr ? METHOD_LABELS[r.method].ar : METHOD_LABELS[r.method].en) : r.method,
+    amount: r.amount,
+    receiptNumber: r.receiptNumber,
+    status: r.status === "REVERSED" ? (isAr ? "معكوس" : "Reversed") : (isAr ? "مرحّل" : "Posted"),
+  }));
+
   return (
     <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <PaymentsExportButton
+          payments={exportList}
+          currency={currency}
+          locale={locale}
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-xs">
         <Table>
           <TableHeader>
@@ -122,9 +131,6 @@ export async function PaymentsTable({
               <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
               <TableHead>{isAr ? "المبلغ" : "Amount"}</TableHead>
               <TableHead>{isAr ? "طريقة الدفع" : "Method"}</TableHead>
-              {/* TODO: no memo/notes column exists on payments yet -- receipt
-                  number is the only reference available. Revisit once a
-                  "record payment" write flow needs a note field. */}
               <TableHead>{isAr ? "المرجع" : "Reference"}</TableHead>
               <TableHead>{isAr ? "الحالة" : "Status"}</TableHead>
             </TableRow>
