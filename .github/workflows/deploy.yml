@@ -83,6 +83,12 @@ jobs:
           check /ar/onboarding 307
           # Auth guard on a protected route.
           check /en/dashboard  307
+          # Platform routes that lived ONLY in production for a week, because
+          # deploys came from an unmerged branch. 404 here means master has
+          # lost them again; 307 means present and guarded.
+          check /en/platform/subscriptions 307
+          check /en/platform/system        307
+          check /en/platform/settings      307
           exit $fail
 
 # Deliberately NOT run here: npm run test:all. Those suites execute against the
