@@ -31,8 +31,8 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
           {/* Visual Property Context */}
           <div className="relative lg:col-span-4 rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm min-h-[300px]">
             <Image
-              src="/images/aqarbooks-building-hierarchy.jpg"
-              alt={isAr ? "واجهة مبنى عقاري معتمد" : "Property Architectural Facade"}
+              src="/images/aqarbooks-unit-event.jpg"
+              alt={isAr ? "الوحدة العقارية B-214 — بالم ريزيدنس" : "Unit B-214 Architectural Interior & Balcony"}
               fill
               sizes="(max-width: 1024px) 100vw, 33vw"
               className="object-cover object-center"
