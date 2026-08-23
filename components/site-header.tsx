@@ -71,7 +71,7 @@ export function SiteHeader({
           type="button"
           onClick={toggleMobileNav}
           aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden cursor-pointer"
+          className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden cursor-pointer"
         >
           <Menu className="size-5" />
         </button>
@@ -80,14 +80,14 @@ export function SiteHeader({
           <LogoMark className="size-8.5 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-black tracking-tight text-slate-950 dark:text-white">
-                {isAr ? "عقار بوكس" : "AqarBooks"}
+              <span className="text-sm font-black tracking-tight text-slate-950 dark:text-white font-heading">
+                AqarBooks
               </span>
-              <span className="inline-flex rounded-full bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
-                PRO
+              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 dark:bg-emerald-950/60 border border-[#1A3C2E]/20 dark:border-emerald-800 text-[#1A3C2E] dark:text-emerald-300 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
+                ERP
               </span>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 whitespace-nowrap tracking-wide -mt-0.5">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap tracking-wide -mt-0.5">
               {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
             </span>
           </div>
@@ -208,7 +208,7 @@ export function SiteHeader({
               setShowQuickCreate(false);
             }}
             title={isAr ? "الإشعارات والتنبيهات" : "Notifications"}
-            className="relative flex size-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            className="relative flex size-8 touch:size-11 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <Bell className="size-4" />
             {/* No badge at all when nothing is wrong -- a red "0" is an alarm
@@ -320,7 +320,7 @@ export function SiteHeader({
         <Link
           href={pathname}
           locale={other}
-          className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors"
+          className="flex items-center gap-1.5 h-8 touch:min-h-11 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors"
         >
           <Globe className="size-3.5 text-indigo-600" />
           <span>{other === "ar" ? "العربية" : "English"}</span>

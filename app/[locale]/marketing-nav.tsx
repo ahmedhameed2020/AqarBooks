@@ -49,14 +49,14 @@ export function MarketingNav({ locale }: { locale: Locale }) {
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-base font-black tracking-tight text-slate-950 font-heading">
-                {isAr ? "عقار بوكس" : "AqarBooks"}
+                AqarBooks
               </span>
-              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.5">
+              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.2">
                 ERP
               </span>
             </div>
-            <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap -mt-0.5">
-              {isAr ? "نظام محاسبة الكيانات العقارية" : "Real Estate Accounting System"}
+            <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap -mt-0.5">
+              {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
             </span>
           </div>
         </Link>

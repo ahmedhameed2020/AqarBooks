@@ -68,13 +68,20 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
         <footer className="mt-20 pt-10 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-8 text-xs text-slate-600">
           <div className="md:col-span-5 space-y-3">
             <div className="flex items-center gap-2.5">
-              <LogoMark className="size-8" />
-              <span className="text-base font-black text-slate-950 font-heading">
-                {isAr ? "عقار بوكس" : "AqarBooks"}
-              </span>
-              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] text-[9px] font-black px-1.5 py-0.5">
-                ERP
-              </span>
+              <LogoMark className="size-8.5" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-black text-slate-950 font-heading">
+                    AqarBooks
+                  </span>
+                  <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.2">
+                    ERP
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 -mt-0.5">
+                  {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
+                </span>
+              </div>
             </div>
             <p className="text-slate-500 max-w-sm leading-relaxed">
               {isAr
