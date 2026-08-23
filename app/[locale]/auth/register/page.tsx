@@ -52,11 +52,11 @@ export default async function RegisterPage({
     <AuthShell
       brandName="AqarBooks"
       eyebrow={isAr ? "حساب جديد" : "New account"}
-      title={isAr ? "ابدأ دفاترك من اليوم الأول" : "Start your books right"}
+      title={isAr ? "ابدأ عقارك بدفاتر مرتبة من أول يوم." : "Start your property with clean books from day one."}
       subtitle={
         isAr
-          ? "حساب واحد يدير جميع كياناتك العقارية. التهيئة تستغرق دقيقتين."
-          : "One account runs all your properties. Setup takes two minutes."
+          ? "حساب واحد لإدارة كياناتك العقارية وحساباتها من مكان واحد."
+          : "One unified account to manage your real estate entities and ledgers."
       }
       locale={locale}
       maxWidth="xl"

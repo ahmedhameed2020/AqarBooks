@@ -1,29 +1,29 @@
 import Image from "next/image";
 import { LogoMark } from "@/components/marketing/logo-mark";
-import { ShieldCheck, Scale, Building2, CheckCircle2, Lock } from "lucide-react";
+import { ShieldCheck, Scale, Building2, CheckCircle2 } from "lucide-react";
 
 export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: string }) {
   const highlights = [
     {
       icon: Scale,
-      titleAr: "محرك محاسبة بقيد مزدوج حقيقي",
-      titleEn: "True Double-Entry General Ledger",
-      descAr: "دليل حسابات هرمي شجري وترحيل ذري فوري للقيود والسندات",
-      descEn: "Hierarchical Chart of Accounts & atomic GL posting",
+      titleAr: "كل حركة تنتهي بقيد حقيقي",
+      titleEn: "Every movement ends in a true journal entry",
+      descAr: "التحصيلات والمصروفات والتسويات تترحل إلى دفاتر متوازنة وقابلة للتتبع",
+      descEn: "Collections, expenses, and settlements post to balanced, traceable ledgers",
     },
     {
       icon: Building2,
-      titleAr: "محاسبة متخصصة للكيانات العقارية",
-      titleEn: "Specialized Real Estate Accounting",
-      descAr: "ربط دقيق بين الكيان، المبنى، الدور، كود الوحدة، والمالك",
-      descEn: "Seamless link between entity, tower, unit, and verified member",
+      titleAr: "كل قيد يعرف عقاره ووحدته",
+      titleEn: "Every entry knows its property and unit",
+      descAr: "من الكيان والمبنى إلى الوحدة والعميل — السياق العقاري يظل جزءًا من الحركة",
+      descEn: "From entity and building to unit and member — real estate context stays intact",
     },
     {
       icon: ShieldCheck,
-      titleAr: "امتثال ضريبي وسجل تدقيق غير قابل للحذف",
-      titleEn: "Tax Engine & Immutable Audit Trail",
-      descAr: "مطابقة ضريبة القيمة المضافة (14% VAT / WHT) مع قيود عكسية موثقة",
-      descEn: "14% VAT / WHT compliance with documented reversing entries",
+      titleAr: "الخطأ يتصحح. التاريخ ما يتمسحش.",
+      titleEn: "Errors are corrected. History is never wiped.",
+      descAr: "التصحيحات تتم بأثر موثق يحفظ الأصل ويجعل كل تغيير قابلًا للمراجعة",
+      descEn: "Adjustments create an immutable trail preserving the original for transparent audit",
     },
   ];
 
@@ -73,13 +73,21 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-md">
             <Scale className="size-3.5 text-emerald-300" />
-            <span>{isAr ? "المحاسبة التي تفهم العقار" : "Accounting for Real Estate"}</span>
+            <span>{isAr ? "محاسبة بُنيت للعقار" : "Accounting Built for Real Estate"}</span>
           </div>
 
           <h2 className="text-balance text-2xl xl:text-3xl font-black leading-tight text-white font-heading">
-            {isAr
-              ? "سجلاتك المالية العقارية بدقة متناهية وبراءة ذمة كاملة."
-              : "Enterprise financial control built strictly around real estate."}
+            {isAr ? (
+              <>
+                العقار في مكانه. <br />
+                والحسابات في دفاترها.
+              </>
+            ) : (
+              <>
+                Real estate in place. <br />
+                Ledgers in order.
+              </>
+            )}
           </h2>
         </div>
 
@@ -112,10 +120,16 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       {/* Bottom Trust Stamp */}
       <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] text-slate-300">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-400" />
-          <span>{isAr ? "عزل بيانات RLS وسجل تدقيق غير قابل للتلاعب" : "RLS Isolation & Immutable Ledger"}</span>
+          <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+          <span>
+            {isAr
+              ? "عزل بيانات الكيانات · صلاحيات محكومة · سجل تدقيق كامل"
+              : "Entity Data Isolation · Governed Permissions · Audit Trail"}
+          </span>
         </div>
-        <span className="font-mono text-[10px] text-slate-400">SOC-2 / IFRS READY</span>
+        <span className="font-mono text-[10px] text-slate-400 shrink-0 ms-2">
+          RLS / AUDIT CORE
+        </span>
       </div>
     </div>
   );
