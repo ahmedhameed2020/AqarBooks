@@ -1,150 +1,71 @@
-import {
-  LayoutDashboard,
-  FileText,
-  Receipt,
-  Landmark,
-  Building2,
-  LogOut,
-  UserCheck,
-  ShieldCheck,
-  Building,
-  CreditCard,
-} from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/actions/auth";
 import { LogoMark } from "@/components/marketing/logo-mark";
+import { PortalNav, PortalMobileNav } from "./portal-nav";
 
 export function PortalShell({
   locale,
   memberName,
+  organizationName,
   children,
 }: {
   locale: "ar" | "en";
   memberName: string;
+  organizationName: string;
   children: React.ReactNode;
 }) {
   const isAr = locale === "ar";
   const boundSignOut = signOut.bind(null, locale);
 
-  const links = [
-    {
-      href: "/portal",
-      labelAr: "الرئيسية والمحفظة",
-      labelEn: "Dashboard",
-      icon: LayoutDashboard,
-      descAr: "الملخص والبيانات الحية",
-      descEn: "Overview & metrics",
-    },
-    {
-      href: "/portal/statement",
-      labelAr: "كشف الحساب المالي",
-      labelEn: "Account Statement",
-      icon: FileText,
-      descAr: "حركة القيود والمسدد",
-      descEn: "Ledger & movements",
-    },
-    {
-      href: "/portal/dues",
-      labelAr: "المستحقات والسداد",
-      labelEn: "Dues & Checkout",
-      icon: Landmark,
-      descAr: "الفواتير والدفع أونلاين",
-      descEn: "Invoices & online pay",
-    },
-    {
-      href: "/portal/payments",
-      labelAr: "سجل السندات والمدفوعات",
-      labelEn: "Receipts & History",
-      icon: Receipt,
-      descAr: "إيصالات السداد المعتمدة",
-      descEn: "Verified receipts",
-    },
-    {
-      href: "/portal/units",
-      labelAr: "العقارات والوحدات",
-      labelEn: "My Real Estate",
-      icon: Building2,
-      descAr: "تفاصيل وحصص الملكية",
-      descEn: "Assets & ownership",
-    },
-  ];
-
   return (
-    <div className="flex min-h-screen w-full bg-slate-950/5 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-900 selection:text-white">
-      {/* Executive Sidebar */}
-      <aside className="hidden lg:flex w-72 shrink-0 border-e border-border/70 bg-card p-5 flex-col justify-between shadow-xs">
-        <div className="space-y-6">
-          {/* Brand Header */}
-          <div className="flex items-center gap-3 pb-4 border-b border-border/60">
+    <div className="flex min-h-screen w-full bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      {/* Sidebar. Fixed 17rem: enough for a two-line label, not so much that it
+          eats the width an owner needs for a statement table. */}
+      <aside className="hidden w-68 shrink-0 flex-col justify-between border-e border-border/70 bg-card p-4 lg:flex">
+        <div className="space-y-5">
+          <div className="flex items-center gap-3 border-b border-border/60 pb-4">
             <LogoMark className="size-9" />
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-base font-black tracking-tight text-slate-900 dark:text-white">
+                <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
                   {isAr ? "عقار بوكس" : "AqarBooks"}
                 </span>
-                <span className="inline-flex rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-400/30 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
+                <span className="rounded-md border border-indigo-400/30 bg-indigo-500/10 px-1.5 py-px text-[9px] font-bold text-indigo-600 dark:text-indigo-300">
                   PORTAL
                 </span>
               </div>
-              <p className="text-[10px] font-bold text-slate-400">
-                {isAr ? "بوابة الملاك والمستثمرين" : "Investor & Owner Portal"}
-              </p>
+              <p className="truncate text-[10px] font-semibold text-slate-400">{organizationName}</p>
             </div>
           </div>
 
-          {/* Member Identity Card */}
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60">
-            <div className="size-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
-              {memberName.trim().slice(0, 1)}
+          {/* Whose financial information am I looking at -- kept visible on
+              every screen rather than only on the dashboard. */}
+          <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-slate-50 p-3 dark:bg-slate-900/60">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
+              {memberName.trim().slice(0, 1) || "?"}
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                  {memberName}
-                </p>
-                <ShieldCheck className="size-3 text-emerald-500 shrink-0" />
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                {isAr ? "حساب مالك موثق" : "Verified Owner Account"}
+              <p className="flex items-center gap-1 truncate text-xs font-bold text-slate-900 dark:text-white">
+                <span className="truncate">{memberName}</span>
+                <ShieldCheck className="size-3 shrink-0 text-emerald-500" />
+              </p>
+              <p className="text-[10px] font-medium text-slate-500">
+                {isAr ? "حساب مالك مُوثّق" : "Verified owner account"}
               </p>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            {links.map((l) => {
-              const Icon = l.icon;
-              return (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  locale={locale}
-                  className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all group"
-                >
-                  <div className="size-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors">
-                    <Icon className="size-3.5" />
-                  </div>
-                  <div>
-                    <span className="block">{isAr ? l.labelAr : l.labelEn}</span>
-                    <span className="block text-[10px] font-normal text-slate-400 group-hover:text-indigo-400/80">
-                      {isAr ? l.descAr : l.descEn}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
+          <PortalNav locale={locale} />
         </div>
 
-        {/* Footer sign out */}
-        <div className="pt-4 border-t border-border/60">
+        <div className="border-t border-border/60 pt-4">
           <form action={boundSignOut}>
             <Button
               type="submit"
               variant="outline"
               size="sm"
-              className="w-full gap-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 border-rose-200 dark:border-rose-900/50 rounded-xl"
+              className="w-full gap-2 rounded-xl border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/40"
             >
               <LogOut className="size-3.5" />
               <span>{isAr ? "تسجيل الخروج" : "Sign out"}</span>
@@ -153,51 +74,37 @@ export function PortalShell({
         </div>
       </aside>
 
-      {/* Main Content Viewport */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between p-4 border-b border-border/70 bg-card">
-          <div className="flex items-center gap-2.5">
-            <LogoMark className="size-7.5" />
-            <div>
-              <span className="font-black text-sm text-slate-900 dark:text-white">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-border/70 bg-card p-3 lg:hidden">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <LogoMark className="size-7" />
+            <div className="min-w-0">
+              <span className="block text-sm font-bold text-slate-900 dark:text-white">
                 {isAr ? "بوابة الملاك" : "Owner Portal"}
               </span>
-              <p className="text-[10px] text-slate-400 font-bold truncate max-w-[160px]">
+              <p className="max-w-[180px] truncate text-[10px] font-semibold text-slate-400">
                 {memberName}
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <form action={boundSignOut}>
-              <Button type="submit" variant="ghost" size="sm" className="h-8 px-2 text-rose-500">
-                <LogOut className="size-4" />
-              </Button>
-            </form>
-          </div>
+          <form action={boundSignOut}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              aria-label={isAr ? "تسجيل الخروج" : "Sign out"}
+              className="h-8 px-2 text-rose-500"
+            >
+              <LogOut className="size-4" />
+            </Button>
+          </form>
         </header>
 
-        {/* Mobile Nav Bar */}
-        <div className="lg:hidden flex overflow-x-auto gap-1 p-2 border-b border-border/70 bg-slate-100 dark:bg-slate-900/50">
-          {links.map((l) => {
-            const Icon = l.icon;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                locale={locale}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-card border border-border/60 text-slate-700 dark:text-slate-300"
-              >
-                <Icon className="size-3 text-indigo-500" />
-                <span>{isAr ? l.labelAr : l.labelEn}</span>
-              </Link>
-            );
-          })}
+        <div className="lg:hidden">
+          <PortalMobileNav locale={locale} />
         </div>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

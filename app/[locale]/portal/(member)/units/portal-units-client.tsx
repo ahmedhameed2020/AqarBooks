@@ -1,228 +1,630 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   Building2,
-  FileSpreadsheet,
-  Building,
+  CalendarClock,
+  CheckCircle2,
   CreditCard,
   FileText,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowUpRight,
+  Layers,
+  Ruler,
+  Star,
+  Wallet,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
+import { generatePortalReportPdf } from "@/lib/reports/portal-report-pdf";
+import { formatAmount } from "@/lib/portal/portal-finance";
 import { unitTypeLabel, type UnitType } from "@/lib/units/unit-type-labels";
+import {
+  EmptyState,
+  ExportButtons,
+  PortalPageHeader,
+  SearchBox,
+  Segmented,
+  StatCard,
+} from "../portal-ui";
 
 export interface PortalUnitItem {
   id: string;
   code: string;
   unit_type: UnitType;
   custom_type_label: string | null;
-  building_name_ar?: string | null;
-  building_name_en?: string | null;
-  zone_name_ar?: string | null;
-  zone_name_en?: string | null;
+  building_name_ar: string | null;
+  building_name_en: string | null;
+  zone_name_ar: string | null;
+  zone_name_en: string | null;
+  area: number | null;
+  floor_number: number | null;
+  totalDue: number;
+  totalPaid: number;
   balance: number;
-  has_arrears: boolean;
+  sharePercentage: number | null;
+  isPrimaryContact: boolean;
+  ownedSince: string | null;
 }
+
+export interface PortalPlanItem {
+  id: string;
+  unitCode: string | null;
+  status: string;
+  totalPrice: number;
+  downPayment: number | null;
+  installmentCount: number;
+  installmentFrequency: string;
+  startsOn: string;
+}
+
+type StatusFilter = "ALL" | "ARREARS" | "SETTLED";
+
+const FREQUENCY_LABELS: Record<string, { ar: string; en: string }> = {
+  MONTHLY: { ar: "شهري", en: "Monthly" },
+  QUARTERLY: { ar: "ربع سنوي", en: "Quarterly" },
+  SEMI_ANNUAL: { ar: "نصف سنوي", en: "Semi-annual" },
+  ANNUAL: { ar: "سنوي", en: "Annual" },
+};
+
+const PLAN_STATUS_LABELS: Record<string, { ar: string; en: string }> = {
+  ACTIVE: { ar: "ساري", en: "Active" },
+  COMPLETED: { ar: "مكتمل", en: "Completed" },
+  CANCELLED: { ar: "ملغي", en: "Cancelled" },
+};
 
 export function PortalUnitsClient({
   organizationName,
   currency,
   memberName,
   units,
+  plans,
   locale,
 }: {
   organizationName: string;
   currency: string;
   memberName: string;
   units: PortalUnitItem[];
+  plans: PortalPlanItem[];
   locale: string;
 }) {
   const isAr = locale === "ar";
-  const totalUnits = units.length;
-  const totalArrears = units.reduce(
-    (sum, u) => sum + (u.balance > 0 ? Number(u.balance) : 0),
-    0
-  );
+  const [status, setStatus] = useState<StatusFilter>("ALL");
+  const [query, setQuery] = useState("");
+
+  const totalArrears = units.reduce((s, u) => s + (u.balance > 0 ? u.balance : 0), 0);
+  const totalPaid = units.reduce((s, u) => s + u.totalPaid, 0);
+  const totalArea = units.reduce((s, u) => s + (u.area ?? 0), 0);
+
+  const buildingOf = (u: PortalUnitItem) =>
+    (isAr ? u.building_name_ar : u.building_name_en) || (isAr ? "الكيان الرئيسي" : "Main entity");
+  const zoneOf = (u: PortalUnitItem) => (isAr ? u.zone_name_ar : u.zone_name_en) || "—";
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return units.filter((u) => {
+      if (status === "ARREARS" && u.balance <= 0) return false;
+      if (status === "SETTLED" && u.balance > 0) return false;
+      if (!q) return true;
+      return (
+        u.code.toLowerCase().includes(q) ||
+        unitTypeLabel(u, isAr).toLowerCase().includes(q) ||
+        buildingOf(u).toLowerCase().includes(q) ||
+        zoneOf(u).toLowerCase().includes(q)
+      );
+    });
+  }, [units, status, query, isAr]);
+
+  const reportRows = visible.map((u) => ({
+    code: u.code,
+    typeLabel: unitTypeLabel(u, isAr),
+    building: buildingOf(u),
+    zone: zoneOf(u),
+    area: u.area ?? null,
+    floor: u.floor_number ?? "—",
+    share: u.sharePercentage === null ? "—" : `${u.sharePercentage}%`,
+    ownedSince: u.ownedSince ?? "—",
+    totalDue: u.totalDue,
+    totalPaid: u.totalPaid,
+    balance: u.balance,
+  }));
 
   async function handleExportExcel() {
-    const columns = [
-      { header: isAr ? "كود الوحدة" : "Unit Code", key: "code", width: 14 },
-      { header: isAr ? "نوع الوحدة" : "Type", key: "typeLabel", width: 18 },
-      { header: isAr ? "المبنى / العقار" : "Building", key: "building", width: 22 },
-      { header: isAr ? "المنطقة / القطاع" : "Zone", key: "zone", width: 20 },
-      { header: isAr ? "الموقف المالي" : "Status", key: "status", width: 16 },
-      { header: isAr ? `رصيد المستحقات (${currency})` : `Balance (${currency})`, key: "balance", width: 18, isNumber: true },
-    ];
-
-    const rows = units.map((u) => ({
-      code: u.code,
-      typeLabel: unitTypeLabel(u, isAr),
-      building: (isAr ? u.building_name_ar : u.building_name_en) || "—",
-      zone: (isAr ? u.zone_name_ar : u.zone_name_en) || "—",
-      status: u.balance > 0 ? (isAr ? "مستحقات قائمة" : "Arrears") : (isAr ? "مسوى" : "Settled"),
-      balance: Number(u.balance),
-    }));
-
     await exportFinancialStatementToExcel(
       {
-        filename: `AqarBooks_Properties_${memberName.replace(/\s+/g, "_")}`,
-        title: isAr ? `سجل عقارات ووحدات المالك: ${memberName}` : `Real Estate Portfolio: ${memberName}`,
-        organizationName: organizationName || "AqarBooks",
+        filename: `AqarBooks_Portfolio_${memberName.replace(/\s+/g, "_") || "Owner"}`,
+        title: isAr ? `المحفظة العقارية: ${memberName}` : `Real Estate Portfolio: ${memberName}`,
+        organizationName,
         currencyLabel: currency,
-        columns,
-        rows,
+        columns: [
+          { header: isAr ? "كود الوحدة" : "Unit code", key: "code", width: 14 },
+          { header: isAr ? "النوع" : "Type", key: "typeLabel", width: 16 },
+          { header: isAr ? "المبنى" : "Building", key: "building", width: 22 },
+          { header: isAr ? "المنطقة" : "Zone", key: "zone", width: 18 },
+          { header: isAr ? "المساحة (م٢)" : "Area (m²)", key: "area", width: 14, isNumber: true },
+          { header: isAr ? "الدور" : "Floor", key: "floor", width: 10 },
+          { header: isAr ? "نسبة الملكية" : "Ownership share", key: "share", width: 16 },
+          { header: isAr ? "مالك منذ" : "Owned since", key: "ownedSince", width: 14 },
+          {
+            header: isAr ? `إجمالي المطالبات (${currency})` : `Total charged (${currency})`,
+            key: "totalDue",
+            width: 18,
+            isNumber: true,
+          },
+          {
+            header: isAr ? `إجمالي المسدد (${currency})` : `Total paid (${currency})`,
+            key: "totalPaid",
+            width: 18,
+            isNumber: true,
+          },
+          {
+            header: isAr ? `الرصيد (${currency})` : `Balance (${currency})`,
+            key: "balance",
+            width: 16,
+            isNumber: true,
+          },
+        ],
+        rows: reportRows,
         summaries: [
-          { label: isAr ? "عدد العقارات والوحدات" : "Total Units", value: totalUnits },
-          { label: isAr ? "إجمالي المتأخرات القائمة" : "Total Arrears", value: `${totalArrears.toLocaleString()} ${currency}` },
+          { label: isAr ? "عدد الوحدات" : "Units", value: visible.length },
+          {
+            label: isAr ? "إجمالي المتأخرات" : "Total arrears",
+            value: `${formatAmount(totalArrears, locale)} ${currency}`,
+          },
+          {
+            label: isAr ? "إجمالي المساحات (م٢)" : "Total area (m²)",
+            value: formatAmount(totalArea, locale),
+          },
         ],
       },
-      locale
+      locale,
+    );
+  }
+
+  function handleExportPdf() {
+    generatePortalReportPdf(
+      {
+        organizationName,
+        documentTitle: isAr ? "بيان المحفظة العقارية" : "Real Estate Portfolio Schedule",
+        documentSubtitle: isAr
+          ? "الوحدات المسجلة باسمك وبياناتها الفنية وموقفها المالي"
+          : "Units registered in your name, their specifications, and their financial position",
+        accountName: memberName,
+        currency,
+        periodLabel: isAr ? "الموقف حتى تاريخه" : "Position as of today",
+        infoRows: [
+          { label: isAr ? "عدد الوحدات" : "Units", value: String(visible.length) },
+          {
+            label: isAr ? "إجمالي المساحات" : "Total area",
+            value: totalArea > 0 ? `${formatAmount(totalArea, locale)} m²` : "—",
+          },
+        ],
+        kpis: [
+          {
+            label: isAr ? "إجمالي المطالبات" : "Total charged",
+            value: formatAmount(
+              visible.reduce((s, u) => s + u.totalDue, 0),
+              locale,
+            ),
+          },
+          {
+            label: isAr ? "إجمالي المسدد" : "Total paid",
+            value: formatAmount(
+              visible.reduce((s, u) => s + u.totalPaid, 0),
+              locale,
+            ),
+            tone: "settled",
+          },
+          {
+            label: isAr ? "المتأخرات القائمة" : "Outstanding arrears",
+            value: formatAmount(totalArrears, locale),
+            tone: totalArrears > 0 ? "owing" : "settled",
+            emphasis: true,
+          },
+        ],
+        columns: [
+          { header: isAr ? "الوحدة" : "Unit", key: "code", strong: true },
+          { header: isAr ? "النوع" : "Type", key: "typeLabel" },
+          { header: isAr ? "المبنى" : "Building", key: "building" },
+          { header: isAr ? "المساحة" : "Area", key: "area", numeric: true },
+          { header: isAr ? "الملكية" : "Share", key: "share", numeric: true },
+          { header: isAr ? "المطالبات" : "Charged", key: "totalDue", numeric: true },
+          { header: isAr ? "المسدد" : "Paid", key: "totalPaid", numeric: true },
+          { header: isAr ? "الرصيد" : "Balance", key: "balance", numeric: true, strong: true },
+        ],
+        rows: reportRows.map((r) => ({
+          ...r,
+          area: r.area === null ? "—" : formatAmount(r.area, locale),
+          totalDue: formatAmount(r.totalDue, locale),
+          totalPaid: formatAmount(r.totalPaid, locale),
+          balance: formatAmount(r.balance, locale),
+        })),
+        totalRow: {
+          code: isAr ? "الإجمالي" : "Total",
+          totalDue: formatAmount(
+            visible.reduce((s, u) => s + u.totalDue, 0),
+            locale,
+          ),
+          totalPaid: formatAmount(
+            visible.reduce((s, u) => s + u.totalPaid, 0),
+            locale,
+          ),
+          balance: formatAmount(
+            visible.reduce((s, u) => s + u.balance, 0),
+            locale,
+          ),
+        },
+        emptyMessage: isAr ? "لا توجد وحدات مسجلة باسمك." : "No units registered in your name.",
+      },
+      locale,
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header & Export Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            {isAr ? "العقارات والوحدات المملوكة" : "My Real Estate Portfolio"}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            {isAr
-              ? "بيانات الوحدات المسجلة باسمك، نسب الملكية، والموقف المالي لكل وحدة."
-              : "Overview of your registered units, property specs, and individual balance status."}
-          </p>
-        </div>
+      <PortalPageHeader
+        title={isAr ? "الوحدات والعقارات" : "Units & Properties"}
+        description={
+          isAr
+            ? "الوحدات المسجلة باسمك، بياناتها الفنية ونسب ملكيتك فيها، والموقف المالي لكل وحدة على حدة."
+            : "Units registered in your name, their specifications and your ownership share in each, with the financial position of every unit."
+        }
+      >
+        <ExportButtons
+          locale={locale}
+          disabled={units.length === 0}
+          onExcel={handleExportExcel}
+          onPdf={handleExportPdf}
+          pdfLabel={isAr ? "طباعة بيان المحفظة" : "Print portfolio"}
+        />
+      </PortalPageHeader>
 
-        {units.length > 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            className="gap-2 font-bold text-xs h-10 px-4 rounded-xl border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-          >
-            <FileSpreadsheet className="size-4 text-emerald-500" />
-            <span>{isAr ? "تصدير المحفظة Excel" : "Export Excel"}</span>
-          </Button>
-        )}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label={isAr ? "عدد الوحدات" : "Units owned"}
+          icon={<Building2 className="size-4 text-indigo-500" />}
+          value={
+            <>
+              {units.length}{" "}
+              <span className="text-xs font-semibold text-slate-400">
+                {isAr ? "وحدة" : units.length === 1 ? "unit" : "units"}
+              </span>
+            </>
+          }
+          hint={isAr ? "مسجلة ومُوثّقة بالنظام" : "Registered in the system"}
+        />
+        <StatCard
+          label={isAr ? "إجمالي المساحات" : "Total area"}
+          icon={<Ruler className="size-4 text-slate-400" />}
+          value={
+            totalArea > 0 ? (
+              <>
+                {formatAmount(totalArea, locale)}{" "}
+                <span className="text-xs font-semibold text-slate-400">m²</span>
+              </>
+            ) : (
+              "—"
+            )
+          }
+          hint={isAr ? "مجموع مساحات وحداتك" : "Combined area of your units"}
+        />
+        <StatCard
+          label={isAr ? "إجمالي المسدد" : "Total paid"}
+          icon={<CheckCircle2 className="size-4 text-emerald-500" />}
+          value={<Money amount={totalPaid} locale={locale} tone="positive" />}
+          hint={isAr ? "على كل الوحدات" : "Across all units"}
+        />
+        <StatCard
+          label={isAr ? "المتأخرات القائمة" : "Outstanding arrears"}
+          icon={<Wallet className="size-4 text-rose-500" />}
+          tone={totalArrears > 0 ? "negative" : "positive"}
+          value={
+            <Money
+              amount={totalArrears}
+              locale={locale}
+              tone={totalArrears > 0 ? "negative" : "positive"}
+            />
+          }
+          hint={
+            totalArrears > 0
+              ? isAr
+                ? "مستحقة السداد على وحداتك"
+                : "Due on your units"
+              : isAr
+                ? "كل الوحدات مسوّاة"
+                : "Every unit is settled"
+          }
+        />
       </div>
 
-      {/* Portfolio Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {units.length ? (
-          units.map((u) => {
+      {units.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Segmented<StatusFilter>
+            ariaLabel={isAr ? "تصفية حسب الموقف المالي" : "Filter by financial status"}
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "ALL", label: isAr ? "كل الوحدات" : "All units", count: units.length },
+              {
+                value: "ARREARS",
+                label: isAr ? "عليها مستحقات" : "With arrears",
+                tone: "negative",
+                count: units.filter((u) => u.balance > 0).length,
+              },
+              {
+                value: "SETTLED",
+                label: isAr ? "مسوّاة" : "Settled",
+                tone: "positive",
+                count: units.filter((u) => u.balance <= 0).length,
+              },
+            ]}
+          />
+          <SearchBox
+            locale={locale}
+            value={query}
+            onChange={setQuery}
+            placeholder={isAr ? "ابحث بالكود أو النوع أو المبنى" : "Search code, type, or building"}
+          />
+        </div>
+      ) : null}
+
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={<Building2 className="size-5" />}
+          title={
+            units.length === 0
+              ? isAr
+                ? "لا توجد وحدات مسجلة باسمك"
+                : "No units registered in your name"
+              : isAr
+                ? "لا توجد وحدات مطابقة"
+                : "No matching units"
+          }
+          description={
+            units.length === 0
+              ? isAr
+                ? "لم يتم ربط أي وحدة عقارية بحسابك بعد. إذا كنت تعتقد أن هذا غير صحيح، يرجى التواصل مع إدارة الكيان لمراجعة بيانات الملكية."
+                : "No unit has been linked to your account yet. If you believe this is incorrect, contact management to review your ownership records."
+              : isAr
+                ? "لا توجد وحدات تطابق الفلتر أو كلمة البحث الحالية."
+                : "No units match the current filter or search term."
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {visible.map((u) => {
             const hasDue = u.balance > 0;
             return (
-              <div
+              <article
                 key={u.id}
-                className="flex flex-col justify-between p-5 rounded-3xl border border-border/70 bg-card shadow-xs hover:border-indigo-500/40 transition-all space-y-4"
+                className="flex flex-col justify-between gap-4 rounded-2xl border border-border/70 bg-card p-5 transition-colors hover:border-indigo-500/40"
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="size-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-mono font-black text-sm shadow-2xs">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-indigo-200/60 bg-indigo-50 font-mono text-sm font-bold text-indigo-600 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400">
                         {u.code.slice(0, 3)}
                       </div>
-                      <div>
-                        <h2 className="font-mono font-black text-lg text-slate-900 dark:text-white">
+                      <div className="min-w-0">
+                        <h2 className="truncate font-mono text-lg font-bold text-slate-900 dark:text-white">
                           {u.code}
                         </h2>
-                        <p className="text-xs text-slate-500 font-medium">
-                          {unitTypeLabel(u, isAr)}
+                        <p className="truncate text-xs font-medium text-slate-500">
+                          {unitTypeLabel(u, isAr)} · {buildingOf(u)}
                         </p>
                       </div>
                     </div>
 
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold py-0.5 px-2.5 rounded-full ${
-                        hasDue
-                          ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
-                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                      }`}
-                    >
-                      {hasDue ? (isAr ? "مستحقات قائمة" : "Arrears") : (isAr ? "رصيد منضبط" : "Settled")}
-                    </Badge>
-                  </div>
-
-                  {/* Building & Zone info */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-border/40 space-y-0.5">
-                      <span className="text-[10px] text-slate-400 block">{isAr ? "المبنى / العقار" : "Building"}</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
-                        {(isAr ? u.building_name_ar : u.building_name_en) || (isAr ? "الكيان الرئيسي" : "Main")}
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-border/40 space-y-0.5">
-                      <span className="text-[10px] text-slate-400 block">{isAr ? "الرصيد المالي" : "Balance"}</span>
-                      <span className="font-bold tabular-nums block">
-                        <Money amount={Number(u.balance)} locale={locale} tone={hasDue ? "negative" : "positive"} />
-                      </span>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <Badge
+                        variant="outline"
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                          hasDue
+                            ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                            : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {hasDue ? (isAr ? "عليها مستحقات" : "Arrears") : isAr ? "مسوّاة" : "Settled"}
+                      </Badge>
+                      {u.isPrimaryContact ? (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                          <Star className="size-3 fill-current" />
+                          {isAr ? "جهة الاتصال الأساسية" : "Primary contact"}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
+
+                  {/* Specification strip: the facts an owner checks against
+                      their contract before they trust the money below it. */}
+                  <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                    <div className="rounded-xl border border-border/40 bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                      <dt className="text-[10px] text-slate-400">{isAr ? "المساحة" : "Area"}</dt>
+                      <dd className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                        {u.area ? `${formatAmount(u.area, locale)} m²` : "—"}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl border border-border/40 bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                      <dt className="text-[10px] text-slate-400">{isAr ? "الدور" : "Floor"}</dt>
+                      <dd className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                        {u.floor_number ?? "—"}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl border border-border/40 bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                      <dt className="text-[10px] text-slate-400">
+                        {isAr ? "نسبة الملكية" : "Share"}
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                        {u.sharePercentage === null ? "—" : `${u.sharePercentage}%`}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl border border-border/40 bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                      <dt className="text-[10px] text-slate-400">
+                        {isAr ? "مالك منذ" : "Owned since"}
+                      </dt>
+                      <dd className="font-semibold text-slate-800 dark:text-slate-200">
+                        {u.ownedSince ?? "—"}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {/* The unit's own ledger in three figures, so the balance is
+                      shown as a consequence rather than an assertion. */}
+                  <dl className="grid grid-cols-3 gap-2 rounded-xl border border-border/50 bg-slate-50/60 p-3 text-xs dark:bg-slate-900/40">
+                    <div>
+                      <dt className="text-[10px] text-slate-400">
+                        {isAr ? "إجمالي المطالبات" : "Charged"}
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                        <Money amount={u.totalDue} locale={locale} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] text-slate-400">{isAr ? "المسدد" : "Paid"}</dt>
+                      <dd className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        <Money amount={u.totalPaid} locale={locale} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] text-slate-400">{isAr ? "الرصيد" : "Balance"}</dt>
+                      <dd className="font-bold tabular-nums">
+                        <Money
+                          amount={u.balance}
+                          locale={locale}
+                          tone={hasDue ? "negative" : "positive"}
+                        />
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
 
-                {/* Card Action Buttons */}
-                <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2 border-t border-border/50 pt-3">
                   {hasDue ? (
                     <Link
-                      href={`/portal/dues`}
+                      href="/portal/dues"
                       locale={locale}
                       className={buttonVariants({
                         size: "sm",
                         className:
-                          "flex-1 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-2xs",
+                          "h-9 flex-1 gap-1.5 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700",
                       })}
                     >
                       <CreditCard className="size-3.5" />
-                      <span>{isAr ? "سداد مستحقات الوحدة" : "Pay Dues"}</span>
+                      <span>{isAr ? "سداد المستحقات" : "Settle dues"}</span>
                     </Link>
                   ) : (
-                    <div className="flex-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold py-1">
+                    <span className="flex flex-1 items-center gap-1.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="size-4" />
-                      <span>{isAr ? "الحساب مسوى بالكامل" : "Fully Settled"}</span>
-                    </div>
+                      {isAr ? "لا توجد مستحقات على هذه الوحدة" : "Nothing outstanding on this unit"}
+                    </span>
                   )}
 
                   <Link
-                    href={`/portal/statement`}
+                    href="/portal/statement"
                     locale={locale}
                     className={buttonVariants({
                       variant: "outline",
                       size: "sm",
-                      className: "h-9 rounded-xl text-xs font-semibold gap-1",
+                      className: "h-9 gap-1.5 rounded-xl text-xs font-semibold",
                     })}
                   >
                     <FileText className="size-3.5 text-indigo-500" />
                     <span>{isAr ? "كشف الحساب" : "Statement"}</span>
                   </Link>
                 </div>
-              </div>
+              </article>
             );
-          })
-        ) : (
-          <div className="col-span-2 p-12 text-center rounded-3xl border border-dashed border-border/70 bg-card space-y-3">
-            <Building2 className="size-10 text-slate-400 mx-auto opacity-30" />
-            <p className="font-bold text-base text-slate-900 dark:text-white">
-              {isAr ? "لا توجد وحدات عقارية مسجلة" : "No registered properties"}
-            </p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          })}
+        </div>
+      )}
+
+      {plans.length > 0 ? (
+        <section className="space-y-3 rounded-2xl border border-border/70 bg-card p-5">
+          <div>
+            <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+              <Layers className="size-4 text-indigo-500" />
+              {isAr ? "خطط التقسيط الشرائية" : "Purchase installment plans"}
+            </h2>
+            <p className="text-xs text-slate-500">
               {isAr
-                ? "لم يتم تسجيل أي وحدات أو عقارات باسمك في المنظومة حتى الآن."
-                : "No units have been linked to your account yet."}
+                ? "خطط شراء الوحدات المسجلة باسمك. تظهر أقساطها المستحقة ضمن صفحة المستحقات."
+                : "Purchase plans registered to you. Their due instalments appear on the dues page."}
             </p>
           </div>
-        )}
-      </div>
+
+          <div className="overflow-x-auto rounded-xl border border-border/60">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/70 bg-slate-50 text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
+                  <th scope="col" className="p-3 text-start font-semibold">
+                    {isAr ? "الوحدة" : "Unit"}
+                  </th>
+                  <th scope="col" className="p-3 text-start font-semibold">
+                    {isAr ? "الحالة" : "Status"}
+                  </th>
+                  <th scope="col" className="p-3 text-start font-semibold">
+                    {isAr ? "بداية الخطة" : "Starts"}
+                  </th>
+                  <th scope="col" className="p-3 text-start font-semibold">
+                    {isAr ? "عدد الأقساط" : "Instalments"}
+                  </th>
+                  <th scope="col" className="p-3 text-end font-semibold">
+                    {isAr ? "المقدم" : "Down payment"}
+                  </th>
+                  <th scope="col" className="p-3 text-end font-semibold">
+                    {isAr ? "إجمالي الثمن" : "Total price"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {plans.map((p) => (
+                  <tr key={p.id}>
+                    <td className="p-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                      {p.unitCode ?? "—"}
+                    </td>
+                    <td className="p-3">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-semibold ${
+                          p.status === "ACTIVE"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        }`}
+                      >
+                        {isAr
+                          ? (PLAN_STATUS_LABELS[p.status]?.ar ?? p.status)
+                          : (PLAN_STATUS_LABELS[p.status]?.en ?? p.status)}
+                      </Badge>
+                    </td>
+                    <td className="whitespace-nowrap p-3 font-mono text-slate-500">
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarClock className="size-3 text-slate-400" />
+                        {p.startsOn}
+                      </span>
+                    </td>
+                    <td className="p-3 text-slate-600 dark:text-slate-300">
+                      {p.installmentCount}{" "}
+                      <span className="text-slate-400">
+                        ·{" "}
+                        {isAr
+                          ? (FREQUENCY_LABELS[p.installmentFrequency]?.ar ?? p.installmentFrequency)
+                          : (FREQUENCY_LABELS[p.installmentFrequency]?.en ?? p.installmentFrequency)}
+                      </span>
+                    </td>
+                    <td className="p-3 text-end font-semibold tabular-nums">
+                      {p.downPayment === null ? "—" : <Money amount={p.downPayment} locale={locale} />}
+                    </td>
+                    <td className="p-3 text-end font-bold tabular-nums text-slate-900 dark:text-white">
+                      <Money amount={p.totalPrice} locale={locale} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -3,12 +3,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
-import type { DueDbRow, PaymentDbRow } from "@/lib/portal/row-types";
-import type { StatementLine } from "@/lib/reports/account-statement-pdf";
-import {
-  PortalStatementClient,
-  type PortalStatementMovement,
-} from "./portal-statement-client";
+import type { DueDbRow } from "@/lib/portal/row-types";
+import { PortalStatementClient, type PortalStatementMovement } from "./portal-statement-client";
+
+type PaymentRow = {
+  id: string;
+  amount: number;
+  payment_date: string;
+  method: string;
+  receipt_no: string | null;
+  receipt_number: number | null;
+  memo: string | null;
+  unit_id: string | null;
+};
 
 export default async function PortalStatementPage({
   params,
@@ -29,6 +36,7 @@ export default async function PortalStatementPage({
     { data: orgDisplay },
     { data: duesData, error: duesError },
     { data: paymentsData, error: paymentsError },
+    { data: unitsData, error: unitsError },
   ] = await Promise.all([
     supabase.rpc("get_own_organization_display").maybeSingle(),
     supabase
@@ -37,47 +45,34 @@ export default async function PortalStatementPage({
       .order("issue_date", { ascending: false }),
     supabase
       .from("payments")
-      .select("id, amount, payment_date, method, receipt_no, receipt_number")
+      .select("id, amount, payment_date, method, receipt_no, receipt_number, memo, unit_id")
       .eq("member_id", member.id)
       .order("payment_date", { ascending: false }),
+    supabase.from("units_with_financials").select("id, code"),
   ]);
 
   if (duesError) console.error("[PortalStatementPage] dues query failed:", duesError.message);
-  if (paymentsError) console.error("[PortalStatementPage] payments query failed:", paymentsError.message);
+  if (paymentsError)
+    console.error("[PortalStatementPage] payments query failed:", paymentsError.message);
+  if (unitsError) console.error("[PortalStatementPage] units query failed:", unitsError.message);
 
-  const allDues = (duesData ?? []) as unknown as DueDbRow[];
-  const payments = (paymentsData ?? []) as unknown as PaymentDbRow[];
+  // payments.unit_id is resolved against a separate units read rather than a
+  // PostgREST embed: the embed would add a join whose FK naming the portal has
+  // no other reason to depend on, and the member's unit list is a handful of
+  // rows either way.
+  const unitCodeById = new Map<string, string>(
+    ((unitsData ?? []) as { id: string; code: string }[]).map((u) => [u.id, u.code]),
+  );
 
-  const dues = allDues.filter((d) => d.status !== "VOID");
-  const totalDue = dues.reduce((sum, d) => sum + Number(d.amount), 0);
-  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const balance = totalDue - totalPaid;
-
-  const statementLines: StatementLine[] = [
-    ...dues.map((d) => ({
-      date: d.issue_date,
-      kind: "CHARGE" as const,
-      description: d.description ?? (isAr ? "استحقاق مالي" : "Due"),
-      unitCode: d.units?.code ?? null,
-      reference: null,
-      amount: Number(d.amount),
-    })),
-    ...payments.map((p) => ({
-      date: p.payment_date,
-      kind: "PAYMENT" as const,
-      description: isAr ? "سند سداد" : "Payment",
-      unitCode: null,
-      reference: p.receipt_no || (p.receipt_number ? `REC-${p.receipt_number}` : null),
-      amount: Number(p.amount),
-    })),
-  ];
+  const dues = ((duesData ?? []) as unknown as DueDbRow[]).filter((d) => d.status !== "VOID");
+  const payments = (paymentsData ?? []) as unknown as PaymentRow[];
 
   const movements: PortalStatementMovement[] = [
     ...dues.map((d) => ({
       id: `due-${d.id}`,
       date: d.issue_date,
       kind: "CHARGE" as const,
-      description: d.description ?? (isAr ? "استحقاق مالي دوري" : "Periodic Due"),
+      description: d.description ?? (isAr ? "استحقاق مالي دوري" : "Periodic due"),
       unitCode: d.units?.code ?? null,
       reference: null,
       amount: Number(d.amount),
@@ -86,12 +81,15 @@ export default async function PortalStatementPage({
       id: `pay-${p.id}`,
       date: p.payment_date,
       kind: "PAYMENT" as const,
-      description: isAr ? "سند سداد معتمد" : "Posted Receipt",
-      unitCode: null,
+      description: p.memo?.trim() || (isAr ? "سند سداد معتمد" : "Posted receipt"),
+      unitCode: p.unit_id ? (unitCodeById.get(p.unit_id) ?? null) : null,
       reference: p.receipt_no || (p.receipt_number ? `REC-${p.receipt_number}` : null),
       amount: Number(p.amount),
     })),
-  ].sort((a, b) => (b.date > a.date ? 1 : -1));
+  ]
+    // Oldest first: a running balance only reads as proof if it accumulates in
+    // the direction time moves. The client reverses for display when asked.
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
 
   return (
     <PortalStatementClient
@@ -99,10 +97,7 @@ export default async function PortalStatementPage({
       currency={orgDisplay?.default_currency ?? "EGP"}
       memberName={member.full_name ?? ""}
       movements={movements}
-      statementLines={statementLines}
-      totalDue={totalDue}
-      totalPaid={totalPaid}
-      balance={balance}
+      unitCodes={[...new Set(movements.map((m) => m.unitCode).filter((c): c is string => !!c))].sort()}
       locale={locale}
     />
   );
