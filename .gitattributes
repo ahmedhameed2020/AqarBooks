@@ -17,3 +17,11 @@ supabase/baseline/** -text
 # and hashes be95ddfe…, so the repository would hold a different file from the
 # one that was verified.
 supabase/migrations/20260821105505_baseline.sql -text
+
+# The migrations applied after the baseline are pinned by SHA-256 in the same
+# guard test. core.autocrlf is true here, so without this rule a Windows
+# checkout would receive CRLF, the bytes would differ from the Linux checkout,
+# and the pinned digest would be true on one machine and false on the other --
+# which is indistinguishable from someone having edited a migration.
+# They are stored LF-only; -text keeps them that way everywhere.
+supabase/migrations/*.sql -text

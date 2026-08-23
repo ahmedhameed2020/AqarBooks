@@ -112,8 +112,8 @@ export default async function AppShellLayout({
               icon: <MapPinned className={ic} />,
               subItems: [
                 { href: "/property", permission: "property.units.manage", labelAr: "كافة الوحدات", labelEn: "All Units" },
-                { href: "/finance/reports/rent-roll", permission: "finance.reports.read", labelAr: "جدول الإيجارات (Rent Roll)", labelEn: "Rent Roll Schedule" },
-                { href: "/finance/reports/lease-expirations", permission: "finance.reports.read", labelAr: "جداول انتهاء العقود", labelEn: "Lease Expirations" },
+                { href: "/finance/reports/rent-roll", permission: "property.reports.read", labelAr: "جدول الإيجارات (Rent Roll)", labelEn: "Rent Roll Schedule" },
+                { href: "/finance/reports/lease-expirations", permission: "property.reports.read", labelAr: "جداول انتهاء العقود", labelEn: "Lease Expirations" },
                 { href: "/import", permission: "property.units.manage", labelAr: "استيراد وحدات", labelEn: "Bulk Import" },
               ],
             },
@@ -124,7 +124,7 @@ export default async function AppShellLayout({
               icon: <Users className={ic} />,
               subItems: [
                 { href: "/members", permission: "property.members.manage", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
-                { href: "/finance/reports/owner-statement", permission: "finance.reports.read", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
+                { href: "/finance/reports/owner-statement", permission: "property.reports.read", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
               ],
             },
           ],
