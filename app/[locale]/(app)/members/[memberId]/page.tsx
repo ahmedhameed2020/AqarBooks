@@ -46,6 +46,7 @@ import { InviteToPortalDialog } from "./invite-to-portal-dialog";
 import { MemberStatementButton } from "./member-statement-button";
 import { LinkUnitDialog, type UnitOption } from "./link-unit-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
+import { MemberDossierRail } from "./member-dossier-rail";
 
 export async function generateMetadata({
   params,
@@ -77,7 +78,9 @@ export default async function MemberDetailPage({
 
   const { data: member } = await supabase
     .from("members")
-    .select("id, full_name, email, phone, is_company")
+    .select(
+      "id, full_name, legal_name, email, phone, is_company, customer_type, country_code, billing_address, tax_registration_number, identity_document_type, identity_document_number, identity_verified_at, created_at, user_id",
+    )
     .eq("id", memberId)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -186,82 +189,67 @@ export default async function MemberDetailPage({
         </Link>
       </div>
 
-      {/* Executive Hero Banner & Profile Card */}
-      <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-b from-card via-card to-slate-900/20 p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          {/* Identity block */}
-          <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-            <div className="size-16 sm:size-20 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg ring-4 ring-indigo-500/15 shrink-0">
-              {member.full_name.trim().slice(0, 1)}
+      {/* Identity strip. One primary action; everything else is subordinate --
+          the previous toolbar gave five actions identical weight, so nothing
+          read as the thing to do. */}
+      <section className="rounded-2xl border border-border/70 bg-card p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-2xl font-bold text-white">
+              {member.full_name.trim().slice(0, 1) || "?"}
             </div>
-
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {member.full_name}
-                </h1>
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="truncate text-xl font-bold tracking-tight text-foreground">
+                {member.full_name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"
-                  className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                    member.is_company
-                      ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
-                      : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
-                  }`}
+                  className="border-indigo-500/30 bg-indigo-500/10 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400"
                 >
-                  {member.is_company ? (
-                    <>
-                      <Building className="size-3 me-1 inline-block" />
-                      {isAr ? "شركة / جهة اعتبارية" : "Corporate"}
-                    </>
-                  ) : (
-                    <>
-                      <User className="size-3 me-1 inline-block" />
-                      {isAr ? "مالك فردي" : "Individual"}
-                    </>
-                  )}
+                  {member.is_company
+                    ? isAr
+                      ? "حساب اعتباري"
+                      : "Corporate"
+                    : isAr
+                      ? "مالك فردي"
+                      : "Individual owner"}
                 </Badge>
-              </div>
-
-              {/* Contact chips */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {member.user_id && (
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-500/30 bg-emerald-500/10 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+                  >
+                    <ShieldCheck className="me-1 size-3" />
+                    {isAr ? "بوابة مُفعّلة" : "Portal active"}
+                  </Badge>
+                )}
                 {displayPhone && (
                   <a
-                    href={`tel:${displayPhone}`}
+                    href={"tel:" + displayPhone}
                     dir="ltr"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted/70"
                   >
-                    <Phone className="size-3 text-indigo-500" />
-                    <span>{displayPhone}</span>
+                    <Phone className="size-3 text-muted-foreground" />
+                    {displayPhone}
                   </a>
                 )}
-
                 {whatsappUrl && (
                   <a
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-semibold border border-emerald-500/30 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
                   >
-                    <MessageCircle className="size-3 fill-emerald-500 text-emerald-500" />
-                    <span>WhatsApp</span>
-                  </a>
-                )}
-
-                {member.email && (
-                  <a
-                    href={`mailto:${member.email}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium transition-colors"
-                  >
-                    <Mail className="size-3 text-slate-400" />
-                    <span>{member.email}</span>
+                    <MessageCircle className="size-3" />
+                    WhatsApp
                   </a>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-4 lg:pt-0 border-t lg:border-t-0 border-border/60">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-4 lg:border-t-0 lg:pt-0">
             {canManage && (
               <LinkUnitDialog
                 organizationId={organization.id}
@@ -277,13 +265,15 @@ export default async function MemberDetailPage({
               />
             )}
 
+            <span className="mx-1 hidden h-6 w-px bg-border sm:block" />
+
             <Link
               href={`/finance/reports/owner-statement?member=${member.id}`}
               locale={locale}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
             >
               <FileText className="size-3.5 text-indigo-500" />
-              <span>{isAr ? "كشف حساب وتوزيعات المالك" : "Owner Statement"}</span>
+              <span>{isAr ? "كشف التوزيعات" : "Owner statement"}</span>
             </Link>
 
             <MemberStatementButton
@@ -306,7 +296,7 @@ export default async function MemberDetailPage({
               currency={currency}
               locale={locale}
               trigger={
-                <Button variant="outline" size="sm">
+                <Button variant="ghost" size="sm">
                   <MessageCircle className="size-3.5 text-emerald-500" />
                   {isAr ? "تذكير بالسداد" : "Remind"}
                 </Button>
@@ -322,38 +312,68 @@ export default async function MemberDetailPage({
         </div>
       </section>
 
-      {/* KPI Bento Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          label={isAr ? `إجمالي الرصيد المستحق (${currency})` : `Total Outstanding Balance (${currency})`}
-          value={<Money amount={totalBalance} locale={locale} tone={totalBalance > 0 ? "negative" : "positive"} />}
-          icon={<Wallet className="size-5" />}
-          tone={totalBalance > 0 ? "negative" : "positive"}
-          hint={totalBalance > 0 ? (isAr ? "مطلوب سداده" : "Due for payment") : (isAr ? "الحساب مسوى بالكامل" : "Fully settled")}
-        />
-        <KpiCard
-          label={isAr ? "العقارات والوحدات المملوكة" : "Owned Properties & Units"}
-          value={String(activeUnits.length)}
-          icon={<Building2 className="size-5" />}
-          hint={isAr ? `إجمالي الحصص (${activeUnits.length} وحدة)` : `${activeUnits.length} active units`}
-        />
-        <KpiCard
-          label={isAr ? `إجمالي السداد والتحصيل (${currency})` : `Total Paid & Collected (${currency})`}
-          value={<Money amount={totalPaid} locale={locale} tone="positive" />}
-          icon={<CircleCheck className="size-5" />}
-          tone="positive"
-          hint={isAr ? "سندات مقيدة ومثبتة" : "Posted receipts"}
-        />
-        <KpiCard
-          label={isAr ? "آخر دفعة مسجلة" : "Last Recorded Payment"}
-          value={lastPayment ? <Money amount={lastPayment.amount} currency={currency} locale={locale} /> : "—"}
-          hint={lastPayment?.payment_date || (isAr ? "لا توجد دفعات" : "No payments")}
-          icon={<Clock3 className="size-5" />}
-        />
-      </div>
+      {/* Working area beside a dossier that never scrolls out of context --
+          the answer to "whose money am I looking at" stays on screen while the
+          tabs change underneath it. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="min-w-0 space-y-4">
+          {/* Four figures, sized to be read rather than admired. Colour is
+              carried only by the balance, where it actually means something. */}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div
+              className={cn(
+                "rounded-xl border p-3",
+                totalBalance > 0
+                  ? "border-rose-500/30 bg-rose-500/[0.04]"
+                  : "border-emerald-500/30 bg-emerald-500/[0.04]",
+              )}
+            >
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
+                <Wallet className="size-3.5" />
+                {isAr ? "الرصيد المستحق" : "Outstanding"} ({currency})
+              </p>
+              <p className="mt-1 text-lg font-bold tabular-nums">
+                <Money
+                  amount={totalBalance}
+                  locale={locale}
+                  tone={totalBalance > 0 ? "negative" : "positive"}
+                />
+              </p>
+            </div>
 
-      {/* Portfolio Tabs Container */}
-      <Tabs defaultValue="units" className="space-y-4">
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
+                <Building2 className="size-3.5" />
+                {isAr ? "الوحدات المملوكة" : "Units owned"}
+              </p>
+              <p className="mt-1 text-lg font-bold tabular-nums">{activeUnits.length}</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
+                <CircleCheck className="size-3.5" />
+                {isAr ? "إجمالي المسدد" : "Total paid"} ({currency})
+              </p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                <Money amount={totalPaid} locale={locale} tone="positive" />
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
+                <Clock3 className="size-3.5" />
+                {isAr ? "آخر دفعة" : "Last payment"}
+              </p>
+              <p className="mt-1 text-lg font-bold tabular-nums">
+                {lastPayment ? <Money amount={lastPayment.amount} locale={locale} /> : "—"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {lastPayment?.payment_date ?? (isAr ? "لا توجد دفعات" : "No payments")}
+              </p>
+            </div>
+          </div>
+
+          <Tabs defaultValue="units" className="space-y-4">
         <TabsList className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
           <TabsTrigger value="units" className="gap-2 rounded-lg font-bold">
             <Building2 className="size-4" />
@@ -524,7 +544,31 @@ export default async function MemberDetailPage({
             <PaymentsTable organizationId={organization.id} memberId={memberId} locale={locale} currency={currency} />
           </div>
         </TabsPanel>
-      </Tabs>
+          </Tabs>
+        </div>
+
+        <MemberDossierRail
+          canManage={canManage}
+          locale={locale}
+          member={{
+            id: member.id,
+            fullName: member.full_name,
+            legalName: member.legal_name,
+            isCompany: member.is_company,
+            customerType: member.customer_type,
+            email: member.email,
+            phone: member.phone,
+            countryCode: member.country_code,
+            billingAddress: member.billing_address,
+            taxRegistrationNumber: member.tax_registration_number,
+            identityDocumentType: member.identity_document_type,
+            identityDocumentNumber: member.identity_document_number,
+            identityVerifiedAt: member.identity_verified_at,
+            createdAt: member.created_at,
+            hasPortalAccess: member.user_id !== null,
+          }}
+        />
+      </div>
     </main>
   );
 }

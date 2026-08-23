@@ -16,8 +16,11 @@ export default async function PortalMemberLayout({ children }: { children: React
     redirect("/portal/login?reason=org_suspended");
   }
 
+  // Authenticated, but this account is not an owner in any organization.
+  // Redirecting with no reason produced a silent loop: sign in, bounce back to
+  // the email box, with nothing on screen explaining it.
   if (ctx.status === "not_a_member") {
-    redirect("/portal/login");
+    redirect("/portal/login?reason=not_a_member");
   }
 
   const { member } = ctx;

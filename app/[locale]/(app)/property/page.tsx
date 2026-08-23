@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Money } from "@/components/money";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "../dashboard/kpi-card";
@@ -134,6 +135,8 @@ export default async function PropertyPage({
   }
 
   const supabase = await createClient();
+  // Gates the archive / delete items in each unit row's action menu.
+  const canManage = await hasPermission(organization.id, "property.units.manage");
   const { data: resorts } = await supabase
     .from("resorts")
     .select("id, name")
@@ -338,7 +341,7 @@ export default async function PropertyPage({
               buildings={buildings ?? []}
               zones={zones ?? []}
             />
-            <UnitsTable units={units ?? []} locale={locale} currency={currency} />
+            <UnitsTable units={units ?? []} locale={locale} currency={currency} canManage={canManage} />
             <UnitsPagination page={page} totalPages={totalPages} totalCount={count ?? 0} locale={locale} />
           </>
         )}

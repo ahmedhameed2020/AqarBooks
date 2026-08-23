@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Mail, AlertCircle, Loader2, ShieldCheck, Info, Send, CheckCircle2 } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Mail,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+  Info,
+  Send,
+  KeyRound,
+  ArrowRight,
+  UserX,
+  LogOut,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,22 +21,55 @@ import { createClient } from "@/lib/supabase/client";
 import type { Locale } from "@/i18n/routing";
 import { LogoMark } from "@/components/marketing/logo-mark";
 
-// The owner portal has no password. First access comes from a staff-issued link
-// plus a six-digit code; this screen covers the other case -- a returning owner
-// whose session lapsed. They ask for a fresh sign-in link to the address already
-// on their record, so the inbox itself is the factor.
+// The owner portal has no password. First access is a staff-issued link plus an
+// access code; this screen covers a returning owner whose session lapsed.
 //
-// The result message is deliberately identical whether or not the address is
-// registered: telling an anonymous visitor which emails exist would turn this
-// box into an account-enumeration oracle.
-export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspended?: boolean }) {
+// The emailed CODE is the primary path, not the link. A magic link carries a
+// PKCE verifier bound to the browser that requested it, so an owner who opens
+// their mail on a phone after requesting the link on a laptop lands on a dead
+// redirect -- and the redirect target additionally has to sit on Supabase's
+// allow-list. Typing six digits has none of those failure modes and works on
+// any device. The link still works (it now points at /auth/callback, which
+// actually exchanges the code) but it is offered as the fallback, not the
+// headline.
+//
+// Note this code is Supabase's own email OTP, and is a different thing from the
+// invitation access code staff sends over WhatsApp. Each flow has exactly one
+// code, and the wording below says which one it is.
+export function LoginForm({
+  locale,
+  orgSuspended,
+  notAMember,
+  authFailed,
+}: {
+  locale: Locale;
+  orgSuspended?: boolean;
+  /** Signed in successfully, but the account owns nothing in any organization. */
+  notAMember?: boolean;
+  authFailed?: boolean;
+}) {
   const isAr = locale === "ar";
+  const router = useRouter();
+  const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [signingOut, setSigningOut] = useState(false);
+  const codeRef = useRef<HTMLInputElement>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  // Someone in this state holds a valid session that the portal will keep
+  // refusing, so every retry loops them straight back here. Clearing the
+  // session is the only way out, and it has to be offered on screen.
+  function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    supabase.auth.signOut().then(() => {
+      window.location.href = `/${locale}/portal/login`;
+    });
+  }
+
+  function handleRequest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -36,22 +81,59 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
           // Never provision an account from this box -- only an owner already
           // invited by staff has a portal identity.
           shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}/${locale}/portal`,
+          // /auth/callback performs the PKCE exchange and honours ?next.
+          // Pointing this straight at /portal was a real defect: nothing there
+          // exchanges the code, so the link could never establish a session.
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/${locale}/portal`,
         },
       });
 
-      // A rate-limit is the one failure worth surfacing: it is actionable and
-      // reveals nothing about whether the address exists.
       if (otpError && /rate|limit|too many/i.test(otpError.message)) {
         setError(
           isAr
-            ? "تم طلب عدد كبير من الروابط خلال فترة قصيرة. انتظر بضع دقائق ثم أعد المحاولة."
-            : "Too many links requested in a short time. Wait a few minutes and try again.",
+            ? "تم طلب عدد كبير من الرموز خلال فترة قصيرة. انتظر بضع دقائق ثم أعد المحاولة."
+            : "Too many codes requested in a short time. Wait a few minutes and try again.",
         );
         return;
       }
 
-      setSent(true);
+      // Advance regardless of whether the address exists. Revealing that would
+      // turn this box into an account-enumeration oracle.
+      setStep("code");
+      setTimeout(() => codeRef.current?.focus(), 50);
+    });
+  }
+
+  function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    const digits = code.replace(/\D/g, "");
+    if (digits.length !== 6) {
+      setError(isAr ? "أدخل الرمز المكوّن من ٦ أرقام." : "Enter the six-digit code.");
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const supabase = createClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: digits,
+        type: "email",
+      });
+
+      if (verifyError) {
+        setError(
+          isAr
+            ? "الرمز غير صحيح أو انتهت صلاحيته. تحقق من آخر رسالة وصلتك، أو اطلب رمزًا جديدًا."
+            : "That code is incorrect or has expired. Check the most recent message, or request a new code.",
+        );
+        setCode("");
+        codeRef.current?.focus();
+        return;
+      }
+
+      router.push(`/${locale}/portal`);
+      router.refresh();
     });
   }
 
@@ -66,40 +148,61 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
         </h1>
         <p className="mx-auto max-w-xs text-xs text-slate-500">
           {isAr
-            ? "لا حاجة لكلمة مرور. ندخلك عبر رابط آمن يصل إلى بريدك المسجل."
-            : "No password needed. We sign you in with a secure link sent to your registered email."}
+            ? "لا حاجة لكلمة مرور. نرسل رمزًا من ٦ أرقام إلى بريدك المسجل."
+            : "No password needed. We email a six-digit code to your registered address."}
         </p>
       </div>
 
-      {sent ? (
-        <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 text-center shadow-sm sm:p-8">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
-            <CheckCircle2 className="size-6" />
+      {notAMember && (
+        <div className="space-y-3 rounded-2xl border border-amber-500/40 bg-amber-500/[0.06] p-4">
+          <div className="flex items-start gap-2.5">
+            <UserX className="mt-0.5 size-4 shrink-0 text-amber-600" />
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                {isAr
+                  ? "تم تسجيل دخولك، لكن هذا البريد غير مسجّل كمالك"
+                  : "You are signed in, but this address is not registered as an owner"}
+              </p>
+              <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-200/80">
+                {isAr
+                  ? "الرمز صحيح والحساب سليم — لكن لا توجد وحدات مرتبطة بهذا البريد في أي كيان، فلا شيء تعرضه البوابة. إن كنت مالكًا فتواصل مع إدارة الكيان لربط بريدك بسجلك، أو جرّب البريد الذي وصلتك عليه دعوة البوابة."
+                  : "The code was correct and the account is fine — but no units are linked to this address in any organization, so the portal has nothing to show. If you are an owner, ask management to link this address to your record, or try the address your portal invitation was sent to."}
+              </p>
+            </div>
           </div>
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">
-            {isAr ? "تحقّق من بريدك" : "Check your email"}
-          </h2>
-          <p className="text-xs leading-relaxed text-slate-500">
-            {isAr
-              ? "إذا كان هذا البريد مسجلاً لدينا كمالك، فقد أرسلنا إليه رابط دخول صالحًا لفترة قصيرة. افتحه من نفس الجهاز."
-              : "If that address is registered as an owner, we've sent it a sign-in link valid for a short time. Open it on this device."}
-          </p>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              setSent(false);
-              setEmail("");
-            }}
-            className="h-9 rounded-xl text-xs font-semibold"
+            disabled={signingOut}
+            onClick={handleSignOut}
+            className="h-9 w-full gap-2 rounded-xl text-xs font-semibold"
           >
-            {isAr ? "استخدام بريد آخر" : "Use a different address"}
+            {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+            {isAr ? "تسجيل الخروج وتجربة بريد آخر" : "Sign out and try another address"}
           </Button>
         </div>
-      ) : (
+      )}
+
+      {authFailed && !notAMember && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/50 dark:bg-rose-950/40">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-600" />
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+              {isAr ? "تعذّر إتمام الدخول عبر الرابط" : "That sign-in link could not be completed"}
+            </p>
+            <p className="text-[11px] leading-relaxed text-rose-700/90 dark:text-rose-300/80">
+              {isAr
+                ? "يحدث هذا غالبًا عند فتح الرابط على جهاز أو متصفح غير الذي طلبته منه. أدخل بريدك أدناه واستخدم الرمز المكوّن من ٦ أرقام بدل الرابط — الرمز يعمل على أي جهاز."
+                : "This usually happens when the link is opened on a different device or browser than the one that requested it. Enter your email below and use the six-digit code instead — the code works on any device."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {step === "email" ? (
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleRequest}
           className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm sm:p-8"
         >
           {orgSuspended && (
@@ -156,7 +259,7 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
             ) : (
               <>
                 <Send className="size-4" />
-                {isAr ? "أرسل لي رابط الدخول" : "Send me a sign-in link"}
+                {isAr ? "أرسل لي رمز الدخول" : "Email me a code"}
               </>
             )}
           </Button>
@@ -168,9 +271,108 @@ export function LoginForm({ locale, orgSuspended }: { locale: Locale; orgSuspend
             </div>
             <p className="text-[11px] leading-relaxed text-slate-500">
               {isAr
-                ? "ترسل لك إدارة الكيان رابط دعوة عبر واتساب أو البريد، ورمزًا من ٦ أرقام في رسالة منفصلة. افتح الرابط وأدخل الرمز — بدون كلمة مرور."
-                : "Management sends you an invitation link by WhatsApp or email, and a six-digit code in a separate message. Open the link and enter the code — no password."}
+                ? "ترسل لك إدارة الكيان رابط دعوة عبر واتساب أو البريد، ورمزًا خاصًا في رسالة منفصلة. هذه الصفحة للعودة بعد انتهاء الجلسة فقط."
+                : "Management sends you an invitation link and a separate access code. This page is only for returning after your session ends."}
             </p>
+          </div>
+        </form>
+      ) : (
+        <form
+          onSubmit={handleVerify}
+          className="space-y-5 rounded-2xl border border-border/80 bg-card p-6 shadow-sm sm:p-8"
+        >
+          <div className="space-y-2 text-center">
+            <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-indigo-600 text-white">
+              <KeyRound className="size-5" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              {isAr ? "أدخل الرمز المرسل إلى بريدك" : "Enter the code from your email"}
+            </h2>
+            <p className="mx-auto max-w-xs text-[11px] leading-relaxed text-slate-500">
+              {isAr ? (
+                <>
+                  إن كان <span className="font-mono font-semibold">{email}</span> مسجلاً لدينا، فقد
+                  أرسلنا إليه رمزًا من ٦ أرقام. الرسالة تحتوي أيضًا على رابط يمكنك الضغط عليه بدلًا
+                  من ذلك.
+                </>
+              ) : (
+                <>
+                  If <span className="font-mono font-semibold">{email}</span> is registered with us,
+                  a six-digit code is on its way. The message also contains a link you can click
+                  instead.
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="portal-otp" className="sr-only">
+              {isAr ? "رمز الدخول" : "Access code"}
+            </Label>
+            <Input
+              id="portal-otp"
+              ref={codeRef}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="······"
+              dir="ltr"
+              aria-describedby={error ? "portal-otp-error" : undefined}
+              className="h-14 rounded-xl text-center font-mono text-2xl font-bold tracking-[0.5em]"
+            />
+          </div>
+
+          {error && (
+            <p
+              id="portal-otp-error"
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-center text-xs font-bold text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/40"
+            >
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isPending || code.replace(/\D/g, "").length !== 6}
+            className="h-11 w-full gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {isAr ? "جارٍ التحقق…" : "Verifying…"}
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="size-4" />
+                {isAr ? "الدخول إلى البوابة" : "Enter the portal"}
+              </>
+            )}
+          </Button>
+
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                setStep("email");
+                setCode("");
+                setError(null);
+              }}
+              className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            >
+              <ArrowRight className="size-3 rtl:-scale-x-100" />
+              {isAr ? "تغيير البريد" : "Change email"}
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleRequest({ preventDefault() {} } as React.FormEvent)}
+              className="font-semibold text-indigo-600 hover:underline disabled:opacity-50 dark:text-indigo-400"
+            >
+              {isAr ? "إرسال رمز جديد" : "Send a new code"}
+            </button>
           </div>
         </form>
       )}

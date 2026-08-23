@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useTableRowNavigation } from "@/lib/hooks/use-table-row-navigation";
 import type { Database } from "@/lib/supabase/types";
 import { UnitBalanceBadge } from "./unit-balance-badge";
+import { UnitRowActions } from "./unit-row-actions";
 import { usePropertyNav } from "./property-nav-context";
 import { UnitsTableSkeleton } from "./units-table-skeleton";
 import { buildUnitsCsv, downloadCsv } from "./csv";
@@ -90,10 +91,12 @@ export function UnitsTable({
   units,
   locale,
   currency,
+  canManage,
 }: {
   units: UnitRow[];
   locale: string;
   currency: string;
+  canManage: boolean;
 }) {
   const isAr = locale === "ar";
   const { isPending, pushParams } = usePropertyNav();
@@ -147,6 +150,9 @@ export function UnitsTable({
               <TableHead>{isAr ? "الإشغال" : "Occupancy"}</TableHead>
               <TableHead>{isAr ? "المالك الحالي" : "Current Owner"}</TableHead>
               <TableHead>{isAr ? "الرصيد المالي" : "Balance"}</TableHead>
+              <TableHead className="w-14 text-end px-3">
+                <span className="sr-only">{isAr ? "إجراءات" : "Actions"}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -211,11 +217,24 @@ export function UnitsTable({
                   <TableCell>
                     <UnitBalanceBadge balance={unit.balance} currency={currency} locale={locale} />
                   </TableCell>
+
+                  {/* stopPropagation: the row itself opens the unit drawer, and
+                      a click meant for the menu must not do both. */}
+                  <TableCell onClick={(e) => e.stopPropagation()} className="px-3 text-end">
+                    <UnitRowActions
+                      unitId={unit.id}
+                      unitCode={unit.code}
+                      ownerId={unit.owner_id}
+                      isArchived={unit.archived_at !== null}
+                      canManage={canManage}
+                      locale={locale}
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-12 text-center text-sm text-muted-foreground">
                   {isAr ? "لا توجد وحدات مطابقة للبحث أو الفلاتر" : "No matching units found"}
                 </TableCell>
               </TableRow>

@@ -9,6 +9,15 @@ export async function GET(request: Request) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/ar/dashboard";
 
+  // A failed exchange must return the user to the door they came through. An
+  // owner bounced to the staff login sees a screen that asks for a password
+  // the portal does not have, and has no way back.
+  const isPortalDestination = /^\/[a-z]{2}\/portal(\/|$)/.test(next);
+  const failureLocale = /^\/([a-z]{2})\//.exec(next)?.[1] ?? "ar";
+  const failurePath = isPortalDestination
+    ? `/${failureLocale}/portal/login?error=auth_callback_failed`
+    : `/${failureLocale}/login?error=auth_callback_failed`;
+
   const supabase = await createClient();
 
   // 1. PKCE Code Exchange
@@ -42,6 +51,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // If auth fails or no code/token provided, redirect to login
-  return NextResponse.redirect(`${origin}/ar/login?error=auth_callback_failed`);
+  // If auth fails or no code/token provided, redirect to the right login.
+  return NextResponse.redirect(`${origin}${failurePath}`);
 }
