@@ -1,0 +1,123 @@
+import { Link } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
+import { LogoMark } from "@/components/marketing/logo-mark";
+import { ArrowUpRight, CheckCircle2, ShieldCheck, Mail, Phone } from "lucide-react";
+
+export function SectionFinalCta({ locale }: { locale: Locale }) {
+  const isAr = locale === "ar";
+
+  return (
+    <section className="relative bg-white pt-24 pb-16 border-t border-slate-200/90 overflow-hidden">
+      {/* Subtle Architectural Drafting Grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f8fafc_1px,transparent_1px),linear-gradient(to_bottom,#f8fafc_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-80 pointer-events-none" />
+
+      <div className="relative mx-auto max-w-7xl px-6">
+        {/* Main Editorial CTA Banner */}
+        <div className="rounded-3xl border border-slate-300/80 bg-[#FAFAFA] p-8 sm:p-14 shadow-sm text-center max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3.5 py-1 text-xs font-black text-[#1A3C2E] mb-6">
+            <ShieldCheck className="size-3.5" />
+            <span>{isAr ? "جاهز للتشغيل الفوري في مصر والخليج" : "Enterprise Real Estate Accounting"}</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-950 font-heading leading-tight">
+            {isAr ? "ابدأ أول كيان عقاري على عقار بوكس." : "Start your first real estate entity on AqarBooks."}
+          </h2>
+
+          <p className="mt-4 text-base sm:text-lg text-slate-600 font-medium max-w-xl mx-auto leading-relaxed">
+            {isAr
+              ? "دليل الحسابات، الوحدات، الملاك، التحصيلات، القيود والتقارير — في نظام مالي واحد متكامل لا ينفصل."
+              : "Chart of Accounts, units, members, collections, journals, and reports — in one unified financial system."}
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/demo"
+              locale={locale}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#1A3C2E] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 transition-all hover:bg-[#132d22] active:scale-98"
+            >
+              <span>{isAr ? "طلب عرض تجريبي متكامل" : "Request Enterprise Demo"}</span>
+              <ArrowUpRight className="size-4" />
+            </Link>
+
+            <Link
+              href="/login"
+              locale={locale}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-bold text-slate-800 transition-all hover:bg-slate-50 hover:border-slate-400"
+            >
+              <span>{isAr ? "تسجيل الدخول للنظام" : "Sign In to ERP"}</span>
+            </Link>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-200/70 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "قيد مزدوج حقيقي" : "Double-Entry GL Core"}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "مطابقة الضرائب (14% VAT / WHT)" : "14% VAT & WHT Compliance"}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "عزل بيانات RLS ومراجعة دائمة" : "RLS Multi-Tenant Security"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Clean Editorial Footer */}
+        <footer className="mt-20 pt-10 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-8 text-xs text-slate-600">
+          <div className="md:col-span-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <LogoMark className="size-8" />
+              <span className="text-base font-black text-slate-950 font-heading">
+                {isAr ? "عقار بوكس" : "AqarBooks"}
+              </span>
+              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] text-[9px] font-black px-1.5 py-0.5">
+                ERP
+              </span>
+            </div>
+            <p className="text-slate-500 max-w-sm leading-relaxed">
+              {isAr
+                ? "النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات والكيانات العقارية واتحادات الملاك بقيد مزدوج حقيقي."
+                : "Enterprise double-entry accounting ERP built from first principles for real estate entities, resorts, and HOAs."}
+            </p>
+            <div className="text-[11px] text-slate-400 font-mono">
+              © {new Date().getFullYear()} AqarBooks ERP. All rights reserved.
+            </div>
+          </div>
+
+          <div className="md:col-span-3 space-y-2">
+            <span className="font-bold text-slate-900 block">{isAr ? "الروابط الرئيسية" : "Platform Navigation"}</span>
+            <ul className="space-y-1.5 text-slate-600">
+              <li><a href="#story" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "القصة المالية" : "The Transaction Story"}</a></li>
+              <li><a href="#engine" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "المحرك المحاسبي" : "Accounting Core"}</a></li>
+              <li><a href="#operating-ledger" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "سجل التشغيل" : "Operating Ledger"}</a></li>
+              <li><a href="#ai-layer" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "طبقة الذكاء المحاسبي" : "AI Intelligence Layer"}</a></li>
+              <li><a href="#entities" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "الهياكل العقارية" : "Entity Structures"}</a></li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-4 space-y-2">
+            <span className="font-bold text-slate-900 block">{isAr ? "الامتثال والتواصل" : "Compliance & Contact"}</span>
+            <p className="text-slate-500 leading-relaxed text-[11px]">
+              {isAr
+                ? "مطابق لمعايير المحاسبة المصرية والدولية، مع جاهزية الفاتورة الإلكترونية والربط مع منظومة الضرائب."
+                : "Compliant with Egyptian and International Financial Reporting Standards (IFRS) and e-invoicing mandates."}
+            </p>
+            <div className="pt-2 flex flex-col gap-1 text-[11px] font-medium text-slate-600">
+              <Link href="/privacy" locale={locale} className="hover:text-[#1A3C2E] transition-colors">
+                {isAr ? "سياسة الخصوصية والأمان" : "Privacy & Security Policy"}
+              </Link>
+              <Link href="/terms" locale={locale} className="hover:text-[#1A3C2E] transition-colors">
+                {isAr ? "شروط الاستخدام واتفاقية الخدمة" : "Terms of Service & SLA"}
+              </Link>
+              <Link href="/contact" locale={locale} className="hover:text-[#1A3C2E] transition-colors">
+                {isAr ? "تواصل مع المبيعات والدعم الفني" : "Contact Sales & Enterprise Support"}
+              </Link>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </section>
+  );
+}
