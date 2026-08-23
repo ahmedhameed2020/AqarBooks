@@ -82,7 +82,7 @@ export default async function ResortsPage({
           </div>
           <div>
             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{isAr ? "المشاريع والكيانات" : "Total Entities"}</p>
-            <p className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">{totalEntities}</p>
+            <p className="text-xl font-black text-slate-900 dark:text-white tabular-nums mt-0.5">{totalEntities}</p>
             <span className="text-[10px] text-slate-400 block">{totalUnits} {isAr ? "وحدة إجمالية" : "total units"}</span>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default async function ResortsPage({
           </div>
           <div>
             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{isAr ? "نسبة الإشغال الإجمالية" : "Occupancy Rate"}</p>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">{avgOccupancy}%</p>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5">{avgOccupancy}%</p>
             <span className="text-[10px] text-slate-400 block">{occupiedUnits} {isAr ? "وحدة مشغولة حالياً" : "occupied units"}</span>
           </div>
         </div>
@@ -104,9 +104,12 @@ export default async function ResortsPage({
           </div>
           <div>
             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{isAr ? "متوسط الإيراد لكل وحدة" : "RevPAU (Per Unit)"}</p>
-            <p className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5">
-              {revPAU.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">{organization.default_currency}</span>
-            </p>
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className="text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
+                {revPAU.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold">{organization.default_currency}</span>
+            </div>
             <span className="text-[10px] text-slate-400 block">{isAr ? "معدل التحصيل التراكمي" : "Revenue efficiency"}</span>
           </div>
         </div>
@@ -117,7 +120,14 @@ export default async function ResortsPage({
           </div>
           <div>
             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{isAr ? "مراكز التكلفة والتشغيل" : "Cost Centers"}</p>
-            <p className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">{totalEntities} {isAr ? "مراكز نشطة" : "Active"}</p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-xl font-black text-slate-900 dark:text-white tabular-nums">
+                {totalEntities}
+              </span>
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                {isAr ? "مراكز نشطة" : "Active"}
+              </span>
+            </div>
             <span className="text-[10px] text-slate-400 block">{isAr ? "فصل محاسبي دقيق" : "Isolated Ledgers"}</span>
           </div>
         </div>
@@ -132,9 +142,14 @@ export default async function ResortsPage({
           <h3 className="text-xs font-black text-slate-800 dark:text-slate-200">
             {isAr ? "سجل الكيانات العقارية المعتمدة" : "Active Real Estate Entities Register"}
           </h3>
-          <span className="text-xs font-bold font-mono text-purple-600 dark:text-purple-400">
-            {isAr ? `${totalEntities} كيان مسجل` : `${totalEntities} registered`}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-black text-purple-600 dark:text-purple-400 tabular-nums">
+              {totalEntities}
+            </span>
+            <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+              {isAr ? "كيان مسجل" : "registered"}
+            </span>
+          </div>
         </div>
 
         <ResortsTableClient resorts={resorts || []} locale={locale} />
