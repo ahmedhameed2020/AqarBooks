@@ -148,6 +148,7 @@ describe("Member portal invitation lifecycle", () => {
     const { error } = await anon.rpc("accept_member_invitation", {
       p_invitation_id: "00000000-0000-0000-0000-000000000000",
       p_token: "00000000-0000-0000-0000-000000000000",
+      p_code: "000000",
     });
     expect(error).not.toBeNull();
     // As above: `revoke execute ... from anon` means an anon-key client
@@ -220,11 +221,20 @@ describe("Member portal invitation lifecycle", () => {
     // the invitation.
     const { data: invitation, error: createError } = await staffClient
       .rpc("create_member_invitation", { p_member_id: happyMember!.id })
-      .single<{ invitation_id: string; raw_token: string; member_email: string; member_phone: string | null }>();
+      .single<{
+        invitation_id: string;
+        raw_token: string;
+        raw_code: string;
+        member_email: string;
+        member_phone: string | null;
+      }>();
     expect(createError, `create_member_invitation failed: ${createError?.message}`).toBeNull();
     expect(invitation!.invitation_id).toBeTruthy();
     expect(invitation!.raw_token).toBeTruthy();
     expect(invitation!.member_email).toBe(inviteeEmail);
+    // The six-digit second factor is returned exactly once, here. Only its
+    // salted digest is stored, so nothing can read it back afterwards.
+    expect(invitation!.raw_code).toMatch(/^[0-9]{6}$/);
 
     // The invited owner: a distinct, freshly-authenticated user whose
     // session email matches the invitation's email exactly.
@@ -240,14 +250,37 @@ describe("Member portal invitation lifecycle", () => {
     const { error: inviteeSignInError } = await inviteeClient.auth.signInWithPassword({ email: inviteeEmail, password: TEST_PASSWORD });
     expect(inviteeSignInError).toBeNull();
 
-    // The invited owner accepts, as themselves -- the only step that
-    // performs the real members.user_id link.
-    const { data: acceptedMemberId, error: acceptError } = await inviteeClient.rpc("accept_member_invitation", {
+    // A wrong code must not link the account. This is the whole point of the
+    // second factor: holding the link is not enough.
+    const { data: wrongCodeOutcome, error: wrongCodeError } = await inviteeClient.rpc(
+      "accept_member_invitation",
+      {
+        p_invitation_id: invitation!.invitation_id,
+        p_token: invitation!.raw_token,
+        p_code: invitation!.raw_code === "000000" ? "111111" : "000000",
+      },
+    );
+    expect(wrongCodeError).toBeNull();
+    expect((wrongCodeOutcome as { ok: boolean }).ok).toBe(false);
+    expect((wrongCodeOutcome as { reason: string }).reason).toBe("INVALID_CODE");
+
+    const { data: stillUnlinked } = await admin
+      .from("members")
+      .select("user_id")
+      .eq("id", happyMember!.id)
+      .single();
+    expect(stillUnlinked!.user_id).toBeNull();
+
+    // The invited owner accepts, as themselves, with the correct code -- the
+    // only step that performs the real members.user_id link.
+    const { data: acceptOutcome, error: acceptError } = await inviteeClient.rpc("accept_member_invitation", {
       p_invitation_id: invitation!.invitation_id,
       p_token: invitation!.raw_token,
+      p_code: invitation!.raw_code,
     });
     expect(acceptError, `accept_member_invitation failed: ${acceptError?.message}`).toBeNull();
-    expect(acceptedMemberId).toBe(happyMember!.id);
+    expect((acceptOutcome as { ok: boolean }).ok).toBe(true);
+    expect((acceptOutcome as { member_id: string }).member_id).toBe(happyMember!.id);
 
     // members.user_id is now actually set to the invitee's real auth user
     // id -- the one concrete effect that grants portal access.

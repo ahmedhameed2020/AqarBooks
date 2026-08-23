@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
+import { createClient } from "@/lib/supabase/server";
 import { PortalShell } from "./portal-shell";
 import { Toaster } from "@/components/ui/toast";
 
@@ -21,11 +22,18 @@ export default async function PortalMemberLayout({ children }: { children: React
 
   const { member } = ctx;
 
+  const supabase = await createClient();
+  const { data: orgDisplay } = await supabase.rpc("get_own_organization_display").maybeSingle();
+
   const loc = (await getLocale()) as "ar" | "en";
 
   return (
     <Toaster>
-      <PortalShell locale={loc} memberName={member.full_name}>
+      <PortalShell
+        locale={loc}
+        memberName={member.full_name}
+        organizationName={orgDisplay?.name ?? "AqarBooks"}
+      >
         {children}
       </PortalShell>
     </Toaster>
