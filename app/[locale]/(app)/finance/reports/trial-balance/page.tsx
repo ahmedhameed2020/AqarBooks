@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { Scale } from "lucide-react";
 import { TrialBalanceClient, type TrialBalanceRow } from "./trial-balance-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -38,6 +39,9 @@ export default async function TrialBalancePage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.reports.read", locale);
+  if (denied) return denied;
 
   const asOfDate = asOf || new Date().toISOString().slice(0, 10);
   const supabase = await createClient();

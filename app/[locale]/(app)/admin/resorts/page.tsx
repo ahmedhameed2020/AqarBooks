@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { CreateResortForm } from "./create-resort-form";
 import { ResortsTableClient } from "./resorts-table-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   Building,
   Globe2,
@@ -23,6 +24,9 @@ export default async function ResortsPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "tenant.settings.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const [{ data: resorts }, { data: unitsData }, { data: monthPayments }] = await Promise.all([

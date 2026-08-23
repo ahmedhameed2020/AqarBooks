@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { getCurrencyLabel } from "@/lib/currency";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -47,6 +48,9 @@ export default async function ExpensesPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.expenses.read", locale);
+  if (denied) return denied;
 
   const currency = organization.default_currency || "EGP";
   const currencyLabel = getCurrencyLabel(currency, isAr);

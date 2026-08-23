@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Locale } from "@/i18n/routing";
 import { UsersClient, type UserItem, type RoleOption } from "./users-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -35,6 +36,9 @@ export default async function UsersPage({
   const currentUser = await getCurrentUser();
   const organization = currentUser ? await getPrimaryOrganization(currentUser.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "tenant.users.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const adminClient = createAdminClient();

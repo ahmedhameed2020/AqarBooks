@@ -11,6 +11,7 @@ import {
   type CreditNoteItem,
 } from "./credit-notes-client";
 import { type DueCreditableOption } from "./credit-notes-dialog";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   FileMinus2,
   CheckCircle2,
@@ -51,6 +52,9 @@ export default async function CreditNotesPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.dues.read", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

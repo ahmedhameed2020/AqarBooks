@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { BookOpen } from "lucide-react";
 import { GeneralLedgerClient, type AccountOption, type LedgerLine } from "./general-ledger-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -38,6 +39,9 @@ export default async function GeneralLedgerPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.reports.read", locale);
+  if (denied) return denied;
 
   const startDate = start || "1900-01-01";
   const endDate = end || new Date().toISOString().slice(0, 10);

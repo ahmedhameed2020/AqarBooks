@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { SettleFxForm, type ForeignInvoice } from "./fx-settlement-forms";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -56,6 +57,9 @@ export default async function SuppliersPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.suppliers.read", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const { data: resort } = await supabase

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { Wallet, AlertCircle } from "lucide-react";
 import { CashFlowClient, type CashFlowItem } from "./cash-flow-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -44,6 +45,9 @@ export default async function CashFlowPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.reports.read", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 
