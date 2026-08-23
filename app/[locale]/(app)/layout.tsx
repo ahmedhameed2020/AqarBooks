@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/toast";
 import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { getOperationalAlerts } from "@/lib/alerts/operational-alerts";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
@@ -61,6 +62,11 @@ export default async function AppShellLayout({
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
+
+  // Derived from live data on the server, so the bell can never show a count
+  // that disagrees with the ledger. Every query inside runs as this user, so an
+  // alert about dues only reaches someone allowed to read dues.
+  const alerts = organization ? await getOperationalAlerts(organization.id, user!.id) : [];
 
   const homeGroup: SidebarNavGroup = {
     key: "home",
@@ -294,7 +300,7 @@ export default async function AppShellLayout({
   return (
     <Toaster>
       <div className="flex min-h-full flex-1 flex-col">
-        <SiteHeader locale={loc} />
+        <SiteHeader locale={loc} alerts={alerts} />
         <div className="flex flex-1 flex-col md:flex-row">
           <AppSidebar
             workspaces={workspaces}

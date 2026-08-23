@@ -2301,6 +2301,76 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["member_invitations"]["Row"]>;
         Relationships: [];
       };
+      alert_digest_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          run_date: string;
+          status: string;
+          recipients_count: number;
+          alerts_count: number;
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          run_date: string;
+          status: string;
+          recipients_count?: number;
+          alerts_count?: number;
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["alert_digest_runs"]["Row"]>;
+        Relationships: [];
+      };
+      alert_dismissals: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          alert_key: string;
+          dismissed_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          alert_key: string;
+          dismissed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["alert_dismissals"]["Row"]>;
+        Relationships: [];
+      };
+      alert_settings: {
+        Row: {
+          organization_id: string;
+          cheque_lead_days: number;
+          lease_lead_days: number;
+          overdue_min_days: number;
+          cheques_enabled: boolean;
+          leases_enabled: boolean;
+          overdue_enabled: boolean;
+          unreachable_owners_enabled: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          cheque_lead_days?: number;
+          lease_lead_days?: number;
+          overdue_min_days?: number;
+          cheques_enabled?: boolean;
+          leases_enabled?: boolean;
+          overdue_enabled?: boolean;
+          unreachable_owners_enabled?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["alert_settings"]["Row"]>;
+        Relationships: [];
+      };
       member_invitation_short_links: {
         Row: {
           slug: string;
