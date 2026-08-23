@@ -37,8 +37,9 @@ export default async function LeaseExpirationsPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
-  const canRead = (await hasPermission(organization.id, "finance.reports.read")) ||
-                  (await hasPermission(organization.id, "finance.dues.read"));
+  // See rent-roll: one key the sidebar can also express, granted to everyone
+  // the previous OR admitted.
+  const canRead = await hasPermission(organization.id, "property.reports.read");
 
   if (!canRead) {
     return (

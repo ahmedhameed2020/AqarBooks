@@ -74,12 +74,14 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
  */
 const MIGRATION_FILES = [
   { file: "20260821105505_baseline.sql", bytes: 956400, sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7" },
-  { file: "20260823044325_member_invitation_access_codes.sql", bytes: 12085, sha256: "dc1132bfade6a9a1aea500ff707beefad0059b446aee79b37933c1b2a38c81f2" },
-  { file: "20260823071129_member_archiving.sql", bytes: 4390, sha256: "cda6c237b4ae58183f7a6c436fbd2c3b3c19b0009d50d19057d518e0dfe23ec7" },
+  { file: "20260823044325_member_invitation_access_codes.sql", bytes: 11803, sha256: "9f22f46c461ace9ea4ab11929227f2c63ba43eaf1a819196827def58d74555b8" },
+  { file: "20260823071129_member_archiving.sql", bytes: 4291, sha256: "8211f77376b27c11607a0689b7ccc0d9fa4d7191b8026805c2e488594f8f0fd2" },
   { file: "20260823075533_unit_archive_reason.sql", bytes: 940, sha256: "20dce1c8b187afb22c29638553f2a31c8da3debf1d4fb6310924aeba453ff7b6" },
-  { file: "20260823083604_revert_unit_archive_reason.sql", bytes: 734, sha256: "1baf9120669fa835b76b9bb9ae97107e30df049c811d7b36e6a47a9b1eaaa7d3" },
-  { file: "20260823093809_operational_alerts.sql", bytes: 4692, sha256: "0c5d5b16af8aecfbb5c0f6702c696e0b116b3717e26288fe01218ec5a90dc94b" },
-  { file: "20260823100424_alert_digest_runs.sql", bytes: 1832, sha256: "76b579c8379ac4ca16e56343e9cdd64d0befaa57c1238b887e69b4915ab0bb70" },
+  { file: "20260823083604_revert_unit_archive_reason.sql", bytes: 721, sha256: "776f0dce1b31532f13a5b264180a8deb24835122cb08f00b67d09308c86e9ae3" },
+  { file: "20260823093809_operational_alerts.sql", bytes: 4593, sha256: "3e2a8e141b301ec73c0ad49370e3fd312ac8d6524536d6ee03d23b4638cf2c2e" },
+  { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182" },
+  { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98" },
+  { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce" },
 ] as const;
 
 /**

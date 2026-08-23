@@ -37,9 +37,12 @@ export default async function RentRollPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
-  const canRead = await hasPermission(organization.id, "finance.reports.read") ||
-                  await hasPermission(organization.id, "finance.dues.read") ||
-                  await hasPermission(organization.id, "property.units.view");
+  // One key instead of a three-branch OR. property.reports.read was granted to
+  // every role that satisfied any branch, so this narrows nothing -- and it
+  // lets the sidebar express the same condition, which a single `permission`
+  // field could not do for an OR. That mismatch is what hid this report from
+  // PROPERTY_MANAGER while the page itself would have opened.
+  const canRead = await hasPermission(organization.id, "property.reports.read");
 
   if (!canRead) {
     return (
