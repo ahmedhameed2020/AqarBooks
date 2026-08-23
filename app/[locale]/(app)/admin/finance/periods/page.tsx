@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { CreateFiscalYearForm } from "./create-fiscal-year-form";
 import { PeriodsClient, type FiscalYearItem, type FiscalPeriodItem, type PendingDuesSummary } from "./periods-client";
 import { getCurrencyLabel } from "@/lib/currency";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,6 +40,9 @@ export default async function FiscalPeriodsPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.periods.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

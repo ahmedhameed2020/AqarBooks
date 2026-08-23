@@ -13,6 +13,7 @@ import {
   type CashTransactionRow,
 } from "./cashier-client";
 import { type Option, type DueItem } from "./cashier-dialogs";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   CreditCard,
   Clock,
@@ -55,6 +56,9 @@ export default async function CashierPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "cashier.transactions.create", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

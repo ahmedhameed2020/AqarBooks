@@ -13,6 +13,7 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { UpsertPaymentProviderSettingsForm, PaymentProviderRowActions } from "./payment-provider-forms";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   CreditCard,
   ShieldCheck,
@@ -107,6 +108,9 @@ export default async function PaymentProvidersPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.online_payments.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

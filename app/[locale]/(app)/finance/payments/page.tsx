@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
 import { PaymentsClient, type PaymentItem } from "./payments-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   CreditCard,
   CheckCircle2,
@@ -52,6 +53,9 @@ export default async function PaymentsPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.payments.read", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const { data: resort } = await supabase

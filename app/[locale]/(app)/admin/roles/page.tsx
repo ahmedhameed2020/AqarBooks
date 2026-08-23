@@ -4,6 +4,7 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { RolesClient, type RoleItem, type PermissionItem } from "./roles-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -33,6 +34,9 @@ export default async function RolesPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "tenant.roles.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

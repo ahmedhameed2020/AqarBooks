@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { JournalEntryForm } from "./journal-entry-form";
 import { FileText, ArrowRight, ArrowLeft } from "lucide-react";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,6 +40,9 @@ export default async function NewJournalEntryPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.entries.create", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const [{ data: accounts }, { data: periods }, { data: orgData }] = await Promise.all([

@@ -13,6 +13,7 @@ import {
   type ChequeRow,
 } from "./banks-client";
 import { type Option } from "./banks-dialogs";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   Building2,
   Landmark,
@@ -55,6 +56,9 @@ export default async function BanksPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "banking.accounts.view", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

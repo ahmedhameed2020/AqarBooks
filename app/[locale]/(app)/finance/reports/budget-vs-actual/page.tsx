@@ -4,6 +4,7 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { PieChart, AlertCircle } from "lucide-react";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import {
   BudgetVsActualClient,
   type FiscalPeriodOption,
@@ -46,6 +47,9 @@ export default async function BudgetVsActualPage({
   const user = await getCurrentUser();
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "finance.reports.read", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

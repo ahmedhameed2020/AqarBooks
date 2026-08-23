@@ -16,6 +16,7 @@ import { TabOwnership } from "./tab-ownership";
 import { TabLease } from "./tab-lease";
 import { TabInstallments } from "./tab-installments";
 import { TabActivity } from "./tab-activity";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export default async function UnitDetailPage({
   params,
@@ -30,6 +31,9 @@ export default async function UnitDetailPage({
   if (!user) redirect({ href: "/login", locale: locale as Locale });
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) notFound();
+
+  const denied = await denyIfMissingPermission(organization.id, "property.units.view", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
 

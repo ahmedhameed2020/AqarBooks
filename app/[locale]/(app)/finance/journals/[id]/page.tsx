@@ -8,6 +8,7 @@ import { EntryActions } from "./entry-actions";
 import { JournalPrintButton } from "./print-button";
 import { getCurrencyLabel } from "@/lib/currency";
 import { FileText, ArrowRight, ArrowLeft, Calendar, Layers, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,6 +32,12 @@ export default async function JournalEntryDetailPage({
     .single();
 
   if (!entry) notFound();
+
+  // The organization comes from the entry rather than the session here: this
+  // page is reached by entry id, so the check has to be against the books the
+  // entry actually belongs to.
+  const denied = await denyIfMissingPermission(entry.organization_id, "finance.accounts.view", locale);
+  if (denied) return denied;
 
   const [
     { data: org },

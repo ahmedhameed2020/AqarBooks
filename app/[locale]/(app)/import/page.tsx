@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import type { Locale } from "@/i18n/routing";
 import { ImportWizard } from "./import-wizard";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export async function generateMetadata({
   params,
@@ -48,6 +49,9 @@ export default async function ImportPage({
       </main>
     );
   }
+
+  const denied = await denyIfMissingPermission(organization.id, "property.units.manage", locale);
+  if (denied) return denied;
 
   const supabase = await createClient();
   const { data: resorts } = await supabase

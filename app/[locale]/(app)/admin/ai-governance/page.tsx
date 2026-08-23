@@ -5,6 +5,7 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { redirect } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { AiGovernanceClient } from "./ai-governance-client";
+import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,6 +41,9 @@ export default async function AiGovernancePage({
 
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
+
+  const denied = await denyIfMissingPermission(organization.id, "tenant.settings.manage", locale);
+  if (denied) return denied;
 
   return (
     <div className="space-y-6">
