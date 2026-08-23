@@ -130,10 +130,21 @@ export default async function EInvoiceItemsPage({
               {isEmissionReady ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
             </div>
           </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className={`font-mono text-2xl font-black tracking-tight ${isEmissionReady ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-              {isEmissionReady ? (isAr ? "جاهز 100%" : "Ready") : (isAr ? `${gaps.length} نواقص` : `${gaps.length} Gaps`)}
-            </span>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            {isEmissionReady ? (
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                {isAr ? "جاهز 100%" : "Ready 100%"}
+              </span>
+            ) : (
+              <>
+                <span className="text-2xl font-black tabular-nums text-rose-600 dark:text-rose-400">
+                  {gaps.length}
+                </span>
+                <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                  {isAr ? "نواقص" : "Gaps"}
+                </span>
+              </>
+            )}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <span>{isEmissionReady ? (isAr ? "لا توجد موانع للإصدار" : "No blocking gaps") : (isAr ? "تحتاج استكمال التكويد" : "Fix gaps to emit")}</span>
@@ -150,11 +161,11 @@ export default async function EInvoiceItemsPage({
               <Package className="size-4" />
             </div>
           </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-black tabular-nums text-slate-950 dark:text-white">
               {items.length}
             </span>
-            <span className="text-xs text-slate-500 font-semibold">{isAr ? "صنف" : "items"}</span>
+            <span className="text-xs text-slate-500 font-bold">{isAr ? "صنف" : "items"}</span>
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <span>{isAr ? "مسجلة بكود السلطة" : "With standard codes"}</span>
@@ -171,11 +182,11 @@ export default async function EInvoiceItemsPage({
               <Tag className="size-4" />
             </div>
           </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-mono text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-black tabular-nums text-blue-600 dark:text-blue-400">
               {codedDueTypes}
             </span>
-            <span className="text-xs text-slate-500 font-semibold">/ {totalDueTypes}</span>
+            <span className="text-xs text-slate-500 font-bold">/ {totalDueTypes}</span>
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-blue-600 font-bold">
             <span>{isAr ? "جاهزة للطباعة والرفع الإلكتروني" : "Ready for e-invoice export"}</span>
@@ -192,11 +203,11 @@ export default async function EInvoiceItemsPage({
               <Clock className="size-4" />
             </div>
           </div>
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className={`font-mono text-2xl font-black tracking-tight ${uncodedDueTypes > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600"}`}>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className={`text-2xl font-black tabular-nums ${uncodedDueTypes > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600"}`}>
               {uncodedDueTypes}
             </span>
-            <span className="text-xs text-slate-500 font-semibold">{isAr ? "بند" : "types"}</span>
+            <span className="text-xs text-slate-500 font-bold">{isAr ? "بند" : "types"}</span>
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <span>{uncodedDueTypes === 0 ? (isAr ? "تم تكويد جميع البنود" : "All coded") : (isAr ? "تظهر معلقة لتفادي الرفض" : "Needs mapping")}</span>

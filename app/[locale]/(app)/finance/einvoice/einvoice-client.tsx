@@ -694,7 +694,7 @@ export function EInvoiceClient({
                 <DollarSign className="size-4" />
               </span>
             </div>
-            <p className="mt-2.5 text-xl font-black font-mono tracking-tight text-slate-950 dark:text-white sm:text-2xl">
+            <p className="mt-2.5 text-xl font-black tabular-nums text-slate-950 dark:text-white sm:text-2xl">
               {totalTaxableBase.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               <span className="text-xs font-bold text-slate-400 ms-1.5 font-sans">{currencyLabel}</span>
             </p>
@@ -713,7 +713,7 @@ export function EInvoiceClient({
                 <Percent className="size-4" />
               </span>
             </div>
-            <p className="mt-2.5 text-xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+            <p className="mt-2.5 text-xl font-black tabular-nums text-emerald-600 dark:text-emerald-400 sm:text-2xl">
               {totalVatAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               <span className="text-xs font-bold text-slate-400 ms-1.5 font-sans">{currencyLabel}</span>
             </p>
@@ -733,7 +733,7 @@ export function EInvoiceClient({
               </span>
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
-              <p className="text-xl font-black font-mono tracking-tight text-slate-950 dark:text-white sm:text-2xl">
+              <p className="text-xl font-black tabular-nums text-slate-950 dark:text-white sm:text-2xl">
                 {taxDecisions.length}
               </p>
               {exemptDecisionsCount > 0 && (
