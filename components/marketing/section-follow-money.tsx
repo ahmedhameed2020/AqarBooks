@@ -71,21 +71,34 @@ export function SectionFollowMoney({ locale }: { locale: Locale }) {
     <section id="follow-money" className="relative bg-white py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">04</span>
-            <span>{isAr ? "دورة حياة المعاملة المالية" : "FOLLOW THE MONEY"}</span>
+            <span>{isAr ? "الرحلة المالية الكاملة" : "THE COMPLETE FINANCIAL JOURNEY"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "تتبع مسار الجنيه من الاستحقاق إلى القوائم." : "Follow every pound from assessment to financial statements."}
+            {isAr ? "من أول جنيه مستحق. لحد آخر رقم في القوائم." : "From the very first pound due to the final figure in the reports."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "لا توجد حركات مفقودة أو تسويات معلقة. اتبع نفس المعاملة (25,000 ج.م + ضريبة) وهي تتحرك بسلاسة عبر كافة المستويات المحاسبية."
-              : "No orphaned records or loose transactions. Trace the exact same movement (25,000 EGP + VAT) as it traverses every accounting layer."}
+              ? "نفس المعاملة، ونفس الأثر المالي، تقدر تتبعه من الاستحقاق والتحصيل إلى القيد ودفتر الأستاذ والقوائم — مع الاحتفاظ بارتباطه بالعقار والوحدة والعميل طوال الرحلة."
+              : "The exact same transaction and accounting impact, fully traceable from levy and collection to journal entry, general ledger, and financial statements — preserving property and member provenance all the way."}
           </p>
+
+          {/* Transaction Flow Strip */}
+          <div className="mt-5 inline-flex flex-wrap items-center gap-2 rounded-xl bg-slate-100/90 p-2 border border-slate-200 text-xs font-bold text-slate-800">
+            <span>{isAr ? "استحقاق" : "Levy"}</span>
+            <span className="text-[#1A3C2E]">←</span>
+            <span>{isAr ? "تحصيل" : "Collection"}</span>
+            <span className="text-[#1A3C2E]">←</span>
+            <span>{isAr ? "قيد" : "Journal"}</span>
+            <span className="text-[#1A3C2E]">←</span>
+            <span>{isAr ? "دفتر الأستاذ" : "General Ledger"}</span>
+            <span className="text-[#1A3C2E]">←</span>
+            <span>{isAr ? "القوائم" : "Statements"}</span>
+          </div>
         </div>
 
         {/* The Visual Financial Chain */}

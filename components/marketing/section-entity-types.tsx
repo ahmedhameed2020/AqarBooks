@@ -62,21 +62,40 @@ export function SectionEntityTypes({ locale }: { locale: Locale }) {
     <section id="entities" className="relative bg-[#F8F9FA] py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">09</span>
-            <span>{isAr ? "الهياكل العقارية المدعومة" : "DESIGNED FOR REAL ESTATE STRUCTURES"}</span>
+            <span>{isAr ? "بُني لهيكل عقارك" : "BUILT FOR YOUR PROPERTY STRUCTURE"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "مصمم لهيكلة أي كيان عقاري." : "Architected for every real estate structure."}
+            {isAr ? "من مبنى واحد. إلى محفظة كاملة." : "From a single building to a comprehensive portfolio."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "سواء كنت تدير اتحاد ملاك لبرج واحد، أو شركة تدير مجمعاً سكنياً كبيراً، أو محفظة منتجعات سياحية متعددة؛ يوفر النظام البنية المالية المحاسبية المطابقة لنشاطك."
-              : "Whether you manage a single HOA tower, a massive gated compound, or a diversified resort portfolio; AqarBooks provides the precise accounting framework your entity demands."}
+              ? "سواء كنت تدير اتحاد ملاك، برجًا سكنيًا أو مجموعة من العقارات، يتكيّف AqarBooks مع هيكل أعمالك — من الكيان إلى العقار والمبنى والوحدة — من غير ما تفصل الإدارة عن الحسابات."
+              : "Whether managing an HOA, high-rise tower, or diversified real estate portfolio, AqarBooks adapts to your operational hierarchy without disconnecting management from accounting."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "اتحادات ملاك" : "HOAs"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "أبراج" : "Towers"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "مجمعات" : "Compounds"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "محافظ عقارية" : "Portfolios"}
+            </span>
+          </div>
         </div>
 
         {/* Big Planning Model Visual Header */}

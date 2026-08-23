@@ -103,21 +103,44 @@ export function SectionOperatingLedger({ locale }: { locale: Locale }) {
     <section id="operating-ledger" className="relative bg-[#F8F9FA] py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">05</span>
-            <span>{isAr ? "سجل التشغيل المالي للكيان" : "OPERATING LEDGER"}</span>
+            <span>{isAr ? "مركز الحركة المالية" : "FINANCIAL ACTIVITY HUB"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "سجل العمليات المحاسبية اليومية." : "The Real Estate Operating Ledger."}
+            {isAr ? "كل ما حدث ماليًا. في سجل واحد." : "Everything that occurred financially. In a single ledger."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "بدل البطاقات الدعائية العامة؛ هذا هو سجل العمليات الفعلي الذي يدير به المحاسبون والمديرون الماليون كافة مجريات العقار والتحصيلات والمصروفات."
-              : "Instead of generic feature cards; this is the actual operating ledger through which accountants and financial managers govern all real estate revenue and expenditure."}
+              ? "الحركة المالية اليومية للكيان أمامك لحظة بلحظة — من الاستحقاق والتحصيل إلى المصروف والتسوية والقيد — بسياقها الكامل وحالتها وأثرها المحاسبي."
+              : "The daily financial pulse of your property right before you in real time — from assessment and collection to disbursement, settlement, and journal entry — with full context, status, and ledger impact."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "تحصيلات" : "Collections"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "مصروفات" : "Expenses"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "استحقاقات" : "Dues"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "تسويات" : "Settlements"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "قيود" : "Journals"}
+            </span>
+          </div>
         </div>
 
         {/* The Operating Ledger Table */}

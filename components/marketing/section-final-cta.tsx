@@ -16,17 +16,17 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
         <div className="rounded-3xl border border-slate-300/80 bg-[#FAFAFA] p-8 sm:p-14 shadow-sm text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3.5 py-1 text-xs font-black text-[#1A3C2E] mb-6">
             <ShieldCheck className="size-3.5" />
-            <span>{isAr ? "جاهز للتشغيل الفوري في مصر والخليج" : "Enterprise Real Estate Accounting"}</span>
+            <span>{isAr ? "جاهز لدفاترك الحقيقية" : "READY FOR REAL BOOKS"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "ابدأ أول كيان عقاري على عقار بوكس." : "Start your first real estate entity on AqarBooks."}
+            {isAr ? "شوف AqarBooks وهو بيحاسب عقارك فعلًا." : "See AqarBooks accounting for your real property."}
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-slate-600 font-medium max-w-xl mx-auto leading-relaxed">
             {isAr
-              ? "دليل الحسابات، الوحدات، الملاك، التحصيلات، القيود والتقارير — في نظام مالي واحد متكامل لا ينفصل."
-              : "Chart of Accounts, units, members, collections, journals, and reports — in one unified financial system."}
+              ? "مش Demo بأرقام مالهاش علاقة بشغلك. شوف كيف تنتقل وحداتك واستحقاقاتك وتحصيلاتك من واقع العقار إلى القيد والتقارير داخل نظام مالي واحد."
+              : "Not an abstract demo with fake numbers. See how your units, levies, and collections flow from physical property to journal entry and reports inside a single accounting ERP."}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -35,7 +35,7 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
               locale={locale}
               className="inline-flex items-center gap-2 rounded-xl bg-[#1A3C2E] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 transition-all hover:bg-[#132d22] active:scale-98"
             >
-              <span>{isAr ? "طلب عرض تجريبي متكامل" : "Request Enterprise Demo"}</span>
+              <span>{isAr ? "طلب عرض تجريبي" : "Request a Demo"}</span>
               <ArrowUpRight className="size-4" />
             </Link>
 
@@ -44,22 +44,22 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
               locale={locale}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-bold text-slate-800 transition-all hover:bg-slate-50 hover:border-slate-400"
             >
-              <span>{isAr ? "تسجيل الدخول للنظام" : "Sign In to ERP"}</span>
+              <span>{isAr ? "تسجيل الدخول" : "Sign In"}</span>
             </Link>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-200/70 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 font-medium">
-            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+          <div className="mt-8 pt-6 border-t border-slate-200/70 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 font-bold">
+            <div className="flex items-center gap-1.5 text-emerald-800">
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              <span>{isAr ? "قيد مزدوج حقيقي" : "Double-Entry GL Core"}</span>
+              <span>{isAr ? "قيد مزدوج حقيقي" : "True Double-Entry Core"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+            <div className="flex items-center gap-1.5 text-emerald-800">
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              <span>{isAr ? "مطابقة الضرائب (14% VAT / WHT)" : "14% VAT & WHT Compliance"}</span>
+              <span>{isAr ? "تتبع مالي كامل" : "Full Financial Traceability"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
+            <div className="flex items-center gap-1.5 text-emerald-800">
               <CheckCircle2 className="size-3.5 text-emerald-600" />
-              <span>{isAr ? "عزل بيانات RLS ومراجعة دائمة" : "RLS Multi-Tenant Security"}</span>
+              <span>{isAr ? "عزل بيانات كل كيان" : "Entity Data Isolation (RLS)"}</span>
             </div>
           </div>
         </div>

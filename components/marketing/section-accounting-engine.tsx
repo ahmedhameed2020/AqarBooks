@@ -8,21 +8,37 @@ export function SectionAccountingEngine({ locale }: { locale: Locale }) {
     <section id="engine" className="relative bg-white py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">02</span>
-            <span>{isAr ? "محرك القيد المزدوج الحقيقي" : "THE ACCOUNTING CORE"}</span>
+            <span>{isAr ? "من الحركة إلى القيد" : "FROM TRANSACTION TO ENTRY"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "كل حركة عقارية لها أثر محاسبي." : "Every real estate action has an accounting consequence."}
+            {isAr ? "مش كل تسجيل محاسبة. القيد هو اللي يثبتها." : "Not all logging is accounting. The journal entry proves it."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "لا نكتفي بتسجيل جداول إيجار أو سندات ورقية. عقار بوكس يحوّل كل عملية تحصيل أو سداد أو تسوية مباشرة إلى قيد يومية متوازن خاضع للتدقيق والمطابقة الضريبية."
-              : "We don't just keep billing spreadsheets. AqarBooks transforms every collection, disbursement, or settlement into a balanced, auditable, and tax-compliant journal entry."}
+              ? "كل تحصيل أو سداد أو تسوية تتحول في AqarBooks إلى قيد يومية متوازن ومترابط مع مصدره العقاري — جاهز للمراجعة والتتبع والمطابقة."
+              : "Every collection, disbursement, or settlement transforms into a balanced journal entry interlinked with its physical property origin — ready for audit and tax reconciliation."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "قيد مزدوج حقيقي" : "True Double-Entry"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "توازن تلقائي" : "Automatic Balancing"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "تتبع كامل" : "End-to-End Traceability"}</span>
+            </span>
+          </div>
         </div>
 
         {/* The Real Read-Only Journal Entry Document Component */}

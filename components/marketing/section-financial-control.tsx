@@ -8,21 +8,37 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
     <section id="audit" className="relative bg-white py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">06</span>
-            <span>{isAr ? "الرقابة المالية وسجل التدقيق" : "FINANCIAL CONTROL & AUDITABILITY"}</span>
+            <span>{isAr ? "أثر مالي لا يُمحى" : "AN INDELIBLE FINANCIAL TRACE"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "التعديل ليس محوًا للتاريخ." : "A correction is never an erasure of history."}
+            {isAr ? "الخطأ يتصحح. التاريخ ما يتكتبش من جديد." : "Errors get corrected. History is never rewritten."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "القيود وسندات التحصيل المرحلة لا تملك أي زر حذف أو تعديل مباشر في قاعدة البيانات. أي تسوية أو تصحيح يتم عبر قيد عكسي موثق بالكامل يحفظ الأثر المالي ويضمن براءة الذمة أمام المراجع والملاك."
-              : "Posted entries and receipts carry zero direct write/delete permissions in the database. Any adjustment strictly generates an immutable reversing entry, ensuring pristine ledger integrity for auditors and owners."}
+              ? "بعد الترحيل، يظل القيد كما سُجّل. وإذا احتاج تصحيحًا، يتم ذلك بقيد عكسي موثق يحفظ الأصل والتصحيح معًا — عشان كل تغيير يفضل ظاهرًا وقابلًا للتتبع والمراجعة."
+              : "Once posted, a journal entry remains untouched. When corrections are required, an atomic reversing entry preserves both original and correction — ensuring complete transparency for audit."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "لا حذف بعد الترحيل" : "Zero Deletion Post-Posting"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "قيود عكسية" : "Reversing Entries"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "سجل تدقيق كامل" : "Full Audit Trail"}</span>
+            </span>
+          </div>
         </div>
 
         {/* The 3-Stage Reversal & Audit Demonstration */}

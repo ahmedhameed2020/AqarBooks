@@ -9,21 +9,37 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
     <section id="story" className="relative bg-[#F8F9FA] py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">01</span>
-            <span>{isAr ? "نقطة انطلاق السجل المالي" : "ORIGIN OF THE FINANCIAL EVENT"}</span>
+            <span>{isAr ? "من العقار إلى القيد" : "FROM PROPERTY TO JOURNAL"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "العملية بدأت من هنا." : "The transaction started right here."}
+            {isAr ? "كل رقم في دفاترك له حكاية تقدر ترجع لها." : "Every figure in your books has a traceable provenance."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "في عقار بوكس، لا يبدأ القيد من فراغ. كل مطالبة أو تحصيل تولد مباشرة من واقع العقار، رقم المبنى، كود الوحدة، واسم العضو الموثق."
-              : "In AqarBooks, entries do not originate in a vacuum. Every assessment and collection is anchored directly to the physical property, building, unit code, and verified member."}
+              ? "المطالبة أو التحصيل تبدأ من عقار ومبنى ووحدة وعميل محدد — وتظل مرتبطة بمصدرها حتى القيد ودفتر الأستاذ."
+              : "Every levy or collection originates from a specific property, building, unit, and verified member — permanently bound to its source all the way to the ledger."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "مصدر واضح" : "Clear Source Origin"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "ربط بالوحدة" : "Unit-Bound DNA"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "تتبع حتى القيد" : "Traceable to Journal"}</span>
+            </span>
+          </div>
         </div>
 
         {/* The Structured Real-Estate Property Event Ledger Card */}

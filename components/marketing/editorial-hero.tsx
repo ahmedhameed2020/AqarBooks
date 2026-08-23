@@ -32,28 +32,44 @@ export function EditorialHero({ locale }: { locale: Locale }) {
           <div className="lg:col-span-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3.5 py-1 text-xs font-black text-emerald-900 mb-6">
               <ShieldCheck className="size-3.5 text-emerald-700" />
-              <span>{isAr ? "محرك محاسبة عامة بقيد مزدوج حقيقي" : "True Double-Entry General Ledger Engine"}</span>
+              <span>{isAr ? "محاسبة عقارية بقيد مزدوج" : "True Double-Entry Real Estate ERP"}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 font-heading leading-[1.18]">
               {isAr ? (
                 <>
-                  المحاسبة التي <br className="hidden sm:inline" />
-                  <span className="text-[#1A3C2E]">تفهم العقار.</span>
+                  العقار مش إضافة للمحاسبة. <br className="hidden sm:inline" />
+                  <span className="text-[#1A3C2E]">هو جزء من القيد.</span>
                 </>
               ) : (
                 <>
-                  Accounting that <br className="hidden sm:inline" />
-                  <span className="text-[#1A3C2E]">understands Real Estate.</span>
+                  Real estate isn’t an add-on. <br className="hidden sm:inline" />
+                  <span className="text-[#1A3C2E]">It’s part of the journal entry.</span>
                 </>
               )}
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl">
               {isAr
-                ? "كل تحصيل أو مصروف أو استحقاق مرتبط بالعقار والوحدة والعميل والحساب والقيد — في سجل مالي واحد لا ينفصل."
-                : "Every collection, expense, or levy is tied to the property, unit, member, account, and journal entry — in a single unified ledger."}
+                ? "كل تحصيل أو مصروف أو استحقاق يحتفظ بسياقه الكامل — العقار، الوحدة، العميل والحساب — حتى القيد ودفتر الأستاذ. سجل مالي واحد، بلا فصل بين التشغيل والمحاسبة."
+                : "Every collection, expense, or levy retains its complete context — property, unit, member, and account — all the way to the ledger."}
             </p>
+
+            {/* Proof Points Strip */}
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold text-slate-700">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 px-3 py-1 border border-slate-200/80">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>{isAr ? "قيد مزدوج حقيقي" : "True Double-Entry"}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 px-3 py-1 border border-slate-200/80">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>{isAr ? "تتبع على مستوى الوحدة" : "Unit-Level Granularity"}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 px-3 py-1 border border-slate-200/80">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>{isAr ? "دفتر أستاذ موحّد" : "Unified General Ledger"}</span>
+              </span>
+            </div>
           </div>
 
           <div className="lg:col-span-4 flex flex-col gap-3.5 lg:items-end">

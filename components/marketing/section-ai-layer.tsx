@@ -13,31 +13,47 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
     <section id="ai-layer" className="relative bg-white py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-violet-700">
             <span className="flex size-5 items-center justify-center rounded-full bg-violet-100 text-[10px]">08</span>
-            <span>{isAr ? "طبقة الذكاء المحاسبي المنضبط" : "CONTROLLED AI INTELLIGENCE LAYER"}</span>
+            <span>{isAr ? "ذكاء تحت السيطرة" : "INTELLIGENCE UNDER CONTROL"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
             {isAr ? (
               <>
-                الذكاء يقترح. <br />
-                <span className="text-[#1A3C2E]">المحاسبة تتحقق.</span>
+                الذكاء يقترح. <br className="hidden sm:inline" />
+                <span className="text-[#1A3C2E]">دفاترك لا تخمّن.</span>
               </>
             ) : (
               <>
-                AI proposes. <br />
-                <span className="text-[#1A3C2E]">Accounting validates.</span>
+                AI proposes. <br className="hidden sm:inline" />
+                <span className="text-[#1A3C2E]">Your ledgers never guess.</span>
               </>
             )}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "يساعدك AqarBooks على تقليل العمل اليدوي واكتشاف الأنماط واقتراح الإجراءات — بينما يظل الحساب والتحقق والاعتماد المالي داخل المحرك المحاسبي الصارم وبإشراف فريقك."
-              : "AqarBooks streamlines repetitive entry, detects transaction patterns, and suggests actions — while statutory calculation, validation, and posting remain strictly governed by the accounting core."}
+              ? "يقرأ AqarBooks المستندات، يكتشف الأنماط ويقترح الخطوة التالية — لكن الأرقام لا تُترك للنموذج. الحساب والتحقق والصلاحيات والاعتماد تظل داخل المحرك المحاسبي وتحت سيطرة فريقك."
+              : "AqarBooks reads documents, detects patterns, and proposes next steps — but numbers are never left to a model. Statutory calculation, validation, permissions, and posting stay firmly inside the core under your team's control."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 text-violet-900 px-2.5 py-1 border border-violet-200 shadow-2xs">
+              <Sparkles className="size-3.5 text-violet-600" />
+              <span>{isAr ? "AI يقترح" : "AI Proposes"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-900 px-2.5 py-1 border border-slate-200 shadow-2xs">
+              <ShieldCheck className="size-3.5 text-[#1A3C2E]" />
+              <span>{isAr ? "المحرك يتحقق" : "Core Validates"}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 text-emerald-900 px-2.5 py-1 border border-emerald-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{isAr ? "الإنسان يعتمد" : "Human Approves"}</span>
+            </span>
+          </div>
         </div>
 
         {/* 5 Experience Switchers */}

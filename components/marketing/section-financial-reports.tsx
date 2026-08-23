@@ -12,21 +12,40 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
     <section id="reports" className="relative bg-[#F8F9FA] py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">07</span>
-            <span>{isAr ? "التقارير والقوائم المالية" : "REPORTING & AUDIT PACKETS"}</span>
+            <span>{isAr ? "من القيد إلى القرار" : "FROM ENTRY TO DECISION"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "من الحركة اليومية إلى الصورة المالية الكاملة." : "From daily movements to the full statutory financial picture."}
+            {isAr ? "دفاترك تعرف النتيجة قبل ما تسأل عنها." : "Your ledgers know the numbers before you even ask."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "لا تحتاج لانتظار نهاية الشهر لتجميع الحسابات. كل تقرير وكشف حساب مالي يُولَّد لحظياً ومباشرة من واقع القيود المعتمدة."
-              : "No month-end waiting game. Every financial report and statement is generated in real time directly from atomic posted journal entries."}
+              ? "كل قيد مُرحّل ينعكس مباشرة على التقارير والقوائم المالية، فتشوف الصورة من واقع دفاترك نفسها — من غير إعادة تجميع، ولا نقل بين ملفات، ولا انتظار إقفال الشهر."
+              : "Every posted voucher feeds directly into live statements — allowing you to see the real financial picture straight from your books with zero spreadsheet exports or month-end waiting."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "ميزان مراجعة" : "Trial Balance"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "كشف حساب" : "Account Statement"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "أرباح وخسائر" : "P&L"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "مركز مالي" : "Balance Sheet"}
+            </span>
+          </div>
         </div>
 
         {/* Interactive Report Tab Selector */}

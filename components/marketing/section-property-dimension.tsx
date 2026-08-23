@@ -19,21 +19,48 @@ export function SectionPropertyDimension({ locale }: { locale: Locale }) {
     <section className="relative bg-[#F8F9FA] py-20 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">03</span>
-            <span>{isAr ? "الهيكل المالي متعدد الأبعاد" : "PROPERTY AS A FINANCIAL DIMENSION"}</span>
+            <span>{isAr ? "أبعد من رقم الحساب" : "BEYOND AN ACCOUNT NUMBER"}</span>
           </div>
 
           <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "القيد لا يعيش منفصلًا عن العقار." : "A journal entry never lives in isolation from the property."}
+            {isAr ? "القيد يقول كام. AqarBooks يقول فين ولمين." : "The ledger says how much. AqarBooks says where and for whom."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "في برامج المحاسبة العامة، يكون القيد مجرد رقم حساب. في عقار بوكس، كل حركة مالية تحمل بطاقة تعريف هندسية متكاملة تربطها بالكيان والمنطقة والمبنى والوحدة والمالك."
-              : "In generic software, entries are just account numbers. In AqarBooks, every transaction carries an architectural DNA linking it from the holding entity down to the specific unit and member."}
+              ? "كل حركة مالية تحتفظ بسياقها العقاري كاملًا — الكيان، المنطقة، المبنى، الوحدة والعميل — عشان تقدر تقرأ حساباتك من مستوى المحفظة كلها لحد وحدة واحدة."
+              : "Every financial movement retains its complete real estate DNA — entity, zone, building, unit, and member — allowing you to read financials from entire portfolio down to a single flat."}
           </p>
+
+          {/* Proof Points */}
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "كيان" : "Entity"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "منطقة" : "Zone"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "مبنى" : "Building"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "وحدة" : "Unit"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "عميل" : "Member"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
+              {isAr ? "حساب" : "Account"}
+            </span>
+          </div>
         </div>
 
         {/* The Architectural Hierarchy Matrix */}
