@@ -2,6 +2,9 @@ import { setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
+import { createClient } from "@/lib/supabase/server";
+import { getOperationalAlerts, getAlertSettings } from "@/lib/alerts/operational-alerts";
 import type { Locale } from "@/i18n/routing";
 import { NotificationsClient } from "./notifications-client";
 
@@ -14,11 +17,11 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "مركز الإشعارات والتنبيهات الذكية — عقار بوكس"
-      : "Smart Notification & Alerts Center — AqarBooks",
+      ? "التنبيهات التشغيلية — عقار بوكس"
+      : "Operational Alerts — AqarBooks",
     description: isAr
-      ? "إدارة ومتابعة التنبيهات المالية، شيكات الاستحقاق، انتهاء العقود، والربط مع الواتساب والبريد."
-      : "Manage financial alerts, PDC due dates, lease expirations, and WhatsApp/Email delivery rules.",
+      ? "تنبيهات مشتقة من دفاترك: المطالبات المتأخرة، الشيكات المستحقة، والعقود المنتهية قريبًا."
+      : "Alerts derived from your ledger: overdue dues, cheques falling due, and leases about to expire.",
   };
 }
 
@@ -45,13 +48,26 @@ export default async function NotificationsPage({
     );
   }
 
+  const supabase = await createClient();
+
+  const [alerts, settings, canManageSettings, { count: dismissedCount }] = await Promise.all([
+    getOperationalAlerts(organization.id, user!.id),
+    getAlertSettings(organization.id),
+    hasPermission(organization.id, "tenant.settings.manage"),
+    supabase
+      .from("alert_dismissals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .eq("organization_id", organization.id),
+  ]);
+
   return (
-    <main className="space-y-6">
-      <NotificationsClient
-        locale={locale}
-        organizationId={organization.id}
-        organizationName={organization.name}
-      />
-    </main>
+    <NotificationsClient
+      locale={locale}
+      alerts={alerts}
+      settings={settings}
+      dismissedCount={dismissedCount ?? 0}
+      canManageSettings={canManageSettings}
+    />
   );
 }
