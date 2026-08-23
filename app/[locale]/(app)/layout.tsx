@@ -13,6 +13,11 @@ import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { getOperationalAlerts } from "@/lib/alerts/operational-alerts";
+import {
+  buildPermissionChecker,
+  collectNavPermissionKeys,
+  filterNavByPermission,
+} from "@/lib/auth/nav-permissions";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import type { Locale } from "@/i18n/routing";
@@ -95,31 +100,31 @@ export default async function AppShellLayout({
           labelEn: "Properties & Operations",
           items: [
             {
-              href: "/admin/resorts",
+              href: "/admin/resorts", permission: "tenant.settings.manage",
               labelAr: "الكيانات والمشاريع",
               labelEn: "Entities & Resorts",
               icon: <Building className={ic} />,
             },
             {
-              href: "/property",
+              href: "/property", permission: "property.units.manage",
               labelAr: "الوحدات السكنية والتجارية",
               labelEn: "Units Management",
               icon: <MapPinned className={ic} />,
               subItems: [
-                { href: "/property", labelAr: "كافة الوحدات", labelEn: "All Units" },
-                { href: "/finance/reports/rent-roll", labelAr: "جدول الإيجارات (Rent Roll)", labelEn: "Rent Roll Schedule" },
-                { href: "/finance/reports/lease-expirations", labelAr: "جداول انتهاء العقود", labelEn: "Lease Expirations" },
-                { href: "/import", labelAr: "استيراد وحدات", labelEn: "Bulk Import" },
+                { href: "/property", permission: "property.units.manage", labelAr: "كافة الوحدات", labelEn: "All Units" },
+                { href: "/finance/reports/rent-roll", permission: "finance.reports.read", labelAr: "جدول الإيجارات (Rent Roll)", labelEn: "Rent Roll Schedule" },
+                { href: "/finance/reports/lease-expirations", permission: "finance.reports.read", labelAr: "جداول انتهاء العقود", labelEn: "Lease Expirations" },
+                { href: "/import", permission: "property.units.manage", labelAr: "استيراد وحدات", labelEn: "Bulk Import" },
               ],
             },
             {
-              href: "/members",
+              href: "/members", permission: "property.members.manage",
               labelAr: "الأعضاء والملاك",
               labelEn: "Members & Owners",
               icon: <Users className={ic} />,
               subItems: [
-                { href: "/members", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
-                { href: "/finance/reports/owner-statement", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
+                { href: "/members", permission: "property.members.manage", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
+                { href: "/finance/reports/owner-statement", permission: "finance.reports.read", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
               ],
             },
           ],
@@ -130,60 +135,60 @@ export default async function AppShellLayout({
           labelEn: "Finance & Accounting",
           items: [
             {
-              href: "/finance/accounts",
+              href: "/finance/accounts", permission: "finance.accounts.view",
               labelAr: "دليل الحسابات والقيود",
               labelEn: "Chart of Accounts",
               icon: <Scale className={ic} />,
               subItems: [
-                { href: "/finance/accounts", labelAr: "شجرة الحسابات", labelEn: "Accounts Tree" },
-                { href: "/finance/journals", labelAr: "قيود اليومية المحاسبية", labelEn: "Journal Entries" },
-                { href: "/admin/finance/periods", labelAr: "الفترات والسنوات المالية", labelEn: "Fiscal Periods" },
-                { href: "/finance/budgets", labelAr: "الموازنات التقديرية", labelEn: "Fiscal Budgets" },
-                { href: "/finance/assets", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets" },
-                { href: "/finance/projects", labelAr: "المشاريع والأعمال تحت التنفيذ", labelEn: "Projects & WIP" },
-                { href: "/finance/exchange-rates", labelAr: "أسعار الصرف", labelEn: "Exchange Rates" },
-                { href: "/admin/finance/accounting-accounts", labelAr: "الحسابات المعيَّنة", labelEn: "Designated Accounts" },
-                { href: "/finance/reports/general-ledger", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },
+                { href: "/finance/accounts", permission: "finance.accounts.view", labelAr: "شجرة الحسابات", labelEn: "Accounts Tree" },
+                { href: "/finance/journals", permission: "finance.accounts.view", labelAr: "قيود اليومية المحاسبية", labelEn: "Journal Entries" },
+                { href: "/admin/finance/periods", permission: "finance.periods.manage", labelAr: "الفترات والسنوات المالية", labelEn: "Fiscal Periods" },
+                { href: "/finance/budgets", permission: "finance.budgets.manage", labelAr: "الموازنات التقديرية", labelEn: "Fiscal Budgets" },
+                { href: "/finance/assets", permission: "finance.assets.manage", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets" },
+                { href: "/finance/projects", permission: "finance.accounts.manage", labelAr: "المشاريع والأعمال تحت التنفيذ", labelEn: "Projects & WIP" },
+                { href: "/finance/exchange-rates", permission: "finance.fx.manage", labelAr: "أسعار الصرف", labelEn: "Exchange Rates" },
+                { href: "/admin/finance/accounting-accounts", permission: "finance.accounts.manage", labelAr: "الحسابات المعيَّنة", labelEn: "Designated Accounts" },
+                { href: "/finance/reports/general-ledger", permission: "finance.reports.read", labelAr: "دفتر الأستاذ العام", labelEn: "General Ledger" },
               ],
             },
             {
-              href: "/finance/dues",
+              href: "/finance/dues", permission: "finance.dues.read",
               labelAr: "الاستحقاقات والمقبوضات",
               labelEn: "Receivables & Billing",
               icon: <Receipt className={ic} />,
               subItems: [
-                { href: "/finance/dues", labelAr: "المطالبات والاستحقاقات", labelEn: "Dues & Invoices" },
-                { href: "/finance/payments", labelAr: "سندات القبض والتحصيل", labelEn: "Receipt Vouchers" },
-                { href: "/finance/service-charges", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
-                { href: "/finance/dunning", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
-                { href: "/finance/reports/cam-allocation", labelAr: "توزيع تكاليف الخدمات (CAM)", labelEn: "CAM Allocation" },
-                { href: "/finance/reports/aging", labelAr: "أعمار ديون العملاء (AR)", labelEn: "AR Aging" },
+                { href: "/finance/dues", permission: "finance.dues.read", labelAr: "المطالبات والاستحقاقات", labelEn: "Dues & Invoices" },
+                { href: "/finance/payments", permission: "finance.payments.read", labelAr: "سندات القبض والتحصيل", labelEn: "Receipt Vouchers" },
+                { href: "/finance/service-charges", permission: "finance.service_charges.manage", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
+                { href: "/finance/dunning", permission: "finance.dunning.manage", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
+                { href: "/finance/reports/cam-allocation", permission: "finance.reports.read", labelAr: "توزيع تكاليف الخدمات (CAM)", labelEn: "CAM Allocation" },
+                { href: "/finance/reports/aging", permission: "finance.dues.read", labelAr: "أعمار ديون العملاء (AR)", labelEn: "AR Aging" },
               ],
             },
             {
-              href: "/finance/cashier",
+              href: "/finance/cashier", permission: "cashier.transactions.create",
               labelAr: "الخزينة والسيولة والشيكات",
               labelEn: "Treasury & Banking",
               icon: <Wallet className={ic} />,
               subItems: [
-                { href: "/finance/cashier", labelAr: "الخزينة والمقبوضات الفورية", labelEn: "Cashier" },
-                { href: "/finance/banks", labelAr: "الحسابات البنكية", labelEn: "Bank Accounts" },
-                { href: "/finance/reports/pdc", labelAr: "سجل الشيكات الآجلة (PDC)", labelEn: "PDC Register" },
-                { href: "/finance/reports/cash-flow-forecast", labelAr: "توقعات السيولة (90 يوم)", labelEn: "Cash Runway Forecast" },
-                { href: "/finance/banks/reconciliation", labelAr: "المطابقة والتسوية البنكية", labelEn: "Bank Reconciliation" },
+                { href: "/finance/cashier", permission: "cashier.transactions.create", labelAr: "الخزينة والمقبوضات الفورية", labelEn: "Cashier" },
+                { href: "/finance/banks", permission: "banking.accounts.view", labelAr: "الحسابات البنكية", labelEn: "Bank Accounts" },
+                { href: "/finance/reports/pdc", permission: "finance.reports.read", labelAr: "سجل الشيكات الآجلة (PDC)", labelEn: "PDC Register" },
+                { href: "/finance/reports/cash-flow-forecast", permission: "finance.reports.read", labelAr: "توقعات السيولة (90 يوم)", labelEn: "Cash Runway Forecast" },
+                { href: "/finance/banks/reconciliation", permission: "finance.bank_reconciliation.manage", labelAr: "المطابقة والتسوية البنكية", labelEn: "Bank Reconciliation" },
               ],
             },
             {
-              href: "/finance/suppliers",
+              href: "/finance/suppliers", permission: "finance.suppliers.read",
               labelAr: "المشتريات والمصروفات",
               labelEn: "Purchasing & Payables",
               icon: <Truck className={ic} />,
               subItems: [
-                { href: "/finance/suppliers", labelAr: "الموردون والمقاولون", labelEn: "Vendors & Suppliers" },
-                { href: "/finance/expenses", labelAr: "سندات الصرف والمصروفات", labelEn: "Expense Vouchers" },
-                { href: "/finance/reports/ap-aging", labelAr: "أعمار ديون الموردين (AP)", labelEn: "AP Aging" },
-                { href: "/finance/reports/capex-opex", labelAr: "مصاريف CAPEX / OPEX", labelEn: "CAPEX vs OPEX" },
-                { href: "/finance/commissions", labelAr: "عمولات الوسطاء والمسوقين", labelEn: "Broker Commissions" },
+                { href: "/finance/suppliers", permission: "finance.suppliers.read", labelAr: "الموردون والمقاولون", labelEn: "Vendors & Suppliers" },
+                { href: "/finance/expenses", permission: "finance.expenses.read", labelAr: "سندات الصرف والمصروفات", labelEn: "Expense Vouchers" },
+                { href: "/finance/reports/ap-aging", permission: "finance.reports.read", labelAr: "أعمار ديون الموردين (AP)", labelEn: "AP Aging" },
+                { href: "/finance/reports/capex-opex", permission: "finance.reports.read", labelAr: "مصاريف CAPEX / OPEX", labelEn: "CAPEX vs OPEX" },
+                { href: "/finance/commissions", permission: "finance.commissions.manage", labelAr: "عمولات الوسطاء والمسوقين", labelEn: "Broker Commissions" },
               ],
             },
           ],
@@ -195,17 +200,18 @@ export default async function AppShellLayout({
           items: [
             {
               href: "/finance/reports",
-              labelAr: "مركز التقارير (19 تقريراً)",
+              labelAr: "مركز التقارير المالية",
               labelEn: "Reports Hub (19 Reports)",
               icon: <BarChart3 className={ic} />,
               subItems: [
-                { href: "/finance/reports/trial-balance", labelAr: "ميزان المراجعة بالمجاميع", labelEn: "Trial Balance" },
-                { href: "/finance/reports/income-statement", labelAr: "قائمة الدخل والأرباح (P&L)", labelEn: "Income Statement" },
-                { href: "/finance/reports/balance-sheet", labelAr: "الميزانية والمركز المالي", labelEn: "Balance Sheet" },
-                { href: "/finance/reports/cash-flow", labelAr: "قائمة التدفقات النقدية", labelEn: "Cash Flow Statement" },
-                { href: "/finance/reports/property-pnl", labelAr: "أرباح وخسائر المشاريع", labelEn: "Property-Level P&L" },
-                { href: "/finance/reports/fixed-assets", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets & NBV" },
-                { href: "/finance/reports/audit-trail", labelAr: "سجل التدقيق والحوكمة", labelEn: "Audit Trail & Logs" },
+                { href: "/finance/reports/trial-balance", permission: "finance.reports.read", labelAr: "ميزان المراجعة بالمجاميع", labelEn: "Trial Balance" },
+                { href: "/finance/reports/income-statement", permission: "finance.reports.read", labelAr: "قائمة الدخل والأرباح (P&L)", labelEn: "Income Statement" },
+                { href: "/finance/reports/balance-sheet", permission: "finance.reports.read", labelAr: "الميزانية والمركز المالي", labelEn: "Balance Sheet" },
+                { href: "/finance/reports/cash-flow", permission: "finance.reports.read", labelAr: "قائمة التدفقات النقدية", labelEn: "Cash Flow Statement" },
+                { href: "/finance/reports/property-pnl", permission: "finance.reports.read", labelAr: "أرباح وخسائر المشاريع", labelEn: "Property-Level P&L" },
+                { href: "/finance/reports/fixed-assets", permission: "finance.reports.read", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets & NBV" },
+                { href: "/finance/reports/budget-vs-actual", permission: "finance.reports.read", labelAr: "الموازنة مقابل الفعلي", labelEn: "Budget vs Actual" },
+                { href: "/finance/reports/audit-trail", permission: "finance.reports.read", labelAr: "سجل التدقيق والحوكمة", labelEn: "Audit Trail & Logs" },
               ],
             },
           ],
@@ -216,15 +222,15 @@ export default async function AppShellLayout({
           labelEn: "Tax & Compliance",
           items: [
             {
-              href: "/finance/einvoice",
+              href: "/finance/einvoice", permission: "finance.einvoice.manage",
               labelAr: "الفوترة الإلكترونية والإقرارات",
               labelEn: "E-Invoicing & VAT",
               icon: <Landmark className={ic} />,
               subItems: [
-                { href: "/finance/einvoice", labelAr: "القرارات وسجل الفواتير", labelEn: "Tax Invoices Log" },
-                { href: "/finance/reports/vat-return", labelAr: "إقرار القيمة المضافة (VAT)", labelEn: "VAT Return Statement" },
-                { href: "/finance/tax-mapping", labelAr: "التصنيف والوعاء الضريبي", labelEn: "Tax Mapping" },
-                { href: "/finance/einvoice-items", labelAr: "تكويد أصناف السلع والخدمات", labelEn: "GS1 / EGS Item Codes" },
+                { href: "/finance/einvoice", permission: "finance.einvoice.manage", labelAr: "القرارات وسجل الفواتير", labelEn: "Tax Invoices Log" },
+                { href: "/finance/reports/vat-return", permission: "finance.reports.read", labelAr: "إقرار القيمة المضافة (VAT)", labelEn: "VAT Return Statement" },
+                { href: "/finance/tax-mapping", permission: "finance.tax_mapping.manage", labelAr: "التصنيف والوعاء الضريبي", labelEn: "Tax Mapping" },
+                { href: "/finance/einvoice-items", permission: "finance.einvoice.manage", labelAr: "تكويد أصناف السلع والخدمات", labelEn: "GS1 / EGS Item Codes" },
               ],
             },
           ],
@@ -242,11 +248,11 @@ export default async function AppShellLayout({
               subItems: [
                 { href: "/account", labelAr: "الملف الشخصي وكلمة المرور", labelEn: "Profile & Password" },
                 { href: "/notifications", labelAr: "مركز الإشعارات والتنبيهات", labelEn: "Notification Center" },
-                { href: "/admin", labelAr: "إعدادات المنشأة والبراند", labelEn: "Organization Profile" },
-                { href: "/admin/users", labelAr: "المستخدمون وفريق العمل", labelEn: "Team & Users" },
-                { href: "/admin/roles", labelAr: "الصلاحيات والمصفوفة", labelEn: "Roles & Permissions" },
-                { href: "/admin/ai-governance", labelAr: "حوكمة الذكاء الاصطناعي (Shadow Pilot)", labelEn: "AI Governance & Pilot" },
-                { href: "/finance/payment-providers", labelAr: "بوابات الدفع الإلكتروني", labelEn: "Payment Gateways" },
+                { href: "/admin", permission: "tenant.settings.manage", labelAr: "إعدادات المنشأة والبراند", labelEn: "Organization Profile" },
+                { href: "/admin/users", permission: "tenant.users.manage", labelAr: "المستخدمون وفريق العمل", labelEn: "Team & Users" },
+                { href: "/admin/roles", permission: "tenant.roles.manage", labelAr: "الصلاحيات والمصفوفة", labelEn: "Roles & Permissions" },
+                { href: "/admin/ai-governance", permission: "tenant.settings.manage", labelAr: "حوكمة الذكاء الاصطناعي (Shadow Pilot)", labelEn: "AI Governance & Pilot" },
+                { href: "/finance/payment-providers", permission: "finance.online_payments.manage", labelAr: "بوابات الدفع الإلكتروني", labelEn: "Payment Gateways" },
               ],
             },
           ],
@@ -276,8 +282,40 @@ export default async function AppShellLayout({
     });
   }
 
-  if (workspaces.length === 0) {
-    workspaces.push({ key: "empty", labelAr: "", labelEn: "", groups: [homeGroup] });
+  // Pruned before it is serialised, so a branch the viewer may not open is
+  // genuinely absent from the payload rather than hidden with CSS. The whole
+  // tree used to ship to everyone: someone with only property access was shown
+  // thirty-odd finance links that would bounce them, and the menu disclosed
+  // every module and its exact route.
+  const navWorkspaces = organization
+    ? filterNavByPermission(
+        workspaces,
+        await buildPermissionChecker(organization.id, collectNavPermissionKeys(workspaces)),
+      )
+    : workspaces;
+
+  // Counts on the two entries where a number changes what someone does next.
+  // Sourced from the same derivation the alert centre reads, so the menu and
+  // the alerts can never disagree about how much is overdue.
+  const overdueAlert = alerts.find((a) => a.key.startsWith("overdue_dues:"));
+  const overdueCount = overdueAlert ? Number(overdueAlert.key.split(":")[1]) || 0 : 0;
+
+  if (overdueCount > 0) {
+    for (const workspace of navWorkspaces) {
+      for (const group of workspace.groups) {
+        for (const item of group.items) {
+          for (const sub of item.subItems ?? []) {
+            if (sub.href === "/finance/dunning" || sub.href === "/finance/reports/aging") {
+              item.badge = overdueCount;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (navWorkspaces.length === 0) {
+    navWorkspaces.push({ key: "empty", labelAr: "", labelEn: "", groups: [homeGroup] });
   }
 
   const boundSignOut = signOut.bind(null, loc);
@@ -303,7 +341,7 @@ export default async function AppShellLayout({
         <SiteHeader locale={loc} alerts={alerts} />
         <div className="flex flex-1 flex-col md:flex-row">
           <AppSidebar
-            workspaces={workspaces}
+            workspaces={navWorkspaces}
             locale={loc}
             userProfile={userProfile}
             signOutAction={boundSignOut}

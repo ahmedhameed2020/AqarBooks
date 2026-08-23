@@ -15,13 +15,19 @@ import {
   Settings,
   ShieldCheck,
   Building2,
+  Star,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 export type SidebarSubItem = {
   href: string;
   labelAr: string;
   labelEn: string;
+  /**
+   * Consumed on the server by filterNavByPermission and never read here. An
+   * entry the viewer may not open is removed from the tree before it is sent,
+   * so this field only ever describes items they already passed.
+   */
+  permission?: string;
 };
 
 export type SidebarNavItem = {
@@ -30,6 +36,12 @@ export type SidebarNavItem = {
   labelEn: string;
   icon: React.ReactNode;
   subItems?: SidebarSubItem[];
+  permission?: string;
+  /**
+   * Live count shown beside the label. Present only where a number changes
+   * what someone does next -- an unread-style dot on every branch is noise.
+   */
+  badge?: number;
 };
 
 export type SidebarNavGroup = {
@@ -54,6 +66,7 @@ export interface UserSidebarProfile {
   isSuperAdmin?: boolean;
 }
 
+const PINNED_STORAGE_KEY = "aqarbooks-sidebar-pinned";
 const COLLAPSED_STORAGE_KEY = "aqarbooks-sidebar-is-collapsed";
 const GROUP_STORAGE_KEY = "aqarbooks-sidebar-collapsed-groups";
 const SUBITEM_STORAGE_KEY = "aqarbooks-sidebar-open-subitems";
@@ -73,6 +86,8 @@ function NavRow({
   openSubKeys,
   onToggleSub,
   isCollapsed,
+  isPinned,
+  onTogglePin,
 }: {
   item: SidebarNavItem;
   locale: Locale;
@@ -82,6 +97,8 @@ function NavRow({
   openSubKeys: Set<string>;
   onToggleSub: (href: string) => void;
   isCollapsed: boolean;
+  isPinned: boolean;
+  onTogglePin: (href: string) => void;
 }) {
   const isActive = itemMatches(pathname, item);
   const hasSubItems = Boolean(item.subItems?.length);
@@ -104,6 +121,12 @@ function NavRow({
           )}
         >
           <span className="shrink-0">{item.icon}</span>
+          {item.badge ? (
+            <span
+              className="absolute -top-0.5 -end-0.5 size-2.5 rounded-full bg-rose-500 ring-2 ring-sidebar"
+              aria-label={isAr ? `${item.badge} بند متأخر` : `${item.badge} overdue`}
+            />
+          ) : null}
         </Link>
 
         {/* Floating popover on hover in collapsed mode */}
@@ -174,7 +197,34 @@ function NavRow({
             {item.icon}
           </span>
           <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
+          {/* Only rendered when there is something to count. A zero badge is a
+              claim that nothing needs doing, dressed as an alarm. */}
+          {item.badge ? (
+            <span
+              className="ms-auto shrink-0 rounded-md bg-rose-500/20 px-1.5 py-px font-mono text-[10px] font-bold text-rose-300 tabular-nums"
+              aria-label={isAr ? `${item.badge} بند متأخر` : `${item.badge} overdue`}
+            >
+              {item.badge > 99 ? "99+" : item.badge}
+            </span>
+          ) : null}
         </Link>
+        <button
+          type="button"
+          onClick={() => onTogglePin(item.href)}
+          aria-label={
+            isPinned
+              ? isAr ? "إزالة من المثبّتة" : "Unpin"
+              : isAr ? "تثبيت في الأعلى" : "Pin to top"
+          }
+          className={cn(
+            "me-0.5 flex size-6 shrink-0 items-center justify-center rounded transition-all hover:bg-white/[0.06]",
+            isPinned
+              ? "text-amber-400/80 hover:text-amber-300"
+              : "text-sidebar-foreground/0 group-hover:text-sidebar-foreground/45 focus-visible:text-sidebar-foreground/45 hover:!text-sidebar-foreground/80",
+          )}
+        >
+          <Star className={cn("size-3.5", isPinned && "fill-current")} />
+        </button>
         {hasSubItems && (
           <button
             type="button"
@@ -245,6 +295,11 @@ export function AppSidebar({
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
   const [openSubKeys, setOpenSubKeys] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  // Fifty-three destinations means an accountant who lives in four screens
+  // still walks the tree every morning. Pinning is the cheapest fix for that,
+  // and it is per browser rather than per account because it is a workspace
+  // preference, not a property of the person.
+  const [pinned, setPinned] = useState<string[]>([]);
   const [activeWorkspaceKey, setActiveWorkspaceKey] = useState(workspaces[0]?.key);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -260,6 +315,12 @@ export function AppSidebar({
       const rawSubItems = localStorage.getItem(SUBITEM_STORAGE_KEY);
       if (rawSubItems) setOpenSubKeys(new Set(JSON.parse(rawSubItems)));
 
+      const rawPinned = localStorage.getItem(PINNED_STORAGE_KEY);
+      if (rawPinned) {
+        const parsed = JSON.parse(rawPinned);
+        if (Array.isArray(parsed)) setPinned(parsed.filter((h): h is string => typeof h === "string"));
+      }
+
       const storedWorkspace = localStorage.getItem(WORKSPACE_STORAGE_KEY);
       if (storedWorkspace && workspaces.some((w) => w.key === storedWorkspace)) {
         setActiveWorkspaceKey(storedWorkspace);
@@ -268,6 +329,18 @@ export function AppSidebar({
       // ignore
     }
   }, [workspaces]);
+
+  function togglePinned(href: string) {
+    setPinned((prev) => {
+      const next = prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href];
+      try {
+        localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // A browser refusing storage should cost the pin, not the click.
+      }
+      return next;
+    });
+  }
 
   // Keyboard shortcut for search
   useEffect(() => {
@@ -359,6 +432,13 @@ export function AppSidebar({
     workspaces.find((w) => w.key === activeWorkspaceKey) ?? workspaces[0];
 
   const searching = query.trim().length > 0;
+  const pinnedItems = useMemo(() => {
+    const all = activeWorkspace?.groups.flatMap((g) => g.items) ?? [];
+    return pinned
+      .map((href) => all.find((item) => item.href === href))
+      .filter((item): item is SidebarNavItem => Boolean(item));
+  }, [activeWorkspace, pinned]);
+
   const visibleGroups = useMemo(() => {
     const groups = activeWorkspace?.groups ?? [];
     if (!searching) return groups;
@@ -507,6 +587,47 @@ export function AppSidebar({
           NAVIGATION GROUPS & ITEMS
           ────────────────────────────────────────────────────────────────────────── */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4 sidebar-scrollbar">
+        {!searching && !isCollapsed && pinnedItems.length > 0 && (
+          <div className="pb-2">
+            <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
+              {isAr ? "المثبّتة" : "Pinned"}
+            </p>
+            <div className="space-y-0.5">
+              {pinnedItems.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <div key={`pin-${item.href}`} className="group relative flex items-center">
+                    <Link
+                      href={item.href}
+                      locale={locale}
+                      className={cn(
+                        "flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all",
+                        active
+                          ? "bg-purple-600/15 font-bold text-purple-300"
+                          : "text-sidebar-foreground/75 hover:bg-white/[0.06] hover:text-white",
+                      )}
+                    >
+                      <span className={cn("shrink-0", active ? "text-purple-400" : "text-sidebar-foreground/55")}>
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => togglePinned(item.href)}
+                      aria-label={isAr ? "إزالة من المثبّتة" : "Unpin"}
+                      className="me-1 flex size-6 shrink-0 items-center justify-center rounded text-amber-400/80 transition-colors hover:bg-white/[0.06] hover:text-amber-300"
+                    >
+                      <Star className="size-3.5 fill-current" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mx-2.5 mt-2 border-b border-sidebar-border/60" />
+          </div>
+        )}
+
         {visibleGroups.map((group) => {
           const hasLabel = Boolean(group.labelAr || group.labelEn);
           const isOpen = searching || !collapsedKeys.has(group.key);
@@ -547,6 +668,8 @@ export function AppSidebar({
                       openSubKeys={openSubKeys}
                       onToggleSub={toggleSubItem}
                       isCollapsed={isCollapsed}
+                      isPinned={pinned.includes(item.href)}
+                      onTogglePin={togglePinned}
                     />
                   ))}
                 </div>
