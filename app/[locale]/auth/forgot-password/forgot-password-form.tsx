@@ -112,7 +112,7 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
           {isAr ? "البريد الإلكتروني المهني" : "Business Email"}
         </label>
         <div className="group relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-[#1A3C2E]">
             <Mail className="size-4" />
           </div>
           <input
@@ -124,7 +124,7 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@company.com"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-mono"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1A3C2E] focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/10 transition-all font-mono"
             dir="ltr"
           />
         </div>
@@ -135,7 +135,7 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -155,7 +155,7 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
       <div className="text-center pt-3 border-t border-slate-100">
         <p className="text-xs text-slate-500">
           {isAr ? "تذكرت كلمة المرور؟ " : "Remembered your password? "}
-          <Link href="/login" locale={locale} className="font-bold text-blue-600 hover:underline">
+          <Link href="/login" locale={locale} className="font-bold text-[#1A3C2E] hover:underline">
             {isAr ? "تسجيل الدخول" : "Sign in"}
           </Link>
         </p>

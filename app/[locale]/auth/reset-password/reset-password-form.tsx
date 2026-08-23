@@ -124,14 +124,14 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
             required
             minLength={8}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-end pe-3 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -165,7 +165,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-end pe-3 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label={showConfirmPassword ? "Hide password" : "Show password"}
           >
             {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -194,7 +194,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -212,7 +212,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
 
       {/* Back to Login */}
       <div className="text-center pt-3 border-t border-slate-100">
-        <Link href="/login" locale={locale} className="text-xs font-bold text-blue-600 hover:underline">
+        <Link href="/login" locale={locale} className="text-xs font-bold text-[#1A3C2E] hover:underline">
           {isAr ? "العودة إلى تسجيل الدخول" : "Back to Sign In"}
         </Link>
       </div>

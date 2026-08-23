@@ -62,7 +62,7 @@ export function LoginForm({
             autoComplete="email"
             required
             placeholder="name@company.com"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-mono"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-mono"
             dir="ltr"
           />
         </div>
@@ -77,13 +77,13 @@ export function LoginForm({
           <Link
             href="/auth/forgot-password"
             locale={locale}
-            className="text-xs font-semibold text-blue-600 hover:underline"
+            className="text-xs font-semibold text-[#1A3C2E] hover:underline"
           >
             {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
           </Link>
         </div>
         <div className="group relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-blue-600">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-[#1A3C2E]">
             <Lock className="size-4" />
           </div>
           <input
@@ -93,12 +93,12 @@ export function LoginForm({
             autoComplete="current-password"
             required
             placeholder="••••••••"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1A3C2E] focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/10 transition-all"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-end pe-3 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -111,7 +111,7 @@ export function LoginForm({
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {pending ? (
             <>
@@ -131,7 +131,7 @@ export function LoginForm({
       <div className="text-center pt-3 border-t border-slate-100">
         <p className="text-xs text-slate-500">
           {isAr ? "ليس لديك حساب منشأة؟ " : "Don't have an enterprise account? "}
-          <Link href="/auth/register" locale={locale} className="font-bold text-blue-600 hover:underline">
+          <Link href="/auth/register" locale={locale} className="font-bold text-[#1A3C2E] hover:underline">
             {isAr ? "إنشاء حساب جديد" : "Create account"}
           </Link>
         </p>

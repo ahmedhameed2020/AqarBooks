@@ -249,7 +249,7 @@ export function LoginForm({
           <Button
             type="submit"
             disabled={isPending || !email.trim()}
-            className="h-11 w-full gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700"
+            className="h-11 w-full gap-2 rounded-xl bg-[#1A3C2E] text-sm font-bold text-white hover:bg-[#132d22] shadow-md shadow-[#1A3C2E]/20"
           >
             {isPending ? (
               <>
@@ -282,7 +282,7 @@ export function LoginForm({
           className="space-y-5 rounded-2xl border border-border/80 bg-card p-6 shadow-sm sm:p-8"
         >
           <div className="space-y-2 text-center">
-            <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-indigo-600 text-white">
+            <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[#1A3C2E] text-white shadow-sm">
               <KeyRound className="size-5" />
             </div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
@@ -337,7 +337,7 @@ export function LoginForm({
           <Button
             type="submit"
             disabled={isPending || code.replace(/\D/g, "").length !== 6}
-            className="h-11 w-full gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700"
+            className="h-11 w-full gap-2 rounded-xl bg-[#1A3C2E] text-sm font-bold text-white hover:bg-[#132d22] shadow-md shadow-[#1A3C2E]/20"
           >
             {isPending ? (
               <>

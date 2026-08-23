@@ -95,7 +95,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder={isAr ? "أحمد حامد" : "Ahmed Hameed"}
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
             required
           />
         </div>
@@ -115,7 +115,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@company.com"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-mono"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all font-mono"
             required
             dir="ltr"
           />
@@ -138,14 +138,14 @@ export function RegisterForm({ locale }: { locale: string }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+              className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
               required
               minLength={8}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-end pe-3 text-slate-400 hover:text-slate-600 transition-colors"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -168,7 +168,7 @@ export function RegisterForm({ locale }: { locale: string }) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className={`w-full rounded-lg border bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full min-h-11 rounded-lg border bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
                 confirmPassword && password !== confirmPassword
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500/10"
                   : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/10"
@@ -179,7 +179,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-end pe-3 text-slate-400 hover:text-slate-600 transition-colors"
               aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
               {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -216,10 +216,10 @@ export function RegisterForm({ locale }: { locale: string }) {
           aria-checked={acceptTerms}
           id="acceptTerms"
           onClick={() => setAcceptTerms((v) => !v)}
-          className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer ${
+          className={`hit-target mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer ${
             acceptTerms
-              ? "border-blue-600 bg-blue-600 text-white"
-              : "border-slate-300 bg-white hover:border-blue-400"
+              ? "border-[#1A3C2E] bg-[#1A3C2E] text-white"
+              : "border-slate-300 bg-white hover:border-[#1A3C2E]/60"
           }`}
         >
           {acceptTerms && <Check className="size-3" strokeWidth={3} />}
@@ -234,7 +234,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             href="/terms"
             locale={locale as Locale}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-blue-600 hover:underline"
+            className="font-bold text-[#1A3C2E] hover:underline"
           >
             {isAr ? "شروط الخدمة" : "Terms of Service"}
           </Link>
@@ -243,7 +243,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             href="/privacy"
             locale={locale as Locale}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-blue-600 hover:underline"
+            className="font-bold text-[#1A3C2E] hover:underline"
           >
             {isAr ? "سياسة الخصوصية وحماية البيانات" : "Privacy Policy"}
           </Link>
@@ -255,7 +255,7 @@ export function RegisterForm({ locale }: { locale: string }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -278,7 +278,7 @@ export function RegisterForm({ locale }: { locale: string }) {
           <Link
             href="/login"
             locale={locale as Locale}
-            className="font-bold text-blue-600 hover:underline"
+            className="font-bold text-[#1A3C2E] hover:underline"
           >
             {isAr ? "تسجيل الدخول" : "Sign in"}
           </Link>

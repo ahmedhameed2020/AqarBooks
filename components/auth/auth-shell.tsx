@@ -68,7 +68,7 @@ export function AuthShell({
 
             {eyebrow && (
               <span
-                className={`inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-100/80 ${
+                className={`inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-[#1A3C2E] border border-emerald-200/80 ${
                   isAr ? "tracking-[0.02em]" : "uppercase tracking-[0.08em]"
                 }`}
                 style={{ fontFamily: isAr ? "var(--font-plex-arabic)" : "var(--font-plex-mono)" }}

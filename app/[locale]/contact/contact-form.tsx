@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { submitContactRequestAction } from "@/lib/actions/leads";
 import type { ActionResult } from "@/lib/actions/platform";
+import { CheckCircle2, Send } from "lucide-react";
 
 export function ContactForm({ locale }: { locale: string }) {
   const isAr = locale === "ar";
@@ -16,39 +17,42 @@ export function ContactForm({ locale }: { locale: string }) {
   );
 
   return (
-    <form action={formAction} className="marketing space-y-5 rounded-xl border border-[var(--mk-border)] bg-[var(--mk-bg-elevated)] p-6 sm:p-8">
+    <form action={formAction} className="space-y-4.5">
       <div className="absolute h-px w-px overflow-hidden opacity-0" aria-hidden="true">
         <label htmlFor="website">Website</label>
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="fullName" className="text-[var(--mk-text)]">
-          {isAr ? "الاسم" : "Name"}
+        <Label htmlFor="fullName" className="text-xs font-bold text-slate-800">
+          {isAr ? "الاسم الكريم" : "Your Name"} *
         </Label>
-        <Input id="fullName" name="fullName" required maxLength={200} />
+        <Input id="fullName" name="fullName" required maxLength={200} className="bg-white border-slate-300 rounded-xl" placeholder={isAr ? "أحمد محمد" : "Ahmed Mohamed"} />
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-[var(--mk-text)]">
-          {isAr ? "البريد الإلكتروني" : "Email"}
+        <Label htmlFor="email" className="text-xs font-bold text-slate-800">
+          {isAr ? "البريد الإلكتروني" : "Email Address"} *
         </Label>
-        <Input id="email" name="email" type="email" required maxLength={200} />
+        <Input id="email" name="email" type="email" required maxLength={200} className="bg-white border-slate-300 rounded-xl" placeholder="name@company.com" />
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="phone" className="text-[var(--mk-text)]">
-          {isAr ? "الهاتف (اختياري)" : "Phone (optional)"}
+        <Label htmlFor="phone" className="text-xs font-bold text-slate-800">
+          {isAr ? "رقم الهاتف / واتساب (اختياري)" : "Phone / WhatsApp (Optional)"}
         </Label>
-        <Input id="phone" name="phone" maxLength={40} />
+        <Input id="phone" name="phone" maxLength={40} className="bg-white border-slate-300 rounded-xl font-mono" placeholder="+20 100 000 0000" />
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="message" className="text-[var(--mk-text)]">
-          {isAr ? "الرسالة" : "Message"}
+        <Label htmlFor="message" className="text-xs font-bold text-slate-800">
+          {isAr ? "نص الرسالة أو الاستفسار" : "Message or Inquiry"} *
         </Label>
-        <Textarea id="message" name="message" required maxLength={2000} rows={5} />
+        <Textarea id="message" name="message" required maxLength={2000} rows={4} className="bg-white border-slate-300 rounded-xl" placeholder={isAr ? "اكتب تفاصيل استفسارك هنا..." : "Write the details of your inquiry here..."} />
       </div>
 
       {!state.ok && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-200">
           {state.error === "rate_limited"
             ? isAr
               ? "تم إرسال رسالة من هذا البريد مؤخرًا. حاول لاحقًا."
@@ -58,18 +62,29 @@ export function ContactForm({ locale }: { locale: string }) {
               : "Please check the fields and try again."}
         </p>
       )}
-      {state.ok && (
-        <p role="status" className="text-sm text-[var(--mk-cyan)]">
-          {isAr ? "تم إرسال رسالتك، وسنرد عليك قريبًا." : "Message sent, we'll reply soon."}
-        </p>
+
+      {state.ok && "leadId" in state && (
+        <div role="status" className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-xs font-bold text-emerald-900 flex items-center gap-2">
+          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+          <span>
+            {isAr
+              ? "تم إرسال رسالتك بنجاح! سيتواصل معك فريقنا في أقرب وقت."
+              : "Your message has been sent successfully! Our team will get back to you shortly."}
+          </span>
+        </div>
       )}
 
       <Button
         type="submit"
         disabled={pending}
-        className="w-full bg-[var(--mk-accent)] text-white hover:opacity-90"
+        className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white hover:bg-[#132d22] transition-all shadow-md shadow-[#1A3C2E]/20"
       >
-        {pending ? (isAr ? "جارٍ الإرسال..." : "Sending...") : isAr ? "إرسال" : "Send Message"}
+        {pending ? (isAr ? "جاري الإرسال..." : "Sending...") : (
+          <span className="flex items-center justify-center gap-2">
+            <span>{isAr ? "إرسال الرسالة" : "Send Message"}</span>
+            <Send className="size-4" />
+          </span>
+        )}
       </Button>
     </form>
   );
