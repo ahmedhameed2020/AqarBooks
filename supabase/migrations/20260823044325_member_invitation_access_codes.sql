@@ -16,11 +16,11 @@
 -- session. An unlinked session sees nothing: every portal policy resolves
 -- through current_member_id(), which stays NULL until this function succeeds.
 --
--- NOTE ON THIS FILE'S LOCATION
--- It lives in supabase/migrations-pending/, not supabase/migrations/.
--- tests/migration-directory-guard.test.ts pins that directory to exactly one
--- file (the squashed baseline) by name, size and SHA-256, and a second file
--- there fails the guard. This file is the authored artifact of what was applied.
+-- APPLIED VIA MCP, RECORDED IN THE LEDGER
+-- This ran through Supabase's apply_migration rather than `supabase db push`,
+-- and its version here matches the row it wrote to
+-- supabase_migrations.schema_migrations, so repository and database describe
+-- the same history.
 
 begin;
 

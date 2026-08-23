@@ -25,9 +25,11 @@
 -- Mirrors the columns units already uses (archived_at / archived_by), so the
 -- two entity types retire the same way.
 --
--- NOTE ON THIS FILE'S LOCATION
--- supabase/migrations-pending/, not supabase/migrations/ -- the directory guard
--- pins the latter to the single squashed baseline. Applied via MCP.
+-- APPLIED VIA MCP, RECORDED IN THE LEDGER
+-- This ran through Supabase's apply_migration rather than `supabase db push`,
+-- and its version here matches the row it wrote to
+-- supabase_migrations.schema_migrations, so repository and database describe
+-- the same history.
 
 begin;
 
