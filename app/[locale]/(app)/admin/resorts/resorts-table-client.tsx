@@ -14,6 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { updateResortAction, deleteResortAction } from "@/lib/actions/tenant";
 import type { ActionResult } from "@/lib/actions/platform";
 import {
@@ -26,6 +36,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Check,
   CheckCircle2,
   AlertTriangle,
   MapPin,
@@ -48,32 +59,24 @@ const TYPE_CONFIG = {
     labelEn: "Resort Complex",
     icon: Building2,
     badgeColor: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60",
-    activeCls: "bg-purple-600 text-white border-purple-600 shadow-xs",
-    idleCls: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50",
   },
   building: {
     labelAr: "عمارة / برج سكني",
     labelEn: "Residential Tower",
     icon: Building,
     badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60",
-    activeCls: "bg-blue-600 text-white border-blue-600 shadow-xs",
-    idleCls: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-blue-50",
   },
   residential_unit: {
     labelAr: "فيلا / وحدة سكنية",
     labelEn: "Villa / Private Unit",
     icon: Home,
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60",
-    activeCls: "bg-emerald-600 text-white border-emerald-600 shadow-xs",
-    idleCls: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50",
   },
   commercial_unit: {
     labelAr: "محل / مركز تجاري",
     labelEn: "Commercial Retail",
     icon: Store,
     badgeColor: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60",
-    activeCls: "bg-amber-600 text-white border-amber-600 shadow-xs",
-    idleCls: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-amber-50",
   },
 } as const;
 
@@ -254,160 +257,232 @@ export function ResortsTableClient({
         </Table>
       </div>
 
-      {/* EDIT MODAL */}
-      {editingResort && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="size-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
-                  <Pencil className="size-4.5" />
-                </div>
+      {/* Edit dialog.
+          Previously a hand-rolled `fixed inset-0` overlay: no focus trap, no
+          Escape handling, no dialog role and no focus return, in a product that
+          already ships a Dialog primitive used everywhere else. Rebuilt on that
+          primitive so keyboard and screen-reader behaviour comes for free. */}
+      <Dialog
+        open={editingResort !== null}
+        onOpenChange={(next) => {
+          if (!next) setEditingResort(null);
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          {editingResort && (
+            <>
+              <DialogHeader>
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    {isAr ? "تعديل بيانات الكيان العقاري" : "Edit Property Entity"}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    {editingResort.code} — {editingResort.name}
-                  </p>
+                  <DialogTitle>
+                    {isAr ? "تعديل بيانات الكيان العقاري" : "Edit property entity"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    <span dir="ltr" className="font-mono">{editingResort.code}</span>
+                    {" — "}
+                    {editingResort.name}
+                  </DialogDescription>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingResort(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer dark:hover:bg-slate-800"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
+              </DialogHeader>
 
-            <form action={editAction} className="mt-5 space-y-4">
-              <input type="hidden" name="resortId" value={editingResort.id} />
-              <input type="hidden" name="propertyType" value={editPropertyType} />
+              <form action={editAction}>
+                <DialogBody className="space-y-6">
+                  <input type="hidden" name="resortId" value={editingResort.id} />
+                  <input type="hidden" name="propertyType" value={editPropertyType} />
 
-              {/* Entity Type Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-900 dark:text-white">
-                  {isAr ? "نوع الكيان العقاري:" : "Entity Type:"}
-                </Label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(Object.keys(TYPE_CONFIG) as Array<keyof typeof TYPE_CONFIG>).map((k) => {
-                    const conf = TYPE_CONFIG[k];
-                    const Icon = conf.icon;
-                    const isSelected = editPropertyType === k;
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setEditPropertyType(k)}
-                        className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition-all cursor-pointer ${
-                          isSelected ? conf.activeCls : conf.idleCls
-                        }`}
+                  {/* --- entity type ------------------------------------ */}
+                  <section className="space-y-2.5">
+                    <div>
+                      <Label className="text-xs font-bold">
+                        {isAr ? "نوع الكيان العقاري" : "Entity type"}
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        {isAr
+                          ? "يحدد طريقة عرض الكيان وتصنيفه في التقارير."
+                          : "Determines how the entity is presented and grouped in reports."}
+                      </p>
+                    </div>
+
+                    {/* Two columns, not four. Four cards across a dialog this
+                        wide truncated every Arabic label to "محل / مركز ت…",
+                        which is a label that cannot be read at all. */}
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {(Object.keys(TYPE_CONFIG) as Array<keyof typeof TYPE_CONFIG>).map((k) => {
+                        const conf = TYPE_CONFIG[k];
+                        const Icon = conf.icon;
+                        const isSelected = editPropertyType === k;
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => setEditPropertyType(k)}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-xl border p-2.5 text-start text-xs font-semibold transition-colors",
+                              isSelected
+                                ? "border-primary bg-primary/5 text-foreground ring-2 ring-primary/20"
+                                : "border-border bg-card text-muted-foreground hover:bg-muted",
+                            )}
+                          >
+                            {/* Colour identifies the TYPE and matches its badge
+                                in the table; selection is carried by the ring
+                                and the check. Previously the selected card just
+                                turned solid purple/blue/green, so "selected"
+                                and "which type" fought over the same signal. */}
+                            <span
+                              className={cn(
+                                "flex size-7 shrink-0 items-center justify-center rounded-lg border",
+                                conf.badgeColor,
+                              )}
+                            >
+                              <Icon className="size-3.5" />
+                            </span>
+                            <span className="min-w-0 flex-1 leading-tight">
+                              {isAr ? conf.labelAr : conf.labelEn}
+                            </span>
+                            {isSelected && <Check className="size-4 shrink-0 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  {/* --- identity --------------------------------------- */}
+                  <section className="space-y-3">
+                    <h4 className="border-b border-border pb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {isAr ? "هوية الكيان" : "Identity"}
+                    </h4>
+
+                    <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="resort-name" className="text-xs font-semibold">
+                          {isAr ? "اسم الكيان" : "Name"}{" "}
+                          <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="resort-name"
+                          name="name"
+                          defaultValue={editingResort.name}
+                          required
+                          className="h-9.5 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="resort-code" className="text-xs font-semibold">
+                          {isAr ? "الرمز التعريفي" : "Code"}{" "}
+                          <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="resort-code"
+                          name="code"
+                          dir="ltr"
+                          defaultValue={editingResort.code}
+                          required
+                          className="h-9.5 font-mono text-xs uppercase"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          {isAr
+                            ? "يظهر على الوحدات والتقارير — تغييره يغيّر ما يراه المستخدمون."
+                            : "Appears on units and reports — changing it changes what people see."}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* --- location & contact ----------------------------- */}
+                  <section className="space-y-3">
+                    <h4 className="border-b border-border pb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {isAr ? "الموقع والتواصل" : "Location & contact"}
+                    </h4>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="resort-timezone" className="text-xs font-semibold">
+                        {isAr ? "الدولة والمنطقة الزمنية" : "Country & timezone"}{" "}
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <select
+                        id="resort-timezone"
+                        name="timezone"
+                        defaultValue={editingResort.timezone || "Africa/Cairo"}
+                        className="h-9.5 w-full rounded-lg border border-input bg-background px-3 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                       >
-                        <Icon className="size-4 shrink-0" />
-                        <span className="truncate">{isAr ? conf.labelAr : conf.labelEn}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                        {TIMEZONES.map((tz) => (
+                          <option key={tz.value} value={tz.value}>
+                            {tz.flag} {isAr ? tz.labelAr : tz.labelEn}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">
+                        {isAr
+                          ? "تُحتسب عليها تواريخ الاستحقاق وإقفال الفترات."
+                          : "Due dates and period closing are calculated against it."}
+                      </p>
+                    </div>
 
-              <div className="grid gap-3.5 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {isAr ? "اسم الكيان" : "Name"} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    name="name"
-                    defaultValue={editingResort.name}
-                    required
-                    className="h-9.5 text-xs border-slate-300 focus:border-purple-600"
-                  />
-                </div>
+                    <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="resort-address" className="text-xs font-semibold">
+                          {isAr ? "المدينة / العنوان" : "City / address"}
+                          <span className="ms-1 font-normal text-muted-foreground">
+                            {isAr ? "(اختياري)" : "(optional)"}
+                          </span>
+                        </Label>
+                        <Input
+                          id="resort-address"
+                          name="address"
+                          defaultValue={editingResort.address || ""}
+                          className="h-9.5 text-xs"
+                        />
+                      </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {isAr ? "الرمز التعريفي" : "Code"} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    name="code"
-                    defaultValue={editingResort.code}
-                    required
-                    className="h-9.5 text-xs font-mono uppercase border-slate-300 focus:border-purple-600"
-                  />
-                </div>
-              </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="resort-phone" className="text-xs font-semibold">
+                          {isAr ? "هاتف التواصل" : "Contact phone"}
+                          <span className="ms-1 font-normal text-muted-foreground">
+                            {isAr ? "(اختياري)" : "(optional)"}
+                          </span>
+                        </Label>
+                        <Input
+                          id="resort-phone"
+                          name="phone"
+                          dir="ltr"
+                          defaultValue={editingResort.phone || ""}
+                          placeholder="+20 10 0000 0000"
+                          className="h-9.5 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  </section>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  {isAr ? "الدولة والمنطقة الزمنية" : "Country & Timezone"} <span className="text-red-500">*</span>
-                </Label>
-                <select
-                  name="timezone"
-                  defaultValue={editingResort.timezone || "Africa/Cairo"}
-                  className="h-9.5 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-900 shadow-2xs outline-none focus:border-purple-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                >
-                  {TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.flag} {isAr ? tz.labelAr : tz.labelEn}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  {!editState.ok && (
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs font-semibold text-destructive"
+                    >
+                      {editState.error}
+                    </p>
+                  )}
+                </DialogBody>
 
-              <div className="grid gap-3.5 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    {isAr ? "المدينة / العنوان" : "Address"}
-                  </Label>
-                  <Input
-                    name="address"
-                    defaultValue={editingResort.address || ""}
-                    className="h-9.5 text-xs border-slate-300"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    {isAr ? "هاتف التواصل" : "Phone"}
-                  </Label>
-                  <Input
-                    name="phone"
-                    defaultValue={editingResort.phone || ""}
-                    className="h-9.5 text-xs font-mono border-slate-300"
-                  />
-                </div>
-              </div>
-
-              {!editState.ok && (
-                <p className="text-xs font-bold text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200">
-                  {editState.error}
-                </p>
-              )}
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditingResort(null)}
-                  className="text-xs font-bold cursor-pointer"
-                >
-                  {isAr ? "إلغاء" : "Cancel"}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={editPending}
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-md cursor-pointer"
-                >
-                  {editPending ? (isAr ? "جارٍ التحديث..." : "Updating...") : (isAr ? "حفظ التعديلات" : "Save Changes")}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setEditingResort(null)}>
+                    {isAr ? "إلغاء" : "Cancel"}
+                  </Button>
+                  <Button type="submit" disabled={editPending}>
+                    {editPending
+                      ? isAr
+                        ? "جارٍ الحفظ…"
+                        : "Saving…"
+                      : isAr
+                        ? "حفظ التعديلات"
+                        : "Save changes"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* DELETE CONFIRMATION DIALOG */}
       {deletingResort && (

@@ -3,6 +3,7 @@ import { redirect } from "@/i18n/navigation";
 import { Users, AlertCircle, Wallet, TrendingUp, UserPlus, Sparkles, Download, FileSpreadsheet } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "../dashboard/kpi-card";
@@ -146,6 +147,9 @@ export default async function MembersPage({
 
   const supabase = await createClient();
   const currency = organization.default_currency;
+  // Gates the archive / delete items in each row's action menu. Read once here
+  // rather than per row.
+  const canManage = await hasPermission(organization.id, "property.members.manage");
   const page = Math.max(1, Number(sp.page) || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -333,6 +337,8 @@ export default async function MembersPage({
               unitCodesByMember={unitCodesByMember}
               locale={locale}
               currency={currency}
+              organizationId={organization.id}
+              canManage={canManage}
             />
             <MembersPagination page={page} totalPages={totalPages} totalCount={count ?? 0} locale={locale} />
           </div>

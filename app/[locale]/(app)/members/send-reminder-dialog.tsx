@@ -88,6 +88,8 @@ export function SendReminderDialog({
   currency,
   locale,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   memberId: string;
   organizationId: string;
@@ -97,11 +99,21 @@ export function SendReminderDialog({
   balance: number;
   currency: string;
   locale: string;
-  trigger: React.ReactElement;
+  /** Omit when driving the dialog from outside via `open`. */
+  trigger?: React.ReactElement;
+  /** Controlled mode -- lets a menu item open this without owning a trigger. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const isAr = locale === "ar";
   const whatsappNumber = phone ? toWhatsAppNumber(phone) : null;
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [channel, setChannel] = useState<"whatsapp" | "email">(whatsappNumber ? "whatsapp" : "email");
   const [templateId, setTemplateId] = useState<ReminderTemplateId>("friendly");
   const [message, setMessage] = useState(() => defaultMessage(isAr, memberName, balance, currency));
@@ -170,7 +182,7 @@ export function SendReminderDialog({
         }
       }}
     >
-      <DialogTrigger render={trigger} />
+      {trigger ? <DialogTrigger render={trigger} /> : null}
       <DialogContent>
         <DialogHeader>
           <div>

@@ -638,6 +638,12 @@ export type Database = {
           identity_verified_at: string | null;
           identity_verification_source: string | null;
           identity_verification_reference: string | null;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
+          archive_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -2356,6 +2362,8 @@ export type Database = {
           has_arrears: boolean;
           last_payment_amount: number | null;
           last_payment_date: string | null;
+          user_id: string | null;
+          archived_at: string | null;
         };
         Relationships: [];
       };

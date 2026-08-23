@@ -17,7 +17,7 @@ import {
   Loader2,
   Lock,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogBody,
@@ -321,8 +321,8 @@ export function InviteToPortalDialog({
                   }
                 >
                   {isAr
-                    ? "لا يوجد بريد إلكتروني مسجل لهذا المالك، وصفحة الدخول تعتمد على إرسال رابط للبريد. أضف بريدًا إلى بياناته حتى يستطيع استعادة الوصول عند الحاجة."
-                    : "This owner has no registered email, and the sign-in page recovers access by emailing a link. Add an email to their record so they can recover access when needed."}
+                    ? "دخوله مربوط بهوية داخلية مؤقتة لأنه لم يكن له بريد وقت الدعوة، وصفحة الدخول تعتمد على البريد. أضف بريده في لوحة البيانات على اليسار — سيُرحَّل حساب دخوله إليه تلقائيًا، وعندها يستطيع طلب رمز الدخول بنفسه."
+                    : "Their sign-in is bound to a temporary internal identity, because they had no email when invited, and the sign-in page works by email. Add their address in the details panel — their sign-in identity migrates to it automatically, and they can then request a code themselves."}
                 </Notice>
               )}
             </>
@@ -451,16 +451,25 @@ export function InviteToPortalDialog({
                   {isAr ? "الخطوة ١ — أرسل الرابط" : "Step 1 — send the link"}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!mailtoUrl}
-                    render={<a href={mailtoUrl ?? undefined} />}
-                  >
-                    <Mail className="size-3.5" />
-                    {isAr ? "عبر البريد" : "By email"}
-                  </Button>
+                  {/* An anchor when there is somewhere to go, a real disabled
+                      button when there is not. Passing an <a> to Button's
+                      `render` stripped the native button semantics and Base UI
+                      warns about it; a "disabled link" is not a thing the
+                      platform has. */}
+                  {mailtoUrl ? (
+                    <a
+                      href={mailtoUrl}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      <Mail className="size-3.5" />
+                      {isAr ? "عبر البريد" : "By email"}
+                    </a>
+                  ) : (
+                    <Button type="button" size="sm" variant="outline" disabled>
+                      <Mail className="size-3.5" />
+                      {isAr ? "عبر البريد" : "By email"}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"

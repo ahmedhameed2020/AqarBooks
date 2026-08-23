@@ -7,10 +7,6 @@ import {
   ArrowUpDown,
   Download,
   X,
-  MessageCircle,
-  FileText,
-  Receipt,
-  ExternalLink,
   Phone,
   Mail,
   Building2,
@@ -30,8 +26,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useTableRowNavigation } from "@/lib/hooks/use-table-row-navigation";
 import type { Database } from "@/lib/supabase/types";
-import { UnitBalanceBadge } from "../property/unit-balance-badge";
+import { Money } from "@/components/money";
 import { MemberAvatar } from "./member-avatar";
+import { MemberRowActions } from "./member-row-actions";
 import { useMembersNav } from "./members-nav-context";
 import { MembersTableSkeleton } from "./members-table-skeleton";
 import { buildMembersCsv, downloadCsv } from "./csv";
@@ -105,11 +102,15 @@ export function MembersTable({
   unitCodesByMember,
   locale,
   currency,
+  organizationId,
+  canManage,
 }: {
   members: MemberRow[];
   unitCodesByMember: Map<string, string[]>;
   locale: string;
   currency: string;
+  organizationId: string;
+  canManage: boolean;
 }) {
   const isAr = locale === "ar";
   const { isPending, pushParams, get } = useMembersNav();
@@ -163,13 +164,28 @@ export function MembersTable({
               </TableHead>
               <TableHead className="min-w-[180px]">{isAr ? "معلومات التواصل" : "Contact Details"}</TableHead>
               <TableHead className="w-24 text-center">
-                <SortHeader label={isAr ? "الوحدات" : "Units"} sortKey="units" currentSort={sort} currentDir={dir} />
+                <SortHeader
+                  label={isAr ? "الوحدات" : "Units"}
+                  sortKey="units"
+                  currentSort={sort}
+                  currentDir={dir}
+                  className="w-full justify-center"
+                />
               </TableHead>
               <TableHead className="min-w-[160px]">{isAr ? "أكواد الوحدات" : "Unit Codes"}</TableHead>
-              <TableHead className="min-w-[130px]">
-                <SortHeader label={isAr ? "الرصيد المالي" : "Balance"} sortKey="balance" currentSort={sort} currentDir={dir} />
+              <TableHead className="min-w-[130px] text-end">
+                <SortHeader
+                  label={isAr ? "الرصيد المالي" : "Balance"}
+                  sortKey="balance"
+                  currentSort={sort}
+                  currentDir={dir}
+                  className="w-full justify-end"
+                />
               </TableHead>
-              <TableHead className="w-28 text-end px-4">{isAr ? "إجراءات سريعة" : "Actions"}</TableHead>
+              <TableHead className="w-32">{isAr ? "حالة البوابة" : "Portal"}</TableHead>
+              <TableHead className="w-14 text-end px-3">
+                <span className="sr-only">{isAr ? "إجراءات" : "Actions"}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -196,6 +212,7 @@ export function MembersTable({
                       "cursor-pointer transition-colors hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20",
                       index === activeIndex && "bg-indigo-50/50 dark:bg-indigo-950/40",
                       member.has_arrears && "bg-rose-50/20 dark:bg-rose-950/10",
+                      member.archived_at && "opacity-55",
                     )}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()} className="px-3">
@@ -250,40 +267,86 @@ export function MembersTable({
                       <UnitsSummary codes={unitCodesByMember.get(member.id) ?? []} isAr={isAr} />
                     </TableCell>
 
-                    <TableCell>
-                      <UnitBalanceBadge balance={member.total_balance} currency={currency} locale={locale} />
+                    {/* A number, not a chip. A column headed "Balance" has to be
+                        comparable, sortable and summable down the page; a badge
+                        reading "no arrears" is none of those. Colour still
+                        carries the state. */}
+                    <TableCell className="text-end">
+                      <span className="block text-xs font-bold tabular-nums">
+                        <Money
+                          amount={member.total_balance}
+                          locale={locale}
+                          tone={member.total_balance > 0 ? "negative" : "positive"}
+                        />
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-semibold",
+                          member.total_balance > 0
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-emerald-600 dark:text-emerald-400",
+                        )}
+                      >
+                        {member.total_balance > 0
+                          ? isAr ? "متأخرات" : "arrears"
+                          : isAr ? "مسوّى" : "settled"}
+                      </span>
                     </TableCell>
 
-                    <TableCell onClick={(e) => e.stopPropagation()} className="text-end px-3">
-                      <div className="flex items-center justify-end gap-1">
-                        {whatsappUrl && (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={isAr ? "مراسلة عبر واتساب" : "WhatsApp"}
-                            className="flex size-7 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors"
-                          >
-                            <MessageCircle className="size-3.5" />
-                          </a>
-                        )}
-
-                        <Link
-                          href={`/finance/reports/owner-statement?member=${member.id}`}
-                          locale={locale}
-                          title={isAr ? "كشف حساب المالك" : "Owner Statement"}
-                          className="flex size-7 items-center justify-center rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
+                    {/* Portal reachability at a glance. "Cannot be invited"
+                        is the state worth surfacing: an owner with neither an
+                        email nor a phone can never be given access, and that
+                        was previously invisible until you opened their file. */}
+                    <TableCell>
+                      {member.archived_at ? (
+                        <Badge variant="outline" className="bg-muted text-[10px] font-semibold text-muted-foreground">
+                          {isAr ? "مؤرشف" : "Archived"}
+                        </Badge>
+                      ) : member.user_id ? (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/30 bg-emerald-500/10 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
                         >
-                          <FileText className="size-3.5" />
-                        </Link>
-                      </div>
+                          {isAr ? "مُفعّلة" : "Active"}
+                        </Badge>
+                      ) : !member.email && !member.phone ? (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/40 bg-amber-500/10 text-[10px] font-semibold text-amber-700 dark:text-amber-300"
+                        >
+                          {isAr ? "لا يمكن دعوته" : "Cannot invite"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-muted/60 text-[10px] font-semibold text-muted-foreground">
+                          {isAr ? "لم يُدعَ" : "Not invited"}
+                        </Badge>
+                      )}
+                    </TableCell>
+
+                    {/* One menu with named items, replacing two unlabelled
+                        icons whose only affordance was a `title` tooltip --
+                        invisible on touch and awkward for screen readers, and
+                        it hid every action except two. */}
+                    <TableCell onClick={(e) => e.stopPropagation()} className="px-3 text-end">
+                      <MemberRowActions
+                        memberId={member.id}
+                        memberName={member.full_name}
+                        organizationId={organizationId}
+                        phone={member.phone}
+                        email={member.email}
+                        balance={member.total_balance}
+                        currency={currency}
+                        isArchived={member.archived_at !== null}
+                        canManage={canManage}
+                        locale={locale}
+                      />
                     </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="py-14 text-center">
+                <TableCell colSpan={9} className="py-14 text-center">
                   <p className="text-sm font-black text-slate-900 dark:text-white">
                     {isAr ? "لا يوجد أعضاء مطابقون لشروط البحث" : "No matching members found"}
                   </p>
@@ -301,6 +364,34 @@ export function MembersTable({
               </TableRow>
             )}
           </TableBody>
+
+          {/* Totals for the rows actually on screen. Without them the page
+              answers "who owes" but never "how much, altogether". */}
+          {members.length > 0 && (
+            <tfoot className="border-t border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/70">
+              <tr>
+                <td />
+                <td className="px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  {isAr ? `إجمالي ${members.length} عضو` : `${members.length} members`}
+                </td>
+                <td />
+                <td className="px-3 py-2.5 text-center text-xs font-bold tabular-nums text-slate-800 dark:text-slate-200">
+                  {members.reduce((sum, m) => sum + m.units_count, 0)}
+                </td>
+                <td />
+                <td className="px-3 py-2.5 text-end text-xs font-bold tabular-nums">
+                  <Money
+                    amount={members.reduce((sum, m) => sum + m.total_balance, 0)}
+                    locale={locale}
+                    tone={
+                      members.reduce((sum, m) => sum + m.total_balance, 0) > 0 ? "negative" : "positive"
+                    }
+                  />
+                </td>
+                <td colSpan={2} />
+              </tr>
+            </tfoot>
+          )}
         </Table>
       </div>
 

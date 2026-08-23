@@ -43,18 +43,21 @@ export interface PortalProfileData {
   lastPaymentDate: string | null;
 }
 
+// Exactly the two values members_identity_document_type_check permits. The
+// earlier map invented COMMERCIAL_REGISTER / RESIDENCE_PERMIT / OTHER, which
+// the column can never hold.
 const ID_DOC_LABELS: Record<string, { ar: string; en: string }> = {
   NATIONAL_ID: { ar: "بطاقة رقم قومي", en: "National ID" },
   PASSPORT: { ar: "جواز سفر", en: "Passport" },
-  COMMERCIAL_REGISTER: { ar: "سجل تجاري", en: "Commercial register" },
-  RESIDENCE_PERMIT: { ar: "إقامة", en: "Residence permit" },
-  OTHER: { ar: "مستند آخر", en: "Other document" },
 };
 
+// members_customer_type_check permits only these three. The earlier map used
+// INDIVIDUAL / COMPANY / GOVERNMENT, so every lookup missed and the raw column
+// value was shown to the owner instead.
 const CUSTOMER_TYPE_LABELS: Record<string, { ar: string; en: string }> = {
-  INDIVIDUAL: { ar: "فرد", en: "Individual" },
-  COMPANY: { ar: "شركة", en: "Company" },
-  GOVERNMENT: { ar: "جهة حكومية", en: "Government entity" },
+  B2B: { ar: "منشأة", en: "Business" },
+  B2C: { ar: "فرد", en: "Individual" },
+  UNRESOLVED: { ar: "لم يُحدَّد بعد", en: "Not yet determined" },
 };
 
 function Field({
