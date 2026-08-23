@@ -52,11 +52,11 @@ export default async function LoginPage({
     <AuthShell
       brandName="AqarBooks"
       eyebrow={isAr ? "تسجيل الدخول" : "Sign in"}
-      title={isAr ? "عُد إلى دفاترك" : "Back to your books"}
+      title={isAr ? "دفاترك. عقاراتك. أرقامك." : "Your books. Your properties. Your numbers."}
       subtitle={
         isAr
-          ? "كل شيء كما تركته تمامًا."
-          : "Everything exactly where you left it."
+          ? "كل شيء مترابط وجاهز للمتابعة."
+          : "Everything connected and ready for review."
       }
       locale={locale}
     >
