@@ -17,6 +17,7 @@ import {
   Building2,
   Star,
 } from "lucide-react";
+import { LogoMark } from "@/components/marketing/logo-mark";
 
 export type SidebarSubItem = {
   href: string;
@@ -480,13 +481,8 @@ export function AppSidebar({
           // Desktop (Sticky beside main)
           "md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start md:translate-x-0 md:z-30",
           isCollapsed ? "md:w-[68px]" : "md:w-[260px]",
-          // Mobile Drawer (Off-canvas slide over). `visibility` is toggled
-          // alongside the transform, not just the transform: a drawer parked
-          // off-canvas is still laid out, so without this every one of its
-          // ~40 nav links stayed in the tab order and reachable by a screen
-          // reader while the drawer was shut. `invisible` removes it from
-          // both, and `delay` lets the close animation finish first.
-          "fixed inset-y-0 start-0 z-50 h-full w-[285px] sm:w-[320px] max-w-[85vw] shadow-2xl md:shadow-none",
+          // Mobile Drawer (Off-canvas slide over)
+          "fixed inset-y-0 start-0 z-50 h-full w-[300px] sm:w-[330px] max-w-[88vw] shadow-2xl md:shadow-none",
           "max-md:transition-[transform,visibility] max-md:duration-300",
           mobileOpen
             ? "translate-x-0 visible"
@@ -496,23 +492,54 @@ export function AppSidebar({
         )}
       >
         {/* ──────────────────────────────────────────────────────────────────────────
+            MOBILE-ONLY BRAND & CLOSE HEADER
+            ────────────────────────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#02131b]/90 px-3.5 py-3 md:hidden">
+          <div className="flex items-center gap-2.5">
+            <LogoMark variant="app-icon" className="size-9 shadow-md" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black tracking-tight text-white font-heading">
+                  AqarBooks
+                </span>
+                <span className="inline-flex rounded-md bg-[#1b60b9]/30 text-sky-200 border border-[#1b60b9]/40 text-[9px] font-black px-1.5 py-0.2">
+                  ERP
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-300 -mt-0.5">
+                {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            title={isAr ? "إغلاق القائمة" : "Close Menu"}
+            className="flex size-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.06] text-slate-300 hover:bg-white/[0.15] hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="size-4.5" />
+          </button>
+        </div>
+
+        {/* ──────────────────────────────────────────────────────────────────────────
             HEADER & SEARCH / COLLAPSE CONTROLS
             ────────────────────────────────────────────────────────────────────────── */}
         <div className="relative px-2.5 pt-3 pb-2">
-          {/* Toggle Collapse button row & Mobile Close */}
+          {/* Desktop Collapse & Workspace Switcher Row */}
           <div className={cn("flex items-center pb-2", isCollapsed ? "justify-center" : "justify-between px-1")}>
             {!isCollapsed && workspaces.length > 1 && (
-              <div className="flex-1 grid grid-cols-2 gap-0.5 rounded-lg bg-white/[0.04] p-0.5 me-2">
+              <div className="flex-1 grid grid-cols-2 gap-0.5 rounded-xl bg-white/[0.04] p-1 me-2 border border-white/[0.05]">
                 {workspaces.map((w) => (
                   <button
                     key={w.key}
                     type="button"
                     onClick={() => switchWorkspace(w.key)}
                     className={cn(
-                      "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer truncate",
+                      "rounded-lg px-2 py-1.5 text-[11px] font-bold transition-all cursor-pointer truncate text-center",
                       activeWorkspace?.key === w.key
                         ? "bg-[#07425d] text-white shadow-xs border border-[#1b60b9]/40"
-                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/65 hover:text-white hover:bg-white/[0.04]"
                     )}
                   >
                     {isAr ? w.labelAr : w.labelEn}
@@ -521,29 +548,19 @@ export function AppSidebar({
               </div>
             )}
 
-            <div className="flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-1">
               {/* Desktop Collapse Button */}
               <button
                 type="button"
                 onClick={toggleSidebarCollapse}
                 title={isCollapsed ? (isAr ? "توسيع السايدبار" : "Expand Sidebar") : (isAr ? "تصغير السايدبار (Mini)" : "Collapse Sidebar")}
-                className="hidden md:flex size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.04] text-sidebar-foreground/70 hover:bg-white/[0.1] hover:text-white transition-colors cursor-pointer"
+                className="size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.04] text-sidebar-foreground/70 hover:bg-white/[0.1] hover:text-white transition-colors cursor-pointer"
               >
                 {isCollapsed ? (
                   <PanelLeftOpen className={cn("size-4", isAr && "rotate-180")} />
                 ) : (
                   <PanelLeftClose className={cn("size-4", isAr && "rotate-180")} />
                 )}
-              </button>
-
-              {/* Mobile Close Button */}
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                title={isAr ? "إغلاق القائمة" : "Close Menu"}
-                className="flex md:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/60 bg-white/[0.06] text-sidebar-foreground/80 hover:bg-white/[0.12] hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="size-4" />
               </button>
             </div>
           </div>
@@ -694,7 +711,7 @@ export function AppSidebar({
       {/* ──────────────────────────────────────────────────────────────────────────
           UPGRADED USER FOOTER CARD
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="border-t border-[#07425d]/40 bg-[#02131b]/60 p-2.5">
+      <div className="border-t border-[#07425d]/40 bg-[#02131b]/60 p-2.5 max-md:pb-6">
         {!isCollapsed ? (
           <div className="space-y-2">
             {/* User Profile Info Card */}
