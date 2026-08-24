@@ -35,7 +35,7 @@ export function SectionFollowMoney({ locale }: { locale: Locale }) {
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "لما الساكن أو المستأجر يدفع، النظام بيفصل تلقائيًا: جزء لمصاريف التشغيل، جزء لوديعة الصيانة في البنك، وجزء للضريبة — وكل مليم بيروح حسابه الدفتري السليم."
+              ? "لما الساكن أو المستأجر يدفع، النظام بيفصل تلقائيًا: جزء لمصاريف التشغيل، جزء لوديعة الصيانة في البنك، وجزء للضريبة — وكل جنيه بيروح حسابه الدفتري السليم."
               : "When a resident pays, the system automatically routes: operational CAM share, capital reserve trust share, and output tax liability — no manual calculations."}
           </p>
         </div>

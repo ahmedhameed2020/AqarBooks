@@ -15,7 +15,7 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "صلاحيات محكومة.. مفيش مليم بيخرج أو يتعدل من غير اعتماد." : "Strict segregation of duties.. no entry is posted without verified authorization."}
+            {isAr ? "صلاحيات محكومة.. مفيش جنيه بيخرج أو يتعدل من غير اعتماد." : "Strict segregation of duties.. no entry is posted without verified authorization."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
