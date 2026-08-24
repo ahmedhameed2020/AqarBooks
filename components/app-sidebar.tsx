@@ -117,11 +117,11 @@ function NavRow({
           className={cn(
             "relative flex size-10 items-center justify-center rounded-xl transition-all",
             isActive
-              ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold"
+              ? "bg-[#07425d] text-white shadow-md shadow-[#07425d]/40 font-bold border border-[#1b60b9]/40"
               : "text-sidebar-foreground/70 hover:bg-white/[0.08] hover:text-white"
           )}
         >
-          <span className="shrink-0">{item.icon}</span>
+          <span className={cn("shrink-0", isActive ? "text-sky-300" : "text-sidebar-foreground/70")}>{item.icon}</span>
           {item.badge ? (
             <span
               className="absolute -top-0.5 -end-0.5 size-2.5 rounded-full bg-rose-500 ring-2 ring-sidebar"
@@ -464,6 +464,10 @@ export function AppSidebar({
   const userDisplayName = userProfile?.name || (isAr ? "مستخدم AqarBooks" : "AqarBooks User");
   const userInitials = (userDisplayName[0] || "U").toUpperCase();
 
+  // Collapsed icon-only mode is strictly a desktop-only concept.
+  // When viewed on mobile (in the slide-over drawer), the sidebar is ALWAYS full-width with all labels and cards.
+  const isDesktopMini = isCollapsed && !mobileOpen;
+
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -527,8 +531,8 @@ export function AppSidebar({
             ────────────────────────────────────────────────────────────────────────── */}
         <div className="relative px-2.5 pt-3 pb-2">
           {/* Desktop Collapse & Workspace Switcher Row */}
-          <div className={cn("flex items-center pb-2", isCollapsed ? "justify-center" : "justify-between px-1")}>
-            {!isCollapsed && workspaces.length > 1 && (
+          <div className={cn("flex items-center pb-2", isDesktopMini ? "justify-center" : "justify-between px-1")}>
+            {!isDesktopMini && workspaces.length > 1 && (
               <div className="flex-1 grid grid-cols-2 gap-0.5 rounded-xl bg-white/[0.04] p-1 me-2 border border-white/[0.05]">
                 {workspaces.map((w) => (
                   <button
@@ -566,7 +570,7 @@ export function AppSidebar({
           </div>
 
         {/* Search Bar (Expanded) or Quick Search Icon (Collapsed) */}
-        {!isCollapsed ? (
+        {!isDesktopMini ? (
           <div className="relative">
             <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-sidebar-foreground/45" />
             <input
@@ -610,7 +614,7 @@ export function AppSidebar({
           NAVIGATION GROUPS & ITEMS
           ────────────────────────────────────────────────────────────────────────── */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-4 sidebar-scrollbar">
-        {!searching && !isCollapsed && pinnedItems.length > 0 && (
+        {!searching && !isDesktopMini && pinnedItems.length > 0 && (
           <div className="pb-2">
             <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
               {isAr ? "المثبّتة" : "Pinned"}
@@ -656,7 +660,7 @@ export function AppSidebar({
           const isOpen = searching || !collapsedKeys.has(group.key);
           return (
             <div key={group.key} className="pt-1">
-              {!isCollapsed && hasLabel && (
+              {!isDesktopMini && hasLabel && (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
@@ -668,16 +672,16 @@ export function AppSidebar({
               )}
 
               {/* In collapsed mode, draw a small separator line between groups */}
-              {isCollapsed && hasLabel && (
+              {isDesktopMini && hasLabel && (
                 <div className="my-2 border-t border-sidebar-border/40 mx-2" />
               )}
 
               <div
                 className={cn(
                   "grid transition-[grid-template-rows] duration-200 ease-out",
-                  isCollapsed ? "grid-rows-1" : isOpen ? "grid-rows-1" : "grid-rows-0"
+                  isDesktopMini ? "grid-rows-1" : isOpen ? "grid-rows-1" : "grid-rows-0"
                 )}
-                style={{ gridTemplateRows: isCollapsed || isOpen ? "1fr" : "0fr" }}
+                style={{ gridTemplateRows: isDesktopMini || isOpen ? "1fr" : "0fr" }}
               >
                 <div className="space-y-0.5 overflow-hidden">
                   {group.items.map((item) => (
@@ -690,7 +694,7 @@ export function AppSidebar({
                       forceOpen={searching}
                       openSubKeys={openSubKeys}
                       onToggleSub={toggleSubItem}
-                      isCollapsed={isCollapsed}
+                      isCollapsed={isDesktopMini}
                       isPinned={pinned.includes(item.href)}
                       onTogglePin={togglePinned}
                     />
@@ -701,7 +705,7 @@ export function AppSidebar({
           );
         })}
 
-        {searching && visibleGroups.length === 0 && !isCollapsed && (
+        {searching && visibleGroups.length === 0 && !isDesktopMini && (
           <p className="px-3 pt-6 text-center text-xs text-sidebar-foreground/50">
             {isAr ? "لا توجد نتائج" : "No results"}
           </p>
@@ -712,7 +716,7 @@ export function AppSidebar({
           UPGRADED USER FOOTER CARD
           ────────────────────────────────────────────────────────────────────────── */}
       <div className="border-t border-[#07425d]/40 bg-[#02131b]/60 p-2.5 max-md:pb-6">
-        {!isCollapsed ? (
+        {!isDesktopMini ? (
           <div className="space-y-2">
             {/* User Profile Info Card */}
             <Link
