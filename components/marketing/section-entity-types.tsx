@@ -47,11 +47,11 @@ const ENTITY_STRUCTURES = [
     num: "05",
     titleAr: "المراكز التجارية والمحلات (Retail)",
     titleEn: "Commercial Malls & Retail Plazas",
-    descAr: "إدارة رسوم الخدمات المشتركة، الفوترة الضريبية الإلكترونية (14% VAT / WHT)، والربط المالي مع المستأجرين والشركاء.",
-    descEn: "Commercial CAM dues, statutory e-invoicing (VAT / WHT), and tenant financial reconciliation.",
+    descAr: "إدارة رسوم الخدمات المشتركة، احتساب الضرائب على الفواتير (14% VAT / WHT)، والربط المالي مع المستأجرين والشركاء.",
+    descEn: "Commercial CAM dues, invoice tax calculation (VAT / WHT), and tenant financial reconciliation.",
     icon: Store,
     kpiAr: "فوترة ضريبية وخصم وتحصيل",
-    kpiEn: "E-Invoicing & WHT Compliance",
+    kpiEn: "Invoice Tax & WHT Handling",
   },
 ] as const;
 

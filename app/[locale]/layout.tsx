@@ -66,8 +66,8 @@ export async function generateMetadata({
     ? "AqarBooks | محاسبة عقارية بذكاء — النظام المالي السحابي لإدارة الكيانات العقارية"
     : "AqarBooks | Smart Real Estate Accounting — Cloud Financial ERP";
   const description = isAr
-    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع الامتثال الكامل للفواتير الإلكترونية والضرائب (ETA / ZATCA)."
-    : "Smart double-entry accounting ERP built natively for real estate portfolios, compounds, towers, resorts, and HOAs. Full ETA & ZATCA tax compliance.";
+    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع تهيئة ضريبية ودعم متطلبات الفواتير وفق نطاق النظام."
+    : "Smart double-entry accounting ERP built natively for real estate portfolios, compounds, towers, resorts, and HOAs. Includes tax configuration and invoicing support within the scope of the system.";
   const siteUrl = `https://aqarbooks.com/${locale}`;
   const ogImageUrl = "https://aqarbooks.com/og-image.jpg";
 
@@ -84,15 +84,20 @@ export async function generateMetadata({
       "محاسبة عقارية بذكاء",
       "برنامج محاسبة القرى السياحية",
       "إدارة المنتجعات والكمبوندات",
-      "فاتورة إلكترونية مصر ETA",
+      "محاسبة عقارية",
+      "إدارة مالية عقارية",
+      "قيود محاسبية",
       "زاتكا السعودية ZATCA",
       "إدارة الأملاك والوحدات",
+      "إدارة الوحدات والملاك",
+      "التحصيل العقاري",
       "Real Estate Accounting ERP",
       "Resort Management System",
       "Double Entry Accounting",
       "Smart Real Estate Accounting",
+      "Real Estate Accounting",
+      "Property Financial Management",
       "ZATCA E-Invoicing",
-      "ETA Tax Invoices",
       "AqarBooks",
     ],
     authors: [{ name: "AqarBooks", url: "https://aqarbooks.com" }],
