@@ -15,7 +15,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
         <Reveal className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-950/40 px-4 py-1.5 text-xs font-bold text-blue-300 mb-4 shadow-[0_0_20px_-4px_rgba(59,130,246,0.5)]">
             <Calculator className="size-3.5 text-blue-400" />
-            <span>{isAr ? "المحرك المحاسبي المعتمد لمصر والخليج" : "Egypt & GCC Enterprise Accounting Engine"}</span>
+            <span>{isAr ? "المحرك المحاسبي لمصر والخليج" : "Egypt & GCC Enterprise Accounting Engine"}</span>
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             {isAr ? (
@@ -24,14 +24,14 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
               </>
             ) : (
               <>
-                True Double-Entry Ledger <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-cyan-400">& Tax / e-Invoicing Compliant</span>
+                True Double-Entry Ledger <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-cyan-400">&amp; VAT / WHT Handling</span>
               </>
             )}
           </h2>
           <p className="mt-4 text-base text-slate-400 leading-relaxed font-normal">
             {isAr
-              ? "ليس مجرد جدول تحصيل سطحي. يقوم AqarBooks على محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، احتساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية ZATCA."
-              : "Not just a billing sheet. AqarBooks runs on a full general ledger engine: balanced journal entries, hierarchical COA, automated VAT calculation (14% Egypt / 15% KSA), WHT management, and ZATCA e-Invoicing."}
+              ? "ليس مجرد جدول تحصيل سطحي. يقوم AqarBooks على محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، احتساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، وضرائب الخصم والتحصيل WHT، ودعم متطلبات الفواتير وفق نطاق النظام."
+              : "Not just a billing sheet. AqarBooks runs on a full general ledger engine: balanced journal entries, hierarchical COA, automated VAT calculation (14% Egypt / 15% KSA), WHT management, and invoicing support within the scope of the system."}
           </p>
         </Reveal>
 
@@ -47,7 +47,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              {isAr ? "دليل الحسابات والضرائب (VAT/WHT/ZATCA)" : "General Ledger & Taxes (VAT/WHT/ZATCA)"}
+              {isAr ? "دليل الحسابات والضرائب (VAT/WHT)" : "General Ledger & Taxes (VAT/WHT)"}
             </button>
             <button
               type="button"
@@ -110,12 +110,12 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">
-                      {isAr ? "متوافق مع الضرائب المصرية والخليجية (VAT / WHT / ZATCA)" : "Egypt & GCC Tax Compliance"}
+                      {isAr ? "احتساب الضرائب المصرية والخليجية (VAT / WHT)" : "Egypt & GCC Invoice Tax Handling"}
                     </h4>
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed font-normal">
                       {isAr
-                        ? "احتساب آلي لضريبة القيمة المضافة 14% (مصر) و 15% (الخليج)، واستقطاع ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية."
-                        : "Automated VAT 14% (Egypt) & 15% (GCC), Withholding Tax (WHT) deductions, and e-invoicing compliance."}
+                        ? "احتساب آلي لضريبة القيمة المضافة 14% (مصر) و 15% (الخليج)، واستقطاع ضرائب الخصم والتحصيل WHT، وتهيئة ضريبية للفواتير."
+                        : "Automated VAT 14% (Egypt) & 15% (GCC), Withholding Tax (WHT) deductions, and invoice tax configuration."}
                     </p>
                   </div>
                 </div>

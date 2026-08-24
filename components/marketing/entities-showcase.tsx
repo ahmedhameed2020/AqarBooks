@@ -98,7 +98,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
         "فواتير تشغيلية للمراكز التجارية والمولات",
       ],
       pointsEn: [
-        "Automated Egyptian VAT 14% compliance",
+        "Automated Egyptian VAT 14% calculation",
         "Withholding tax (WHT) ledger splits",
         "Commercial plaza operational billing",
       ],
@@ -271,13 +271,13 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-400 font-sans">{isAr ? "التوافق الضريبي الإقليمي:" : "Regional Tax:"}</span>
-                  <span className="text-emerald-300 font-bold">VAT (EG/KSA) • ZATCA</span>
+                  <span className="text-emerald-300 font-bold">VAT (EG/KSA) • WHT</span>
                 </div>
               </div>
               <div className="rounded-lg bg-[#0b1126] p-3.5 border border-blue-500/30 text-[11px] text-slate-300 leading-relaxed font-sans shadow-inner">
                 {isAr
-                  ? "✓ جاهز فوراً للربط مع الضرائب المصرية (VAT / WHT) وهيئة الزكاة والضريبة والجمارك (ZATCA) وإصدار السندات المعتمدة."
-                  : "✓ Pre-configured for Egyptian Tax (VAT/WHT) and Saudi ZATCA e-invoicing standards."}
+                  ? "احتساب ضريبة القيمة المضافة وضرائب الخصم والتحصيل (VAT / WHT) لمصر والخليج، مع تهيئة ضريبية للفواتير وفق نطاق النظام."
+                  : "VAT and withholding tax (VAT/WHT) calculation for Egypt and the Gulf, with invoice tax configuration within the scope of the system."}
               </div>
             </div>
           </div>
