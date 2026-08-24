@@ -86,6 +86,36 @@ export async function changePasswordAction(
   return { ok: true };
 }
 
+export async function updatePreferencesAction(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "not_authenticated" };
+
+  const defaultLandingPage = formData.get("defaultLandingPage")?.toString() || "/dashboard";
+  const waNotifications = formData.get("waNotifications") === "true";
+  const emailDigest = formData.get("emailDigest") === "true";
+  const securityAlerts = formData.get("securityAlerts") === "true";
+
+  const { error } = await supabase.auth.updateUser({
+    data: {
+      default_landing_page: defaultLandingPage,
+      wa_notifications: waNotifications,
+      email_digest: emailDigest,
+      security_alerts: securityAlerts,
+    },
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[locale]/account", "page");
+  return { ok: true };
+}
+
 export async function signOutOtherSessionsAction(): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut({ scope: "others" });

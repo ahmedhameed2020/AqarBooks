@@ -27,6 +27,8 @@ import {
   QrCode,
   Lock,
   MessageCircle,
+  Save,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,7 @@ import {
   updateProfileAction,
   changePasswordAction,
   signOutOtherSessionsAction,
+  updatePreferencesAction,
 } from "@/lib/actions/profile";
 import type { ActionResult } from "@/lib/actions/platform";
 import { useToast } from "@/components/ui/toast";
@@ -132,10 +135,57 @@ export function AccountClient({
     });
   };
 
-  // Notification Preferences state (Local simulation / persistent store)
-  const [waNotifications, setWaNotifications] = useState(true);
-  const [emailDigest, setEmailDigest] = useState(true);
-  const [securityAlerts, setSecurityAlerts] = useState(true);
+  // User preferences state (default landing page, notifications)
+  const [defaultLandingPage, setDefaultLandingPage] = useState<string>(
+    (user.user_metadata as any)?.default_landing_page || "/dashboard"
+  );
+  const [waNotifications, setWaNotifications] = useState<boolean>(
+    (user.user_metadata as any)?.wa_notifications !== false
+  );
+  const [emailDigest, setEmailDigest] = useState<boolean>(
+    (user.user_metadata as any)?.email_digest !== false
+  );
+  const [securityAlerts, setSecurityAlerts] = useState<boolean>(
+    (user.user_metadata as any)?.security_alerts !== false
+  );
+  const [isSavingPrefs, startSavePrefsTransition] = useTransition();
+
+  const handleSavePreferences = (type: "NOTIFICATIONS" | "INTERFACE") => {
+    startSavePrefsTransition(async () => {
+      const fd = new FormData();
+      fd.append("defaultLandingPage", defaultLandingPage);
+      fd.append("waNotifications", String(waNotifications));
+      fd.append("emailDigest", String(emailDigest));
+      fd.append("securityAlerts", String(securityAlerts));
+
+      const res = await updatePreferencesAction({ ok: true }, fd);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("aqarbooks_landing_page", defaultLandingPage);
+      }
+
+      if (res.ok) {
+        toast.show({
+          title: isAr ? "تم حفظ التفضيلات بنجاح" : "Preferences Saved",
+          description:
+            type === "INTERFACE"
+              ? isAr
+                ? "تم اعتماد الصفحة الافتراضية بنجاح عند تسجيل الدخول."
+                : "Default landing page updated successfully."
+              : isAr
+              ? "تم تحديث وحفظ قنوات الإشعارات بنجاح."
+              : "Notification preferences saved successfully.",
+          variant: "success",
+        });
+      } else {
+        toast.show({
+          title: isAr ? "فشل حفظ التفضيلات" : "Failed to Save",
+          description: res.error,
+          variant: "error",
+        });
+      }
+    });
+  };
 
   // Password strength calculation
   const getPasswordStrength = (pass: string) => {
@@ -214,13 +264,13 @@ export function AccountClient({
       {/* ──────────────────────────────────────────────────────────────────────────
           2. NAVIGATION TABS
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-2 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto border-b border-border pb-2 scrollbar-none">
         <button
           onClick={() => setActiveTab("PROFILE")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
             activeTab === "PROFILE"
-              ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
-              : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
           }`}
         >
           <User className="size-4" />
@@ -229,10 +279,10 @@ export function AccountClient({
 
         <button
           onClick={() => setActiveTab("SECURITY")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
             activeTab === "SECURITY"
-              ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
-              : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
           }`}
         >
           <Shield className="size-4" />
@@ -241,10 +291,10 @@ export function AccountClient({
 
         <button
           onClick={() => setActiveTab("NOTIFICATIONS")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
             activeTab === "NOTIFICATIONS"
-              ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
-              : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
           }`}
         >
           <Bell className="size-4" />
@@ -253,14 +303,14 @@ export function AccountClient({
 
         <button
           onClick={() => setActiveTab("PREFERENCES")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
             activeTab === "PREFERENCES"
-              ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
-              : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
           }`}
         >
           <Palette className="size-4" />
-          <span>{isAr ? "تخصيص الواجهة" : "Preferences & Experience"}</span>
+          <span>{isAr ? "تخصيص الواجهة" : "Workspace Experience"}</span>
         </button>
       </div>
 
@@ -650,16 +700,22 @@ export function AccountClient({
 
             <div className="pt-2">
               <Button
-                onClick={() =>
-                  toast.show({
-                    title: isAr ? "تم حفظ التفضيلات" : "Preferences Saved",
-                    description: isAr ? "تم تحديث إعدادات الإشعارات بنجاح." : "Your notification preferences have been saved.",
-                    variant: "success",
-                  })
-                }
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-5"
+                type="button"
+                disabled={isSavingPrefs}
+                onClick={() => handleSavePreferences("NOTIFICATIONS")}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-xs press-feedback motion-control cursor-pointer"
               >
-                {isAr ? "حفظ تفضيلات الإشعارات" : "Save Notification Preferences"}
+                {isSavingPrefs ? (
+                  <>
+                    <RefreshCw className="size-3.5 animate-spin" />
+                    <span>{isAr ? "جاري الحفظ..." : "Saving..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-3.5" />
+                    <span>{isAr ? "حفظ تفضيلات الإشعارات" : "Save Notification Preferences"}</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -670,41 +726,66 @@ export function AccountClient({
           TAB 4: PLATFORM PREFERENCES
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "PREFERENCES" && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <h2 className="text-base font-black text-slate-950 dark:text-white flex items-center gap-2">
-              <Palette className="size-4.5 text-purple-600" />
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs motion-surface">
+          <div className="mb-5 pb-4 border-b border-border">
+            <h2 className="text-base font-black text-foreground flex items-center gap-2">
+              <Palette className="size-4.5 text-primary" />
               <span>{isAr ? "تخصيص تجربة العمل بالمنصة" : "Platform & Interface Experience"}</span>
             </h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {isAr ? "تخصيص الصفحة الافتراضية ومظهر المنظومة." : "Customize your workspace landing page and theme."}
             </p>
           </div>
 
-          <div className="space-y-4 max-w-2xl">
+          <div className="space-y-5 max-w-2xl">
             {/* DEFAULT LANDING PAGE */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-foreground">
                 {isAr ? "الصفحة الافتراضية عند تسجيل الدخول" : "Default Landing Page"}
               </Label>
               <select
-                defaultValue="/dashboard"
-                className="w-full h-9.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                value={defaultLandingPage}
+                onChange={(e) => setDefaultLandingPage(e.target.value)}
+                className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer motion-control"
               >
                 <option value="/dashboard">{isAr ? "لوحة المؤشرات والداشبورد الرئيسية (Dashboard)" : "Executive Dashboard"}</option>
                 <option value="/finance/reports">{isAr ? "مركز التقارير والقوائم المالية (Reports Hub)" : "Financial Reports Hub"}</option>
                 <option value="/finance/einvoice">{isAr ? "الفوترة الإلكترونية والإقرارات (E-Invoices)" : "E-Invoicing"}</option>
+                <option value="/finance/cashier">{isAr ? "الخزينة وسندات القبض (Cashier & Receipts)" : "Cashier & Receipts"}</option>
                 <option value="/property">{isAr ? "إدارة العقارات والوحدات (Properties)" : "Property Management"}</option>
+                <option value="/members">{isAr ? "دليل الملاك والعملاء (Members & Owners)" : "Members & Owners"}</option>
               </select>
+
+              {/* SAVE BUTTON FOR DEFAULT LANDING PAGE */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  disabled={isSavingPrefs}
+                  onClick={() => handleSavePreferences("INTERFACE")}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-xs press-feedback motion-control cursor-pointer"
+                >
+                  {isSavingPrefs ? (
+                    <>
+                      <RefreshCw className="size-3.5 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ..." : "Saving..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-3.5" />
+                      <span>{isAr ? "حفظ الصفحة الافتراضية والتخصيص" : "Save Interface Customization"}</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* BRAND COLOR PREVIEW & ADMIN LINK */}
-            <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/40 flex items-center justify-between">
+            <div className="p-4 rounded-xl border border-border bg-muted/40 flex items-center justify-between">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                <span className="text-xs font-bold text-foreground block">
                   {isAr ? "هوية المنشأة وشعار العلامة التجارية" : "Organization Branding & Colors"}
                 </span>
-                <span className="text-[11px] text-slate-400 block">
+                <span className="text-[11px] text-muted-foreground block">
                   {isAr ? "تخصيص الشعار، الألوان، وترويسة الفواتير من لوحة إدارة المنشأة." : "Customize logo, brand colors, and invoice headers in Organization Settings."}
                 </span>
               </div>
@@ -713,9 +794,9 @@ export function AccountClient({
                 variant="outline"
                 size="sm"
                 onClick={() => window.location.href = `/${locale}/admin`}
-                className="text-xs font-bold h-8.5 gap-1"
+                className="text-xs font-bold h-8.5 gap-1.5 border-border hover:bg-muted text-foreground press-feedback motion-control"
               >
-                <Palette className="size-3.5 text-purple-600" />
+                <Palette className="size-3.5 text-primary" />
                 <span>{isAr ? "إعدادات المنشأة" : "Org Settings"}</span>
               </Button>
             </div>
