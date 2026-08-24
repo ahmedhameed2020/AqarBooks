@@ -58,13 +58,10 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          // >= sm: the centred dialog this app has always used. Every caller
-          // passes its own `max-w-*` / `rounded-*` / `p-*` here and those
-          // still win, because the mobile rules below are all `max-sm:`
-          // prefixed and therefore live in a different tailwind-merge group.
-          "fixed top-1/2 left-1/2 z-50 flex max-h-[85vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl outline-none",
+          // >= sm: centred dialog with strict flex column, fluid internal scroll, sticky footer
+          "fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl outline-none [&>form]:flex [&>form]:min-h-0 [&>form]:flex-1 [&>form]:flex-col [&>form]:overflow-hidden [&_[data-slot=dialog-body]]:min-h-0 [&_[data-slot=dialog-body]]:flex-1 [&_[data-slot=dialog-body]]:overflow-y-auto [&_[data-slot=dialog-footer]]:shrink-0",
           // < sm: a full-width bottom sheet anchored to the bottom edge. A
-          // centred 85vh box on a 320px screen wastes the margins and puts
+          // centred box on a 320px screen wastes the margins and puts
           // the primary action in the middle of the screen, out of thumb
           // reach; a sheet uses the full width and keeps the footer at the
           // bottom where the thumb already is. `svh` not `vh` so the mobile

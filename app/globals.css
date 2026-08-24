@@ -555,6 +555,35 @@
   }
 }
 
+/* ── Guaranteed Dialog Form Layout, Fluid Scrolling & Sticky Footers ── */
+[data-slot="dialog-content"] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+[data-slot="dialog-content"] > form {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+[data-slot="dialog-header"] {
+  flex-shrink: 0;
+}
+
+[data-slot="dialog-body"] {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+
+[data-slot="dialog-footer"] {
+  flex-shrink: 0;
+}
+
 /* ── Purposeful & Restrained Motion Primitives ────────────────────────── */
 .motion-color {
   transition: color 150ms cubic-bezier(0.16, 1, 0.3, 1),
