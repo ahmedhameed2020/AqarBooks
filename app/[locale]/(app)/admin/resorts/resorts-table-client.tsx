@@ -268,10 +268,10 @@ export function ResortsTableClient({
           if (!next) setEditingResort(null);
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
           {editingResort && (
             <>
-              <DialogHeader>
+              <DialogHeader className="shrink-0">
                 <div>
                   <DialogTitle>
                     {isAr ? "تعديل بيانات الكيان العقاري" : "Edit property entity"}
@@ -284,8 +284,8 @@ export function ResortsTableClient({
                 </div>
               </DialogHeader>
 
-              <form action={editAction}>
-                <DialogBody className="space-y-6">
+              <form action={editAction} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <DialogBody className="space-y-5 min-h-0 flex-1 overflow-y-auto p-5">
                   <input type="hidden" name="resortId" value={editingResort.id} />
                   <input type="hidden" name="propertyType" value={editPropertyType} />
 
@@ -317,17 +317,12 @@ export function ResortsTableClient({
                             aria-pressed={isSelected}
                             onClick={() => setEditPropertyType(k)}
                             className={cn(
-                              "flex items-center gap-2.5 rounded-xl border p-2.5 text-start text-xs font-semibold transition-colors",
+                              "flex items-center gap-2.5 rounded-xl border p-2.5 text-start text-xs font-semibold transition-colors cursor-pointer press-feedback motion-control",
                               isSelected
                                 ? "border-primary bg-primary/5 text-foreground ring-2 ring-primary/20"
                                 : "border-border bg-card text-muted-foreground hover:bg-muted",
                             )}
                           >
-                            {/* Colour identifies the TYPE and matches its badge
-                                in the table; selection is carried by the ring
-                                and the check. Previously the selected card just
-                                turned solid purple/blue/green, so "selected"
-                                and "which type" fought over the same signal. */}
                             <span
                               className={cn(
                                 "flex size-7 shrink-0 items-center justify-center rounded-lg border",
@@ -363,7 +358,7 @@ export function ResortsTableClient({
                           name="name"
                           defaultValue={editingResort.name}
                           required
-                          className="h-9.5 text-xs"
+                          className="h-9.5 text-xs font-bold"
                         />
                       </div>
 
@@ -378,7 +373,7 @@ export function ResortsTableClient({
                           dir="ltr"
                           defaultValue={editingResort.code}
                           required
-                          className="h-9.5 font-mono text-xs uppercase"
+                          className="h-9.5 font-mono text-xs font-bold uppercase"
                         />
                         <p className="text-[10px] text-muted-foreground">
                           {isAr
@@ -404,7 +399,7 @@ export function ResortsTableClient({
                         id="resort-timezone"
                         name="timezone"
                         defaultValue={editingResort.timezone || "Africa/Cairo"}
-                        className="h-9.5 w-full rounded-lg border border-input bg-background px-3 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="h-9.5 w-full rounded-lg border border-input bg-background px-3 text-xs font-bold text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer motion-control"
                       >
                         {TIMEZONES.map((tz) => (
                           <option key={tz.value} value={tz.value}>
@@ -464,11 +459,20 @@ export function ResortsTableClient({
                   )}
                 </DialogBody>
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setEditingResort(null)}>
+                <DialogFooter className="shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditingResort(null)}
+                    className="border-border hover:bg-muted text-foreground press-feedback motion-control"
+                  >
                     {isAr ? "إلغاء" : "Cancel"}
                   </Button>
-                  <Button type="submit" disabled={editPending}>
+                  <Button
+                    type="submit"
+                    disabled={editPending}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs press-feedback motion-control"
+                  >
                     {editPending
                       ? isAr
                         ? "جارٍ الحفظ…"
