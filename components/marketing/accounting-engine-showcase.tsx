@@ -30,7 +30,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
           </h2>
           <p className="mt-4 text-base text-slate-400 leading-relaxed font-normal">
             {isAr
-              ? "ليس مجرد جدول تحصيل سطحي. يقوم عقار بوكس على محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، احتساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية ZATCA."
+              ? "ليس مجرد جدول تحصيل سطحي. يقوم AqarBooks على محرك محاسبة عامة متكامل: قيود متوازنة، شجرة حسابات هرمية، احتساب ضريبة القيمة المضافة (14% لمصر / 15% للسعودية)، ضرائب الخصم والتحصيل WHT، وجاهزية الفوترة الإلكترونية ZATCA."
               : "Not just a billing sheet. AqarBooks runs on a full general ledger engine: balanced journal entries, hierarchical COA, automated VAT calculation (14% Egypt / 15% KSA), WHT management, and ZATCA e-Invoicing."}
           </p>
         </Reveal>
@@ -73,6 +73,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   src="/images/aqarbooks-ledger.jpg"
                   alt="AqarBooks Double Entry Ledger Terminal"
                   fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#060a18]/90 via-transparent to-transparent" />
@@ -146,6 +147,7 @@ export function AccountingEngineShowcase({ isAr }: { isAr: boolean }) {
                   src="/images/aqarbooks-cashier.jpg"
                   alt="AqarBooks Cashier Session and Treasury Management"
                   fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#060a18]/90 via-transparent to-transparent" />

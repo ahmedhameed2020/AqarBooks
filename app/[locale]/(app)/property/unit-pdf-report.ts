@@ -236,7 +236,7 @@ export function generateUnitsPdfReport(data: PdfReportData) {
     <div class="meta-info">
       <div>${isAr ? "تاريخ التقرير:" : "Report Date:"} <strong>${dateLabel}</strong></div>
       <div>${isAr ? "إجمالي الوحدات في التقرير:" : "Reported Units:"} <strong>${units.length}</strong></div>
-      <div>${isAr ? "عقار بوكس — النظام المحاسبي والعقاري" : "AqarBooks Financial & Real Estate System"}</div>
+      <div>${isAr ? "AqarBooks — النظام المحاسبي والعقاري" : "AqarBooks Financial & Real Estate System"}</div>
     </div>
   </div>
 
@@ -304,7 +304,7 @@ export function generateUnitsPdfReport(data: PdfReportData) {
   </table>
 
   <div class="report-footer">
-    <div>${isAr ? `عقار بوكس لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
+    <div>${isAr ? `AqarBooks لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
     <div>${isAr ? `تقرير رسمي مطبوع · تم التصدير بواسطة النظام` : `Official Print Report · Exported Systematically`}</div>
   </div>
 

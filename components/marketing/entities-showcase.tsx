@@ -158,7 +158,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
           </h2>
           <p className="mt-4 text-base text-slate-400 leading-relaxed font-normal">
             {isAr
-              ? "على عكس البرامج المحدودة بنوع عقار واحد، صُمم عقار بوكس بدليل حسابات مرن يخدم القرى السياحية (الساحل والبحر الأحمر)، الأبراج السكنية والتجارية (دبي، الرياض، القاهرة)، الفلل، واتحادات الملاك وملاك الشاغلين."
+              ? "على عكس البرامج المحدودة بنوع عقار واحد، صُمم AqarBooks بدليل حسابات مرن يخدم القرى السياحية (الساحل والبحر الأحمر)، الأبراج السكنية والتجارية (دبي، الرياض، القاهرة)، الفلل، واتحادات الملاك وملاك الشاغلين."
               : "Unlike single-purpose tools, AqarBooks provides native accounting architecture tuned for coastal resorts, residential towers, private villas, commercial retail plazas, and HOAs across Egypt & GCC."}
           </p>
         </Reveal>
@@ -170,6 +170,7 @@ export function EntitiesShowcase({ isAr }: { isAr: boolean }) {
               src="/images/aqarbooks-entities.jpg"
               alt="AqarBooks 5 Entity Types Architecture"
               fill
+              sizes="(min-width: 1280px) 1152px, 100vw"
               className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
               priority
             />

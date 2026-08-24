@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "الميزانية العمومية والمركز المالي — عقار بوكس"
+      ? "الميزانية العمومية والمركز المالي — AqarBooks"
       : "Balance Sheet (Statement of Financial Position) — AqarBooks",
     description: isAr
       ? "بيان الأصول، الخصوم والالتزامات، وحقوق الملكية وفحص توازن المعادلة المحاسبية مع التصدير الرسمي."

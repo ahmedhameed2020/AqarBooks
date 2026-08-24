@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير أعمار ديون الموردين والالتزامات (AP Aging) — عقار بوكس"
+      ? "تقرير أعمار ديون الموردين والالتزامات (AP Aging) — AqarBooks"
       : "Accounts Payable (AP) Aging Report — AqarBooks",
     description: isAr
       ? "تحليل التزامات المنشأة تجاه الموردين والمقاولين وتصنيف فترات الاستحقاق لتخطيط السيولة وتفادي غرامات التأخير."

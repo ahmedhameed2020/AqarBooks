@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "جدول الإيجارات وعقود الوحدات (Rent Roll) — عقار بوكس"
+      ? "جدول الإيجارات وعقود الوحدات (Rent Roll) — AqarBooks"
       : "Rent Roll & Unit Leases Statement — AqarBooks",
     description: isAr
       ? "تقرير شامل لحصر كافة الوحدات، المستأجرين، القيمة الإيجارية، وتواريخ انتهاء العقود ومعدلات الإشغال."

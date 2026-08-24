@@ -377,7 +377,7 @@ export function CashierClient({
                     {/* Action Buttons */}
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
                       {isOpen && openSession ? (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <Button
                             onClick={() => setCollectDueTarget({ session: openSession, cashbox })}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 gap-1 shadow-sm"

@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "قائمة التدفقات النقدية — عقار بوكس"
+      ? "قائمة التدفقات النقدية — AqarBooks"
       : "Cash Flow Statement — AqarBooks",
     description: isAr
       ? "بيان حركة السيولة والتدفقات النقدية التشغيلية والاستثمارية والتمويلية مع التصدير الرسمي للـ PDF والإكسل."

@@ -77,13 +77,13 @@ export function LoginForm({
           <Link
             href="/auth/forgot-password"
             locale={locale}
-            className="text-xs font-semibold text-[#1A3C2E] hover:underline"
+            className="text-xs font-semibold text-[#07425d] hover:underline"
           >
             {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
           </Link>
         </div>
         <div className="group relative">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-[#1A3C2E]">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-slate-400 transition-colors group-focus-within:text-[#07425d]">
             <Lock className="size-4" />
           </div>
           <input
@@ -93,7 +93,7 @@ export function LoginForm({
             autoComplete="current-password"
             required
             placeholder="••••••••"
-            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1A3C2E] focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/10 transition-all"
+            className="w-full min-h-11 rounded-lg border border-slate-300 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#07425d] focus:outline-none focus:ring-2 focus:ring-[#07425d]/10 transition-all"
           />
           <button
             type="button"
@@ -111,7 +111,7 @@ export function LoginForm({
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#07425d] py-3 text-sm font-bold text-white shadow-md shadow-[#07425d]/20 hover:bg-[#053247] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {pending ? (
             <>
@@ -131,7 +131,7 @@ export function LoginForm({
       <div className="text-center pt-3 border-t border-slate-100">
         <p className="text-xs text-slate-500">
           {isAr ? "ليس لديك حساب منشأة؟ " : "Don't have an enterprise account? "}
-          <Link href="/auth/register" locale={locale} className="font-bold text-[#1A3C2E] hover:underline">
+          <Link href="/auth/register" locale={locale} className="font-bold text-[#07425d] hover:underline">
             {isAr ? "إنشاء حساب جديد" : "Create account"}
           </Link>
         </p>

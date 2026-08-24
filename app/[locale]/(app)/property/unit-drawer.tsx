@@ -133,7 +133,7 @@ export function UnitDrawer({
                     : "border-rose-500/30 bg-rose-500/[0.04]"
                 }`}
               >
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/60 bg-card p-3 shadow-2xs">
                     <p className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                       <Wallet className="size-3.5 text-indigo-500" />

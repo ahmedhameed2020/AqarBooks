@@ -15,7 +15,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "إدارة الأدوار وصلاحيات المستخدمين — عقار بوكس"
+      ? "إدارة الأدوار وصلاحيات المستخدمين — AqarBooks"
       : "Roles & Permissions Governance — AqarBooks",
     description: isAr
       ? "حوكمة صلاحيات الوصول، توزيع المهام الرقابية والمالية وفحص مصفوفة الأذونات المعتمدة."

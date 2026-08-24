@@ -14,7 +14,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "سياسة الخصوصية | عقار بوكس" : "Privacy Policy | AqarBooks",
+    title: isAr ? "سياسة الخصوصية | AqarBooks" : "Privacy Policy | AqarBooks",
     description: isAr
       ? "ما البيانات التي نجمعها، ولماذا، ومن يمكنه الوصول إليها."
       : "What data we collect, why, and who can access it.",
@@ -29,7 +29,7 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <p>
-            توضّح هذه السياسة كيفية تعاملنا مع البيانات في منصة عقار بوكس. وثمة نوعان من
+            توضّح هذه السياسة كيفية تعاملنا مع البيانات في منصة AqarBooks. وثمة نوعان من
             البيانات، والتمييز بينهما مهم:
           </p>
           <ul>

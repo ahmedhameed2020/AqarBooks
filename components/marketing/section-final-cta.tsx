@@ -14,7 +14,7 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
       <div className="relative mx-auto max-w-7xl px-6">
         {/* Main Editorial CTA Banner */}
         <div className="rounded-3xl border border-slate-300/80 bg-[#FAFAFA] p-8 sm:p-14 shadow-sm text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3.5 py-1 text-xs font-black text-[#1A3C2E] mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3.5 py-1 text-xs font-black text-[#07425d] mb-6">
             <ShieldCheck className="size-3.5" />
             <span>{isAr ? "جاهز لدفاترك الحقيقية" : "READY FOR REAL BOOKS"}</span>
           </div>
@@ -33,7 +33,7 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
             <Link
               href="/demo"
               locale={locale}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#1A3C2E] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 transition-all hover:bg-[#132d22] active:scale-98"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#07425d] px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-[#07425d]/20 transition-all hover:bg-[#053247] active:scale-98"
             >
               <span>{isAr ? "طلب عرض تجريبي" : "Request a Demo"}</span>
               <ArrowUpRight className="size-4" />
@@ -49,16 +49,16 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-200/70 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 font-bold">
-            <div className="flex items-center gap-1.5 text-emerald-800">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 text-slate-800">
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "قيد مزدوج حقيقي" : "True Double-Entry Core"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-800">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 text-slate-800">
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "تتبع مالي كامل" : "Full Financial Traceability"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-800">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 text-slate-800">
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "عزل بيانات كل كيان" : "Entity Data Isolation (RLS)"}</span>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
                   <span className="text-base font-black text-slate-950 font-heading">
                     AqarBooks
                   </span>
-                  <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.2">
+                  <span className="inline-flex rounded-md bg-[#07425d]/10 text-[#07425d] border border-[#07425d]/20 text-[9px] font-black px-1.5 py-0.2">
                     ERP
                   </span>
                 </div>
@@ -96,11 +96,11 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
           <div className="md:col-span-3 space-y-2">
             <span className="font-bold text-slate-900 block">{isAr ? "الروابط الرئيسية" : "Platform Navigation"}</span>
             <ul className="space-y-1.5 text-slate-600">
-              <li><a href="#story" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "القصة المالية" : "The Transaction Story"}</a></li>
-              <li><a href="#engine" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "المحرك المحاسبي" : "Accounting Core"}</a></li>
-              <li><a href="#operating-ledger" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "سجل التشغيل" : "Operating Ledger"}</a></li>
-              <li><a href="#ai-layer" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "طبقة الذكاء المحاسبي" : "AI Intelligence Layer"}</a></li>
-              <li><a href="#entities" className="hover:text-[#1A3C2E] transition-colors">{isAr ? "الهياكل العقارية" : "Entity Structures"}</a></li>
+              <li><a href="#story" className="hover:text-[#07425d] transition-colors">{isAr ? "القصة المالية" : "The Transaction Story"}</a></li>
+              <li><a href="#engine" className="hover:text-[#07425d] transition-colors">{isAr ? "المحرك المحاسبي" : "Accounting Core"}</a></li>
+              <li><a href="#operating-ledger" className="hover:text-[#07425d] transition-colors">{isAr ? "سجل التشغيل" : "Operating Ledger"}</a></li>
+              <li><a href="#ai-layer" className="hover:text-[#07425d] transition-colors">{isAr ? "طبقة الذكاء المحاسبي" : "AI Intelligence Layer"}</a></li>
+              <li><a href="#entities" className="hover:text-[#07425d] transition-colors">{isAr ? "الهياكل العقارية" : "Entity Structures"}</a></li>
             </ul>
           </div>
 

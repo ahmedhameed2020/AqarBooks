@@ -15,7 +15,7 @@ export type AskAqarBooksResponse = {
 };
 
 const SYSTEM_PROMPT = `
-You are the Ask AqarBooks Conversational Financial Intelligence Advisor (اسأل عقار بوكس).
+You are the Ask AqarBooks Conversational Financial Intelligence Advisor (اسأل AqarBooks).
 Your mission is to provide accurate, executive-level, fully verified answers to management questions regarding cash flow, receivables, collection rates, dues aging, expenses, and financial health.
 
 STRICT FINANCIAL GROUNDING RULES:

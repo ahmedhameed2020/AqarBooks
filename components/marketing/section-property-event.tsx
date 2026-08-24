@@ -10,8 +10,8 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">01</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">01</span>
             <span>{isAr ? "من العقار إلى القيد" : "FROM PROPERTY TO JOURNAL"}</span>
           </div>
 
@@ -28,15 +28,15 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
           {/* Proof Points */}
           <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "مصدر واضح" : "Clear Source Origin"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "ربط بالوحدة" : "Unit-Bound DNA"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "تتبع حتى القيد" : "Traceable to Journal"}</span>
             </span>
           </div>
@@ -55,7 +55,7 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             <div className="absolute bottom-5 start-5 end-5 text-white">
-              <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-emerald-400">
+              <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-sky-300">
                 {isAr ? "الكيان النشط" : "ACTIVE REAL ESTATE ENTITY"}
               </span>
               <p className="text-xl font-black font-heading mt-0.5">Palm Residence — Building B</p>
@@ -72,7 +72,7 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
               {/* Document Header */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-200/80">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-[#1A3C2E]/10 text-[#1A3C2E]">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-[#07425d]/10 text-[#07425d]">
                     <Building className="size-5" />
                   </div>
                   <div>
@@ -83,8 +83,8 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 text-xs font-bold">
-                  <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 text-[#07425d] border border-sky-200 px-3 py-1 text-xs font-bold">
+                  <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
                   <span>{isAr ? "استحقاق قانوني معتمد" : "Approved Statutory Levy"}</span>
                 </span>
               </div>

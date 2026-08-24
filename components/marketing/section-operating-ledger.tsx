@@ -104,8 +104,8 @@ export function SectionOperatingLedger({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">05</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">05</span>
             <span>{isAr ? "مركز الحركة المالية" : "FINANCIAL ACTIVITY HUB"}</span>
           </div>
 
@@ -147,7 +147,7 @@ export function SectionOperatingLedger({ locale }: { locale: Locale }) {
         <div className="mt-12 rounded-3xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
           <div className="flex flex-wrap items-center justify-between border-b border-slate-200 bg-slate-50/90 px-6 py-3.5 text-xs font-bold text-slate-700">
             <div className="flex items-center gap-2">
-              <Layers className="size-4 text-[#1A3C2E]" />
+              <Layers className="size-4 text-[#07425d]" />
               <span className="font-black text-slate-900">{isAr ? "دفتر دورات التشغيل المالي النشطة" : "Active Real Estate Financial Workflows"}</span>
             </div>
             <span className="font-mono text-[11px] text-slate-500">7 VERIFIED MODULES ACTIVE</span>

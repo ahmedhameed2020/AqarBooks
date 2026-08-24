@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير جداول انتهاء العقود ومعدل دوران الإشغال — عقار بوكس"
+      ? "تقرير جداول انتهاء العقود ومعدل دوران الإشغال — AqarBooks"
       : "Lease Expirations & Churn Waterfall Schedule — AqarBooks",
     description: isAr
       ? "تخطيط استراتيجي لعقود الإيجار المنتهية خلال الـ 12 شهراً القادمة لتفادي فترات الشغور ومتابعة التجديدات."

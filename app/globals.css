@@ -4,6 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Touch-target variant. Fires on any genuinely coarse-pointer device at any
+   width, and on any viewport under the `sm` breakpoint -- so a 44px hit area
+   is guaranteed both on real phones/tablets and when a page is checked at
+   320/375px in a desktop browser. Kept as a variant rather than a blanket
+   `@media (pointer: coarse)` rule so each control opts in explicitly and
+   desktop accounting density is never touched. */
+@custom-variant touch {
+  @media (pointer: coarse) {
+    @slot;
+  }
+  @media (max-width: 639px) {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -121,6 +136,36 @@
   --sidebar-accent-foreground: oklch(0.95 0.01 240);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.64 0.13 235);
+}
+
+@layer base {
+  /* No horizontal overflow at any viewport width. `clip` rather than `hidden`
+     on purpose: `overflow-x: hidden` on the root turns it into a scroll
+     container and silently kills every `position: sticky` header in the app
+     (site-header, TableHeader). `clip` suppresses the scrollbar without
+     creating one. The concrete offender this catches is the mobile sidebar,
+     which parks itself off-canvas with `translate-x-full` in RTL -- a 285px
+     box pushed past the right edge, which in Arabic grew the document. */
+  html,
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  /* iOS zooms the page whenever a focused field renders below 16px. Inputs,
+     textareas and selects already declare `text-base` and step down to
+     `text-sm` at `md`, so the only remaining hole is fields that hard-code a
+     smaller size in a local className (the finance filter bars all pass
+     `text-xs`). This floors the rendered size on small screens regardless of
+     what the local class asked for; desktop density is unaffected. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [data-slot="select-trigger"] {
+      font-size: max(16px, 1em);
+    }
+  }
 }
 
 @layer base {
@@ -445,4 +490,62 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+/* ── Responsive scrolling & typography utilities ─────────────────────────
+   `scrollbar-thin` was already applied by components/ui/table.tsx but had no
+   definition anywhere in this stylesheet and no Tailwind scrollbar plugin is
+   installed -- it rendered as a dead class. Defining it here makes the
+   horizontal scroll affordance on every financial table an intentional,
+   visible one instead of a platform default that hides itself on macOS. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+}
+
+/* For strips that scroll but must not show a bar (tab rails, filter rails). */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* An invisible 44x44 hit area centred on a control that must stay visually
+   small (table checkboxes, inline icon affordances). Expands what a finger
+   can hit without changing a single pixel of layout or row height. */
+@media (pointer: coarse), (max-width: 639px) {
+  .hit-target {
+    position: relative;
+  }
+
+  .hit-target::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

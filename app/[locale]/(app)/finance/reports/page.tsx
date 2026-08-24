@@ -14,7 +14,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "مركز التقارير والقوائم المالية — عقار بوكس"
+      ? "مركز التقارير والقوائم المالية — AqarBooks"
       : "Financial Reports & Statements Hub — AqarBooks",
     description: isAr
       ? "القوائم المالية الختامية المعتمدة، موازين المراجعة، دفاتر الأستاذ، والتحليلات المحاسبية مع التصدير المباشر."

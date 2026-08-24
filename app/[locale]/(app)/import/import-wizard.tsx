@@ -446,7 +446,7 @@ export function ImportWizard({
             {isAr ? "1. حدد نوع البيانات المطلوب استيرادها" : "1. Select Data Type to Import"}
           </Label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => {

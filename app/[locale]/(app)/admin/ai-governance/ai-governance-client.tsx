@@ -86,7 +86,7 @@ export function AiGovernanceClient({
 
   const featureLabels: Record<AiFeatureKey, { ar: string; en: string }> = {
     PLATFORM_GLOBAL: { ar: "المنصة بالكامل (Global Platform Kill Switch)", en: "Platform Global Kill Switch" },
-    ASK_AQARBOOKS: { ar: "اسأل عقار بوكس (Conversational BI)", en: "Ask AqarBooks" },
+    ASK_AQARBOOKS: { ar: "اسأل AqarBooks (Conversational BI)", en: "Ask AqarBooks" },
     INVOICE_OCR: { ar: "استخراج ومطابقة الفواتير (OCR & Invoices)", en: "Invoice OCR & Parsing" },
     JOURNAL_COPILOT: { ar: "مساعد قيود اليومية وذاكرة السياسات", en: "Journal Copilot & Policy Memory" },
     BANK_RECON_AI: { ar: "محرك التسوية والمطابقة البنكية", en: "Bank Reconciliation AI" },
@@ -312,7 +312,7 @@ export function AiGovernanceClient({
           {/* Ask AqarBooks Gate */}
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span>{isAr ? "اسأل عقار بوكس" : "Ask AqarBooks"}</span>
+              <span>{isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}</span>
               <span className="font-mono text-purple-600">{askCounts.total} / {askCounts.target}</span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -486,7 +486,7 @@ export function AiGovernanceClient({
               : "Certification decisions are evaluated strictly at predetermined sample intervals to prevent optional stopping:"}
           </p>
 
-          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+          <div className="grid grid-cols-1 gap-2 text-xs font-mono sm:grid-cols-2">
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-1">
               <span className="text-[10px] font-bold text-slate-500 block">Bank Reconciliation</span>
               <div className="flex gap-1 text-[11px] font-bold text-indigo-600">

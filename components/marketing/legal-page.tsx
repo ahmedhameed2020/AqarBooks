@@ -28,12 +28,12 @@ export function LegalPage({
   const isAr = locale === "ar";
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#1A3C2E]/20 selection:text-[#1A3C2E]">
+    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#07425d]/20 selection:text-[#07425d]">
       <MarketingNav locale={locale} />
 
       <main className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
         <header className="max-w-3xl border-b border-slate-200 pb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3 py-1 text-xs font-bold text-[#1A3C2E] mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3 py-1 text-xs font-bold text-[#07425d] mb-4">
             <ShieldCheck className="size-3.5" />
             <span>{eyebrow}</span>
           </div>
@@ -61,7 +61,7 @@ export function LegalPage({
                 <li key={s.id}>
                   <a
                     href={`#${s.id}`}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-bold text-slate-600 transition-colors hover:bg-white hover:text-[#1A3C2E]"
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-bold text-slate-600 transition-colors hover:bg-white hover:text-[#07425d]"
                   >
                     <span className="font-mono text-[10px] text-slate-400">0{idx + 1}</span>
                     <span className="line-clamp-1">{s.heading}</span>
@@ -80,7 +80,7 @@ export function LegalPage({
                 className="scroll-mt-24 rounded-2xl border border-slate-200/80 bg-[#FAFAFA] p-6 sm:p-8"
               >
                 <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
-                  <span className="font-mono text-xs font-bold text-[#1A3C2E] size-6 rounded-lg bg-[#1A3C2E]/10 flex items-center justify-center">
+                  <span className="font-mono text-xs font-bold text-[#07425d] size-6 rounded-lg bg-[#07425d]/10 flex items-center justify-center">
                     0{idx + 1}
                   </span>
                   <h2 className="text-lg font-black text-slate-950 font-heading">

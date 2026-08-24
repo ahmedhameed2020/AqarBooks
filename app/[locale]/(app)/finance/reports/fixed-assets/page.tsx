@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "سجل الأصول الثابتة والإهلاك المحاسبي — عقار بوكس"
+      ? "سجل الأصول الثابتة والإهلاك المحاسبي — AqarBooks"
       : "Fixed Assets & Depreciation Schedule — AqarBooks",
     description: isAr
       ? "حصر الأصول الرأسمالية والمعدات والمنشآت، معدلات الإهلاك السنوية، ومجمع الإهلاك وصافي القيمة الدفترية."

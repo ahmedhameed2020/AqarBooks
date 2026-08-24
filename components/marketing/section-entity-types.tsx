@@ -63,8 +63,8 @@ export function SectionEntityTypes({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">09</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">09</span>
             <span>{isAr ? "بُني لهيكل عقارك" : "BUILT FOR YOUR PROPERTY STRUCTURE"}</span>
           </div>
 

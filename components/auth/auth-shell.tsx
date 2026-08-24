@@ -66,7 +66,7 @@ export function AuthShell({
                   <span className="text-base font-black tracking-tight text-slate-950 font-heading">
                     {brandName}
                   </span>
-                  <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.2">
+                  <span className="inline-flex rounded-md bg-[#07425d]/10 text-[#07425d] border border-[#07425d]/20 text-[9px] font-black px-1.5 py-0.2">
                     ERP
                   </span>
                 </div>
@@ -78,7 +78,7 @@ export function AuthShell({
 
             {eyebrow && (
               <span
-                className={`inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-[#1A3C2E] border border-emerald-200/80 ${
+                className={`inline-block rounded-full bg-[#07425d]/5 px-2.5 py-0.5 text-[11px] font-bold text-[#07425d] border border-[#07425d]/15 ${
                   isAr ? "tracking-[0.02em]" : "uppercase tracking-[0.08em]"
                 }`}
                 style={{ fontFamily: isAr ? "var(--font-plex-arabic)" : "var(--font-plex-mono)" }}

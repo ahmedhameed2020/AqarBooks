@@ -9,8 +9,8 @@ export function SectionAccountingEngine({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">02</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">02</span>
             <span>{isAr ? "من الحركة إلى القيد" : "FROM TRANSACTION TO ENTRY"}</span>
           </div>
 
@@ -27,15 +27,15 @@ export function SectionAccountingEngine({ locale }: { locale: Locale }) {
           {/* Proof Points */}
           <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "قيد مزدوج حقيقي" : "True Double-Entry"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "توازن تلقائي" : "Automatic Balancing"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "تتبع كامل" : "End-to-End Traceability"}</span>
             </span>
           </div>
@@ -46,12 +46,12 @@ export function SectionAccountingEngine({ locale }: { locale: Locale }) {
           {/* Journal Voucher Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#1A3C2E] text-white shadow-sm">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#07425d] text-white shadow-sm">
                 <Scale className="size-5.5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-extrabold text-[#1A3C2E] bg-emerald-100/70 px-2 py-0.5 rounded">
+                  <span className="text-xs font-mono font-extrabold text-[#07425d] bg-sky-100/70 px-2 py-0.5 rounded">
                     JV-2026-00418
                   </span>
                   <span className="text-xs font-bold text-slate-500">

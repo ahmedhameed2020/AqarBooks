@@ -17,7 +17,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "التنبيهات التشغيلية — عقار بوكس"
+      ? "التنبيهات التشغيلية — AqarBooks"
       : "Operational Alerts — AqarBooks",
     description: isAr
       ? "تنبيهات مشتقة من دفاترك: المطالبات المتأخرة، الشيكات المستحقة، والعقود المنتهية قريبًا."

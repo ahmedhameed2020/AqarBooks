@@ -285,7 +285,8 @@ export function VatReturnClient({
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-xs">
+          <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[32rem] text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="p-3 text-start">{isAr ? "بند الإقرار الضريبي" : "Declaration Line Item"}</th>
@@ -333,6 +334,7 @@ export function VatReturnClient({
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

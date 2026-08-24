@@ -552,7 +552,7 @@ export function DuesCheckout({
                   </div>
 
                   {isBlocked ? (
-                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-amber-500/30 pt-3 text-xs">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3 border-t border-amber-500/30 pt-3 text-xs">
                       <div>
                         <p className="text-[10px] text-slate-500">
                           {isAr ? "قيمة المطالبة" : "Charged"}

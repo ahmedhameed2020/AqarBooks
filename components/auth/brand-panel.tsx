@@ -10,6 +10,7 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       titleEn: "Every movement ends in a true journal entry",
       descAr: "التحصيلات والمصروفات والتسويات تترحل إلى دفاتر متوازنة وقابلة للتتبع",
       descEn: "Collections, expenses, and settlements post to balanced, traceable ledgers",
+      badgeColor: "bg-[#1b60b9]/20 border-[#1b60b9]/40 text-[#60a5fa]",
     },
     {
       icon: Building2,
@@ -17,6 +18,7 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       titleEn: "Every entry knows its property and unit",
       descAr: "من الكيان والمبنى إلى الوحدة والعميل — السياق العقاري يظل جزءًا من الحركة",
       descEn: "From entity and building to unit and member — real estate context stays intact",
+      badgeColor: "bg-[#7e1898]/20 border-[#7e1898]/40 text-purple-300",
     },
     {
       icon: ShieldCheck,
@@ -24,11 +26,12 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       titleEn: "Errors are corrected. History is never wiped.",
       descAr: "التصحيحات تتم بأثر موثق يحفظ الأصل ويجعل كل تغيير قابلًا للمراجعة",
       descEn: "Adjustments create an immutable trail preserving the original for transparent audit",
+      badgeColor: "bg-[#1b60b9]/20 border-[#1b60b9]/40 text-[#60a5fa]",
     },
   ];
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#0e241c] flex flex-col justify-between p-8 lg:p-12 xl:p-14 text-white select-none">
+    <div className="relative h-full w-full overflow-hidden bg-[#041c28] flex flex-col justify-between p-8 lg:p-12 xl:p-14 text-white select-none">
       {/* Background Image with subtle architectural overlay */}
       <Image
         src="/images/aqarbooks-hero-property.jpg"
@@ -36,33 +39,37 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
         fill
         priority
         sizes="(min-width: 1024px) 40vw, 0px"
-        className="object-cover opacity-20 mix-blend-luminosity scale-105 transition-transform duration-1000"
+        className="object-cover opacity-15 mix-blend-luminosity scale-105 transition-transform duration-1000"
         style={{ objectPosition: "50% 50%" }}
       />
 
       {/* Decorative gradient scrims & architectural glow */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-t from-[#0e241c] via-[#0e241c]/80 to-[#0e241c]/60"
+        className="absolute inset-0 bg-gradient-to-t from-[#041c28] via-[#07425d]/85 to-[#041c28]/90"
       />
       <div
         aria-hidden="true"
-        className="absolute -top-24 -start-24 size-96 rounded-full bg-emerald-600/15 blur-3xl pointer-events-none"
+        className="absolute -top-24 -start-24 size-96 rounded-full bg-[#1b60b9]/20 blur-3xl pointer-events-none"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-24 -end-24 size-96 rounded-full bg-[#7e1898]/15 blur-3xl pointer-events-none"
       />
 
       {/* Top Brand Header */}
       <div className="relative z-10 flex items-center gap-3">
-        <LogoMark className="size-9.5 shadow-lg" />
+        <LogoMark className="size-10 shadow-lg" />
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
             <span className="text-xl font-extrabold tracking-tight text-white drop-shadow-sm font-heading">
               {brandName}
             </span>
-            <span className="inline-flex rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] font-black px-1.5 py-0.2">
+            <span className="inline-flex rounded-md bg-[#1b60b9]/20 text-[#60a5fa] border border-[#1b60b9]/40 text-[9px] font-black px-1.5 py-0.2">
               ERP
             </span>
           </div>
-          <span className="text-[10px] font-bold text-emerald-200/80 -mt-0.5">
+          <span className="text-[10px] font-bold text-slate-300 -mt-0.5">
             {isAr ? "محاسبة عقارية بذكاء" : "Smart Real Estate Accounting"}
           </span>
         </div>
@@ -71,8 +78,8 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       {/* Center Value Proposition */}
       <div className="relative z-10 space-y-7 my-auto max-w-md">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-md">
-            <Scale className="size-3.5 text-emerald-300" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/15 px-3 py-1 text-xs font-semibold text-sky-200 backdrop-blur-md">
+            <Scale className="size-3.5 text-sky-300" />
             <span>{isAr ? "محاسبة بُنيت للعقار" : "Accounting Built for Real Estate"}</span>
           </div>
 
@@ -98,9 +105,9 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
             return (
               <div
                 key={i}
-                className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-md transition-all hover:border-emerald-400/30 hover:bg-white/10"
+                className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-md transition-all hover:border-sky-400/30 hover:bg-white/10"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 shadow-xs">
+                <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl border shadow-xs ${item.badgeColor}`}>
                   <Icon className="size-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -120,7 +127,7 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
       {/* Bottom Trust Stamp */}
       <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] text-slate-300">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
           <span>
             {isAr
               ? "عزل بيانات الكيانات · صلاحيات محكومة · سجل تدقيق كامل"

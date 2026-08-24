@@ -20,7 +20,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "الموازنة التقديرية مقابل الفعلي — عقار بوكس"
+      ? "الموازنة التقديرية مقابل الفعلي — AqarBooks"
       : "Budget vs Actual Analysis — AqarBooks",
     description: isAr
       ? "مقارنة الصرف والإيراد الفعلي بالموازنات المعتمدة واحتساب الانحرافات مع التصدير الرسمي للـ PDF والإكسل."

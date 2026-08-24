@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "كشف حساب وتوزيعات أرباح الملاك — عقار بوكس"
+      ? "كشف حساب وتوزيعات أرباح الملاك — AqarBooks"
       : "Owner Distribution Statement — AqarBooks",
     description: isAr
       ? "كشف الحساب المالي للملاك والمستثمرين: حصر الإيجارات المحصلة، عمولات الإدارة، خصومات الصيانة، وصافي الأرباح المستحقة."

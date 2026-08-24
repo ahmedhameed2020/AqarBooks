@@ -31,7 +31,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تكويد وأصناف الفاتورة الإلكترونية — عقار بوكس"
+      ? "تكويد وأصناف الفاتورة الإلكترونية — AqarBooks"
       : "E-Invoice Item Coding & Catalogue — AqarBooks",
     description: isAr
       ? "إدارة كتالوج الأصناف الضريبية، أكواد EGS و GS1، وربط بنود المطالبات بالأكواد المعتمدة لدى مصلحة الضرائب."

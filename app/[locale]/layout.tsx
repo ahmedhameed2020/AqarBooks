@@ -63,7 +63,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "عقار بوكس (AqarBooks) | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
+    ? "AqarBooks | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
     : "AqarBooks | Real Estate & Resort Accounting ERP";
   const description = isAr
     ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية بقيد مزدوج حقيقي. متوافق مع منظومة الفاتورة الإلكترونية والضرائب المصرية (ETA) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
@@ -75,7 +75,7 @@ export async function generateMetadata({
     metadataBase: new URL("https://aqarbooks.com"),
     title: {
       default: title,
-      template: isAr ? "%s | عقار بوكس" : "%s | AqarBooks",
+      template: "%s | AqarBooks",
     },
     description,
     applicationName: "AqarBooks",
@@ -108,13 +108,13 @@ export async function generateMetadata({
       url: siteUrl,
       title,
       description,
-      siteName: isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks ERP",
+      siteName: isAr ? "AqarBooks" : "AqarBooks ERP",
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: isAr ? "عقار بوكس — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات" : "AqarBooks Real Estate Accounting ERP",
+          alt: isAr ? "AqarBooks — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات" : "AqarBooks Real Estate Accounting ERP",
           type: "image/jpeg",
         },
       ],

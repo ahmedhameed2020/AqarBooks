@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX) — عقار بوكس"
+      ? "تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX) — AqarBooks"
       : "CAPEX vs OPEX Maintenance Schedule — AqarBooks",
     description: isAr
       ? "الفصل المحاسبي بين المصاريف الرأسمالية المعززة لقيمة الأصول (CAPEX) والمصاريف التشغيلية الروتينية (OPEX)."

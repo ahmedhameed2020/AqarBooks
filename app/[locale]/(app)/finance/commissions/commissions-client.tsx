@@ -806,7 +806,7 @@ _AqarBooks Financial Suite_`;
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                   <div>
                     <span className="text-slate-400 block">{isAr ? "المشروع / العقار" : "Property"}</span>
                     <span className="font-bold text-slate-800 dark:text-slate-200 block mt-0.5">
@@ -821,7 +821,7 @@ _AqarBooks Financial Suite_`;
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-1 gap-3 text-xs pt-1 sm:grid-cols-2 border-t border-slate-200 dark:border-slate-800">
                   <div>
                     <span className="text-slate-400 block">{isAr ? "المبلغ الإجمالي" : "Gross Amount"}</span>
                     <span className="font-mono font-bold text-slate-800 dark:text-slate-200 block mt-0.5">

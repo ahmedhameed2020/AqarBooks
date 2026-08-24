@@ -303,7 +303,7 @@ ${notes.map((n) => `    <li>${escapeHtml(n)}</li>`).join("\n")}
   }
 
   <div class="report-footer">
-    <div>${isAr ? `عقار بوكس لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
+    <div>${isAr ? `AqarBooks لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
     <div>${isAr ? "مستند رسمي · صادر آليًا من النظام" : "Official document · Generated systematically"}</div>
   </div>
 

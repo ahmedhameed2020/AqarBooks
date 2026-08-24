@@ -9,8 +9,8 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">06</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">06</span>
             <span>{isAr ? "أثر مالي لا يُمحى" : "AN INDELIBLE FINANCIAL TRACE"}</span>
           </div>
 
@@ -27,15 +27,15 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
           {/* Proof Points */}
           <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "لا حذف بعد الترحيل" : "Zero Deletion Post-Posting"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "قيود عكسية" : "Reversing Entries"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "سجل تدقيق كامل" : "Full Audit Trail"}</span>
             </span>
           </div>

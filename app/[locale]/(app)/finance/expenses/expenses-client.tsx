@@ -728,7 +728,7 @@ _AqarBooks Financial Suite_`;
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                   <div>
                     <span className="text-slate-400 block">{isAr ? "فئة المصروف" : "Category"}</span>
                     <span className="font-bold text-slate-800 dark:text-slate-200 block mt-0.5">

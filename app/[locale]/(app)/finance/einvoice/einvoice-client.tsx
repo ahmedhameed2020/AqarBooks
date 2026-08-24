@@ -1472,7 +1472,7 @@ export function EInvoiceClient({
                 </div>
 
                 {/* BUYER / UNIT */}
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-700 text-[11px]">
+                <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2 border-b border-slate-200 dark:border-slate-700 text-[11px]">
                   <div>
                     <span className="text-slate-400 block">{isAr ? "العميل / الوحدة المستفيدة:" : "Customer / Unit:"}</span>
                     <span className="font-black text-slate-900 dark:text-white text-xs">{viewInvoiceDecision.unit_code || `#${viewInvoiceDecision.source_id.slice(0, 8)}`}</span>
@@ -1485,7 +1485,8 @@ export function EInvoiceClient({
 
                 {/* LINE ITEMS TABLE */}
                 <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-                  <table className="w-full text-xs">
+                  <div className="overflow-x-auto scrollbar-thin">
+                  <table className="w-full min-w-[34rem] text-xs">
                     <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
                       <tr>
                         <th className="p-2.5 text-start">{isAr ? "البند / البيان" : "Item"}</th>
@@ -1505,6 +1506,7 @@ export function EInvoiceClient({
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 {/* TOTALS SUMMARY */}

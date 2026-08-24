@@ -194,7 +194,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#07425d] py-3 text-sm font-bold text-white shadow-md shadow-[#07425d]/20 hover:bg-[#053247] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -212,7 +212,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
 
       {/* Back to Login */}
       <div className="text-center pt-3 border-t border-slate-100">
-        <Link href="/login" locale={locale} className="text-xs font-bold text-[#1A3C2E] hover:underline">
+        <Link href="/login" locale={locale} className="text-xs font-bold text-[#07425d] hover:underline">
           {isAr ? "العودة إلى تسجيل الدخول" : "Back to Sign In"}
         </Link>
       </div>

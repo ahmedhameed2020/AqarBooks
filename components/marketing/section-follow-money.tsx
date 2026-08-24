@@ -72,8 +72,8 @@ export function SectionFollowMoney({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">04</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">04</span>
             <span>{isAr ? "الرحلة المالية الكاملة" : "THE COMPLETE FINANCIAL JOURNEY"}</span>
           </div>
 
@@ -90,13 +90,13 @@ export function SectionFollowMoney({ locale }: { locale: Locale }) {
           {/* Transaction Flow Strip */}
           <div className="mt-5 inline-flex flex-wrap items-center gap-2 rounded-xl bg-slate-100/90 p-2 border border-slate-200 text-xs font-bold text-slate-800">
             <span>{isAr ? "استحقاق" : "Levy"}</span>
-            <span className="text-[#1A3C2E]">←</span>
+            <span className="text-[#07425d]">←</span>
             <span>{isAr ? "تحصيل" : "Collection"}</span>
-            <span className="text-[#1A3C2E]">←</span>
+            <span className="text-[#07425d]">←</span>
             <span>{isAr ? "قيد" : "Journal"}</span>
-            <span className="text-[#1A3C2E]">←</span>
+            <span className="text-[#07425d]">←</span>
             <span>{isAr ? "دفتر الأستاذ" : "General Ledger"}</span>
-            <span className="text-[#1A3C2E]">←</span>
+            <span className="text-[#07425d]">←</span>
             <span>{isAr ? "القوائم" : "Statements"}</span>
           </div>
         </div>

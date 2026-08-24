@@ -83,7 +83,7 @@ export function SiteHeader({
               <span className="text-sm font-black tracking-tight text-slate-950 dark:text-white font-heading">
                 AqarBooks
               </span>
-              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 dark:bg-emerald-950/60 border border-[#1A3C2E]/20 dark:border-emerald-800 text-[#1A3C2E] dark:text-emerald-300 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
+              <span className="inline-flex rounded-md bg-[#07425d]/10 dark:bg-sky-950/60 border border-[#07425d]/20 dark:border-sky-800 text-[#07425d] dark:text-sky-300 text-[9px] font-black px-1.5 py-0.2 shadow-2xs">
                 ERP
               </span>
             </div>

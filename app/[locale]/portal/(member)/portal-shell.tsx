@@ -29,7 +29,7 @@ export function PortalShell({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                  {isAr ? "عقار بوكس" : "AqarBooks"}
+                  AqarBooks
                 </span>
                 <span className="rounded-md border border-indigo-400/30 bg-indigo-500/10 px-1.5 py-px text-[9px] font-bold text-indigo-600 dark:text-indigo-300">
                   PORTAL

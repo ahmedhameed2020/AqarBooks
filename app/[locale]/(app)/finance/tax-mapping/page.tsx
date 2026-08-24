@@ -26,7 +26,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "التصنيف والربط الضريبي للإيرادات — عقار بوكس"
+      ? "التصنيف والربط الضريبي للإيرادات — AqarBooks"
       : "Revenue Tax Classification & Mapping — AqarBooks",
     description: isAr
       ? "ربط بنود وأنواع المطالبات المالية بتصنيفات مصلحة الضرائب وتحديد خضوعها للقيمة المضافة أو الإعفاء."

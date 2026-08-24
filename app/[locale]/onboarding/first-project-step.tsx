@@ -100,7 +100,7 @@ export function FirstProjectStep({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
               {isAr ? "المنشأة" : "Organization"}

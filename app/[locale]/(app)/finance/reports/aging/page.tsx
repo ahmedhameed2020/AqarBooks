@@ -21,7 +21,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير أعمار الديون والتحصيل — عقار بوكس"
+      ? "تقرير أعمار الديون والتحصيل — AqarBooks"
       : "Receivables Aging Report — AqarBooks",
     description: isAr
       ? "تحليل الذمم المدينة وتصنيف فترات الاستحقاق المتأخرة حسب الوحدات مع التصدير الرسمي للـ PDF والإكسل."

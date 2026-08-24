@@ -90,7 +90,7 @@ export default async function AppShellLayout({
   if (organization) {
     workspaces.push({
       key: "tenant",
-      labelAr: "عقار بوكس",
+      labelAr: "AqarBooks",
       labelEn: "AqarBooks",
       groups: [
         homeGroup,

@@ -666,7 +666,7 @@ export function PeriodsClient({
 
           <div className="space-y-4 pt-3">
             {/* STEP PROGRESS */}
-            <div className="grid grid-cols-3 gap-2 pb-2">
+            <div className="grid grid-cols-1 gap-2 pb-2 sm:grid-cols-3">
               <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 1 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
                 <span>1. {isAr ? "فحص الفترات والقيود" : "Audit Periods"}</span>
               </div>

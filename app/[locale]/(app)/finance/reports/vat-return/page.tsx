@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "كشف إقرار ضريبة القيمة المضافة ومطابقة الضرائب — عقار بوكس"
+      ? "كشف إقرار ضريبة القيمة المضافة ومطابقة الضرائب — AqarBooks"
       : "VAT Return & Tax Audit Statement — AqarBooks",
     description: isAr
       ? "كشف الإقرار الضريبي الرسمي: ضريبة المخرجات على الإيرادات، ضريبة المدخلات على المشتريات، وصافي الضريبة المستحقة للسداد."

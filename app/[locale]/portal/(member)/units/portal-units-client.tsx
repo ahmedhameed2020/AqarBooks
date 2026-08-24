@@ -471,7 +471,7 @@ export function PortalUnitsClient({
 
                   {/* The unit's own ledger in three figures, so the balance is
                       shown as a consequence rather than an assertion. */}
-                  <dl className="grid grid-cols-3 gap-2 rounded-xl border border-border/50 bg-slate-50/60 p-3 text-xs dark:bg-slate-900/40">
+                  <dl className="grid grid-cols-1 gap-2 rounded-xl sm:grid-cols-3 border border-border/50 bg-slate-50/60 p-3 text-xs dark:bg-slate-900/40">
                     <div>
                       <dt className="text-[10px] text-slate-400">
                         {isAr ? "إجمالي المطالبات" : "Charged"}

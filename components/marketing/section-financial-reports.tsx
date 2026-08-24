@@ -13,8 +13,8 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">07</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">07</span>
             <span>{isAr ? "من القيد إلى القرار" : "FROM ENTRY TO DECISION"}</span>
           </div>
 
@@ -55,7 +55,7 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
             onClick={() => setActiveTab("unit")}
             className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "unit"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -67,7 +67,7 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
             onClick={() => setActiveTab("trial")}
             className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "trial"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -79,7 +79,7 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
             onClick={() => setActiveTab("aging")}
             className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "aging"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -91,7 +91,7 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
             onClick={() => setActiveTab("pnl")}
             className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "pnl"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >

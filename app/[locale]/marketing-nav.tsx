@@ -51,7 +51,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
               <span className="text-base font-black tracking-tight text-slate-950 font-heading">
                 AqarBooks
               </span>
-              <span className="inline-flex rounded-md bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 text-[9px] font-black px-1.5 py-0.2">
+              <span className="inline-flex rounded-md bg-[#07425d]/10 text-[#07425d] border border-[#07425d]/20 text-[9px] font-black px-1.5 py-0.2">
                 ERP
               </span>
             </div>
@@ -67,7 +67,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
             <a
               key={link.href}
               href={link.href}
-              className="relative text-xs font-bold text-slate-600 transition-colors hover:text-[#1A3C2E] py-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-start after:scale-x-0 after:bg-[#1A3C2E] after:transition-transform hover:after:scale-x-100"
+              className="relative text-xs font-bold text-slate-600 transition-colors hover:text-[#07425d] py-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-start after:scale-x-0 after:bg-[#07425d] after:transition-transform hover:after:scale-x-100"
             >
               {isAr ? link.labelAr : link.labelEn}
             </a>
@@ -86,14 +86,14 @@ export function MarketingNav({ locale }: { locale: Locale }) {
           <Link
             href="/login"
             locale={locale}
-            className="text-xs font-bold text-slate-700 hover:text-[#1A3C2E] transition-colors px-2 py-1.5"
+            className="text-xs font-bold text-slate-700 hover:text-[#07425d] transition-colors px-2 py-1.5"
           >
             {isAr ? "تسجيل الدخول" : "Sign in"}
           </Link>
           <Link
             href="/demo"
             locale={locale}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1A3C2E] text-white px-4.5 py-2 text-xs font-bold transition-all hover:bg-[#132d22] active:scale-95 shadow-sm shadow-[#1A3C2E]/20"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#07425d] text-white px-4.5 py-2 text-xs font-bold transition-all hover:bg-[#053247] active:scale-95 shadow-sm shadow-[#07425d]/20"
           >
             <span>{isAr ? "استكشف النظام" : "Explore ERP"}</span>
             <ArrowUpRight className="size-3.5" />
@@ -121,7 +121,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#1A3C2E] transition-colors"
+                className="rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#07425d] transition-colors"
               >
                 {isAr ? link.labelAr : link.labelEn}
               </a>
@@ -147,7 +147,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
             <Link
               href="/demo"
               locale={locale}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#1A3C2E] py-2.5 text-center text-xs font-bold text-white shadow-sm"
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#07425d] py-2.5 text-center text-xs font-bold text-white shadow-sm hover:bg-[#053247]"
             >
               <span>{isAr ? "استكشف النظام" : "Explore ERP"}</span>
               <ArrowUpRight className="size-4" />

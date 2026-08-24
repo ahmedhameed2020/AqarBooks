@@ -13,9 +13,9 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "تواصل معنا | عقار بوكس (AqarBooks)" : "Contact Us | AqarBooks",
+    title: isAr ? "تواصل معنا | AqarBooks" : "Contact Us | AqarBooks",
     description: isAr
-      ? "تواصل مع فريق الدعم والمبيعات في عقار بوكس للاستفسارات الفنية والمحاسبية والشراكات."
+      ? "تواصل مع فريق الدعم والمبيعات في AqarBooks للاستفسارات الفنية والمحاسبية والشراكات."
       : "Get in touch with AqarBooks support and sales team for enterprise accounting inquiries.",
     robots: { index: false, follow: true },
   };
@@ -31,7 +31,7 @@ export default async function ContactPage({
   const isAr = locale === "ar";
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#1A3C2E]/20 selection:text-[#1A3C2E]">
+    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#07425d]/20 selection:text-[#07425d]">
       <MarketingNav locale={locale as Locale} />
 
       <main className="relative flex flex-1 items-center justify-center px-6 py-16 lg:py-24">
@@ -40,13 +40,13 @@ export default async function ContactPage({
 
         <div className="relative w-full max-w-4xl">
           <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3.5 py-1 text-xs font-bold text-[#1A3C2E] mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3.5 py-1 text-xs font-bold text-[#07425d] mb-4">
               <Mail className="size-3.5" />
               <span>{isAr ? "خدمة العملاء والشركاء" : "Direct Support & Sales"}</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-              {isAr ? "تواصل مع فريق عقار بوكس." : "Get in touch with our team."}
+              {isAr ? "تواصل مع فريق AqarBooks." : "Get in touch with our team."}
             </h1>
 
             <p className="mt-3 text-sm sm:text-base text-slate-600 font-medium leading-relaxed max-w-lg mx-auto">
@@ -71,7 +71,7 @@ export default async function ContactPage({
 
                 <div className="space-y-4 text-xs">
                   <div className="flex items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#1A3C2E]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#07425d]">
                       <Mail className="size-4" />
                     </div>
                     <div>
@@ -81,7 +81,7 @@ export default async function ContactPage({
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#1A3C2E]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#07425d]">
                       <Phone className="size-4" />
                     </div>
                     <div>
@@ -91,7 +91,7 @@ export default async function ContactPage({
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#1A3C2E]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#07425d]">
                       <MapPin className="size-4" />
                     </div>
                     <div>

@@ -31,7 +31,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "الفوترة والإقرارات الضريبية الإلكترونية — عقار بوكس"
+      ? "الفوترة والإقرارات الضريبية الإلكترونية — AqarBooks"
       : "E-Invoicing & Statutory Tax Compliance — AqarBooks",
     description: isAr
       ? "إدارة الربط مع مصلحة الضرائب وهيئات الزكاة والضريبة، وسجل القرارات الضريبية لجميع الإيرادات والمطالبات."

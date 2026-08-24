@@ -52,11 +52,11 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-6">
       {/* Hero Header */}
-      <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="gradient-hero-banner relative overflow-hidden rounded-3xl border border-border/60 p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground">{dateLabel}</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-balance text-foreground sm:text-3xl">
               {isAr ? "مركز قيادة المنصة (Platform Control Center)" : "Platform Overview & SaaS Control"}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">

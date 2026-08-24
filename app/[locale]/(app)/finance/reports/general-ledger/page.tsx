@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "دفتر الأستاذ العام — عقار بوكس"
+      ? "دفتر الأستاذ العام — AqarBooks"
       : "General Ledger — AqarBooks",
     description: isAr
       ? "كشف حساب تفصيلي للحركات المحاسبية والقيود والرصيد التراكمي مع التصدير الرسمي للـ PDF والإكسل."

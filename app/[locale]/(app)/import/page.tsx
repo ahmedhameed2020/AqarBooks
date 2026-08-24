@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "المستورد الذكي ومعالجة البيانات بالذكاء الاصطناعي — عقار بوكس"
+      ? "المستورد الذكي ومعالجة البيانات بالذكاء الاصطناعي — AqarBooks"
       : "AI Smart Real Estate Data Importer — AqarBooks",
     description: isAr
       ? "استيراد ومعالجة ملفات الوحدات والعقارات والملاك تلقائياً بالمطابقة الدلالية والتنظيف الذكي."

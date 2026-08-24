@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "قائمة الدخل والأرباح والخسائر — عقار بوكس"
+      ? "قائمة الدخل والأرباح والخسائر — AqarBooks"
       : "Income Statement (P&L) — AqarBooks",
     description: isAr
       ? "بيان شامل للإيرادات والمصروفات وصافي الفائض أو العجز المالي مع التصدير الرسمي للـ PDF والإكسل."

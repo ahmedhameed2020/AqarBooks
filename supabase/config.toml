@@ -48,7 +48,7 @@ port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
 admin_email = "no-reply@aqarbooks.com"
-sender_name = "AqarBooks-عقار بوكس"
+sender_name = "AqarBooks"
 
 # Auth email templates -- the only configuration this file currently manages.
 # Each template is a self-contained, email-client-safe HTML file under

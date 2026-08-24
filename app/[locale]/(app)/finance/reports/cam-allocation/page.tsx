@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM Allocation) — عقار بوكس"
+      ? "تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM Allocation) — AqarBooks"
       : "Common Area Maintenance (CAM) Allocation Report — AqarBooks",
     description: isAr
       ? "توزيع مصاريف الخدمات المشتركة، الأمن، النظافة، وصيانة المرافق واللاندسكيب على الوحدات والملاك بالمتر المربع."

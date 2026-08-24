@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "إدارة فريق العمل والمستخدمين — عقار بوكس"
+      ? "إدارة فريق العمل والمستخدمين — AqarBooks"
       : "Team Members & User Access — AqarBooks",
     description: isAr
       ? "إدارة مستخدمي المنشأة، توزيع الأدوار والصلاحيات، إرسال الدعوات والتحكم في تفعيل الحسابات."

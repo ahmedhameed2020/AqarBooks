@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "سجل الشيكات الآجلة وأوراق القبض (PDC Register) — عقار بوكس"
+      ? "سجل الشيكات الآجلة وأوراق القبض (PDC Register) — AqarBooks"
       : "Post-Dated Cheques (PDC) Register — AqarBooks",
     description: isAr
       ? "حوكمة أوراق القبض والشيكات البنكية تحت التحصيل ومراقبة مواعيد الاستحقاق والسيولة النقدية القادمة."

@@ -460,7 +460,7 @@ export function AppSidebar({
       .filter((g) => g.items.length > 0);
   }, [activeWorkspace, query, searching, isAr]);
 
-  const userDisplayName = userProfile?.name || (isAr ? "مستخدم عقار بوكس" : "AqarBooks User");
+  const userDisplayName = userProfile?.name || (isAr ? "مستخدم AqarBooks" : "AqarBooks User");
   const userInitials = (userDisplayName[0] || "U").toUpperCase();
 
   return (
@@ -480,13 +480,19 @@ export function AppSidebar({
           // Desktop (Sticky beside main)
           "md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start md:translate-x-0 md:z-30",
           isCollapsed ? "md:w-[68px]" : "md:w-[260px]",
-          // Mobile Drawer (Off-canvas slide over)
+          // Mobile Drawer (Off-canvas slide over). `visibility` is toggled
+          // alongside the transform, not just the transform: a drawer parked
+          // off-canvas is still laid out, so without this every one of its
+          // ~40 nav links stayed in the tab order and reachable by a screen
+          // reader while the drawer was shut. `invisible` removes it from
+          // both, and `delay` lets the close animation finish first.
           "fixed inset-y-0 start-0 z-50 h-full w-[285px] sm:w-[320px] max-w-[85vw] shadow-2xl md:shadow-none",
+          "max-md:transition-[transform,visibility] max-md:duration-300",
           mobileOpen
-            ? "translate-x-0"
+            ? "translate-x-0 visible"
             : isAr
-            ? "translate-x-full md:translate-x-0"
-            : "-translate-x-full md:translate-x-0"
+            ? "translate-x-full max-md:invisible max-md:delay-300 md:translate-x-0"
+            : "-translate-x-full max-md:invisible max-md:delay-300 md:translate-x-0"
         )}
       >
         {/* ──────────────────────────────────────────────────────────────────────────

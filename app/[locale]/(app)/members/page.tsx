@@ -31,7 +31,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "دليل الملاك والمستأجرين والأعضاء — عقار بوكس"
+      ? "دليل الملاك والمستأجرين والأعضاء — AqarBooks"
       : "Members, Owners & Tenants Directory — AqarBooks",
     description: isAr
       ? "إدارة سجلات الملاك والمستأجرين، ملكيات الوحدات، أرصدة الحسابات، والمطالبات المالية."

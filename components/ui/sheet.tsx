@@ -76,7 +76,12 @@ function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="sheet-footer" className={cn("flex items-center gap-2 border-t p-4", className)} {...props} />
+  return <div data-slot="sheet-footer" className={cn(
+      "flex items-center gap-2 border-t p-4",
+      "max-sm:flex-col-reverse max-sm:items-stretch max-sm:gap-2.5 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))]",
+      "max-sm:[&>*]:w-full max-sm:[&>*]:justify-center",
+      className
+    )} {...props} />
 }
 
 function SheetTitle({ className, ...props }: DialogPrimitive.Title.Props) {

@@ -84,7 +84,7 @@ export function TenantDashboardTabs({
 
         <div className="hidden items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 md:flex">
           <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
-          <span className="font-bold">{isAr ? "منظومة عقار بوكس المحاسبية" : "AqarBooks Financial Suite"}</span>
+          <span className="font-bold">{isAr ? "منظومة AqarBooks المحاسبية" : "AqarBooks Financial Suite"}</span>
         </div>
       </div>
 

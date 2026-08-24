@@ -13,7 +13,16 @@ function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={cn("relative flex gap-1 border-b", className)}
+      className={cn(
+        // A finance screen routinely carries 5-8 tabs. At 320px that rail is
+        // wider than the viewport, and without an explicit scroll container
+        // the overflow escapes to the document and scrolls the whole page
+        // sideways. Scrolling it here keeps every tab reachable and the page
+        // itself fixed. `scrollbar-none` because a visible bar under a tab
+        // rail reads as a broken border.
+        "relative flex gap-1 border-b overflow-x-auto scrollbar-none [&>*]:shrink-0",
+        className
+      )}
       {...props}
     />
   )
@@ -24,7 +33,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "relative px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground data-active:text-foreground",
+        "relative px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none transition-colors touch:min-h-11 hover:text-foreground data-active:text-foreground",
         className
       )}
       {...props}

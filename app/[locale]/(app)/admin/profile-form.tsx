@@ -76,7 +76,7 @@ const JURISDICTION_COUNTRY_MAP: Record<
 
 const BRAND_PALETTES = [
   { nameAr: "كحلي ملكي", nameEn: "Royal Navy", hex: "#1E1B4B" },
-  { nameAr: "بنفسجي عقار بوكس", nameEn: "AqarBooks Purple", hex: "#7C3AED" },
+  { nameAr: "بنفسجي AqarBooks", nameEn: "AqarBooks Purple", hex: "#7C3AED" },
   { nameAr: "أزرق ياقوتي", nameEn: "Sapphire Blue", hex: "#2563EB" },
   { nameAr: "زمردي فاخر", nameEn: "Emerald Green", hex: "#059669" },
   { nameAr: "ذهبي دافئ", nameEn: "Warm Gold", hex: "#B45309" },
@@ -696,7 +696,7 @@ export function ProfileForm({
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
                   <h4 className="font-black text-sm" style={{ color: brandColor }}>
-                    {name || (isAr ? "عقار بوكس" : "AqarBooks")}
+                    {name || "AqarBooks"}
                   </h4>
                   <p className="text-[10px] text-slate-500">{tagline}</p>
                 </div>

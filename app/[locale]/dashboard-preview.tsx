@@ -33,8 +33,8 @@ export function DashboardPreview({ isAr }: { isAr: boolean }) {
           </div>
         ))}
       </div>
-      <div className="p-4">
-        <table className="w-full text-start text-sm">
+      <div className="overflow-x-auto scrollbar-none p-4">
+        <table className="w-full min-w-[26rem] text-start text-sm">
           <thead>
             <tr className="text-[11px] text-[var(--mk-text-muted)]">
               <th className="pb-2 text-start font-medium">{isAr ? "الوحدة" : "Unit"}</th>

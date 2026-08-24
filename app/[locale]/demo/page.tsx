@@ -13,9 +13,9 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "طلب عرض توضيحي | عقار بوكس (AqarBooks)" : "Request a Demo | AqarBooks",
+    title: isAr ? "طلب عرض توضيحي | AqarBooks" : "Request a Demo | AqarBooks",
     description: isAr
-      ? "تواصل مع خبرائنا المحاسبيين لتحديد موعد عرض عملي لنظام عقار بوكس على واقع كيانك العقاري."
+      ? "تواصل مع خبرائنا المحاسبيين لتحديد موعد عرض عملي لنظام AqarBooks على واقع كيانك العقاري."
       : "Schedule a specialized real-estate accounting walkthrough with our product specialists.",
     robots: { index: false, follow: true },
   };
@@ -31,7 +31,7 @@ export default async function DemoPage({
   const isAr = locale === "ar";
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#1A3C2E]/20 selection:text-[#1A3C2E]">
+    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#07425d]/20 selection:text-[#07425d]">
       <MarketingNav locale={locale as Locale} />
 
       <main className="relative flex flex-1 items-center justify-center px-6 py-16 lg:py-24">
@@ -40,7 +40,7 @@ export default async function DemoPage({
 
         <div className="relative w-full max-w-2xl">
           <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#1A3C2E]/20 bg-[#1A3C2E]/5 px-3.5 py-1 text-xs font-bold text-[#1A3C2E] mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3.5 py-1 text-xs font-bold text-[#07425d] mb-4">
               <Building2 className="size-3.5" />
               <span>{isAr ? "جلسة استشارية محاسبية متخصصة" : "Specialized Accounting Walkthrough"}</span>
             </div>

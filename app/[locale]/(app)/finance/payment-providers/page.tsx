@@ -37,7 +37,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "بوابات الدفع الإلكتروني والتحصيل — عقار بوكس"
+      ? "بوابات الدفع الإلكتروني والتحصيل — AqarBooks"
       : "Payment Gateways & Digital Collection — AqarBooks",
     description: isAr
       ? "إدارة وربط بوابات الدفع الرقمي (فوري، باي موب، فيزا، ماستركارد، ومحافظ إلكترونية) لتحصيل الإيجارات والمطالبات آلياً."

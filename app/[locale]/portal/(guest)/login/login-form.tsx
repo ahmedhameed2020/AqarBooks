@@ -379,7 +379,7 @@ export function LoginForm({
 
       <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400">
         <ShieldCheck className="size-3.5 text-emerald-500" />
-        <span>{isAr ? "اتصال مؤمَّن ومشفّر عبر عقار بوكس" : "Secured & encrypted by AqarBooks"}</span>
+        <span>{isAr ? "اتصال مؤمَّن ومشفّر عبر AqarBooks" : "Secured & encrypted by AqarBooks"}</span>
       </div>
     </div>
   );

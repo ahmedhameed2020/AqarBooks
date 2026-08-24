@@ -176,7 +176,7 @@ export function AccountClient({
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-                  {profile?.full_name || (isAr ? "مستخدم عقار بوكس" : "AqarBooks User")}
+                  {profile?.full_name || (isAr ? "مستخدم AqarBooks" : "AqarBooks User")}
                 </h1>
                 <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 text-[10px] font-bold">
                   {isPlatformAdmin ? (isAr ? "مسؤول النظام العام" : "Platform Admin") : userRole || (isAr ? "مالك المنشأة" : "Owner")}

@@ -20,8 +20,8 @@ export function SectionPropertyDimension({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1A3C2E]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#1A3C2E]/10 text-[10px]">03</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">03</span>
             <span>{isAr ? "أبعد من رقم الحساب" : "BEYOND AN ACCOUNT NUMBER"}</span>
           </div>
 
@@ -75,13 +75,13 @@ export function SectionPropertyDimension({ locale }: { locale: Locale }) {
                   key={step.level}
                   className={`rounded-2xl p-4 transition-all border flex items-center justify-between gap-4 ${
                     isTarget
-                      ? "bg-white border-[#1A3C2E] shadow-md ring-2 ring-[#1A3C2E]/15"
+                      ? "bg-white border-[#07425d] shadow-md ring-2 ring-[#07425d]/15"
                       : "bg-white/80 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-2xs"
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
                     <span className={`font-mono text-xs font-black size-7 rounded-xl flex items-center justify-center ${
-                      isTarget ? "bg-[#1A3C2E] text-white" : "bg-slate-100 text-slate-600"
+                      isTarget ? "bg-[#07425d] text-white" : "bg-slate-100 text-slate-600"
                     }`}>
                       {step.level}
                     </span>

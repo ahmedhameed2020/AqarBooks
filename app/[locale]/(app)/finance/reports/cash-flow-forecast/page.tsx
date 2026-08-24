@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "تقرير توقعات التدفق النقدي والسيولة المستقبلية (Cash Forecast) — عقار بوكس"
+      ? "تقرير توقعات التدفق النقدي والسيولة المستقبلية (Cash Forecast) — AqarBooks"
       : "Cash Flow Forecast & Liquidity Projection — AqarBooks",
     description: isAr
       ? "تخطيط استباقي للسيولة المالية لـ 30 و 60 و 90 يوماً القادمة عبر نمذجة الشيكات، الإيجارات، وفواتير الموردين."

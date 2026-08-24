@@ -14,9 +14,9 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "شروط الخدمة | عقار بوكس" : "Terms of Service | AqarBooks",
+    title: isAr ? "شروط الخدمة | AqarBooks" : "Terms of Service | AqarBooks",
     description: isAr
-      ? "الشروط التي تحكم استخدامك لمنصة عقار بوكس المحاسبية."
+      ? "الشروط التي تحكم استخدامك لمنصة AqarBooks المحاسبية."
       : "The terms that govern your use of the AqarBooks accounting platform.",
   };
 }
@@ -29,7 +29,7 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <p>
-            تحكم هذه الشروط استخدامك لمنصة عقار بوكس (AqarBooks)، وهي منصة محاسبية لإدارة
+            تحكم هذه الشروط استخدامك لمنصة AqarBooks، وهي منصة محاسبية لإدارة
             العقارات والمنتجعات واتحادات الملاك. بفتحك حسابًا أو باستخدامك المنصة، فإنك توافق
             على هذه الشروط.
           </p>
@@ -108,7 +108,7 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <p>
-            يوفّر عقار بوكس أدوات حسابية وتقارير، من بينها احتساب ضريبة القيمة المضافة وضرائب
+            يوفّر AqarBooks أدوات حسابية وتقارير، من بينها احتساب ضريبة القيمة المضافة وضرائب
             الخصم والتحصيل والجاهزية للفوترة الإلكترونية. غير أن المنصة{" "}
             <strong>ليست بديلًا عن محاسب قانوني أو مستشار ضريبي أو محامٍ</strong>.
           </p>

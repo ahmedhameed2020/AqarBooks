@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "سجل التدقيق والحركات الملغاة ومكافحة التلاعب — عقار بوكس"
+      ? "سجل التدقيق والحركات الملغاة ومكافحة التلاعب — AqarBooks"
       : "Audit Trail & Anti-Fraud Governance Report — AqarBooks",
     description: isAr
       ? "كشف رقابي وحوكمة للتدقيق المالي: تتبع السندات الملغاة، القيود العكسية، وتعديلات الفواتير مع توثيق الأسباب والمستخدمين."

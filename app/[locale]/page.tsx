@@ -22,7 +22,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "عقار بوكس (AqarBooks) | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
+    ? "AqarBooks | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
     : "AqarBooks | Enterprise Real Estate & Resort Accounting ERP";
   const description = isAr
     ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية واتحادات الملاك بقيد مزدوج حقيقي. متوافق مع منظومة الضرائب والفوترة الإلكترونية."
@@ -39,7 +39,7 @@ export async function generateMetadata({
       title,
       description,
       url: siteUrl,
-      siteName: isAr ? "عقار بوكس (AqarBooks)" : "AqarBooks ERP",
+      siteName: isAr ? "AqarBooks" : "AqarBooks ERP",
       locale: isAr ? "ar_EG" : "en_US",
       type: "website",
       images: [
@@ -47,7 +47,7 @@ export async function generateMetadata({
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: isAr ? "عقار بوكس — المحاسبة التي تفهم العقار" : "AqarBooks Real Estate Accounting ERP",
+          alt: isAr ? "AqarBooks — المحاسبة التي تفهم العقار" : "AqarBooks Real Estate Accounting ERP",
           type: "image/jpeg",
         },
       ],
@@ -82,12 +82,12 @@ export default async function LandingPage({
     applicationCategory: "Accounting & Real Estate ERP",
     operatingSystem: "Web",
     description: isAr
-      ? "نظام عقار بوكس المحاسبي المتكامل لإدارة العقارات والمنتجعات واتحادات الملاك بقيد مزدوج حقيقي ومطابقة ضريبية."
+      ? "نظام AqarBooks المحاسبي المتكامل لإدارة العقارات والمنتجعات واتحادات الملاك بقيد مزدوج حقيقي ومطابقة ضريبية."
       : "AqarBooks Enterprise Double-Entry Real Estate & Resort Accounting ERP.",
   };
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#1A3C2E]/20 selection:text-[#1A3C2E]">
+    <div className="relative flex min-h-full flex-1 flex-col bg-white text-slate-900 selection:bg-[#07425d]/20 selection:text-[#07425d]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

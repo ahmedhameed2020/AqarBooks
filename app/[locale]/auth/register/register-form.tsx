@@ -218,8 +218,8 @@ export function RegisterForm({ locale }: { locale: string }) {
           onClick={() => setAcceptTerms((v) => !v)}
           className={`hit-target mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer ${
             acceptTerms
-              ? "border-[#1A3C2E] bg-[#1A3C2E] text-white"
-              : "border-slate-300 bg-white hover:border-[#1A3C2E]/60"
+              ? "border-[#07425d] bg-[#07425d] text-white"
+              : "border-slate-300 bg-white hover:border-[#07425d]/60"
           }`}
         >
           {acceptTerms && <Check className="size-3" strokeWidth={3} />}
@@ -234,7 +234,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             href="/terms"
             locale={locale as Locale}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-[#1A3C2E] hover:underline"
+            className="font-bold text-[#07425d] hover:underline"
           >
             {isAr ? "شروط الخدمة" : "Terms of Service"}
           </Link>
@@ -243,7 +243,7 @@ export function RegisterForm({ locale }: { locale: string }) {
             href="/privacy"
             locale={locale as Locale}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-[#1A3C2E] hover:underline"
+            className="font-bold text-[#07425d] hover:underline"
           >
             {isAr ? "سياسة الخصوصية وحماية البيانات" : "Privacy Policy"}
           </Link>
@@ -255,7 +255,7 @@ export function RegisterForm({ locale }: { locale: string }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white shadow-md shadow-[#1A3C2E]/20 hover:bg-[#132d22] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+          className="w-full rounded-xl bg-[#07425d] py-3 text-sm font-bold text-white shadow-md shadow-[#07425d]/20 hover:bg-[#053247] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -278,7 +278,7 @@ export function RegisterForm({ locale }: { locale: string }) {
           <Link
             href="/login"
             locale={locale as Locale}
-            className="font-bold text-[#1A3C2E] hover:underline"
+            className="font-bold text-[#07425d] hover:underline"
           >
             {isAr ? "تسجيل الدخول" : "Sign in"}
           </Link>

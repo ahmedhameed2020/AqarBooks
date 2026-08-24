@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "ميزان المراجعة بالمجاميع والأرصدة — عقار بوكس"
+      ? "ميزان المراجعة بالمجاميع والأرصدة — AqarBooks"
       : "Trial Balance Statement — AqarBooks",
     description: isAr
       ? "كشف شامل لأرصدة وحركات الحسابات المحاسبية مع فحص التوازن والتصدير للـ PDF والإكسل."

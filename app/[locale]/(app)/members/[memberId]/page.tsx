@@ -56,7 +56,7 @@ export async function generateMetadata({
   const { locale, memberId } = await params;
   const isAr = locale === "ar";
   return {
-    title: isAr ? "الملف المالي للمالك والعقارات | عقار بوكس" : "Owner & Property Portfolio | AqarBooks",
+    title: isAr ? "الملف المالي للمالك والعقارات | AqarBooks" : "Owner & Property Portfolio | AqarBooks",
   };
 }
 

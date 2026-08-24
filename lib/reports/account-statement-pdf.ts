@@ -297,7 +297,7 @@ ${rowsHtml}
   }
 
   <div class="report-footer">
-    <div>${isAr ? `عقار بوكس لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
+    <div>${isAr ? `AqarBooks لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>
     <div>${isAr ? "كشف حساب رسمي · صادر آليًا من النظام" : "Official Account Statement · Generated Systematically"}</div>
   </div>
 

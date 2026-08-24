@@ -14,8 +14,8 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-violet-700">
-            <span className="flex size-5 items-center justify-center rounded-full bg-violet-100 text-[10px]">08</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#7e1898]">
+            <span className="flex size-5 items-center justify-center rounded-full bg-[#7e1898]/10 text-[10px]">08</span>
             <span>{isAr ? "ذكاء تحت السيطرة" : "INTELLIGENCE UNDER CONTROL"}</span>
           </div>
 
@@ -23,12 +23,12 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             {isAr ? (
               <>
                 الذكاء يقترح. <br className="hidden sm:inline" />
-                <span className="text-[#1A3C2E]">دفاترك لا تخمّن.</span>
+                <span className="text-[#07425d]">دفاترك لا تخمّن.</span>
               </>
             ) : (
               <>
                 AI proposes. <br className="hidden sm:inline" />
-                <span className="text-[#1A3C2E]">Your ledgers never guess.</span>
+                <span className="text-[#07425d]">Your ledgers never guess.</span>
               </>
             )}
           </h2>
@@ -41,16 +41,16 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
 
           {/* Proof Points */}
           <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 text-violet-900 px-2.5 py-1 border border-violet-200 shadow-2xs">
-              <Sparkles className="size-3.5 text-violet-600" />
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 text-purple-900 px-2.5 py-1 border border-purple-200 shadow-2xs">
+              <Sparkles className="size-3.5 text-[#7e1898]" />
               <span>{isAr ? "AI يقترح" : "AI Proposes"}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-900 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <ShieldCheck className="size-3.5 text-[#1A3C2E]" />
+              <ShieldCheck className="size-3.5 text-[#07425d]" />
               <span>{isAr ? "المحرك يتحقق" : "Core Validates"}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 text-emerald-900 px-2.5 py-1 border border-emerald-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 text-sky-900 px-2.5 py-1 border border-sky-200 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
               <span>{isAr ? "الإنسان يعتمد" : "Human Approves"}</span>
             </span>
           </div>
@@ -63,7 +63,7 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             onClick={() => setActiveExp("ocr")}
             className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeExp === "ocr"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -75,7 +75,7 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             onClick={() => setActiveExp("recon")}
             className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeExp === "recon"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -87,7 +87,7 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             onClick={() => setActiveExp("copilot")}
             className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeExp === "copilot"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -99,7 +99,7 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             onClick={() => setActiveExp("ask")}
             className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeExp === "ask"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -111,7 +111,7 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             onClick={() => setActiveExp("dunning")}
             className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeExp === "dunning"
-                ? "bg-[#1A3C2E] text-white shadow-sm"
+                ? "bg-[#07425d] text-white shadow-sm"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >

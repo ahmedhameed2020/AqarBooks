@@ -67,7 +67,7 @@ export function generateFinancialStatementPdf(
   const storedTagline = typeof window !== "undefined" ? localStorage.getItem("aqarbooks_tagline") : null;
   const storedLogo = typeof window !== "undefined" ? localStorage.getItem("aqarbooks_logo_url") : null;
 
-  const safeOrgName = escapeHtml(organizationName || "عقار بوكس");
+  const safeOrgName = escapeHtml(organizationName || "AqarBooks");
   const safeTitle = escapeHtml(title);
   const safeSubtitle = subtitle ? escapeHtml(subtitle) : "";
   const safeDateRange = escapeHtml(dateRangeLabel);
@@ -678,7 +678,7 @@ export function generateFinancialStatementPdf(
 
   <!-- FOOTER -->
   <div class="footer-bar">
-    <div>${isAr ? "تم استخراج هذا التقرير آلياً من منظومة عقار بوكس المحاسبية" : "Generated automatically via AqarBooks Financial Engine"}</div>
+    <div>${isAr ? "تم استخراج هذا التقرير آلياً من منظومة AqarBooks المحاسبية" : "Generated automatically via AqarBooks Financial Engine"}</div>
     <div>${isAr ? "تاريخ ووقت الطباعة:" : "Printed at:"} ${printTime}</div>
   </div>
 

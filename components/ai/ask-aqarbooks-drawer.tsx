@@ -90,7 +90,7 @@ export function AskAqarBooksDrawer({
           className="h-12 px-4.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-bold text-xs shadow-xl hover:shadow-2xl hover:scale-105 transition-all gap-2 cursor-pointer border border-white/20"
         >
           <Sparkles className="size-4.5 animate-pulse" />
-          <span>{isAr ? "اسأل عقار بوكس ✨" : "Ask AqarBooks ✨"}</span>
+          <span>{isAr ? "اسأل AqarBooks ✨" : "Ask AqarBooks ✨"}</span>
         </Button>
       </div>
 
@@ -106,7 +106,7 @@ export function AskAqarBooksDrawer({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-black text-slate-900 dark:text-white">
-                    {isAr ? "اسأل عقار بوكس" : "Ask AqarBooks"}
+                    {isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}
                   </h2>
                   <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 text-[10px] font-bold py-0">
                     Verified Grounding
@@ -182,7 +182,7 @@ export function AskAqarBooksDrawer({
 
                     {/* Key Metrics Chips */}
                     {item.response.keyMetrics && item.response.keyMetrics.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
                         {item.response.keyMetrics.map((m, mIdx) => (
                           <div
                             key={mIdx}

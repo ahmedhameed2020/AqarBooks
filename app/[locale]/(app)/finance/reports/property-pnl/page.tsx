@@ -16,7 +16,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "قائمة أرباح وخسائر العقارات والمنتجعات (Property P&L) — عقار بوكس"
+      ? "قائمة أرباح وخسائر العقارات والمنتجعات (Property P&L) — AqarBooks"
       : "Property-Level Profit & Loss Statement — AqarBooks",
     description: isAr
       ? "تحليل الربحية التشغيلية وصافي الدخل التشغيلي (NOI) وهوامش الربح لكل منتجع ومشروع عقاري بشكل مستقل."

@@ -36,6 +36,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
             src="/images/aqarbooks-hero.jpg"
             alt="AqarBooks Real Estate & Property Accounting System"
             fill
+            sizes="(min-width: 1280px) 640px, (min-width: 1024px) 50vw, 100vw"
             className="object-cover"
             priority
           />

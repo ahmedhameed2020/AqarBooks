@@ -15,7 +15,7 @@ export async function generateMetadata({
   const isAr = locale === "ar";
   return {
     title: isAr
-      ? "إدارة الحساب الشخصي والأمان — عقار بوكس"
+      ? "إدارة الحساب الشخصي والأمان — AqarBooks"
       : "User Account & Security Settings — AqarBooks",
     description: isAr
       ? "إدارة الملف الشخصي، كلمة المرور، أمان الجلسات، وتفضيلات الإشعارات والتنبيهات."

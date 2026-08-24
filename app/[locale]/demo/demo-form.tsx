@@ -132,7 +132,7 @@ export function DemoForm({ locale }: { locale: string }) {
       <Button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-[#1A3C2E] py-3 text-sm font-bold text-white hover:bg-[#132d22] transition-all shadow-md shadow-[#1A3C2E]/20"
+        className="w-full rounded-xl bg-[#07425d] py-3 text-sm font-bold text-white hover:bg-[#053247] transition-all shadow-md shadow-[#07425d]/20"
       >
         {pending ? (isAr ? "جاري الإرسال..." : "Sending Request...") : (
           <span className="flex items-center justify-center gap-2">
