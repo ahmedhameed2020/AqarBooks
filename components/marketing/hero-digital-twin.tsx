@@ -71,8 +71,8 @@ const UNITS_DATA: UnitProfile[] = [
     baseAmount: 25000,
     vatAmount: 3500,
     totalAmount: 28500,
-    taxMetaAr: "فاتورة إلكترونية معتمدة ETA UUID: c89e4-8f12",
-    taxMetaEn: "ETA E-Invoice Verified UUID: c89e4-8f12",
+    taxMetaAr: "رقم المستند: INV-2026-001248",
+    taxMetaEn: "Document reference: INV-2026-001248",
     journalLines: [
       { side: "dr", titleAr: "مدين: الصندوق والبنك التجاري", titleEn: "Dr: Treasury & Operating Bank", code: "10101-01", amountNumber: 28500 },
       { side: "cr", titleAr: "دائن: إيرادات صيانة وتشغيل العقار", titleEn: "Cr: Property Operations Revenue", code: "40101-02", amountNumber: 25000 },
@@ -101,8 +101,8 @@ const UNITS_DATA: UnitProfile[] = [
     baseAmount: 105263,
     vatAmount: 14737,
     totalAmount: 120000,
-    taxMetaAr: "مطابقة ضريبية ZATCA / ETA معتمدة",
-    taxMetaEn: "Tax Compliant ZATCA / ETA Active",
+    taxMetaAr: "تهيئة ضريبية مطبقة — ضريبة القيمة المضافة 14%",
+    taxMetaEn: "Tax configuration applied — VAT 14%",
     journalLines: [
       { side: "dr", titleAr: "مدين: بنك مصر - الحساب الجاري", titleEn: "Dr: Current Bank Account", code: "10201-02", amountNumber: 120000 },
       { side: "cr", titleAr: "دائن: إيراد تأجير مساحات تجارية", titleEn: "Cr: Commercial Rental Revenue", code: "40201-01", amountNumber: 105263 },

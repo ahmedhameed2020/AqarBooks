@@ -7,15 +7,21 @@ import { LogoMark } from "@/components/marketing/logo-mark";
 import { Menu, X, ArrowUpRight } from "lucide-react";
 
 const NAV_LINKS = [
-  { href: "#story", labelAr: "القصة المالية", labelEn: "The Story" },
-  { href: "#engine", labelAr: "المحرك المحاسبي", labelEn: "Accounting Engine" },
-  { href: "#follow-money", labelAr: "تتبع الحركة", labelEn: "Follow the Money" },
-  { href: "#operating-ledger", labelAr: "سجل التشغيل", labelEn: "Operating Ledger" },
-  { href: "#audit", labelAr: "الرقابة والتدقيق", labelEn: "Control & Audit" },
-  { href: "#reports", labelAr: "التقارير", labelEn: "Reports" },
-  { href: "#ai-layer", labelAr: "طبقة الذكاء", labelEn: "AI Intelligence" },
-  { href: "#entities", labelAr: "الهياكل العقارية", labelEn: "Entity Structures" },
+  { href: "/#story", labelAr: "القصة المالية", labelEn: "The Story" },
+  { href: "/#engine", labelAr: "المحرك المحاسبي", labelEn: "Accounting Engine" },
+  { href: "/#follow-money", labelAr: "تتبع الحركة", labelEn: "Follow the Money" },
+  { href: "/#operating-ledger", labelAr: "سجل التشغيل", labelEn: "Operating Ledger" },
+  { href: "/#audit", labelAr: "الرقابة والتدقيق", labelEn: "Control & Audit" },
+  { href: "/#reports", labelAr: "التقارير", labelEn: "Reports" },
+  { href: "/#ai-layer", labelAr: "طبقة الذكاء", labelEn: "AI Intelligence" },
+  { href: "/#entities", labelAr: "الهياكل العقارية", labelEn: "Entity Structures" },
 ] as const;
+
+const NAV_LINK_CLASS =
+  "relative text-xs font-bold text-slate-600 transition-colors hover:text-[#07425d] py-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-start after:scale-x-0 after:bg-[#07425d] after:transition-transform hover:after:scale-x-100";
+
+const MOBILE_NAV_LINK_CLASS =
+  "rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#07425d] transition-colors";
 
 export function MarketingNav({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
@@ -39,12 +45,12 @@ export function MarketingNav({ locale }: { locale: Locale }) {
       }`}
     >
       <div
-        className={`mx-auto flex max-w-7xl items-center justify-between px-6 transition-all duration-300 ${
+        className={`mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 transition-all duration-300 xl:gap-6 ${
           scrolled ? "py-3" : "py-4"
         }`}
       >
         {/* Logo & Brand Identity */}
-        <Link href="/" locale={locale} className="flex items-center gap-3 group">
+        <Link href="/" locale={locale} className="flex shrink-0 items-center gap-3 group">
           <LogoMark className="size-11 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
@@ -62,20 +68,24 @@ export function MarketingNav({ locale }: { locale: Locale }) {
         </Link>
 
         {/* Editorial Desktop Navigation */}
-        <nav className="hidden items-center gap-5.5 lg:flex">
+        <nav className="hidden items-center gap-4 lg:flex xl:gap-5.5">
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              className="relative text-xs font-bold text-slate-600 transition-colors hover:text-[#07425d] py-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-start after:scale-x-0 after:bg-[#07425d] after:transition-transform hover:after:scale-x-100"
+              locale={locale}
+              className={NAV_LINK_CLASS}
             >
               {isAr ? link.labelAr : link.labelEn}
-            </a>
+            </Link>
           ))}
+          <Link href="/pricing" locale={locale} className={NAV_LINK_CLASS}>
+            {isAr ? "الأسعار" : "Pricing"}
+          </Link>
         </nav>
 
         {/* Action Controls */}
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden shrink-0 items-center gap-3 lg:flex">
           <Link
             href={pathname}
             locale={isAr ? "en" : "ar"}
@@ -117,15 +127,24 @@ export function MarketingNav({ locale }: { locale: Locale }) {
         <div className="border-b border-slate-200 bg-white/98 px-6 pt-3 pb-6 backdrop-blur-xl lg:hidden">
           <nav className="flex flex-col gap-2.5 pb-4">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
+                locale={locale}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#07425d] transition-colors"
+                className={MOBILE_NAV_LINK_CLASS}
               >
                 {isAr ? link.labelAr : link.labelEn}
-              </a>
+              </Link>
             ))}
+            <Link
+              href="/pricing"
+              locale={locale}
+              onClick={() => setOpen(false)}
+              className={MOBILE_NAV_LINK_CLASS}
+            >
+              {isAr ? "الأسعار" : "Pricing"}
+            </Link>
           </nav>
           <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between gap-3">

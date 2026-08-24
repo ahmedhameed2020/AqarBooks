@@ -12,6 +12,7 @@ import { SectionFinancialControl } from "@/components/marketing/section-financia
 import { SectionFinancialReports } from "@/components/marketing/section-financial-reports";
 import { SectionAiLayer } from "@/components/marketing/section-ai-layer";
 import { SectionEntityTypes } from "@/components/marketing/section-entity-types";
+import { SectionPricingTeaser } from "@/components/marketing/section-pricing-teaser";
 import { SectionFinalCta } from "@/components/marketing/section-final-cta";
 
 export async function generateMetadata({
@@ -25,7 +26,7 @@ export async function generateMetadata({
     ? "AqarBooks | محاسبة عقارية بذكاء — النظام المالي السحابي لإدارة الكيانات العقارية"
     : "AqarBooks | Smart Real Estate Accounting — Enterprise Cloud ERP";
   const description = isAr
-    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع الامتثال الكامل للفواتير الإلكترونية والضرائب."
+    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع تهيئة ضريبية ودعم متطلبات الفواتير وفق نطاق النظام."
     : "Smart double-entry accounting ERP built natively for real estate portfolios, compounds, towers, resorts, and HOAs.";
 
   const siteUrl = `https://aqarbooks.com/${locale}`;
@@ -127,7 +128,10 @@ export default async function LandingPage({
         {/* 11. Section 09: Built for Real-Estate Entities */}
         <SectionEntityTypes locale={locale as Locale} />
 
-        {/* 12. Section 10: Final Editorial CTA & Clean Footer */}
+        {/* 12. Section 10: Founding Program pricing teaser -> /pricing */}
+        <SectionPricingTeaser locale={locale as Locale} />
+
+        {/* 13. Section 11: Final Editorial CTA & Clean Footer */}
         <SectionFinalCta locale={locale as Locale} />
       </main>
     </div>

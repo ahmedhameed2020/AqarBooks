@@ -25,7 +25,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
           <div className="flex items-center gap-2 text-xs">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 px-3 py-1 font-mono text-[11px] font-bold text-emerald-300 border border-emerald-500/40">
               <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {isAr ? "قيد مزدوج معتمد (Atomic Ledger)" : "Double-Entry Live"}
+              {isAr ? "قيد مزدوج حقيقي (Atomic Ledger)" : "Double-Entry Live"}
             </span>
           </div>
         </div>
@@ -84,7 +84,7 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
                 {isAr ? "مصر ودول الخليج" : "Egypt & GCC Ready"}
               </p>
               <p className="text-xs font-extrabold text-white">
-                {isAr ? "VAT 14%/15% + ZATCA" : "VAT & ZATCA Ready"}
+                {isAr ? "VAT 14%/15% + WHT" : "VAT & WHT Handling"}
               </p>
             </div>
           </div>
@@ -101,8 +101,8 @@ export function HeroVisual({ isAr }: { isAr: boolean }) {
                 <p className="text-xs font-bold text-blue-300 mt-0.5">{isAr ? "5 أنواع عقارية" : "5 Entity Types"}</p>
               </div>
               <div className="border-e border-slate-700/60 last:border-0 pe-2">
-                <p className="text-[10px] text-slate-400">{isAr ? "الضرائب المعتمدة" : "Tax Compliance"}</p>
-                <p className="text-xs font-bold text-emerald-300 mt-0.5">{isAr ? "VAT & WHT & ZATCA" : "Egypt & GCC Tax"}</p>
+                <p className="text-[10px] text-slate-400">{isAr ? "التهيئة الضريبية" : "Tax Configuration"}</p>
+                <p className="text-xs font-bold text-emerald-300 mt-0.5">{isAr ? "VAT & WHT" : "Egypt & GCC Tax"}</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400">{isAr ? "العملات المدعومة" : "Currencies"}</p>
