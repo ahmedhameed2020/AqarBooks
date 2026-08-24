@@ -19,40 +19,48 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
             <span>{isAr ? "ذكاء تحت السيطرة" : "INTELLIGENCE UNDER CONTROL"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
+          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
             {isAr ? (
               <>
-                الذكاء يقترح. <br className="hidden sm:inline" />
-                <span className="text-[#07425d]">دفاترك لا تخمّن.</span>
+                الذكاء الاصطناعي يقترح. المحاسبة تدقق. <br className="hidden sm:inline" />
+                <span className="text-[#07425d]">والمسؤولية تظل بشرية.</span>
               </>
             ) : (
               <>
-                AI proposes. <br className="hidden sm:inline" />
-                <span className="text-[#07425d]">Your ledgers never guess.</span>
+                AI proposes. Accounting validates. <br className="hidden sm:inline" />
+                <span className="text-[#07425d]">Humans remain accountable.</span>
               </>
             )}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "يقرأ AqarBooks المستندات، يكتشف الأنماط ويقترح الخطوة التالية — لكن الأرقام لا تُترك للنموذج. الحساب والتحقق والصلاحيات والاعتماد تظل داخل المحرك المحاسبي وتحت سيطرة فريقك."
-              : "AqarBooks reads documents, detects patterns, and proposes next steps — but numbers are never left to a model. Statutory calculation, validation, permissions, and posting stay firmly inside the core under your team's control."}
+              ? "يقرأ AqarBooks الفواتير والمطابقات البنكية ويقترح القيود — لكن الأرقام لا تُترك للنموذج. المحرك المحاسبي يتحقق من التوازن، والصلاحيات تلزم موافقة المحاسب المعتمد قبل الترحيل النهائي."
+              : "AqarBooks reads invoices, suggests reconciliations, and drafts journals — but numbers are never left to a model. The accounting core validates balance, and human authority approves every post."}
           </p>
 
-          {/* Proof Points */}
-          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 text-purple-900 px-2.5 py-1 border border-purple-200 shadow-2xs">
-              <Sparkles className="size-3.5 text-[#7e1898]" />
-              <span>{isAr ? "AI يقترح" : "AI Proposes"}</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-900 px-2.5 py-1 border border-slate-200 shadow-2xs">
-              <ShieldCheck className="size-3.5 text-[#07425d]" />
-              <span>{isAr ? "المحرك يتحقق" : "Core Validates"}</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 text-sky-900 px-2.5 py-1 border border-sky-200 shadow-2xs">
-              <CheckCircle2 className="size-3.5 text-[#1b60b9]" />
-              <span>{isAr ? "الإنسان يعتمد" : "Human Approves"}</span>
-            </span>
+          {/* 5-Step Visual Governance Chain */}
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs font-mono font-bold">
+            <div className="rounded-xl p-2.5 bg-purple-50 text-[#7e1898] border border-purple-200 shadow-2xs">
+              <span className="text-[10px] text-purple-400 block">01 · ASSISTANT</span>
+              <span>AI Proposal</span>
+            </div>
+            <div className="rounded-xl p-2.5 bg-sky-50 text-[#07425d] border border-sky-200 shadow-2xs">
+              <span className="text-[10px] text-sky-400 block">02 · CORE</span>
+              <span>Accounting Core</span>
+            </div>
+            <div className="rounded-xl p-2.5 bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-400 block">03 · RULES</span>
+              <span>Policy Validation</span>
+            </div>
+            <div className="rounded-xl p-2.5 bg-[#07425d] text-white border border-[#07425d] shadow-2xs">
+              <span className="text-[10px] text-sky-300 block">04 · MAKER-CHECKER</span>
+              <span>Human Approval</span>
+            </div>
+            <div className="col-span-2 sm:col-span-1 rounded-xl p-2.5 bg-emerald-50 text-emerald-900 border border-emerald-300 shadow-2xs">
+              <span className="text-[10px] text-emerald-500 block">05 · AUDIT</span>
+              <span>Posted Entry ✓</span>
+            </div>
           </div>
         </div>
 
