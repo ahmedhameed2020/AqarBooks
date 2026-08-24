@@ -31,8 +31,8 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
             {/* Subtitle */}
             <p className="mt-4 text-base sm:text-lg text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
               {isAr
-                ? "من الوحدة إلى القيد، ومن التحصيل إلى القوائم المالية — كل شيء مترابط، قابل للتتبع، ومحكوم محاسبيًا."
-                : "From unit to journal, and collection to financial statements — everything interlinked, traceable, and strictly governed."}
+                ? "الوحدة، المالك، التحصيل، المصروف، القيد والتقرير المالي — في منظومة واحدة تحفظ العلاقة بين العقار والمال."
+                : "Unit, member, collection, expense, journal entry, and financial reports — in a unified platform preserving the bond between real estate and finance."}
             </p>
 
             {/* Action Buttons */}
