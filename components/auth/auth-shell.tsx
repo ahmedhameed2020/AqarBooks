@@ -60,7 +60,7 @@ export function AuthShell({
               locale={locale as Locale}
               className="mb-4 inline-flex items-center gap-2.5 lg:hidden"
             >
-              <LogoMark className="size-8.5" />
+              <LogoMark className="size-10.5" />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-black tracking-tight text-slate-950 font-heading">

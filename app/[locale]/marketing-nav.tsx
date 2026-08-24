@@ -45,7 +45,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
       >
         {/* Logo & Brand Identity */}
         <Link href="/" locale={locale} className="flex items-center gap-3 group">
-          <LogoMark className="size-9.5 transition-transform group-hover:scale-105" />
+          <LogoMark className="size-11 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-base font-black tracking-tight text-slate-950 font-heading">

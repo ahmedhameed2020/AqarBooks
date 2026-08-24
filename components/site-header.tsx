@@ -77,7 +77,7 @@ export function SiteHeader({
         </button>
 
         <Link href="/" locale={locale} className="flex items-center gap-2.5 group">
-          <LogoMark className="size-8.5 transition-transform group-hover:scale-105" />
+          <LogoMark className="size-10 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-black tracking-tight text-slate-950 dark:text-white font-heading">

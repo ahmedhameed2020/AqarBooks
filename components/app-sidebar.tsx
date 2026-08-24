@@ -152,14 +152,14 @@ function NavRow({
                     className={cn(
                       "flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
                       subActive
-                        ? "text-purple-300 font-bold bg-purple-600/20"
+                        ? "text-sky-200 font-bold bg-[#07425d]/80 border border-[#1b60b9]/40"
                         : "text-slate-300 hover:bg-white/10 hover:text-white"
                     )}
                   >
                     <span
                       className={cn(
                         "size-1.5 rounded-full shrink-0",
-                        subActive ? "bg-purple-400" : "bg-slate-500"
+                        subActive ? "bg-sky-400" : "bg-slate-500"
                       )}
                     />
                     <span className="truncate">{isAr ? sub.labelAr : sub.labelEn}</span>
@@ -180,7 +180,7 @@ function NavRow({
         <span
           className={cn(
             "absolute inset-y-1.5 start-0 w-0.5 rounded-e-full transition-opacity",
-            isActive ? "bg-purple-500 opacity-100" : "opacity-0"
+            isActive ? "bg-[#1b60b9] opacity-100" : "opacity-0"
           )}
         />
         <Link
@@ -189,11 +189,11 @@ function NavRow({
           className={cn(
             "flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all",
             isActive
-              ? "bg-purple-600/15 text-purple-300 font-bold shadow-2xs"
+              ? "bg-[#07425d] text-white font-bold shadow-xs border border-[#1b60b9]/30"
               : "text-sidebar-foreground/75 hover:bg-white/[0.06] hover:text-white"
           )}
         >
-          <span className={cn("shrink-0", isActive ? "text-purple-400" : "text-sidebar-foreground/55")}>
+          <span className={cn("shrink-0", isActive ? "text-sky-300" : "text-sidebar-foreground/55")}>
             {item.icon}
           </span>
           <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
@@ -254,14 +254,14 @@ function NavRow({
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors",
                       subActive
-                        ? "text-purple-300 font-bold bg-purple-600/10"
+                        ? "text-sky-200 font-bold bg-[#07425d]/70 border border-[#1b60b9]/30"
                         : "text-sidebar-foreground/65 hover:text-white hover:bg-white/[0.04]"
                     )}
                   >
                     <span
                       className={cn(
                         "size-1.5 shrink-0 rounded-full",
-                        subActive ? "bg-purple-400" : "bg-sidebar-foreground/35"
+                        subActive ? "bg-sky-400" : "bg-sidebar-foreground/35"
                       )}
                     />
                     <span className="truncate">{isAr ? sub.labelAr : sub.labelEn}</span>
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <aside
         className={cn(
-          "flex shrink-0 flex-col bg-[#060a18] text-sidebar-foreground border-e border-sidebar-border/40 overflow-hidden transition-all duration-300 ease-in-out",
+          "flex shrink-0 flex-col bg-gradient-to-b from-[#052636] via-[#041d28] to-[#02131b] text-sidebar-foreground border-e border-[#07425d]/40 overflow-hidden transition-all duration-300 ease-in-out",
           // Desktop (Sticky beside main)
           "md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start md:translate-x-0 md:z-30",
           isCollapsed ? "md:w-[68px]" : "md:w-[260px]",
@@ -511,7 +511,7 @@ export function AppSidebar({
                     className={cn(
                       "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer truncate",
                       activeWorkspace?.key === w.key
-                        ? "bg-purple-600 text-white shadow-xs"
+                        ? "bg-[#07425d] text-white shadow-xs border border-[#1b60b9]/40"
                         : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
                     )}
                   >
@@ -558,7 +558,7 @@ export function AppSidebar({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={isAr ? "بحث في النظام..." : "Search..."}
-              className="h-8.5 w-full rounded-xl border border-sidebar-border/60 bg-white/[0.04] ps-8 pe-12 text-xs text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none transition-colors focus:border-purple-500/60 focus:bg-white/[0.07]"
+              className="h-8.5 w-full rounded-xl border border-sidebar-border/60 bg-white/[0.04] ps-8 pe-12 text-xs text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none transition-colors focus:border-[#1b60b9]/80 focus:bg-white/[0.07]"
             />
             {query ? (
               <button
@@ -609,11 +609,11 @@ export function AppSidebar({
                       className={cn(
                         "flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all",
                         active
-                          ? "bg-purple-600/15 font-bold text-purple-300"
+                          ? "bg-[#07425d] font-bold text-white shadow-xs border border-[#1b60b9]/30"
                           : "text-sidebar-foreground/75 hover:bg-white/[0.06] hover:text-white",
                       )}
                     >
-                      <span className={cn("shrink-0", active ? "text-purple-400" : "text-sidebar-foreground/55")}>
+                      <span className={cn("shrink-0", active ? "text-sky-300" : "text-sidebar-foreground/55")}>
                         {item.icon}
                       </span>
                       <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
@@ -694,25 +694,25 @@ export function AppSidebar({
       {/* ──────────────────────────────────────────────────────────────────────────
           UPGRADED USER FOOTER CARD
           ────────────────────────────────────────────────────────────────────────── */}
-      <div className="border-t border-sidebar-border/40 bg-black/20 p-2.5">
+      <div className="border-t border-[#07425d]/40 bg-[#02131b]/60 p-2.5">
         {!isCollapsed ? (
           <div className="space-y-2">
             {/* User Profile Info Card */}
             <Link
               href="/account"
               locale={locale}
-              className="flex items-center gap-3 rounded-2xl p-2 transition-all bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.05] group"
+              className="flex items-center gap-3 rounded-2xl p-2 transition-all bg-white/[0.03] hover:bg-[#07425d]/40 border border-white/[0.06] group"
             >
               {/* Dynamic Avatar */}
-              <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-xs font-black text-white shadow-sm">
+              <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#07425d] to-[#1b60b9] text-xs font-black text-white shadow-sm">
                 <span>{userInitials}</span>
-                <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 border border-[#060a18]" />
+                <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 border border-[#041d28]" />
               </div>
 
               {/* User details */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="truncate text-xs font-bold text-white group-hover:text-purple-300 transition-colors">
+                  <p className="truncate text-xs font-bold text-white group-hover:text-sky-200 transition-colors">
                     {userDisplayName}
                   </p>
                 </div>
@@ -720,7 +720,7 @@ export function AppSidebar({
                   {userProfile?.email || "user@aqarbooks.com"}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[10px] text-purple-400 font-bold bg-purple-950/80 px-1.5 py-0.2 rounded border border-purple-800/60">
+                  <span className="text-[10px] text-sky-200 font-bold bg-[#07425d] px-1.5 py-0.2 rounded border border-[#1b60b9]/50">
                     {userProfile?.isSuperAdmin ? (isAr ? "مسؤول عام" : "Admin") : userProfile?.role || (isAr ? "مالك" : "Owner")}
                   </span>
                   {userProfile?.orgName && (
@@ -737,9 +737,9 @@ export function AppSidebar({
               <Link
                 href="/account"
                 locale={locale}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sidebar-border/60 bg-white/[0.04] py-1.5 text-[11px] font-bold text-sidebar-foreground hover:bg-white/[0.08] hover:text-white transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sidebar-border/60 bg-white/[0.04] py-1.5 text-[11px] font-bold text-sidebar-foreground hover:bg-[#07425d]/60 hover:text-white transition-colors"
               >
-                <Settings className="size-3.5 text-purple-400" />
+                <Settings className="size-3.5 text-sky-400" />
                 <span>{isAr ? "حسابي والأمان" : "Account"}</span>
               </Link>
 
@@ -763,10 +763,10 @@ export function AppSidebar({
               href="/account"
               locale={locale}
               title={`${userDisplayName} (${userProfile?.email}) - ${isAr ? "إعدادات الحساب" : "Account Settings"}`}
-              className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-xs font-black text-white shadow-sm hover:scale-105 transition-transform"
+              className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#07425d] to-[#1b60b9] text-xs font-black text-white shadow-sm hover:scale-105 transition-transform"
             >
               <span>{userInitials}</span>
-              <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 border border-[#060a18]" />
+              <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-emerald-500 border border-[#041d28]" />
             </Link>
 
             {signOutAction && (

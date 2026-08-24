@@ -68,7 +68,7 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
         <footer className="mt-20 pt-10 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-8 text-xs text-slate-600">
           <div className="md:col-span-5 space-y-3">
             <div className="flex items-center gap-2.5">
-              <LogoMark className="size-8.5" />
+              <LogoMark className="size-10.5" />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-black text-slate-950 font-heading">
