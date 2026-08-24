@@ -449,14 +449,18 @@ export function RolesClient({
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
+            <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{isAr ? "تعيينات نشطة" : "Active Assignments"}</div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="flex items-center justify-between text-muted-foreground text-xs font-bold">
               <span>{isAr ? "مستوى الحوكمة والرقابة" : "Security Posture"}</span>
-              <ShieldCheck className="size-4 text-indigo-600 dark:text-indigo-400" />
+              <ShieldCheck className="size-4 text-indigo-600" />
             </div>
-            <div className="mt-2 font-mono text-lg font-black text-indigo-600 dark:text-indigo-400">
+            <div className="mt-2 font-mono text-lg font-black text-indigo-600">
               {isAr ? "مشدد (RLS)" : "Strict RLS"}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{isAr ? "فصل المهام المحاسبية" : "Segregation of Duties"}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{isAr ? "فصل المهام المحاسبية" : "Segregation of Duties"}</div>
           </div>
         </div>
       </div>
@@ -466,16 +470,16 @@ export function RolesClient({
           ────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={isAr ? "بحث بالدور أو الرمز النظامي..." : "Search roles by name or key..."}
-            className="ps-9 text-xs h-9 bg-white dark:bg-slate-900"
+            className="ps-9 text-xs h-9 bg-card"
           />
         </div>
 
-        <div className="text-xs font-bold text-slate-500">
+        <div className="text-xs font-bold text-muted-foreground">
           {isAr ? `عرض ${filteredRoles.length} دور وظيفي` : `Showing ${filteredRoles.length} roles`}
         </div>
       </div>
@@ -495,7 +499,7 @@ export function RolesClient({
           return (
             <div
               key={role.id}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+              className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
             >
               <div>
                 {/* ROLE CARD HEADER */}
@@ -504,22 +508,22 @@ export function RolesClient({
                     <div
                       className={`flex size-11 items-center justify-center rounded-2xl ${
                         isOwner
-                          ? "bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400"
+                          ? "bg-primary/10 text-primary"
                           : isAdmin
-                          ? "bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          ? "bg-[#1b60b9]/10 text-[#1b60b9]"
                           : isFinance
-                          ? "bg-emerald-600/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          ? "bg-emerald-600/10 text-emerald-600"
+                          : "bg-muted text-foreground"
                       }`}
                     >
                       <Shield className="size-5" />
                     </div>
                     <div>
-                      <h3 className="font-black text-sm text-slate-950 dark:text-white">
+                      <h3 className="font-black text-sm text-foreground">
                         {isAr ? role.name_ar : role.name_en}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                           {role.key}
                         </span>
                       </div>

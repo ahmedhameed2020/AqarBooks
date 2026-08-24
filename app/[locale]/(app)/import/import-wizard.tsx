@@ -478,20 +478,20 @@ export function ImportWizard({
                 setKind("members");
                 setCustomMappings({});
               }}
-              className={`flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
+              className={`flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer press-feedback motion-control ${
                 kind === "members"
-                  ? "border-purple-600 bg-purple-50/50 dark:bg-purple-950/40 ring-2 ring-purple-500/20"
-                  : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/40"
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border bg-card hover:bg-muted"
               }`}
             >
-              <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600 text-white shrink-0 shadow-sm">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shrink-0 shadow-xs">
                 <Users className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                <span className="text-xs font-black text-foreground block">
                   {isAr ? "الأعضاء والملاك" : "Members & Owners"}
                 </span>
-                <span className="text-[11px] text-slate-400 block truncate">
+                <span className="text-[11px] text-muted-foreground block truncate">
                   {isAr ? "دليل الملاك والمستأجرين والشركات" : "Owners, Tenants, Companies"}
                 </span>
               </div>
@@ -610,18 +610,18 @@ export function ImportWizard({
           4. AI COLUMN MAPPING MATRIX
           ────────────────────────────────────────────────────────────────────────── */}
       {preview && preview.mappings && (
-        <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/30 via-white to-indigo-50/20 p-5 shadow-xs dark:border-purple-900/40 dark:from-purple-950/20 dark:via-slate-900 dark:to-indigo-950/10 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-100 dark:border-purple-900/30">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-4 motion-surface">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
             <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-[#7e1898] text-white shadow-xs">
                 <BrainCircuit className="size-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                  <h2 className="text-sm font-black text-foreground">
                     {isAr ? "مصفوفة التعرف الذكي على الأعمدة (AI Column Mappings)" : "AI Column Mapping Matrix"}
                   </h2>
-                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 text-[10px] font-bold">
+                  <Badge variant="ai" className="text-[10px] font-bold">
                     AqarBooks AI Engine
                   </Badge>
                 </div>

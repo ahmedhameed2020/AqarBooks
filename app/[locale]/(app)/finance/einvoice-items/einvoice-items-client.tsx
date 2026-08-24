@@ -320,7 +320,7 @@ export function EInvoiceItemsClient({
             <Button
               size="sm"
               onClick={openCreateItemDialog}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5 text-xs h-9 shrink-0"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5 text-xs h-9 shrink-0 press-feedback motion-control"
             >
               <Plus className="size-3.5" />
               <span>{isAr ? "إضافة صنف جديد" : "Add Item"}</span>
@@ -578,9 +578,9 @@ export function EInvoiceItemsClient({
           MODAL 1: ADD / EDIT CATALOGUE ITEM
           ────────────────────────────────────────────────────────────────────────── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md motion-surface">
           <DialogHeader>
-            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Package className="size-5" />
             </div>
             <div>
@@ -698,7 +698,7 @@ export function EInvoiceItemsClient({
               <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)} disabled={isItemPending}>
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
-              <Button type="submit" disabled={isItemPending} className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5">
+              <Button type="submit" disabled={isItemPending} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5 press-feedback motion-control">
                 {isItemPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                 <span>{isAr ? "حفظ الصنف" : "Save Item"}</span>
               </Button>

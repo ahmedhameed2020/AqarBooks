@@ -779,19 +779,19 @@ export function EInvoiceClient({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
           <button
             onClick={() => setActiveTab("DECISIONS")}
-            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
               activeTab === "DECISIONS"
-                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
-                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <FileCheck2 className={`size-4 ${activeTab === "DECISIONS" ? "text-white" : "text-purple-600 dark:text-purple-400"}`} />
+            <FileCheck2 className="size-4" />
             <span>{isAr ? "سجل الفواتير والمطالبات الضريبية" : "Tax Invoices Register"}</span>
             <span
               className={`text-[10px] h-5 px-2 rounded-full font-mono font-bold inline-flex items-center justify-center ${
                 activeTab === "DECISIONS"
                   ? "bg-white/20 text-white"
-                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  : "bg-muted text-foreground"
               }`}
             >
               {taxDecisions.length}
@@ -800,19 +800,19 @@ export function EInvoiceClient({
 
           <button
             onClick={() => setActiveTab("NATURES")}
-            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
               activeTab === "NATURES"
-                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
-                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <Scale className={`size-4 ${activeTab === "NATURES" ? "text-white" : "text-blue-600 dark:text-blue-400"}`} />
+            <Scale className="size-4" />
             <span>{isAr ? "دليل تصنيفات الإيراد والقواعد الضريبية" : "Revenue Tax Rules"}</span>
             <span
               className={`text-[10px] h-5 px-2 rounded-full font-mono font-bold inline-flex items-center justify-center ${
                 activeTab === "NATURES"
                   ? "bg-white/20 text-white"
-                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  : "bg-muted text-foreground"
               }`}
             >
               {revenueNatures.length}
@@ -821,13 +821,13 @@ export function EInvoiceClient({
 
           <button
             onClick={() => setActiveTab("GUIDE")}
-            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer press-feedback motion-control ${
               activeTab === "GUIDE"
-                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/20"
-                : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <Zap className={`size-4 ${activeTab === "GUIDE" ? "text-white" : "text-amber-500"}`} />
+            <Zap className="size-4" />
             <span>{isAr ? "دورة حياة الفاتورة والإرشادات" : "Invoicing Lifecycle"}</span>
           </button>
         </div>
@@ -1093,7 +1093,7 @@ export function EInvoiceClient({
                         <Button
                           onClick={() => setIsCreateModalOpen(true)}
                           size="sm"
-                          className="mt-2 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-xl gap-1.5 shadow-sm"
+                          className="mt-2 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl gap-1.5 shadow-sm press-feedback motion-control"
                         >
                           <Plus className="size-3.5" />
                           <span>{isAr ? "إنشاء أول فاتورة إلكترونية الآن" : "Issue First E-Invoice"}</span>
@@ -1113,13 +1113,13 @@ export function EInvoiceClient({
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "NATURES" && (
         <div className="space-y-4">
-          <div className="p-4.5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4.5 rounded-2xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
                 <Scale className="size-4.5" />
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-950 dark:text-white">
+                <h3 className="text-xs sm:text-sm font-black text-foreground">
                   {isAr ? "دليل المعاملات الضريبية للأنشطة العقارية" : "Real Estate Statutory Tax Classification Matrix"}
                 </h3>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400">
@@ -1423,7 +1423,7 @@ export function EInvoiceClient({
                 type="submit"
                 disabled={isPending || !invoiceAmount}
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-sm cursor-pointer"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-xs cursor-pointer press-feedback motion-control"
               >
                 {isPending ? <span>{isAr ? "جاري الإصدار..." : "Issuing..."}</span> : <span>{isAr ? "إصدار وختم الفاتورة فوراً" : "Issue Tax Invoice"}</span>}
               </Button>
@@ -1436,11 +1436,11 @@ export function EInvoiceClient({
           MODAL 2: OFFICIAL TAX INVOICE PREVIEW & 360° ACTIONS (WITH PRINT STYLES)
           ────────────────────────────────────────────────────────────────────────── */}
       <Dialog open={Boolean(viewInvoiceDecision)} onOpenChange={(open) => !open && setViewInvoiceDecision(null)}>
-        <DialogContent className="max-w-2xl rounded-3xl p-6">
+        <DialogContent className="max-w-2xl rounded-3xl p-6 motion-surface">
           <DialogHeader>
-            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center justify-between">
+            <DialogTitle className="text-base font-black text-foreground flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Receipt className="size-5 text-purple-600" />
+                <Receipt className="size-5 text-primary" />
                 <span>{isAr ? "فاتورة ضريبية رسمية معتمدة" : "Statutory Tax Invoice"}</span>
               </div>
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
@@ -1452,42 +1452,42 @@ export function EInvoiceClient({
           {viewInvoiceDecision && (
             <div className="space-y-4 pt-2 text-xs">
               {/* PRINTABLE INVOICE BILLING SHEET */}
-              <div id="printable-tax-invoice" className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-5 space-y-4">
+              <div id="printable-tax-invoice" className="rounded-2xl border border-border bg-card p-5 space-y-4">
                 {/* SELLER & INVOICE META */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-border">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{isAr ? "المورد / المنشأة" : "Seller"}</span>
-                    <h3 className="text-base font-black text-slate-900 dark:text-white">{organizationName}</h3>
-                    <p className="text-slate-500 font-medium">
+                    <span className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">{isAr ? "المورد / المنشأة" : "Seller"}</span>
+                    <h3 className="text-base font-black text-foreground">{organizationName}</h3>
+                    <p className="text-muted-foreground font-medium">
                       {isAr ? "الرقم الضريبي: " : "Tax ID: "}
-                      <strong className="font-mono text-slate-800 dark:text-slate-200">{organizationTaxId || "—"}</strong>
+                      <strong className="font-mono text-foreground">{organizationTaxId || "—"}</strong>
                     </p>
                   </div>
 
                   <div className="text-start sm:text-end space-y-1 font-mono">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">{isAr ? "رقم الفاتورة والقرار" : "Invoice #"}</span>
-                    <p className="font-black text-sm text-purple-600">#{viewInvoiceDecision.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-slate-500 text-[11px]">{isAr ? "تاريخ الإصدار: " : "Date: "}{viewInvoiceDecision.decided_at}</p>
+                    <span className="text-[10px] font-bold text-muted-foreground block uppercase">{isAr ? "رقم الفاتورة والقرار" : "Invoice #"}</span>
+                    <p className="font-black text-sm text-primary">#{viewInvoiceDecision.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="text-muted-foreground text-[11px]">{isAr ? "تاريخ الإصدار: " : "Date: "}{viewInvoiceDecision.decided_at}</p>
                   </div>
                 </div>
 
                 {/* BUYER / UNIT */}
-                <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2 border-b border-slate-200 dark:border-slate-700 text-[11px]">
+                <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2 border-b border-border text-[11px]">
                   <div>
-                    <span className="text-slate-400 block">{isAr ? "العميل / الوحدة المستفيدة:" : "Customer / Unit:"}</span>
-                    <span className="font-black text-slate-900 dark:text-white text-xs">{viewInvoiceDecision.unit_code || `#${viewInvoiceDecision.source_id.slice(0, 8)}`}</span>
+                    <span className="text-muted-foreground block">{isAr ? "العميل / الوحدة المستفيدة:" : "Customer / Unit:"}</span>
+                    <span className="font-black text-foreground text-xs">{viewInvoiceDecision.unit_code || `#${viewInvoiceDecision.source_id.slice(0, 8)}`}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">{isAr ? "المعاملة الضريبية:" : "Tax Nature:"}</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{viewInvoiceDecision.nature_name}</span>
+                    <span className="text-muted-foreground block">{isAr ? "المعاملة الضريبية:" : "Tax Nature:"}</span>
+                    <span className="font-bold text-foreground">{viewInvoiceDecision.nature_name}</span>
                   </div>
                 </div>
 
                 {/* LINE ITEMS TABLE */}
-                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <div className="overflow-hidden rounded-xl border border-border bg-background">
                   <div className="overflow-x-auto scrollbar-thin">
                   <table className="w-full min-w-[34rem] text-xs">
-                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                    <thead className="bg-muted text-foreground font-bold border-b border-border">
                       <tr>
                         <th className="p-2.5 text-start">{isAr ? "البند / البيان" : "Item"}</th>
                         <th className="p-2.5 text-end">{isAr ? "الوعاء الصافي" : "Net Base"}</th>
@@ -1501,8 +1501,8 @@ export function EInvoiceClient({
                         <td className="p-2.5 font-medium">{viewInvoiceDecision.nature_name}</td>
                         <td className="p-2.5 text-end font-mono">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</td>
                         <td className="p-2.5 text-center font-mono font-bold">{viewInvoiceDecision.vat_rate}%</td>
-                        <td className="p-2.5 text-end font-mono text-purple-600 font-bold">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</td>
-                        <td className="p-2.5 text-end font-mono font-black text-slate-900 dark:text-white">{viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}</td>
+                        <td className="p-2.5 text-end font-mono text-primary font-bold">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</td>
+                        <td className="p-2.5 text-end font-mono font-black text-foreground">{viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1512,26 +1512,26 @@ export function EInvoiceClient({
                 {/* TOTALS SUMMARY */}
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="size-13 rounded-xl border border-slate-200 bg-white p-1.5 flex items-center justify-center dark:border-slate-700 dark:bg-slate-800">
-                      <QrCode className="size-10 text-slate-800 dark:text-slate-200" />
+                    <div className="size-13 rounded-xl border border-border bg-card p-1.5 flex items-center justify-center">
+                      <QrCode className="size-10 text-foreground" />
                     </div>
-                    <span className="text-[10px] text-slate-400 max-w-[150px] leading-tight">
+                    <span className="text-[10px] text-muted-foreground max-w-[150px] leading-tight">
                       {isAr ? "رمز التحقق والختم الضريبي الرقمي المعتمد" : "Compliant Statutory QR Stamp"}
                     </span>
                   </div>
 
                   <div className="space-y-1 text-end">
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[11px] text-muted-foreground">
                       {isAr ? "الصافي: " : "Net: "}
                       <span className="font-mono font-bold">{viewInvoiceDecision.taxable_base.toLocaleString()} {currencyLabel}</span>
                     </div>
-                    <div className="text-[11px] text-purple-600 font-bold">
+                    <div className="text-[11px] text-muted-foreground font-bold">
                       {isAr ? "الضريبة: " : "VAT: "}
-                      <span className="font-mono">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</span>
+                      <span className="font-mono text-primary">{viewInvoiceDecision.vat_amount.toLocaleString()} {currencyLabel}</span>
                     </div>
-                    <div className="text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
+                    <div className="text-sm font-black text-foreground pt-1 border-t border-border">
                       {isAr ? "الإجمالي النهائي: " : "Gross Total: "}
-                      <span className="font-mono text-purple-700 dark:text-purple-400 font-extrabold">
+                      <span className="font-mono text-primary font-extrabold">
                         {viewInvoiceDecision.gross_amount.toLocaleString()} {currencyLabel}
                       </span>
                     </div>
@@ -1540,14 +1540,14 @@ export function EInvoiceClient({
               </div>
 
               {/* ACTION TOOLBAR: 360° ACTIONS */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
                 <div className="flex items-center gap-1.5">
                   {/* WHATSAPP */}
                   <Button
                     onClick={() => handleShareInvoiceWhatsApp(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl gap-1.5"
+                    className="h-8.5 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl gap-1.5 press-feedback motion-control"
                   >
                     <MessageCircle className="size-3.5" />
                     <span>{isAr ? "واتساب" : "WhatsApp"}</span>
@@ -1558,7 +1558,7 @@ export function EInvoiceClient({
                     onClick={() => handleShareInvoiceEmail(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl gap-1.5"
+                    className="h-8.5 text-xs font-bold border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl gap-1.5 press-feedback motion-control"
                   >
                     <Mail className="size-3.5" />
                     <span>{isAr ? "إيميل" : "Email"}</span>
@@ -1569,7 +1569,7 @@ export function EInvoiceClient({
                     onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
                     variant="outline"
                     size="sm"
-                    className="h-8.5 text-xs font-bold border-rose-200 text-rose-700 hover:bg-rose-50 rounded-xl gap-1.5"
+                    className="h-8.5 text-xs font-bold border-border text-foreground hover:bg-muted rounded-xl gap-1.5 press-feedback motion-control"
                   >
                     <Download className="size-3.5" />
                     <span>{isAr ? "تحميل PDF" : "PDF"}</span>
@@ -1581,7 +1581,7 @@ export function EInvoiceClient({
                     variant="outline"
                     size="sm"
                     onClick={() => setViewInvoiceDecision(null)}
-                    className="text-xs font-bold h-8.5 rounded-xl"
+                    className="text-xs font-bold h-8.5 rounded-xl press-feedback motion-control"
                   >
                     {isAr ? "إغلاق" : "Close"}
                   </Button>
@@ -1589,7 +1589,7 @@ export function EInvoiceClient({
                   <Button
                     onClick={() => handleExportSingleInvoicePdf(viewInvoiceDecision)}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8.5 px-4 gap-1.5 rounded-xl shadow-sm cursor-pointer"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-8.5 px-4 gap-1.5 rounded-xl shadow-xs cursor-pointer press-feedback motion-control"
                   >
                     <Printer className="size-3.5" />
                     <span>{isAr ? "طباعة الفاتورة" : "Print Invoice"}</span>

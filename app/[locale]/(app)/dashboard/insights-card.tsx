@@ -1,6 +1,7 @@
 import { Sparkles, AlertTriangle, CheckCircle2, FileText, ArrowRightLeft, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { Badge } from "@/components/ui/badge";
 
 interface InsightsCardProps {
   collectionRate: number | null;
@@ -114,41 +115,41 @@ export function InsightsCard({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/70 via-white to-white p-5 shadow-xs dark:border-purple-900/50 dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900">
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
+    <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-xs motion-surface">
+      <div className="flex items-center justify-between border-b border-border/80 pb-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-xs">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-[#7e1898] text-white shadow-xs">
             <Sparkles className="size-4.5" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+            <h3 className="text-sm font-extrabold text-foreground">
               {isAr ? "الملخص التنفيذي والرؤى المباشرة" : "Executive Insights & Financial Digest"}
             </h3>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-medium text-muted-foreground">
               {isAr ? "تحليل مباشر استناداً لأحدث البيانات المحاسبية المسجلة" : "Real-time analysis based on active financial logs"}
             </p>
           </div>
         </div>
-        <span className="rounded-full bg-purple-100 text-purple-800 px-3 py-1 text-xs font-bold dark:bg-purple-950 dark:text-purple-300">
+        <Badge variant="ai" className="px-2.5 py-0.5 text-xs font-bold">
           {isAr ? "تحديث مباشر" : "Live Feed"}
-        </span>
+        </Badge>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {insights.slice(0, 4).map((item, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-purple-300 dark:border-slate-800 dark:bg-slate-900"
+            className="flex items-start gap-3 rounded-xl border border-border/80 bg-background p-4 shadow-xs transition-colors hover:border-primary/40"
           >
             <div className="mt-0.5 shrink-0">{item.icon}</div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white">{item.title}</h4>
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{item.description}</p>
+              <h4 className="text-xs font-bold text-foreground">{item.title}</h4>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
               {item.actionHref && (
                 <Link
                   href={item.actionHref}
                   locale={locale}
-                  className="mt-2 inline-flex items-center text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:underline"
+                  className="mt-2 inline-flex items-center text-xs font-bold text-primary hover:underline"
                 >
                   {item.actionLabel} →
                 </Link>

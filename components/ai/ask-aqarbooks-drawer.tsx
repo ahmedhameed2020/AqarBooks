@@ -82,37 +82,37 @@ export function AskAqarBooksDrawer({
 
   return (
     <>
-      {/* Floating Sparkles Trigger Button */}
+      {/* Floating Trigger Button (Restrained & Authoritative) */}
       <div className="fixed bottom-6 end-6 z-40">
         <Button
           type="button"
           onClick={() => setOpen(!open)}
-          className="h-12 px-4.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-bold text-xs shadow-xl hover:shadow-2xl hover:scale-105 transition-all gap-2 cursor-pointer border border-white/20"
+          className="h-11 px-4 rounded-full bg-[#07425d] hover:bg-[#053247] text-white font-bold text-xs shadow-lg hover:shadow-xl transition-all gap-2 cursor-pointer border border-white/15 press-feedback motion-control"
         >
-          <Sparkles className="size-4.5 animate-pulse" />
-          <span>{isAr ? "اسأل AqarBooks ✨" : "Ask AqarBooks ✨"}</span>
+          <Sparkles className="size-4 text-purple-300" />
+          <span>{isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}</span>
         </Button>
       </div>
 
       {/* Side Drawer Panel */}
       {open && (
-        <div className="fixed inset-y-0 end-0 z-50 w-full sm:w-[460px] bg-white dark:bg-slate-950 border-s border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+        <div className="fixed inset-y-0 end-0 z-50 w-full sm:w-[460px] bg-background border-s border-border shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200 motion-surface">
           {/* Header */}
-          <div className="p-4.5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-purple-50/70 via-white to-indigo-50/50 dark:from-purple-950/30 dark:via-slate-950 dark:to-indigo-950/20 flex items-center justify-between">
+          <div className="p-4.5 border-b border-border bg-card flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-purple-600 text-white shadow-md">
-                <Sparkles className="size-5" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-[#7e1898] text-white shadow-xs">
+                <Sparkles className="size-4.5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                  <h2 className="text-sm font-black text-foreground">
                     {isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}
                   </h2>
-                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 text-[10px] font-bold py-0">
+                  <Badge variant="ai" className="text-[10px] font-bold py-0">
                     Verified Grounding
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-muted-foreground">
                   {isAr ? "إجابات مالية موثقة من بيانات منشأتك الحقيقية" : "Verified financial answers from your core ledger"}
                 </p>
               </div>
@@ -123,7 +123,7 @@ export function AskAqarBooksDrawer({
               variant="ghost"
               size="sm"
               onClick={() => setOpen(false)}
-              className="size-8 p-0 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+              className="size-8 p-0 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X className="size-4" />
             </Button>

@@ -592,9 +592,9 @@ export function PostInvoiceDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-5 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <DialogHeader className="p-5 pb-3 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <FileText className="size-5" />
             </div>
             <div>
@@ -611,17 +611,17 @@ export function PostInvoiceDialog({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <DialogBody className="p-5 space-y-4 overflow-y-auto flex-1">
             {/* AI Document Scanner Bar */}
-            <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/40 via-white to-indigo-50/30 p-3.5 shadow-xs dark:border-purple-900/40 dark:from-purple-950/20 dark:via-slate-900 dark:to-indigo-950/20 space-y-2.5">
+            <div className="rounded-2xl border border-[#7e1898]/20 bg-[#7e1898]/5 p-3.5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-purple-600 text-white shadow-xs">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-[#7e1898] text-white shadow-xs">
                     <Sparkles className="size-3.5" />
                   </div>
                   <div>
-                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                    <span className="text-xs font-black text-foreground">
                       {isAr ? "الماسح الذكي للفواتير (AI OCR Capture)" : "AI Invoice OCR Scanner"}
                     </span>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-muted-foreground">
                       {isAr ? "استخراج تلقائي للأرقام والمورد والضرائب مع كشف التكرار" : "Auto-extract fields & detect duplicates"}
                     </p>
                   </div>
@@ -632,7 +632,7 @@ export function PostInvoiceDialog({
                   size="sm"
                   variant="outline"
                   onClick={() => setShowAiPaste(!showAiPaste)}
-                  className="h-7 text-xs font-bold rounded-lg border-purple-200 hover:bg-purple-50 dark:border-purple-800 text-purple-700 dark:text-purple-300 gap-1 cursor-pointer"
+                  className="h-7 text-xs font-bold rounded-lg border-[#7e1898]/30 hover:bg-[#7e1898]/10 text-[#7e1898] gap-1 cursor-pointer press-feedback motion-control"
                 >
                   <FileText className="size-3" />
                   <span>{showAiPaste ? (isAr ? "إغلاق" : "Close") : (isAr ? "لصق نص / OCR الفاتورة" : "Paste Invoice Text")}</span>
@@ -640,20 +640,20 @@ export function PostInvoiceDialog({
               </div>
 
               {showAiPaste && (
-                <div className="space-y-2 pt-2 border-t border-purple-100 dark:border-purple-900/30">
+                <div className="space-y-2 pt-2 border-t border-[#7e1898]/20">
                   <textarea
                     rows={3}
                     value={rawTextPaste}
                     onChange={(e) => setRawTextPaste(e.target.value)}
                     placeholder={isAr ? "انسخ والصق نص الفاتورة أو بياناتها هنا..." : "Paste raw invoice text or OCR output here..."}
-                    className="w-full p-2.5 rounded-xl border border-purple-200 bg-white text-xs font-mono dark:border-purple-900 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="w-full p-2.5 rounded-xl border border-border bg-background text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <Button
                     type="button"
                     size="sm"
                     disabled={isScanningAi || !rawTextPaste.trim()}
                     onClick={() => handleProcessAiOcr(rawTextPaste)}
-                    className="w-full h-8 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white gap-1.5 cursor-pointer"
+                    className="w-full h-8 text-xs font-bold rounded-xl bg-[#7e1898] hover:bg-[#6a1480] text-white gap-1.5 cursor-pointer press-feedback motion-control shadow-xs"
                   >
                     <Sparkles className={`size-3.5 ${isScanningAi ? "animate-spin" : ""}`} />
                     <span>{isScanningAi ? (isAr ? "جاري الاستخراج بالذكاء الاصطناعي..." : "Extracting...") : (isAr ? "استخراج وتعبئة الحقول آلياً" : "Extract & Auto-Fill")}</span>
@@ -935,7 +935,7 @@ export function PostInvoiceDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !supplierId || !invoiceNumber.trim() || net <= 0} className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5">
+            <Button type="submit" disabled={isPending || !supplierId || !invoiceNumber.trim() || net <= 0} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5 press-feedback motion-control">
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
               <span>{isAr ? "ترحيل الفاتورة بالدفاتر" : "Post Invoice"}</span>
             </Button>

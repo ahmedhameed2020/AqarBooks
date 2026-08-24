@@ -535,7 +535,7 @@ export function SuppliersClient({
 
           <Button
             onClick={() => setPostInvoiceOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-1.5 h-9 shadow-xs press-feedback motion-control"
           >
             <Plus className="size-3.5" />
             <span>{isAr ? "ترحيل فاتورة" : "Post Invoice"}</span>

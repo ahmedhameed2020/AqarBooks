@@ -138,7 +138,7 @@ export function SiteHeader({
               setShowNotifications(false);
             }}
             size="sm"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-8 px-3 rounded-xl shadow-xs gap-1"
+            className="text-xs font-bold h-8 px-3.5 rounded-xl shadow-xs gap-1.5 press-feedback"
           >
             <Plus className="size-3.5" />
             <span className="hidden sm:inline">{isAr ? "إجراء سريع" : "Quick Action"}</span>
@@ -147,9 +147,9 @@ export function SiteHeader({
           {showQuickCreate && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute end-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 z-50 animate-in fade-in zoom-in-95 duration-100"
+              className="absolute end-0 top-full mt-2 w-56 rounded-2xl border border-border/80 bg-popover p-2 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100 motion-surface"
             >
-              <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
                 {isAr ? "إنشاء معاملة جديدة" : "Create New"}
               </div>
 
@@ -158,7 +158,7 @@ export function SiteHeader({
                   href="/finance/payments"
                   locale={locale}
                   onClick={() => setShowQuickCreate(false)}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-foreground hover:bg-accent/15 hover:text-primary transition-colors"
                 >
                   <Receipt className="size-4 text-emerald-600" />
                   <span>{isAr ? "إصدار سند قبض وتحصيل" : "New Receipt Voucher"}</span>
@@ -168,9 +168,9 @@ export function SiteHeader({
                   href="/finance/journals"
                   locale={locale}
                   onClick={() => setShowQuickCreate(false)}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-foreground hover:bg-accent/15 hover:text-primary transition-colors"
                 >
-                  <Scale className="size-4 text-purple-600" />
+                  <Scale className="size-4 text-[#1b60b9]" />
                   <span>{isAr ? "تسجيل قيد يومية محاسبي" : "New Journal Entry"}</span>
                 </Link>
 

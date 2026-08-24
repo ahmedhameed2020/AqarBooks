@@ -27,36 +27,36 @@ const ENTITY_TYPES = [
     labelAr: "منتجع / قرية سياحية",
     labelEn: "Resort Complex",
     icon: Building2,
-    activeCls: "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20",
-    idleCls: "bg-slate-50/80 hover:bg-purple-50 text-slate-700 hover:text-purple-700 border-slate-200 hover:border-purple-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-    iconColor: "text-purple-600 dark:text-purple-400",
+    activeCls: "bg-primary text-primary-foreground border-primary shadow-xs",
+    idleCls: "bg-card hover:bg-muted text-foreground border-border",
+    iconColor: "text-primary",
   },
   {
     id: "building",
     labelAr: "عمارة / برج سكني",
     labelEn: "Residential Tower",
     icon: Building,
-    activeCls: "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20",
-    idleCls: "bg-slate-50/80 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200 hover:border-blue-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    activeCls: "bg-[#1b60b9] text-white border-[#1b60b9] shadow-xs",
+    idleCls: "bg-card hover:bg-muted text-foreground border-border",
+    iconColor: "text-[#1b60b9]",
   },
   {
     id: "residential_unit",
     labelAr: "فيلا / وحدة خاصة",
     labelEn: "Private Villa",
     icon: Home,
-    activeCls: "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20",
-    idleCls: "bg-slate-50/80 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 hover:border-emerald-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    activeCls: "bg-emerald-600 text-white border-emerald-600 shadow-xs",
+    idleCls: "bg-card hover:bg-muted text-foreground border-border",
+    iconColor: "text-emerald-600",
   },
   {
     id: "commercial_unit",
     labelAr: "محل / مركز تجاري",
     labelEn: "Commercial Retail",
     icon: Store,
-    activeCls: "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20",
-    idleCls: "bg-slate-50/80 hover:bg-amber-50 text-slate-700 hover:text-amber-700 border-slate-200 hover:border-amber-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    activeCls: "bg-amber-600 text-white border-amber-600 shadow-xs",
+    idleCls: "bg-card hover:bg-muted text-foreground border-border",
+    iconColor: "text-amber-600",
   },
 ] as const;
 
@@ -92,17 +92,17 @@ export function CreateResortForm({
   );
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600 text-white shadow-sm shadow-purple-600/20">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
             <Building className="size-5" />
           </div>
           <div>
-            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-base font-extrabold text-foreground">
               {isAr ? "إضافة كيان عقاري جديد" : "Register New Property Entity"}
             </h2>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-medium text-muted-foreground">
               {isAr
                 ? "إضافة قرية سياحية، برج سكني، فيلا خاصة، مول تجاري، أو اتحاد ملاك"
                 : "Add a resort, residential tower, private villa, commercial mall, or HOA entity"}
@@ -113,10 +113,10 @@ export function CreateResortForm({
         <Button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
-          className={`gap-2 font-bold cursor-pointer transition-all ${
+          className={`gap-2 font-bold cursor-pointer press-feedback motion-control ${
             isOpen
-              ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-              : "bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-600/25"
+              ? "bg-muted text-foreground hover:bg-muted/80"
+              : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
           }`}
           size="sm"
         >

@@ -66,23 +66,23 @@ export function ExecutiveFinancialInsightsCard({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-purple-200/70 bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/40 p-5 shadow-xs dark:border-purple-900/40 dark:from-purple-950/20 dark:via-slate-900 dark:to-indigo-950/20">
+    <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-5 shadow-xs motion-surface">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-sm">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-[#7e1898] text-white shadow-xs">
             <Sparkles className="size-4.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
+              <h2 className="text-sm font-black tracking-tight text-foreground">
                 {isAr ? "التحليل السردي المالي الذكي" : "AqarBooks Financial Intelligence"}
               </h2>
-              <span className="rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+              <Badge variant="ai" className="text-[10px] font-bold py-0.5">
                 AI CFO
-              </span>
+              </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-muted-foreground">
               {isAr ? "تحليل قطعي للأرقام المحاسبية والتغيرات المالية" : "Executive narrative based on verified accounting numbers"}
             </p>
           </div>
@@ -96,9 +96,9 @@ export function ExecutiveFinancialInsightsCard({
             size="sm"
             onClick={fetchInsights}
             disabled={loading}
-            className="h-8 gap-1.5 text-xs font-bold rounded-xl border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950/50 cursor-pointer"
+            className="h-8 gap-1.5 text-xs font-bold rounded-xl border-border/80 hover:bg-muted press-feedback motion-control cursor-pointer"
           >
-            <RefreshCw className={`size-3.5 text-purple-600 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-3.5 text-[#7e1898] ${loading ? "animate-spin" : ""}`} />
             <span>{insight ? (isAr ? "تحديث التحليل" : "Refresh") : (isAr ? "توليد التحليل الذكي" : "Generate Insight")}</span>
           </Button>
           {insight && (

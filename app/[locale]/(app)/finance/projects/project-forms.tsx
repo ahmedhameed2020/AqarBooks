@@ -571,7 +571,7 @@ export function ReleaseForm({
             <Button
               type="submit"
               disabled={pending || projects.length === 0}
-              className="rounded-xl bg-purple-600 text-xs font-bold text-white hover:bg-purple-700 cursor-pointer"
+              className="rounded-xl bg-primary hover:bg-primary/90 text-xs font-bold text-primary-foreground cursor-pointer press-feedback motion-control"
             >
               {pending ? (isAr ? "جارٍ التحويل..." : "Posting...") : isAr ? "تحرير إلى تكلفة المبيعات" : "Release Cost"}
             </Button>

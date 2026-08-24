@@ -834,7 +834,7 @@ export function UsersClient({
                 onClick={handleConfirmRoleChange}
                 disabled={isPending}
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-9 px-5 gap-1.5 shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-9 px-5 gap-1.5 shadow-xs press-feedback motion-control"
               >
                 {isPending ? (
                   <span>{isAr ? "جاري التحديث..." : "Updating..."}</span>

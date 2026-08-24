@@ -738,7 +738,7 @@ export function ProfileForm({
           <Button
             type="submit"
             disabled={pending}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 text-xs h-11 px-6 rounded-xl shadow-sm transition-all active:scale-98 cursor-pointer"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 text-xs h-11 px-6 rounded-xl shadow-xs press-feedback motion-control cursor-pointer"
           >
             {pending ? <RefreshCw className="size-4 animate-spin" /> : <Save className="size-4" />}
             <span>{isAr ? "حفظ كافة التغييرات والربط التلقائي" : "Save Settings & Sync"}</span>

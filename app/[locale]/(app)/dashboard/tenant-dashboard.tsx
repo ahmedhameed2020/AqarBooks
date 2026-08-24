@@ -570,16 +570,16 @@ export async function TenantDashboard({
   return (
     <div className="space-y-6">
       {/* Executive Hero Banner Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400">
-              <Calendar className="size-3.5" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <Calendar className="size-3.5 text-primary" />
               <span>{greeting}</span>
               <span>·</span>
               <span>{dateLabel}</span>
             </div>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
               {organization.name}
             </h1>
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
@@ -589,12 +589,12 @@ export async function TenantDashboard({
                   <span>{isAr ? "الفترة المالية الفعالة" : "Active Period"}: {currentPeriod.name}</span>
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 font-bold text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300">
-                <Scale className="size-3.5 text-purple-600" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 font-bold text-foreground border border-border">
+                <Scale className="size-3.5 text-muted-foreground" />
                 <span>{isAr ? `العملة: ${currency}` : `Currency: ${currency}`}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 font-bold text-blue-800 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300">
-                <ShieldCheck className="size-3.5 text-blue-600" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 font-bold text-sky-800 border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300">
+                <ShieldCheck className="size-3.5 text-sky-600" />
                 <span>{isAr ? "عزل مشفر (RLS 100%)" : "Tenant Isolated"}</span>
               </span>
             </div>

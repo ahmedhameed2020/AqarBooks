@@ -419,9 +419,9 @@ export function TaxMappingClient({
           MODAL: MAP REVENUE NATURE DIALOG
           ────────────────────────────────────────────────────────────────────────── */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md motion-surface">
           <DialogHeader>
-            <div className="flex size-10 items-center justify-center rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Scale className="size-5" />
             </div>
             <div>
@@ -490,7 +490,7 @@ export function TaxMappingClient({
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isPending}>
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
-              <Button type="submit" disabled={isPending || !editNature} className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5">
+              <Button type="submit" disabled={isPending || !editNature} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5 press-feedback motion-control">
                 {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
                 <span>{isAr ? "حفظ وتحديث الربط" : "Save Mapping"}</span>
               </Button>

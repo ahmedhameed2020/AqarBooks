@@ -65,33 +65,38 @@
 }
 
 :root {
-  /* App-shell theme: light, data-dense content area + a dark-navy sidebar,
-     both keyed off the same ocean-blue accent as the marketing site (see
-     .marketing below) so the product feels like one brand end to end. */
+  /* Core Brand Tokens */
+  --brand-primary: #07425d;
+  --brand-primary-hover: #053247;
+  --brand-accent: #1b60b9;
+  --ai-primary: #7e1898;
+  --ai-primary-hover: #6a1480;
+
+  /* App-shell theme: light, data-dense content area + petrol navy sidebar */
   --background: oklch(0.99 0.002 240);
   --foreground: oklch(0.2 0.02 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 250);
-  --primary: oklch(0.5 0.14 235);
-  --primary-foreground: oklch(0.98 0.005 240);
+  --primary: #07425d;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.95 0.008 240);
   --secondary-foreground: oklch(0.28 0.03 250);
   --muted: oklch(0.96 0.006 240);
   --muted-foreground: oklch(0.5 0.02 250);
   --table-header: oklch(0.93 0.025 235);
-  --accent: oklch(0.94 0.02 235);
-  --accent-foreground: oklch(0.32 0.06 235);
+  --accent: #1b60b9;
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.9 0.008 240);
   --input: oklch(0.9 0.008 240);
-  --ring: oklch(0.62 0.12 235);
-  --chart-1: oklch(0.62 0.13 235);
-  --chart-2: oklch(0.7 0.1 200);
-  --chart-3: oklch(0.75 0.09 85);
-  --chart-4: oklch(0.55 0.03 250);
-  --chart-5: oklch(0.4 0.02 250);
+  --ring: #1b60b9;
+  --chart-1: #07425d;
+  --chart-2: #1b60b9;
+  --chart-3: #7e1898;
+  --chart-4: #059669;
+  --chart-5: #d97706;
   --radius: 0.625rem;
   --sidebar: #041d28;
   --sidebar-foreground: #e2e8f0;
@@ -110,24 +115,24 @@
   --card-foreground: oklch(0.94 0.008 240);
   --popover: oklch(0.2 0.02 250);
   --popover-foreground: oklch(0.94 0.008 240);
-  --primary: oklch(0.64 0.13 235);
-  --primary-foreground: oklch(0.15 0.02 250);
+  --primary: #166b94;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.26 0.02 250);
   --secondary-foreground: oklch(0.94 0.008 240);
   --muted: oklch(0.26 0.02 250);
   --muted-foreground: oklch(0.68 0.02 240);
   --table-header: oklch(0.29 0.035 235);
-  --accent: oklch(0.28 0.03 250);
-  --accent-foreground: oklch(0.94 0.008 240);
+  --accent: #1b60b9;
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.64 0.13 235);
-  --chart-1: oklch(0.64 0.13 235);
-  --chart-2: oklch(0.7 0.1 200);
-  --chart-3: oklch(0.75 0.09 85);
-  --chart-4: oklch(0.6 0.03 250);
-  --chart-5: oklch(0.45 0.02 250);
+  --ring: #1b60b9;
+  --chart-1: #166b94;
+  --chart-2: #1b60b9;
+  --chart-3: #9b28b8;
+  --chart-4: #10b981;
+  --chart-5: #f59e0b;
   --sidebar: #031722;
   --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #1b60b9;
@@ -547,5 +552,45 @@
     translate: -50% -50%;
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* ── Purposeful & Restrained Motion Primitives ────────────────────────── */
+.motion-color {
+  transition: color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-control {
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-surface {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.press-feedback {
+  transition: transform 100ms ease-out;
+}
+.press-feedback:active {
+  transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-color,
+  .motion-control,
+  .motion-surface,
+  .press-feedback,
+  .press-feedback:active {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
   }
 }

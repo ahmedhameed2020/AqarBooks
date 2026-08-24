@@ -147,7 +147,7 @@ export function AiGovernanceClient({
 
           {/* Release Provenance & Cohort Bundle Badges */}
           <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
-            <Badge className="bg-purple-600 text-white font-bold">
+            <Badge className="bg-[#7e1898] text-white font-bold">
               Cohort: {RELEASE_PROVENANCE.bundleId}
             </Badge>
             <Badge variant="outline" className="bg-white/80 dark:bg-slate-900">
