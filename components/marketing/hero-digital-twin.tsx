@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import Image from "next/image";
 import {
   Building2,
@@ -8,8 +8,19 @@ import {
   FileText,
   Receipt,
   BadgeCheck,
+  Pause,
+  Play,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface JournalLine {
+  side: "dr" | "cr";
+  titleAr: string;
+  titleEn: string;
+  code: string;
+  amountNumber: number;
+}
 
 interface UnitProfile {
   id: string;
@@ -22,25 +33,19 @@ interface UnitProfile {
   ownerEn: string;
   floorAr: string;
   floorEn: string;
-  area: string;
+  areaNumber: number;
   pinPosition: { top: string; left: string };
   txRef: string;
   jvRef: string;
   txTypeAr: string;
   txTypeEn: string;
-  amountNumber: number;
-  amountFormatted: string;
-  vatAmountFormatted: string;
-  totalFormatted: string;
+  baseAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+  isTaxExempt?: boolean;
   taxMetaAr: string;
   taxMetaEn: string;
-  journalLines: {
-    side: "dr" | "cr";
-    titleAr: string;
-    titleEn: string;
-    code: string;
-    amount: string;
-  }[];
+  journalLines: JournalLine[];
   balanceStatusAr: string;
   balanceStatusEn: string;
 }
@@ -57,22 +62,21 @@ const UNITS_DATA: UnitProfile[] = [
     ownerEn: "Dr. Hesham El-Fassi",
     floorAr: "الدور الثاني",
     floorEn: "2nd Floor",
-    area: "215 م²",
+    areaNumber: 215,
     pinPosition: { top: "56%", left: "68%" },
     txRef: "TX-2026-08241",
     jvRef: "JV-2026-00418",
     txTypeAr: "سداد مصاريف صيانة وخدمات دورية (Q3)",
     txTypeEn: "Q3 Periodic Service & Maintenance Fee",
-    amountNumber: 28500,
-    amountFormatted: "25,000 ج.م",
-    vatAmountFormatted: "3,500 ج.م (14% VAT)",
-    totalFormatted: "28,500 ج.م",
+    baseAmount: 25000,
+    vatAmount: 3500,
+    totalAmount: 28500,
     taxMetaAr: "فاتورة إلكترونية معتمدة ETA UUID: c89e4-8f12",
     taxMetaEn: "ETA E-Invoice Verified UUID: c89e4-8f12",
     journalLines: [
-      { side: "dr", titleAr: "مدين: الصندوق والبنك التجاري", titleEn: "Dr: Treasury & Operating Bank", code: "10101-01", amount: "28,500 ج.م" },
-      { side: "cr", titleAr: "دائن: إيرادات صيانة وتشغيل العقار", titleEn: "Cr: Property Operations Revenue", code: "40101-02", amount: "25,000 ج.م" },
-      { side: "cr", titleAr: "دائن: ضريبة القيمة المضافة المستحقة", titleEn: "Cr: Output VAT Payable (14%)", code: "20301-01", amount: "3,500 ج.م" },
+      { side: "dr", titleAr: "مدين: الصندوق والبنك التجاري", titleEn: "Dr: Treasury & Operating Bank", code: "10101-01", amountNumber: 28500 },
+      { side: "cr", titleAr: "دائن: إيرادات صيانة وتشغيل العقار", titleEn: "Cr: Property Operations Revenue", code: "40101-02", amountNumber: 25000 },
+      { side: "cr", titleAr: "دائن: ضريبة القيمة المضافة المستحقة", titleEn: "Cr: Output VAT Payable (14%)", code: "20301-01", amountNumber: 3500 },
     ],
     balanceStatusAr: "القيد متوازن ذرياً ومرحل لدفتر الأستاذ",
     balanceStatusEn: "Atomically balanced & posted to General Ledger",
@@ -88,22 +92,21 @@ const UNITS_DATA: UnitProfile[] = [
     ownerEn: "Mashreq Development Co.",
     floorAr: "الدور الأرضي",
     floorEn: "Ground Floor",
-    area: "380 م²",
+    areaNumber: 380,
     pinPosition: { top: "82%", left: "48%" },
     txRef: "TX-2026-09102",
     jvRef: "JV-2026-00520",
     txTypeAr: "تحصيل إيجار ربع سنوي تجاري معتمد",
     txTypeEn: "Quarterly Commercial Lease Collection",
-    amountNumber: 120000,
-    amountFormatted: "105,263 ج.م",
-    vatAmountFormatted: "14,737 ج.م (14% VAT)",
-    totalFormatted: "120,000 ج.م",
+    baseAmount: 105263,
+    vatAmount: 14737,
+    totalAmount: 120000,
     taxMetaAr: "مطابقة ضريبية ZATCA / ETA معتمدة",
     taxMetaEn: "Tax Compliant ZATCA / ETA Active",
     journalLines: [
-      { side: "dr", titleAr: "مدين: بنك مصر - الحساب الجاري", titleEn: "Dr: Current Bank Account", code: "10201-02", amount: "120,000 ج.م" },
-      { side: "cr", titleAr: "دائن: إيراد تأجير مساحات تجارية", titleEn: "Cr: Commercial Rental Revenue", code: "40201-01", amount: "105,263 ج.م" },
-      { side: "cr", titleAr: "دائن: ضريبة القيمة المضافة المحصلة", titleEn: "Cr: Output VAT Payable (14%)", code: "20301-01", amount: "14,737 ج.م" },
+      { side: "dr", titleAr: "مدين: بنك مصر - الحساب الجاري", titleEn: "Dr: Current Bank Account", code: "10201-02", amountNumber: 120000 },
+      { side: "cr", titleAr: "دائن: إيراد تأجير مساحات تجارية", titleEn: "Cr: Commercial Rental Revenue", code: "40201-01", amountNumber: 105263 },
+      { side: "cr", titleAr: "دائن: ضريبة القيمة المضافة المحصلة", titleEn: "Cr: Output VAT Payable (14%)", code: "20301-01", amountNumber: 14737 },
     ],
     balanceStatusAr: "تحصيل بنكي مباشر مع تسوية الفاتورة",
     balanceStatusEn: "Direct bank collection with automatic invoice clearing",
@@ -119,33 +122,135 @@ const UNITS_DATA: UnitProfile[] = [
     ownerEn: "Eng. Tarek El-Awadi",
     floorAr: "الدور الرابع - الروف",
     floorEn: "4th Floor - Roof",
-    area: "420 م²",
+    areaNumber: 420,
     pinPosition: { top: "34%", left: "62%" },
     txRef: "TX-2026-10401",
     jvRef: "JV-2026-00635",
     txTypeAr: "إثبات وديعة صيانة مخصصة ومستدامة (Capital Reserve)",
     txTypeEn: "Dedicated Sinking Fund Capital Reserve Deposit",
-    amountNumber: 50000,
-    amountFormatted: "50,000 ج.م",
-    vatAmountFormatted: "0.00 ج.م (معفى / أمانات)",
-    totalFormatted: "50,000 ج.م",
+    baseAmount: 50000,
+    vatAmount: 0,
+    totalAmount: 50000,
+    isTaxExempt: true,
     taxMetaAr: "حساب أمانات معزول بنكياً عن التشغيل",
     taxMetaEn: "Ring-fenced Escrow / Reserve Ledger",
     journalLines: [
-      { side: "dr", titleAr: "مدين: بنك الودائع المخصصة للصيانة", titleEn: "Dr: Reserve Sinking Fund Bank", code: "10202-01", amount: "50,000 ج.م" },
-      { side: "cr", titleAr: "دائن: أمانات وودائع صيانة الملاك", titleEn: "Cr: Member Capital Reserve Trust", code: "20401-01", amount: "50,000 ج.م" },
+      { side: "dr", titleAr: "مدين: بنك الودائع المخصصة للصيانة", titleEn: "Dr: Reserve Sinking Fund Bank", code: "10202-01", amountNumber: 50000 },
+      { side: "cr", titleAr: "دائن: أمانات وودائع صيانة الملاك", titleEn: "Cr: Member Capital Reserve Trust", code: "20401-01", amountNumber: 50000 },
     ],
     balanceStatusAr: "محجوزة بحساب استثماري معزول لاتحاد الشاغلين",
     balanceStatusEn: "Secured in isolated HOA reserve investment ledger",
   },
 ];
 
-export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
-  const [selectedUnitId, setSelectedUnitId] = useState<string>("b214");
-  const activeUnit = UNITS_DATA.find((u) => u.id === selectedUnitId) ?? UNITS_DATA[0];
+/**
+ * High-performance 60fps Animated Number Counter (Zero external dependencies)
+ */
+function AnimatedCounter({
+  value,
+  duration = 800,
+  suffix = "",
+}: {
+  value: number;
+  duration?: number;
+  suffix?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState<number>(value);
+  const startValRef = useRef<number>(value);
+  const startTimeRef = useRef<number | null>(null);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const startVal = startValRef.current;
+    const targetVal = value;
+    startTimeRef.current = null;
+
+    if (startVal === targetVal) {
+      setDisplayValue(targetVal);
+      return;
+    }
+
+    const easeOutExpo = (t: number): number => {
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    };
+
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) startTimeRef.current = timestamp;
+      const progress = Math.min((timestamp - startTimeRef.current) / duration, 1);
+      const eased = easeOutExpo(progress);
+      const current = Math.round(startVal + (targetVal - startVal) * eased);
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      } else {
+        startValRef.current = targetVal;
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [value, duration]);
 
   return (
-    <div className="relative rounded-3xl border border-slate-200/90 bg-white shadow-2xl overflow-hidden">
+    <span className="font-mono tabular-nums tracking-tight">
+      {displayValue.toLocaleString()} {suffix}
+    </span>
+  );
+}
+
+const CYCLE_DURATION_MS = 5000;
+
+export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const activeUnit = UNITS_DATA[currentIndex];
+
+  // Auto-play interval & smooth progress bar
+  useEffect(() => {
+    if (isPaused) return;
+
+    const intervalStep = 50; // update progress every 50ms
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + (intervalStep / CYCLE_DURATION_MS) * 100;
+        if (next >= 100) {
+          triggerNextUnit();
+          return 0;
+        }
+        return next;
+      });
+    }, intervalStep);
+
+    return () => clearInterval(timer);
+  }, [isPaused, currentIndex]);
+
+  const triggerNextUnit = () => {
+    setIsTransitioning(true);
+    setCurrentIndex((prev) => (prev + 1) % UNITS_DATA.length);
+    setProgress(0);
+    setTimeout(() => setIsTransitioning(false), 350);
+  };
+
+  const handleSelectUnit = (index: number) => {
+    if (index === currentIndex) return;
+    setIsTransitioning(true);
+    setCurrentIndex(index);
+    setProgress(0);
+    setTimeout(() => setIsTransitioning(false), 350);
+  };
+
+  return (
+    <div
+      className="relative rounded-3xl border border-slate-200/90 bg-white shadow-2xl overflow-hidden transition-all"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       {/* Top Architectural Header Bar */}
       <div className="flex flex-wrap items-center justify-between border-b border-slate-200 bg-slate-50/95 px-5 py-3 text-xs font-bold text-slate-700">
         <div className="flex items-center gap-3">
@@ -163,16 +268,27 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
           </div>
         </div>
 
-        {/* Live Telemetry Status Indicators */}
+        {/* Live Telemetry Status Indicators & Auto-Play Control */}
         <div className="flex items-center gap-3 font-mono text-[11px]">
+          <button
+            type="button"
+            onClick={() => setIsPaused((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-full bg-slate-200/70 hover:bg-slate-300/70 text-slate-700 px-2.5 py-0.5 text-[10px] font-bold cursor-pointer transition-colors"
+            title={isPaused ? (isAr ? "تشغيل التبديل التلقائي" : "Play Auto-cycle") : (isAr ? "إيقاف مؤقت" : "Pause")}
+          >
+            {isPaused ? <Play className="size-2.5 fill-current" /> : <Pause className="size-2.5 fill-current" />}
+            <span>{isPaused ? (isAr ? "موقوف" : "Paused") : (isAr ? "تلقائي" : "Auto")}</span>
+          </button>
+
           <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 text-emerald-900 border border-emerald-300/60 px-2.5 py-0.5 font-bold">
             <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
-            {isAr ? "القيد الذري نشط" : "Atomic Engine Active"}
+            {isAr ? "القيد الذري متصل" : "Atomic Ledger Live"}
           </span>
+
           <span className="text-slate-400 hidden md:inline">|</span>
           <span className="text-slate-600 font-extrabold">
             {isAr ? "المرجع:" : "Ref:"}{" "}
-            <span className="text-[#07425d] bg-[#07425d]/10 px-2 py-0.5 rounded font-mono">
+            <span className="text-[#07425d] bg-[#07425d]/10 px-2 py-0.5 rounded font-mono transition-all">
               {activeUnit.txRef}
             </span>
           </span>
@@ -196,69 +312,82 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-101"
           />
 
-          {/* Luxury Vignette Overlay */}
+          {/* Luxury Vignette & Dark Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />
 
           {/* Interactive Unit Selector Pins Over Building Facade */}
-          {UNITS_DATA.map((unit) => {
-            const isSelected = unit.id === selectedUnitId;
+          {UNITS_DATA.map((unit, idx) => {
+            const isSelected = idx === currentIndex;
             return (
               <button
                 key={unit.id}
                 type="button"
-                onClick={() => setSelectedUnitId(unit.id)}
+                onClick={() => handleSelectUnit(idx)}
                 style={{ top: unit.pinPosition.top, left: unit.pinPosition.left }}
                 aria-label={isAr ? unit.nameAr : unit.nameEn}
                 className={cn(
-                  "absolute -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-2 rounded-full px-3 py-1.5 transition-all duration-300 cursor-pointer shadow-xl backdrop-blur-md press-feedback motion-control",
+                  "absolute -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-2 rounded-full px-3 py-1.5 transition-all duration-500 cursor-pointer shadow-xl backdrop-blur-md press-feedback motion-control",
                   isSelected
-                    ? "bg-[#07425d] text-white ring-2 ring-white/90 scale-110 shadow-[#07425d]/50 shadow-lg"
+                    ? "bg-[#07425d] text-white ring-2 ring-white/90 scale-110 shadow-[#07425d]/60 shadow-lg"
                     : "bg-slate-900/85 text-slate-200 border border-white/20 hover:bg-slate-900 hover:scale-105"
                 )}
               >
                 <span
                   className={cn(
-                    "size-2 rounded-full",
+                    "size-2 rounded-full transition-colors",
                     isSelected ? "bg-emerald-400 animate-ping" : "bg-sky-400"
                   )}
                 />
                 <span className="font-mono font-black text-xs tracking-tight">{unit.code}</span>
                 {isSelected && (
-                  <span className="hidden sm:inline text-[10px] font-bold text-sky-200 border-s border-white/30 ps-1.5">
-                    {isAr ? "محدد" : "Active"}
+                  <span className="hidden sm:inline text-[10px] font-bold text-sky-200 border-s border-white/30 ps-1.5 animate-fadeIn">
+                    {isAr ? "نشط" : "Active"}
                   </span>
                 )}
               </button>
             );
           })}
 
-          {/* Interactive Floating Quick-Selector Chips */}
-          <div className="absolute top-4 start-4 z-20 flex flex-wrap items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
-            <span className="text-[10px] font-bold text-slate-400 px-2 font-mono">
-              {isAr ? "اختر الوحدة:" : "Select Unit:"}
+          {/* Interactive Floating Quick-Selector Chips with Real-Time Progress Bar */}
+          <div className="absolute top-4 start-4 z-20 flex flex-wrap items-center gap-2 bg-slate-950/85 p-2 rounded-2xl border border-white/15 backdrop-blur-md shadow-2xl">
+            <span className="text-[10px] font-bold text-slate-400 px-1 font-mono">
+              {isAr ? "الوحدات:" : "Units:"}
             </span>
-            {UNITS_DATA.map((u) => {
-              const active = u.id === selectedUnitId;
+            {UNITS_DATA.map((u, idx) => {
+              const active = idx === currentIndex;
               return (
                 <button
                   key={u.id}
                   type="button"
-                  onClick={() => setSelectedUnitId(u.id)}
+                  onClick={() => handleSelectUnit(idx)}
                   className={cn(
-                    "rounded-xl px-2.5 py-1 text-[11px] font-mono font-bold transition-all cursor-pointer",
+                    "relative overflow-hidden rounded-xl px-3 py-1.5 text-[11px] font-mono font-bold transition-all cursor-pointer",
                     active
                       ? "bg-[#07425d] text-white shadow-xs ring-1 ring-white/30"
                       : "text-slate-300 hover:text-white hover:bg-white/10"
                   )}
                 >
-                  {u.code}
+                  <span className="relative z-10">{u.code}</span>
+                  {/* Fluid Progress Bar inside active button */}
+                  {active && !isPaused && (
+                    <span
+                      className="absolute bottom-0 start-0 top-0 bg-sky-400/25 transition-all ease-linear"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Active Unit Glass Card (Bottom Overlay) */}
-          <div className="absolute bottom-4 inset-x-4 z-20 rounded-2xl bg-slate-950/90 backdrop-blur-xl p-4 border border-white/15 shadow-2xl text-white">
+          {/* Active Unit Glass Card (Bottom Overlay) with Fluid Entrance Animation */}
+          <div
+            key={`unit-card-${activeUnit.id}`}
+            className={cn(
+              "absolute bottom-4 inset-x-4 z-20 rounded-2xl bg-slate-950/90 backdrop-blur-xl p-4 border border-white/15 shadow-2xl text-white transition-all duration-300",
+              isTransitioning ? "opacity-75 translate-y-1" : "opacity-100 translate-y-0"
+            )}
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -277,20 +406,28 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
 
               <div className="text-end shrink-0">
                 <span className="text-[10px] font-mono text-slate-400 block">{isAr ? "المساحة الدفترية" : "Asset Area"}</span>
-                <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono">{activeUnit.area}</span>
+                <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono">
+                  <AnimatedCounter value={activeUnit.areaNumber} suffix=" م²" />
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         {/* =========================================================================
-            RIGHT COLUMN: Live ERP General Ledger & Journal Transformation Document
+            RIGHT COLUMN: Live ERP General Ledger & Smooth Animated Journal Engine
            ========================================================================= */}
-        <div className="lg:col-span-5 p-5 sm:p-6 lg:p-7 flex flex-col justify-between bg-[#FCFCFD] border-t lg:border-t-0 lg:border-s border-slate-200">
+        <div
+          key={`ledger-${activeUnit.id}`}
+          className={cn(
+            "lg:col-span-5 p-5 sm:p-6 lg:p-7 flex flex-col justify-between bg-[#FCFCFD] border-t lg:border-t-0 lg:border-s border-slate-200 transition-all duration-300",
+            isTransitioning ? "opacity-80 translate-y-0.5" : "opacity-100 translate-y-0"
+          )}
+        >
           <div>
             {/* Document Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-200">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div className="flex size-8 items-center justify-center rounded-xl bg-sky-100 text-[#07425d]">
                   <Receipt className="size-4" />
                 </div>
@@ -318,21 +455,31 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
               </p>
             </div>
 
-            {/* Figures Grid */}
+            {/* Live Figures Grid with Smooth Rolling Counters */}
             <div className="mt-3.5 space-y-2 text-xs">
               <div className="flex items-center justify-between text-slate-600 font-medium">
                 <span>{isAr ? "قيمة المطالبة / الإيراد الأساسي" : "Base Fee / Revenue"}</span>
-                <span className="font-mono font-black text-slate-900 tabular-nums">{activeUnit.amountFormatted}</span>
+                <span className="font-black text-slate-900">
+                  <AnimatedCounter value={activeUnit.baseAmount} suffix=" ج.م" />
+                </span>
               </div>
 
               <div className="flex items-center justify-between text-slate-500 text-[11px]">
                 <span>{isAr ? "ضريبة القيمة المضافة / الودائع" : "Tax / Special Ledger"}</span>
-                <span className="font-mono font-bold text-slate-800 tabular-nums">{activeUnit.vatAmountFormatted}</span>
+                <span className="font-bold text-slate-800">
+                  {activeUnit.isTaxExempt ? (
+                    <span className="font-mono">0.00 ج.م (معفى / أمانات)</span>
+                  ) : (
+                    <AnimatedCounter value={activeUnit.vatAmount} suffix=" ج.م (14% VAT)" />
+                  )}
+                </span>
               </div>
 
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                 <span className="text-xs font-black text-slate-900">{isAr ? "إجمالي المبلغ المحصل والدفتري" : "Total Booked & Cleared"}</span>
-                <span className="text-base font-black text-[#07425d] font-mono tabular-nums">{activeUnit.totalFormatted}</span>
+                <span className="text-base font-black text-[#07425d]">
+                  <AnimatedCounter value={activeUnit.totalAmount} suffix=" ج.م" duration={1000} />
+                </span>
               </div>
             </div>
 
@@ -348,7 +495,7 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
                 </span>
               </div>
 
-              {/* Journal Lines */}
+              {/* Journal Lines with Rolling Digit Animation */}
               <div className="space-y-1.5 text-xs">
                 {activeUnit.journalLines.map((line, idx) => (
                   <div
@@ -369,7 +516,7 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
                       </span>
                     </div>
                     <span className="font-mono font-black tabular-nums text-slate-950 shrink-0">
-                      {line.amount}
+                      <AnimatedCounter value={line.amountNumber} suffix=" ج.م" />
                     </span>
                   </div>
                 ))}
@@ -385,7 +532,7 @@ export function HeroDigitalTwin({ isAr }: { isAr: boolean }) {
                 <span className="text-[11px]">{isAr ? activeUnit.balanceStatusAr : activeUnit.balanceStatusEn}</span>
               </div>
               <span className="font-mono text-xs font-black text-[#07425d] bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                {activeUnit.totalFormatted} = {activeUnit.totalFormatted}
+                <AnimatedCounter value={activeUnit.totalAmount} suffix=" ج.م" />
               </span>
             </div>
 
