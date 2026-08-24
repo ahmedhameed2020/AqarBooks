@@ -22,14 +22,14 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "AqarBooks | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
-    : "AqarBooks | Enterprise Real Estate & Resort Accounting ERP";
+    ? "AqarBooks | محاسبة عقارية بذكاء — النظام المالي السحابي لإدارة الكيانات العقارية"
+    : "AqarBooks | Smart Real Estate Accounting — Enterprise Cloud ERP";
   const description = isAr
-    ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية واتحادات الملاك بقيد مزدوج حقيقي. متوافق مع منظومة الضرائب والفوترة الإلكترونية."
-    : "Enterprise double-entry accounting ERP for real estate entities, resorts, towers, and HOAs. Compliant with regional tax and e-invoicing standards.";
+    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع الامتثال الكامل للفواتير الإلكترونية والضرائب."
+    : "Smart double-entry accounting ERP built natively for real estate portfolios, compounds, towers, resorts, and HOAs.";
 
   const siteUrl = `https://aqarbooks.com/${locale}`;
-  const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero-property.jpg";
+  const ogImageUrl = "https://aqarbooks.com/og-image.jpg";
 
   return {
     metadataBase: new URL("https://aqarbooks.com"),
@@ -39,7 +39,7 @@ export async function generateMetadata({
       title,
       description,
       url: siteUrl,
-      siteName: isAr ? "AqarBooks" : "AqarBooks ERP",
+      siteName: isAr ? "AqarBooks — محاسبة عقارية بذكاء" : "AqarBooks ERP",
       locale: isAr ? "ar_EG" : "en_US",
       type: "website",
       images: [
@@ -47,7 +47,7 @@ export async function generateMetadata({
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: isAr ? "AqarBooks — المحاسبة التي تفهم العقار" : "AqarBooks Real Estate Accounting ERP",
+          alt: isAr ? "AqarBooks — محاسبة عقارية بذكاء" : "AqarBooks — Smart Real Estate Accounting",
           type: "image/jpeg",
         },
       ],

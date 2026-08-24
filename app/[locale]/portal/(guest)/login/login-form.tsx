@@ -141,7 +141,7 @@ export function LoginForm({
     <div className="mx-auto w-full max-w-md space-y-6">
       <div className="space-y-2 text-center">
         <div className="mb-1 inline-flex justify-center">
-          <LogoMark className="size-12" />
+          <LogoMark variant="app-icon" className="size-14" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
           {isAr ? "بوابة الملاك والمستثمرين" : "Owner & Investor Portal"}

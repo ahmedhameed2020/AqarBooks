@@ -59,7 +59,7 @@ export function BrandPanel({ isAr, brandName }: { isAr: boolean; brandName: stri
 
       {/* Top Brand Header */}
       <div className="relative z-10 flex items-center gap-3">
-        <LogoMark className="size-12 shadow-lg" />
+        <LogoMark variant="app-icon" className="size-13" />
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
             <span className="text-xl font-extrabold tracking-tight text-white drop-shadow-sm font-heading">

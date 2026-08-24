@@ -63,13 +63,13 @@ export async function generateMetadata({
   const { locale } = await params;
   const isAr = locale === "ar";
   const title = isAr
-    ? "AqarBooks | النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات"
-    : "AqarBooks | Real Estate & Resort Accounting ERP";
+    ? "AqarBooks | محاسبة عقارية بذكاء — النظام المالي السحابي لإدارة الكيانات العقارية"
+    : "AqarBooks | Smart Real Estate Accounting — Cloud Financial ERP";
   const description = isAr
-    ? "نظام محاسبي متكامل لإدارة العقارات والمنتجعات والكيانات العقارية بقيد مزدوج حقيقي. متوافق مع منظومة الفاتورة الإلكترونية والضرائب المصرية (ETA) وهيئة الزكاة والضريبة والجمارك (ZATCA)."
-    : "Enterprise double-entry accounting ERP for tourist resorts, residential towers, private villas, retail plazas, and HOAs. Compliant with ETA & ZATCA e-invoicing.";
+    ? "منظومة محاسبة عقارية ذكية بقيد مزدوج حقيقي. تتبع مالي شامل على مستوى الوحدة والعقار، مع الامتثال الكامل للفواتير الإلكترونية والضرائب (ETA / ZATCA)."
+    : "Smart double-entry accounting ERP built natively for real estate portfolios, compounds, towers, resorts, and HOAs. Full ETA & ZATCA tax compliance.";
   const siteUrl = `https://aqarbooks.com/${locale}`;
-  const ogImageUrl = "https://aqarbooks.com/images/aqarbooks-hero.jpg";
+  const ogImageUrl = "https://aqarbooks.com/og-image.jpg";
 
   return {
     metadataBase: new URL("https://aqarbooks.com"),
@@ -81,14 +81,16 @@ export async function generateMetadata({
     applicationName: "AqarBooks",
     keywords: [
       "محاسبة عقارات",
+      "محاسبة عقارية بذكاء",
       "برنامج محاسبة القرى السياحية",
-      "إدارة المنتجعات السياحية",
-      "فاتورة إلكترونية مصر",
-      "زاتكا السعودية",
+      "إدارة المنتجعات والكمبوندات",
+      "فاتورة إلكترونية مصر ETA",
+      "زاتكا السعودية ZATCA",
       "إدارة الأملاك والوحدات",
       "Real Estate Accounting ERP",
       "Resort Management System",
       "Double Entry Accounting",
+      "Smart Real Estate Accounting",
       "ZATCA E-Invoicing",
       "ETA Tax Invoices",
       "AqarBooks",
@@ -108,13 +110,13 @@ export async function generateMetadata({
       url: siteUrl,
       title,
       description,
-      siteName: isAr ? "AqarBooks" : "AqarBooks ERP",
+      siteName: isAr ? "AqarBooks — محاسبة عقارية بذكاء" : "AqarBooks ERP",
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: isAr ? "AqarBooks — النظام المحاسبي المتكامل لإدارة العقارات والمنتجعات" : "AqarBooks Real Estate Accounting ERP",
+          alt: isAr ? "AqarBooks — محاسبة عقارية بذكاء" : "AqarBooks — Smart Real Estate Accounting",
           type: "image/jpeg",
         },
       ],
