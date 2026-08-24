@@ -26,17 +26,17 @@ export function SectionFollowMoney({ locale }: { locale: Locale }) {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">04</span>
-            <span>{isAr ? "دورة تدفق الأموال · FOLLOW THE MONEY" : "FOLLOW THE MONEY"}</span>
+            <span>{isAr ? "مسار حركة الأموال" : "AUTOMATED FUND ROUTING"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "معاملة واحدة. وكل أثر مالي محسوب بدقة." : "One transaction. Every financial consequence accounted for."}
+            {isAr ? "الفلوس اللي بتدخل مش بتنزل في حصالة واحدة عشوائية." : "Money collected isn't pooled into a single opaque account."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "عندما يسدد المالك أو المستأجر، لا يدخل المبلغ في صندوق عشوائي مبهم. يقوم AqarBooks بتوزيع كل جنيه محاسبياً على صندوق التشغيل، وديعة الصيانة الرأسمالية، والمستحقات الضريبية، وصولاً إلى القوائم المالية."
-              : "When a resident pays, the sum isn't lumped into an opaque pool. AqarBooks splits and routes every pound into operations, capital reserves, and tax liabilities all the way to audited financial statements."}
+              ? "لما الساكن أو المستأجر يدفع، النظام بيفصل تلقائيًا: جزء لمصاريف التشغيل، جزء لوديعة الصيانة في البنك، وجزء للضريبة — وكل مليم بيروح حسابه الدفتري السليم."
+              : "When a resident pays, the system automatically routes: operational CAM share, capital reserve trust share, and output tax liability — no manual calculations."}
           </p>
         </div>
 

@@ -13,17 +13,17 @@ export function SectionPricingTeaser({ locale }: { locale: Locale }) {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">10</span>
-            <span>{isAr ? "نطاق التشغيل والحوكمة · OPERATING SCALE" : "OPERATING SCALE & GOVERNANCE"}</span>
+            <span>{isAr ? "باقات التشغيل والأسعار" : "OPERATING PLANS & SCALE"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "تسعير مبني على حجم الكيان المالي ومستوى الحوكمة." : "Pricing structured for your entity's scale and governance depth."}
+            {isAr ? "اختار الباقة اللي تناسب حجم عقاراتك واحتياجات فريقك." : "Choose the plan tailored to your property scale and governance needs."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "نحن نقدّم منظومة ERP مالية متكاملة بقيد مزدوج، ونتدرج معك حسب حجم الهيكل العقاري، تعقيد مراكز التكلفة، ومستويات الرقابة والتدقيق المطلوبة."
-              : "We provide an auditable double-entry ERP that scales with your property structures, cost-center complexity, and organizational governance."}
+              ? "تسعير مرن يتدرج معك من عمارة أو اتحاد ملاك فردي، وحتى المحافظ العقارية الكبيرة متعددة الشركات والكيانات."
+              : "Flexible plans scaling from a single building or HOA to large multi-entity commercial holdings."}
           </p>
         </div>
 

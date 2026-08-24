@@ -112,17 +112,17 @@ export function SectionPropertyEvent({ locale }: { locale: Locale }) {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">01</span>
-            <span>{isAr ? "مسار الأثر المالي · EVENT → EVIDENCE → ENTRY" : "FINANCIAL PROVENANCE TRAIL"}</span>
+            <span>{isAr ? "الربط بين الموقع والدفاتر المحاسبية" : "CONNECTING SITE OPERATIONS TO LEDGER"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "كل حدث عقاري يترك أثراً محاسبياً لا يُمحى." : "Every property event leaves an immutable financial trail."}
+            {isAr ? "من أول طلب صيانة لحد ميزان المراجعة.. كل حركة لها أصل ومستند." : "From the first maintenance ticket to trial balance.. every event has clear origin and proof."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "من طلب الصيانة حتى ميزان المراجعة — كل حركة تبدأ من وحدة وعقار محدد، موثقة بالمسؤول، التوقيت، وبصمة المستند، بلا أي فجوة بين التشغيل الميداني والدفتر المحاسبي."
-              : "From facility ticket to trial balance — every event originates from a discrete unit and entity, sealed with actor, timestamp, and document hash."}
+              ? "مفيش أرقام مجهولة المصدر. أي تحصيل أو مصروف مسجل باسم الوحدة، المبنى، والمسؤول اللي اعتمد العملية بالوقت والتاريخ وبصمة المستند."
+              : "No untraceable figures. Every revenue and expense is bound to unit, building, and approving manager with exact timestamp and document hash."}
           </p>
 
           {/* Proof Points */}

@@ -103,17 +103,17 @@ export function SectionEntityTypes({ locale }: { locale: Locale }) {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">09</span>
-            <span>{isAr ? "البصمة المالية للكيانات العقارية" : "FINANCIAL ARCHETYPES & STRUCTURES"}</span>
+            <span>{isAr ? "مصمم لطبيعة نشاطك العقاري" : "TAILORED TO YOUR PROPERTY MODEL"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "بُني لخصوصية هيكلك العقاري والمالي." : "Tailored to the financial fingerprint of your real estate entity."}
+            {isAr ? "سواء بتدير كمبوند سكني، برج تجاري، قرية سياحية، أو اتحاد ملاك." : "Whether managing a residential compound, commercial tower, resort, or HOA."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "لا توجد عقارات متطابقة محاسبياً. يمنح AqarBooks كل نمط عقاري هيكلاً دفترياً مخصصاً يطابق طبيعة تدفقاته المالية والتزاماته القانونية."
-              : "No two properties share the exact financial DNA. AqarBooks equips each entity archetype with tailored chart of accounts, budget controls, and audit models."}
+              ? "شجرة الحسابات والدورة المستندية متفصلة على نوع عقارك: موازنات اتحادات الملاك، إيجارات التجاري، أو ودائع الصيانة والتشغيل الموسمي في المنتجعات."
+              : "Chart of accounts and workflows configured for your asset class: HOA budgets, commercial leases, or seasonal resort operations."}
           </p>
         </div>
 

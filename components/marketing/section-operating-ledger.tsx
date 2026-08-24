@@ -104,19 +104,19 @@ export function SectionOperatingLedger({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">05</span>
-            <span>{isAr ? "مركز الحركة المالية" : "FINANCIAL ACTIVITY HUB"}</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">05</span>
+            <span>{isAr ? "سجل العمليات اليومية" : "DAILY OPERATIONS LEDGER"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "كل ما حدث ماليًا. في سجل واحد." : "Everything that occurred financially. In a single ledger."}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
+            {isAr ? "كل حركة مالية في عقارك.. واضحة قدامك لحظة بلحظة." : "Every financial pulse across your properties.. live in a single unified view."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "الحركة المالية اليومية للكيان أمامك لحظة بلحظة — من الاستحقاق والتحصيل إلى المصروف والتسوية والقيد — بسياقها الكامل وحالتها وأثرها المحاسبي."
-              : "The daily financial pulse of your property right before you in real time — from assessment and collection to disbursement, settlement, and journal entry — with full context, status, and ledger impact."}
+              ? "تحصيلات الوحدات، فواتير الموردين، الشيكات تحت التحصيل، وعُهد الكاشير — مجمعة في شاشة واحدة منظمة بدقة، وبلا أي فجوة بين الواقع والدفاتر."
+              : "Unit dues, contractor bills, post-dated cheques, and cashier shifts — aggregated in one clean, auditable operational workspace."}
           </p>
 
           {/* Proof Points */}

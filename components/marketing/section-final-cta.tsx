@@ -18,21 +18,21 @@ export function SectionFinalCta({ locale }: { locale: Locale }) {
           <div className="rounded-[calc(2.5rem-0.75rem)] bg-white p-8 sm:p-14 border border-slate-200/90 text-center">
             
             {/* Top Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3.5 py-1 text-xs font-mono font-black text-[#07425d] mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#07425d]/20 bg-[#07425d]/5 px-3.5 py-1 text-xs font-bold text-[#07425d] mb-6">
               <ShieldCheck className="size-3.5" />
-              <span>{isAr ? "نظام مالي مؤسسي متكامل" : "ENTERPRISE REAL ESTATE ERP"}</span>
+              <span>{isAr ? "جاهز لترتيب حسابات ودفاتر عقارك؟" : "READY TO ORGANIZE YOUR PROPERTY BOOKS?"}</span>
             </div>
 
             {/* Headline */}
             <h2 className="text-3xl sm:text-5xl font-black text-slate-950 font-heading leading-tight tracking-tight">
-              {isAr ? "افتح الدفتر المالي الحقيقي لعقارك." : "Open the true financial ledger for your property."}
+              {isAr ? "افتح الدفتر المالي الحقيقي لعقارك اليوم." : "Open the true financial ledger for your property today."}
             </h2>
 
             {/* Subtitle */}
             <p className="mt-4 text-base sm:text-lg text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
               {isAr
-                ? "الوحدة، المالك، التحصيل، المصروف، القيد والتقرير المالي — في منظومة واحدة تحفظ العلاقة بين العقار والمال."
-                : "Unit, member, collection, expense, journal entry, and financial reports — in a unified platform preserving the bond between real estate and finance."}
+                ? "الوحدة، المالك، التحصيل، فواتير الصيانة، والقيد المالي — في منظومة واحدة تريحك وتضمن حق كل طرف."
+                : "Units, owners, collections, vendor bills, and journal entries — in a single platform protecting every party's rights."}
             </p>
 
             {/* Action Buttons */}

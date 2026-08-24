@@ -14,29 +14,29 @@ export function SectionAiLayer({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#7e1898]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#7e1898]/10 text-[10px]">08</span>
-            <span>{isAr ? "ذكاء تحت السيطرة" : "INTELLIGENCE UNDER CONTROL"}</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#7e1898] bg-[#7e1898]/10 px-3 py-1 rounded-full border border-[#7e1898]/20 mb-3">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#7e1898] text-[10px] text-white">08</span>
+            <span>{isAr ? "الذكاء الاصطناعي تحت الرقابة المحاسبية" : "GOVERNED FINANCIAL AI"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
             {isAr ? (
               <>
-                الذكاء الاصطناعي يقترح. المحاسبة تدقق. <br className="hidden sm:inline" />
-                <span className="text-[#07425d]">والمسؤولية تظل بشرية.</span>
+                الذكاء الاصطناعي بيقرأ الفواتير ويقترح القيود.. <br className="hidden sm:inline" />
+                <span className="text-[#07425d]">بس القرار النهائي والترحيل في إيدك.</span>
               </>
             ) : (
               <>
-                AI proposes. Accounting validates. <br className="hidden sm:inline" />
-                <span className="text-[#07425d]">Humans remain accountable.</span>
+                AI reads bills and drafts journals.. <br className="hidden sm:inline" />
+                <span className="text-[#07425d]">But final posting authority stays in your hands.</span>
               </>
             )}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "يقرأ AqarBooks الفواتير والمطابقات البنكية ويقترح القيود — لكن الأرقام لا تُترك للنموذج. المحرك المحاسبي يتحقق من التوازن، والصلاحيات تلزم موافقة المحاسب المعتمد قبل الترحيل النهائي."
-              : "AqarBooks reads invoices, suggests reconciliations, and drafts journals — but numbers are never left to a model. The accounting core validates balance, and human authority approves every post."}
+              ? "يسحب بيانات فواتير الصيانة من الصور ويطابق كشوفات البنك تلقائيًا، لكن مفيش قيد بيترحل لدفاتر الشركة إلا بعد مراجعة وموافقة المحاسب المعتمد."
+              : "Extracts contractor receipts and auto-matches bank feeds, but nothing touches company ledgers without explicit accountant approval."}
           </p>
 
           {/* 5-Step Visual Governance Chain */}

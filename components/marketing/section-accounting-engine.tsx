@@ -12,17 +12,17 @@ export function SectionAccountingEngine({ locale }: { locale: Locale }) {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">02</span>
-            <span>{isAr ? "المحرك المحاسبي الذري · ATOMIC DOUBLE-ENTRY" : "THE ATOMIC ACCOUNTING CORE"}</span>
+            <span>{isAr ? "محاسبة فعلية متوافقة مع المعايير" : "TRUE DOUBLE-ENTRY ACCOUNTING"}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
-            {isAr ? "مش كل تسجيل محاسبة. القيد المزدوج هو الذي يثبتها." : "Not all logging is accounting. The double-entry journal proves it."}
+            {isAr ? "البرامج التقليدية بتسجل «تم السداد».. AqarBooks بيعمل قيد مزدوج حقيقي." : "Generic tools just mark 'Paid'.. AqarBooks generates a true balanced journal entry."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "البرامج التقليدية تكتفي بتغيير حالة المعاملة إلى «تم السداد». في AqarBooks، كل حركة تفتح قيداً ذرياً متوازناً مدين ودائن يرحل فورياً لدفتر الأستاذ العام."
-              : "Generic property tools merely mark records as 'Paid'. In AqarBooks, every collection opens an atomic, balanced debit/credit journal posted directly to the general ledger."}
+              ? "تحصيل الإيجار أو مصاريف الصيانة بيتحول فوراً لقيد متوازن (مدين ودائن) يرحل لدفتر الأستاذ العام، معتمد قانونياً ومطابق للمعايير المحاسبية."
+              : "Every rent collection or service charge converts instantly into a balanced debit/credit voucher posted directly to the general ledger."}
           </p>
         </div>
 

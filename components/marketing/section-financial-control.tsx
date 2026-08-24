@@ -9,19 +9,19 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">06</span>
-            <span>{isAr ? "أثر مالي لا يُمحى" : "AN INDELIBLE FINANCIAL TRACE"}</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">06</span>
+            <span>{isAr ? "الرقابة الداخلية والأمان" : "INTERNAL CONTROLS & SECURITY"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "الخطأ يتصحح. التاريخ ما يتكتبش من جديد." : "Errors get corrected. History is never rewritten."}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
+            {isAr ? "صلاحيات محكومة.. مفيش مليم بيخرج أو يتعدل من غير اعتماد." : "Strict segregation of duties.. no entry is posted without verified authorization."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "بعد الترحيل، يظل القيد كما سُجّل. وإذا احتاج تصحيحًا، يتم ذلك بقيد عكسي موثق يحفظ الأصل والتصحيح معًا — عشان كل تغيير يفضل ظاهرًا وقابلًا للتتبع والمراجعة."
-              : "Once posted, a journal entry remains untouched. When corrections are required, an atomic reversing entry preserves both original and correction — ensuring complete transparency for audit."}
+              ? "فصل كامل بين اللي بيسجل واللي بيعتمد، سجل تدقيق يمنع التلاعب أو المسح، ومطابقة مباشرة مع الفاتورة الإلكترونية ومتطلبات الضرائب."
+              : "Maker-checker approval workflows, immutable audit logs that prohibit deletions, and native compliance with e-invoicing and tax mandates."}
           </p>
 
           {/* Proof Points */}
