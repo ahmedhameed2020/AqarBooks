@@ -152,36 +152,41 @@ export function CreateMemberForm({
       <input type="hidden" name="isCompany" value={isCompany ? "true" : "false"} />
       <input type="hidden" name="phones" value={phonesPayload} />
 
-      {/* Member type -- a real, previously-unused `is_company` column */}
-      <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-1">
+      {/* Member type switch */}
+      <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-border bg-muted/40 p-1">
         <button
           type="button"
           onClick={() => setIsCompany(false)}
           className={cn(
-            "flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
-            !isCompany ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            "flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer press-feedback motion-control",
+            !isCompany
+              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <User className="size-3.5" />
-          {isAr ? "فرد" : "Individual"}
+          <User className="size-4 text-primary" />
+          <span>{isAr ? "فرد / شخص طبيعي" : "Individual Person"}</span>
         </button>
         <button
           type="button"
           onClick={() => setIsCompany(true)}
           className={cn(
-            "flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
-            isCompany ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            "flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer press-feedback motion-control",
+            isCompany
+              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <Building2 className="size-3.5" />
-          {isAr ? "جهة/شركة" : "Company"}
+          <Building2 className="size-4 text-primary" />
+          <span>{isAr ? "جهة / شركة اعتبارية" : "Company / Corporate"}</span>
         </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="fullName">
-            {isAr ? (isCompany ? "اسم الجهة" : "الاسم الكامل") : isCompany ? "Company name" : "Full name"}
+          <Label htmlFor="fullName" className="text-xs font-bold text-foreground">
+            {isAr ? (isCompany ? "اسم الجهة / الشركة" : "الاسم الكامل") : isCompany ? "Company Name" : "Full Name"}{" "}
+            <span className="text-rose-500">*</span>
           </Label>
           <Input
             id="fullName"
@@ -190,13 +195,16 @@ export function CreateMemberForm({
             onChange={(e) => setFullName(e.target.value)}
             onBlur={() => setTouched((t) => ({ ...t, fullName: true }))}
             aria-invalid={Boolean(nameError)}
-            placeholder={isAr ? (isCompany ? "شركة الرياض العقارية" : "أحمد محمد") : isCompany ? "Riyadh Real Estate Co." : "Ahmed Mohamed"}
+            placeholder={isAr ? (isCompany ? "مثال: شركة التطوير العقاري" : "مثال: أحمد محمد عبد الله") : isCompany ? "Riyadh Real Estate Co." : "Ahmed Mohamed"}
             required
+            className="h-10 text-xs font-bold bg-background border-border"
           />
-          {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+          {nameError && <p className="text-xs font-bold text-rose-600">{nameError}</p>}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="email">{isAr ? "البريد الإلكتروني" : "Email"}</Label>
+          <Label htmlFor="email" className="text-xs font-bold text-foreground">
+            {isAr ? "البريد الإلكتروني" : "Email Address"}
+          </Label>
           <Input
             id="email"
             name="email"
@@ -205,23 +213,30 @@ export function CreateMemberForm({
             onChange={(e) => setEmail(e.target.value)}
             dir="ltr"
             placeholder="name@example.com"
+            className="h-10 text-xs bg-background border-border"
           />
         </div>
       </div>
 
-      {/* Phone numbers -- multiple, each independently labeled and
-          WhatsApp-flagged, persisted to member_phones (not the legacy
-          single members.phone column -- see createMemberAction). */}
+      {/* Phone numbers section */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <Label className="text-sm">{isAr ? "أرقام الهاتف" : "Phone numbers"}</Label>
-          <Button type="button" variant="ghost" size="sm" onClick={addPhone} className="h-7 gap-1 px-2 text-xs">
-            <Plus className="size-3.5" />
-            {isAr ? "إضافة رقم" : "Add number"}
+          <Label className="text-xs font-bold text-foreground">
+            {isAr ? "أرقام الهاتف والتواصل" : "Phone Numbers"}
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addPhone}
+            className="h-7.5 gap-1.5 px-2.5 text-xs font-bold rounded-lg border-border hover:bg-muted text-foreground press-feedback motion-control"
+          >
+            <Plus className="size-3.5 text-primary" />
+            <span>{isAr ? "إضافة رقم آخر" : "Add Number"}</span>
           </Button>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {phones.map((row, idx) => {
             const err = phoneError(row);
             const isPrimary = row.key === primaryKey;
@@ -229,13 +244,15 @@ export function CreateMemberForm({
               <div
                 key={row.key}
                 className={cn(
-                  "rounded-lg border p-2.5 transition-colors",
-                  isPrimary ? "border-primary/40 bg-primary/[0.03]" : "border-border",
+                  "rounded-xl border p-3 transition-all",
+                  isPrimary
+                    ? "border-primary/30 bg-primary/5 ring-1 ring-primary/10 shadow-2xs"
+                    : "border-border bg-card hover:bg-muted/30",
                 )}
               >
-                <div className="flex items-start gap-2">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                    <Phone className="size-3.5" />
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                    <Phone className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex gap-2">
@@ -248,41 +265,41 @@ export function CreateMemberForm({
                         aria-invalid={Boolean(err)}
                         dir="ltr"
                         placeholder="+20 100 123 4567"
-                        className="flex-1"
+                        className="h-9.5 text-xs font-mono font-bold flex-1 bg-background border-border"
                       />
                       <Select value={row.label} onValueChange={(v) => updatePhone(row.key, { label: v as PhoneLabel })}>
-                        <SelectTrigger className="w-28 shrink-0">
+                        <SelectTrigger className="h-9.5 w-32 shrink-0 text-xs font-bold bg-background border-border">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {PHONE_LABELS.map((l) => (
-                            <SelectItem key={l} value={l}>
+                            <SelectItem key={l} value={l} className="text-xs font-bold">
                               {isAr ? PHONE_LABEL_TEXT[l].ar : PHONE_LABEL_TEXT[l].en}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    {err && <p className="text-xs text-destructive">{err}</p>}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {err && <p className="text-xs font-bold text-rose-600">{err}</p>}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-0.5">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-foreground cursor-pointer">
                         <Checkbox
                           checked={row.whatsapp}
                           onCheckedChange={(checked) => updatePhone(row.key, { whatsapp: checked === true })}
                         />
                         <MessageCircle className="size-3.5 text-emerald-600" />
-                        {isAr ? "يستقبل رسائل واتساب" : "Receives WhatsApp"}
+                        <span>{isAr ? "يستقبل رسائل واتساب" : "Receives WhatsApp"}</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => setPrimaryKey(row.key)}
                         className={cn(
-                          "flex items-center gap-1 text-xs transition-colors",
-                          isPrimary ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
+                          "flex items-center gap-1 text-xs font-bold transition-colors cursor-pointer",
+                          isPrimary ? "text-primary" : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <Star className={cn("size-3.5", isPrimary && "fill-primary")} />
-                        {isPrimary ? (isAr ? "الرقم الأساسي" : "Primary number") : isAr ? "جعله أساسيًا" : "Make primary"}
+                        <Star className={cn("size-3.5", isPrimary && "fill-primary text-primary")} />
+                        <span>{isPrimary ? (isAr ? "الرقم الأساسي" : "Primary number") : isAr ? "تعيين كأساسي" : "Make primary"}</span>
                       </button>
                     </div>
                   </div>
@@ -291,15 +308,15 @@ export function CreateMemberForm({
                       type="button"
                       onClick={() => removePhone(row.key)}
                       aria-label={isAr ? "حذف الرقم" : "Remove number"}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-4" />
                     </button>
                   )}
                 </div>
                 {idx === 0 && phones.length === 1 && (
-                  <p className="mt-1.5 ps-10 text-[11px] text-muted-foreground">
-                    {isAr ? "اختياري -- يمكن إضافته لاحقًا" : "Optional -- can be added later"}
+                  <p className="mt-1.5 ps-12 text-[11px] text-muted-foreground">
+                    {isAr ? "اختياري — يمكن تعيين وإضافة أرقام الهاتف لاحقاً" : "Optional — phone numbers can be added later"}
                   </p>
                 )}
               </div>
@@ -309,14 +326,20 @@ export function CreateMemberForm({
       </div>
 
       {!state.ok && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-xs font-bold text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
           {state.error}
         </p>
       )}
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending && <Loader2 className="size-3.5 animate-spin" />}
-        {pending ? (isAr ? "جارٍ الإضافة…" : "Adding…") : isAr ? "إضافة عضو" : "Add member"}
-      </Button>
+      <div className="pt-2">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-10 rounded-xl shadow-xs gap-2 press-feedback motion-control cursor-pointer"
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          <span>{pending ? (isAr ? "جارٍ إضافة العضو..." : "Adding...") : isAr ? "حفظ وتأكيد إضافة العضو" : "Add Member"}</span>
+        </Button>
+      </div>
     </form>
   );
 }

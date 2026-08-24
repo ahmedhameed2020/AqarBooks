@@ -103,12 +103,14 @@ export function CreateDueTypeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
             <Tag className="size-5" />
           </div>
           <div>
-            <DialogTitle>{isAr ? "إضافة نوع مستحق / مطالبة جديدة" : "New Due Type / Demand Category"}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base font-black text-foreground">
+              {isAr ? "إضافة نوع مستحق / مطالبة جديدة" : "New Due Type / Demand Category"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               {isAr
                 ? "تعريف نوع مطالبة (مثل: صيانة سنوية، استهلاك مياه، اشتراك نادي) وربطه بحساب الإيراد."
                 : "Define due category and map it to general ledger revenue account."}
@@ -119,50 +121,50 @@ export function CreateDueTypeDialog({
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
             {errorMsg && (
-              <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
-                <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
+              <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             <div className="space-y-1.5 text-start">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "مسمى المستحق (بالعربية) *" : "Due Type Name (Arabic) *"}
+              <Label className="text-xs font-bold text-foreground">
+                {isAr ? "مسمى المستحق (بالعربية)" : "Due Type Name (Arabic)"} <span className="text-rose-500">*</span>
               </Label>
               <Input
                 required
                 value={nameAr}
                 onChange={(e) => setNameAr(e.target.value)}
                 placeholder={isAr ? "مثال: مصاريف صيانة وخدمات دورية" : "e.g. Annual Maintenance Fees"}
-                className="text-sm"
+                className="h-10 text-xs font-bold bg-background border-border"
               />
             </div>
 
             <div className="space-y-1.5 text-start">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "مسمى المستحق (بالإنجليزية) *" : "Due Type Name (English) *"}
+              <Label className="text-xs font-bold text-foreground">
+                {isAr ? "مسمى المستحق (بالإنجليزية)" : "Due Type Name (English)"} <span className="text-rose-500">*</span>
               </Label>
               <Input
                 required
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
                 placeholder="e.g. Annual Maintenance Fees"
-                className="text-sm font-mono"
+                className="h-10 text-xs font-bold bg-background border-border"
                 dir="ltr"
               />
             </div>
 
             <div className="space-y-1.5 text-start">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isAr ? "حساب الإيراد المحاسبي المربوط *" : "Linked Revenue GL Account *"}
+              <Label className="text-xs font-bold text-foreground">
+                {isAr ? "حساب الإيراد المحاسبي المربوط" : "Linked Revenue GL Account"} <span className="text-rose-500">*</span>
               </Label>
               <Select value={revenueAccountId} onValueChange={(val) => setRevenueAccountId(val ?? "")} items={revenueAccounts.map((a) => ({ value: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }))}>
-                <SelectTrigger className="w-full text-xs">
+                <SelectTrigger className="h-10 w-full text-xs font-bold bg-background border-border">
                   <SelectValue placeholder={isAr ? "اختر حساب الإيراد..." : "Select revenue account..."} />
                 </SelectTrigger>
                 <SelectContent>
                   {revenueAccounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id} className="text-xs">
+                    <SelectItem key={a.id} value={a.id} className="text-xs font-bold">
                       {a.code} — {isAr ? a.name_ar : a.name_en}
                     </SelectItem>
                   ))}
@@ -172,10 +174,10 @@ export function CreateDueTypeDialog({
           </DialogBody>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending} className="rounded-xl text-xs font-bold border-border hover:bg-muted text-foreground press-feedback motion-control">
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !nameAr.trim() || !nameEn.trim()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
+            <Button type="submit" disabled={isPending || !nameAr.trim() || !nameEn.trim()} className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-black shadow-xs gap-1.5 press-feedback motion-control cursor-pointer">
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
               <span>{isAr ? "حفظ نوع المستحق" : "Save Due Type"}</span>
             </Button>
@@ -276,12 +278,14 @@ export function IssueDueDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
             <FileText className="size-5" />
           </div>
           <div>
-            <DialogTitle>{isAr ? "إصدار مطالبة / مستحق مالي لوحدة" : "Issue Financial Due / Demand"}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base font-black text-foreground">
+              {isAr ? "إصدار مطالبة / مستحق مالي لوحدة" : "Issue Financial Due / Demand"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               {isAr
                 ? "قيد مستحق مالي على مالك/مستأجر الوحدة وترحيل قيد الاستحقاق المحاسبي."
                 : "Create receivable due against unit and post accrual journal entry."}
@@ -292,19 +296,19 @@ export function IssueDueDialog({
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
             {errorMsg && (
-              <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300">
-                <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
+              <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">
+                <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "الوحدة المستحقة *" : "Unit *"}
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "الوحدة المستحقة" : "Unit"} <span className="text-rose-500">*</span>
                 </Label>
                 <Select value={unitId} onValueChange={(val) => setUnitId(val ?? "")} items={units.map((u) => ({ value: u.id, label: u.label }))}>
-                  <SelectTrigger className="w-full text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs font-mono font-bold bg-background border-border">
                     <SelectValue placeholder={isAr ? "اختر الوحدة..." : "Select unit..."} />
                   </SelectTrigger>
                   <SelectContent>
@@ -318,16 +322,16 @@ export function IssueDueDialog({
               </div>
 
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "نوع المستحق / البند *" : "Due Type *"}
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "نوع المستحق / البند" : "Due Type"} <span className="text-rose-500">*</span>
                 </Label>
                 <Select value={dueTypeId} onValueChange={(val) => setDueTypeId(val ?? "")} items={dueTypes.map((d) => ({ value: d.id, label: d.label }))}>
-                  <SelectTrigger className="w-full text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs font-bold bg-background border-border">
                     <SelectValue placeholder={isAr ? "اختر النوع..." : "Select type..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {dueTypes.map((d) => (
-                      <SelectItem key={d.id} value={d.id} className="text-xs">
+                      <SelectItem key={d.id} value={d.id} className="text-xs font-bold">
                         {d.label}
                       </SelectItem>
                     ))}
@@ -338,16 +342,16 @@ export function IssueDueDialog({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "حساب الذمم المدينة (أصول) *" : "Receivable Asset Account *"}
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "حساب الذمم المدينة (أصول)" : "Receivable Asset Account"} <span className="text-rose-500">*</span>
                 </Label>
                 <Select value={receivableAccountId} onValueChange={(val) => setReceivableAccountId(val ?? "")} items={receivableAccounts.map((a) => ({ value: a.id, label: a.label }))}>
-                  <SelectTrigger className="w-full text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs font-bold bg-background border-border">
                     <SelectValue placeholder={isAr ? "اختر الحساب..." : "Select account..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {receivableAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id} className="text-xs">
+                      <SelectItem key={a.id} value={a.id} className="text-xs font-bold">
                         {a.label}
                       </SelectItem>
                     ))}
@@ -356,16 +360,16 @@ export function IssueDueDialog({
               </div>
 
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "الفترة المالية المفتوحة *" : "Fiscal Period *"}
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "الفترة المالية المفتوحة" : "Fiscal Period"} <span className="text-rose-500">*</span>
                 </Label>
                 <Select value={fiscalPeriodId} onValueChange={(val) => setFiscalPeriodId(val ?? "")} items={periods.map((p) => ({ value: p.id, label: p.label }))}>
-                  <SelectTrigger className="w-full text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs font-bold bg-background border-border">
                     <SelectValue placeholder={isAr ? "اختر الفترة..." : "Select period..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {periods.map((p) => (
-                      <SelectItem key={p.id} value={p.id} className="text-xs">
+                      <SelectItem key={p.id} value={p.id} className="text-xs font-bold">
                         {p.label}
                       </SelectItem>
                     ))}
@@ -376,8 +380,8 @@ export function IssueDueDialog({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isAr ? "مبلغ المستحق *" : "Due Amount *"}
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "مبلغ المستحق" : "Due Amount"} <span className="text-rose-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -388,62 +392,62 @@ export function IssueDueDialog({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="font-mono text-sm font-bold ps-3 pe-12 text-start"
+                    className="font-mono text-xs font-bold ps-3 pe-12 text-start h-10 bg-background border-border"
                     dir="ltr"
                   />
-                  <div className="absolute inset-y-0 end-0 flex items-center pe-2.5 pointer-events-none text-xs font-bold text-slate-400">
+                  <div className="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none text-xs font-bold text-muted-foreground">
                     {currencyLabel}
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Calendar className="size-3 text-slate-400" />
-                  <span>{isAr ? "تاريخ الإصدار *" : "Issue Date *"}</span>
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                  <Calendar className="size-3 text-muted-foreground" />
+                  <span>{isAr ? "تاريخ الإصدار" : "Issue Date"}</span> <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   type="date"
                   required
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className="font-mono text-xs"
+                  className="text-xs font-bold h-10 bg-background border-border"
                 />
               </div>
 
               <div className="space-y-1.5 text-start">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Calendar className="size-3 text-rose-500" />
-                  <span>{isAr ? "تاريخ الاستحقاق *" : "Due Date *"}</span>
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                  <Calendar className="size-3 text-primary" />
+                  <span>{isAr ? "تاريخ الاستحقاق" : "Due Date"}</span> <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   type="date"
                   required
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="font-mono text-xs font-bold text-rose-600"
+                  className="text-xs font-bold h-10 bg-background border-border text-primary"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5 text-start">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <Label className="text-xs font-bold text-foreground">
                 {isAr ? "البيان / ملاحظات المطالبة" : "Description / Notes"}
               </Label>
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={isAr ? "مثال: صيانة الربع الثاني عن شهر يونيو" : "e.g. Q2 maintenance fee"}
-                className="text-xs"
+                className="h-10 text-xs rounded-xl bg-background border-border"
               />
             </div>
           </DialogBody>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending} className="rounded-xl text-xs font-bold border-border hover:bg-muted text-foreground press-feedback motion-control">
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !unitId || !dueTypeId || !amount || Number(amount) <= 0} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
+            <Button type="submit" disabled={isPending || !unitId || !dueTypeId || !amount || Number(amount) <= 0} className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-black shadow-xs gap-1.5 press-feedback motion-control cursor-pointer">
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
               <span>{isAr ? "إصدار المطالبة وترحيل القيد" : "Issue Due & Post"}</span>
             </Button>

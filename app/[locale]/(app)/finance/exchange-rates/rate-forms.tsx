@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -75,115 +76,117 @@ export function RecordRateForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl rounded-3xl p-6 text-start">
-        <DialogHeader className="space-y-1 border-b border-slate-100 pb-4 text-start">
-          <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
-              <ArrowRightLeft className="size-4.5" />
-            </div>
-            <DialogTitle className="text-lg font-black text-slate-900">
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
+            <ArrowRightLeft className="size-5" />
+          </div>
+          <div>
+            <DialogTitle className="text-base font-black text-foreground">
               {isAr ? "تسجيل سعر صرف عملة جديد" : "Record Exchange Rate"}
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {isAr
+                ? `حدد سعر الصرف للعملة الأجنبية مقابل العملة الأساسية للمؤسسة (${baseCurrency}).`
+                : `Define foreign currency valuation against organization base currency (${baseCurrency}).`}
+            </DialogDescription>
           </div>
-          <DialogDescription className="text-xs text-slate-500">
-            {isAr
-              ? `حدد سعر الصرف للعملة الأجنبية مقابل العملة الأساسية للمؤسسة (${baseCurrency}).`
-              : `Define foreign currency valuation against organization base currency (${baseCurrency}).`}
-          </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4 pt-2">
-          <input type="hidden" name="organizationId" value={organizationId} />
-          <input type="hidden" name="baseCurrency" value={baseCurrency} />
+        <form action={formAction}>
+          <DialogBody className="space-y-4">
+            <input type="hidden" name="organizationId" value={organizationId} />
+            <input type="hidden" name="baseCurrency" value={baseCurrency} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="space-y-1.5">
-              <Label htmlFor="fx-foreign" className="text-xs font-bold text-slate-700">
-                {isAr ? "العملة الأجنبية" : "Foreign Currency"}
-              </Label>
-              <select
-                id="fx-foreign"
-                name="foreignCurrency"
-                required
-                className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-800 focus:border-blue-600 focus:outline-none"
-              >
-                {CURRENCY_CODES.filter((c) => c !== baseCurrency).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="fx-foreign" className="text-xs font-bold text-foreground">
+                  {isAr ? "العملة الأجنبية" : "Foreign Currency"} <span className="text-rose-500">*</span>
+                </Label>
+                <select
+                  id="fx-foreign"
+                  name="foreignCurrency"
+                  required
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer motion-control"
+                >
+                  {CURRENCY_CODES.filter((c) => c !== baseCurrency).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="fx-date" className="text-xs font-bold text-foreground">
+                  {isAr ? "تاريخ السعر" : "Rate Date"} <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="fx-date"
+                  name="rateDate"
+                  type="date"
+                  defaultValue={today}
+                  required
+                  dir="ltr"
+                  className="h-10 text-xs font-bold rounded-xl bg-background border-border"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="fx-date" className="text-xs font-bold text-slate-700">
-                {isAr ? "تاريخ السعر" : "Rate Date"}
+            <div className="space-y-2 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <Label htmlFor="fx-rate" className="text-xs font-bold text-foreground block">
+                {isAr
+                  ? `كم ${baseCurrency} تساوي وحدة واحدة من العملة الأجنبية؟`
+                  : `Rate: How many ${baseCurrency} per 1 foreign unit?`} <span className="text-rose-500">*</span>
               </Label>
               <Input
-                id="fx-date"
-                name="rateDate"
-                type="date"
-                defaultValue={today}
+                id="fx-rate"
+                name="basePerUnit"
+                type="number"
+                step="0.00000001"
+                min="0.00000001"
                 required
+                placeholder="e.g. 50.25"
                 dir="ltr"
-                className="text-sm rounded-xl"
+                className="font-mono text-xs font-bold h-10 rounded-xl bg-background border-border"
+              />
+              <p className="text-[11px] text-muted-foreground font-medium">
+                {isAr
+                  ? `مثال: 1 دولار أمريكي (USD) = 50.25 جنيه مصري (EGP)`
+                  : `e.g. 1 USD = 50.25 EGP`}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="fx-source" className="text-xs font-bold text-foreground">
+                {isAr ? "المصدر / البنك المعتمد" : "Source / Reference Bank"}
+              </Label>
+              <Input
+                id="fx-source"
+                name="source"
+                placeholder={isAr ? "مثال: البنك المركزي / نشرة أسعار الصرف الرسمية" : "Central Bank / Official Registry"}
+                className="h-10 text-xs rounded-xl bg-background border-border"
               />
             </div>
-          </div>
 
-          <div className="space-y-1.5 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-            <Label htmlFor="fx-rate" className="text-xs font-bold text-blue-950">
-              {isAr
-                ? `كم ${baseCurrency} تساوي وحدة واحدة من العملة الأجنبية؟`
-                : `Rate: How many ${baseCurrency} per 1 foreign unit?`}
-            </Label>
-            <Input
-              id="fx-rate"
-              name="basePerUnit"
-              type="number"
-              step="0.00000001"
-              min="0.00000001"
-              required
-              placeholder="e.g. 50.25"
-              dir="ltr"
-              className="font-mono text-sm rounded-xl bg-white mt-1"
-            />
-            <p className="text-[11px] text-blue-700 font-medium">
-              {isAr
-                ? `مثال: 1 دولار أمريكي (USD) = 50.25 جنيه مصري (EGP)`
-                : `e.g. 1 USD = 50.25 EGP`}
-            </p>
-          </div>
+            {!state.ok && (
+              <div
+                role="alert"
+                className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300"
+              >
+                <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                <span>{message(state.error, isAr)}</span>
+              </div>
+            )}
+          </DialogBody>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="fx-source" className="text-xs font-bold text-slate-700">
-              {isAr ? "المصدر / البنك المعتمد" : "Source / Reference Bank"}
-            </Label>
-            <Input
-              id="fx-source"
-              name="source"
-              placeholder={isAr ? "البنك المركزي / نشرة أسعار الصرف الرسمية" : "Central Bank / Official Registry"}
-              className="text-sm rounded-xl"
-            />
-          </div>
-
-          {!state.ok && (
-            <div
-              role="alert"
-              className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800"
-            >
-              <AlertCircle className="size-4 shrink-0 text-red-600" />
-              <span>{message(state.error, isAr)}</span>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 pt-2 border-t border-slate-100">
+          <DialogFooter>
             {onOpenChange && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-bold cursor-pointer"
+                className="rounded-xl text-xs font-bold border-border hover:bg-muted text-foreground press-feedback motion-control"
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
@@ -191,9 +194,9 @@ export function RecordRateForm({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
+              className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-black shadow-xs press-feedback motion-control cursor-pointer"
             >
-              {pending ? (isAr ? "جارٍ التسجيل..." : "Recording...") : isAr ? "تسجيل السعر" : "Record Rate"}
+              {pending ? (isAr ? "جارٍ التسجيل..." : "Recording...") : isAr ? "تسجيل وتثبيت السعر" : "Record Rate"}
             </Button>
           </DialogFooter>
         </form>
