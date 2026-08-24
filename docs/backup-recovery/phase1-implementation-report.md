@@ -1,5 +1,12 @@
 # AqarBooks — Tenant Backup & Recovery — Phase 1 Report
 
+**Status: TB&R PHASE 1 — PAUSED / MARKET VALIDATION (2026-08-24).** Owner
+decision: AqarBooks prioritizes market validation and customer acquisition
+before further TB&R investment. Reopen trigger: ≥10 paying AqarBooks
+customers, OR an earlier customer/enterprise deal with an explicit
+contractual backup/recovery requirement. Everything below this line
+reflects the state at the moment of pausing — preserved as-is, not removed.
+
 **Scope:** Foundation only, per the owner's Phase 1 mandate — canonical
 snapshot spec, identity-preserving recovery contract, extractor foundation
 (table classification + ordering), an isolated-restore-target guard, and a
@@ -8,7 +15,39 @@ extraction or restore was executed against any database.**
 
 **Governing decision:** [ADR 0006](../adr/0006-tenant-backup-identity-preserving-recovery.md)
 (TB&R-001) — identity-preserving recovery only; remap workflows are
-Clone/Data Portability, out of scope.
+Clone/Data Portability, out of scope. **This decision remains binding when
+the workstream reopens** — it is not affected by the pause.
+
+## Status at pause
+
+| Item | State |
+|---|---|
+| Phase 0 Discovery | COMPLETE |
+| TB&R-001 (ADR 0006) | APPROVED |
+| Phase 1 Foundation (code, spec, ADR) | BUILT — 13 files, unchanged, not removed |
+| Unit tests | 49 PASS |
+| Schema bootstrap drill | NOT RUN |
+| Recovery drill | NOT RUN |
+| Production TB&R | NOT DEPLOYED |
+
+## Disposable validation infrastructure — decommission candidates
+
+Two projects were provisioned in the Pro org (`pqbcyijrapzwzdnepaht`) for the
+Phase 1E drill, per the owner-authorized provisioning flow. Verified via
+`list_projects`/`list_tables` at pause time: **both exist, both
+`ACTIVE_HEALTHY`, both contain zero tables — no schema bootstrap, no
+synthetic tenant, no data of any kind was ever loaded into either.**
+
+| Project | Ref | Region | State |
+|---|---|---|---|
+| `aqarbooks-tbr-p1-source` | `upajcdhmnaxtawsliubm` | eu-west-1 | Empty, ACTIVE_HEALTHY |
+| `aqarbooks-tbr-p1-restore` | `jmssnfszftmokbpytzhz` | eu-west-1 | Empty, ACTIVE_HEALTHY |
+
+Both are billed at $10/month each ($20/mo combined) on the Pro org while
+they remain active. **Not deleted automatically** — reported here as
+safe-to-decommission candidates for owner action, since they hold no work
+product to lose. Trakova and muhassil, the org's other two projects, were
+never touched.
 
 ---
 
