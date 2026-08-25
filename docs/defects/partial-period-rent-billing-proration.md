@@ -91,8 +91,35 @@ Not a code change alone. At minimum:
 
 That is a product decision with an accounting owner. **The demo is not where it
 gets made**, which is why the demo's own fixtures were aligned to period
-boundaries instead — see the alignment repair. That removes the ambiguity from
-the demonstration without pretending the underlying question is settled.
+boundaries instead. That removes the ambiguity from the demonstration without
+pretending the underlying question is settled.
+
+## The demo alignment (2026-08-25) — what it did and did not settle
+
+Thirteen of the eighteen ACTIVE quarterly leases did not sit on quarter
+boundaries. Each was replaced by the largest span of whole quarters lying
+entirely inside its original term — start moved forward to the next quarter
+start, end moved back to the previous quarter end, never outwards. Ten had both
+boundaries moved, three only the end; five were already aligned and untouched.
+
+| | before | after |
+| --- | --- | --- |
+| misaligned starts | 10 | 0 |
+| misaligned ends | 13 | 0 |
+| partial for 2026-Q2 | 1 | 0 |
+| 2026-Q2 billable | 15 | 15 |
+| 2026-Q2 amount | 634,100.00 (16 leases, incl. one partial) | 599,150.00 |
+
+The 34,950.00 difference is `PG-T-0502` — the June commencement — which now
+begins 2026-07-01 and bills from Q3 instead. Nothing was prorated to reach that
+figure; it is what the clipped terms bill.
+
+**This settles nothing about the product.** It is a fixture repair on one demo
+tenant. A real customer still cannot bill a lease that starts mid-period, and
+the four requirements above are still unmet. Two of them now have a date
+attached: the demo's own quarterly leases end 2026-12-31 and 2027-03-31, both
+quarter ends, so the demo no longer walks into the final-period case — but a
+customer whose lease ends mid-quarter still will.
 
 ## Related
 

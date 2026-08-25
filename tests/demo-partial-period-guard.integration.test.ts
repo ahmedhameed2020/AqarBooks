@@ -26,6 +26,17 @@
  * Without that flag the probe is skipped and says so. A test must not be able
  * to cause the damage it is looking for, and "probably applied" is not a
  * safety argument.
+ *
+ * SINCE THE ALIGNMENT, BOTH FLAGS ARE NEEDED:
+ *
+ *     DEMO_PARTIAL_GUARD_APPLIED=1 DEMO_Q2_ALIGNMENT_DONE=1  *       npx vitest run tests/demo-partial-period-guard.integration.test.ts
+ *
+ * The alignment clipped every quarterly fixture to period boundaries, so no
+ * partially-covering lease remains for the probe to be refused on. That is the
+ * intended end state, but it is asserted rather than assumed: without
+ * DEMO_Q2_ALIGNMENT_DONE the suite FAILS on the missing subject, because a
+ * vanished subject and a silently green probe look identical otherwise -- which
+ * is precisely how this file passed for a while without running its own probe.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

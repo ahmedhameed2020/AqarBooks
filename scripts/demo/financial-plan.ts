@@ -225,11 +225,40 @@ export function planRentDues(input: FinancialPlanInput): {
 
   const propertyCodeById = new Map(input.properties.map((p) => [p.id, p.code]));
 
+  // ACTIVE ONLY, AND THE EXCLUSION IS LOAD-BEARING.
+  //
+  // The quarterly alignment replaced thirteen leases: each superseded row was
+  // ENDED and a boundary-aligned replacement activated in its place. For the
+  // three whose start was already aligned, the ENDED row and its replacement
+  // carry the SAME `property:unit:startsOn:frequency` key --
+  // `unit_leases_no_overlapping_active` constrains ACTIVE rows only, so that
+  // historical duplication is legal and expected.
+  //
+  // It is harmless precisely because nothing financial is planned from a
+  // superseded row. If this loop ever widened to include ENDED leases, those
+  // three units would get two payer profiles under one key and bill twice.
+  const activeKeys = new Set<string>();
+
   for (const lease of input.leases) {
     if (lease.status !== "ACTIVE") continue;
     const unit = unitById.get(lease.unitId);
     if (!unit) continue;
     const property = propertyCodeById.get(unit.propertyId) ?? unit.propertyId;
+
+    const activeKey = leaseBusinessKey({
+      propertyCode: property,
+      unitCode: unit.code,
+      startsOn: lease.startsOn,
+      rentFrequency: lease.rentFrequency,
+    });
+    if (activeKeys.has(activeKey)) {
+      throw new Error(
+        `duplicate stable lease key inside the ACTIVE set: ${activeKey}. Two live ` +
+          "leases would share one payer profile, so the narrative would be ambiguous. " +
+          "Refusing to plan.",
+      );
+    }
+    activeKeys.add(activeKey);
 
     const keys =
       lease.rentFrequency === "MONTHLY"
@@ -240,9 +269,21 @@ export function planRentDues(input: FinancialPlanInput): {
 
     for (const periodKey of keys) {
       const range = periodRange(lease.rentFrequency, periodKey);
-      // The RPC skips a period that falls outside the lease term, so the plan
-      // must skip it too or it would over-count.
-      if (range.start > (lease.endsOn ?? "9999-12-31") || range.end < lease.startsOn) continue;
+
+      // COVERAGE, NOT OVERLAP.
+      //
+      // This used to skip only a period entirely outside the term, mirroring
+      // the RPC's old behaviour. Since 20260825182109_rent_partial_period_guard
+      // the RPC RAISES on a period the lease merely touches, so an overlap test
+      // would put a due in the plan that the apply cannot create -- the plan
+      // would stop describing the apply, which is the one thing it exists to do.
+      //
+      // A period the lease does not touch at all is still a benign skip; a
+      // period it touches but does not cover is now simply not planned, and the
+      // fixtures were aligned so that case no longer arises.
+      const covers =
+        lease.startsOn <= range.start && (lease.endsOn ?? "9999-12-31") >= range.end;
+      if (!covers) continue;
 
       if (periodKey === "2026-Q2") quarterlyQ2++;
 

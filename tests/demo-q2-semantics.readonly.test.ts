@@ -75,37 +75,54 @@ describe.skipIf(!CONFIGURED)("2026-Q2 quarterly rent semantics", () => {
     expect(analysis, "no analysis produced").not.toBeNull();
   });
 
-  it("Q2 overlaps more leases than May does", () => {
-    // The specific gap in the F1 stage's filter: it selected leases overlapping
-    // MAY, which is 15. The quarter runs from 1 April, so a lease commencing in
-    // June overlaps Q2 without overlapping May.
+  it("Q2 and May now touch the same leases", () => {
+    // BEFORE THE ALIGNMENT this asserted the opposite, and that was the point:
+    // the F1 stage filtered on leases overlapping MAY (15), while the quarter
+    // runs from 1 April, so PG-T-0502 -- commencing 2026-06-01 -- overlapped Q2
+    // without overlapping May. 16 against 15.
+    //
+    // The alignment clipped that lease to 2026-07-01..2027-03-31, so it now
+    // belongs to Q3 and the two filters agree. Inverted rather than deleted:
+    // the discrepancy is what made the guard necessary, and a test that no
+    // longer states it would let the discrepancy return unnoticed.
     const mayOverlap = allQuarterly.filter(
       (l) => l.startsOn <= "2026-05-31" && (l.endsOn ?? "9999-12-31") >= "2026-05-01",
     );
-    expect(analysis!.leases.length).toBeGreaterThan(mayOverlap.length);
+    expect(analysis!.leases.length).toBe(mayOverlap.length);
   });
 
-  it("the current rule bills time before a tenancy began", () => {
-    // The defect, stated as a test rather than as prose. Any lease whose
-    // occupied days are fewer than the quarter's days is being charged for
-    // days it did not occupy.
+  it("no lease is billed for time before its tenancy began", () => {
+    // THE DEFECT, now absent from the fixtures. Measured before the alignment:
+    // one lease (PG-T-0502) occupied 30 of Q2's 91 days and would have been
+    // charged 34,950.00 dated 2026-04-01 -- the whole of the 23,428.02 gap
+    // between the full-quarter and prorated bases.
+    //
+    // This is a statement about the DEMO's fixtures, not about the product. The
+    // underlying defect is still open for real customers and the database still
+    // refuses the case outright; see
+    // docs/defects/partial-period-rent-billing-proration.md.
     const overcharged = analysis!.leases.filter(
       (o) => o.daysOccupied < o.daysInQuarter && o.amounts.CURRENT_RPC > o.amounts.PRORATED,
     );
     expect(
-      overcharged.length,
-      "expected at least one partially-covered lease billed a full quarter",
-    ).toBeGreaterThan(0);
+      overcharged.map((o) => o.unitCode),
+      "a partially-covered lease would still be billed a full quarter",
+    ).toEqual([]);
   });
 
-  it("reaches no conclusion on its own", () => {
-    // Three conventions, three different totals. If they ever agreed, the
-    // question would have been settled by the data rather than by a decision --
-    // which is exactly what aligning the fixtures to quarter boundaries would
-    // achieve.
+  it("the three conventions now agree, so nothing is left to decide", () => {
+    // Before the alignment these were three different totals -- 634,100.00 by
+    // the current rule, and less by each of the others -- and the spread was
+    // the decision that could not be made inside a SECURITY DEFINER function.
+    //
+    // Aligning the fixtures to quarter boundaries settles it by making every
+    // billable term cover its period exactly, which is the only way the
+    // question disappears without someone picking a convention. Agreement here
+    // is therefore the evidence that the alignment did what it claimed.
     const { CURRENT_RPC, FIRST_FULL_QUARTER, PRORATED } = analysis!.totals;
     const distinct = new Set([CURRENT_RPC, FIRST_FULL_QUARTER, PRORATED]);
-    expect(distinct.size, "the conventions agree; the ambiguity is already gone").toBeGreaterThan(1);
+    expect(distinct.size, "the conventions still disagree").toBe(1);
+    expect(CURRENT_RPC, "2026-Q2 total").toBe(599_150);
   });
 
   it("writes nothing", async () => {
