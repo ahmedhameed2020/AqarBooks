@@ -44,10 +44,17 @@ const CONFIGURED = Boolean(url && anonKey && serviceKey && organizationId && own
 
 /**
  * Asserted by the operator after applying
- * scripts/demo/pending-migration-partial-period-guard.sql. Without it, the one
+ * supabase/migrations/20260825182109_rent_partial_period_guard.sql. Without it,
+ * the one
  * probe that would write if the guard were absent does not run.
  */
 const GUARD_APPLIED = process.env.DEMO_PARTIAL_GUARD_APPLIED === "1";
+
+/**
+ * Asserted by the operator once the mid-quarter fixtures have been realigned to
+ * period boundaries. Until then, a partially-covering lease must still exist.
+ */
+const ALIGNMENT_DONE = process.env.DEMO_Q2_ALIGNMENT_DONE === "1";
 
 const admin = CONFIGURED
   ? createClient<Database>(url, serviceKey, { auth: { persistSession: false } })
@@ -125,31 +132,60 @@ async function counts() {
 
 describe.skipIf(!CONFIGURED)("partial-period rent guard", () => {
   it("finds a lease that does not cover 2026-Q2", () => {
-    // If the fixtures have already been realigned there is nothing partial
-    // left, and this test has served its purpose.
-    if (!partialLease) {
-      console.warn(
-        "No partially-covering quarterly lease remains. The alignment repair has " +
-          "run; this guard is now exercised only by the unit-level reasoning.",
-      );
-    }
     expect(fullLease, "no fully-covering quarterly lease to use as a control").toBeTruthy();
+
+    // Until the alignment repair runs, a partially-covering lease MUST still be
+    // here -- it is the subject the probe below needs. Asserting it rather than
+    // warning is deliberate: a missing subject silently turns the whole suite
+    // into theatre, which is exactly what happened the first time this ran.
+    // After the repair, set DEMO_Q2_ALIGNMENT_DONE=1 and the absence becomes
+    // the expected outcome instead.
+    if (ALIGNMENT_DONE) {
+      expect(
+        partialLease,
+        "DEMO_Q2_ALIGNMENT_DONE is set but a partially-covering lease remains",
+      ).toBeNull();
+      return;
+    }
+    expect(
+      partialLease,
+      "no partially-covering quarterly lease: either the alignment repair has run " +
+        "(set DEMO_Q2_ALIGNMENT_DONE=1) or the fixtures are not what this probe assumes",
+    ).toBeTruthy();
   });
 
   it("reports whether the guard probe can safely run", () => {
     if (!GUARD_APPLIED) {
       console.warn(
         "SKIPPED the Q2 probe: DEMO_PARTIAL_GUARD_APPLIED is not set. Apply " +
-          "scripts/demo/pending-migration-partial-period-guard.sql, then re-run with " +
+          "supabase/migrations/20260825182109_rent_partial_period_guard.sql, then re-run with " +
           "DEMO_PARTIAL_GUARD_APPLIED=1.",
       );
     }
     expect(typeof GUARD_APPLIED).toBe("boolean");
   });
 
-  it.skipIf(!partialLease || !GUARD_APPLIED)(
+  // GATED AT RUN TIME, NOT AT COLLECTION TIME.
+  //
+  // This was `it.skipIf(!partialLease || !GUARD_APPLIED)`. Vitest evaluates a
+  // skipIf argument while the describe callback is being COLLECTED, which is
+  // before beforeAll has run, so `partialLease` was unavoidably null and the
+  // condition was always true. The probe never executed -- and the file still
+  // reported "4 passed | 1 skipped", which reads like a pass.
+  //
+  // It would have been skipped just as silently with the guard absent, so a
+  // green run proved nothing about the database. Only GUARD_APPLIED, which
+  // comes from the environment and is known at collection time, may gate
+  // statically; anything discovered in beforeAll has to be checked in the body.
+  it.skipIf(!GUARD_APPLIED)(
     "refuses 2026-Q2 for that lease and writes nothing",
-    async () => {
+    async (ctx) => {
+    if (!partialLease) {
+      // Only reachable once the alignment repair has run; the assertion in the
+      // first test is what fails if it has not.
+      ctx.skip();
+      return;
+    }
     const before = await counts();
 
     const { error } = await (owner as unknown as UntypedRpc).rpc("generate_lease_rent_dues", {
@@ -170,7 +206,7 @@ describe.skipIf(!CONFIGURED)("partial-period rent guard", () => {
       throw new Error(
         `PARTIAL-PERIOD GUARD NOT APPLIED: ${partialLease!.unitCode} commences ` +
           `${partialLease!.startsOn} and does not cover 2026-Q2, yet the call was accepted. ` +
-          "Apply scripts/demo/pending-migration-partial-period-guard.sql.",
+          "Apply supabase/migrations/20260825182109_rent_partial_period_guard.sql.",
       );
     }
 

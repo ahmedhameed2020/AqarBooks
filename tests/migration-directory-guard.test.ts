@@ -73,6 +73,21 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
  * exact version recorded in that ledger, so the two now agree.
  */
 /*
+ * FIFTH AMENDMENT (2026-08-25). Extends the allowlist to thirteen with
+ * 20260825182109_rent_partial_period_guard.sql, which makes
+ * generate_lease_rent_dues refuse a period the lease does not fully cover
+ * rather than bill a whole period for a partial one. See
+ * docs/defects/partial-period-rent-billing-proration.md.
+ *
+ * These bytes are unusual in this list in one respect: they were published,
+ * reviewed and digest-pinned BEFORE being applied, and an off-by-one was caught
+ * in review while the file was still pending -- the first draft compared
+ * ends_on against upper(v_range), and daterange canonicalises to '[)', so
+ * upper() is the day after the period's last day. That draft would have refused
+ * every monthly lease ending on the last day of its month. The digest of that
+ * withdrawn draft (665cba99...) must never appear in this list; the boundary
+ * spec that now pins the corrected rule is tests/rent-period-coverage.test.ts.
+ *
  * FOURTH AMENDMENT (2026-08-25). Extends the allowlist to twelve with the two
  * security migrations:
  *
@@ -117,6 +132,7 @@ const MIGRATION_FILES = [
   { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97" },
   { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba" },
   { file: "20260825124342_internal_helper_acls.sql", bytes: 7595, sha256: "3cbcc49b3308e8a2bf772579d2573d60f7b034de74067b20f2dd43fb44bc5082" },
+  { file: "20260825182109_rent_partial_period_guard.sql", bytes: 11966, sha256: "884dddada7f5b6703e844f1bc8f7a055d5f0692fc73f243865c4da37cc6c6cd4" },
 ] as const;
 
 /**

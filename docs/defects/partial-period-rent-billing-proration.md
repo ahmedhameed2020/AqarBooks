@@ -96,7 +96,10 @@ the demonstration without pretending the underlying question is settled.
 
 ## Related
 
-- `scripts/demo/pending-migration-partial-period-guard.sql` — the guard
+- `supabase/migrations/20260825182109_rent_partial_period_guard.sql` — the
+  guard, applied 2026-08-25
+- `tests/rent-period-coverage.test.ts` — the boundary spec, after the
+  off-by-one caught in review
 - `tests/demo-q2-semantics.readonly.test.ts` — the three conventions, costed
 - `docs/incidents/2026-08-25-generate-lease-rent-dues-exploit.md` — the same
   function's authorization gap, found separately
