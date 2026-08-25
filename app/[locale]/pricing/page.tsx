@@ -2,17 +2,9 @@ import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { MarketingNav } from "../marketing-nav";
-import { FoundingPlanSection } from "@/components/marketing/pricing/founding-plan-section";
-import { PricingFaqSection } from "@/components/marketing/pricing/pricing-faq";
-import { PricingFinalCta } from "@/components/marketing/pricing/pricing-final-cta";
-import { PricingHero } from "@/components/marketing/pricing/pricing-hero";
+import { PricingView } from "@/components/marketing/pricing/pricing-view";
 import { getPricingCopy } from "@/components/marketing/pricing/pricing-copy";
-import {
-  AfterFoundingSection,
-  MigrationSection,
-  OnboardingSection,
-  WhyFoundingSection,
-} from "@/components/marketing/pricing/pricing-narrative";
+import { getFoundingSlotsRemaining } from "@/components/marketing/pricing/pricing-data";
 
 export async function generateMetadata({
   params,
@@ -26,9 +18,6 @@ export async function generateMetadata({
   const ogImageUrl = "https://aqarbooks.com/og-image.jpg";
 
   return {
-    // `absolute` bypasses the root layout's "%s | AqarBooks" template -- the
-    // authoritative title already ends in the brand, so the template would
-    // render it twice.
     title: { absolute: copy.meta.title },
     description: copy.meta.description,
     openGraph: {
@@ -65,24 +54,12 @@ export default async function PricingPage({
   setRequestLocale(locale as Locale);
   const typedLocale = locale as Locale;
   const copy = getPricingCopy(typedLocale);
+  const foundingSlotsRemaining = getFoundingSlotsRemaining();
 
-  /* Structured data is deliberately limited to the ONE shape this repository
-     already ships: the landing page's `SoftwareApplication` node (see
-     app/[locale]/page.tsx, committed in d568084) -- same @type, same fields,
-     same inline <script> delivery.
-
-     The `Offer` array and `FAQPage` node drafted earlier were removed before
-     release: neither type exists anywhere in this repository, and standing up
-     new commercial structured-data types is not in scope for Pricing v1.0.
-     Carrying no Offer node also means the page cannot assert an availability,
-     a validThrough, a tax-inclusive price, or a standalone purchasable 2,990
-     monthly rate -- claims that would each need commercial sign-off. The
-     prices remain fully visible in the page body, which is what customers and
-     crawlers read. */
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "AqarBooks Founding Professional",
+    name: "AqarBooks Real Estate Accounting ERP",
     applicationCategory: "Accounting & Real Estate ERP",
     operatingSystem: "Web",
     description: copy.meta.description,
@@ -98,29 +75,10 @@ export default async function PricingPage({
       <MarketingNav locale={typedLocale} />
 
       <main className="flex-1">
-        {/* 1. Positioning */}
-        <PricingHero locale={typedLocale} />
-
-        {/* 2 + 3. Founding Program commercial offer and what it includes */}
-        <FoundingPlanSection locale={typedLocale} />
-
-        {/* 4. Why a single plan at launch */}
-        <WhyFoundingSection locale={typedLocale} />
-
-        {/* 5. Mandatory onboarding */}
-        <OnboardingSection locale={typedLocale} />
-
-        {/* 6. Complex data migration, priced separately */}
-        <MigrationSection locale={typedLocale} />
-
-        {/* 7. Commercial anchor after the Founding Program */}
-        <AfterFoundingSection locale={typedLocale} />
-
-        {/* 8. FAQ */}
-        <PricingFaqSection locale={typedLocale} />
-
-        {/* 9. Closing CTA + footer */}
-        <PricingFinalCta locale={typedLocale} />
+        <PricingView
+          locale={typedLocale}
+          foundingSlotsRemaining={foundingSlotsRemaining}
+        />
       </main>
     </div>
   );
