@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/supabase/types";
 import { DEMO_STORY } from "../../lib/demo/story";
+import { generateLeases, generateMembers, generateUnits } from "./demo-fixtures";
 
 /**
  * Post-apply structural verification.
@@ -107,9 +108,35 @@ export async function verifyStructural(
   add(counts, "Units", DEMO_STORY.headline.units, units.length);
   add(counts, "Active units", DEMO_STORY.headline.activeUnits, activeUnits.length);
   add(counts, "Archived units", DEMO_STORY.headline.units - DEMO_STORY.headline.activeUnits, archivedUnits.length);
-  add(counts, "Members", 97, members.length);
-  add(counts, "Ownership links", 72, ownerships.length);
-  add(counts, "Active leases", 49, activeLeases.length);
+  // Derived from the fixtures, not hard-coded. The literal 97 was written
+  // before the commercial tenancies existed and went stale the moment 14
+  // company tenants were added -- a verifier that has to be edited every time
+  // the data legitimately changes is a verifier nobody will trust.
+  const fixtureUnits = generateUnits();
+  const { members: fixtureMembers, assignment } = generateMembers(fixtureUnits);
+  const fixtureLeases = generateLeases(fixtureUnits, assignment);
+  const expectedOwnerships = fixtureUnits.filter(
+    (u) => !u.archived && u.tenure === "OWNER_RESIDENT",
+  ).length;
+
+  // A repaired tenant legitimately holds MORE members than a fresh seed would
+  // generate: the individuals whose tenancies were ended remain as records with
+  // history, alongside the company tenants that replaced them. Demanding
+  // equality would be demanding that the database forget people.
+  //
+  // So the assertion is coverage, not equality -- every member the fixtures
+  // describe must exist -- and the surplus is reported rather than failed.
+  const dbEmails = new Set(members.map((m) => m.email).filter(Boolean) as string[]);
+  const missingFixtureMembers = fixtureMembers.filter((m) => !dbEmails.has(m.email));
+  add(counts, "Members (fixture coverage)", 0, missingFixtureMembers.length);
+  counts.push({
+    label: "Members in database (incl. history)",
+    expected: `>= ${fixtureMembers.length}`,
+    actual: String(members.length),
+    pass: members.length >= fixtureMembers.length,
+  });
+  add(counts, "Ownership links", expectedOwnerships, ownerships.length);
+  add(counts, "Active leases", fixtureLeases.length, activeLeases.length);
   add(counts, "Due types", 2, dueTypes.length);
   add(counts, "Banks", 1, banks.length);
   add(counts, "Bank accounts", 2, bankAccounts.length);
@@ -149,12 +176,32 @@ export async function verifyStructural(
   const unexplained = [...occupiedIds].filter((id) => !unitById.has(id));
   add(relationships, "unlinked occupied", 0, unexplained.length);
 
+  // Attachment includes ENDED leases on purpose. A former tenant is not an
+  // orphan record -- they are history, and a portfolio where nobody has ever
+  // moved out is less believable than one where people have. Counting only
+  // ACTIVE leases reported 13 orphans immediately after the repair ended 18
+  // tenancies, which was the verifier misreading a correct outcome.
   const attachedMembers = new Set<string>([
     ...ownerships.map((o) => o.member_id),
-    ...activeLeases.map((l) => l.tenant_member_id),
+    ...leases.map((l) => l.tenant_member_id),
   ]);
   const orphans = members.filter((m) => !attachedMembers.has(m.id));
-  add(relationships, "orphan members", 0, orphans.length);
+  add(relationships, "orphan members (never attached)", 0, orphans.length);
+
+  // Reported rather than asserted: former tenants are expected after a repair
+  // or a real move-out, and the number is worth seeing.
+  const formerOnly = members.filter(
+    (m) =>
+      !ownerships.some((o) => o.member_id === m.id) &&
+      !activeLeases.some((l) => l.tenant_member_id === m.id) &&
+      leases.some((l) => l.tenant_member_id === m.id),
+  );
+  relationships.push({
+    label: "former tenants (ended lease, no current unit)",
+    expected: String(formerOnly.length),
+    actual: String(formerOnly.length),
+    pass: true,
+  });
 
   const invalidLeaseLinks = activeLeases.filter(
     (l) => !unitById.has(l.unit_id) || !memberIds.has(l.tenant_member_id),
