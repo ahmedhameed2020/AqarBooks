@@ -165,6 +165,41 @@ export const DEMO_STORY = {
   ],
 
   /**
+   * Accounts the demo tenant adds to its own chart on top of the
+   * RESORT_STANDARD template.
+   *
+   * WHY THIS IS NOT A CHANGE TO THE TEMPLATE
+   * The global template ships to every customer, and rental income is not
+   * universal -- an owners' association has none. Editing it to suit the demo
+   * would push a real-estate-specific account onto tenants that do not want it.
+   *
+   * WHY THE DEMO NEEDS IT ANYWAY
+   * The template's nearest fit for rent is `4300 Other Revenue`. A property
+   * accountant opening the demo's income statement would see rental income
+   * classified as "other", and would reasonably conclude that AqarBooks does
+   * not model rent as a first-class revenue stream. That is a claim about the
+   * product, made by accident, on the surface built to establish trust.
+   *
+   * Adding a leaf under the revenue group is exactly what a real operator does
+   * during onboarding -- it is tenant-specific chart configuration, not an
+   * invented figure. So the demo does what a configured customer would have
+   * done, and shows the result.
+   */
+  tenantAccounts: {
+    rentalIncome: {
+      /** Free in RESORT_STANDARD, which stops at 4300. Verified before use. */
+      code: "4400",
+      parentCode: "4000",
+      nameAr: "إيرادات الإيجارات",
+      nameEn: "Rental Income",
+      category: "REVENUE" as const,
+      normalBalance: "CREDIT" as const,
+      /** Matches its siblings 4100 and 4300. */
+      cashFlowSection: "OPERATING" as const,
+    },
+  },
+
+  /**
    * Targets the seed aims at, expressed as proportions of the unit stock. They
    * shape the fixtures; they are not displayed anywhere, and the reported
    * figures always come from the ledger.

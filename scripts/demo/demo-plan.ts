@@ -240,7 +240,22 @@ export function buildSeedPlan(): SeedPlan {
         count: ownerResident.length,
         detail: "link_unit_ownership RPC, 100% share, primary contact",
       },
-      { stage: "due types", count: 2, detail: "Common Area Service Charge, Unit Rent" },
+      {
+        stage: "tenant accounts",
+        count: 1,
+        detail:
+          `${DEMO_STORY.tenantAccounts.rentalIncome.code} ` +
+          `${DEMO_STORY.tenantAccounts.rentalIncome.nameEn} under ` +
+          `${DEMO_STORY.tenantAccounts.rentalIncome.parentCode} -- tenant chart ` +
+          "configuration, not a change to the global template",
+      },
+      {
+        stage: "due types",
+        count: 2,
+        detail:
+          "Common Area Service Charge -> 4100; Unit Rent -> " +
+          `${DEMO_STORY.tenantAccounts.rentalIncome.code} ${DEMO_STORY.tenantAccounts.rentalIncome.nameEn}`,
+      },
       { stage: "banks", count: 1, detail: "Commercial International Bank" },
       {
         stage: "bank accounts",
@@ -267,12 +282,13 @@ export function buildSeedPlan(): SeedPlan {
       "bank statement lines, auto_match_bank_statement, and an unfinalised reconciliation",
     ],
     followUps: [
-      "RESORT_STANDARD has no dedicated rental-income account, so the Unit Rent " +
-        "due type points at 4300 Other Revenue. A real operator would add one; " +
-        "it was not invented here so the demo's chart of accounts stays identical " +
-        "to what a customer receives at onboarding.",
       "The demo organization must be ACTIVE, not TRIAL: create_unit_lease calls " +
-        "organization_is_active() and refuses otherwise.",
+        "organization_is_active() and refuses otherwise. ACTIVE is a lifecycle " +
+        "status, not a commercial one -- the demo must additionally be marked so " +
+        "billing and analytics never count it as a paying customer.",
+      "The demo tenant must have NO subscriptions row. Plans live in a separate " +
+        "table, so an organization with no subscription is already excluded from " +
+        "any paid-customer metric that counts subscriptions.",
     ],
   };
 }

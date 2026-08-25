@@ -78,6 +78,7 @@ type Ctx = SeedOptions & {
     fiscalPeriodId?: string;
     dueTypeServiceCharge?: string;
     dueTypeRent?: string;
+    rentalIncomeAccountId?: string;
     leasesCreated?: number;
     receivableAccountId?: string;
     cashAccountId?: string;
@@ -138,6 +139,7 @@ export async function seedDemoTenant(options: SeedOptions): Promise<SeedReport> 
 
   try {
     await stageChartOfAccounts(ctx);
+    await stageTenantAccounts(ctx);
     await stageFiscalPeriod(ctx);
     await stageProperties(ctx);
     await stageZonesAndBuildings(ctx);
@@ -205,6 +207,96 @@ async function stageChartOfAccounts(ctx: Ctx): Promise<void> {
 
   for (const row of cloned ?? []) ctx.ids.accountByCode.set(row.code, row.id);
   stage(ctx, "chart of accounts", 0, (cloned ?? []).length, "RESORT_STANDARD");
+}
+
+// ---------------------------------------------------------------------------
+// Stage 1b — the tenant's own chart configuration.
+//
+// The RESORT_STANDARD template ships to every customer and has no rental-income
+// account, because rent is not universal -- an owners' association has none.
+// Editing the global template to suit the demo would push a real-estate-
+// specific account onto tenants that never asked for it.
+//
+// But leaving rent on `4300 Other Revenue` makes the demo's income statement
+// say that AqarBooks classifies rental income as "other". A property
+// accountant would read that as a statement about the product, on the surface
+// built to establish trust.
+//
+// So the demo does what a configured customer does at onboarding: it adds a
+// leaf under the revenue group. This is tenant-specific chart configuration,
+// not an invented figure, and it is written with the service role because
+// chart_of_accounts is an ordinary insertable table -- there is no RPC for it,
+// and the account carries no postings at creation.
+// ---------------------------------------------------------------------------
+async function stageTenantAccounts(ctx: Ctx): Promise<void> {
+  const spec = DEMO_STORY.tenantAccounts.rentalIncome;
+
+  const existingId = ctx.ids.accountByCode.get(spec.code);
+  if (existingId) {
+    // Confirm it is the account we mean rather than an unrelated one that
+    // happens to hold the code. Reusing a stranger's account would silently
+    // post rent somewhere nobody chose.
+    const { data: row, error } = await ctx.admin
+      .from("chart_of_accounts")
+      .select("id, name_en, category, is_group")
+      .eq("id", existingId)
+      .maybeSingle();
+    if (error) throw new Error(`chart_of_accounts read failed: ${error.message}`);
+    if (!row || row.name_en !== spec.nameEn || row.category !== "REVENUE" || row.is_group) {
+      throw new Error(
+        `Account code ${spec.code} already exists but is not the demo's ` +
+          `"${spec.nameEn}" revenue leaf. Refusing to reuse it -- choose a free code.`,
+      );
+    }
+    ctx.ids.rentalIncomeAccountId = existingId;
+    stage(ctx, "tenant accounts", 1, 0, `${spec.code} ${spec.nameEn}`);
+    return;
+  }
+
+  const parentId = ctx.ids.accountByCode.get(spec.parentCode);
+
+  if (ctx.dryRun) {
+    stage(
+      ctx,
+      "tenant accounts",
+      0,
+      1,
+      `would create ${spec.code} ${spec.nameEn} under ${spec.parentCode}` +
+        (parentId ? "" : " (parent NOT resolved)"),
+    );
+    return;
+  }
+
+  if (!parentId) {
+    throw new Error(
+      `Cannot create ${spec.code}: parent account ${spec.parentCode} is missing from the ` +
+        "cloned chart of accounts. The RESORT_STANDARD template has changed.",
+    );
+  }
+
+  const { data, error } = await ctx.admin
+    .from("chart_of_accounts")
+    .insert({
+      organization_id: ctx.organizationId,
+      code: spec.code,
+      name_ar: spec.nameAr,
+      name_en: spec.nameEn,
+      parent_id: parentId,
+      category: spec.category,
+      normal_balance: spec.normalBalance,
+      is_group: false,
+      is_active: true,
+      is_cash_equivalent: false,
+      cash_flow_section: spec.cashFlowSection,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(`chart_of_accounts insert(${spec.code}) failed: ${error.message}`);
+
+  ctx.ids.accountByCode.set(spec.code, data.id);
+  ctx.ids.rentalIncomeAccountId = data.id;
+  stage(ctx, "tenant accounts", 0, 1, `${spec.code} ${spec.nameEn}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -556,12 +648,10 @@ async function stageDueTypes(ctx: Ctx): Promise<void> {
   // posting to a substitute account is precisely the kind of invented figure
   // this codebase has had to repair before. Fail instead.
   const serviceRevenue = ctx.ids.accountByCode.get("4100");
-  // RESORT_STANDARD has no dedicated rental-income account. 4300 "Other
-  // Revenue" is the truthful choice against the template as it ships; adding a
-  // proper rent revenue account is recorded as a follow-up rather than
-  // invented here, so the demo's chart of accounts stays byte-identical to
-  // what a real customer receives at onboarding.
-  const rentRevenue = ctx.ids.accountByCode.get("4300");
+  // The tenant's own rental-income leaf, added by stageTenantAccounts. Rent
+  // must not land on 4300 Other Revenue: the demo's income statement would
+  // then say AqarBooks treats rental income as an afterthought.
+  const rentRevenue = ctx.ids.rentalIncomeAccountId;
   const receivable = ctx.ids.accountByCode.get("1130");
 
   if (!serviceRevenue || !rentRevenue || !receivable) {
@@ -570,8 +660,9 @@ async function stageDueTypes(ctx: Ctx): Promise<void> {
       return;
     }
     throw new Error(
-      "Could not resolve 1130 / 4100 / 4300 in the cloned chart of accounts. " +
-        "The RESORT_STANDARD template has changed; re-read it before re-running.",
+      "Could not resolve the receivable (1130), service revenue (4100) or the " +
+        "tenant's rental-income account. Check stageChartOfAccounts and " +
+        "stageTenantAccounts before re-running.",
     );
   }
 

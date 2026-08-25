@@ -155,6 +155,25 @@ Nothing here is automated end to end, on purpose: each step is a decision.
    `organization_is_active()` and refuses otherwise, so the lease stage would
    fail against a TRIAL organization.
 
+   Then set `is_demo = true`. This is a separate fact from `status` and both
+   are needed. `status` answers "may this tenant operate?"; `is_demo` answers
+   "is this a customer?". Overloading `status` with a DEMO value was
+   considered and rejected — `organization_is_active()` reads `status`, so a
+   DEMO status would make the demo inoperable and break the RPCs the seed
+   depends on.
+
+   **The column does not exist yet.** It is prepared, unapplied, in
+   [`scripts/demo/pending-migration-is-demo.sql`](../scripts/demo/pending-migration-is-demo.sql),
+   with its own apply instructions. Until it is applied the tenant cannot be
+   designated, and the demo organization must not be created — an unmarked
+   organization in the production database is indistinguishable from a paying
+   customer, which is the outcome this whole design exists to avoid.
+
+   Assign **no subscription**. Plans live in a separate `subscriptions` table,
+   so an organization with no subscription row is already outside any metric
+   that counts subscriptions; `is_demo` covers the metrics that count
+   organizations.
+
 2. **Create the two accounts.** An owner account (TENANT_OWNER of the demo org)
    and the public demo account. Neither may be a platform admin.
 
@@ -346,6 +365,10 @@ Recorded rather than assumed solved.
 
 - **Rate limiting is per-isolate.** See §8. A Cloudflare Rate Limiting binding
   is the durable fix and has not been added.
+- **The `is_demo` marker is not applied.** The seed guard therefore has four
+  checks, not five: it verifies the configured id, the slug, the name and the
+  absence of stranger memberships. The fifth — target must have
+  `is_demo = true` — lands with the migration.
 - **The seed has never been executed.** It typechecks against the generated
   database types — which caught several real schema errors — but no stage has
   run against a database. The dry run exists precisely for this, and must be
