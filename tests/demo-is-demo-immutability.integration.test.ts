@@ -30,9 +30,25 @@
  * is pending teaches people to ignore red suites. It starts running, and must
  * pass, the moment the migration lands.
  *
- * It creates a throwaway organization and two users and deletes them in
- * afterAll. That follows the repository's existing integration-test
- * convention, but it does write to whatever project .env.local points at.
+ * WHY IT REFUSES TO RUN AGAINST PRODUCTION
+ * This suite WRITES: it creates an organization and a user and deletes them
+ * afterwards. That is acceptable on a disposable target and not acceptable on
+ * the production project, where 1,954 leftover test organizations have already
+ * had to be purged once. So it is not in `test:all` -- no general-purpose test
+ * command should be able to write to production by accident -- and it refuses
+ * the production ref by name.
+ *
+ * To run it, name the target deliberately:
+ *
+ *     DEMO_SECURITY_TEST_TARGET_REF=<project-ref> npm run test:is-demo
+ *
+ * The ref must match the project NEXT_PUBLIC_SUPABASE_URL points at, so the
+ * variable cannot be set once and forgotten while the URL moves underneath it.
+ *
+ * Post-apply verification against production is a separate activity and must
+ * be READ-ONLY: confirm the column, the trigger and the index exist, and that
+ * no organization carries the marker. The queries for that are at the foot of
+ * scripts/demo/pending-migration-is-demo.sql.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -45,7 +61,47 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const CONFIGURED = Boolean(url && anonKey && serviceKey);
+/**
+ * Refused outright. Not a secret -- it is the public project URL, already
+ * committed in .env.production -- and naming it here is what makes the refusal
+ * checkable rather than a matter of operator discipline.
+ */
+const PRODUCTION_REFS = new Set(["ataslxkcflxuilpgyepm"]);
+
+/** The project ref embedded in the Supabase URL, e.g. https://<ref>.supabase.co */
+function projectRef(supabaseUrl: string): string | null {
+  return /^https:\/\/([a-z0-9]+)\.supabase\.co/i.exec(supabaseUrl)?.[1] ?? null;
+}
+
+const targetRef = url ? projectRef(url) : null;
+const declaredRef = process.env.DEMO_SECURITY_TEST_TARGET_REF || null;
+
+/**
+ * Three conditions, all required. The declared ref must match the URL's, so
+ * the opt-in cannot be set once and left behind while the URL changes.
+ */
+const TARGET_ALLOWED =
+  Boolean(targetRef) && declaredRef === targetRef && !PRODUCTION_REFS.has(targetRef!);
+
+const CONFIGURED = Boolean(url && anonKey && serviceKey) && TARGET_ALLOWED;
+
+function refusalReason(): string {
+  if (!url || !anonKey || !serviceKey) return "Supabase credentials are not configured.";
+  if (!targetRef) return `Could not read a project ref from NEXT_PUBLIC_SUPABASE_URL.`;
+  if (PRODUCTION_REFS.has(targetRef)) {
+    return (
+      `Target ${targetRef} is the PRODUCTION project. This suite writes and ` +
+      `must never run there. Point .env.local at a disposable project.`
+    );
+  }
+  if (!declaredRef) {
+    return (
+      `Set DEMO_SECURITY_TEST_TARGET_REF=${targetRef} to confirm you intend to ` +
+      `write to that project.`
+    );
+  }
+  return `DEMO_SECURITY_TEST_TARGET_REF=${declaredRef} does not match the target ${targetRef}.`;
+}
 
 const admin = CONFIGURED
   ? createClient<Database>(url, serviceKey, { auth: { persistSession: false } })
@@ -120,19 +176,27 @@ afterAll(async () => {
   }
 });
 
-describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
-  it("the migration is applied before anything else is asserted", () => {
-    // Reported as a skip-with-reason rather than a silent pass: a green suite
-    // here must not be mistaken for "the marker is protected".
-    if (!columnExists) {
+/**
+ * Always runs, and says why the rest did not. A silent skip is how a suite
+ * stops being noticed -- this makes the refusal visible in the output.
+ */
+describe("organizations.is_demo immutability — target check", () => {
+  it("reports whether the suite can run against this target", () => {
+    if (!CONFIGURED) {
+      console.warn(`SKIPPED: ${refusalReason()}`);
+    } else if (!columnExists) {
       console.warn(
         "SKIPPED: organizations.is_demo does not exist. Apply " +
           "scripts/demo/pending-migration-is-demo.sql, then re-run.",
       );
     }
-    expect(true).toBe(true);
+    // Never fails: refusing an unsafe target is the correct outcome, not an
+    // error. The assertions that matter are in the suite below.
+    expect(typeof refusalReason()).toBe("string");
   });
+});
 
+describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
   it.skipIf(!columnExists)(
     "a tenant admin holds tenant.settings.manage on their own organization",
     async () => {
