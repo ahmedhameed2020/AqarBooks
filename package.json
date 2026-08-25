@@ -42,6 +42,7 @@
     "test:demo-repair": "vitest run tests/demo-repair.manual.test.ts",
     "test:demo-f0": "vitest run tests/demo-fiscal-control.manual.test.ts",
     "test:demo-f1": "vitest run tests/demo-f1-may-rent.manual.test.ts",
+    "test:demo-q2-semantics": "vitest run tests/demo-q2-semantics.readonly.test.ts",
     "test:demo-rent-authz": "vitest run tests/demo-rent-authz.integration.test.ts",
     "test:security-definer": "vitest run tests/security-definer-authorization.test.ts",
     "test:types-drift": "vitest run tests/supabase-types-drift.integration.test.ts",
