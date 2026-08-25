@@ -31,6 +31,7 @@ export const FINANCIAL_PLAN_VERSION = "demo-financial-v1";
 // ---------------------------------------------------------------------------
 
 export type PlanUnit = {
+  /** Database id. Used to address rows, never to derive behaviour. */
   id: string;
   code: string;
   area: number | null;
@@ -40,6 +41,7 @@ export type PlanUnit = {
 };
 
 export type PlanLease = {
+  /** Database id. Used to address rows, never to derive behaviour. */
   id: string;
   unitId: string;
   tenantMemberId: string;
@@ -60,6 +62,63 @@ export type FinancialPlanInput = {
   ownerUnitIds: string[];
   currencyDecimals: number;
 };
+
+// ---------------------------------------------------------------------------
+// Stable business keys
+// ---------------------------------------------------------------------------
+
+/**
+ * Identity for the financial narrative, derived from business facts only.
+ *
+ * WHY NOT THE DATABASE UUID
+ * The payer profiles were keyed on `unit_leases.id`. That looked deterministic
+ * -- same hash, same profile -- and was not, because the UUID is assigned by
+ * the database at insert time. The structural repair proved it: Marina went
+ * from zero arrears to 69,430 purely because the surviving leases had different
+ * ids. Same fixtures, same seed, different story.
+ *
+ * A demo whose financial narrative depends on which UUIDs Postgres happened to
+ * mint is not reproducible. Rebuild the tenant and the aging changes; restore
+ * from a backup into fresh ids and the dashboard disagrees with the one the
+ * customer was shown.
+ *
+ * These keys are made of things a human chose: the property, the unit, when the
+ * tenancy starts and how often it bills. They survive a reseed, a restore, and
+ * a migration to a different database.
+ */
+export function leaseBusinessKey(input: {
+  propertyCode: string;
+  unitCode: string;
+  startsOn: string;
+  rentFrequency: string;
+}): string {
+  return `lease:${input.propertyCode}:${input.unitCode}:${input.startsOn}:${input.rentFrequency}`;
+}
+
+/** `payment:<leaseKey>:<period>:<ordinal>` -- ordinal 1-based within the period. */
+export function paymentBusinessKey(leaseKey: string, periodKey: string, ordinal: number): string {
+  return `payment:${leaseKey}:${periodKey}:${String(ordinal).padStart(2, "0")}`;
+}
+
+/** A bank line's reference, derived from the payment it settles. */
+export function bankReferenceFor(paymentKey: string): string {
+  // Short, stable, and readable on a statement line. FNV-1a over the payment
+  // key rather than a counter, so a reference identifies the same payment no
+  // matter what order the statement is built in.
+  return `TRF-${hashString(paymentKey).toString(16).toUpperCase().padStart(8, "0")}`;
+}
+
+/**
+ * The idempotency key the financial RPCs will be called with.
+ *
+ * record_payment and the journal RPCs accept one, and it is what makes a
+ * resumed seed safe. Deriving it from the same business key means a retry after
+ * a half-written run settles the same due once, rather than twice under two
+ * different generated ids.
+ */
+export function financialIdempotencyKey(businessKey: string): string {
+  return `demo:${businessKey}`;
+}
 
 // ---------------------------------------------------------------------------
 // Fiscal timeline
@@ -129,7 +188,10 @@ function monthName(month: number): string {
 
 export type PlannedDue = {
   kind: "RENT" | "CAM";
+  /** Database id, for addressing the row. Never hashed, never grouped on. */
   leaseId?: string;
+  /** The stable identity everything behavioural is derived from. */
+  leaseKey: string;
   unitId: string;
   unitCode: string;
   propertyId: string;
@@ -161,10 +223,13 @@ export function planRentDues(input: FinancialPlanInput): {
 
   let quarterlyQ2 = 0;
 
+  const propertyCodeById = new Map(input.properties.map((p) => [p.id, p.code]));
+
   for (const lease of input.leases) {
     if (lease.status !== "ACTIVE") continue;
     const unit = unitById.get(lease.unitId);
     if (!unit) continue;
+    const property = propertyCodeById.get(unit.propertyId) ?? unit.propertyId;
 
     const keys =
       lease.rentFrequency === "MONTHLY"
@@ -184,6 +249,12 @@ export function planRentDues(input: FinancialPlanInput): {
       dues.push({
         kind: "RENT",
         leaseId: lease.id,
+        leaseKey: leaseBusinessKey({
+          propertyCode: property,
+          unitCode: unit.code,
+          startsOn: lease.startsOn,
+          rentFrequency: lease.rentFrequency,
+        }),
         unitId: lease.unitId,
         unitCode: unit.code,
         propertyId: unit.propertyId,
@@ -415,6 +486,8 @@ function unpaidTail(profile: PayerProfile): number {
 }
 
 export type PlannedPayment = {
+  /** Stable identity; also the source of the idempotency key and bank reference. */
+  paymentKey: string;
   memberId: string;
   unitId: string;
   unitCode: string;
@@ -434,12 +507,13 @@ export type CollectionPlan = {
 };
 
 export function planCollections(dues: PlannedDue[]): CollectionPlan {
+  // Grouped and hashed on the BUSINESS key. Grouping on the database id was
+  // what made the story move when the ids changed.
   const byLease = new Map<string, PlannedDue[]>();
   for (const due of dues) {
-    const key = due.leaseId ?? `unit:${due.unitId}`;
-    const list = byLease.get(key) ?? [];
+    const list = byLease.get(due.leaseKey) ?? [];
     list.push(due);
-    byLease.set(key, list);
+    byLease.set(due.leaseKey, list);
   }
 
   const payments: PlannedPayment[] = [];
@@ -469,6 +543,7 @@ export function planCollections(dues: PlannedDue[]): CollectionPlan {
         const method: PlannedPayment["method"] =
           rng() < 0.55 ? "BANK_TRANSFER" : rng() < 0.8 ? "CASH" : "CHEQUE";
         payments.push({
+          paymentKey: paymentBusinessKey(key, due.periodKey, 1),
           memberId: due.memberId,
           unitId: due.unitId,
           unitCode: due.unitCode,
@@ -484,6 +559,7 @@ export function planCollections(dues: PlannedDue[]): CollectionPlan {
         // nor closed -- the state most systems render badly.
         const part = round2(due.amount * 0.4);
         payments.push({
+          paymentKey: paymentBusinessKey(key, due.periodKey, 1),
           memberId: due.memberId,
           unitId: due.unitId,
           unitCode: due.unitCode,

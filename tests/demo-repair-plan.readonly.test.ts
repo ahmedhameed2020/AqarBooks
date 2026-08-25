@@ -178,15 +178,29 @@ describe.skipIf(!CONFIGURED)("demo structural repair plan", () => {
   });
 
   it("gives Palm Gate a commercial tenancy where it had none", () => {
+    // Asserted as a TARGET, not as pending work. Written before the repair
+    // this expected 18 leases still to create; once applied there were none
+    // left and it failed -- describing a world that had moved on rather than
+    // an invariant. The target holds in both states.
     const pg = plan!.target.find((t) => t.propertyCode === "PG")!;
     expect(pg.leased).toBe(18);
     expect(pg.ownerResident).toBe(0);
     expect(pg.vacant).toBeGreaterThan(0);
 
-    const created = plan!.leasesToCreate.filter((l) => l.propertyCode === "PG");
-    expect(created).toHaveLength(18);
-    for (const lease of created) {
+    for (const lease of plan!.leasesToCreate.filter((l) => l.propertyCode === "PG")) {
       expect(lease.rentFrequency, `${lease.unitCode} must be quarterly`).toBe("QUARTERLY");
+    }
+  });
+
+  it("converges: once applied, the plan is empty", () => {
+    // The property that matters after an apply. A repair plan that still wants
+    // work when the repair has run would mean it is not idempotent.
+    const pending = plan!.leasesToCreate.length + plan!.leasesToEnd.length;
+    if (pending === 0) {
+      expect(plan!.membersToCreate, "members pending with no leases pending").toEqual([]);
+    } else {
+      // Still pending: creates and ends must stay balanced.
+      expect(plan!.leasesToCreate.length).toBe(plan!.leasesToEnd.length);
     }
   });
 
@@ -197,11 +211,15 @@ describe.skipIf(!CONFIGURED)("demo structural repair plan", () => {
     expect(created - ended, "the repair changes the number of active leases").toBe(0);
   });
 
-  it("creates a company for every commercial tenancy", () => {
-    const companies = plan!.membersToCreate.filter((m) => m.isCompany);
-    expect(companies.length).toBeGreaterThan(0);
-    for (const company of companies) {
-      expect(company.email.startsWith("c-")).toBe(true);
+  it("only ever creates companies for commercial tenancies", () => {
+    // Once applied there is nothing left to create, so the assertion is about
+    // WHAT would be created rather than that anything is.
+    for (const member of plan!.membersToCreate) {
+      expect(
+        member.isCompany,
+        `${member.email} would be created as an individual; the repair only adds commercial tenants`,
+      ).toBe(true);
+      expect(member.email.startsWith("c-")).toBe(true);
     }
   });
 

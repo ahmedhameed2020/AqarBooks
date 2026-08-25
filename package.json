@@ -34,7 +34,7 @@
     "test:onboarding": "vitest run tests/onboarding.integration.test.ts",
     "test:security": "vitest run tests/security-function-grants.integration.test.ts",
     "test:migration-dir": "vitest run tests/migration-directory-guard.test.ts",
-    "test:demo": "vitest run tests/demo-environment.test.ts tests/demo-seed-plan.test.ts",
+    "test:demo": "vitest run tests/demo-environment.test.ts tests/demo-seed-plan.test.ts tests/demo-financial-identity.test.ts",
     "test:is-demo": "vitest run tests/demo-is-demo-immutability.integration.test.ts",
     "test:demo-preflight": "vitest run tests/demo-preflight.readonly.test.ts",
     "test:demo-financial-plan": "vitest run tests/demo-financial-plan.readonly.test.ts",

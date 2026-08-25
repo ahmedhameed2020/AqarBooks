@@ -1,5 +1,6 @@
 import {
   ACTIVITY_MONTHS,
+  bankReferenceFor,
   FINANCIAL_PLAN_VERSION,
   computeAging,
   planCamLevy,
@@ -44,6 +45,8 @@ export type FinancialPlan = {
   }>;
   supplierInvoices: Array<{ supplier: string; amount: number; status: string; invoiceDate: string }>;
   bank: {
+    /** Stable per-payment references, sorted. */
+    references: string[];
     statementLines: number;
     matchedAmount: number;
     unmatchedAmount: number;
@@ -65,10 +68,17 @@ export function buildFinancialPlan(input: FinancialPlanInput): FinancialPlan {
 
   // CAM dues fall on the unit's owner or occupant; the levy issues one due per
   // allocated unit, so the plan mirrors that one-for-one.
+  const propertyCodeById = new Map(input.properties.map((p) => [p.id, p.code]));
+
   const camDues: PlannedDue[] = (camLevy?.allocations ?? []).map((allocation) => {
     const unit = unitById.get(allocation.unitId)!;
     return {
       kind: "CAM",
+      // A CAM charge belongs to the UNIT, not to a tenancy, so its stable key
+      // is built from the levy period and the unit rather than from a lease.
+      // Keyed this way it survives a change of occupant, which is exactly what
+      // a service charge does in reality.
+      leaseKey: `cam:${propertyCodeById.get(unit.propertyId) ?? unit.propertyId}:${allocation.unitCode}:2026-08`,
       unitId: allocation.unitId,
       unitCode: allocation.unitCode,
       propertyId: unit.propertyId,
@@ -134,6 +144,11 @@ export function buildFinancialPlan(input: FinancialPlanInput): FinancialPlan {
   // statement credits; a handful of movements are left unmatched on purpose.
   const bankPayments = collections.payments.filter((p) => p.method === "BANK_TRANSFER");
   const matchedAmount = round2(bankPayments.reduce((s, p) => s + p.amount, 0));
+  // Every statement line carries a reference derived from the payment it
+  // settles, so the reconciliation demo matches on something meaningful rather
+  // than on amount and date alone -- and so the same payment produces the same
+  // reference on every rebuild.
+  const bankReferences = bankPayments.map((p) => bankReferenceFor(p.paymentKey)).sort();
   const unresolved = [
     { label: "incoming transfer, unidentified remitter", amount: 42_000 },
     { label: "bank charges", amount: -1_250 },
@@ -234,6 +249,7 @@ export function buildFinancialPlan(input: FinancialPlanInput): FinancialPlan {
     perProperty,
     supplierInvoices,
     bank: {
+      references: bankReferences,
       statementLines: bankPayments.length + unresolved.length,
       matchedAmount,
       unmatchedAmount,
