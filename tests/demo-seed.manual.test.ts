@@ -52,13 +52,38 @@ const APPLY = process.env.DEMO_SEED_APPLY === "1";
  * is required in either mode. DEMO_OWNER_PASSWORD remains honoured if set, but
  * requiring it would gate the run on a credential the code does not need.
  */
-const CONFIGURED = Boolean(
-  url &&
-    serviceKey &&
-    process.env.DEMO_ORGANIZATION_ID &&
-    process.env.DEMO_OWNER_EMAIL &&
-    process.env.DEMO_USER_EMAIL,
-);
+const MISSING = [
+  ["NEXT_PUBLIC_SUPABASE_URL", url],
+  ["SUPABASE_SERVICE_ROLE_KEY", serviceKey],
+  ["DEMO_ORGANIZATION_ID", process.env.DEMO_ORGANIZATION_ID],
+  ["DEMO_OWNER_EMAIL", process.env.DEMO_OWNER_EMAIL],
+  ["DEMO_USER_EMAIL", process.env.DEMO_USER_EMAIL],
+]
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+
+const CONFIGURED = MISSING.length === 0;
+
+/**
+ * An apply must never skip.
+ *
+ * Skipping is the right behaviour for a dry run on an unconfigured machine.
+ * It is the wrong behaviour for an apply: DEMO_SEED_APPLY=1 is a deliberate
+ * instruction to write, and answering it with a quiet green "1 skipped" reads
+ * exactly like success. That happened once here -- the first apply attempt was
+ * silently skipped because the gate still demanded a password the code no
+ * longer used, and it looked like a passing run.
+ *
+ * So a missing prerequisite under APPLY throws at module load, before any test
+ * is collected.
+ */
+if (APPLY && !CONFIGURED) {
+  throw new Error(
+    `DEMO_SEED_APPLY=1 was set but these are missing: ${MISSING.join(", ")}. ` +
+      "Refusing to skip: an apply that quietly does nothing is indistinguishable " +
+      "from an apply that succeeded.",
+  );
+}
 
 function writeReport(lines: string[], report: unknown, structuralPass: boolean | null): void {
   mkdirSync("test-results", { recursive: true });
