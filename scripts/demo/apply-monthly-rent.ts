@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/supabase/types";
 import { monthBounds } from "./apply-collections";
+import { quarterBounds } from "./quarter-alignment";
 
 /**
  * Monthly rent obligations for one month, generic over which.
@@ -11,10 +12,23 @@ import { monthBounds } from "./apply-collections";
  * on overlap would queue a call that must fail. A lease that does not cover the
  * month is reported as skipped, with which end falls short.
  *
- * QUARTERLY AND YEARLY LEASES ARE NOT TOUCHED. They bill on their own periods
- * through their own stage; a monthly run that quietly also billed a quarter
- * would put a quarter's rent in a month's total.
+ * ONE FREQUENCY PER RUN. July is the first month where a monthly period and a
+ * quarterly one start on the same day, so both kinds of due carry issue_date
+ * 2026-07-01. A run that billed both at once would report a single total with
+ * no way to say which half was which, and a skip in one would be invisible in
+ * the other. The caller runs the generator once per frequency and the reports
+ * stay separable.
  */
+
+/** The inclusive bounds of a period key, whichever frequency it belongs to. */
+export function periodBounds(
+  frequency: "MONTHLY" | "QUARTERLY",
+  periodKey: string,
+): { first: string; last: string } {
+  if (frequency === "MONTHLY") return monthBounds(periodKey);
+  const { start, end } = quarterBounds(periodKey);
+  return { first: start, last: end };
+}
 
 export type RentOutcome = {
   unitCode: string;
@@ -41,7 +55,16 @@ export type RentOptions = {
   admin: SupabaseClient<Database>;
   owner: SupabaseClient<Database>;
   organizationId: string;
+  /** The period key the RPC is called with: `2026-07` or `2026-Q3`. */
   month: string;
+  /** Which leases this run bills. Defaults to MONTHLY. */
+  frequency?: "MONTHLY" | "QUARTERLY";
+  /**
+   * The fiscal month the dues are posted into. Defaults to the period key,
+   * which is right for a monthly run; a quarterly run bills 2026-Q3 but posts
+   * into 2026-07, and the two are not the same string.
+   */
+  fiscalMonth?: string;
   dryRun: boolean;
   log: (line: string) => void;
 };
@@ -55,7 +78,9 @@ type UntypedRpc = {
 
 export async function applyMonthlyRent(options: RentOptions): Promise<RentReport> {
   const { admin, owner, organizationId, month, dryRun, log } = options;
-  const { first, last } = monthBounds(month);
+  const frequency = options.frequency ?? "MONTHLY";
+  const fiscalMonth = options.fiscalMonth ?? month;
+  const { first, last } = periodBounds(frequency, month);
 
   const report: RentReport = {
     ok: false,
@@ -72,14 +97,22 @@ export async function applyMonthlyRent(options: RentOptions): Promise<RentReport
   try {
     const { data: periods } = await admin
       .from("fiscal_periods")
-      .select("id, start_date, status")
+      .select("id, start_date, end_date, status")
       .eq("organization_id", organizationId);
-    const period = (periods ?? []).find((p) => p.start_date.slice(0, 7) === month);
-    if (!period) throw new Error(`no fiscal period covers ${month}`);
+    const period = (periods ?? []).find((p) => p.start_date.slice(0, 7) === fiscalMonth);
+    if (!period) throw new Error(`no fiscal period covers ${fiscalMonth}`);
     if (period.status !== "OPEN") {
       throw new Error(
-        `${month} is ${period.status}, not OPEN. generate_lease_rent_dues would create ` +
+        `${fiscalMonth} is ${period.status}, not OPEN. generate_lease_rent_dues would create ` +
           "dues the posting trigger then defers, leaving unposted obligations.",
+      );
+    }
+    // The period the dues will be DATED to must be the one that is open. A
+    // quarterly run bills 2026-Q3 and dates every due 2026-07-01, so the fiscal
+    // month has to be the month that date falls in -- not the quarter key.
+    if (first < period.start_date || first > period.end_date) {
+      throw new Error(
+        `${month} is issued ${first}, which is outside the open ${fiscalMonth} period`,
       );
     }
 
@@ -95,7 +128,7 @@ export async function applyMonthlyRent(options: RentOptions): Promise<RentReport
       .select("id, unit_id, rent_amount, starts_on, ends_on")
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
-      .eq("rent_frequency", "MONTHLY")
+      .eq("rent_frequency", frequency)
       .order("starts_on")
       .order("id")
       .range(0, 4999);
@@ -213,8 +246,9 @@ export async function verifyMonthlyRent(
   organizationId: string,
   month: string,
   expected: { count: number; amount: number; totalCount: number; totalAmount: number },
+  frequency: "MONTHLY" | "QUARTERLY" = "MONTHLY",
 ): Promise<{ pass: boolean; checks: Check[]; text: string }> {
-  const { first } = monthBounds(month);
+  const { first } = periodBounds(frequency, month);
   const checks: Check[] = [];
   const detail: string[] = [];
   const add = (label: string, exp: string | number | boolean, act: string | number | boolean) =>
@@ -222,7 +256,7 @@ export async function verifyMonthlyRent(
 
   const { data: dues } = await admin
     .from("dues")
-    .select("id, amount, status, issue_date, due_date, journal_entry_id, source_type")
+    .select("id, amount, status, issue_date, due_date, journal_entry_id, source_type, source_id")
     .eq("organization_id", organizationId)
     .range(0, 4999);
 
@@ -235,9 +269,11 @@ export async function verifyMonthlyRent(
 
   const { data: periods } = await admin
     .from("fiscal_periods")
-    .select("id, start_date")
+    .select("id, start_date, end_date")
     .eq("organization_id", organizationId);
-  const period = (periods ?? []).find((p) => p.start_date.slice(0, 7) === month);
+  // The month the dues are DATED into, which for a quarterly run is the first
+  // month of the quarter rather than anything named in the period key.
+  const period = (periods ?? []).find((p) => p.start_date <= first && first <= p.end_date);
 
   const { data: accounts } = await admin
     .from("chart_of_accounts")
@@ -246,8 +282,27 @@ export async function verifyMonthlyRent(
   const idByCode = new Map((accounts ?? []).map((a) => [a.code, a.id]));
   const codeById = new Map((accounts ?? []).map((a) => [a.id, a.code]));
 
+  // SLICED BY THE LEASE'S FREQUENCY, NOT BY THE DATE ALONE.
+  //
+  // July is the first month where a monthly period and a quarterly one begin on
+  // the same day: 31 monthly dues and 18 Q3 dues all carry issue_date
+  // 2026-07-01. Filtering on the date would have reported 49 against an
+  // expectation of 31 -- and, worse, would have let a missing monthly due hide
+  // behind an extra quarterly one.
+  const { data: leaseRows } = await admin
+    .from("unit_leases")
+    .select("id, rent_frequency")
+    .eq("organization_id", organizationId)
+    .range(0, 4999);
+  const frequencyByLease = new Map((leaseRows ?? []).map((l) => [l.id, l.rent_frequency]));
+
   const rentDues = (dues ?? []).filter((d) => d.source_type === "LEASE_RENT");
-  const monthDues = rentDues.filter((d) => d.issue_date === first);
+  const monthDues = rentDues.filter(
+    (d) =>
+      d.issue_date === first &&
+      d.source_id !== null &&
+      frequencyByLease.get(d.source_id) === frequency,
+  );
 
   const problems: string[] = [];
   for (const due of monthDues) {
@@ -263,10 +318,12 @@ export async function verifyMonthlyRent(
     if (!entry) problems.push(`${due.id}: journal entry missing`);
     else {
       if (entry.status !== "POSTED") problems.push(`${due.id}: journal ${entry.status}`);
-      if (entry.fiscal_period_id !== period?.id) problems.push(`${due.id}: posted outside ${month}`);
+      if (entry.fiscal_period_id !== period?.id) {
+      problems.push(`${due.id}: posted outside the period covering ${first}`);
+    }
     }
   }
-  add(`every ${month} due issued and POSTED into ${month}`, 0, problems.length);
+  add(`every ${month} due issued and POSTED into its period`, 0, problems.length);
   detail.push(...problems.slice(0, 10).map((p) => `    ${p}`));
 
   const entryIds = rentDues.map((d) => d.journal_entry_id).filter(Boolean) as string[];
