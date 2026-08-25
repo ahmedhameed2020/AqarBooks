@@ -242,17 +242,27 @@ describe.skipIf(!CONFIGURED)("partial-period rent guard", () => {
     expect(after.runs, "the skip wrote a generation run").toBe(before.runs);
   });
 
-  it("leaves the May obligations untouched", async () => {
-    // 26 monthly dues were posted by F1. Nothing in this suite may disturb them.
+  it("leaves the posted rent obligations untouched", async () => {
+    // F1 posted 26 May dues; F2 added 15 for 2026-Q2, issued 2026-04-01.
+    // Nothing in this suite may disturb either set.
+    //
+    // Sliced by issue_date rather than asserted as one total: a probe that
+    // moved a due from one period to another would keep the grand total intact
+    // and change both slices, which is exactly the failure a single sum hides.
     const { data: dues } = await admin!
       .from("dues")
-      .select("id, amount")
+      .select("id, amount, issue_date")
       .eq("organization_id", organizationId)
       .range(0, 4999);
-    expect((dues ?? []).length).toBe(26);
-    expect(
-      (dues ?? []).reduce((s, d) => s + Number(d.amount), 0),
-      "the May total changed",
-    ).toBe(481_200);
+
+    const may = (dues ?? []).filter((d) => d.issue_date.startsWith("2026-05"));
+    const q2 = (dues ?? []).filter((d) => d.issue_date === "2026-04-01");
+    const sum = (rows: typeof may) => rows.reduce((s, d) => s + Number(d.amount), 0);
+
+    expect(may.length, "May due count changed").toBe(26);
+    expect(sum(may), "the May total changed").toBe(481_200);
+    expect(q2.length, "Q2 due count changed").toBe(15);
+    expect(sum(q2), "the Q2 total changed").toBe(599_150);
+    expect((dues ?? []).length, "a due appeared outside May and Q2").toBe(41);
   });
 });

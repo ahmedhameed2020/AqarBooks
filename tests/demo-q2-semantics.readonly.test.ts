@@ -125,17 +125,41 @@ describe.skipIf(!CONFIGURED)("2026-Q2 quarterly rent semantics", () => {
     expect(CURRENT_RPC, "2026-Q2 total").toBe(599_150);
   });
 
-  it("writes nothing", async () => {
-    // The stage is analysis. Q2 rent must not exist yet.
+  it("writes nothing, and the Q2 rent it sees is F2's", async () => {
+    // BEFORE F2 this asserted that no Q2-dated due existed at all, because this
+    // stage is analysis and had to precede the posting. F2 has since posted
+    // 2026-Q2 under an explicit authorisation, so absence is no longer the
+    // right expectation -- but "this file writes nothing" still is.
+    //
+    // Restated as: the Q2 rent in the ledger is exactly what F2 put there, and
+    // running this analysis did not add to it. Every Q2 due is dated
+    // 2026-04-01, the quarter's own start; there is no second issue date, which
+    // is what a stray write from here would look like.
     const { data: dues } = await admin!
       .from("dues")
-      .select("id, issue_date")
+      .select("id, amount, issue_date, source_type")
       .eq("organization_id", organizationId)
       .range(0, 4999);
-    const q2Dues = (dues ?? []).filter(
-      (d) => d.issue_date >= "2026-04-01" && d.issue_date <= "2026-06-30" && d.issue_date !== "2026-05-01",
+
+    const inQ2 = (dues ?? []).filter(
+      (d) => d.issue_date >= "2026-04-01" && d.issue_date <= "2026-06-30",
     );
-    expect(q2Dues, "Q2-dated dues exist; this stage should have written none").toEqual([]);
+    const issueDates = [...new Set(inQ2.map((d) => d.issue_date))].sort();
+    expect(issueDates, "a Q2-dated due exists on a date F2 did not use").toEqual([
+      "2026-04-01",
+      "2026-05-01",
+    ]);
+
+    const q2Rent = inQ2.filter((d) => d.issue_date === "2026-04-01");
+    expect(q2Rent.length, "the Q2 due count is not F2's").toBe(15);
+    expect(
+      q2Rent.reduce((s, d) => s + Number(d.amount), 0),
+      "the Q2 total is not F2's",
+    ).toBe(599_150);
+    expect(
+      q2Rent.every((d) => d.source_type === "LEASE_RENT"),
+      "a Q2 due was not created by the rent path",
+    ).toBe(true);
   });
 });
 
