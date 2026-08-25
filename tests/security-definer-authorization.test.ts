@@ -23,11 +23,24 @@
  *
  * It reads the baseline schema only. No database connection.
  *
+ * THE CRITERION, CORRECTED
+ * The first version of this triage asked "does it move money?" and exempted
+ * nine of fourteen. That was the wrong question. The demo's promise is
+ * narrower and stricter -- a public visitor cannot mutate the database -- so
+ * the test is:
+ *
+ *     can an authenticated caller change tenant state through a
+ *     SECURITY DEFINER function with no authorization contract?
+ *
+ * Under that rule a sequence counter and a role clone are mutations, and
+ * severity is not the test. Four functions previously exempted as low-impact
+ * became must-revoke.
+ *
  * WHY AN ALLOWLIST AND NOT A CLEAN ZERO
- * Some functions legitimately have no check, and pretending otherwise would
- * mean weakening the rule until it caught nothing. Each exemption below is
- * named with the reason it is safe, so adding one is a visible decision rather
- * than a silent edit to a regex.
+ * A few functions genuinely need no check, and pretending otherwise would mean
+ * weakening the rule until it caught nothing. Each exemption is named with the
+ * reason it is safe, so adding one is a visible decision rather than a silent
+ * edit to a regex.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -62,22 +75,6 @@ const SANCTIONED: Record<string, string> = {
   post_supplier_invoice_in_currency:
     "delegates to post_supplier_invoice, which checks finance.entries.create",
 
-  // Cannot create value and cannot double-post: it returns the existing entry
-  // when journal_entry_id is already set, refuses DRAFT and VOID, and requires
-  // an OPEN period covering the issue date. It performs exactly what the dues
-  // trigger performs automatically. Worth a check on principle; not a hole.
-  post_due_to_ledger:
-    "idempotent, OPEN-period-gated, mirrors the dues trigger; cannot create value",
-
-  // Bounded by unique constraints on (organization_id, key): it can only ever
-  // populate an organization that has no roles, which in practice means one
-  // mid-onboarding.
-  clone_tenant_role_templates: "bounded by the roles unique constraint",
-
-  // Sequence helpers. They allocate a number; they move no money and expose no
-  // tenant data beyond the counter itself.
-  allocate_document_number: "sequence helper",
-  next_sequence_value: "sequence helper",
 };
 
 /**
@@ -86,12 +83,29 @@ const SANCTIONED: Record<string, string> = {
  * still naming them. Removing an entry is how the fix gets proven.
  */
 const KNOWN_GAPS: Record<string, string> = {
+  // Fix: an authorization check inside the function. It is a legitimate
+  // business RPC and stays executable by `authenticated`.
   generate_lease_rent_dues:
-    "AUTHORIZATION HOLE. Fix prepared in scripts/demo/pending-migration-rent-authz.sql, not yet applied.",
+    "AUTHORIZATION HOLE. Fix prepared in scripts/demo/pending-migration-rent-authz.sql.",
+
+  // Fix for all five below: REVOKE from client roles. Each is an internal
+  // helper reached through a permission-checked wrapper or a definer trigger,
+  // never by a client. Prepared in
+  // scripts/demo/pending-migration-internal-helper-acls.sql.
   record_tax_decision_for_due_internal:
-    "Named _internal but never revoked from authenticated, unlike create_journal_entry_internal, " +
-      "post_journal_entry_internal and post_payment_internal which the Phase 1 postamble did revoke. " +
-      "Inconsistent with the stated posture; awaiting a decision.",
+    "Named _internal but never revoked, unlike its three siblings in the Phase 1 postamble. " +
+      "Public path: record_tax_decision_for_due().",
+  post_due_to_ledger:
+    "Creates a POSTED journal entry from an existing due whenever a period is OPEN. Idempotent " +
+      "is not read-only. Public path: recognize_pending_dues(), which checks finance.entries.post.",
+  allocate_document_number:
+    "Takes an organization id with no authorization and writes document numbering state. " +
+      "Cross-tenant mutable state.",
+  next_sequence_value:
+    "Advances document_sequences for any organization or property id the caller knows.",
+  clone_tenant_role_templates:
+    "Writes roles and role_permissions into any organization that has none. A unique constraint " +
+      "is not authorization.",
 };
 
 type Fn = { name: string; body: string; returns: string };
