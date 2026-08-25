@@ -247,3 +247,112 @@ export function hashString(value: string): number {
   }
   return h >>> 0;
 }
+
+/**
+ * The lease terms for every leased unit.
+ *
+ * WHY THIS IS A FIXTURE AND NOT DECIDED IN THE SEED
+ * A lease is the answer to "who lives here and on what terms". If the seed
+ * invented that at write time it would differ between runs, and re-seeding
+ * would silently re-house every tenant. Deriving it here, from the same seeded
+ * PRNG as everything else, makes the tenancy part of `demo-seed-v1`.
+ *
+ * WHY EVERY TERM SPANS THE OPERATING MONTH
+ * `starts_on` is staggered so the portfolio does not look like it was signed on
+ * one day, but every lease is constructed to be live across August 2026 --
+ * otherwise a unit the fixtures call occupied would have no lease covering the
+ * month the demo is showing, which is the exact contradiction this stage exists
+ * to remove.
+ */
+export type GeneratedLease = {
+  /** Unit code. One active lease per unit -- the database enforces this too. */
+  unitCode: string;
+  /** Member email: the fixture's stable member key. */
+  memberEmail: string;
+  rentAmount: number;
+  rentFrequency: "MONTHLY" | "QUARTERLY" | "YEARLY";
+  startsOn: string;
+  endsOn: string;
+  securityDepositAmount: number;
+  /**
+   * The tenant is billed directly. OWNER would mean the landlord receives the
+   * invoice and recharges -- a real arrangement, but not one to model here,
+   * because it would make the receivable belong to a member who is not the
+   * occupant and muddle the very relationship this stage is fixing.
+   */
+  billingRecipient: "TENANT";
+};
+
+/** Monthly rent per square metre, by unit type, in EGP. */
+const RENT_PER_SQM: Record<GeneratedUnit["unitType"], number> = {
+  APARTMENT: 110,
+  VILLA: 95,
+  CHALET: 130,
+  OFFICE: 190,
+  SHOP: 320,
+};
+
+export function generateLeases(
+  units: GeneratedUnit[],
+  assignment: Map<string, string>,
+): GeneratedLease[] {
+  const rng = makeRng(hashString("leases"));
+  const leases: GeneratedLease[] = [];
+
+  for (const unit of units) {
+    // Archived and vacant stock must never carry a lease. Asserted in the
+    // tests as well, because this is the invariant that makes "occupied" mean
+    // something on screen.
+    if (unit.archived || unit.tenure !== "LEASED") continue;
+
+    const memberEmail = assignment.get(unit.code);
+    if (!memberEmail) continue;
+
+    const monthly = Math.round((unit.area * RENT_PER_SQM[unit.unitType]) / 50) * 50;
+
+    // Staggered start, one to twenty-four months before the operating month,
+    // with a term long enough that the lease is still live in August 2026.
+    const monthsBefore = 1 + Math.floor(rng() * 24);
+    const termMonths = monthsBefore < 12 ? 12 : monthsBefore + 6;
+
+    const start = addMonths(DEMO_STORY.period.start, -monthsBefore);
+    // The term ends the day before the anniversary, so consecutive terms abut
+    // rather than overlap -- the database's exclusion constraint on active
+    // leases would reject an overlap outright.
+    const end = addDays(addMonths(start, termMonths), -1);
+
+    leases.push({
+      unitCode: unit.code,
+      memberEmail,
+      rentAmount: monthly,
+      // Commercial tenants are billed quarterly, residential monthly. A single
+      // frequency across the portfolio would not exercise the rent schedule.
+      rentFrequency: unit.unitType === "OFFICE" || unit.unitType === "SHOP" ? "QUARTERLY" : "MONTHLY",
+      startsOn: start,
+      endsOn: end,
+      // Two months' rent, the common Egyptian arrangement. Held as a liability,
+      // never revenue -- see the deposits work in the ledger.
+      securityDepositAmount: monthly * 2,
+      billingRecipient: "TENANT",
+    });
+  }
+
+  return leases;
+}
+
+/** Calendar arithmetic on YYYY-MM-DD, clamped to the end of short months. */
+function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  const total = y * 12 + (m - 1) + months;
+  const year = Math.floor(total / 12);
+  const month = (total % 12) + 1;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const day = Math.min(d, lastDay);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  const at = new Date(Date.UTC(y, m - 1, d + days));
+  return at.toISOString().slice(0, 10);
+}

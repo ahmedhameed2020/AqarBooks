@@ -135,10 +135,25 @@ editable by no one.
 
 Nothing here is automated end to end, on purpose: each step is a decision.
 
+0. **Review the offline plan first.** It needs no database and no
+   credentials, and it is the only artefact that can be reviewed before the
+   first write:
+
+   ```
+   npm run test:demo
+   cat test-results/demo-seed-plan.txt
+   ```
+
+   Do not proceed unless it reports `Structural integrity   PASS`.
+
 1. **Create the demo organization.** Through the platform admin screens, as
    `AqarBooks Demo Holdings`, slug `aqarbooks-demo`, `FACILITY_MANAGEMENT`,
    `EGP`. The name and slug must match `lib/demo/story.ts` exactly — the seed
    guard compares both and refuses on any mismatch.
+
+   Set its status to **ACTIVE**, not TRIAL: `create_unit_lease` calls
+   `organization_is_active()` and refuses otherwise, so the lease stage would
+   fail against a TRIAL organization.
 
 2. **Create the two accounts.** An owner account (TENANT_OWNER of the demo org)
    and the public demo account. Neither may be a platform admin.
@@ -187,6 +202,36 @@ Guards 2 and 3 exist because guard 1 only protects against the wrong id being
 passed, not against the variable holding a customer's id. Guard 4 is the one
 that would catch a careless re-pointing, because it asks a question about the
 **data** rather than about configuration.
+
+**Two verifications, not one.** They answer different questions and both are
+required, in this order:
+
+| | Touches the database | Proves |
+| --- | --- | --- |
+| Offline plan (`scripts/demo/demo-plan.ts`) | no | the fixture graph is internally coherent — every occupied unit is explained by an ownership link or a lease, no lease points at nothing |
+| Database dry run (`seedDemoTenant({ dryRun: true })`) | reads only | the plan survives contact with the real schema and real ids |
+
+The dry run cannot come first: its guard reads the demo organization's row and
+refuses without it, and creating that row is itself a write. That is why the
+offline plan exists rather than the guard being worked around.
+
+The plan's integrity gate refuses `PASS` on any of
+`occupied_without_owner_or_lease`, `lease_without_resident`,
+`lease_without_unit`, `archived_unit_with_active_lease`,
+`vacant_unit_with_active_lease` or `orphan_members`. Eight tests feed it
+deliberately broken graphs and assert it reports `FAIL` — a gate that no input
+could fail would be decoration.
+
+**Leases.** `unit_leases` is RPC-only (its generated `Insert` type is `never`),
+so the seed goes through `create_unit_lease` then `activate_unit_lease`. Those
+validate that unit, member, due type and receivable account all belong to the
+same organization, write the audit-log row, and enforce the exclusion
+constraint against overlapping active leases at activation. Every term is
+constructed to span the operating month, because a unit shown as occupied in
+August 2026 whose lease expired in June is the contradiction the stage exists
+to remove. Owner-resident units keep their ownership link and never receive a
+lease — the two are different relationships and the ledger treats their
+receivables differently.
 
 **How it writes.** Structure is inserted with the service role. Money is not —
 every due, payment, levy and expense goes through the same SECURITY DEFINER
@@ -305,13 +350,18 @@ Recorded rather than assumed solved.
   database types — which caught several real schema errors — but no stage has
   run against a database. The dry run exists precisely for this, and must be
   read before the first apply.
-- **The seed covers structure, not yet the full financial narrative.** Chart of
+- **The seed covers structure, not yet the financial narrative.** Chart of
   accounts, fiscal period, properties, zones, buildings, units, members,
-  ownership links, due types and treasury accounts are implemented. Dues,
-  payments, CAM levies, cheques, supplier invoices and the bank statement /
-  reconciliation fixtures are **not yet written**, so the dashboard KPIs will be
-  empty until they are. The financial stages must go through the RPCs, exactly
-  as the structural ones do.
+  ownership links, due types, treasury accounts and **leases** are implemented,
+  and the offline plan reports the structure coherent. Dues, payments, CAM
+  levies, cheques, supplier invoices and the bank statement / reconciliation
+  fixtures are **not yet written**, so the dashboard KPIs will be empty until
+  they are. The financial stages must go through the RPCs, exactly as the
+  structural ones do.
+- **`RESORT_STANDARD` has no rental-income account**, so the Unit Rent due type
+  points at `4300 Other Revenue`. A real operator would add a dedicated one; it
+  was not invented here so the demo's chart of accounts stays identical to what
+  a customer receives at onboarding.
 - **`journal-propose` and `reconcile-match` accept `organizationId` from the
   request body.** RLS confines the rows regardless, so this is not a leak, but
   it contradicts "never trust a tenant identifier from the browser" and should

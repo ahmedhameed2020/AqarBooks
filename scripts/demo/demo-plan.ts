@@ -1,5 +1,13 @@
 import { DEMO_STORY } from "../../lib/demo/story";
-import { DEMO_SEED_VERSION, generateMembers, generateUnits } from "./demo-fixtures";
+import {
+  DEMO_SEED_VERSION,
+  generateLeases,
+  generateMembers,
+  generateUnits,
+  type GeneratedLease,
+  type GeneratedMember,
+  type GeneratedUnit,
+} from "./demo-fixtures";
 
 /**
  * The seed plan, derived with no database.
@@ -8,17 +16,20 @@ import { DEMO_SEED_VERSION, generateMembers, generateUnits } from "./demo-fixtur
  * `seedDemoTenant({ dryRun: true })` is the better instrument, but it cannot
  * run until the demo organization exists -- its guard reads that row and
  * refuses without it. Creating that row is itself a database write, so the dry
- * run cannot be the artefact that gets reviewed BEFORE the first write.
+ * run cannot be the artefact reviewed BEFORE the first write.
  *
- * This closes that gap. Everything below is a consequence of `lib/demo/story.ts`
- * and the fixtures, both of which are deterministic, so the plan is exactly
- * what the seed will attempt against an empty demo tenant. It opens no
- * connection and reads no environment variable.
+ * These are two different verifications and both are needed:
  *
- * WHAT IT CANNOT TELL YOU
+ *   OFFLINE PLAN (here)  proves the fixture graph is internally coherent --
+ *                        that every occupied unit has something explaining its
+ *                        occupancy, and no lease points at nothing.
+ *   DATABASE DRY RUN     proves the plan survives contact with the schema and
+ *                        real ids, once the designated demo organization
+ *                        exists.
+ *
+ * WHAT THIS CANNOT TELL YOU
  * Anything that depends on the database: whether the chart of accounts cloned,
- * which account codes resolved, whether an RPC accepted its arguments. Those
- * are the dry run's job, and the dry run still has to be read before the apply.
+ * which account codes resolved, whether an RPC accepted its arguments.
  */
 
 export type PlannedObject = {
@@ -27,42 +38,169 @@ export type PlannedObject = {
   detail: string;
 };
 
+/**
+ * The four questions that decide PASS.
+ *
+ * Each is a count of contradictions, so zero is the only acceptable answer and
+ * the report refuses to say PASS otherwise. They are counts rather than
+ * booleans because when one is non-zero the number is the first thing you need.
+ */
+export type StructuralIntegrity = {
+  /** Occupied, but with neither an ownership link nor a lease to explain it. */
+  occupiedWithoutOwnerOrLease: number;
+  /** A lease whose member does not exist in the fixtures. */
+  leaseWithoutResident: number;
+  /** A lease whose unit does not exist in the fixtures. */
+  leaseWithoutUnit: number;
+  /** Archived stock carrying an active lease. */
+  archivedUnitWithActiveLease: number;
+  /** A vacant unit carrying an active lease. */
+  vacantUnitWithActiveLease: number;
+  /** A member attached to neither an ownership link nor a lease. */
+  orphanMembers: number;
+  pass: boolean;
+};
+
 export type SeedPlan = {
   seedVersion: string;
   organization: string;
   slug: string;
   period: string;
+  counts: {
+    legalEntities: number;
+    properties: number;
+    zones: number;
+    buildings: number;
+    units: number;
+    activeUnits: number;
+    archivedUnits: number;
+    occupied: number;
+    ownerResident: number;
+    leased: number;
+    vacant: number;
+    members: number;
+    multiUnitOwners: number;
+    ownershipLinks: number;
+    activeLeases: number;
+  };
   objects: PlannedObject[];
-  /** Stages that exist in the story but are not implemented in the seed yet. */
+  integrity: StructuralIntegrity;
   notImplemented: string[];
+  followUps: string[];
 };
+
+/**
+ * The integrity computation, over inputs rather than over the fixtures.
+ *
+ * WHY IT TAKES ARGUMENTS
+ * A gate that can only ever be run against known-good fixtures is not a gate --
+ * nothing proves it would notice a problem. Taking the graph as parameters lets
+ * the tests feed it a deliberately broken one and assert that it says FAIL, so
+ * the PASS it prints for the real fixtures actually means something.
+ */
+export function computeStructuralIntegrity(
+  units: GeneratedUnit[],
+  members: GeneratedMember[],
+  assignment: Map<string, string>,
+  leases: GeneratedLease[],
+): StructuralIntegrity {
+  const active = units.filter((u) => !u.archived);
+  const ownerResident = active.filter((u) => u.tenure === "OWNER_RESIDENT");
+  const occupied = active.filter((u) => u.tenure !== "VACANT");
+
+  const unitCodes = new Set(units.map((u) => u.code));
+  const memberEmails = new Set(members.map((m) => m.email));
+  const leasedUnitCodes = new Set(leases.map((l) => l.unitCode));
+  const ownedUnitCodes = new Set(ownerResident.map((u) => u.code));
+
+  const occupiedWithoutOwnerOrLease = occupied.filter(
+    (u) => !ownedUnitCodes.has(u.code) && !leasedUnitCodes.has(u.code),
+  ).length;
+
+  const leaseWithoutResident = leases.filter((l) => !memberEmails.has(l.memberEmail)).length;
+  const leaseWithoutUnit = leases.filter((l) => !unitCodes.has(l.unitCode)).length;
+
+  const archivedCodes = new Set(units.filter((u) => u.archived).map((u) => u.code));
+  const archivedUnitWithActiveLease = leases.filter((l) => archivedCodes.has(l.unitCode)).length;
+
+  const vacantCodes = new Set(
+    active.filter((u) => u.tenure === "VACANT").map((u) => u.code),
+  );
+  const vacantUnitWithActiveLease = leases.filter((l) => vacantCodes.has(l.unitCode)).length;
+
+  // A member is accounted for if they own or rent at least one unit.
+  const attached = new Set<string>();
+  for (const unit of ownerResident) {
+    const email = assignment.get(unit.code);
+    if (email) attached.add(email);
+  }
+  for (const lease of leases) attached.add(lease.memberEmail);
+  const orphanMembers = members.filter((m) => !attached.has(m.email)).length;
+
+  return {
+    occupiedWithoutOwnerOrLease,
+    leaseWithoutResident,
+    leaseWithoutUnit,
+    archivedUnitWithActiveLease,
+    vacantUnitWithActiveLease,
+    orphanMembers,
+    pass:
+      occupiedWithoutOwnerOrLease === 0 &&
+      leaseWithoutResident === 0 &&
+      leaseWithoutUnit === 0 &&
+      archivedUnitWithActiveLease === 0 &&
+      vacantUnitWithActiveLease === 0 &&
+      orphanMembers === 0,
+  };
+}
 
 export function buildSeedPlan(): SeedPlan {
   const units = generateUnits();
   const { members, assignment } = generateMembers(units);
+  const leases = generateLeases(units, assignment);
 
   const active = units.filter((u) => !u.archived);
   const archived = units.filter((u) => u.archived);
   const leased = active.filter((u) => u.tenure === "LEASED");
   const ownerResident = active.filter((u) => u.tenure === "OWNER_RESIDENT");
   const vacant = active.filter((u) => u.tenure === "VACANT");
+  const occupied = [...ownerResident, ...leased];
 
   const zones = new Set(DEMO_STORY.buildings.map((b) => `${b.propertyCode}::${b.zoneEn}`));
 
   const byType = new Map<string, number>();
   for (const unit of units) byType.set(unit.unitType, (byType.get(unit.unitType) ?? 0) + 1);
 
-  const multiUnitHolders = new Map<string, number>();
+  const heldCount = new Map<string, number>();
   for (const memberKey of assignment.values()) {
-    multiUnitHolders.set(memberKey, (multiUnitHolders.get(memberKey) ?? 0) + 1);
+    heldCount.set(memberKey, (heldCount.get(memberKey) ?? 0) + 1);
   }
-  const holdingMoreThanOne = [...multiUnitHolders.values()].filter((n) => n > 1).length;
+  const multiUnitOwners = [...heldCount.values()].filter((n) => n > 1).length;
+
+  const integrity = computeStructuralIntegrity(units, members, assignment, leases);
 
   return {
     seedVersion: DEMO_SEED_VERSION,
     organization: DEMO_STORY.organization.nameEn,
     slug: DEMO_STORY.organization.slug,
     period: DEMO_STORY.headline.periodEn,
+    counts: {
+      legalEntities: DEMO_STORY.headline.legalEntities,
+      properties: DEMO_STORY.properties.length,
+      zones: zones.size,
+      buildings: DEMO_STORY.buildings.length,
+      units: units.length,
+      activeUnits: active.length,
+      archivedUnits: archived.length,
+      occupied: occupied.length,
+      ownerResident: ownerResident.length,
+      leased: leased.length,
+      vacant: vacant.length,
+      members: members.length,
+      multiUnitOwners,
+      ownershipLinks: ownerResident.length,
+      activeLeases: leases.length,
+    },
     objects: [
       {
         stage: "chart of accounts",
@@ -79,11 +217,7 @@ export function buildSeedPlan(): SeedPlan {
         count: DEMO_STORY.properties.length,
         detail: DEMO_STORY.properties.map((p) => `${p.code} ${p.nameEn}`).join(", "),
       },
-      {
-        stage: "zones",
-        count: zones.size,
-        detail: [...zones].join(", "),
-      },
+      { stage: "zones", count: zones.size, detail: [...zones].join(", ") },
       {
         stage: "buildings",
         count: DEMO_STORY.buildings.length,
@@ -97,44 +231,33 @@ export function buildSeedPlan(): SeedPlan {
           [...byType.entries()].map(([type, n]) => `${type} ${n}`).join(", "),
       },
       {
-        stage: "  of which occupied",
-        count: ownerResident.length + leased.length,
-        detail: `${ownerResident.length} owner-resident, ${leased.length} leased, ${vacant.length} vacant (target occupancy ${(DEMO_STORY.targets.occupancy * 100).toFixed(0)}%)`,
-      },
-      {
         stage: "members",
         count: members.length,
-        detail: `all @demo.aqarbooks.invalid (RFC 2606, undeliverable); ${holdingMoreThanOne} hold more than one unit`,
+        detail: `all @demo.aqarbooks.invalid (RFC 2606, undeliverable); ${multiUnitOwners} hold more than one unit`,
       },
       {
         stage: "ownership links",
         count: ownerResident.length,
-        detail: "created via link_unit_ownership RPC, 100% share, primary contact",
+        detail: "link_unit_ownership RPC, 100% share, primary contact",
       },
-      {
-        stage: "due types",
-        count: 2,
-        detail: "Common Area Service Charge, Unit Rent",
-      },
-      {
-        stage: "banks",
-        count: 1,
-        detail: "Commercial International Bank",
-      },
+      { stage: "due types", count: 2, detail: "Common Area Service Charge, Unit Rent" },
+      { stage: "banks", count: 1, detail: "Commercial International Bank" },
       {
         stage: "bank accounts",
         count: 2,
         detail: "one per legal entity (Nile Heights, Marina)",
       },
+      {
+        stage: "leases",
+        count: leases.length,
+        detail:
+          "create_unit_lease then activate_unit_lease; every term spans " +
+          `${DEMO_STORY.headline.periodEn}; residential monthly, commercial quarterly; ` +
+          "two months' security deposit",
+      },
     ],
+    integrity,
     notImplemented: [
-      // Listed first because it is the one gap that leaves the STRUCTURAL
-      // seed internally inconsistent rather than merely empty: members are
-      // created for every occupied unit, but only owner-resident units get a
-      // link. Until leases exist, the leased units show no occupant and their
-      // members are attached to nothing.
-      `leases for the ${leased.length} leased units (create_unit_lease, activate_unit_lease) -- ` +
-        `until these exist those units show no occupant and ${leased.length} members link to nothing`,
       "dues issuance for the operating month (issue_dues)",
       "payments and allocations (record_payment), leaving the overdue share",
       "CAM levy: create, compute_service_charge_allocations, issue_service_charge_levy",
@@ -143,22 +266,33 @@ export function buildSeedPlan(): SeedPlan {
       "suppliers, expenses and supplier invoices",
       "bank statement lines, auto_match_bank_statement, and an unfinalised reconciliation",
     ],
+    followUps: [
+      "RESORT_STANDARD has no dedicated rental-income account, so the Unit Rent " +
+        "due type points at 4300 Other Revenue. A real operator would add one; " +
+        "it was not invented here so the demo's chart of accounts stays identical " +
+        "to what a customer receives at onboarding.",
+      "The demo organization must be ACTIVE, not TRIAL: create_unit_lease calls " +
+        "organization_is_active() and refuses otherwise.",
+    ],
   };
 }
 
 /** Renders the plan for a human to approve. */
 export function renderSeedPlan(plan: SeedPlan): string {
   const lines: string[] = [];
+  const row = (label: string, value: number | string) =>
+    lines.push(`${label.padEnd(24)}${String(value).padStart(4)}`);
 
-  lines.push("AqarBooks — public demo seed plan");
+  lines.push("DEMO STRUCTURAL PLAN");
   lines.push("=".repeat(72));
   lines.push("");
   lines.push("THIS IS A PLAN, NOT A DRY RUN.");
   lines.push("");
-  lines.push("It is derived from lib/demo/story.ts and scripts/demo/demo-fixtures.ts,");
-  lines.push("which are deterministic. No database was contacted and nothing was");
-  lines.push("written. It says what the seed will ATTEMPT against an empty demo");
-  lines.push("tenant; it cannot say what the database will accept.");
+  lines.push("Derived from lib/demo/story.ts and scripts/demo/demo-fixtures.ts, both");
+  lines.push("deterministic. No database was contacted and nothing was written. It says");
+  lines.push("what the seed will ATTEMPT against an empty demo tenant, and whether the");
+  lines.push("fixture graph is internally coherent. It cannot say what the database");
+  lines.push("will accept -- that is the dry run's job, and it comes after provisioning.");
   lines.push("");
   lines.push(`seed version    ${plan.seedVersion}`);
   lines.push(`organization    ${plan.organization}`);
@@ -166,9 +300,66 @@ export function renderSeedPlan(plan: SeedPlan): string {
   lines.push(`operating month ${plan.period}`);
   lines.push("");
   lines.push("-".repeat(72));
+  lines.push("");
+
+  const c = plan.counts;
+  row("Legal entities", c.legalEntities);
+  row("Properties", c.properties);
+  row("Zones", c.zones);
+  row("Buildings", c.buildings);
+  lines.push("");
+  row("Units", c.units);
+  row("Active", c.activeUnits);
+  row("Archived", c.archivedUnits);
+  lines.push("");
+  row("Occupied", c.occupied);
+  row("Owner-resident", c.ownerResident);
+  row("Leased", c.leased);
+  row("Vacant", c.vacant);
+  lines.push("");
+  row("Members", c.members);
+  row("Multi-unit owners", c.multiUnitOwners);
+  lines.push("");
+  row("Ownership links", c.ownershipLinks);
+  row("Active leases", c.activeLeases);
+  lines.push("");
+  row("Unlinked occupied", plan.integrity.occupiedWithoutOwnerOrLease);
+  row("Orphan members", plan.integrity.orphanMembers);
+  row(
+    "Invalid lease links",
+    plan.integrity.leaseWithoutResident +
+      plan.integrity.leaseWithoutUnit +
+      plan.integrity.archivedUnitWithActiveLease +
+      plan.integrity.vacantUnitWithActiveLease,
+  );
+  lines.push("");
+  lines.push(`${"Structural integrity".padEnd(24)}${plan.integrity.pass ? "PASS" : "FAIL"}`);
+  lines.push("");
+
+  if (!plan.integrity.pass) {
+    lines.push("-".repeat(72));
+    lines.push("INTEGRITY FAILURES");
+    lines.push("-".repeat(72));
+    lines.push("");
+    const failures: Array<[string, number]> = [
+      ["occupied_without_owner_or_lease", plan.integrity.occupiedWithoutOwnerOrLease],
+      ["lease_without_resident", plan.integrity.leaseWithoutResident],
+      ["lease_without_unit", plan.integrity.leaseWithoutUnit],
+      ["archived_unit_with_active_lease", plan.integrity.archivedUnitWithActiveLease],
+      ["vacant_unit_with_active_lease", plan.integrity.vacantUnitWithActiveLease],
+      ["orphan_members", plan.integrity.orphanMembers],
+    ];
+    for (const [name, value] of failures) {
+      if (value > 0) lines.push(`  ${name.padEnd(36)}${value}`);
+    }
+    lines.push("");
+    lines.push("  Do not provision or seed while any of these is non-zero.");
+    lines.push("");
+  }
+
+  lines.push("-".repeat(72));
   lines.push("WOULD CREATE");
   lines.push("-".repeat(72));
-
   for (const object of plan.objects) {
     const count = object.count === 0 ? "   ?" : String(object.count).padStart(4);
     lines.push(`${count}  ${object.stage}`);
@@ -180,23 +371,31 @@ export function renderSeedPlan(plan: SeedPlan): string {
   lines.push("NOT IMPLEMENTED — no financial stage is written yet");
   lines.push("-".repeat(72));
   lines.push("");
-  lines.push("Until these exist, the demo tenant will hold a complete property");
-  lines.push("structure and no money. Dashboard KPIs, aging, CAM and reconciliation");
-  lines.push("screens will render empty.");
+  lines.push("The structure is coherent; the money is absent. Dashboard KPIs, aging,");
+  lines.push("CAM and reconciliation screens will render empty until these land.");
   lines.push("");
   for (const item of plan.notImplemented) lines.push(`  - ${item}`);
+
+  lines.push("");
+  lines.push("-".repeat(72));
+  lines.push("FOLLOW-UPS");
+  lines.push("-".repeat(72));
+  lines.push("");
+  for (const item of plan.followUps) {
+    lines.push(`  - ${item.replace(/\s+/g, " ")}`);
+  }
 
   lines.push("");
   lines.push("-".repeat(72));
   lines.push("BEFORE ANY WRITE");
   lines.push("-".repeat(72));
   lines.push("");
-  lines.push("  1. Provision the demo organization and the two accounts");
-  lines.push("     (docs/demo-environment.md §5). This is the first database write");
-  lines.push("     and is NOT covered by this plan.");
+  lines.push("  1. Bootstrap only: create the designated demo organization and the two");
+  lines.push("     accounts (docs/demo-environment.md §5). This is the first database");
+  lines.push("     write and is NOT covered by this plan.");
   lines.push("  2. Set the DEMO_* environment variables.");
-  lines.push("  3. Run the real dry run, which exercises the four seed guards and");
-  lines.push("     resolves every account code and id against the database:");
+  lines.push("  3. Database dry run -- exercises the four seed guards and resolves every");
+  lines.push("     account code and id against the real schema:");
   lines.push("         npx vitest run tests/demo-seed.manual.test.ts");
   lines.push("  4. Read test-results/demo-seed-report.txt.");
   lines.push("  5. Only then: DEMO_SEED_APPLY=1 npx vitest run tests/demo-seed.manual.test.ts");

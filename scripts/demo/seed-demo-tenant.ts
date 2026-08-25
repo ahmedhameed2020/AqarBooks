@@ -4,6 +4,7 @@ import { DEMO_STORY } from "../../lib/demo/story";
 import { assertSafeDemoTarget } from "./demo-guard";
 import {
   DEMO_SEED_VERSION,
+  generateLeases,
   generateMembers,
   generateUnits,
   type GeneratedUnit,
@@ -77,6 +78,7 @@ type Ctx = SeedOptions & {
     fiscalPeriodId?: string;
     dueTypeServiceCharge?: string;
     dueTypeRent?: string;
+    leasesCreated?: number;
     receivableAccountId?: string;
     cashAccountId?: string;
     bankAccountGlId?: string;
@@ -143,6 +145,7 @@ export async function seedDemoTenant(options: SeedOptions): Promise<SeedReport> 
     await stageMembers(ctx);
     await stageDueTypes(ctx);
     await stageTreasuryAccounts(ctx);
+    await stageLeases(ctx);
     report.ok = true;
   } catch (err) {
     report.failure = err instanceof Error ? err.message : String(err);
@@ -539,18 +542,36 @@ async function stageMembers(ctx: Ctx): Promise<void> {
 // apart, which is the whole argument for property-aware accounting.
 // ---------------------------------------------------------------------------
 async function stageDueTypes(ctx: Ctx): Promise<void> {
-  const serviceRevenue = ctx.ids.accountByCode.get("4100") ?? ctx.ids.accountByCode.get("4000");
-  const rentRevenue = ctx.ids.accountByCode.get("4200") ?? serviceRevenue;
-  const receivable = ctx.ids.accountByCode.get("1200") ?? ctx.ids.accountByCode.get("1100");
+  // Codes read from supabase/baseline/baseline_04_reference_data.sql rather
+  // than assumed. An earlier draft guessed 1200/1100 for the receivable; 1200
+  // is Fixed Assets and 1100 is the Current Assets GROUP, so dues would have
+  // been raised against the wrong account -- or against a group account, which
+  // the ledger refuses.
+  //
+  //   1130  Accounts Receivable - Members
+  //   4100  Maintenance Fee Revenue
+  //   4300  Other Revenue
+  //
+  // No fallbacks: a missing code means the template changed, and silently
+  // posting to a substitute account is precisely the kind of invented figure
+  // this codebase has had to repair before. Fail instead.
+  const serviceRevenue = ctx.ids.accountByCode.get("4100");
+  // RESORT_STANDARD has no dedicated rental-income account. 4300 "Other
+  // Revenue" is the truthful choice against the template as it ships; adding a
+  // proper rent revenue account is recorded as a follow-up rather than
+  // invented here, so the demo's chart of accounts stays byte-identical to
+  // what a real customer receives at onboarding.
+  const rentRevenue = ctx.ids.accountByCode.get("4300");
+  const receivable = ctx.ids.accountByCode.get("1130");
 
-  if (!serviceRevenue || !receivable) {
+  if (!serviceRevenue || !rentRevenue || !receivable) {
     if (ctx.dryRun) {
       stage(ctx, "due types", 0, 2, "revenue/receivable accounts not resolvable in dry run");
       return;
     }
     throw new Error(
-      "Could not resolve revenue/receivable accounts from the cloned chart of accounts. " +
-        "Inspect the RESORT_STANDARD template codes before re-running.",
+      "Could not resolve 1130 / 4100 / 4300 in the cloned chart of accounts. " +
+        "The RESORT_STANDARD template has changed; re-read it before re-running.",
     );
   }
 
@@ -614,8 +635,10 @@ async function stageDueTypes(ctx: Ctx): Promise<void> {
 // Stage 8 — treasury: a bank, two bank accounts, and a cashbox.
 // ---------------------------------------------------------------------------
 async function stageTreasuryAccounts(ctx: Ctx): Promise<void> {
-  const bankGl = ctx.ids.accountByCode.get("1020") ?? ctx.ids.accountByCode.get("1010");
-  const cashGl = ctx.ids.accountByCode.get("1010") ?? ctx.ids.accountByCode.get("1000");
+  // 1110 Cash on Hand and 1120 Banks, both flagged is_cash_equivalent in the
+  // template. An earlier draft used 1010/1020, which do not exist in it.
+  const bankGl = ctx.ids.accountByCode.get("1120");
+  const cashGl = ctx.ids.accountByCode.get("1110");
 
   ctx.ids.bankAccountGlId = bankGl;
   ctx.ids.cashAccountId = cashGl;
@@ -680,6 +703,111 @@ async function stageTreasuryAccounts(ctx: Ctx): Promise<void> {
   }
 
   stage(ctx, "bank accounts", (existingAccounts ?? []).length, accountsCreated);
+}
+
+// ---------------------------------------------------------------------------
+// Stage 9 — leases.
+//
+// WHY THIS STAGE EXISTS
+// Without it the structural seed is not merely incomplete, it is incoherent.
+// The fixtures mark 49 active units as LEASED and create a member for each,
+// but only owner-resident units receive an ownership link. A visitor opening
+// one of those units would see it marked occupied with nothing on the screen
+// saying who occupies it or under what terms -- which is worse than an empty
+// demo, because it looks like a bug in the product.
+//
+// WHY IT GOES THROUGH THE RPCs
+// `unit_leases` is RPC-only: the generated Insert type is `never`, and the
+// table is reached exclusively through create_unit_lease / activate_unit_lease.
+// That is not an obstacle to work around. Those functions validate that the
+// unit, member, due type and receivable account all belong to this
+// organization, they write the audit-log row, and activation is where the
+// exclusion constraint against overlapping active leases is enforced. A direct
+// insert would skip all four.
+//
+// IDEMPOTENCE
+// A unit that already has a DRAFT or ACTIVE lease is skipped entirely.
+// Re-activating an ACTIVE lease raises ILLEGAL_TRANSITION, and creating a
+// second overlapping one is refused by the exclusion constraint at activation
+// -- so re-running without this check would fail loudly rather than duplicate,
+// but it would also fail the whole seed. Skipping is the correct resume.
+// ---------------------------------------------------------------------------
+async function stageLeases(ctx: Ctx): Promise<void> {
+  const units = generateUnits();
+  const { assignment } = generateMembers(units);
+  const planned = generateLeases(units, assignment);
+
+  const { data: existing, error } = await ctx.admin
+    .from("unit_leases")
+    .select("id, unit_id, status")
+    .eq("organization_id", ctx.organizationId);
+
+  if (error) throw new Error(`unit_leases read failed: ${error.message}`);
+
+  // Only DRAFT and ACTIVE occupy a unit. An ENDED or CANCELLED lease is
+  // history and must not stop a new one being written.
+  const occupied = new Set(
+    (existing ?? [])
+      .filter((l) => l.status === "DRAFT" || l.status === "ACTIVE")
+      .map((l) => l.unit_id),
+  );
+
+  const missing = planned.filter((lease) => {
+    const unitId = ctx.ids.unitByCode.get(lease.unitCode);
+    return !unitId || !occupied.has(unitId);
+  });
+
+  if (ctx.dryRun) {
+    ctx.ids.leasesCreated = missing.length;
+    stage(ctx, "leases", occupied.size, missing.length, `${planned.length} in fixtures`);
+    return;
+  }
+
+  if (!ctx.ids.dueTypeRent || !ctx.ids.receivableAccountId) {
+    throw new Error(
+      "Leases require the rent due type and the receivable account; stageDueTypes did not resolve them.",
+    );
+  }
+
+  let created = 0;
+  for (const lease of missing) {
+    const unitId = ctx.ids.unitByCode.get(lease.unitCode);
+    const memberId = ctx.ids.memberByEmail.get(lease.memberEmail);
+    if (!unitId) throw new Error(`lease: unresolved unit ${lease.unitCode}`);
+    if (!memberId) throw new Error(`lease: unresolved member ${lease.memberEmail}`);
+
+    const { data: leaseId, error: createErr } = await ctx.owner.rpc("create_unit_lease", {
+      p_organization_id: ctx.organizationId,
+      p_unit_id: unitId,
+      p_tenant_member_id: memberId,
+      p_due_type_id: ctx.ids.dueTypeRent,
+      p_receivable_account_id: ctx.ids.receivableAccountId,
+      p_rent_amount: lease.rentAmount,
+      p_rent_frequency: lease.rentFrequency,
+      p_starts_on: lease.startsOn,
+      p_ends_on: lease.endsOn,
+      p_security_deposit_amount: lease.securityDepositAmount,
+      p_billing_recipient: lease.billingRecipient,
+    });
+    if (createErr) {
+      throw new Error(`create_unit_lease(${lease.unitCode}) failed: ${createErr.message}`);
+    }
+
+    // A DRAFT lease does not make a unit occupied. Activation is the step that
+    // does, and it is the step the exclusion constraint guards, so it is not
+    // optional and its failure must not be swallowed.
+    const { error: activateErr } = await ctx.owner.rpc("activate_unit_lease", {
+      p_lease_id: leaseId as unknown as string,
+    });
+    if (activateErr) {
+      throw new Error(`activate_unit_lease(${lease.unitCode}) failed: ${activateErr.message}`);
+    }
+
+    created++;
+  }
+
+  ctx.ids.leasesCreated = created;
+  stage(ctx, "leases", occupied.size, created, `${planned.length} in fixtures`);
 }
 
 export type { GeneratedUnit };
