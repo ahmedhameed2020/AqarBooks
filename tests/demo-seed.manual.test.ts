@@ -34,6 +34,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
 import { seedDemoTenant } from "../scripts/demo/seed-demo-tenant";
+import { checkApplyPreconditions, renderPreconditions } from "../scripts/demo/apply-preconditions";
+import { verifyStructural, renderStructural } from "../scripts/demo/verify-structural";
 import { DEMO_STORY } from "../lib/demo/story";
 
 loadEnv({ path: ".env.local" });
@@ -45,24 +47,35 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const APPLY = process.env.DEMO_SEED_APPLY === "1";
 
 /**
- * A dry run needs the two account emails so the guard can tell the demo's own
- * memberships from a stranger's -- but it does NOT need their passwords,
- * because it performs no write and therefore never opens the owner session.
- * Only an apply requires the password.
+ * Emails, not passwords. A dry run never opens the owner session at all, and an
+ * apply obtains it from the service-role key via generateLink -- so no password
+ * is required in either mode. DEMO_OWNER_PASSWORD remains honoured if set, but
+ * requiring it would gate the run on a credential the code does not need.
  */
 const CONFIGURED = Boolean(
   url &&
     serviceKey &&
     process.env.DEMO_ORGANIZATION_ID &&
     process.env.DEMO_OWNER_EMAIL &&
-    process.env.DEMO_USER_EMAIL &&
-    (!APPLY || process.env.DEMO_OWNER_PASSWORD),
+    process.env.DEMO_USER_EMAIL,
 );
+
+function writeReport(lines: string[], report: unknown, structuralPass: boolean | null): void {
+  mkdirSync("test-results", { recursive: true });
+  const verdict =
+    structuralPass === null ? "" : `\n\nSTRUCTURAL: ${structuralPass ? "PASS" : "FAIL"}`;
+  writeFileSync(
+    "test-results/demo-seed-report.txt",
+    [...lines, "", JSON.stringify(report, null, 2)].join("\n") + verdict + "\n",
+    "utf8",
+  );
+}
 
 describe.skipIf(!CONFIGURED)("public demo seed", () => {
   it(
     APPLY ? "applies the seed to the demo tenant" : "resolves the seed plan without writing",
     async () => {
+      const lines: string[] = [];
       const admin = createClient<Database>(url, serviceKey, {
         auth: { persistSession: false },
       });
@@ -93,15 +106,74 @@ describe.skipIf(!CONFIGURED)("public demo seed", () => {
         // ...), which is null for the service role, and a seed that bypassed
         // the accounting guards would produce data the product itself could
         // not have produced.
+        //
+        // WHY NO PASSWORD IS USED
+        // The service-role key can already mint a session for any account, so
+        // demanding the owner password in addition buys no security -- it only
+        // creates a production password that has to be typed, held in an
+        // environment variable, and then remembered about afterwards.
+        // generateLink issues the same session from the key we already hold,
+        // sends no email, and leaves nothing to forget to delete. A password is
+        // still honoured if one is supplied.
         owner = createClient<Database>(url, anonKey, { auth: { persistSession: false } });
-        const { error: signInError } = await owner.auth.signInWithPassword({
-          email: process.env.DEMO_OWNER_EMAIL!,
-          password: process.env.DEMO_OWNER_PASSWORD!,
+
+        if (process.env.DEMO_OWNER_PASSWORD) {
+          const { error } = await owner.auth.signInWithPassword({
+            email: process.env.DEMO_OWNER_EMAIL!,
+            password: process.env.DEMO_OWNER_PASSWORD,
+          });
+          expect(error, `owner sign-in failed: ${error?.message}`).toBeNull();
+        } else {
+          const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+            type: "magiclink",
+            email: process.env.DEMO_OWNER_EMAIL!,
+          });
+          expect(linkErr, `generateLink failed: ${linkErr?.message}`).toBeNull();
+          const { error } = await owner.auth.verifyOtp({
+            token_hash: link!.properties!.hashed_token,
+            type: "magiclink",
+          });
+          expect(error, `owner session failed: ${error?.message}`).toBeNull();
+        }
+
+        // The session must actually BE the owner and must actually carry the
+        // permission the write stages need. A session that authenticated but
+        // resolved to the wrong account would fail deep inside an RPC.
+        const { data: who } = await owner.auth.getUser();
+        expect(who.user?.id, "owner session is not the expected account").toBe(ownerUser!.id);
+
+        const { data: canLease } = await owner.rpc("has_permission", {
+          p_user_id: ownerUser!.id,
+          p_organization_id: process.env.DEMO_ORGANIZATION_ID!,
+          p_permission_key: "property.leases.manage",
         });
-        expect(signInError, `owner sign-in failed: ${signInError?.message}`).toBeNull();
+        expect(canLease, "owner session lacks property.leases.manage").toBe(true);
+
+        // Re-measured now, never inherited from the dry run: minutes or days
+        // may have passed, and a report that was true when printed is not a
+        // licence to write later.
+        const pre = await checkApplyPreconditions({
+          admin,
+          organizationId: process.env.DEMO_ORGANIZATION_ID!,
+          configuredDemoOrganizationId: process.env.DEMO_ORGANIZATION_ID,
+          expectedSlug: process.env.DEMO_ORGANIZATION_SLUG || DEMO_STORY.organization.slug,
+          ownerUserId: ownerUser!.id,
+          demoUserId: demoUser!.id,
+          requireEmpty: process.env.DEMO_SEED_RESUME !== "1",
+        });
+
+        lines.push(renderPreconditions(pre));
+        lines.push("");
+
+        if (!pre.pass) {
+          writeReport(lines, { aborted: "preconditions" }, null);
+          await owner.auth.signOut();
+        }
+        expect(pre.pass, "apply preconditions failed -- see test-results/demo-seed-report.txt").toBe(
+          true,
+        );
       }
 
-      const lines: string[] = [];
       const report = await seedDemoTenant({
         admin,
         owner,
@@ -114,13 +186,41 @@ describe.skipIf(!CONFIGURED)("public demo seed", () => {
         log: (line) => lines.push(line),
       });
 
-      mkdirSync("test-results", { recursive: true });
-      writeFileSync(
-        "test-results/demo-seed-report.txt",
-        [...lines, "", JSON.stringify(report, null, 2)].join("\n"),
-        "utf8",
-      );
+      // On failure: record and STOP. No cleanup, no delete-and-reseed. Much of
+      // what the seed writes goes through accounting RPCs and is immutable by
+      // design, so a partial apply is RESUMED, never undone. The report names
+      // the last stage that succeeded so the resume starts from a known point.
+      if (report.failure) {
+        lines.push("");
+        lines.push("APPLY FAILED -- NOTHING WAS CLEANED UP, BY DESIGN");
+        lines.push("-".repeat(72));
+        const touched = report.stages.filter((st) => st.created > 0 || st.existing > 0);
+        lines.push(
+          `  last successful stage : ${touched.length ? touched[touched.length - 1]!.stage : "(none)"}`,
+        );
+        lines.push("  stages completed      :");
+        for (const st of report.stages) {
+          lines.push(`      ${st.stage.padEnd(24)} existing=${st.existing} created=${st.created}`);
+        }
+        lines.push(`  failure               : ${report.failure}`);
+        lines.push("");
+        lines.push("  Resume with DEMO_SEED_RESUME=1 DEMO_SEED_APPLY=1. Every stage looks");
+        lines.push("  its objects up by natural key first, so a resume creates only what");
+        lines.push("  is missing. Do NOT delete and re-seed.");
+      }
 
+      // Verification reads the database, not the seed's own account of itself.
+      if (APPLY && report.ok) {
+        const structural = await verifyStructural(admin, process.env.DEMO_ORGANIZATION_ID!);
+        lines.push("");
+        lines.push(renderStructural(structural));
+        writeReport(lines, report, structural.pass);
+        if (owner) await owner.auth.signOut();
+        expect(structural.pass, "structural verification failed").toBe(true);
+        return;
+      }
+
+      writeReport(lines, report, null);
       if (owner) await owner.auth.signOut();
 
       expect(report.failure ?? null, report.failure ?? "").toBeNull();

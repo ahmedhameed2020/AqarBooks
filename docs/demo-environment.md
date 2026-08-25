@@ -368,6 +368,15 @@ the file in order to make it legible.
 
 ## 10. Open items
 
+- **Every fiscal period is `PLANNED`, not `OPEN`.** `create_fiscal_year`
+  produces twelve PLANNED periods; the structural seed does not open any of
+  them, because opening a period is an accounting act and nothing structural
+  needs it. Nothing financial can be posted until August 2026 is moved to OPEN
+  via `set_fiscal_period_status` — the dues-recognition trigger defers until an
+  OPEN period covers the issue date. This is the first thing the financial
+  stage must do, and it is a deliberate decision to make rather than a step to
+  forget.
+
 Recorded rather than assumed solved.
 
 - **Rate limiting is per-isolate.** See §8. A Cloudflare Rate Limiting binding
