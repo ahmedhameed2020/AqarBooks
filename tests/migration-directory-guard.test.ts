@@ -73,7 +73,25 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
  * exact version recorded in that ledger, so the two now agree.
  */
 /*
- * THIRD AMENDMENT (2026-08-25). Extends the allowlist to ten with
+ * FOURTH AMENDMENT (2026-08-25). Extends the allowlist to twelve with the two
+ * security migrations:
+ *
+ *   20260825124312_generate_lease_rent_dues_authz.sql
+ *     adds the authorization check the function never had. It was SECURITY
+ *     DEFINER, executable by `authenticated`, and checked nothing -- any
+ *     signed-in user who could see a lease could create a rent due and a
+ *     posted journal entry. Proven by exploiting it; see
+ *     docs/incidents/2026-08-25-generate-lease-rent-dues-exploit.md.
+ *
+ *   20260825124342_internal_helper_acls.sql
+ *     revokes EXECUTE from client roles on five internal mutators found by the
+ *     sweep in tests/security-definer-authorization.test.ts.
+ *
+ * Both were verified byte-for-byte against what was applied: the digests below
+ * were computed before the apply and re-verified after the copy into this
+ * directory.
+ *
+ * THIRD AMENDMENT (2026-08-25). Extended the allowlist to ten with
  * 20260825084639_organizations_is_demo.sql, which adds
  * organizations.is_demo together with the trigger that makes it
  * platform-controlled. Same reasoning as the second amendment: the assertion is
@@ -97,6 +115,8 @@ const MIGRATION_FILES = [
   { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98" },
   { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce" },
   { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97" },
+  { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba" },
+  { file: "20260825124342_internal_helper_acls.sql", bytes: 7595, sha256: "3cbcc49b3308e8a2bf772579d2573d60f7b034de74067b20f2dd43fb44bc5082" },
 ] as const;
 
 /**

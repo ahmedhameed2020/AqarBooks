@@ -21,7 +21,14 @@
  *   - contains a write (insert / update / delete)
  *   - contains no authorization construct
  *
- * It reads the baseline schema only. No database connection.
+ * WHAT IT READS
+ * The baseline schema AND every migration applied after it, in version order.
+ * The baseline alone stopped being the schema the moment the first migration
+ * landed: a function redefined later must be judged on its LATER definition,
+ * and a revoke issued later must count. Reading only the baseline would have
+ * reported both security migrations as never having happened.
+ *
+ * No database connection.
  *
  * THE CRITERION, CORRECTED
  * The first version of this triage asked "does it move money?" and exempted
@@ -43,10 +50,14 @@
  * edit to a regex.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const SCHEMA = "supabase/baseline/baseline_schema.sql";
 const POSTAMBLE = "supabase/baseline/baseline_03_security_postamble.sql";
+const MIGRATIONS = "supabase/migrations";
+/** The baseline itself lives in the migrations directory; it is read separately. */
+const BASELINE_MIGRATION = "20260821105505_baseline.sql";
 
 /**
  * Functions that write, are reachable by `authenticated`, and have no
@@ -78,35 +89,29 @@ const SANCTIONED: Record<string, string> = {
 };
 
 /**
- * Known-unfixed. Distinct from SANCTIONED: these are real gaps with a decision
- * pending, listed so the suite stays green on the state of the world while
- * still naming them. Removing an entry is how the fix gets proven.
+ * Known-unfixed gaps, awaiting a decision or a migration.
+ *
+ * EMPTY, and that is the point of it being here.
+ *
+ * It held six entries. All six are closed by two migrations applied on
+ * 2026-08-25:
+ *
+ *   20260825124312_generate_lease_rent_dues_authz
+ *     generate_lease_rent_dues now checks finance.schedules.generate. It stays
+ *     executable by `authenticated` -- it is a legitimate business RPC that
+ *     staff run, not an internal helper.
+ *
+ *   20260825124342_internal_helper_acls
+ *     record_tax_decision_for_due_internal, post_due_to_ledger,
+ *     allocate_document_number, next_sequence_value and
+ *     clone_tenant_role_templates are revoked from public, anon and
+ *     authenticated. service_role keeps EXECUTE.
+ *
+ * The suite failed when they were fixed and still listed here, which is how
+ * this list is kept from quietly overstating the risk. Add an entry only for a
+ * gap that genuinely remains open.
  */
-const KNOWN_GAPS: Record<string, string> = {
-  // Fix: an authorization check inside the function. It is a legitimate
-  // business RPC and stays executable by `authenticated`.
-  generate_lease_rent_dues:
-    "AUTHORIZATION HOLE. Fix prepared in scripts/demo/pending-migration-rent-authz.sql.",
-
-  // Fix for all five below: REVOKE from client roles. Each is an internal
-  // helper reached through a permission-checked wrapper or a definer trigger,
-  // never by a client. Prepared in
-  // scripts/demo/pending-migration-internal-helper-acls.sql.
-  record_tax_decision_for_due_internal:
-    "Named _internal but never revoked, unlike its three siblings in the Phase 1 postamble. " +
-      "Public path: record_tax_decision_for_due().",
-  post_due_to_ledger:
-    "Creates a POSTED journal entry from an existing due whenever a period is OPEN. Idempotent " +
-      "is not read-only. Public path: recognize_pending_dues(), which checks finance.entries.post.",
-  allocate_document_number:
-    "Takes an organization id with no authorization and writes document numbering state. " +
-      "Cross-tenant mutable state.",
-  next_sequence_value:
-    "Advances document_sequences for any organization or property id the caller knows.",
-  clone_tenant_role_templates:
-    "Writes roles and role_permissions into any organization that has none. A unique constraint " +
-      "is not authorization.",
-};
+const KNOWN_GAPS: Record<string, string> = {};
 
 type Fn = { name: string; body: string; returns: string };
 
@@ -130,15 +135,39 @@ describe("SECURITY DEFINER authorization", () => {
   const schema = readFileSync(SCHEMA, "utf8");
   const postamble = readFileSync(POSTAMBLE, "utf8");
 
-  const functions = parseFunctions(schema);
+  // Applied after the baseline, in version order. Sorting by filename is
+  // sorting by timestamp, because that is what the version prefix is.
+  const laterMigrations = readdirSync(MIGRATIONS)
+    .filter((f) => f.endsWith(".sql") && f !== BASELINE_MIGRATION)
+    .sort()
+    .map((f) => ({ file: f, sql: readFileSync(join(MIGRATIONS, f), "utf8") }));
+
+  const laterSql = laterMigrations.map((m) => m.sql).join("\n");
+
+  // A later CREATE OR REPLACE wins. Parsed baseline-first then migrations in
+  // order, so the last definition of a name is the one that is judged.
+  const byName = new Map<string, Fn>();
+  for (const fn of parseFunctions(schema)) byName.set(fn.name, fn);
+  for (const migration of laterMigrations) {
+    for (const fn of parseFunctions(migration.sql)) byName.set(fn.name, fn);
+  }
+  const functions = [...byName.values()];
   const grantedToAuthenticated = new Set(
     [...schema.matchAll(/GRANT ALL ON FUNCTION "public"\."([a-z_0-9]+)"[^;]*TO "authenticated"/g)].map(
       (m) => m[1]!,
     ),
   );
-  const revoked = new Set(
-    [...postamble.matchAll(/REVOKE EXECUTE ON FUNCTION public\.([a-z_0-9]+)\(/g)].map((m) => m[1]!),
-  );
+  // Revoked by the Phase 1 postamble OR by any later migration. Both forms are
+  // matched: the postamble writes `REVOKE EXECUTE ON FUNCTION public.x(`, a
+  // migration may also write `revoke execute on function public.x(`.
+  const revoked = new Set([
+    ...[...postamble.matchAll(/REVOKE EXECUTE ON FUNCTION public\.([a-z_0-9]+)\(/gi)].map(
+      (m) => m[1]!,
+    ),
+    ...[...laterSql.matchAll(/revoke\s+execute\s+on\s+function\s+public\.([a-z_0-9]+)\s*\(/gi)].map(
+      (m) => m[1]!,
+    ),
+  ]);
 
   const WRITES = /\b(insert\s+into|update\s+public\.|delete\s+from)\b/i;
   const AUTHORIZES =
@@ -154,12 +183,25 @@ describe("SECURITY DEFINER authorization", () => {
 
   const unique = [...new Set(flagged)];
 
-  it("parses the schema (guards against a vacuous pass)", () => {
-    // If the parse silently returned nothing, every assertion below would pass
+  it("parses the schema and the later migrations (guards against a vacuous pass)", () => {
+    // If any parse silently returned nothing, every assertion below would pass
     // while checking nothing at all.
     expect(functions.length).toBeGreaterThan(150);
     expect(grantedToAuthenticated.size).toBeGreaterThan(100);
     expect(revoked.size).toBeGreaterThan(5);
+    expect(laterMigrations.length, "no post-baseline migrations were read").toBeGreaterThan(0);
+  });
+
+  it("judges a redefined function on its latest definition", () => {
+    // generate_lease_rent_dues is defined in the baseline WITHOUT an
+    // authorization check and redefined by 20260825124312 WITH one. Reading
+    // only the baseline would report a fixed function as still broken.
+    const fn = byName.get("generate_lease_rent_dues");
+    expect(fn, "generate_lease_rent_dues not parsed").toBeTruthy();
+    expect(
+      /finance\.schedules\.generate/.test(fn!.body),
+      "the latest definition does not carry the authorization check",
+    ).toBe(true);
   });
 
   it("flags no unaccounted writing function", () => {
