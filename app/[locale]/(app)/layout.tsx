@@ -166,12 +166,12 @@ export default async function AppShellLayout({
               ],
             },
             {
-              href: "/finance/cashier", permission: "cashier.transactions.create",
+              href: "/finance/cashier", permission: "cashier.transactions.read",
               labelAr: "الخزينة والسيولة والشيكات",
               labelEn: "Treasury & Banking",
               icon: <Wallet className={ic} />,
               subItems: [
-                { href: "/finance/cashier", permission: "cashier.transactions.create", labelAr: "الخزينة والمقبوضات الفورية", labelEn: "Cashier" },
+                { href: "/finance/cashier", permission: "cashier.transactions.read", labelAr: "الخزينة والمقبوضات الفورية", labelEn: "Cashier" },
                 { href: "/finance/banks", permission: "banking.accounts.view", labelAr: "الحسابات البنكية", labelEn: "Bank Accounts" },
                 { href: "/finance/reports/pdc", permission: "finance.reports.read", labelAr: "سجل الشيكات الآجلة (PDC)", labelEn: "PDC Register" },
                 { href: "/finance/reports/cash-flow-forecast", permission: "finance.reports.read", labelAr: "توقعات السيولة (90 يوم)", labelEn: "Cash Runway Forecast" },

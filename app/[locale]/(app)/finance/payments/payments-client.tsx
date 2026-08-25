@@ -60,6 +60,7 @@ export function PaymentsClient({
   organizationName,
   resortId,
   resortName,
+  canRecordPayment = false,
   currency = "EGP",
   locale,
   preselectedUnitId,
@@ -73,6 +74,7 @@ export function PaymentsClient({
   organizationName: string;
   resortId: string;
   resortName?: string;
+  canRecordPayment?: boolean;
   currency?: string;
   locale: string;
   preselectedUnitId?: string;
@@ -203,13 +205,15 @@ export function PaymentsClient({
           </Select>
 
           {/* Record Payment Button */}
-          <Button
-            onClick={() => setRecordPaymentOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-          >
-            <Plus className="size-3.5" />
-            <span>{isAr ? "تسجيل سند قبض جديد" : "New Receipt"}</span>
-          </Button>
+          {canRecordPayment && (
+            <Button
+              onClick={() => setRecordPaymentOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            >
+              <Plus className="size-3.5" />
+              <span>{isAr ? "تسجيل سند قبض جديد" : "New Receipt"}</span>
+            </Button>
+          )}
         </div>
       </div>
 

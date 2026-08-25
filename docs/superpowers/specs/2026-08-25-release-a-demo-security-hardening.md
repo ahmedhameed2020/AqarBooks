@@ -1,11 +1,46 @@
 # Release A — demo read-only hardening, provisioning closure, demo-session architecture
 
-Status: **PREPARED, NOT APPLIED.** Nothing in this document has been executed against
-any database. Release A remains stopped until the migration below is applied and the
-capability sweep in `tests/demo-principal-capability.integration.test.ts` is green.
+Status: **APPLIED 2026-08-25** as `20260825231151_demo_readonly_hardening_and_cashier_read`
+against the live project `ResortOS` (`ataslxkcflxuilpgyepm`), and committed as
+`supabase/migrations/20260825231151_demo_readonly_hardening_and_cashier_read.sql`.
 
-Verified against the live project `ResortOS` (`ataslxkcflxuilpgyepm`) on 2026-08-25 using
-read-only `SELECT`s. No mutating statement was issued at any point.
+The SQL in section 2 is the text that was applied, plus the cashier read permission
+(section 2.7), added after Decision B. The frozen demo ledger was captured before the
+change and re-verified after it and after every probe run: billed 3,619,300.0000,
+outstanding 760,402.8900, 240 dues / 183 payments / 423 journal entries / 33 cash
+transactions / 59 matched bank lines / CAM 185,000.0000 — identical each time.
+
+### Proof of effect
+
+Each write was attempted **as the demo principal itself**, inside a transaction
+deliberately aborted at the end so nothing could persist even if a policy were broken.
+Positive controls ran the same operations as a normal authorized principal in a
+non-demo tenant.
+
+| Operation | Demo principal | Authorized principal |
+|---|---|---|
+| `property_import_logs` insert | DENIED `42501` | ALLOWED |
+| `alert_dismissals` insert | DENIED `42501` | ALLOWED |
+| `alert_dismissals` delete | 0 rows; target row **survived** | 1 row |
+| own `profiles` update | 0 rows | 1 row |
+| `storage.objects` insert | DENIED `42501` | n/a |
+| `issue_dues` | DENIED `42501` | n/a |
+| `create_organization_onboarding` | DENIED `42501` | revoked for all `authenticated` |
+| cashier: read key / 5 write keys | read `true`, every write `false` | n/a |
+
+Two notes on why those results are trustworthy rather than vacuous. An `UPDATE` or
+`DELETE` filtered out by RLS returns success with zero rows and no error, so the
+profile and delete outcomes are asserted by row count and by re-reading the target,
+not by absence of an error. And the first control run failed for reasons that were
+**the probe's fault, not the policy's** — `property_import_logs` has
+`CHECK (import_kind IN ('units','members'))` and the first attempt used `'UNITS'`,
+while the first control principal held a role assignment but no active membership.
+Both were corrected, and the same `'UNITS'` defect existed in the test file and is
+fixed there too.
+
+The PostgREST-level suite (`tests/demo-principal-capability.integration.test.ts`)
+additionally needs `SUPABASE_SERVICE_ROLE_KEY` and `DEMO_USER_EMAIL` /
+`DEMO_USER_PASSWORD` in `.env.local`; run it with `npm run test:demo-capability`.
 
 ---
 

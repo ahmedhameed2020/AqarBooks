@@ -19,6 +19,7 @@ import {
 
 import { getCurrencyLabel } from "@/lib/currency";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 
 export async function generateMetadata({
   params,
@@ -51,6 +52,13 @@ export default async function ExpensesPage({
 
   const denied = await denyIfMissingPermission(organization.id, "finance.expenses.read", locale);
   if (denied) return denied;
+
+  // A voucher is a journal entry underneath, so recording one asks for the entry
+  // key; the category list is chart-of-accounts furniture and asks for its own.
+  const [canRecordExpense, canManageCategories] = await Promise.all([
+    hasPermission(organization.id, "finance.entries.create"),
+    hasPermission(organization.id, "finance.accounts.manage"),
+  ]);
 
   const currency = organization.default_currency || "EGP";
   const currencyLabel = getCurrencyLabel(currency, isAr);
@@ -253,6 +261,8 @@ export default async function ExpensesPage({
         organizationId={organization.id}
         organizationName={organization.name}
         resortId={resort?.id ?? ""}
+        canRecordExpense={canRecordExpense}
+        canManageCategories={canManageCategories}
         currency={currency}
         locale={locale}
       />

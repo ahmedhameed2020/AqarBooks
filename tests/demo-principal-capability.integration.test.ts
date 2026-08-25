@@ -225,7 +225,11 @@ describe("demo principal has zero persistent mutation capability", () => {
   it("D1: cannot insert property_import_logs into the demo tenant", async () => {
     const { error } = await demo.from("property_import_logs").insert({
       organization_id: demoOrgId,
-      import_kind: "UNITS",
+      // property_import_logs has CHECK (import_kind IN ('units','members')).
+      // An invalid value here would fail with 23514 before RLS was ever
+      // consulted, so the negative probe would "pass" without proving anything
+      // and the positive control would fail for an unrelated reason.
+      import_kind: "units",
       imported_rows: 1,
       skipped_rows: 0,
       allow_partial: false,
@@ -238,7 +242,7 @@ describe("demo principal has zero persistent mutation capability", () => {
       .from("property_import_logs")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", demoOrgId)
-      .eq("import_kind", "UNITS");
+      .eq("import_kind", "units");
     expect(count ?? 0).toBe(0);
   });
 
@@ -349,6 +353,33 @@ describe("demo principal has zero persistent mutation capability", () => {
     expect(data ?? []).toHaveLength(0);
   });
 
+  it("cashier is visible read-only: the read key is held, every write key is not", async () => {
+    // Decision B: the cashier screen is reached through a genuine read
+    // permission rather than a demo-specific bypass, and viewing must not
+    // smuggle in any mutation capability.
+    const check = async (key: string) => {
+      const { data, error } = await admin.rpc("has_permission", {
+        p_user_id: demoUserId,
+        p_organization_id: demoOrgId,
+        p_permission_key: key,
+      });
+      if (error) throw error;
+      return Boolean(data);
+    };
+
+    expect(await check("cashier.transactions.read"), "demo must SEE cashier").toBe(true);
+
+    for (const writeKey of [
+      "cashier.transactions.create",
+      "cashier.sessions.open",
+      "cashier.sessions.close",
+      "cashier.reconciliations.approve",
+      "finance.accounts.manage", // gates Add Cashbox
+    ]) {
+      expect(await check(writeKey), `demo must NOT hold ${writeKey}`).toBe(false);
+    }
+  });
+
   it("frozen demo ledger is untouched by this suite", async () => {
     const { count } = await admin
       .from("dues")
@@ -362,7 +393,11 @@ describe("positive controls -- the same policies still permit legitimate writes"
   it("D1 control: an authorized principal CAN insert property_import_logs", async () => {
     const { error } = await fixture.client.from("property_import_logs").insert({
       organization_id: fixture.orgId,
-      import_kind: "UNITS",
+      // property_import_logs has CHECK (import_kind IN ('units','members')).
+      // An invalid value here would fail with 23514 before RLS was ever
+      // consulted, so the negative probe would "pass" without proving anything
+      // and the positive control would fail for an unrelated reason.
+      import_kind: "units",
       imported_rows: 1,
       skipped_rows: 0,
       allow_partial: false,

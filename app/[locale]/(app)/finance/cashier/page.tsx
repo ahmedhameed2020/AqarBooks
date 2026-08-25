@@ -14,6 +14,7 @@ import {
 } from "./cashier-client";
 import { type Option, type DueItem } from "./cashier-dialogs";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   CreditCard,
   Clock,
@@ -57,8 +58,19 @@ export default async function CashierPage({
   const organization = user ? await getPrimaryOrganization(user.id) : null;
   if (!organization) return null;
 
-  const denied = await denyIfMissingPermission(organization.id, "cashier.transactions.create", locale);
+  // Viewing is gated on a read key, not a write key. Gating the page on
+  // cashier.transactions.create meant no read-only role -- Auditor, Viewer --
+  // could ever see reconciled cashier state, which is exactly the state an
+  // auditor exists to inspect. Each mutation below keeps its own write gate.
+  const denied = await denyIfMissingPermission(organization.id, "cashier.transactions.read", locale);
   if (denied) return denied;
+
+  const [canCreateCashbox, canOpenSession, canCloseSession, canCollect] = await Promise.all([
+    hasPermission(organization.id, "finance.accounts.manage"),
+    hasPermission(organization.id, "cashier.sessions.open"),
+    hasPermission(organization.id, "cashier.sessions.close"),
+    hasPermission(organization.id, "cashier.transactions.create"),
+  ]);
 
   const supabase = await createClient();
 
@@ -369,6 +381,10 @@ export default async function CashierPage({
           fiscalPeriodId={fiscalPeriodId}
           currency={currency}
           locale={locale}
+          canCreateCashbox={canCreateCashbox}
+          canOpenSession={canOpenSession}
+          canCloseSession={canCloseSession}
+          canCollect={canCollect}
         />
       ) : (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">

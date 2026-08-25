@@ -3,12 +3,12 @@ import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
 import { DuesClient, type DueItem } from "./dues-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   FileText,
   CheckCircle2,
@@ -58,6 +58,13 @@ export default async function DuesPage({
   const denied = await denyIfMissingPermission(organization.id, "finance.dues.read", locale);
   if (denied) return denied;
 
+  // Read access is not write access: issuing a due and defining a due type are
+  // guarded by two different keys in the database, so the toolbar asks for both.
+  const [canIssueDue, canManageDueTypes] = await Promise.all([
+    hasPermission(organization.id, "finance.dues.issue"),
+    hasPermission(organization.id, "finance.accounts.manage"),
+  ]);
+
   const supabase = await createClient();
   const { data: resort } = await supabase
     .from("resorts")
@@ -67,10 +74,14 @@ export default async function DuesPage({
     .limit(1)
     .maybeSingle();
 
-  const adminClient = createAdminClient();
+  // Rent generation deliberately does NOT happen here. This page used to call
+  // run_lease_rent_generation() through the service role on every render, which
+  // made a GET perform a cross-tenant financial mutation and left rent billed
+  // only when somebody opened the screen. It now runs on a schedule --
+  // app/api/cron/lease-rent/route.ts, driven by .github/workflows/lease-rent.yml
+  // -- and this page is a pure read.
 
   const [
-    { error: sweepError },
     { data: units },
     { data: dueTypes },
     { data: accounts },
@@ -80,7 +91,6 @@ export default async function DuesPage({
     { data: postedPayments },
     { data: orgData },
   ] = await Promise.all([
-    adminClient.rpc("run_lease_rent_generation"),
     supabase.from("units").select("id, code").eq("organization_id", organization.id).order("code"),
     supabase.from("due_types").select("id, name_ar, name_en").eq("organization_id", organization.id),
     supabase
@@ -115,10 +125,6 @@ export default async function DuesPage({
       .eq("id", organization.id)
       .maybeSingle(),
   ]);
-
-  if (sweepError) {
-    console.error("[DuesPage] run_lease_rent_generation failed:", sweepError.message);
-  }
 
   const currency = orgData?.default_currency || "EGP";
   const currencyLabel = getCurrencyLabel(currency, isAr);
@@ -281,6 +287,8 @@ export default async function DuesPage({
           periods={periodOptions}
           organizationId={organization.id}
           resortId={resort.id}
+          canIssueDue={canIssueDue}
+          canManageDueTypes={canManageDueTypes}
           currency={currency}
           locale={locale}
           preselectedUnitId={preselectedUnitId}

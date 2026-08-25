@@ -59,6 +59,8 @@ export function DuesClient({
   periods,
   organizationId,
   resortId,
+  canIssueDue = false,
+  canManageDueTypes = false,
   currency = "EGP",
   locale,
   preselectedUnitId,
@@ -71,6 +73,8 @@ export function DuesClient({
   periods: Option[];
   organizationId: string;
   resortId: string;
+  canIssueDue?: boolean;
+  canManageDueTypes?: boolean;
   currency?: string;
   locale: string;
   preselectedUnitId?: string;
@@ -313,23 +317,27 @@ export function DuesClient({
           </Button>
 
           {/* Create Due Type */}
-          <Button
-            onClick={() => setCreateTypeOpen(true)}
-            variant="outline"
-            className="text-xs font-bold gap-1.5 h-9"
-          >
-            <Tag className="size-3.5 text-slate-500" />
-            <span>{isAr ? "نوع مستحق" : "Due Type"}</span>
-          </Button>
+          {canManageDueTypes && (
+            <Button
+              onClick={() => setCreateTypeOpen(true)}
+              variant="outline"
+              className="text-xs font-bold gap-1.5 h-9"
+            >
+              <Tag className="size-3.5 text-slate-500" />
+              <span>{isAr ? "نوع مستحق" : "Due Type"}</span>
+            </Button>
+          )}
 
           {/* Issue Due Button */}
-          <Button
-            onClick={() => setIssueDueOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-          >
-            <Plus className="size-3.5" />
-            <span>{isAr ? "إصدار مستحق جديد" : "Issue Due"}</span>
-          </Button>
+          {canIssueDue && (
+            <Button
+              onClick={() => setIssueDueOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            >
+              <Plus className="size-3.5" />
+              <span>{isAr ? "إصدار مستحق جديد" : "Issue Due"}</span>
+            </Button>
+          )}
         </div>
       </div>
 
