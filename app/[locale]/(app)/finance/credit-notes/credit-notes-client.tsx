@@ -41,6 +41,7 @@ export function CreditNotesClient({
   dues,
   organizationName,
   resortName,
+  canIssueCreditNote = false,
   currency = "EGP",
   locale,
 }: {
@@ -48,6 +49,7 @@ export function CreditNotesClient({
   dues: DueCreditableOption[];
   organizationName: string;
   resortName?: string;
+  canIssueCreditNote?: boolean;
   currency?: string;
   locale: string;
 }) {
@@ -113,13 +115,15 @@ export function CreditNotesClient({
         </div>
 
         {/* Action Button */}
-        <Button
-          onClick={() => setIssueDialogOpen(true)}
-          className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-        >
-          <Plus className="size-3.5" />
-          <span>{isAr ? "إصدار إشعار خصم جديد" : "New Credit Note"}</span>
-        </Button>
+        {canIssueCreditNote && (
+          <Button
+            onClick={() => setIssueDialogOpen(true)}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+          >
+            <Plus className="size-3.5" />
+            <span>{isAr ? "إصدار إشعار خصم جديد" : "New Credit Note"}</span>
+          </Button>
+        )}
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────

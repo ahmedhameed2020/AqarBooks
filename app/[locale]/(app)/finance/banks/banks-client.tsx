@@ -89,6 +89,8 @@ export function BanksClient({
   resortId,
   resortName,
   fiscalPeriodId,
+  canManageBanking = false,
+  canManageCheques = false,
   currency = "EGP",
   locale,
 }: {
@@ -103,6 +105,8 @@ export function BanksClient({
   resortId: string;
   resortName?: string;
   fiscalPeriodId?: string;
+  canManageBanking?: boolean;
+  canManageCheques?: boolean;
   currency?: string;
   locale: string;
 }) {
@@ -411,30 +415,36 @@ export function BanksClient({
             </Button>
           </Link>
 
-          <Button
-            onClick={() => setCreateBankOpen(true)}
-            variant="outline"
-            className="text-xs font-bold gap-1.5 h-9"
-          >
-            <Landmark className="size-3.5 text-slate-500" />
-            <span>{isAr ? "إضافة بنك" : "Add Bank"}</span>
-          </Button>
+          {canManageBanking && (
+            <Button
+              onClick={() => setCreateBankOpen(true)}
+              variant="outline"
+              className="text-xs font-bold gap-1.5 h-9"
+            >
+              <Landmark className="size-3.5 text-slate-500" />
+              <span>{isAr ? "إضافة بنك" : "Add Bank"}</span>
+            </Button>
+          )}
 
-          <Button
-            onClick={() => setCreateAccountOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-          >
-            <Plus className="size-3.5" />
-            <span>{isAr ? "إضافة حساب بنكي" : "Add Account"}</span>
-          </Button>
+          {canManageBanking && (
+            <Button
+              onClick={() => setCreateAccountOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            >
+              <Plus className="size-3.5" />
+              <span>{isAr ? "إضافة حساب بنكي" : "Add Account"}</span>
+            </Button>
+          )}
 
-          <Button
-            onClick={() => setRecordChequeOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-          >
-            <FileCheck className="size-3.5" />
-            <span>{isAr ? "تسجيل شيك وارد" : "Record Cheque"}</span>
-          </Button>
+          {canManageCheques && (
+            <Button
+              onClick={() => setRecordChequeOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            >
+              <FileCheck className="size-3.5" />
+              <span>{isAr ? "تسجيل شيك وارد" : "Record Cheque"}</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -514,17 +524,23 @@ export function BanksClient({
                   {isAr ? "لا توجد حسابات بنكية معرفة" : "No Bank Accounts Found"}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto mb-5">
-                  {isAr
-                    ? "أضف الحسابات البنكية الخاصة بالمنشأة لربطها بشجرة الحسابات وإدارة الشيكات والتسويات البنكية."
-                    : "Add bank accounts to manage cheques and automated bank reconciliations."}
+                  {canManageBanking
+                    ? isAr
+                      ? "أضف الحسابات البنكية الخاصة بالمنشأة لربطها بشجرة الحسابات وإدارة الشيكات والتسويات البنكية."
+                      : "Add bank accounts to manage cheques and automated bank reconciliations."
+                    : isAr
+                    ? "لم تُعرَّف حسابات بنكية بعد، وصلاحيتك على هذه الشاشة للاطلاع فقط."
+                    : "No bank accounts have been defined yet, and your access here is view-only."}
                 </p>
-                <Button
-                  onClick={() => setCreateAccountOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
-                >
-                  <Plus className="size-4" />
-                  <span>{isAr ? "إضافة حساب بنكي الآن" : "Add Bank Account"}</span>
-                </Button>
+                {canManageBanking && (
+                  <Button
+                    onClick={() => setCreateAccountOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+                  >
+                    <Plus className="size-4" />
+                    <span>{isAr ? "إضافة حساب بنكي الآن" : "Add Bank Account"}</span>
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -650,7 +666,7 @@ export function BanksClient({
                           <td className="p-3 text-end">
                             <div className="flex items-center justify-end gap-1.5">
                               {/* Quick Lifecycle Buttons */}
-                              {isReceived && (
+                              {canManageCheques && isReceived && (
                                 <Button
                                   onClick={() => setUpdateStatusTarget({ cheque, targetStatus: "DEPOSITED" })}
                                   size="sm"
@@ -662,7 +678,7 @@ export function BanksClient({
                                 </Button>
                               )}
 
-                              {isDeposited && (
+                              {canManageCheques && isDeposited && (
                                 <>
                                   <Button
                                     onClick={() => setClearChequeTarget(cheque)}

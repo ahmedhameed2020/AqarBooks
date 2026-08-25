@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   JournalsClient,
   type JournalEntryItem,
@@ -55,6 +56,10 @@ export default async function JournalsPage({
 
   const denied = await denyIfMissingPermission(organization.id, "finance.accounts.view", locale);
   if (denied) return denied;
+
+  // Viewing the ledger is not drafting in it: the new-entry route ends at
+  // create_journal_entry, which asks for the entry-create key.
+  const canCreateEntry = await hasPermission(organization.id, "finance.entries.create");
 
   const supabase = await createClient();
 
@@ -212,6 +217,7 @@ export default async function JournalsPage({
         entries={entries}
         organizationName={organization.name}
         resortName={resort?.name}
+        canCreateEntry={canCreateEntry}
         currency={currency}
         locale={locale}
       />

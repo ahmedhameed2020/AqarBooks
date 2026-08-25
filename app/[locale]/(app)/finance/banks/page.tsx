@@ -14,6 +14,7 @@ import {
 } from "./banks-client";
 import { type Option } from "./banks-dialogs";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   Building2,
   Landmark,
@@ -59,6 +60,13 @@ export default async function BanksPage({
 
   const denied = await denyIfMissingPermission(organization.id, "banking.accounts.view", locale);
   if (denied) return denied;
+
+  // Banks and bank accounts are master data guarded by the accounts key, while the
+  // whole cheque lifecycle (record, deposit, clear, bounce) sits behind its own.
+  const [canManageBanking, canManageCheques] = await Promise.all([
+    hasPermission(organization.id, "finance.accounts.manage"),
+    hasPermission(organization.id, "banking.cheques.manage"),
+  ]);
 
   const supabase = await createClient();
 
@@ -323,6 +331,8 @@ export default async function BanksPage({
           resortId={resort.id}
           resortName={resort.name}
           fiscalPeriodId={fiscalPeriodId}
+          canManageBanking={canManageBanking}
+          canManageCheques={canManageCheques}
           currency={currency}
           locale={locale}
         />
