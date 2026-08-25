@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/admin/finance/accounting-accounts";
 
@@ -36,6 +37,10 @@ export async function saveFxDifferenceAccounts(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = parsePair(formData);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -55,6 +60,10 @@ export async function saveAssetDisposalAccounts(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = parsePair(formData);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 

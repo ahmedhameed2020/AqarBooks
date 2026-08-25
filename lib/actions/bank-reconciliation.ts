@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const REVALIDATE = "/[locale]/finance/banks/reconciliation";
 
@@ -21,6 +22,10 @@ export async function createBankStatement(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createStatementSchema.safeParse({
     organizationId: formData.get("organizationId"),
     bankAccountId: formData.get("bankAccountId"),
@@ -116,6 +121,10 @@ export async function importBankStatementLines(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = importSchema.safeParse({
     organizationId: formData.get("organizationId"),
     statementId: formData.get("statementId"),
@@ -152,6 +161,10 @@ export async function autoMatchStatement(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const statementId = formData.get("statementId");
   const tolerance = Number(formData.get("toleranceDays") ?? 5);
   if (typeof statementId !== "string") return { ok: false, error: "invalid_input" };
@@ -171,6 +184,10 @@ export async function setLineMatch(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const lineId = formData.get("lineId");
   const journalLineId = formData.get("journalLineId");
   if (typeof lineId !== "string") return { ok: false, error: "invalid_input" };
@@ -206,6 +223,10 @@ export async function finalizeReconciliation(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const statementId = formData.get("statementId");
   if (typeof statementId !== "string") return { ok: false, error: "invalid_input" };
 
@@ -223,6 +244,10 @@ export async function reopenReconciliation(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const statementId = formData.get("statementId");
   if (typeof statementId !== "string") return { ok: false, error: "invalid_input" };
 

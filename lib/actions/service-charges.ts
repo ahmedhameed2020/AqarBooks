@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const LIST_PATH = "/[locale]/finance/service-charges";
 const DETAIL_PATH = "/[locale]/finance/service-charges/[levyId]";
@@ -27,6 +28,10 @@ export async function createServiceChargeLevy(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createLevySchema.safeParse({
     organizationId: formData.get("organizationId"),
     propertyId: formData.get("propertyId"),
@@ -75,6 +80,10 @@ export async function computeAllocations(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const levyId = formData.get("levyId");
   if (typeof levyId !== "string") return { ok: false, error: "invalid_input" };
 
@@ -97,6 +106,10 @@ export async function setAllocationWeight(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const allocationId = formData.get("allocationId");
   const weight = Number(formData.get("basisValue"));
   if (typeof allocationId !== "string") return { ok: false, error: "invalid_input" };
@@ -117,6 +130,10 @@ export async function issueLevy(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const levyId = formData.get("levyId");
   if (typeof levyId !== "string") return { ok: false, error: "invalid_input" };
 

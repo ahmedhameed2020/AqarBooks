@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { CURRENCY_CODES } from "@/lib/currency";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const ENTITY_TYPES = [
   "DEVELOPER",
@@ -42,6 +43,10 @@ export async function completeOnboarding(
   _prevState: OnboardingState,
   formData: FormData
 ): Promise<OnboardingState> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = onboardingSchema.safeParse({
     orgName: formData.get("orgName"),
     entityType: formData.get("entityType"),

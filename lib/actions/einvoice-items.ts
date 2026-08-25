@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/einvoice-items";
 
@@ -29,6 +30,10 @@ export async function saveCatalogueItem(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = itemSchema.safeParse({
     organizationId: formData.get("organizationId"),
     code: formData.get("code"),
@@ -61,6 +66,10 @@ export async function linkDueTypeToItem(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const dueTypeId = formData.get("dueTypeId");
   const itemId = (formData.get("catalogueItemId") as string) || null;
   if (typeof dueTypeId !== "string") return { ok: false, error: "invalid_input" };

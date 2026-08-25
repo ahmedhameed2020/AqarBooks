@@ -4,6 +4,9 @@ export default {
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // See tests/stubs/server-only.ts. Keeps the production import guard in
+      // place while making the pure modules behind it testable.
+      "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
     },
   },
   test: {

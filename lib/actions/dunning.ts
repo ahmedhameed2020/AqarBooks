@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/dunning";
 
@@ -27,6 +28,10 @@ export async function saveDunningPolicy(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = policySchema.safeParse({
     organizationId: formData.get("organizationId"),
     stage: formData.get("stage"),
@@ -68,6 +73,10 @@ export async function raiseDunningStage(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = raiseSchema.safeParse({
     organizationId: formData.get("organizationId"),
     stage: formData.get("stage"),
@@ -106,6 +115,10 @@ export async function recordDunningDelivery(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = deliverySchema.safeParse({
     noticeId: formData.get("noticeId"),
     channel: formData.get("channel"),

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const providerSchema = z.enum(["FAWRY", "PAYMOB"]);
 const environmentSchema = z.enum(["SANDBOX", "PRODUCTION"]);
@@ -38,6 +39,10 @@ export async function upsertPaymentProviderSettingsAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const resortIdRaw = formData.get("resortId");
   const parsed = upsertSchema.safeParse({
     organizationId: formData.get("organizationId"),
@@ -74,6 +79,10 @@ export async function enablePaymentProviderAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = settingsIdSchema.safeParse({ settingsId: formData.get("settingsId") });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -88,6 +97,10 @@ export async function disablePaymentProviderAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = settingsIdSchema.safeParse({ settingsId: formData.get("settingsId") });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -135,6 +148,10 @@ export async function testPaymentProviderConnectionAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = settingsIdSchema.safeParse({ settingsId: formData.get("settingsId") });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
   const { settingsId } = parsed.data;

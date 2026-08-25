@@ -8,7 +8,18 @@ function escapeCsvField(value: string): string {
   return value;
 }
 
-export function buildUnitsCsv(rows: UnitRow[], isAr: boolean): string {
+/**
+ * Demo labelling (spec §28). A trailing row rather than a leading one: the
+ * header row is what a spreadsheet and any importer key on, and pushing it
+ * down would corrupt the file in order to make it legible. The row is still
+ * visible, and the `DEMO-` filename prefix applied at the download call site
+ * is the marker someone sees before they even open it.
+ */
+export function buildUnitsCsv(
+  rows: UnitRow[],
+  isAr: boolean,
+  demoNotice?: string | null,
+): string {
   const headers = isAr
     ? ["كود الوحدة", "المبنى", "المنطقة", "المساحة (م²)", "النوع", "حالة الإشغال", "المالك الحالي", "الرصيد المالي", "عليها متأخرات"]
     : ["Unit Code", "Building", "Zone", "Area (m²)", "Type", "Occupancy", "Current Owner", "Financial Balance", "Has Arrears"];
@@ -32,6 +43,8 @@ export function buildUnitsCsv(rows: UnitRow[], isAr: boolean): string {
   }
   // UTF-8 BOM so Microsoft Excel opens CSV with correct Arabic text encoding
   const BOM = "﻿";
+  if (demoNotice) lines.push(escapeCsvField(demoNotice));
+
   return BOM + lines.join("\r\n");
 }
 
@@ -46,7 +59,11 @@ const CELL_BORDER = "FFE2E8F0";
 // client-side here via its bundled browser build (see its package.json
 // "browser" field), since this is only ever invoked from a "use client"
 // component after a button click.
-export async function buildUnitsXlsxBuffer(rows: UnitRow[], isAr: boolean): Promise<ExcelJS.Buffer> {
+export async function buildUnitsXlsxBuffer(
+  rows: UnitRow[],
+  isAr: boolean,
+  demoNotice?: string | null,
+): Promise<ExcelJS.Buffer> {
   const headers = isAr
     ? ["كود الوحدة", "المبنى", "المنطقة", "المساحة (م²)", "النوع", "حالة الإشغال", "المالك الحالي", "الرصيد المالي", "عليها متأخرات"]
     : ["Unit Code", "Building", "Zone", "Area (m²)", "Type", "Occupancy", "Current Owner", "Financial Balance", "Has Arrears"];
@@ -94,6 +111,17 @@ export async function buildUnitsXlsxBuffer(rows: UnitRow[], isAr: boolean): Prom
       };
     });
     row.getCell(8).numFmt = "#,##0.00";
+  }
+
+
+  // Appended after the data for the same reason the CSV notice is: it
+  // labels the file without disturbing the header row that row-1 styling
+  // and every importer depend on.
+  if (demoNotice) {
+    const notice = worksheet.addRow([demoNotice]);
+    notice.font = { italic: true, color: { argb: "FF7C2D12" } };
+    notice.alignment = { horizontal: isAr ? "right" : "left" };
+    workbook.creator = "AqarBooks Demo Environment";
   }
 
   return workbook.xlsx.writeBuffer();

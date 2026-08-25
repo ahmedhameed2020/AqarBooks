@@ -18,6 +18,8 @@ import { exportUnitsCsvAction } from "@/lib/actions/units-export";
 import { buildUnitsCsv, buildUnitsXlsxBuffer, downloadCsv, downloadXlsxBuffer } from "./csv";
 import { ExportToolbar } from "@/components/export-toolbar";
 import { generateUnitsPdfReport } from "./unit-pdf-report";
+import { useDemoMode } from "@/components/demo/demo-mode-context";
+import { demoExportNotice } from "@/lib/demo/export-notice";
 
 const ALL = "__all__";
 
@@ -47,6 +49,13 @@ export function UnitsFilters({
   zones: { id: string; name_ar: string; name_en: string }[];
 }) {
   const isAr = locale === "ar";
+
+  // Demo exports carry a label and a filename prefix (spec §28). The flag is
+  // presentation only -- it decides whether a spreadsheet says it is
+  // fictional, and authorises nothing.
+  const isDemo = useDemoMode();
+  const notice = demoExportNotice(isDemo, isAr);
+  const filePrefix = isDemo ? "DEMO-" : "";
   const { get, pushParams } = usePropertyNav();
   const q = get("q");
   const building = get("building");
@@ -101,8 +110,8 @@ export function UnitsFilters({
     setExporting(true);
     try {
       const rows = await exportUnitsCsvAction({ resortId, q, building, zone, type, occupancy, arrears });
-      const buffer = await buildUnitsXlsxBuffer(rows, isAr);
-      downloadXlsxBuffer(`units-export-${Date.now()}.xlsx`, buffer);
+      const buffer = await buildUnitsXlsxBuffer(rows, isAr, notice);
+      downloadXlsxBuffer(`${filePrefix}units-export-${Date.now()}.xlsx`, buffer);
     } finally {
       setExporting(false);
     }
@@ -112,7 +121,7 @@ export function UnitsFilters({
     setExporting(true);
     try {
       const rows = await exportUnitsCsvAction({ resortId, q, building, zone, type, occupancy, arrears });
-      downloadCsv(`units-export-${Date.now()}.csv`, buildUnitsCsv(rows, isAr));
+      downloadCsv(`${filePrefix}units-export-${Date.now()}.csv`, buildUnitsCsv(rows, isAr, notice));
     } finally {
       setExporting(false);
     }
@@ -123,6 +132,7 @@ export function UnitsFilters({
     try {
       const rows = await exportUnitsCsvAction({ resortId, q, building, zone, type, occupancy, arrears });
       generateUnitsPdfReport({
+        demoNotice: notice,
         organizationName,
         resortName,
         currency,

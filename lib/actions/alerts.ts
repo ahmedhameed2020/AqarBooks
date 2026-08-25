@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 export type AlertActionResult = { ok: true } | { ok: false; error: string };
 
@@ -17,6 +18,10 @@ export type AlertActionResult = { ok: true } | { ok: false; error: string };
  * dismissing it actually wants.
  */
 export async function dismissAlertAction(alertKey: string): Promise<AlertActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (!z.string().min(1).max(200).safeParse(alertKey).success) {
     return { ok: false, error: "invalid_input" };
   }
@@ -49,6 +54,10 @@ export async function dismissAlertAction(alertKey: string): Promise<AlertActionR
 
 /** Brings back every alert this user has silenced. */
 export async function restoreAllAlertsAction(): Promise<AlertActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "unauthenticated" };
 
@@ -93,6 +102,10 @@ export type AlertSettingsInput = z.input<typeof settingsSchema>;
 export async function saveAlertSettingsAction(
   input: AlertSettingsInput,
 ): Promise<AlertActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = settingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 

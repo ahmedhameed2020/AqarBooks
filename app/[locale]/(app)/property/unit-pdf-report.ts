@@ -12,6 +12,12 @@ interface PdfReportData {
   totalArrears: number;
   collectedThisMonth: number;
   units: UnitRow[];
+  /**
+   * Set only inside the public demo. A printed report is the export most
+   * likely to be forwarded or filed, and once it is on paper nothing else in
+   * it says the figures are fictional (spec §28).
+   */
+  demoNotice?: string | null;
 }
 
 export function generateUnitsPdfReport(data: PdfReportData) {
@@ -25,6 +31,7 @@ export function generateUnitsPdfReport(data: PdfReportData) {
     totalArrears,
     collectedThisMonth,
     units,
+    demoNotice,
   } = data;
 
   const dateLabel = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
@@ -302,6 +309,12 @@ export function generateUnitsPdfReport(data: PdfReportData) {
         .join("")}
     </tbody>
   </table>
+
+  ${
+    demoNotice
+      ? `<div style="margin:16px 0;padding:10px 14px;border:1.5px solid #b45309;border-radius:8px;background:#fffbeb;color:#7c2d12;font-weight:700;font-size:12px;text-align:center;">${escapeHtml(demoNotice)}</div>`
+      : ""
+  }
 
   <div class="report-footer">
     <div>${isAr ? `AqarBooks لإدارة الكيانات والأصول العقارية &copy; ${new Date().getFullYear()} AqarBooks` : `AqarBooks &copy; ${new Date().getFullYear()} Real Estate & Asset Management`}</div>

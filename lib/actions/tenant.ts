@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const updateProfileSchema = z.object({
   organizationId: z.string().uuid(),
@@ -38,6 +39,10 @@ export async function updateOrganizationProfile(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateProfileSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
@@ -128,6 +133,10 @@ export async function createResortAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const addressVal = formData.get("address");
   const phoneVal = formData.get("phone");
 
@@ -179,6 +188,10 @@ export async function updateResortAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const addressVal = formData.get("address");
   const phoneVal = formData.get("phone");
 
@@ -224,6 +237,10 @@ export async function deleteResortAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = deleteResortSchema.safeParse({
     resortId: formData.get("resortId"),
   });
@@ -258,6 +275,10 @@ export async function inviteMemberAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = inviteMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     email: formData.get("email"),

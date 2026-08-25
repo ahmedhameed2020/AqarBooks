@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/tax-mapping";
 
@@ -23,6 +24,10 @@ export async function setDueTypeRevenueNature(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = setSchema.safeParse({
     dueTypeId: formData.get("dueTypeId"),
     revenueNature: formData.get("revenueNature"),
@@ -46,6 +51,10 @@ export async function approveDueTypeRevenueNature(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const mappingId = formData.get("mappingId");
   if (typeof mappingId !== "string") return { ok: false, error: "invalid_input" };
 
@@ -63,6 +72,10 @@ export async function revokeDueTypeRevenueNatureApproval(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const mappingId = formData.get("mappingId");
   const reason = (formData.get("reason") as string) || null;
   if (typeof mappingId !== "string") return { ok: false, error: "invalid_input" };

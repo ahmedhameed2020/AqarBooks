@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 // Retiring an owner, and the narrow case where erasing one is actually safe.
 //
@@ -194,6 +195,10 @@ export async function archiveMemberAction(input: {
   memberId: string;
   reason: string;
 }): Promise<LifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = archiveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "reason_required" };
 
@@ -229,6 +234,10 @@ export async function archiveMemberAction(input: {
 }
 
 export async function restoreMemberAction(memberId: string): Promise<LifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (!z.string().uuid().safeParse(memberId).success) return { ok: false, error: "invalid_input" };
 
   const auth = await authorize(memberId);
@@ -261,6 +270,10 @@ export async function restoreMemberAction(memberId: string): Promise<LifecycleRe
  * the dialog's copy is a courtesy, this is the actual gate.
  */
 export async function deleteMemberAction(memberId: string): Promise<LifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (!z.string().uuid().safeParse(memberId).success) return { ok: false, error: "invalid_input" };
 
   const auth = await authorize(memberId);

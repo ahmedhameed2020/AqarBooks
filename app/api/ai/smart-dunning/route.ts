@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { demoAiGate } from "@/lib/demo/ai-gate";
 import { generateSmartDunningDraft, type DunningDraftInput } from "@/lib/ai/smart-dunning";
 
 export async function POST(req: Request) {
@@ -8,6 +9,10 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
+
+    // Public demo policy: allowlist + abuse ceiling. A no-op for real tenants.
+    const demoRefusal = await demoAiGate(req, "smart_dunning");
+    if (demoRefusal) return demoRefusal;
 
     const body = await req.json();
     const input = body?.input as DunningDraftInput;

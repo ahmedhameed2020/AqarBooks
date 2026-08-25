@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/assets";
 
@@ -36,6 +37,10 @@ export async function createFixedAsset(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = assetSchema.safeParse({
     organizationId: formData.get("organizationId"),
     propertyId: (formData.get("propertyId") as string) || undefined,
@@ -83,6 +88,10 @@ export async function runDepreciation(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = runSchema.safeParse({
     organizationId: formData.get("organizationId"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
@@ -118,6 +127,10 @@ export async function disposeAsset(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = disposeSchema.safeParse({
     assetId: formData.get("assetId"),
     disposalDate: formData.get("disposalDate"),

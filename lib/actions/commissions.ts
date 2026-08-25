@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/commissions";
 
@@ -21,6 +22,10 @@ export async function createBroker(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = brokerSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
@@ -68,6 +73,10 @@ export async function accrueCommissionAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = accrueSchema.safeParse({
     organizationId: formData.get("organizationId"),
     brokerId: formData.get("brokerId"),
@@ -114,6 +123,10 @@ export async function payCommissionAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const commissionId = formData.get("commissionId");
   const cashAccountId = formData.get("cashAccountId");
   const paidDate = formData.get("paidDate");
@@ -136,6 +149,10 @@ export async function saveCommissionFinanceSettings(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const organizationId = formData.get("organizationId") as string;
   const expenseAccountId = formData.get("expenseAccountId") as string;
   const payableAccountId = formData.get("payableAccountId") as string;

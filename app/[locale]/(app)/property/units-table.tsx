@@ -23,6 +23,8 @@ import { UnitRowActions } from "./unit-row-actions";
 import { usePropertyNav } from "./property-nav-context";
 import { UnitsTableSkeleton } from "./units-table-skeleton";
 import { buildUnitsCsv, downloadCsv } from "./csv";
+import { useDemoMode } from "@/components/demo/demo-mode-context";
+import { demoExportNotice } from "@/lib/demo/export-notice";
 
 export type UnitRow = Database["public"]["Views"]["units_with_financials"]["Row"];
 
@@ -99,6 +101,13 @@ export function UnitsTable({
   canManage: boolean;
 }) {
   const isAr = locale === "ar";
+
+  // Demo exports carry a label and a filename prefix (spec §28). The flag is
+  // presentation only -- it decides whether a spreadsheet says it is
+  // fictional, and authorises nothing.
+  const isDemo = useDemoMode();
+  const notice = demoExportNotice(isDemo, isAr);
+  const filePrefix = isDemo ? "DEMO-" : "";
   const { isPending, pushParams } = usePropertyNav();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { activeIndex, setActiveIndex, onKeyDown, setRowRef } = useTableRowNavigation(units, (unit) =>
@@ -125,7 +134,7 @@ export function UnitsTable({
 
   function exportSelected() {
     const rows = units.filter((u) => selectedIds.has(u.id));
-    downloadCsv(`units-selected-${Date.now()}.csv`, buildUnitsCsv(rows, isAr));
+    downloadCsv(`${filePrefix}units-selected-${Date.now()}.csv`, buildUnitsCsv(rows, isAr, notice));
   }
 
   return (

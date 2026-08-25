@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const createDueTypeSchema = z.object({
   organizationId: z.string().uuid(),
@@ -17,6 +18,10 @@ export async function createDueTypeAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createDueTypeSchema.safeParse({
     organizationId: formData.get("organizationId"),
     nameAr: formData.get("nameAr"),
@@ -55,6 +60,10 @@ export async function issueDueAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const supabase = await createClient();
   let receivableAccountId = formData.get("receivableAccountId") as string;
   const orgId = formData.get("organizationId") as string;
@@ -138,6 +147,10 @@ export async function recordPaymentAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   let allocationsRaw: unknown = [];
   try {
     const raw = formData.get("allocations");
@@ -197,6 +210,10 @@ export async function issueCreditNoteAction(
   _prevState: ActionResult<{ creditNoteId?: string }>,
   formData: FormData,
 ): Promise<ActionResult<{ creditNoteId?: string }>> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = issueCreditNoteSchema.safeParse({
     dueId: formData.get("dueId"),
     grossAmount: formData.get("grossAmount"),

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { demoAiGate } from "@/lib/demo/ai-gate";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { askAqarBooks } from "@/lib/ai/ask-aqarbooks-engine";
 
@@ -9,6 +10,10 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
+
+    // Public demo policy: allowlist + abuse ceiling. A no-op for real tenants.
+    const demoRefusal = await demoAiGate(req, "ask_aqarbooks");
+    if (demoRefusal) return demoRefusal;
 
     const organization = await getPrimaryOrganization(user.id);
     if (!organization) {

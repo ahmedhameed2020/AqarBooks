@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { demoAiGate } from "@/lib/demo/ai-gate";
 import { createClient } from "@/lib/supabase/server";
 import { proposeJournalEntryDraft } from "@/lib/ai/journal-copilot";
 
@@ -9,6 +10,10 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
+
+    // Public demo policy: allowlist + abuse ceiling. A no-op for real tenants.
+    const demoRefusal = await demoAiGate(req, "journal_copilot");
+    if (demoRefusal) return demoRefusal;
 
     const body = await req.json();
     const rawDescription = body?.description as string;

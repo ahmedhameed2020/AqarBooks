@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const createUnitSchema = z
   .object({
@@ -26,6 +27,10 @@ export async function createUnitAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createUnitSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -72,6 +77,10 @@ export async function createZoneAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const nameAr = String(formData.get("nameAr") || "").trim();
   const nameEn = String(formData.get("nameEn") || "").trim() || nameAr;
 
@@ -109,6 +118,10 @@ export async function createBuildingAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const nameAr = String(formData.get("nameAr") || "").trim();
   const nameEn = String(formData.get("nameEn") || "").trim() || nameAr;
 
@@ -167,6 +180,10 @@ export async function createMemberAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   let phonesRaw: unknown = [];
   try {
     phonesRaw = JSON.parse(String(formData.get("phones") ?? "[]"));
@@ -241,6 +258,10 @@ export async function linkOwnershipAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = linkOwnershipSchema.safeParse({
     organizationId: formData.get("organizationId"),
     unitId: formData.get("unitId"),
@@ -275,6 +296,10 @@ export async function unlinkOwnershipAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = unlinkOwnershipSchema.safeParse({
     organizationId: formData.get("organizationId"),
     unitId: formData.get("unitId"),
@@ -321,6 +346,10 @@ export async function createUnitLeaseAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createUnitLeaseSchema.safeParse({
     organizationId: formData.get("organizationId"),
     unitId: formData.get("unitId"),
@@ -362,6 +391,10 @@ export async function activateUnitLeaseAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = leaseIdSchema.safeParse({ leaseId: formData.get("leaseId") });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -383,6 +416,10 @@ export async function endUnitLeaseAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = endUnitLeaseSchema.safeParse({
     leaseId: formData.get("leaseId"),
     endsOn: formData.get("endsOn"),
@@ -411,6 +448,10 @@ export async function cancelUnitLeaseAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = cancelUnitLeaseSchema.safeParse({
     leaseId: formData.get("leaseId"),
     cancelReason: formData.get("cancelReason") || undefined,
@@ -437,6 +478,10 @@ export async function setUnitLeaseBillingRecipientAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = setBillingRecipientSchema.safeParse({
     leaseId: formData.get("leaseId"),
     billingRecipient: formData.get("billingRecipient"),
@@ -475,6 +520,10 @@ export async function createInstallmentPlanAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createInstallmentPlanSchema.safeParse({
     organizationId: formData.get("organizationId"),
     unitId: formData.get("unitId"),
@@ -517,6 +566,10 @@ export async function cancelInstallmentPlanAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = cancelInstallmentPlanSchema.safeParse({
     planId: formData.get("planId"),
     cancelReason: formData.get("cancelReason"),
@@ -543,6 +596,10 @@ export async function scheduleHandoverAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const unitId = formData.get("unitId");
   const scheduledDate = formData.get("scheduledDate");
   if (typeof unitId !== "string" || typeof scheduledDate !== "string") {
@@ -567,6 +624,10 @@ export async function addHandoverSnagAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const organizationId = formData.get("organizationId");
   const handoverId = formData.get("handoverId");
   const description = formData.get("description");
@@ -597,6 +658,10 @@ export async function resolveHandoverSnagAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const snagId = formData.get("snagId");
   if (typeof snagId !== "string") return { ok: false, error: "invalid_input" };
 
@@ -614,6 +679,10 @@ export async function completeHandoverAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const handoverId = formData.get("handoverId");
   const completedDate = formData.get("completedDate");
   if (typeof handoverId !== "string" || typeof completedDate !== "string") {

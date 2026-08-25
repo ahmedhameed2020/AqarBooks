@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { revalidatePath } from "next/cache";
 import { IMPORT_KINDS, previewImportRows, buildMembersImportRows, buildUnitsImportRows, type ImportKind, type ImportPreviewRow, type MemberImportRow, type UnitImportRow } from "@/lib/import-schemas";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 type ImportActionSuccess = {
   ok: true;
@@ -31,6 +32,10 @@ export async function importPropertyCsvAction(
   _prevState: PropertyImportActionResult,
   formData: FormData,
 ): Promise<PropertyImportActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const kind = String(formData.get("kind") || "");
   if (!IMPORT_KINDS.includes(kind as ImportKind)) {
     return { ok: false, error: "invalid_import_kind" };

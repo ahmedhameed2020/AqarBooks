@@ -8,7 +8,18 @@ function escapeCsvField(value: string): string {
   return value;
 }
 
-export function buildMembersCsv(rows: MemberRow[], isAr: boolean): string {
+/**
+ * Demo labelling (spec §28). A trailing row rather than a leading one: the
+ * header row is what a spreadsheet and any importer key on, and pushing it
+ * down would corrupt the file in order to make it legible. The row is still
+ * visible, and the `DEMO-` filename prefix applied at the download call site
+ * is the marker someone sees before they even open it.
+ */
+export function buildMembersCsv(
+  rows: MemberRow[],
+  isAr: boolean,
+  demoNotice?: string | null,
+): string {
   const headers = isAr
     ? ["الاسم", "البريد", "الهاتف", "عدد الوحدات", "الرصيد الإجمالي", "عليه متأخرات"]
     : ["Name", "Email", "Phone", "Units", "Total balance", "Has arrears"];
@@ -29,6 +40,8 @@ export function buildMembersCsv(rows: MemberRow[], isAr: boolean): string {
   }
   // UTF-8 BOM so Excel opens the file with correct Arabic-text encoding.
   const BOM = "\uFEFF";
+  if (demoNotice) lines.push(escapeCsvField(demoNotice));
+
   return BOM + lines.join("\r\n");
 }
 
@@ -36,7 +49,11 @@ const HEADER_FILL = "FF1E3A8A";
 const HEADER_BORDER = "FFCBD5E1";
 const CELL_BORDER = "FFE2E8F0";
 
-export async function buildMembersXlsxBuffer(rows: MemberRow[], isAr: boolean): Promise<ExcelJS.Buffer> {
+export async function buildMembersXlsxBuffer(
+  rows: MemberRow[],
+  isAr: boolean,
+  demoNotice?: string | null,
+): Promise<ExcelJS.Buffer> {
   const headers = isAr
     ? ["الاسم الكامل", "البريد الإلكتروني", "رقم الهاتف", "عدد الوحدات المملوكة", "الرصيد المالي الإجمالي", "حالة المتأخرات"]
     : ["Full Name", "Email Address", "Phone Number", "Units Owned", "Total Balance", "Arrears Status"];
@@ -81,6 +98,17 @@ export async function buildMembersXlsxBuffer(rows: MemberRow[], isAr: boolean): 
       };
     });
     row.getCell(5).numFmt = "#,##0.00";
+  }
+
+
+  // Appended after the data for the same reason the CSV notice is: it
+  // labels the file without disturbing the header row that row-1 styling
+  // and every importer depend on.
+  if (demoNotice) {
+    const notice = worksheet.addRow([demoNotice]);
+    notice.font = { italic: true, color: { argb: "FF7C2D12" } };
+    notice.alignment = { horizontal: isAr ? "right" : "left" };
+    workbook.creator = "AqarBooks Demo Environment";
   }
 
   return workbook.xlsx.writeBuffer();

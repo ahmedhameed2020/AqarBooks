@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const ACCOUNT_CATEGORIES = ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as const;
 const CASH_FLOW_SECTIONS = ["OPERATING", "INVESTING", "FINANCING"] as const;
@@ -30,6 +31,10 @@ export async function createAccount(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createAccountSchema.safeParse({
     organizationId: formData.get("organizationId"),
     code: formData.get("code"),
@@ -92,6 +97,10 @@ export async function updateAccount(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateAccountSchema.safeParse({
     accountId: formData.get("accountId"),
     nameAr: formData.get("nameAr"),
@@ -154,6 +163,10 @@ export async function cloneCoaTemplateAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const organizationId = formData.get("organizationId");
   const templateKey = formData.get("templateKey");
   if (typeof organizationId !== "string" || typeof templateKey !== "string") {
@@ -182,6 +195,10 @@ export async function createFiscalYearAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createFiscalYearSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
@@ -213,6 +230,10 @@ export async function setFiscalPeriodStatusAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = periodStatusSchema.safeParse({
     fiscalPeriodId: formData.get("fiscalPeriodId"),
     status: formData.get("status"),
@@ -252,6 +273,10 @@ export async function createJournalEntryAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   let linesRaw: unknown;
   try {
     linesRaw = JSON.parse(String(formData.get("lines") ?? "[]"));
@@ -290,6 +315,10 @@ export async function submitForReviewAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const id = formData.get("journalEntryId");
   if (typeof id !== "string") return { ok: false, error: "invalid_input" };
 
@@ -306,6 +335,10 @@ export async function postJournalEntryAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const id = formData.get("journalEntryId");
   if (typeof id !== "string") return { ok: false, error: "invalid_input" };
 
@@ -329,6 +362,10 @@ export async function reverseJournalEntryAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = reverseSchema.safeParse({
     journalEntryId: formData.get("journalEntryId"),
     reversalFiscalPeriodId: formData.get("reversalFiscalPeriodId"),
@@ -367,6 +404,10 @@ export async function saveBudgets(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = saveBudgetsSchema.safeParse({
     organizationId: formData.get("organizationId"),
     fiscalPeriodId: formData.get("fiscalPeriodId"),
@@ -433,6 +474,10 @@ export async function recognizePendingDuesAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const organizationId = formData.get("organizationId");
   const fiscalPeriodId = formData.get("fiscalPeriodId");
   if (typeof organizationId !== "string" || typeof fiscalPeriodId !== "string") {

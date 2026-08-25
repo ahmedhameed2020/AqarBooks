@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const PATH = "/[locale]/finance/projects";
 
@@ -31,6 +32,10 @@ export async function saveProject(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = projectSchema.safeParse({
     organizationId: formData.get("organizationId"),
     code: formData.get("code"),
@@ -76,6 +81,10 @@ export async function capitaliseProjectCost(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = capitaliseSchema.safeParse({
     projectId: formData.get("projectId"),
     amount: formData.get("amount"),
@@ -110,6 +119,10 @@ export async function releaseProjectWip(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = releaseSchema.safeParse({
     projectId: formData.get("projectId"),
     amount: formData.get("amount"),

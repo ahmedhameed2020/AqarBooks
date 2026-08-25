@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const inviteUserSchema = z.object({
   organizationId: z.string().uuid(),
@@ -19,6 +20,10 @@ export async function inviteUserAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const fullNameRaw = formData.get("fullName");
   const parsed = inviteUserSchema.safeParse({
     organizationId: formData.get("organizationId"),
@@ -136,6 +141,10 @@ export async function changeUserRoleAction(
   userId: string,
   newRoleId: string,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = changeRoleSchema.safeParse({ organizationId, userId, newRoleId });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -190,6 +199,10 @@ export async function updateUserStatusAction(
   userId: string,
   status: "active" | "invited" | "suspended",
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateStatusSchema.safeParse({ organizationId, userId, status });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -221,6 +234,10 @@ export async function removeUserAction(
   organizationId: string,
   userId: string,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const currentUser = await getCurrentUser();
   if (!currentUser) return { ok: false, error: "unauthorized" };
 

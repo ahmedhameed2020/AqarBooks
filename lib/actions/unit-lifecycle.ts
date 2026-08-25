@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 // The unit counterpart of member-lifecycle.ts, and it exists for the same
 // reason: units could be created but never retired or removed.
@@ -169,6 +170,10 @@ export async function archiveUnitAction(input: {
   unitId: string;
   reason: string;
 }): Promise<UnitLifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = archiveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "reason_required" };
 
@@ -192,6 +197,10 @@ export async function archiveUnitAction(input: {
 }
 
 export async function restoreUnitAction(unitId: string): Promise<UnitLifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (!z.string().uuid().safeParse(unitId).success) return { ok: false, error: "invalid_input" };
 
   const auth = await authorize(unitId);
@@ -236,6 +245,10 @@ export type UpdateUnitInput = z.input<typeof updateSchema>;
  * inside its own. That constraint is honoured here rather than worked around.
  */
 export async function updateUnitAction(input: UpdateUnitInput): Promise<UnitLifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
   const data = parsed.data;
@@ -342,6 +355,10 @@ export async function getUnitEditContextAction(
 
 /** Permanent removal, allowed only for a unit that nothing references. */
 export async function deleteUnitAction(unitId: string): Promise<UnitLifecycleResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (!z.string().uuid().safeParse(unitId).success) return { ok: false, error: "invalid_input" };
 
   const auth = await authorize(unitId);

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { stripLocalePrefix } from "@/lib/i18n/strip-locale-prefix";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -77,6 +78,10 @@ export async function signUpAction(formData: FormData): Promise<{
   error?: string;
   requiresVerification?: boolean;
 }> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = signUpSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
@@ -126,6 +131,10 @@ export async function requestPasswordResetAction(
   error?: string;
   code?: string;
 }> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = z.string().email("البريد الإلكتروني غير صالح").safeParse(email);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message || "البريد الإلكتروني غير صالح" };
@@ -166,6 +175,10 @@ export async function updatePasswordAction(
   ok: boolean;
   error?: string;
 }> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   if (password !== confirmPassword) {
     return { ok: false, error: "كلمتا المرور غير متطابقتين" };
   }

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const createSupplierSchema = z.object({
   organizationId: z.string().uuid(),
@@ -27,6 +28,10 @@ export async function createSupplierAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createSupplierSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
@@ -80,6 +85,10 @@ export async function createExpenseCategoryAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createExpenseCategorySchema.safeParse({
     organizationId: formData.get("organizationId"),
     nameAr: formData.get("nameAr"),
@@ -112,6 +121,10 @@ export async function createPurchaseRequestAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createRequestSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -143,6 +156,10 @@ export async function decidePurchaseRequestAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = decideRequestSchema.safeParse({
     requestId: formData.get("requestId"),
     approve: formData.get("approve"),
@@ -176,6 +193,10 @@ export async function createPurchaseOrderAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createOrderSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -207,6 +228,10 @@ export async function approvePurchaseOrderAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const id = formData.get("purchaseOrderId");
   if (typeof id !== "string") return { ok: false, error: "invalid_input" };
 
@@ -227,6 +252,10 @@ export async function setPurchaseOrderStatusAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = setOrderStatusSchema.safeParse({
     purchaseOrderId: formData.get("purchaseOrderId"),
     status: formData.get("status"),
@@ -284,6 +313,10 @@ export async function postSupplierInvoiceAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = postInvoiceSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -350,6 +383,10 @@ export async function settleSupplierInvoiceFxAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = settleFxSchema.safeParse({
     invoiceId: formData.get("invoiceId"),
     settlementDate: formData.get("settlementDate"),
@@ -387,6 +424,10 @@ export async function recordSupplierPaymentAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   let allocationsRaw: unknown;
   try {
     allocationsRaw = JSON.parse(String(formData.get("allocations") ?? "[]"));
@@ -441,6 +482,10 @@ export async function recordExpenseAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = recordExpenseSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),

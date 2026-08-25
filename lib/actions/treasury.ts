@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const createCashboxSchema = z.object({
   organizationId: z.string().uuid(),
@@ -17,6 +18,10 @@ export async function createCashboxAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createCashboxSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -49,6 +54,10 @@ export async function openCashierSessionAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = openSessionSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -79,6 +88,10 @@ export async function closeCashierSessionAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = closeSessionSchema.safeParse({
     sessionId: formData.get("sessionId"),
     actualClosingBalance: formData.get("actualClosingBalance"),
@@ -112,6 +125,10 @@ export async function payDueFromCashierAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = payFromSessionSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -174,6 +191,10 @@ export async function createBankAccountAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createBankAccountSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -209,6 +230,10 @@ export async function createBankAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createBankSchema.safeParse({
     organizationId: formData.get("organizationId"),
     nameAr: formData.get("nameAr"),
@@ -243,6 +268,10 @@ export async function recordIncomingChequeAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = recordChequeSchema.safeParse({
     organizationId: formData.get("organizationId"),
     resortId: formData.get("resortId"),
@@ -282,6 +311,10 @@ export async function setChequeStatusAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = setChequeStatusSchema.safeParse({
     chequeId: formData.get("chequeId"),
     status: formData.get("status"),
@@ -313,6 +346,10 @@ export async function clearIncomingChequeAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = clearChequeSchema.safeParse({
     chequeId: formData.get("chequeId"),
     clearingDate: formData.get("clearingDate"),

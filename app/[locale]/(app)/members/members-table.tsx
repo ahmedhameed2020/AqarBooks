@@ -32,6 +32,8 @@ import { MemberRowActions } from "./member-row-actions";
 import { useMembersNav } from "./members-nav-context";
 import { MembersTableSkeleton } from "./members-table-skeleton";
 import { buildMembersCsv, downloadCsv } from "./csv";
+import { useDemoMode } from "@/components/demo/demo-mode-context";
+import { demoExportNotice } from "@/lib/demo/export-notice";
 
 export type MemberRow = Database["public"]["Views"]["members_with_financials"]["Row"];
 
@@ -113,6 +115,13 @@ export function MembersTable({
   canManage: boolean;
 }) {
   const isAr = locale === "ar";
+
+  // Demo exports carry a label and a filename prefix (spec §28). The flag is
+  // presentation only -- it decides whether a spreadsheet says it is
+  // fictional, and authorises nothing.
+  const isDemo = useDemoMode();
+  const notice = demoExportNotice(isDemo, isAr);
+  const filePrefix = isDemo ? "DEMO-" : "";
   const { isPending, pushParams, get } = useMembersNav();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const sort = get("sort");
@@ -142,7 +151,7 @@ export function MembersTable({
 
   function exportSelected() {
     const rows = members.filter((m) => selectedIds.has(m.id));
-    downloadCsv(`members-selected-${Date.now()}.csv`, buildMembersCsv(rows, isAr));
+    downloadCsv(`${filePrefix}members-selected-${Date.now()}.csv`, buildMembersCsv(rows, isAr, notice));
   }
 
   return (

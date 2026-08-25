@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const slugify = (value: string) =>
   value
@@ -31,6 +32,10 @@ export async function createOrganization(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createOrganizationSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug") || undefined,
@@ -68,6 +73,10 @@ export async function setOrganizationStatus(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = statusSchema.safeParse({
     organizationId: formData.get("organizationId"),
     status: formData.get("status"),
@@ -103,6 +112,10 @@ export async function assignSubscription(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = subscriptionSchema.safeParse({
     organizationId: formData.get("organizationId"),
     planKey: formData.get("planKey"),

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const createInvitationSchema = z.object({
   memberId: z.string().uuid(),
@@ -43,6 +44,10 @@ export async function createMemberInvitationAction(
   memberId: string,
   locale: string,
 ): Promise<CreateInvitationResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = createInvitationSchema.safeParse({ memberId, locale });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 

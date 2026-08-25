@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 const updatePermissionsSchema = z.object({
   organizationId: z.string().uuid(),
@@ -19,6 +20,10 @@ export async function updateRolePermissionsAction(
   roleId: string,
   permissionIds: string[],
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updatePermissionsSchema.safeParse({
     organizationId,
     roleId,
@@ -86,6 +91,10 @@ export async function createRoleAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const permIdsRaw = formData.get("permissionIds");
   let permissionIds: string[] = [];
   try {

@@ -18,6 +18,14 @@ const ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
     ar: "حدث خطأ أثناء تحميل البيانات، يرجى المحاولة مرة أخرى.",
     en: "Something went wrong loading this data. Please try again.",
   },
+  // Returned by lib/demo/guard.ts when a mutation is attempted inside the
+  // public demo tenant. Phrased as a property of the environment rather than
+  // as a failure, because nothing went wrong -- the demo is read-only on
+  // purpose, and the next thing this visitor should see is the pricing page.
+  demo_read_only: {
+    ar: "هذه بيئة استعراض للقراءة فقط. لتفعيل التعديل والترحيل المحاسبي، اختر الباقة المناسبة لمنشأتك.",
+    en: "This is a read-only demo environment. To create and post entries, choose the plan that fits your organization.",
+  },
 };
 
 const GENERIC_FALLBACK = {

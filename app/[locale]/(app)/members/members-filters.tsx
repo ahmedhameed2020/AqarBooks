@@ -16,6 +16,8 @@ import { exportMembersCsvAction } from "@/lib/actions/members-export";
 import { useMembersNav } from "./members-nav-context";
 import { buildMembersCsv, buildMembersXlsxBuffer, downloadCsv, downloadXlsxBuffer } from "./csv";
 import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
+import { useDemoMode } from "@/components/demo/demo-mode-context";
+import { demoExportNotice } from "@/lib/demo/export-notice";
 
 const ALL = "__all__";
 
@@ -29,6 +31,13 @@ export function MembersFilters({
   currency?: string;
 }) {
   const isAr = locale === "ar";
+
+  // Demo exports carry a label and a filename prefix (spec §28). The flag is
+  // presentation only -- it decides whether a spreadsheet says it is
+  // fictional, and authorises nothing.
+  const isDemo = useDemoMode();
+  const notice = demoExportNotice(isDemo, isAr);
+  const filePrefix = isDemo ? "DEMO-" : "";
   const { get, pushParams } = useMembersNav();
   const q = get("q");
   const ownership = get("ownership");
@@ -75,7 +84,7 @@ export function MembersFilters({
   async function handleExportExcel() {
     startExport(async () => {
       const rows = await exportMembersCsvAction({ q, ownership, arrears });
-      const buffer = await buildMembersXlsxBuffer(rows, isAr);
+      const buffer = await buildMembersXlsxBuffer(rows, isAr, notice);
       downloadXlsxBuffer(`Members_Owners_${new Date().toISOString().slice(0, 10)}.xlsx`, buffer);
     });
   }

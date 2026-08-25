@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyIfDemo } from "@/lib/demo/guard";
 
 // Editing a member's own record was never built: createMemberAction was the
 // only mutation in the codebase, so an owner's details were write-once. The
@@ -67,6 +68,10 @@ function normalizePhone(raw: string): string {
 }
 
 export async function updateMemberAction(input: UpdateMemberInput): Promise<UpdateMemberResult> {
+  // Refused inside the public demo before anything is touched.
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
   const data = parsed.data;

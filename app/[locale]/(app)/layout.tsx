@@ -12,6 +12,10 @@ import { Toaster } from "@/components/ui/toast";
 import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { isDemoOrganization } from "@/lib/demo/config";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { DemoWalkthrough } from "@/components/demo/demo-walkthrough";
+import { DemoModeProvider } from "@/components/demo/demo-mode-context";
 import { getOperationalAlerts } from "@/lib/alerts/operational-alerts";
 import {
   buildPermissionChecker,
@@ -106,24 +110,24 @@ export default async function AppShellLayout({
               icon: <Building className={ic} />,
             },
             {
-              href: "/property", permission: "property.units.manage",
+              href: "/property", permission: "property.units.view",
               labelAr: "الوحدات السكنية والتجارية",
               labelEn: "Units Management",
               icon: <MapPinned className={ic} />,
               subItems: [
-                { href: "/property", permission: "property.units.manage", labelAr: "كافة الوحدات", labelEn: "All Units" },
+                { href: "/property", permission: "property.units.view", labelAr: "كافة الوحدات", labelEn: "All Units" },
                 { href: "/finance/reports/rent-roll", permission: "property.reports.read", labelAr: "جدول الإيجارات (Rent Roll)", labelEn: "Rent Roll Schedule" },
                 { href: "/finance/reports/lease-expirations", permission: "property.reports.read", labelAr: "جداول انتهاء العقود", labelEn: "Lease Expirations" },
                 { href: "/import", permission: "property.units.manage", labelAr: "استيراد وحدات", labelEn: "Bulk Import" },
               ],
             },
             {
-              href: "/members", permission: "property.members.manage",
+              href: "/members", permission: "property.members.view",
               labelAr: "الأعضاء والملاك",
               labelEn: "Members & Owners",
               icon: <Users className={ic} />,
               subItems: [
-                { href: "/members", permission: "property.members.manage", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
+                { href: "/members", permission: "property.members.view", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
                 { href: "/finance/reports/owner-statement", permission: "property.reports.read", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
               ],
             },
@@ -159,8 +163,8 @@ export default async function AppShellLayout({
               subItems: [
                 { href: "/finance/dues", permission: "finance.dues.read", labelAr: "المطالبات والاستحقاقات", labelEn: "Dues & Invoices" },
                 { href: "/finance/payments", permission: "finance.payments.read", labelAr: "سندات القبض والتحصيل", labelEn: "Receipt Vouchers" },
-                { href: "/finance/service-charges", permission: "finance.service_charges.manage", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
-                { href: "/finance/dunning", permission: "finance.dunning.manage", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
+                { href: "/finance/service-charges", permission: "finance.service_charges.read", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
+                { href: "/finance/dunning", permission: "finance.dunning.read", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
                 { href: "/finance/reports/cam-allocation", permission: "finance.reports.read", labelAr: "توزيع تكاليف الخدمات (CAM)", labelEn: "CAM Allocation" },
                 { href: "/finance/reports/aging", permission: "finance.dues.read", labelAr: "أعمار ديون العملاء (AR)", labelEn: "AR Aging" },
               ],
@@ -175,7 +179,7 @@ export default async function AppShellLayout({
                 { href: "/finance/banks", permission: "banking.accounts.view", labelAr: "الحسابات البنكية", labelEn: "Bank Accounts" },
                 { href: "/finance/reports/pdc", permission: "finance.reports.read", labelAr: "سجل الشيكات الآجلة (PDC)", labelEn: "PDC Register" },
                 { href: "/finance/reports/cash-flow-forecast", permission: "finance.reports.read", labelAr: "توقعات السيولة (90 يوم)", labelEn: "Cash Runway Forecast" },
-                { href: "/finance/banks/reconciliation", permission: "finance.bank_reconciliation.manage", labelAr: "المطابقة والتسوية البنكية", labelEn: "Bank Reconciliation" },
+                { href: "/finance/banks/reconciliation", permission: "finance.bank_reconciliation.read", labelAr: "المطابقة والتسوية البنكية", labelEn: "Bank Reconciliation" },
               ],
             },
             {
@@ -335,9 +339,15 @@ export default async function AppShellLayout({
     isSuperAdmin: platformAdmin,
   };
 
+  // Derived from the organization the SESSION resolves to, never from a cookie
+  // or a query parameter. A visitor cannot put themselves into demo mode, and
+  // -- more importantly -- cannot take themselves out of it to hide the banner.
+  const inDemo = isDemoOrganization(organization?.id);
+
   return (
     <Toaster>
       <div className="flex min-h-full flex-1 flex-col">
+        {inDemo ? <DemoBanner locale={loc} /> : null}
         <SiteHeader locale={loc} alerts={alerts} />
         <div className="flex flex-1 flex-col md:flex-row">
           <AppSidebar
@@ -346,9 +356,14 @@ export default async function AppShellLayout({
             userProfile={userProfile}
             signOutAction={boundSignOut}
           />
-          <main className="flex-1 p-3.5 sm:p-6 md:p-8 min-w-0 max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
+          <main className="flex-1 p-3.5 sm:p-6 md:p-8 min-w-0 max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-[#090D16] transition-colors">
+            {/* Presentation only -- see components/demo/demo-mode-context.tsx.
+                Nothing is authorised on this value. */}
+            <DemoModeProvider isDemo={inDemo}>{children}</DemoModeProvider>
+          </main>
         </div>
         <AskAqarBooksDrawer locale={loc} />
+        {inDemo ? <DemoWalkthrough locale={loc} /> : null}
       </div>
     </Toaster>
   );
