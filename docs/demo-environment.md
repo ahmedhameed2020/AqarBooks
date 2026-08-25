@@ -162,12 +162,12 @@ Nothing here is automated end to end, on purpose: each step is a decision.
    DEMO status would make the demo inoperable and break the RPCs the seed
    depends on.
 
-   **The column does not exist yet.** It is prepared, unapplied, in
-   [`scripts/demo/pending-migration-is-demo.sql`](../scripts/demo/pending-migration-is-demo.sql),
-   with its own apply instructions. Until it is applied the tenant cannot be
-   designated, and the demo organization must not be created — an unmarked
-   organization in the production database is indistinguishable from a paying
-   customer, which is the outcome this whole design exists to avoid.
+The column and its immutability trigger were applied on 2026-08-25 as
+   migration `20260825084639_organizations_is_demo`. `is_demo` cannot be set by
+   a tenant user, including one holding `tenant.settings.manage` — see
+   [`supabase/migrations/20260825084639_organizations_is_demo.sql`](../supabase/migrations/20260825084639_organizations_is_demo.sql).
+   Setting it requires a platform admin, the service role, or a migration
+   context.
 
    Assign **no subscription**. Plans live in a separate `subscriptions` table,
    so an organization with no subscription row is already outside any metric
@@ -209,18 +209,25 @@ Nothing here is automated end to end, on purpose: each step is a decision.
 `scripts/demo/`. Deterministic, idempotent, and refuses to run anywhere but the
 demo tenant.
 
-**Four independent guards**, all of which must pass
+**Five independent guards**, all of which must pass
 (`scripts/demo/demo-guard.ts`):
 
 1. `DEMO_ORGANIZATION_ID` is set and equals the target.
 2. The target organization's slug equals the expected demo slug.
 3. Its name equals `AqarBooks Demo Holdings`.
-4. It holds no membership belonging to anyone but the two demo accounts.
+4. Its `is_demo` flag is true.
+5. It holds no membership belonging to anyone but the two demo accounts.
 
 Guards 2 and 3 exist because guard 1 only protects against the wrong id being
-passed, not against the variable holding a customer's id. Guard 4 is the one
-that would catch a careless re-pointing, because it asks a question about the
-**data** rather than about configuration.
+passed, not against the variable holding a customer's id.
+
+Guard 4 is the strongest, and the only one a tenant cannot influence. Name and
+slug are editable by anyone holding `tenant.settings.manage`, so a customer
+could in principle rename themselves into matching them; `is_demo` is
+platform-controlled. **A target that is not flagged is refused even if its slug
+says `aqarbooks-demo`** — the flag is the designation, the slug is only a label.
+
+Guard 5 asks a question about the **data** rather than about configuration.
 
 **Two verifications, not one.** They answer different questions and both are
 required, in this order:
@@ -365,10 +372,6 @@ Recorded rather than assumed solved.
 
 - **Rate limiting is per-isolate.** See §8. A Cloudflare Rate Limiting binding
   is the durable fix and has not been added.
-- **The `is_demo` marker is not applied.** The seed guard therefore has four
-  checks, not five: it verifies the configured id, the slug, the name and the
-  absence of stranger memberships. The fifth — target must have
-  `is_demo = true` — lands with the migration.
 - **The seed has never been executed.** It typechecks against the generated
   database types — which caught several real schema errors — but no stage has
   run against a database. The dry run exists precisely for this, and must be

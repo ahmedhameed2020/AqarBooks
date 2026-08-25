@@ -5,7 +5,7 @@ import { DEMO_STORY } from "../../lib/demo/story";
 /**
  * The seed's refusal to run anywhere except the designated demo tenant.
  *
- * WHY THERE ARE FOUR CHECKS AND NOT ONE
+ * WHY THERE ARE FIVE CHECKS AND NOT ONE
  * Spec §25 asks for hard safety checks and says explicitly not to rely on an
  * environment variable's name. The reason is concrete: this repository has
  * already had test fixtures reach production and leave 1,954 organizations
@@ -20,14 +20,23 @@ import { DEMO_STORY } from "../../lib/demo/story";
  *   1. DEMO_ORGANIZATION_ID is set, and is the id being targeted.
  *   2. That organization's slug equals the expected demo slug.
  *   3. Its name equals the demo organization's name.
- *   4. It contains no membership belonging to anyone but the demo accounts --
+ *   4. Its `is_demo` flag is true.
+ *   5. It contains no membership belonging to anyone but the demo accounts --
  *      i.e. it is not a tenant with real people in it.
  *
  * Checks 2 and 3 exist because check 1 alone protects only against the wrong
  * id being passed, not against the right variable holding a customer's id.
- * Check 4 is the one that would catch a genuinely malicious or careless
- * re-pointing of the variable, because it asks a question about the DATA
- * rather than about configuration.
+ *
+ * Check 4 is the strongest of the five and the only one a tenant cannot
+ * influence. Name and slug are both editable by anyone holding
+ * `tenant.settings.manage`, so a customer could in principle rename themselves
+ * into matching them. `is_demo` is platform-controlled: migration
+ * 20260825084639 added a trigger that refuses any change to it made by a
+ * tenant user. A target that is not flagged is refused **even if its slug says
+ * `aqarbooks-demo`** -- the flag is the designation, the slug is only a label.
+ *
+ * Check 5 asks a question about the DATA rather than about configuration, and
+ * would catch a careless re-pointing that somehow satisfied the rest.
  */
 
 export type GuardOk = {
@@ -82,7 +91,7 @@ export async function assertSafeDemoTarget(input: GuardInput): Promise<SeedGuard
 
   const { data: org, error } = await admin
     .from("organizations")
-    .select("id, name, slug")
+    .select("id, name, slug, is_demo")
     .eq("id", organizationId)
     .maybeSingle();
 
@@ -108,7 +117,17 @@ export async function assertSafeDemoTarget(input: GuardInput): Promise<SeedGuard
     };
   }
 
-  // 4. The question about the data, not the configuration.
+  // 4. The designation itself. Deliberately checked AFTER name and slug so a
+  //    mismatch there is reported with the more specific message, and
+  //    deliberately not satisfiable by renaming: only the platform can set it.
+  if (org.is_demo !== true) {
+    return {
+      ok: false,
+      reason: `Target organization is not flagged is_demo. Refusing: the slug and name can be edited by any tenant admin, the flag cannot. Designate it first (see docs/demo-environment.md §5).`,
+    };
+  }
+
+  // 5. The question about the data, not the configuration.
   const { data: memberships, error: mErr } = await admin
     .from("organization_memberships")
     .select("user_id")

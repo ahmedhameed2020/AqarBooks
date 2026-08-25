@@ -240,9 +240,6 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
   it.skipIf(!columnExists)("that tenant admin CANNOT set is_demo on their own organization", async () => {
     const { error } = await tenantAdmin!.client
       .from("organizations")
-      // @ts-expect-error -- is_demo is not in the generated types until the
-      // migration lands and they are regenerated. Sending it anyway is the
-      // point: an attacker is not bound by our type definitions.
       .update({ is_demo: true })
       .eq("id", organizationId!);
 
@@ -257,7 +254,7 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
       .select("is_demo")
       .eq("id", organizationId!)
       .maybeSingle();
-    expect((row as unknown as { is_demo: boolean } | null)?.is_demo).toBe(false);
+    expect(row?.is_demo).toBe(false);
   });
 
   it.skipIf(!columnExists)("that tenant admin cannot smuggle is_demo alongside a legitimate change", async () => {
@@ -265,7 +262,6 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
     // be allowed. The trigger fires on the row, not on the statement's intent.
     const { error } = await tenantAdmin!.client
       .from("organizations")
-      // @ts-expect-error -- see above.
       .update({ tagline: "innocuous", is_demo: true })
       .eq("id", organizationId!);
 
@@ -276,7 +272,7 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
       .select("is_demo")
       .eq("id", organizationId!)
       .maybeSingle();
-    expect((row as unknown as { is_demo: boolean } | null)?.is_demo).toBe(false);
+    expect(row?.is_demo).toBe(false);
   });
 
   it.skipIf(!columnExists)("the service role may set it, so provisioning still works", async () => {
@@ -284,7 +280,6 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
     // marked. This is the provisioning path.
     const { error } = await admin!
       .from("organizations")
-      // @ts-expect-error -- see above.
       .update({ is_demo: true })
       .eq("id", organizationId!);
     expect(error, `service role was refused: ${error?.message}`).toBeNull();
@@ -294,13 +289,12 @@ describe.skipIf(!CONFIGURED)("organizations.is_demo immutability", () => {
       .select("is_demo")
       .eq("id", organizationId!)
       .maybeSingle();
-    expect((row as unknown as { is_demo: boolean } | null)?.is_demo).toBe(true);
+    expect(row?.is_demo).toBe(true);
 
     // Put it back: leaving a stray demo-marked organization would occupy the
     // single-demo index and block the real one.
     await admin!
       .from("organizations")
-      // @ts-expect-error -- see above.
       .update({ is_demo: false })
       .eq("id", organizationId!);
   });

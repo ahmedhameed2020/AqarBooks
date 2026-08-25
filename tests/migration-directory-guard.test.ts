@@ -72,6 +72,20 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
  * the repository unable to describe the database. Each filename below is the
  * exact version recorded in that ledger, so the two now agree.
  */
+/*
+ * THIRD AMENDMENT (2026-08-25). Extends the allowlist to ten with
+ * 20260825084639_organizations_is_demo.sql, which adds
+ * organizations.is_demo together with the trigger that makes it
+ * platform-controlled. Same reasoning as the second amendment: the assertion is
+ * not loosened, it is re-pointed at a longer named list, and an eleventh file
+ * or a changed byte in any of these still fails.
+ *
+ * Applied through apply_migration (which writes a ledger row and no file), then
+ * copied here byte-identically -- the digest below was computed before the
+ * apply and re-verified after the copy. supabase/migrations/*.sql is marked
+ * -text in .gitattributes, so the LF endings survive a Windows checkout and the
+ * digest means the same thing on every machine.
+ */
 const MIGRATION_FILES = [
   { file: "20260821105505_baseline.sql", bytes: 956400, sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7" },
   { file: "20260823044325_member_invitation_access_codes.sql", bytes: 11803, sha256: "9f22f46c461ace9ea4ab11929227f2c63ba43eaf1a819196827def58d74555b8" },
@@ -82,6 +96,7 @@ const MIGRATION_FILES = [
   { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182" },
   { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98" },
   { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce" },
+  { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97" },
 ] as const;
 
 /**

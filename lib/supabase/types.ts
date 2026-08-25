@@ -54,6 +54,14 @@ export type Database = {
           updated_at: string;
           created_by: string | null;
           updated_by: string | null;
+          /**
+           * Platform-controlled. Migration 20260825084639 added the column and
+           * a BEFORE INSERT OR UPDATE trigger that refuses any change made by a
+           * tenant user, including one holding tenant.settings.manage. Writing
+           * it succeeds only for a platform admin, the service role, or a
+           * context with no JWT (migration, psql, scheduled job).
+           */
+          is_demo: boolean;
         };
         Insert: {
           id?: string;
@@ -73,6 +81,8 @@ export type Database = {
           logo_url?: string | null;
           commercial_registry?: string | null;
           tagline?: string | null;
+          /** Defaults to false. See the note on Row.is_demo. */
+          is_demo?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
