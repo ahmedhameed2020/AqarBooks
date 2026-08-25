@@ -60,7 +60,12 @@ export default async function PaymentsPage({
 
   // Reading the receipts register says nothing about being allowed to cut a new
   // one, so the record-payment control asks for the create key on its own.
-  const canRecordPayment = await hasPermission(organization.id, "finance.payments.create");
+  // record_payment enforces `receivables.payments.create`, NOT
+  // `finance.payments.create`. Both keys exist and are currently granted to the
+  // same six role templates, so today the two are behaviourally identical --
+  // but gating the button on the key the RPC does not check would silently
+  // become wrong the moment those grants diverge. Match the enforcement point.
+  const canRecordPayment = await hasPermission(organization.id, "receivables.payments.create");
 
   const supabase = await createClient();
   const { data: resort } = await supabase

@@ -383,7 +383,12 @@ export default async function SuppliersPage({
                     {inv.base_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} {currency}
                   </span>
                 </div>
-                <SettleFxForm invoice={inv} baseCurrencyLabel={currency} locale={locale} />
+                {/* settle_supplier_invoice_fx_difference enforces
+                    finance.entries.create, so a read-only viewer sees the
+                    outstanding FX position but not the form to post it. */}
+                {canPostEntries && (
+                  <SettleFxForm invoice={inv} baseCurrencyLabel={currency} locale={locale} />
+                )}
               </div>
             ))}
           </div>
