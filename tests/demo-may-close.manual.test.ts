@@ -28,7 +28,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
-import { verifyF3, mayCompleteness, MAY_PERIOD } from "../scripts/demo/apply-f3-may-collections";
+import { verifyF3, mayCompleteness, MAY_PERIOD } from "../scripts/demo/apply-collections";
 import { setPeriodStatus } from "../scripts/demo/apply-f2-q2-rent";
 
 loadEnv({ path: ".env.local" });

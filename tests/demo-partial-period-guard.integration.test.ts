@@ -263,6 +263,17 @@ describe.skipIf(!CONFIGURED)("partial-period rent guard", () => {
     expect(sum(may), "the May total changed").toBe(481_200);
     expect(q2.length, "Q2 due count changed").toBe(15);
     expect(sum(q2), "the Q2 total changed").toBe(599_150);
-    expect((dues ?? []).length, "a due appeared outside May and Q2").toBe(41);
+
+    // NOT a grand total. The book grows every month the narrative advances, and
+    // pinning the total here would fail on each new month for no reason -- it
+    // did exactly that when June was billed. What this file is entitled to
+    // assert is that IT disturbed nothing, so it checks the two slices it
+    // probed against plus a property that holds no matter how many months
+    // accrue: rent is issued on the first of a period, never mid-month.
+    const offCycle = (dues ?? []).filter((d) => !d.issue_date.endsWith("-01"));
+    expect(
+      offCycle.map((d) => d.issue_date),
+      "a due is issued mid-period; the rent path does not do that",
+    ).toEqual([]);
   });
 });

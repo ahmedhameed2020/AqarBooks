@@ -27,7 +27,7 @@ import {
   MAY_PERIOD,
   MAY_FIRST,
   MAY_LAST,
-} from "../scripts/demo/apply-f3-may-collections";
+} from "../scripts/demo/apply-collections";
 import { setPeriodStatus } from "../scripts/demo/apply-f2-q2-rent";
 
 loadEnv({ path: ".env.local" });

@@ -144,11 +144,14 @@ describe.skipIf(!CONFIGURED)("2026-Q2 quarterly rent semantics", () => {
     const inQ2 = (dues ?? []).filter(
       (d) => d.issue_date >= "2026-04-01" && d.issue_date <= "2026-06-30",
     );
-    const issueDates = [...new Set(inQ2.map((d) => d.issue_date))].sort();
-    expect(issueDates, "a Q2-dated due exists on a date F2 did not use").toEqual([
-      "2026-04-01",
-      "2026-05-01",
-    ]);
+
+    // Every issue date inside the quarter must be the first of a month: the
+    // quarterly run uses 2026-04-01 and the monthly runs use their own month
+    // starts. Listing the dates exactly was too tight -- it named April and May
+    // and then failed the moment June was billed, which is the narrative
+    // advancing rather than anything going wrong here.
+    const offCycle = [...new Set(inQ2.map((d) => d.issue_date))].filter((d) => !d.endsWith("-01"));
+    expect(offCycle, "a due inside Q2 is issued mid-month").toEqual([]);
 
     const q2Rent = inQ2.filter((d) => d.issue_date === "2026-04-01");
     expect(q2Rent.length, "the Q2 due count is not F2's").toBe(15);
