@@ -126,11 +126,11 @@ export default async function PropertyPage({
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
         <p className="max-w-md text-sm text-muted-foreground">
           {isAr ? "حسابك غير مرتبط بأي منظمة بعد." : "Your account isn't linked to an organization yet."}
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -145,11 +145,11 @@ export default async function PropertyPage({
 
   if (!resorts?.length) {
     return (
-      <main className="p-6">
+      <div className="p-6">
         <p className="text-sm text-muted-foreground">
           {isAr ? "أنشئ منتجعًا أولًا من إدارة المنظمة." : "Create a resort first from Organization Admin."}
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -216,7 +216,7 @@ export default async function PropertyPage({
 
   return (
     <PropertyNavProvider>
-      <main className="space-y-6 p-6">
+      <div className="space-y-6 p-6">
         {/* Executive Hero Banner Header */}
         <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -345,7 +345,7 @@ export default async function PropertyPage({
             <UnitsPagination page={page} totalPages={totalPages} totalCount={count ?? 0} locale={locale} />
           </>
         )}
-      </main>
+      </div>
 
       <UnitDrawer data={drawerData} locale={locale} currency={currency} />
     </PropertyNavProvider>

@@ -42,11 +42,11 @@ export default async function ImportPage({
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
         <p className="max-w-md text-sm text-muted-foreground">
           {isAr ? "حسابك غير مرتبط بأي منظمة بعد." : "Your account isn't linked to an organization yet."}
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -82,7 +82,7 @@ export default async function ImportPage({
     : [{ data: [] }, { data: [] }, { data: [] }];
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <ImportWizard
         locale={locale}
         organizationId={organization.id}
@@ -92,6 +92,6 @@ export default async function ImportPage({
         zones={(zonesResult.data as any) ?? []}
         members={membersResult.data ?? []}
       />
-    </main>
+    </div>
   );
 }

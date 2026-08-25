@@ -40,11 +40,11 @@ export default async function NotificationsPage({
   const organization = await getPrimaryOrganization(user!.id);
   if (!organization) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center py-20">
         <p className="max-w-md text-sm text-muted-foreground">
           {isAr ? "حسابك غير مرتبط بأي منظمة بعد." : "Your account isn't linked to an organization yet."}
         </p>
-      </main>
+      </div>
     );
   }
 

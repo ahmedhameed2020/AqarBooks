@@ -170,7 +170,7 @@ export default async function UnitDetailPage({
     : null;
 
   return (
-    <main className="space-y-6 p-6">
+    <div className="space-y-6 p-6">
       <UnitHeader
         unit={unit}
         locale={locale}
@@ -234,6 +234,6 @@ export default async function UnitDetailPage({
         installments={<TabInstallments organizationId={organization.id} unitId={unitId} locale={locale} currency={currency} />}
         activity={<TabActivity events={activity} locale={locale} currency={currency} />}
       />
-    </main>
+    </div>
   );
 }

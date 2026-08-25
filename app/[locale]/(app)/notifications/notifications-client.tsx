@@ -155,7 +155,7 @@ export function NotificationsClient({
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -508,6 +508,6 @@ export function NotificationsClient({
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

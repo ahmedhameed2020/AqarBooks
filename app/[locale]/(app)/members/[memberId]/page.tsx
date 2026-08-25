@@ -176,7 +176,7 @@ export default async function MemberDetailPage({
   const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 
   return (
-    <main className="space-y-6 p-6">
+    <div className="space-y-6 p-6">
       {/* Back link */}
       <div>
         <Link
@@ -569,6 +569,6 @@ export default async function MemberDetailPage({
           }}
         />
       </div>
-    </main>
+    </div>
   );
 }
