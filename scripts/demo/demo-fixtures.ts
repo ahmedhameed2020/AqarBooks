@@ -347,14 +347,6 @@ function proportionalSplit(sizes: number[], total: number): number[] {
   return floors;
 }
 
-/** A stable shuffle: same input, same order, on every machine and every run. */
-function deterministicOrder<T>(items: T[], seed: string): T[] {
-  const rng = makeRng(hashString(seed));
-  return items
-    .map((item) => ({ item, key: rng() }))
-    .sort((a, b) => a.key - b.key)
-    .map(({ item }) => item);
-}
 
 /**
  * One member per occupied unit, plus a handful of multi-unit owners, because a
