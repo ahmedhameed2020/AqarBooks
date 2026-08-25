@@ -9,6 +9,7 @@ import { JournalPrintButton } from "./print-button";
 import { getCurrencyLabel } from "@/lib/currency";
 import { FileText, ArrowRight, ArrowLeft, Calendar, Layers, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -38,6 +39,15 @@ export default async function JournalEntryDetailPage({
   // entry actually belongs to.
   const denied = await denyIfMissingPermission(entry.organization_id, "finance.accounts.view", locale);
   if (denied) return denied;
+
+  // Submit, post and reverse are three separate keys in the database -- a reviewer
+  // is not a poster -- so each action is asked for on its own and against the
+  // entry's own organization, same as the read check above.
+  const [canReview, canPost, canReverse] = await Promise.all([
+    hasPermission(entry.organization_id, "finance.entries.review"),
+    hasPermission(entry.organization_id, "finance.entries.post"),
+    hasPermission(entry.organization_id, "finance.entries.reverse"),
+  ]);
 
   const [
     { data: org },
@@ -228,6 +238,9 @@ export default async function JournalEntryDetailPage({
         journalEntryId={entry.id}
         status={entry.status}
         openPeriods={openPeriods ?? []}
+        canReview={canReview}
+        canPost={canPost}
+        canReverse={canReverse}
         locale={locale}
       />
     </div>

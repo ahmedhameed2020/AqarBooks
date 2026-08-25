@@ -22,11 +22,17 @@ export function EntryActions({
   journalEntryId,
   status,
   openPeriods,
+  canReview = false,
+  canPost = false,
+  canReverse = false,
   locale,
 }: {
   journalEntryId: string;
   status: string;
   openPeriods: { id: string; name: string }[];
+  canReview?: boolean;
+  canPost?: boolean;
+  canReverse?: boolean;
   locale: string;
 }) {
   const isAr = locale === "ar";
@@ -48,7 +54,7 @@ export function EntryActions({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {status === "DRAFT" && (
+        {canReview && status === "DRAFT" && (
           <form action={submitAction}>
             <input type="hidden" name="journalEntryId" value={journalEntryId} />
             <Button type="submit" variant="outline" disabled={submitPending}>
@@ -56,7 +62,7 @@ export function EntryActions({
             </Button>
           </form>
         )}
-        {(status === "DRAFT" || status === "UNDER_REVIEW") && (
+        {canPost && (status === "DRAFT" || status === "UNDER_REVIEW") && (
           <form action={postAction}>
             <input type="hidden" name="journalEntryId" value={journalEntryId} />
             <Button type="submit" disabled={postPending}>
@@ -64,7 +70,7 @@ export function EntryActions({
             </Button>
           </form>
         )}
-        {status === "POSTED" && (
+        {canReverse && status === "POSTED" && (
           <Button type="button" variant="destructive" onClick={() => setShowReverse((s) => !s)}>
             {isAr ? "عكس القيد" : "Reverse entry"}
           </Button>
