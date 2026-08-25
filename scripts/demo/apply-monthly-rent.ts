@@ -327,11 +327,18 @@ export async function verifyMonthlyRent(
   detail.push(...problems.slice(0, 10).map((p) => `    ${p}`));
 
   const entryIds = rentDues.map((d) => d.journal_entry_id).filter(Boolean) as string[];
-  const { data: jLines } = await admin
+  const entrySet = new Set(entryIds);
+  // Read by join, then narrowed in memory. An `.in(...)` over every rent entry
+  // outgrows the URL PostgREST accepts once the book has a few hundred of them,
+  // and the empty result it returns would make the balance checks below pass on
+  // nothing.
+  const { data: joinedLines, error: linesError } = await admin
     .from("journal_entry_lines")
-    .select("journal_entry_id, account_id, debit, credit")
-    .in("journal_entry_id", entryIds.length > 0 ? entryIds : ["00000000-0000-0000-0000-000000000000"])
-    .range(0, 9999);
+    .select("journal_entry_id, account_id, debit, credit, journal_entries!inner(organization_id)")
+    .eq("journal_entries.organization_id", organizationId)
+    .range(0, 49999);
+  if (linesError) throw new Error(`journal_entry_lines read failed: ${linesError.message}`);
+  const jLines = (joinedLines ?? []).filter((l) => entrySet.has(l.journal_entry_id));
 
   const receivable = idByCode.get("1130");
   const rental = idByCode.get("4400");
@@ -339,7 +346,7 @@ export async function verifyMonthlyRent(
   let creditTotal = 0;
   const wrongAccount: string[] = [];
   const perEntry = new Map<string, { dr: number; cr: number }>();
-  for (const line of jLines ?? []) {
+  for (const line of jLines) {
     const dr = Number(line.debit ?? 0);
     const cr = Number(line.credit ?? 0);
     debitTotal += dr;
@@ -367,6 +374,7 @@ export async function verifyMonthlyRent(
   );
   add("posted rent journal entries", expected.totalCount, entryIds.length);
   add("rent debits = rent credits", debitTotal.toFixed(2), creditTotal.toFixed(2));
+  add("rent journal lines read", true, jLines.length > 0);
 
   const lines = [`${month} RENT VERIFICATION (read from the ledger)`, "-".repeat(72)];
   for (const c of checks) {

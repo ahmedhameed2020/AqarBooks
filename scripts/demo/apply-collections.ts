@@ -87,8 +87,10 @@ export type LedgerDue = {
   amount: number;
   dueDate: string;
   unitCode: string;
-  /** The stable lease key, so a receipt ordinal can be built without string surgery. */
+  /** The stable payer key, so a receipt ordinal can be built without string surgery. */
   leaseKey: string;
+  /** RENT or CAM, for reporting. Both settle the same way. */
+  kind: "RENT" | "CAM";
 };
 
 export type CollectionOutcome = {
@@ -123,6 +125,10 @@ export type CollectionReport = {
   clamped: number;
   /** Receipts against a due that already carried one. */
   topUps: number;
+  /** Receipts settling a service-charge due rather than rent. */
+  camReceipts: number;
+  /** CASH receipts that went through a cashier session. */
+  throughSession: number;
   results: CollectionOutcome[];
   plannedTotal: number;
   failure?: string;
@@ -139,6 +145,21 @@ export type F3Options = {
 export type CollectionOptions = F3Options & {
   /** The open month the receipts are posted into, `YYYY-MM`. */
   month: string;
+  /**
+   * Open cashier session per property id, for CASH receipts.
+   *
+   * `record_payment` writes a `cash_transaction` only when a session is passed
+   * AT RECORDING TIME -- there is no way to attach one afterwards. So a CASH
+   * receipt either goes through its property's session on the way in, or it
+   * never has till lineage at all.
+   *
+   * Absent for a property, CASH still posts to 1110 with a null session, which
+   * is what May through July did and is recorded as a deferral rather than
+   * hidden. Pass `requireCashierSession` to turn that into a refusal.
+   */
+  cashierSessionByProperty?: Map<string, string>;
+  /** Refuse to post a CASH receipt that has no session to go through. */
+  requireCashierSession?: boolean;
 };
 
 type UntypedRpc = {
@@ -226,39 +247,88 @@ export async function buildCollectionPlan(
     .order("id")
     .range(0, 4999);
 
+  // CAM dues carry no source_type -- issue_service_charge_levy inserts them
+  // without one -- so they are recognised through the allocation that created
+  // them rather than by guessing from the due_type.
+  const { data: camAllocations } = await admin
+    .from("service_charge_allocations")
+    .select("due_id, levy_id")
+    .eq("organization_id", organizationId)
+    .range(0, 9999);
+  const { data: levies } = await admin
+    .from("service_charge_levies")
+    .select("id, period_start")
+    .eq("organization_id", organizationId)
+    .range(0, 999);
+  const levyPeriod = new Map((levies ?? []).map((l) => [l.id, l.period_start.slice(0, 7)]));
+  const camPeriodByDue = new Map<string, string>();
+  for (const a of camAllocations ?? []) {
+    if (a.due_id) camPeriodByDue.set(a.due_id, levyPeriod.get(a.levy_id) ?? "unknown");
+  }
+
+  // A unit with no ACTIVE lease is billed CAM as its OWNER. The payer key has
+  // to be stable and distinct from any lease key, so the owner's behaviour is
+  // its own and does not borrow a tenant's.
+  const { data: ownerships } = await admin
+    .from("unit_ownerships")
+    .select("unit_id, member_id, end_date")
+    .eq("organization_id", organizationId)
+    .range(0, 9999);
+  const ownerByUnit = new Map<string, string>();
+  for (const o of ownerships ?? []) {
+    if (o.end_date === null || o.end_date >= "2026-08-31") ownerByUnit.set(o.unit_id, o.member_id);
+  }
+  const leaseByUnit = new Map((leases ?? []).map((l) => [l.unit_id, l]));
+
   const plannedDues: PlannedDue[] = [];
   const dueByKey = new Map<string, LedgerDue>();
 
   for (const due of dues ?? []) {
-    if (due.source_type !== "LEASE_RENT" || !due.source_id) continue;
-    const lease = leaseById.get(due.source_id);
     const unit = unitById.get(due.unit_id ?? "");
-    if (!lease || !unit) continue;
+    if (!unit) continue;
+    const code = propertyCode.get(unit.property_id) ?? unit.property_id;
 
-    const leaseKey = leaseBusinessKey({
-      propertyCode: propertyCode.get(unit.property_id) ?? unit.property_id,
-      unitCode: unit.code,
-      startsOn: lease.starts_on,
-      rentFrequency: lease.rent_frequency,
-    });
+    const isRent = due.source_type === "LEASE_RENT" && Boolean(due.source_id);
+    const camPeriod = camPeriodByDue.get(due.id);
+    if (!isRent && !camPeriod) continue;
+
+    const lease = isRent ? leaseById.get(due.source_id!) : leaseByUnit.get(due.unit_id ?? "");
+    if (isRent && !lease) continue;
+
+    // The payer key. A CAM due on a leased unit belongs to that lease's payer,
+    // so the tenant who pays rent promptly pays CAM promptly too -- one
+    // behaviour per payer, not one per charge type. A CAM due on an
+    // owner-occupied unit gets its own key.
+    const leaseKey = lease
+      ? leaseBusinessKey({
+          propertyCode: code,
+          unitCode: unit.code,
+          startsOn: lease.starts_on,
+          rentFrequency: lease.rent_frequency,
+        })
+      : `owner:${code}:${unit.code}`;
+
+    const memberId = lease?.tenant_member_id ?? ownerByUnit.get(due.unit_id ?? "") ?? null;
+    if (!memberId) continue;
 
     // The period key the due belongs to, derived from its own issue date and
     // its lease's frequency -- the same two facts generate_lease_rent_dues used.
-    const periodKey =
-      lease.rent_frequency === "MONTHLY"
+    const periodKey = !isRent
+      ? `CAM:${camPeriod}`
+      : lease!.rent_frequency === "MONTHLY"
         ? due.issue_date.slice(0, 7)
-        : lease.rent_frequency === "QUARTERLY"
+        : lease!.rent_frequency === "QUARTERLY"
           ? `${due.issue_date.slice(0, 4)}-Q${Math.floor((Number(due.issue_date.slice(5, 7)) - 1) / 3) + 1}`
           : due.issue_date.slice(0, 4);
 
     plannedDues.push({
-      kind: "RENT",
-      leaseId: lease.id,
+      kind: isRent ? "RENT" : "CAM",
+      leaseId: lease?.id,
       leaseKey,
       unitId: due.unit_id!,
       unitCode: unit.code,
       propertyId: due.property_id,
-      memberId: lease.tenant_member_id,
+      memberId,
       periodKey,
       amount: Number(due.amount),
       issueDate: due.issue_date,
@@ -276,11 +346,12 @@ export async function buildCollectionPlan(
       id: due.id,
       propertyId: due.property_id,
       unitId: due.unit_id!,
-      memberId: lease.tenant_member_id,
+      memberId,
       amount: Number(due.amount),
       dueDate: due.due_date,
       unitCode: unit.code,
       leaseKey,
+      kind: isRent ? "RENT" : "CAM",
     });
   }
 
@@ -330,6 +401,8 @@ export async function applyCollections(options: CollectionOptions): Promise<Coll
     deferred: 0,
     clamped: 0,
     topUps: 0,
+    camReceipts: 0,
+    throughSession: 0,
     results: [],
     plannedTotal: 0,
   };
@@ -441,6 +514,7 @@ export async function applyCollections(options: CollectionOptions): Promise<Coll
 
       if (ordinal > 1) report.topUps++;
       if (clamped) report.clamped++;
+      if (due.kind === "CAM") report.camReceipts++;
       report.planned++;
       report.plannedTotal = round2(report.plannedTotal + shortfall);
 
@@ -471,6 +545,16 @@ export async function applyCollections(options: CollectionOptions): Promise<Coll
     for (const [i, item] of work.entries()) {
       const result = report.results[i];
       const depositCode = DEPOSIT_ACCOUNT_BY_METHOD[item.payment.method];
+      const session =
+        item.payment.method === "CASH"
+          ? (options.cashierSessionByProperty?.get(item.due.propertyId) ?? null)
+          : null;
+      if (item.payment.method === "CASH" && !session && options.requireCashierSession) {
+        report.failure =
+          `${item.payment.unitCode}: a CASH receipt has no open cashier session for its ` +
+          "property, and a session cannot be attached after the fact. Refusing to post it.";
+        return report;
+      }
 
       const { data, error } = await (owner as unknown as UntypedRpc).rpc("record_payment", {
         p_organization_id: organizationId,
@@ -484,9 +568,7 @@ export async function applyCollections(options: CollectionOptions): Promise<Coll
         p_fiscal_period_id: period.id,
         p_allocations: [{ due_id: item.due.id, amount: item.amount }],
         p_idempotency_key: financialIdempotencyKey(item.key),
-        // No cashier session. The tenant has none, and attaching one to a
-        // receipt it could not reference would be decoration, not lineage.
-        p_cashier_session_id: null,
+        p_cashier_session_id: session,
       });
 
       if (error) {
@@ -498,7 +580,8 @@ export async function applyCollections(options: CollectionOptions): Promise<Coll
       }
 
       result.paymentId = (data as string) ?? null;
-      result.outcome = "posted";
+      result.outcome = session ? "posted (through cashier session)" : "posted";
+      if (session) report.throughSession++;
       report.posted++;
     }
 
@@ -518,6 +601,40 @@ export async function applyF3MayCollections(options: F3Options): Promise<Collect
 // ---------------------------------------------------------------------------
 // Verification
 // ---------------------------------------------------------------------------
+
+/**
+ * Every journal line in this tenant, without an id list.
+ *
+ * `journal_entry_lines` carries no organization_id, so the obvious scoping is
+ * `.in("journal_entry_id", [...])`. That works until the tenant has a few
+ * hundred entries, at which point the generated URL exceeds what PostgREST
+ * accepts and the request comes back EMPTY -- and an empty set makes
+ * "debits = credits" pass, because 0 equals 0.
+ *
+ * It failed exactly that way at 423 entries: the AR control read 0.00 against a
+ * subledger of 760,402.89, and the trial balance passed on nothing at all. The
+ * FAIL was luck; the vacuous PASS beside it is what the shape of this bug
+ * actually produces.
+ *
+ * An inner join filters server-side with no id list to send, so it does not
+ * scale with the number of entries.
+ */
+async function tenantJournalLines(
+  admin: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<Array<{ account_id: string; debit: number; credit: number }>> {
+  const { data, error } = await admin
+    .from("journal_entry_lines")
+    .select("account_id, debit, credit, journal_entries!inner(organization_id)")
+    .eq("journal_entries.organization_id", organizationId)
+    .range(0, 49999);
+  if (error) throw new Error(`journal_entry_lines read failed: ${error.message}`);
+  return (data ?? []).map((l) => ({
+    account_id: l.account_id,
+    debit: Number(l.debit ?? 0),
+    credit: Number(l.credit ?? 0),
+  }));
+}
 
 export type Check = { label: string; expected: string; actual: string; pass: boolean };
 export type F3Verification = {
@@ -686,17 +803,11 @@ export async function verifyF3(
   add("closing AR = opening - collected", (expected.openingAr - collected).toFixed(2), subledgerAr.toFixed(2));
 
   // ---- AR control account, from the ledger itself -------------------------
-  // account_id is already tenant-specific, but scoped to this tenant's entries
-  // as well so the two ledger reads in this function mean the same thing.
-  const { data: arLines } = await admin
-    .from("journal_entry_lines")
-    .select("debit, credit, account_id")
-    .eq("account_id", receivableId ?? "00000000-0000-0000-0000-000000000000")
-    .in("journal_entry_id", (entries ?? []).map((e) => e.id).length > 0 ? (entries ?? []).map((e) => e.id) : ["00000000-0000-0000-0000-000000000000"])
-    .range(0, 9999);
-  const arControl =
-    (arLines ?? []).reduce((s, l) => s + Number(l.debit ?? 0), 0) -
-    (arLines ?? []).reduce((s, l) => s + Number(l.credit ?? 0), 0);
+  const tenantLines = await tenantJournalLines(admin, organizationId);
+  const arLines = tenantLines.filter((l) => l.account_id === receivableId);
+  const arControl = round2(
+    arLines.reduce((s, l) => s + l.debit, 0) - arLines.reduce((s, l) => s + l.credit, 0),
+  );
   add("AR control = AR subledger", subledgerAr.toFixed(2), arControl.toFixed(2));
 
   // ---- trial balance, SCOPED TO THIS TENANT -------------------------------
@@ -710,16 +821,12 @@ export async function verifyF3(
   // A cross-tenant total is not a weaker check, it is a different one, and it
   // would have been just as wrong in the other direction -- two foreign
   // imbalances cancelling would have hidden a real one here.
-  const orgEntryIds = (entries ?? []).map((e) => e.id);
-  const { data: allLines } = await admin
-    .from("journal_entry_lines")
-    .select("debit, credit")
-    .in("journal_entry_id", orgEntryIds.length > 0 ? orgEntryIds : ["00000000-0000-0000-0000-000000000000"])
-    .range(0, 9999);
-  const tbDebit = (allLines ?? []).reduce((s, l) => s + Number(l.debit ?? 0), 0);
-  const tbCredit = (allLines ?? []).reduce((s, l) => s + Number(l.credit ?? 0), 0);
+  const tbDebit = tenantLines.reduce((s, l) => s + l.debit, 0);
+  const tbCredit = tenantLines.reduce((s, l) => s + l.credit, 0);
   add("trial balance delta", "0.00", (tbDebit - tbCredit).toFixed(2));
-  const scopeNote = `  scope: ${(allLines ?? []).length} lines across ${orgEntryIds.length} entries in this tenant`;
+  // Anti-vacuity: an empty read makes every sum above agree with itself.
+  add("journal lines read", true, tenantLines.length > 0);
+  const scopeNote = `  scope: ${tenantLines.length} lines across ${(entries ?? []).length} entries in this tenant`;
 
   const lines = ["F3 VERIFICATION (read from the ledger)", "-".repeat(72)];
   for (const c of checks) {
@@ -733,7 +840,11 @@ export async function verifyF3(
   const pass = checks.every((c) => c.pass);
   lines.push("", `COLLECTIONS   ${pass ? "PASS" : "FAIL"}`);
 
-  return { pass, checks, text: lines.join("\n"), closingAr: subledgerAr };
+  // Rounded, unlike the raw subtraction. Every check above compares through
+  // toFixed(2) so none of them noticed, but a caller doing arithmetic with the
+  // returned value gets 760402.8899999997 and an equality test against it fails
+  // on a book that balances exactly.
+  return { pass, checks, text: lines.join("\n"), closingAr: round2(subledgerAr) };
 }
 
 /**
