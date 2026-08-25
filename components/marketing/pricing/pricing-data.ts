@@ -1,35 +1,43 @@
 import type { Locale } from "@/i18n/routing";
 
-/* ── Authoritative commercial figures ──────────────────────────────────────
-   Founding Program, first 10 paying real-estate entities. Every derived
-   number below is COMPUTED from these four base values rather than typed a
-   second time, so the page can never drift into showing an annual saving
-   that does not follow from its own monthly and annual prices.            */
+/* ── Authoritative Commercial Pricing Constants ───────────────────────────────
+   Essential:
+     Monthly: 1,490 EGP
+     Annual:  14,280 EGP (1,190 EGP/mo equivalent)
+     Saving:   3,600 EGP/year (1,490 * 12 - 14,280 = 3,600)
+     Badge:   Save 20%
 
-export const MONTHLY_EGP = 3_490;
-export const ANNUAL_EGP = 35_880;
-export const ONBOARDING_EGP = 2_900;
-export const FUTURE_ANCHOR_EGP = 4_990;
+   Professional (Founding Customer Program):
+     Monthly: 3,490 EGP
+     Annual:  33,480 EGP (2,790 EGP/mo equivalent)
+     Saving:   8,400 EGP/year (3,490 * 12 - 33,480 = 8,400)
+     Badge:   Save 20%
 
-export const UNITS_CAPACITY = 500;
-export const USERS_CAPACITY = 10;
+   Enterprise:
+     Tailored annual contract & custom operating scale                        */
 
-/** 35,880 / 12 = 2,990 */
-export const ANNUAL_MONTHLY_EQUIVALENT_EGP = ANNUAL_EGP / 12;
-/** 3,490 x 12 = 41,880 */
-export const MONTHLY_ANNUALIZED_EGP = MONTHLY_EGP * 12;
-/** 41,880 - 35,880 = 6,000 */
-export const ANNUAL_SAVING_EGP = MONTHLY_ANNUALIZED_EGP - ANNUAL_EGP;
+// Essential Tier
+export const ESSENTIAL_MONTHLY_EGP = 1_490;
+export const ESSENTIAL_ANNUAL_MONTHLY_EGP = 1_190;
+export const ESSENTIAL_ANNUAL_TOTAL_EGP = 14_280;
+export const ESSENTIAL_ANNUAL_SAVING_EGP = (ESSENTIAL_MONTHLY_EGP * 12) - ESSENTIAL_ANNUAL_TOTAL_EGP; // 3,600 EGP
+export const ESSENTIAL_UNITS_CAPACITY = 100;
+export const ESSENTIAL_USERS_CAPACITY = 3;
 
-/* ── Founding availability ─────────────────────────────────────────────────
-   The remaining-slots badge renders ONLY when `FOUNDING_SLOTS_REMAINING` is
-   configured on the server with an integer in [1, 10]. A "founding customer"
-   means paid and activated -- never a lead, demo, trial or verbal
-   commitment -- so nothing in this repo can derive the number on its own.
-   No env var, no badge. It is read server-side (not NEXT_PUBLIC_) so the
-   value is never bundled into client JS.                                  */
+// Professional Tier (Flagship Launch / Founding Cohort)
+export const PROFESSIONAL_MONTHLY_EGP = 3_490;
+export const PROFESSIONAL_ANNUAL_MONTHLY_EGP = 2_790;
+export const PROFESSIONAL_ANNUAL_TOTAL_EGP = 33_480;
+export const PROFESSIONAL_ANNUAL_SAVING_EGP = (PROFESSIONAL_MONTHLY_EGP * 12) - PROFESSIONAL_ANNUAL_TOTAL_EGP; // 8,400 EGP
+export const PROFESSIONAL_UNITS_CAPACITY = 500;
+export const PROFESSIONAL_USERS_CAPACITY = 10;
+export const PROFESSIONAL_FUTURE_ANCHOR_EGP = 4_990;
 
-const FOUNDING_PROGRAM_SIZE = 10;
+// Founding Program Cohort Limit
+export const FOUNDING_COHORT_SIZE = 10;
+
+// Onboarding Package (Setup, Data Migration & Verification)
+export const ONBOARDING_STANDARD_EGP = 2_900;
 
 export function getFoundingSlotsRemaining(): number | null {
   const raw = process.env.FOUNDING_SLOTS_REMAINING;
@@ -37,14 +45,10 @@ export function getFoundingSlotsRemaining(): number | null {
 
   const parsed = Number.parseInt(raw.trim(), 10);
   if (!Number.isInteger(parsed)) return null;
-  if (parsed < 1 || parsed > FOUNDING_PROGRAM_SIZE) return null;
+  if (parsed < 1 || parsed > FOUNDING_COHORT_SIZE) return null;
 
   return parsed;
 }
-
-/* ── Number formatting ─────────────────────────────────────────────────────
-   Western digits with thousands separators in both locales, matching the
-   rest of the marketing site and the app's financial tables.             */
 
 export function formatEgp(value: number, locale: Locale): string {
   return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", {
@@ -53,3 +57,4 @@ export function formatEgp(value: number, locale: Locale): string {
     numberingSystem: "latn",
   }).format(value);
 }
+
