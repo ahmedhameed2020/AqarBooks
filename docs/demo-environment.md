@@ -366,6 +366,56 @@ the file in order to make it legible.
 
 ---
 
+## 9b. Current state (2026-08-25)
+
+The demo tenant is **provisioned and structurally seeded. It holds no financial
+data.** F1 has not started.
+
+| | |
+| --- | --- |
+| Organization | `7807b481-6003-414f-9c15-8afa44c19150`, ACTIVE, `is_demo` true, 0 subscriptions |
+| Structure | 3 properties · 4 zones · 5 buildings · 156 units (148 active) |
+| Occupancy | 121 occupied = 72 owner-resident + 49 leased · 27 vacant |
+| Commercial | Palm Gate 27 units, 18 leased, all QUARTERLY, 14 company tenants |
+| Members | 111 (97 fixture + 14 companies) |
+| Accounts | RESORT_STANDARD + `4400 Rental Income` (tenant configuration) |
+| Fiscal | Jan–Apr CLOSED · **May OPEN** · Jun–Dec PLANNED |
+| Financial | dues 0 · payments 0 · journal entries 0 · levies 0 · statements 0 |
+
+### Security posture
+
+Three layers, all verified against production:
+
+1. **Interface** — the nav and page guards prune by permission; the demo account
+   holds no manage key.
+2. **Server** — `denyIfDemo()` on 125 of 141 server actions, 16 sanctioned;
+   `demoAiGate()` on all seven AI routes.
+3. **Database** — the demo account is a tenant clone of `AUDITOR`. Verified by
+   direct RPC from a real AUDITOR session, bypassing the application entirely:
+
+   ```
+   generate_lease_rent_dues              REFUSED 42501
+   post_due_to_ledger                    REFUSED 42501
+   allocate_document_number              REFUSED 42501
+   next_sequence_value                   REFUSED 42501
+   clone_tenant_role_templates           REFUSED 42501
+   record_tax_decision_for_due_internal  REFUSED 42501
+   anon generate_lease_rent_dues         REFUSED
+   ```
+
+Two migrations were required to reach that, both applied 2026-08-25:
+
+- `20260825124312_generate_lease_rent_dues_authz` — the function was SECURITY
+  DEFINER, executable by `authenticated`, and checked nothing. See
+  [the incident note](incidents/2026-08-25-generate-lease-rent-dues-exploit.md).
+- `20260825124342_internal_helper_acls` — revokes five internal mutators from
+  every client role.
+
+`tests/security-definer-authorization.test.ts` now asks the same question of
+every function in the schema, so this class of gap cannot return unnoticed.
+
+---
+
 ## 10. Open items
 
 - **Every fiscal period is `PLANNED`, not `OPEN`.** `create_fiscal_year`
@@ -381,8 +431,23 @@ Recorded rather than assumed solved.
 
 - **Rate limiting is per-isolate.** See §8. A Cloudflare Rate Limiting binding
   is the durable fix and has not been added.
-- **The seed has never been executed.** It typechecks against the generated
-  database types — which caught several real schema errors — but no stage has
+- **`lib/supabase/types.ts` carries two hand-edits** (`organizations.is_demo`,
+  and `coa_template_accounts` is absent entirely and reached through one narrow
+  typed escape). No genuine `supabase gen types` was possible here: the CLI is
+  installed but holds no access token and the database password is not on this
+  machine. `tests/supabase-types-drift.integration.test.ts` now compares the
+  file against PostgREST's live schema and passes, which bounds the risk — but
+  a real regeneration before merge would close it properly.
+- **Member naming drifts on a fresh reseed.** 21 leases would name a different
+  fictional tenant if the tenant were rebuilt from fixtures. Proven financially
+  inert: a test renames every tenant and the narrative is unchanged, because
+  the payer profile is keyed on the lease and rent comes from the lease row.
+  Fixing it means replacing all 111 member rows and re-pointing 49 live leases,
+  which is disproportionate to a naming difference that moves no number.
+- **The Playwright gate has never run.** It needs the demo session working
+  end to end against a running build.
+- ~~**The seed has never been executed.**~~ Applied 2026-08-25; structure
+  verified. It typechecks against the generated database types — which caught several real schema errors — but no stage has
   run against a database. The dry run exists precisely for this, and must be
   read before the first apply.
 - **The seed covers structure, not yet the financial narrative.** Chart of
