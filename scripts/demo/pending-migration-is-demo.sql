@@ -1,10 +1,16 @@
--- PREPARED, NOT APPLIED.
+-- Migration: organizations.is_demo
 --
--- Deliberately NOT in supabase/migrations/. That directory is pinned by
--- tests/migration-directory-guard.test.ts, which fails if any .sql appears
--- there outside its name+size+sha256 allowlist. A file sitting there would
--- also imply to the next reader that it had been applied. It lives here until
--- someone with migration access runs it.
+-- These bytes are the migration. Apply this file VERBATIM, then commit it
+-- unchanged under the version the ledger records -- the repository and the
+-- ledger have to keep describing the same history, and that only holds if the
+-- applied text and the committed text are the same bytes.
+--
+-- Nothing in this file states whether it has been applied yet. That is
+-- deliberate: a status line here would have to be edited after applying, which
+-- would change the bytes and break the very correspondence the sha256 pin in
+-- tests/migration-directory-guard.test.ts exists to protect. Its location is
+-- the status -- under scripts/demo/ it is pending, under supabase/migrations/
+-- it is applied.
 --
 -- ===========================================================================
 -- WHY THIS COLUMN EXISTS
