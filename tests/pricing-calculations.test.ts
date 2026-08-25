@@ -67,4 +67,15 @@ describe("Pricing Calculations & Commercial Consistency", () => {
     const unitFaqAr = copyAr.faq.items.find(f => f.qAr.includes("وحدة عقارية"));
     expect(unitFaqAr).toBeDefined();
   });
+
+  it("ensures landing pricing preview values match authoritative pricing constants", () => {
+    const essentialAnnualMonthly = formatEgp(ESSENTIAL_ANNUAL_MONTHLY_EGP, "ar");
+    const professionalAnnualMonthly = formatEgp(PROFESSIONAL_ANNUAL_MONTHLY_EGP, "ar");
+    const professionalSaving = formatEgp(PROFESSIONAL_ANNUAL_SAVING_EGP, "ar");
+
+    expect(essentialAnnualMonthly).toBe("1,190");
+    expect(professionalAnnualMonthly).toBe("2,790");
+    expect(professionalSaving).toBe("8,400");
+  });
 });
+
