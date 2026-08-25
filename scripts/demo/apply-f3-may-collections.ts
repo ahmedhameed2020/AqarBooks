@@ -592,11 +592,35 @@ export async function verifyF3(
  * been written, not when one stage of them has. This returns the reasons it may
  * NOT close, so an empty list is the only thing that permits the close.
  */
+export type CompletenessOptions = {
+  /**
+   * The cashier narrative is deliberately not being built for May.
+   *
+   * WHY THIS IS A PARAMETER AND NOT A DELETED CHECK
+   * The check was right: CASH receipts with no cashier session mean the till
+   * side of May is unwritten. What changed is the decision, not the fact -- and
+   * the fact is worth keeping, because building sessions now would produce rows
+   * dated after the receipts they claim to explain.
+   *
+   * `record_payment` writes a `cash_transaction` only when a session id is
+   * passed AT THE TIME OF RECORDING. The 26 payments are already idempotent, so
+   * a replay will not create them retroactively. Sessions added now would have
+   * no link to the six CASH receipts at all: decoration, not lineage.
+   *
+   * So the item moves from "blocking" to "deferred, on the record", and the
+   * cashier module gets demonstrated properly in a later period -- cashbox,
+   * open session, receipts recorded THROUGH it, close, variance nil.
+   */
+  cashierDeferred?: boolean;
+};
+
 export async function mayCompleteness(
   admin: SupabaseClient<Database>,
   organizationId: string,
-): Promise<{ blockers: string[]; text: string }> {
+  options: CompletenessOptions = {},
+): Promise<{ blockers: string[]; deferred: string[]; text: string }> {
   const blockers: string[] = [];
+  const deferred: string[] = [];
   const lines = ["MAY COMPLETENESS", "-".repeat(72)];
 
   const { data: dues } = await admin
@@ -629,11 +653,20 @@ export async function mayCompleteness(
   lines.push("");
 
   if ((cashPayments ?? []).length > 0 && (sessions ?? 0) === 0) {
-    blockers.push(
+    const item =
       `${(cashPayments ?? []).length} CASH receipts are dated in May and no cashier session ` +
-        "exists. If the demo is to show the cashier module at all, those sessions are " +
-        "May-dated and unwritten -- closing May now would require reopening it to add them.",
-    );
+      "exists, so the till side of May is unwritten";
+    if (options.cashierDeferred) {
+      deferred.push(
+        `${item}. DEFERRED BY DECISION: sessions created now would post after the receipts ` +
+          "they claim to explain and could not be linked to them -- record_payment writes a " +
+          "cash_transaction only when a session is passed at recording time, and these 26 " +
+          "payments are already idempotent. The cashier module will be demonstrated from a " +
+          "cashbox forward in a later period instead.",
+      );
+    } else {
+      blockers.push(`${item}. Closing May now would require reopening it to add them.`);
+    }
   }
 
   lines.push("  NOT MAY-DATED, SO NOT BLOCKING");
@@ -642,6 +675,12 @@ export async function mayCompleteness(
   lines.push("    June / July rent                    their own months");
   lines.push("");
 
+  if (deferred.length > 0) {
+    lines.push("  DEFERRED BY DECISION, NOT MISSED");
+    for (const d of deferred) lines.push(`    - ${d}`);
+    lines.push("");
+  }
+
   if (blockers.length === 0) {
     lines.push("  VERDICT: nothing further is dated inside May. It may be closed.");
   } else {
@@ -649,5 +688,5 @@ export async function mayCompleteness(
     for (const b of blockers) lines.push(`    - ${b}`);
   }
 
-  return { blockers, text: lines.join("\n") };
+  return { blockers, deferred, text: lines.join("\n") };
 }
