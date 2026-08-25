@@ -86,12 +86,39 @@ describe.skipIf(!CONFIGURED)("demo database preflight", () => {
     expect(error, `is_demo is not queryable: ${error?.message}`).toBeNull();
   });
 
-  it("no organization carries the demo marker yet", async () => {
-    const { data, error } = await admin!.from("organizations").select("id").eq("is_demo", true);
+  it("at most one organization carries the demo marker, and it is the configured one", async () => {
+    // Written first for the pre-provisioning state, where zero was the only
+    // acceptable answer. Once the tenant is provisioned that is no longer
+    // true, so the assertion is the invariant that holds in BOTH states rather
+    // than a snapshot of one of them: never more than one, and if there is one
+    // it must be the id the configuration points at.
+    const { data, error } = await admin!
+      .from("organizations")
+      .select("id, name")
+      .eq("is_demo", true);
     expect(error).toBeNull();
-    const count = (data ?? []).length;
-    row("organizations flagged is_demo", `${count} (expected 0 before provisioning)`);
-    expect(count).toBe(0);
+
+    const flagged = data ?? [];
+    row("organizations flagged is_demo", String(flagged.length));
+    expect(flagged.length, "more than one organization claims to be the demo").toBeLessThanOrEqual(1);
+
+    const configured = process.env.DEMO_ORGANIZATION_ID;
+    if (flagged.length === 1) {
+      row("  flagged organization", `${flagged[0]!.name}`);
+      if (configured) {
+        expect(
+          flagged[0]!.id,
+          "the flagged organization is not DEMO_ORGANIZATION_ID",
+        ).toBe(configured);
+        row("  matches DEMO_ORGANIZATION_ID", "PASS");
+      } else {
+        row("  DEMO_ORGANIZATION_ID", "not set — cannot cross-check");
+      }
+    } else if (configured) {
+      // Configured but nothing flagged: the variable points at an undesignated
+      // organization, which the seed guard would refuse anyway.
+      row("  DEMO_ORGANIZATION_ID", "set, but no organization is flagged");
+    }
   });
 
   it("the seed guard refuses when no target is configured", async () => {

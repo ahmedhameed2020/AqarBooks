@@ -44,8 +44,18 @@ import {
 
 export type SeedOptions = {
   admin: SupabaseClient<Database>;
-  /** Signed-in session for the owner account that performs the financial postings. */
-  owner: SupabaseClient<Database>;
+  /**
+   * Signed-in session for the owner account that performs the postings.
+   *
+   * Optional, and absent during a dry run on purpose. Every RPC call in this
+   * file sits behind a `ctx.dryRun` early return, so a dry run never touches
+   * this client -- and requiring a password it will not use would mean handling
+   * the owner's credentials to perform an operation that writes nothing. A
+   * credential that is not needed should not be requested.
+   *
+   * Asserted present before the first write; see `requireOwner`.
+   */
+  owner?: SupabaseClient<Database>;
   ownerUserId: string;
   /** The read-only account the public demo signs into. */
   demoUserId: string;
@@ -85,6 +95,76 @@ type Ctx = SeedOptions & {
     bankAccountGlId?: string;
   };
 };
+
+/**
+ * The owner session, or a loud failure.
+ *
+ * Called only on write paths. If this ever throws it means a stage performed a
+ * write without checking `dryRun` first, which is a bug in the stage rather
+ * than a misconfiguration -- so the message says so.
+ */
+/**
+ * Resolves an account code that does not exist in the tenant yet.
+ *
+ * WHY THIS IS NEEDED
+ * On a first run the chart of accounts has not been cloned, so nothing
+ * downstream can resolve a code from the tenant's own tree. The first dry run
+ * therefore reported "parent NOT resolved" and "accounts not resolvable" and
+ * still returned ok -- a pass that asserted nothing about the very resolution
+ * the apply depends on.
+ *
+ * The template is the answer. `clone_chart_of_accounts_template` copies
+ * RESORT_STANDARD verbatim, so a code present in the template WILL be present
+ * in the tenant immediately after the clone. Checking the template converts an
+ * unverified assumption into a checked one, and a code missing from both is a
+ * hard failure rather than a note.
+ */
+async function resolveFromTemplate(
+  ctx: Ctx,
+  code: string,
+): Promise<{ resolved: true; via: "tenant" | "template" } | { resolved: false }> {
+  if (ctx.ids.accountByCode.has(code)) return { resolved: true, via: "tenant" };
+
+  // `coa_template_accounts` is a global reference table and is absent from the
+  // generated types, so the typed client cannot name it. The escape is
+  // deliberately narrow -- one read, one column, no writes -- rather than
+  // hand-editing lib/supabase/types.ts a second time and widening the gap
+  // between that file and a real regeneration.
+  const untyped = ctx.admin as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          eq: (column: string, value: string) => {
+            maybeSingle: () => Promise<{
+              data: { code: string } | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+      };
+    };
+  };
+
+  const { data, error } = await untyped
+    .from("coa_template_accounts")
+    .select("code")
+    .eq("template_key", "RESORT_STANDARD")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (error) throw new Error(`coa_template_accounts read failed: ${error.message}`);
+  return data ? { resolved: true, via: "template" } : { resolved: false };
+}
+
+function requireOwner(ctx: Ctx): SupabaseClient<Database> {
+  if (!ctx.owner) {
+    throw new Error(
+      "A write was attempted without an owner session. Either the seed was run " +
+        "without credentials, or a stage is missing its dryRun early return.",
+    );
+  }
+  return ctx.owner;
+}
 
 function stage(ctx: Ctx, name: string, existing: number, created: number, note?: string) {
   ctx.report.stages.push({ stage: name, existing, created, note });
@@ -194,7 +274,7 @@ async function stageChartOfAccounts(ctx: Ctx): Promise<void> {
     return;
   }
 
-  const { error: cloneErr } = await ctx.owner.rpc("clone_chart_of_accounts_template", {
+  const { error: cloneErr } = await requireOwner(ctx).rpc("clone_chart_of_accounts_template", {
     p_organization_id: ctx.organizationId,
     p_template_key: "RESORT_STANDARD",
   });
@@ -256,13 +336,23 @@ async function stageTenantAccounts(ctx: Ctx): Promise<void> {
   const parentId = ctx.ids.accountByCode.get(spec.parentCode);
 
   if (ctx.dryRun) {
+    // The parent normally does not exist yet on a first run, so it is checked
+    // against the template the clone will produce rather than reported as
+    // unresolved and waved through.
+    const parent = await resolveFromTemplate(ctx, spec.parentCode);
+    if (!parent.resolved) {
+      throw new Error(
+        `Cannot create ${spec.code}: parent ${spec.parentCode} exists neither in the ` +
+          "tenant nor in the RESORT_STANDARD template. The template has changed.",
+      );
+    }
     stage(
       ctx,
       "tenant accounts",
       0,
       1,
-      `would create ${spec.code} ${spec.nameEn} under ${spec.parentCode}` +
-        (parentId ? "" : " (parent NOT resolved)"),
+      `would create ${spec.code} ${spec.nameEn} under ${spec.parentCode} ` +
+        `(parent resolves from the ${parent.via})`,
     );
     return;
   }
@@ -333,7 +423,7 @@ async function stageFiscalPeriod(ctx: Ctx): Promise<void> {
     return;
   }
 
-  const { error: fyErr } = await ctx.owner.rpc("create_fiscal_year", {
+  const { error: fyErr } = await requireOwner(ctx).rpc("create_fiscal_year", {
     p_organization_id: ctx.organizationId,
     p_name: `FY${year}`,
     p_start_date: `${year}-01-01`,
@@ -379,7 +469,7 @@ async function stageProperties(ctx: Ctx): Promise<void> {
       continue;
     }
 
-    const { data: id, error: createErr } = await ctx.owner.rpc("create_resort", {
+    const { data: id, error: createErr } = await requireOwner(ctx).rpc("create_resort", {
       p_organization_id: ctx.organizationId,
       p_name: property.nameEn,
       p_code: property.code,
@@ -610,7 +700,7 @@ async function stageMembers(ctx: Ctx): Promise<void> {
       continue;
     }
 
-    const { error: linkErr } = await ctx.owner.rpc("link_unit_ownership", {
+    const { error: linkErr } = await requireOwner(ctx).rpc("link_unit_ownership", {
       p_organization_id: ctx.organizationId,
       p_unit_id: unitId,
       p_member_id: memberId,
@@ -656,7 +746,27 @@ async function stageDueTypes(ctx: Ctx): Promise<void> {
 
   if (!serviceRevenue || !rentRevenue || !receivable) {
     if (ctx.dryRun) {
-      stage(ctx, "due types", 0, 2, "revenue/receivable accounts not resolvable in dry run");
+      // Same reasoning as stageTenantAccounts: verify against the template
+      // rather than declaring the check impossible and passing anyway.
+      const missing: string[] = [];
+      for (const code of ["1130", "4100"]) {
+        const found = await resolveFromTemplate(ctx, code);
+        if (!found.resolved) missing.push(code);
+      }
+      if (missing.length > 0) {
+        throw new Error(
+          `RESORT_STANDARD is missing ${missing.join(", ")}. The seed resolves these ` +
+            "with no fallback, so the apply would fail.",
+        );
+      }
+      stage(
+        ctx,
+        "due types",
+        0,
+        2,
+        "1130 and 4100 resolve from the template; rent maps to " +
+          `${DEMO_STORY.tenantAccounts.rentalIncome.code} created above`,
+      );
       return;
     }
     throw new Error(
@@ -867,7 +977,7 @@ async function stageLeases(ctx: Ctx): Promise<void> {
     if (!unitId) throw new Error(`lease: unresolved unit ${lease.unitCode}`);
     if (!memberId) throw new Error(`lease: unresolved member ${lease.memberEmail}`);
 
-    const { data: leaseId, error: createErr } = await ctx.owner.rpc("create_unit_lease", {
+    const { data: leaseId, error: createErr } = await requireOwner(ctx).rpc("create_unit_lease", {
       p_organization_id: ctx.organizationId,
       p_unit_id: unitId,
       p_tenant_member_id: memberId,
@@ -887,7 +997,7 @@ async function stageLeases(ctx: Ctx): Promise<void> {
     // A DRAFT lease does not make a unit occupied. Activation is the step that
     // does, and it is the step the exclusion constraint guards, so it is not
     // optional and its failure must not be swallowed.
-    const { error: activateErr } = await ctx.owner.rpc("activate_unit_lease", {
+    const { error: activateErr } = await requireOwner(ctx).rpc("activate_unit_lease", {
       p_lease_id: leaseId as unknown as string,
     });
     if (activateErr) {
