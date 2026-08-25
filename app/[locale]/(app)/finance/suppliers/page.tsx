@@ -25,6 +25,7 @@ import {
 
 import { SettleFxForm, type ForeignInvoice } from "./fx-settlement-forms";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -60,6 +61,13 @@ export default async function SuppliersPage({
 
   const denied = await denyIfMissingPermission(organization.id, "finance.suppliers.read", locale);
   if (denied) return denied;
+
+  // Posting an invoice and paying one both land as journal entries, so they share
+  // the entry key; the vendor directory itself is guarded as master data.
+  const [canPostEntries, canManageSuppliers] = await Promise.all([
+    hasPermission(organization.id, "finance.entries.create"),
+    hasPermission(organization.id, "finance.accounts.manage"),
+  ]);
 
   const supabase = await createClient();
   const { data: resort } = await supabase
@@ -331,6 +339,9 @@ export default async function SuppliersPage({
           periods={periods}
           organizationId={organization.id}
           resortId={resort.id}
+          canPostInvoice={canPostEntries}
+          canPaySupplier={canPostEntries}
+          canManageSuppliers={canManageSuppliers}
           currency={currency}
           locale={locale}
         />
