@@ -1,0 +1,476 @@
+"use strict";
+(() => {
+  // lib/demo/story.ts
+  var DEMO_STORY = {
+    organization: {
+      // Named so it is unmistakable internally which tenant this is, while still
+      // reading as a real operating company on screen.
+      nameEn: "AqarBooks Demo Holdings",
+      nameAr: "\u0623\u0642\u0627\u0631\u0628\u0648\u0643\u0633 \u0627\u0644\u0642\u0627\u0628\u0636\u0629 \u2014 \u0628\u064A\u0626\u0629 \u0627\u0644\u0639\u0631\u0636",
+      slug: "aqarbooks-demo",
+      entityType: "FACILITY_MANAGEMENT",
+      currency: "EGP",
+      governorate: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629",
+      city: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629 \u0627\u0644\u062C\u062F\u064A\u062F\u0629",
+      tagline: "\u0625\u062F\u0627\u0631\u0629 \u0648\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0623\u0635\u0648\u0644 \u0627\u0644\u0639\u0642\u0627\u0631\u064A\u0629"
+    },
+    /** Shown on the public entry page. The seed asserts each of these. */
+    headline: {
+      legalEntities: 2,
+      properties: 3,
+      buildings: 5,
+      /** Units created. Eight are archived, leaving 148 active. */
+      units: 156,
+      activeUnits: 148,
+      periodAr: "\u0623\u063A\u0633\u0637\u0633 2026",
+      periodEn: "August 2026"
+    },
+    /**
+     * The operating month everything is dated into. Fixed, not derived from the
+     * clock: a dataset that silently re-dates itself would stop reconciling with
+     * the fiscal period its journal entries were posted into.
+     */
+    period: {
+      year: 2026,
+      month: 8,
+      start: "2026-08-01",
+      end: "2026-08-31",
+      /** Opening balances are dated here, one day before the period opens. */
+      openingDate: "2026-07-31"
+    },
+    properties: [
+      {
+        code: "NH",
+        nameEn: "Nile Heights Compound",
+        nameAr: "\u0643\u0645\u0628\u0648\u0646\u062F \u0646\u0627\u064A\u0644 \u0647\u0627\u064A\u062A\u0633",
+        propertyType: "resort",
+        governorate: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629",
+        /** Which of the two legal entities operates it. */
+        legalEntity: 1
+      },
+      {
+        code: "MR",
+        nameEn: "Marina Residence",
+        nameAr: "\u0645\u0627\u0631\u064A\u0646\u0627 \u0631\u064A\u0632\u064A\u062F\u0646\u0633",
+        propertyType: "resort",
+        governorate: "\u0645\u0637\u0631\u0648\u062D",
+        legalEntity: 2
+      },
+      {
+        code: "PG",
+        nameEn: "Palm Gate Tower",
+        nameAr: "\u0628\u0631\u062C \u0628\u0648\u0627\u0628\u0629 \u0627\u0644\u0646\u062E\u064A\u0644",
+        propertyType: "building",
+        governorate: "\u0627\u0644\u062C\u064A\u0632\u0629",
+        legalEntity: 1
+      }
+    ],
+    /**
+     * Buildings, and the unit block each one carries. `count` sums to
+     * headline.units; `archived` sums to headline.units - headline.activeUnits.
+     * A mix of unit types is deliberate: a portfolio of nothing but apartments
+     * would not demonstrate that the ledger treats a shop and a villa as the
+     * same kind of financial dimension.
+     */
+    buildings: [
+      {
+        propertyCode: "NH",
+        code: "NH-A",
+        nameEn: "Nile Heights \u2014 Block A",
+        nameAr: "\u0646\u0627\u064A\u0644 \u0647\u0627\u064A\u062A\u0633 \u2014 \u0639\u0645\u0627\u0631\u0629 \u0623",
+        zoneEn: "Phase One",
+        zoneAr: "\u0627\u0644\u0645\u0631\u062D\u0644\u0629 \u0627\u0644\u0623\u0648\u0644\u0649",
+        unitType: "APARTMENT",
+        count: 36,
+        archived: 2,
+        floors: 6,
+        areaRange: [96, 178]
+      },
+      {
+        propertyCode: "NH",
+        code: "NH-B",
+        nameEn: "Nile Heights \u2014 Block B",
+        nameAr: "\u0646\u0627\u064A\u0644 \u0647\u0627\u064A\u062A\u0633 \u2014 \u0639\u0645\u0627\u0631\u0629 \u0628",
+        zoneEn: "Phase One",
+        zoneAr: "\u0627\u0644\u0645\u0631\u062D\u0644\u0629 \u0627\u0644\u0623\u0648\u0644\u0649",
+        unitType: "APARTMENT",
+        count: 36,
+        archived: 2,
+        floors: 6,
+        areaRange: [96, 178]
+      },
+      {
+        propertyCode: "NH",
+        code: "NH-C",
+        nameEn: "Nile Heights \u2014 Villas",
+        nameAr: "\u0646\u0627\u064A\u0644 \u0647\u0627\u064A\u062A\u0633 \u2014 \u0627\u0644\u0641\u0644\u0644",
+        zoneEn: "Phase Two",
+        zoneAr: "\u0627\u0644\u0645\u0631\u062D\u0644\u0629 \u0627\u0644\u062B\u0627\u0646\u064A\u0629",
+        unitType: "VILLA",
+        count: 24,
+        archived: 1,
+        floors: 2,
+        areaRange: [240, 420]
+      },
+      {
+        propertyCode: "MR",
+        code: "MR-1",
+        nameEn: "Marina Residence \u2014 Seafront Wing",
+        nameAr: "\u0645\u0627\u0631\u064A\u0646\u0627 \u0631\u064A\u0632\u064A\u062F\u0646\u0633 \u2014 \u0627\u0644\u0648\u0627\u062C\u0647\u0629 \u0627\u0644\u0628\u062D\u0631\u064A\u0629",
+        zoneEn: "Seafront",
+        zoneAr: "\u0627\u0644\u0648\u0627\u062C\u0647\u0629 \u0627\u0644\u0628\u062D\u0631\u064A\u0629",
+        unitType: "CHALET",
+        count: 32,
+        archived: 2,
+        floors: 4,
+        areaRange: [78, 145]
+      },
+      {
+        propertyCode: "PG",
+        code: "PG-T",
+        nameEn: "Palm Gate \u2014 Commercial Tower",
+        nameAr: "\u0628\u0648\u0627\u0628\u0629 \u0627\u0644\u0646\u062E\u064A\u0644 \u2014 \u0627\u0644\u0628\u0631\u062C \u0627\u0644\u062A\u062C\u0627\u0631\u064A",
+        zoneEn: "Commercial",
+        zoneAr: "\u0627\u0644\u0642\u0637\u0627\u0639 \u0627\u0644\u062A\u062C\u0627\u0631\u064A",
+        /** Offices on the upper floors, shops at street level — see the seed. */
+        unitType: "OFFICE",
+        count: 28,
+        archived: 1,
+        floors: 14,
+        areaRange: [55, 320]
+      }
+    ],
+    /**
+     * Accounts the demo tenant adds to its own chart on top of the
+     * RESORT_STANDARD template.
+     *
+     * WHY THIS IS NOT A CHANGE TO THE TEMPLATE
+     * The global template ships to every customer, and rental income is not
+     * universal -- an owners' association has none. Editing it to suit the demo
+     * would push a real-estate-specific account onto tenants that do not want it.
+     *
+     * WHY THE DEMO NEEDS IT ANYWAY
+     * The template's nearest fit for rent is `4300 Other Revenue`. A property
+     * accountant opening the demo's income statement would see rental income
+     * classified as "other", and would reasonably conclude that AqarBooks does
+     * not model rent as a first-class revenue stream. That is a claim about the
+     * product, made by accident, on the surface built to establish trust.
+     *
+     * Adding a leaf under the revenue group is exactly what a real operator does
+     * during onboarding -- it is tenant-specific chart configuration, not an
+     * invented figure. So the demo does what a configured customer would have
+     * done, and shows the result.
+     */
+    tenantAccounts: {
+      rentalIncome: {
+        /** Free in RESORT_STANDARD, which stops at 4300. Verified before use. */
+        code: "4400",
+        parentCode: "4000",
+        nameAr: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0625\u064A\u062C\u0627\u0631\u0627\u062A",
+        nameEn: "Rental Income",
+        category: "REVENUE",
+        normalBalance: "CREDIT",
+        /** Matches its siblings 4100 and 4300. */
+        cashFlowSection: "OPERATING"
+      }
+    },
+    /**
+     * Targets the seed aims at, expressed as proportions of the unit stock. They
+     * shape the fixtures; they are not displayed anywhere, and the reported
+     * figures always come from the ledger.
+     */
+    targets: {
+      /** Share of active units that are occupied — leased or owner-resident. */
+      occupancy: 0.82,
+      /** Share of billed dues left unpaid past their due date. */
+      overdueShare: 0.17
+    },
+    /**
+     * The date every financial figure is reported as of.
+     *
+     * WHY THIS IS FIXED AND NOT `CURRENT_DATE`
+     * Aging, the dashboard, collection KPIs, dunning and the treasury narrative
+     * must all answer "as of when?" with the same date, or the demo contradicts
+     * itself between two screens. A clock-derived date also makes the dataset
+     * drift: the same fixtures would produce a different aging profile every day
+     * until every arrear eventually fell into 90+.
+     *
+     * WHY THE 25th AND NOT THE 31st
+     * Dues fall on the 1st. Measured at the 31st, every arrear is either 30 days
+     * or 60+ and the 1–30 bucket is arithmetically empty -- an aging report no
+     * accountant would recognise. At the 25th the same untouched dues land as
+     * 24 / 55 / 85 / 116 days, filling every bucket. The fix is the observation
+     * date, not the due dates: staggering those to fill a chart would be
+     * fabricating the very thing the report is supposed to measure.
+     */
+    asOfDate: "2026-08-25",
+    /**
+     * Where occupancy sits, property by property.
+     *
+     * WHY THIS IS DECLARED RATHER THAN DERIVED FROM A SINGLE PERCENTAGE
+     * It used to be one portfolio-wide figure, and the assignment walked the unit
+     * list in order until it had filled its quota. The totals were correct and
+     * the distribution was not: the first three buildings came out 100% occupied
+     * and Palm Gate -- last in the list -- absorbed the entire vacancy and stood
+     * completely empty. Every structural invariant passed, because all of them
+     * counted and none of them asked WHERE.
+     *
+     * Declaring the split per property makes the distribution a fact that can be
+     * asserted instead of an accident of iteration order. The numbers are also
+     * more honest than a flat rate: a commercial tower genuinely runs at lower
+     * occupancy than a residential compound.
+     *
+     *   occupied  units the property has let or sold
+     *   leased    of those, how many are tenancies rather than owner-occupied
+     *
+     * `occupied` must sum to 121 and `leased` to 49, which the fixtures assert.
+     */
+    occupancyPlan: [
+      { propertyCode: "NH", occupied: 79, leased: 26 },
+      { propertyCode: "MR", occupied: 24, leased: 5 },
+      /** Commercial: every occupied unit is a tenancy, none is owner-occupied. */
+      { propertyCode: "PG", occupied: 18, leased: 18 }
+    ]
+  };
+
+  // scripts/demo/demo-fixtures.ts
+  var DEMO_SEED_VERSION = "demo-seed-v1";
+  function makeRng(seed) {
+    let a = seed >>> 0;
+    return function next() {
+      a = a + 1831565813 >>> 0;
+      let t = a;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function intBetween(rng, min, max) {
+    return min + Math.floor(rng() * (max - min + 1));
+  }
+  function pick(rng, items) {
+    return items[Math.floor(rng() * items.length)];
+  }
+  var GIVEN_NAMES = [
+    { ar: "\u0623\u062D\u0645\u062F", en: "Ahmed" },
+    { ar: "\u0645\u062D\u0645\u062F", en: "Mohamed" },
+    { ar: "\u0645\u0635\u0637\u0641\u0649", en: "Mostafa" },
+    { ar: "\u0643\u0631\u064A\u0645", en: "Karim" },
+    { ar: "\u0639\u0645\u0631\u0648", en: "Amr" },
+    { ar: "\u0647\u0634\u0627\u0645", en: "Hisham" },
+    { ar: "\u0637\u0627\u0631\u0642", en: "Tarek" },
+    { ar: "\u0634\u0631\u064A\u0641", en: "Sherif" },
+    { ar: "\u064A\u0627\u0633\u0631", en: "Yasser" },
+    { ar: "\u062E\u0627\u0644\u062F", en: "Khaled" },
+    { ar: "\u0645\u0646\u0649", en: "Mona" },
+    { ar: "\u062F\u064A\u0646\u0627", en: "Dina" },
+    { ar: "\u0633\u0644\u0645\u0649", en: "Salma" },
+    { ar: "\u0646\u0647\u0649", en: "Noha" },
+    { ar: "\u0631\u064A\u0645", en: "Reem" },
+    { ar: "\u0647\u0627\u0644\u0629", en: "Hala" },
+    { ar: "\u0646\u062F\u0649", en: "Nada" },
+    { ar: "\u0625\u064A\u0645\u0627\u0646", en: "Iman" }
+  ];
+  var FAMILY_NAMES = [
+    { ar: "\u0627\u0644\u0634\u0646\u0627\u0648\u064A", en: "El-Shennawy" },
+    { ar: "\u0639\u0628\u062F \u0627\u0644\u0631\u062D\u0645\u0646", en: "Abdelrahman" },
+    { ar: "\u0627\u0644\u062C\u0646\u062F\u064A", en: "El-Gindy" },
+    { ar: "\u0645\u0646\u0635\u0648\u0631", en: "Mansour" },
+    { ar: "\u0627\u0644\u0635\u0627\u0648\u064A", en: "El-Sawy" },
+    { ar: "\u062D\u062C\u0627\u0632\u064A", en: "Hegazy" },
+    { ar: "\u0632\u0643\u064A", en: "Zaki" },
+    { ar: "\u0627\u0644\u0641\u0642\u064A", en: "El-Feky" },
+    { ar: "\u0633\u0644\u064A\u0645\u0627\u0646", en: "Soliman" },
+    { ar: "\u0628\u062F\u0648\u064A", en: "Badawy" },
+    { ar: "\u0627\u0644\u0642\u0627\u0636\u064A", en: "El-Kady" },
+    { ar: "\u0634\u0627\u0647\u064A\u0646", en: "Shahin" }
+  ];
+  function generateUnits() {
+    const units = [];
+    for (const building of DEMO_STORY.buildings) {
+      const rng = makeRng(hashString(building.code));
+      const perFloor = Math.ceil(building.count / building.floors);
+      const [minArea, maxArea] = building.areaRange;
+      for (let i = 0; i < building.count; i++) {
+        const floor = Math.floor(i / perFloor) + 1;
+        const indexOnFloor = i % perFloor + 1;
+        const unitType = building.code === "PG-T" ? floor === 1 ? "SHOP" : "OFFICE" : building.unitType;
+        units.push({
+          code: `${building.code}-${String(floor).padStart(2, "0")}${String(indexOnFloor).padStart(2, "0")}`,
+          buildingCode: building.code,
+          propertyCode: building.propertyCode,
+          unitType,
+          floorNumber: floor,
+          area: Number((minArea + rng() * (maxArea - minArea)).toFixed(2)),
+          // Archived stock is taken from the END of the block, so adding units
+          // later does not change which existing ones are archived.
+          archived: i >= building.count - building.archived,
+          tenure: "VACANT"
+        });
+      }
+    }
+    assignTenure(units);
+    return units;
+  }
+  function assignTenure(units) {
+    const active = units.filter((u) => !u.archived);
+    for (const unit of active) unit.tenure = "VACANT";
+    for (const plan of DEMO_STORY.occupancyPlan) {
+      const inProperty = active.filter((u) => u.propertyCode === plan.propertyCode);
+      if (inProperty.length === 0) continue;
+      if (plan.occupied > inProperty.length) {
+        throw new Error(
+          `occupancyPlan asks for ${plan.occupied} occupied units in ${plan.propertyCode}, which only has ${inProperty.length} active.`
+        );
+      }
+      const byBuilding = /* @__PURE__ */ new Map();
+      for (const unit of inProperty) {
+        const list = byBuilding.get(unit.buildingCode) ?? [];
+        list.push(unit);
+        byBuilding.set(unit.buildingCode, list);
+      }
+      const buildings = [...byBuilding.entries()].sort(([a], [b]) => a.localeCompare(b));
+      const quotas = proportionalSplit(
+        buildings.map(([, list]) => list.length),
+        plan.occupied
+      );
+      const occupiedUnits = [];
+      buildings.forEach(([, list], index) => {
+        const order = deterministicOrder(list, `tenure:${plan.propertyCode}:${index}`);
+        for (let i = 0; i < quotas[index]; i++) {
+          order[i].tenure = "OWNER_RESIDENT";
+          occupiedUnits.push(order[i]);
+        }
+      });
+      const commercial = occupiedUnits.filter(
+        (u) => u.unitType === "OFFICE" || u.unitType === "SHOP"
+      );
+      const residential = deterministicOrder(
+        occupiedUnits.filter((u) => u.unitType !== "OFFICE" && u.unitType !== "SHOP"),
+        `lease:${plan.propertyCode}`
+      );
+      if (plan.leased < commercial.length) {
+        throw new Error(
+          `occupancyPlan gives ${plan.propertyCode} ${plan.leased} leases but ${commercial.length} of its occupied units are commercial, which cannot be owner-resident.`
+        );
+      }
+      for (const unit of commercial) unit.tenure = "LEASED";
+      for (let i = 0; i < plan.leased - commercial.length; i++) {
+        residential[i].tenure = "LEASED";
+      }
+    }
+  }
+  function proportionalSplit(sizes, total) {
+    const sum = sizes.reduce((a, b) => a + b, 0);
+    if (sum === 0) return sizes.map(() => 0);
+    const exact = sizes.map((size) => size / sum * total);
+    const floors = exact.map(Math.floor);
+    let remainder = total - floors.reduce((a, b) => a + b, 0);
+    const order = exact.map((value, index) => ({ index, fraction: value - Math.floor(value) })).sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+    for (let i = 0; i < order.length && remainder > 0; i++, remainder--) {
+      floors[order[i].index]++;
+    }
+    for (let i = 0; i < floors.length; i++) {
+      if (floors[i] > sizes[i]) {
+        const excess = floors[i] - sizes[i];
+        floors[i] = sizes[i];
+        for (let j = 0; j < floors.length && excess > 0; j++) {
+          if (j === i) continue;
+          const room = sizes[j] - floors[j];
+          const give = Math.min(room, excess);
+          floors[j] += give;
+        }
+      }
+    }
+    return floors;
+  }
+  function deterministicOrder(items, seed) {
+    const rng = makeRng(hashString(seed));
+    return items.map((item) => ({ item, key: rng() })).sort((a, b) => a.key - b.key).map(({ item }) => item);
+  }
+  function generateMembers(units) {
+    const rng = makeRng(hashString("members"));
+    const members = [];
+    const assignment = /* @__PURE__ */ new Map();
+    const occupied = units.filter((u) => !u.archived && u.tenure !== "VACANT");
+    let previous = null;
+    for (let i = 0; i < occupied.length; i++) {
+      const unit = occupied[i];
+      if (previous && i % 5 === 0) {
+        assignment.set(unit.code, previous.email);
+        continue;
+      }
+      const given = pick(rng, GIVEN_NAMES);
+      const family = pick(rng, FAMILY_NAMES);
+      const ordinal = String(members.length + 1).padStart(4, "0");
+      const member = {
+        email: `m-${ordinal}@demo.aqarbooks.invalid`,
+        fullName: `${given.ar} ${family.ar}`,
+        // Shaped like a valid Egyptian mobile number and dialable by no one.
+        phone: `+2010${String(intBetween(rng, 1e7, 19999999))}`
+      };
+      members.push(member);
+      assignment.set(unit.code, member.email);
+      previous = member;
+    }
+    return { members, assignment };
+  }
+  function hashString(value) {
+    let h = 2166136261;
+    for (let i = 0; i < value.length; i++) {
+      h ^= value.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  var RENT_PER_SQM = {
+    APARTMENT: 110,
+    VILLA: 95,
+    CHALET: 130,
+    OFFICE: 190,
+    SHOP: 320
+  };
+  function generateLeases(units, assignment) {
+    const rng = makeRng(hashString("leases"));
+    const leases = [];
+    for (const unit of units) {
+      if (unit.archived || unit.tenure !== "LEASED") continue;
+      const memberEmail = assignment.get(unit.code);
+      if (!memberEmail) continue;
+      const monthly = Math.round(unit.area * RENT_PER_SQM[unit.unitType] / 50) * 50;
+      const monthsBefore = 1 + Math.floor(rng() * 24);
+      const termMonths = monthsBefore < 12 ? 12 : monthsBefore + 6;
+      const start = addMonths(DEMO_STORY.period.start, -monthsBefore);
+      const end = addDays(addMonths(start, termMonths), -1);
+      leases.push({
+        unitCode: unit.code,
+        memberEmail,
+        rentAmount: monthly,
+        // Commercial tenants are billed quarterly, residential monthly. A single
+        // frequency across the portfolio would not exercise the rent schedule.
+        rentFrequency: unit.unitType === "OFFICE" || unit.unitType === "SHOP" ? "QUARTERLY" : "MONTHLY",
+        startsOn: start,
+        endsOn: end,
+        // Two months' rent, the common Egyptian arrangement. Held as a liability,
+        // never revenue -- see the deposits work in the ledger.
+        securityDepositAmount: monthly * 2,
+        billingRecipient: "TENANT"
+      });
+    }
+    return leases;
+  }
+  function addMonths(iso, months) {
+    const [y, m, d] = iso.split("-").map(Number);
+    const total = y * 12 + (m - 1) + months;
+    const year = Math.floor(total / 12);
+    const month = total % 12 + 1;
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const day = Math.min(d, lastDay);
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  function addDays(iso, days) {
+    const [y, m, d] = iso.split("-").map(Number);
+    const at = new Date(Date.UTC(y, m - 1, d + days));
+    return at.toISOString().slice(0, 10);
+  }
+})();

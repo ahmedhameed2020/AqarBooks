@@ -656,6 +656,7 @@ async function stageMembers(ctx: Ctx): Promise<void> {
         full_name: m.fullName,
         phone: m.phone,
         email: m.email,
+        is_company: m.isCompany,
       }));
       const { data, error: insErr } = await ctx.admin
         .from("members")

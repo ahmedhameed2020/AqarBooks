@@ -84,7 +84,12 @@ export function buildFinancialPlan(input: FinancialPlanInput): FinancialPlan {
 
   const allDues = [...rentDues, ...camDues];
   const collections = planCollections(allDues);
-  const aging = computeAging(collections.outstandingByDue, DEMO_STORY.period.end);
+  // Reported as of DEMO_STORY.asOfDate, not the month end. Measured at the
+  // 31st, monthly dues falling on the 1st land only at 30 or 60+ days and the
+  // 1-30 bucket is arithmetically empty -- an aging report no accountant would
+  // recognise. The observation date is the honest lever; staggering due dates
+  // to fill the chart would fabricate what the report is meant to measure.
+  const aging = computeAging(collections.outstandingByDue, DEMO_STORY.asOfDate);
 
   // --- per month -----------------------------------------------------------
   const duesByMonth = ACTIVITY_MONTHS.map((period) => {
@@ -300,7 +305,7 @@ export function renderFinancialPlan(plan: FinancialPlan): string {
     L.push(`  basis               ${plan.camLevy.allocationBasis}`);
     L.push(`  eligible units      ${plan.camLevy.allocations.length}`);
     L.push(`  basis sum (m2)      ${fmt(plan.camLevy.basisSum)}`);
-    L.push(`  levy total          ${fmt(plan.camLevy.totalAmount)} EGP`);
+    L.push(`  budget              ${fmt(plan.camLevy.totalAmount)} EGP  (August 2026 Common Area Operating Budget)`);
     L.push(`  allocated total     ${fmt(plan.camLevy.allocations.reduce((s, a) => s + a.share, 0))} EGP`);
   } else {
     L.push("  none planned");
@@ -352,11 +357,14 @@ export function renderFinancialPlan(plan: FinancialPlan): string {
 
   L.push("");
   L.push("-".repeat(76));
-  L.push("AGING AT 2026-08-31  (a consequence, not an input)");
+  L.push(`AGING AS OF ${DEMO_STORY.asOfDate}  (a consequence, not an input)`);
   L.push("-".repeat(76));
-  L.push(`  current      ${fmt(plan.aging.current).padStart(14)} EGP`);
-  L.push(`  1-30 days    ${fmt(plan.aging.d30).padStart(14)} EGP`);
-  L.push(`  31-60 days   ${fmt(plan.aging.d60).padStart(14)} EGP`);
+  // Labels match computeAging's boundaries exactly. They did not: `d30` holds
+  // 31-60 and was printed as "1-30", which would have had someone reading a
+  // two-month arrear as a current one.
+  L.push(`  0-30 days    ${fmt(plan.aging.current).padStart(14)} EGP`);
+  L.push(`  31-60 days   ${fmt(plan.aging.d30).padStart(14)} EGP`);
+  L.push(`  61-90 days   ${fmt(plan.aging.d60).padStart(14)} EGP`);
   L.push(`  90+ days     ${fmt(plan.aging.d90plus).padStart(14)} EGP`);
   L.push(`  total        ${fmt(plan.aging.total).padStart(14)} EGP`);
 

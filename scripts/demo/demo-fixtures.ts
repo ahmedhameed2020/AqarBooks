@@ -80,6 +80,35 @@ const FAMILY_NAMES = [
   { ar: "شاهين", en: "Shahin" },
 ] as const;
 
+/**
+ * Commercial tenants.
+ *
+ * A tower full of individuals with personal names is not a commercial tower.
+ * `members.is_company` exists precisely to distinguish these, and a B2B tenant
+ * is what makes a quarterly lease, a company-addressed invoice and a corporate
+ * receivable read as real to anyone who works in the sector.
+ */
+const COMPANY_NAMES = [
+  "شركة النيل الأزرق للاستشارات الهندسية",
+  "مجموعة الشرق للتوريدات الطبية",
+  "دلتا سوفت لتكنولوجيا المعلومات",
+  "مكتب الجيزي للمحاماة والاستشارات القانونية",
+  "شركة الأهرام للتسويق العقاري",
+  "المركز العربي للتدريب والتطوير",
+  "شركة صفا للتجارة والتوزيع",
+  "بيت الخبرة للمراجعة المالية",
+  "شركة المنارة للشحن والنقل الدولي",
+  "مجموعة الواحة للسياحة والسفر",
+  "شركة الفتح للمقاولات المتخصصة",
+  "المصرية الحديثة للأدوات المكتبية",
+  "شركة زدني للنشر والتوزيع",
+  "مركز الصفوة للأشعة والتحاليل",
+  "شركة بوابة المستقبل للبرمجيات",
+  "الرواد لخدمات الموارد البشرية",
+  "شركة الساحل للاستيراد والتصدير",
+  "مجموعة التيسير للخدمات المالية",
+] as const;
+
 export type GeneratedUnit = {
   /** Stable across runs — the idempotency key for this unit. */
   code: string;
@@ -109,6 +138,12 @@ export type GeneratedMember = {
    */
   fullName: string;
   phone: string;
+  /**
+   * Maps to `members.is_company`. True for the commercial tower's tenants: a
+   * B2B receivable behaves differently from a household one, and a demo that
+   * showed personal names on office leases would misrepresent the model.
+   */
+  isCompany: boolean;
 };
 
 /**
@@ -160,35 +195,165 @@ export function generateUnits(): GeneratedUnit[] {
 }
 
 /**
- * Decides which units are occupied and how.
+ * Decides which units are occupied and how, stratified by property.
  *
- * Occupancy is applied to ACTIVE units only, and the split between owner-
- * resident and leased is deliberate: a portfolio that is entirely leased shows
- * only the rent engine, and one that is entirely owner-occupied shows only
- * service charges. The demo needs both subledgers populated.
+ * WHAT THE PREVIOUS VERSION DID WRONG
+ * It computed one portfolio-wide quota and walked the unit list in order until
+ * the quota was spent. Its comment claimed occupancy was "spread across every
+ * building instead of filling the first one and leaving the last empty" -- the
+ * code did precisely what that sentence says it avoids. Because the fixtures
+ * list Palm Gate last, the three residential buildings came out 100% occupied
+ * and the entire commercial tower stood empty: no tenancy, no rent, no
+ * receivable, and not one QUARTERLY lease anywhere in the demo.
+ *
+ * Every structural invariant still passed, because each was a COUNT.
+ * `121 = 72 + 49` is true whichever units those are; none of them asked where.
+ *
+ * HOW THIS VERSION WORKS
+ * Occupancy is declared per property in DEMO_STORY.occupancyPlan and applied
+ * within each property, spread across its buildings in proportion to their
+ * size. Distribution is therefore a stated fact that the tests can assert,
+ * rather than a by-product of iteration order.
+ *
+ * Commercial stock is never owner-resident. An office does not have a resident
+ * owner, and a property accountant would notice immediately.
  */
 function assignTenure(units: GeneratedUnit[]): void {
   const active = units.filter((u) => !u.archived);
-  const targetOccupied = Math.round(active.length * DEMO_STORY.targets.occupancy);
 
-  // Deterministic ordering, then a fixed stride, so occupancy is spread across
-  // every building instead of filling the first one and leaving the last empty.
+  // ---------------------------------------------------------------------
+  // Step 1 -- who owns and who rents, decided per unit in list order.
+  //
+  // This is deliberately the SAME rule, in the same order, with the same seed
+  // as the original: one rng advanced across the active units, consulted only
+  // for residential stock. Keeping it identical is what makes the owner-
+  // resident set stable, which in turn is what lets the repair leave all 72
+  // ownership links untouched. Changing the rule here would be free to write
+  // and expensive to apply.
+  // ---------------------------------------------------------------------
   const rng = makeRng(hashString("tenure"));
-  for (let i = 0; i < active.length; i++) {
-    const unit = active[i]!;
-    if (i >= targetOccupied) {
-      unit.tenure = "VACANT";
-      continue;
-    }
-    // Commercial stock is leased, never owner-resident: an office does not
-    // have a resident owner, and showing one would be a modelling error a
-    // property accountant would notice immediately.
+  for (const unit of active) {
+    // Commercial stock is never owner-resident: an office does not have a
+    // resident owner, and a property accountant would notice immediately.
     if (unit.unitType === "OFFICE" || unit.unitType === "SHOP") {
       unit.tenure = "LEASED";
     } else {
       unit.tenure = rng() < 0.55 ? "OWNER_RESIDENT" : "LEASED";
     }
   }
+
+  // ---------------------------------------------------------------------
+  // Step 2 -- bring each property down to its declared occupancy.
+  //
+  // WHY VACANCY COMES OUT OF TENANCIES ONLY
+  // Two reasons, and they agree. Operationally, owners do not vacate -- they
+  // own the unit whether or not they are in it; it is tenants whose leases end
+  // and whose units come back to market. And practically, taking vacancy from
+  // the leased set leaves the ownership links exactly as they are, so the
+  // repair moves tenancies and nothing else.
+  //
+  // WHAT THE PREVIOUS VERSION OF THIS FIX DID WRONG
+  // It rebuilt the whole distribution from a fresh shuffle. The totals were
+  // right, but it re-drew which units were owned and which were let, so the
+  // repair diff came out at 37 lease moves and 60 ownership operations instead
+  // of 18 and none. Correct totals, needlessly destructive path.
+  // ---------------------------------------------------------------------
+  for (const plan of DEMO_STORY.occupancyPlan) {
+    const inProperty = active.filter((u) => u.propertyCode === plan.propertyCode);
+    if (inProperty.length === 0) continue;
+
+    if (plan.occupied > inProperty.length) {
+      throw new Error(
+        `occupancyPlan asks for ${plan.occupied} occupied units in ${plan.propertyCode}, ` +
+          `which only has ${inProperty.length} active.`,
+      );
+    }
+
+    const owners = inProperty.filter((u) => u.tenure === "OWNER_RESIDENT");
+    if (plan.leased + owners.length !== plan.occupied) {
+      throw new Error(
+        `occupancyPlan for ${plan.propertyCode} wants ${plan.occupied} occupied of which ` +
+          `${plan.leased} leased, but the ownership rule produced ${owners.length} owner-` +
+          "resident units. The plan and the rule disagree; adjust the plan rather than " +
+          "reassigning ownership.",
+      );
+    }
+
+    // Spread the surviving tenancies across the property's buildings in
+    // proportion to how many each currently holds, so no single block ends up
+    // carrying all of the vacancy -- the defect this whole change exists to fix.
+    const leasedByBuilding = new Map<string, GeneratedUnit[]>();
+    for (const unit of inProperty) {
+      if (unit.tenure !== "LEASED") continue;
+      const list = leasedByBuilding.get(unit.buildingCode) ?? [];
+      list.push(unit);
+      leasedByBuilding.set(unit.buildingCode, list);
+    }
+
+    const buildings = [...leasedByBuilding.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const keepQuotas = proportionalSplit(
+      buildings.map(([, list]) => list.length),
+      plan.leased,
+    );
+
+    buildings.forEach(([, list], index) => {
+      // Vacate from the end of the block: the highest-numbered units are the
+      // last let in a real building, and doing it in a fixed direction keeps
+      // the choice reproducible.
+      for (let i = keepQuotas[index]!; i < list.length; i++) {
+        list[i]!.tenure = "VACANT";
+      }
+    });
+  }
+}
+
+/**
+ * Splits `total` across buckets in proportion to their sizes, by largest
+ * remainder, so the parts sum to the total exactly. The same technique the CAM
+ * allocation uses, and for the same reason: naive rounding would lose or gain a
+ * unit and the declared occupancy would stop matching the assigned one.
+ */
+function proportionalSplit(sizes: number[], total: number): number[] {
+  const sum = sizes.reduce((a, b) => a + b, 0);
+  if (sum === 0) return sizes.map(() => 0);
+
+  const exact = sizes.map((size) => (size / sum) * total);
+  const floors = exact.map(Math.floor);
+  let remainder = total - floors.reduce((a, b) => a + b, 0);
+
+  const order = exact
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+
+  for (let i = 0; i < order.length && remainder > 0; i++, remainder--) {
+    floors[order[i]!.index]!++;
+  }
+
+  // Never hand a bucket more than it holds; push any excess to the next one.
+  for (let i = 0; i < floors.length; i++) {
+    if (floors[i]! > sizes[i]!) {
+      let excess = floors[i]! - sizes[i]!;
+      floors[i] = sizes[i]!;
+      for (let j = 0; j < floors.length && excess > 0; j++) {
+        if (j === i) continue;
+        const room = sizes[j]! - floors[j]!;
+        const give = Math.min(room, excess);
+        floors[j]! += give;
+        excess -= give;
+      }
+    }
+  }
+
+  return floors;
+}
+
+/** A stable shuffle: same input, same order, on every machine and every run. */
+function deterministicOrder<T>(items: T[], seed: string): T[] {
+  const rng = makeRng(hashString(seed));
+  return items
+    .map((item) => ({ item, key: rng() }))
+    .sort((a, b) => a.key - b.key)
+    .map(({ item }) => item);
 }
 
 /**
@@ -204,7 +369,11 @@ export function generateMembers(units: GeneratedUnit[]): {
   const rng = makeRng(hashString("members"));
   const members: GeneratedMember[] = [];
   const assignment = new Map<string, string>();
+  let companyCursor = 0;
 
+  // List order, not sorted. Sorting looked like a stability improvement and was
+  // the opposite: it re-paired members with units and made the repair want to
+  // re-point the tenant on a dozen live leases.
   const occupied = units.filter((u) => !u.archived && u.tenure !== "VACANT");
 
   // Every fifth occupied unit reuses the previous member, producing owners and
@@ -213,22 +382,45 @@ export function generateMembers(units: GeneratedUnit[]): {
 
   for (let i = 0; i < occupied.length; i++) {
     const unit = occupied[i]!;
+    const isCommercialUnit = unit.unitType === "OFFICE" || unit.unitType === "SHOP";
 
-    if (previous && i % 5 === 0) {
+    // Reuse only within the same kind. A company holding three offices is
+    // ordinary; a company that also rents a chalet, or a household that also
+    // holds a shop, is a modelling error dressed up as variety.
+    if (previous && i % 5 === 0 && previous.isCompany === isCommercialUnit) {
       assignment.set(unit.code, previous.email);
       continue;
     }
 
-    const given = pick(rng, GIVEN_NAMES);
-    const family = pick(rng, FAMILY_NAMES);
-    const ordinal = String(members.length + 1).padStart(4, "0");
+    // Separate sequences. A shared counter meant that inserting a company
+    // renumbered every individual after it, so the fixtures would name a
+    // different tenant on leases that had not changed at all.
+    const ordinal = String(
+      (unit.unitType === "OFFICE" || unit.unitType === "SHOP"
+        ? members.filter((m) => m.isCompany).length
+        : members.filter((m) => !m.isCompany).length) + 1,
+    ).padStart(4, "0");
 
-    const member: GeneratedMember = {
-      email: `m-${ordinal}@demo.aqarbooks.invalid`,
-      fullName: `${given.ar} ${family.ar}`,
-      // Shaped like a valid Egyptian mobile number and dialable by no one.
-      phone: `+2010${String(intBetween(rng, 10000000, 19999999))}`,
-    };
+    // A commercial unit gets a company; everything else gets a person. The
+    // unit decides, not a random roll, so an office is never let to an
+    // individual and a chalet is never let to a freight forwarder.
+    const isCompany = unit.unitType === "OFFICE" || unit.unitType === "SHOP";
+
+    const member: GeneratedMember = isCompany
+      ? {
+          email: `c-${ordinal}@demo.aqarbooks.invalid`,
+          fullName: COMPANY_NAMES[companyCursor++ % COMPANY_NAMES.length]!,
+          // Landlines for companies, mobiles for individuals.
+          phone: `+202${String(intBetween(rng, 20000000, 29999999))}`,
+          isCompany: true,
+        }
+      : {
+          email: `m-${ordinal}@demo.aqarbooks.invalid`,
+          fullName: `${pick(rng, GIVEN_NAMES).ar} ${pick(rng, FAMILY_NAMES).ar}`,
+          // Shaped like a valid Egyptian mobile number and dialable by no one.
+          phone: `+2010${String(intBetween(rng, 10000000, 19999999))}`,
+          isCompany: false,
+        };
 
     members.push(member);
     assignment.set(unit.code, member.email);

@@ -210,6 +210,54 @@ export const DEMO_STORY = {
     /** Share of billed dues left unpaid past their due date. */
     overdueShare: 0.17,
   },
+
+  /**
+   * The date every financial figure is reported as of.
+   *
+   * WHY THIS IS FIXED AND NOT `CURRENT_DATE`
+   * Aging, the dashboard, collection KPIs, dunning and the treasury narrative
+   * must all answer "as of when?" with the same date, or the demo contradicts
+   * itself between two screens. A clock-derived date also makes the dataset
+   * drift: the same fixtures would produce a different aging profile every day
+   * until every arrear eventually fell into 90+.
+   *
+   * WHY THE 25th AND NOT THE 31st
+   * Dues fall on the 1st. Measured at the 31st, every arrear is either 30 days
+   * or 60+ and the 1–30 bucket is arithmetically empty -- an aging report no
+   * accountant would recognise. At the 25th the same untouched dues land as
+   * 24 / 55 / 85 / 116 days, filling every bucket. The fix is the observation
+   * date, not the due dates: staggering those to fill a chart would be
+   * fabricating the very thing the report is supposed to measure.
+   */
+  asOfDate: "2026-08-25",
+
+  /**
+   * Where occupancy sits, property by property.
+   *
+   * WHY THIS IS DECLARED RATHER THAN DERIVED FROM A SINGLE PERCENTAGE
+   * It used to be one portfolio-wide figure, and the assignment walked the unit
+   * list in order until it had filled its quota. The totals were correct and
+   * the distribution was not: the first three buildings came out 100% occupied
+   * and Palm Gate -- last in the list -- absorbed the entire vacancy and stood
+   * completely empty. Every structural invariant passed, because all of them
+   * counted and none of them asked WHERE.
+   *
+   * Declaring the split per property makes the distribution a fact that can be
+   * asserted instead of an accident of iteration order. The numbers are also
+   * more honest than a flat rate: a commercial tower genuinely runs at lower
+   * occupancy than a residential compound.
+   *
+   *   occupied  units the property has let or sold
+   *   leased    of those, how many are tenancies rather than owner-occupied
+   *
+   * `occupied` must sum to 121 and `leased` to 49, which the fixtures assert.
+   */
+  occupancyPlan: [
+    { propertyCode: "NH", occupied: 79, leased: 26 },
+    { propertyCode: "MR", occupied: 24, leased: 5 },
+    /** Commercial: every occupied unit is a tenancy, none is owner-occupied. */
+    { propertyCode: "PG", occupied: 18, leased: 18 },
+  ],
 } as const;
 
 export type DemoBuilding = (typeof DEMO_STORY.buildings)[number];

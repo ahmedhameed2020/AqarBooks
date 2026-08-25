@@ -299,8 +299,15 @@ export function planCamLevy(input: FinancialPlanInput): PlannedLevy | null {
 
   const basisSum = eligible.reduce((sum, u) => sum + (u.area ?? 0), 0);
 
-  // A plausible monthly operating cost for the block: cleaning, security,
-  // landscaping, shared utilities. Chosen as a cost, not as a revenue target.
+  // The August 2026 Common Area Operating Budget: cleaning, security,
+  // landscaping and shared utilities for the block.
+  //
+  // This is the one figure in the whole narrative that is an INPUT, and it is
+  // legitimately so: a CAM budget is an external business fact -- management
+  // states what the month's services cost and the system allocates it. What
+  // would be illegitimate is choosing a per-unit charge, or picking a total to
+  // make revenue reach a number. Every share below is computed from the units'
+  // own areas.
   const totalAmount = 185_000;
 
   const allocations = largestRemainder(
@@ -509,6 +516,13 @@ function round2(value: number): number {
 // Aging — a consequence, never an input
 // ---------------------------------------------------------------------------
 
+/**
+ * Bucket boundaries, stated once so the renderer cannot label them wrongly:
+ *   current   0-30 days past due
+ *   d30      31-60
+ *   d60      61-90
+ *   d90plus   over 90
+ */
 export type AgingBuckets = {
   current: number;
   d30: number;

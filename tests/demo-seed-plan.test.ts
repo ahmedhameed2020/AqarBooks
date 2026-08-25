@@ -16,7 +16,12 @@ import {
   computeStructuralIntegrity,
   renderSeedPlan,
 } from "../scripts/demo/demo-plan";
-import { generateLeases, generateMembers, generateUnits } from "../scripts/demo/demo-fixtures";
+import {
+  generateLeases,
+  generateMembers,
+  generateUnits,
+  type GeneratedUnit,
+} from "../scripts/demo/demo-fixtures";
 import { DEMO_STORY } from "../lib/demo/story";
 
 describe("demo seed plan", () => {
@@ -250,5 +255,114 @@ describe("structural integrity gate is falsifiable", () => {
     expect(rendered).toContain("INTEGRITY FAILURES");
     expect(rendered).toContain("occupied_without_owner_or_lease");
     expect(rendered).toContain("Do not provision or seed");
+  });
+});
+
+/**
+ * Distribution invariants.
+ *
+ * WHY THESE EXIST
+ * Every earlier structural invariant was a COUNT, and counts cannot see a
+ * distribution. `121 = 72 + 49` was true while Palm Gate stood entirely empty:
+ * three buildings 100% occupied, the commercial tower 0%, no quarterly lease
+ * anywhere in the demo. The whole suite passed and one of the three properties
+ * generated nothing.
+ *
+ * These ask where, not how many. They are the checks that would have caught it
+ * on the day it was written.
+ */
+describe("demo occupancy distribution", () => {
+  const units = generateUnits();
+  const { members, assignment } = generateMembers(units);
+  const leases = generateLeases(units, assignment);
+
+  const active = units.filter((u) => !u.archived);
+  const byProperty = new Map<string, GeneratedUnit[]>();
+  for (const unit of active) {
+    const list = byProperty.get(unit.propertyCode) ?? [];
+    list.push(unit);
+    byProperty.set(unit.propertyCode, list);
+  }
+
+  const isCommercial = (u: GeneratedUnit) => u.unitType === "OFFICE" || u.unitType === "SHOP";
+
+  it("every property has occupied units", () => {
+    for (const [code, list] of byProperty) {
+      const occupied = list.filter((u) => u.tenure !== "VACANT");
+      expect(occupied.length, `property ${code} has no occupied units`).toBeGreaterThan(0);
+    }
+  });
+
+  it("no building absorbs the entire vacancy", () => {
+    // The precise shape of the original defect: one block left completely
+    // empty while the others were completely full.
+    const byBuilding = new Map<string, GeneratedUnit[]>();
+    for (const unit of active) {
+      const list = byBuilding.get(unit.buildingCode) ?? [];
+      list.push(unit);
+      byBuilding.set(unit.buildingCode, list);
+    }
+    for (const [code, list] of byBuilding) {
+      const occupied = list.filter((u) => u.tenure !== "VACANT").length;
+      expect(occupied, `building ${code} is entirely vacant`).toBeGreaterThan(0);
+    }
+  });
+
+  it("commercial stock is occupied, leased and billed quarterly", () => {
+    const commercial = active.filter(isCommercial);
+    expect(commercial.length, "no commercial units in the fixtures").toBeGreaterThan(0);
+
+    const occupiedCommercial = commercial.filter((u) => u.tenure !== "VACANT");
+    expect(occupiedCommercial.length, "no commercial unit is occupied").toBeGreaterThan(0);
+
+    const commercialCodes = new Set(commercial.map((u) => u.code));
+    const commercialLeases = leases.filter((l) => commercialCodes.has(l.unitCode));
+    expect(commercialLeases.length, "no commercial lease exists").toBeGreaterThan(0);
+
+    const quarterly = leases.filter((l) => l.rentFrequency === "QUARTERLY");
+    expect(quarterly.length, "no quarterly lease exists").toBeGreaterThan(0);
+
+    // Commercial is billed quarterly and residential monthly; a mix-up would
+    // misrepresent how the product schedules rent.
+    for (const lease of commercialLeases) {
+      expect(lease.rentFrequency, `${lease.unitCode} is commercial but not quarterly`).toBe(
+        "QUARTERLY",
+      );
+    }
+  });
+
+  it("no commercial unit is owner-resident", () => {
+    const wrong = active.filter((u) => isCommercial(u) && u.tenure === "OWNER_RESIDENT");
+    expect(wrong.map((u) => u.code)).toEqual([]);
+  });
+
+  it("matches the declared occupancy plan exactly", () => {
+    for (const plan of DEMO_STORY.occupancyPlan) {
+      const list = byProperty.get(plan.propertyCode) ?? [];
+      const occupied = list.filter((u) => u.tenure !== "VACANT").length;
+      const leased = list.filter((u) => u.tenure === "LEASED").length;
+      expect(occupied, `${plan.propertyCode} occupied`).toBe(plan.occupied);
+      expect(leased, `${plan.propertyCode} leased`).toBe(plan.leased);
+    }
+  });
+
+  it("every property retains some vacancy", () => {
+    // A portfolio with no vacancy anywhere is as unconvincing as one with a
+    // dead building: real operators always have some stock available.
+    for (const [code, list] of byProperty) {
+      const vacant = list.filter((u) => u.tenure === "VACANT").length;
+      expect(vacant, `property ${code} has no vacant units at all`).toBeGreaterThan(0);
+    }
+  });
+
+  it("commercial tenants are companies and residential tenants are not", () => {
+    const byEmail = new Map(members.map((m) => [m.email, m]));
+    for (const unit of active.filter((u) => u.tenure !== "VACANT")) {
+      const member = byEmail.get(assignment.get(unit.code) ?? "");
+      if (!member) continue;
+      expect(member.isCompany, `${unit.code} (${unit.unitType}) tenant company flag`).toBe(
+        isCommercial(unit),
+      );
+    }
   });
 });
