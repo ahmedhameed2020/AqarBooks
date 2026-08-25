@@ -13,19 +13,19 @@ export function SectionFinancialReports({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">07</span>
-            <span>{isAr ? "من القيد إلى القرار" : "FROM ENTRY TO DECISION"}</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">07</span>
+            <span>{isAr ? "تقارير المراجعين والإدارة" : "AUDITOR-READY FINANCIAL STATEMENTS"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "دفاترك تعرف النتيجة قبل ما تسأل عنها." : "Your ledgers know the numbers before you even ask."}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
+            {isAr ? "ميزان مراجعة، وقائمة دخل، وأعمار ديون.. جاهزة في ثواني بدون إكسيل." : "Trial balance, income statement, and aging reports.. ready in seconds without Excel hassle."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "كل قيد مُرحّل ينعكس مباشرة على التقارير والقوائم المالية، فتشوف الصورة من واقع دفاترك نفسها — من غير إعادة تجميع، ولا نقل بين ملفات، ولا انتظار إقفال الشهر."
-              : "Every posted voucher feeds directly into live statements — allowing you to see the real financial picture straight from your books with zero spreadsheet exports or month-end waiting."}
+              ? "بدل ما تقضي أسبوع تجمع أرقام متفرقة، كل التقارير المالية وضريبتك وكشوف حساب الملاك جاهزة للتصدير والطباعة فوراً من واقع القيود الحقيقية."
+              : "Instead of spending days reconciling disparate spreadsheets, your tax returns, operating P&Ls, and member statements are always up to date."}
           </p>
 
           {/* Proof Points */}

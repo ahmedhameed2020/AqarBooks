@@ -20,19 +20,19 @@ export function SectionPropertyDimension({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section Header */}
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#07425d]">
-            <span className="flex size-5 items-center justify-center rounded-full bg-[#07425d]/10 text-[10px]">03</span>
-            <span>{isAr ? "أبعد من رقم الحساب" : "BEYOND AN ACCOUNT NUMBER"}</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#07425d] bg-[#07425d]/10 px-3 py-1 rounded-full border border-[#07425d]/20 mb-3">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#07425d] text-[10px] text-white">03</span>
+            <span>{isAr ? "الهيكل العقاري كبُعد مالي" : "PROPERTY AS A FINANCIAL DIMENSION"}</span>
           </div>
 
-          <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-950 font-heading">
-            {isAr ? "القيد يقول كام. AqarBooks يقول فين ولمين." : "The ledger says how much. AqarBooks says where and for whom."}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-950 font-heading leading-tight">
+            {isAr ? "المحاسبة التقليدية بتقول صرفت كام.. إحنا بنقول صرفت كام، وفي أي دور، وعلى أنهي شقة." : "Standard software tells you what was spent.. We tell you what was spent, on which floor, and for which unit."}
           </h2>
 
           <p className="mt-3.5 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             {isAr
-              ? "كل حركة مالية تحتفظ بسياقها العقاري كاملًا — الكيان، المنطقة، المبنى، الوحدة والعميل — عشان تقدر تقرأ حساباتك من مستوى المحفظة كلها لحد وحدة واحدة."
-              : "Every financial movement retains its complete real estate DNA — entity, zone, building, unit, and member — allowing you to read financials from entire portfolio down to a single flat."}
+              ? "تقدر تطلع تقرير مالي لمشروع كامل، أو تفصل مصروفات عمارة محددة، أو تراجع كشف حساب شقة واحدة بضغطة زر وبلا أي تشتت."
+              : "Generate a consolidated report for the entire project, isolate a single building's expenses, or inspect one unit's sub-ledger in seconds."}
           </p>
 
           {/* Proof Points */}
