@@ -7,6 +7,12 @@
 -- Builds on 20260825124312_generate_lease_rent_dues_authz. The authorization
 -- block added there is preserved unchanged; this adds one further guard.
 --
+-- CORRECTED BEFORE APPLY. The first draft compared ends_on against
+-- upper(v_range). daterange canonicalises to '[)', so upper() is the day AFTER
+-- the period's last day, and the comparison was off by one -- in the COMMON
+-- direction: a monthly lease ending on the last day of the month would have
+-- been declared partial and refused. See the BOUNDARY note in the body.
+--
 -- ===========================================================================
 -- THE DEFECT
 -- ===========================================================================
@@ -152,11 +158,28 @@ begin
   -- Lifting this means introducing a real proration policy, at which point this
   -- raise becomes the branch that consults it. See the defect note
   -- "Partial-period rent billing policy / proration".
+  -- BOUNDARY. `lease_rent_period_range` builds daterange(start, end, '[]'),
+  -- and Postgres canonicalises a discrete range to '[)'. So for 2026-Q2:
+  --
+  --     built as  [2026-04-01 .. 2026-06-30]
+  --     stored as [2026-04-01, 2026-07-01)
+  --     upper()    = 2026-07-01   -- the day AFTER the last day in the period
+  --
+  -- Comparing ends_on against upper() directly is therefore off by one, and it
+  -- fails in the COMMON case rather than an exotic one: a monthly lease ending
+  -- 2026-05-31 fully covers 2026-05, but 2026-05-31 < 2026-06-01 would have
+  -- flagged it partial and refused to bill it. `upper(v_range) - 1` is the
+  -- last day actually inside the period.
+  --
+  -- The equivalent containment form -- daterange(starts_on, ends_on, '[]') @>
+  -- v_range -- reads better, but ends_on is nullable and an unbounded upper
+  -- bound has to be constructed carefully for it to be correct. This form has
+  -- fewer ways to be wrong.
   if v_lease.starts_on > lower(v_range)
-     or coalesce(v_lease.ends_on, 'infinity'::date) < upper(v_range) then
+     or coalesce(v_lease.ends_on, 'infinity'::date) < (upper(v_range) - 1) then
     raise exception
       'PARTIAL_PERIOD_REQUIRES_POLICY: العقد لا يغطي الفترة بالكامل (% .. %) ولا توجد سياسة تقسيط زمني — lease % covers % .. %',
-      lower(v_range), upper(v_range), p_lease_id, v_lease.starts_on, coalesce(v_lease.ends_on, 'infinity'::date)
+      lower(v_range), (upper(v_range) - 1), p_lease_id, v_lease.starts_on, coalesce(v_lease.ends_on, 'infinity'::date)
       using errcode = '22023';
   end if;
 
