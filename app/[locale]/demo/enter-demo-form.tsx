@@ -20,6 +20,10 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
     ar: "بيئة الاستعراض متوقفة مؤقتًا للصيانة. تواصل معنا ونرتّب لك عرضًا مباشرًا.",
     en: "The demo environment is temporarily paused for maintenance. Contact us and we'll arrange a live walkthrough.",
   },
+  demo_rate_limited: {
+    ar: "تم إجراء عدة محاولات متتالية. حاول مرة أخرى بعد قليل.",
+    en: "Too many demo access attempts. Please try again shortly.",
+  },
 };
 
 export function EnterDemoForm({ locale }: { locale: Locale }) {

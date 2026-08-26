@@ -3,6 +3,7 @@
 import { redirect } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import { startDemoSession, endDemoSession } from "@/lib/demo/session";
+import { checkDemoEntryRateLimit } from "@/lib/demo/rate-limit";
 import { recordDemoEvent } from "@/lib/demo/analytics";
 import type { ActionResult } from "@/lib/actions/platform";
 
@@ -26,6 +27,15 @@ export async function enterDemoAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const locale = toLocale(formData.get("locale"));
+
+  // Checked BEFORE startDemoSession, not after: a rate-limited request must
+  // never reach auth.signInWithPassword at all, so the limit actually bounds
+  // sign-in volume rather than just bounding how often the UI reports success.
+  const rateLimit = await checkDemoEntryRateLimit();
+  if (!rateLimit.allowed) {
+    recordDemoEvent("demo_entry_rate_limited", { locale });
+    return { ok: false, error: "demo_rate_limited" };
+  }
 
   const result = await startDemoSession();
 

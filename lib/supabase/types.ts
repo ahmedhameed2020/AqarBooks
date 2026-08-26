@@ -2964,6 +2964,15 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { generated: number; idempotent: number; blocked: number; skipped: number; errored: number };
       };
+      check_and_record_rate_limit: {
+        Args: {
+          p_action: string;
+          p_client_key: string;
+          p_limit: number;
+          p_window_seconds: number;
+        };
+        Returns: boolean;
+      };
       create_installment_plan: {
         Args: {
           p_organization_id: string;

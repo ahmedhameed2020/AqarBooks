@@ -25,6 +25,7 @@ import "server-only";
 export type DemoEventName =
   | "demo_entry"
   | "demo_entry_failed"
+  | "demo_entry_rate_limited"
   | "demo_exit"
   | "demo_dashboard_view"
   | "demo_feature_view"
