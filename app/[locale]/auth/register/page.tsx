@@ -16,23 +16,24 @@ export async function generateMetadata({
   const isAr = locale === "ar";
 
   return {
-    title: isAr ? "طلب حساب مؤسسي | AqarBooks" : "Request an Enterprise Account | AqarBooks",
+    title: isAr ? "ابدأ تفعيل حسابك | AqarBooks" : "Get Started | AqarBooks",
     description: isAr
-      ? "حسابات AqarBooks المؤسسية يتم تأسيسها عبر فريقنا بعد اعتماد الطلب."
-      : "AqarBooks enterprise accounts are provisioned by our team once a request is approved.",
+      ? "أكمل بيانات شركتك واختر الباقة المناسبة للبدء مع AqarBooks."
+      : "Complete your company details and pick the right plan to get started with AqarBooks.",
     robots: { index: false, follow: true },
   };
 }
 
 /**
- * Public self-service registration is retired.
+ * Activation entry point.
  *
- * Registration used to create an auth account that immediately fed the
- * onboarding wizard, which provisioned an ACTIVE organization with no approval
- * and no payment. That RPC is no longer executable by `authenticated`, so the
- * journey now leads nowhere; the route is kept (rather than deleted) so that
- * existing links and confirmation emails land on an explanation instead of a
- * 404 or a raw Postgres error.
+ * The old self-service registration (auth account -> onboarding wizard ->
+ * ACTIVE organization with no approval and no payment) is retired; its RPC is
+ * no longer executable by `authenticated`. Until the self-service activation
+ * flow (email verification -> company details -> plan -> commercial gate ->
+ * provisioning) ships, this page routes prospects to plan selection and the
+ * live demo. Internal approval steps are an operational detail and must never
+ * surface in this copy.
  *
  * Existing customer sign-in is deliberately untouched.
  */
@@ -61,12 +62,12 @@ export default async function RegisterPage({
   return (
     <AuthShell
       brandName="AqarBooks"
-      eyebrow={isAr ? "طلب حساب" : "Request access"}
-      title={isAr ? "نؤسس منظومتك معك، لا نتركك أمام نموذج فارغ." : "We set your workspace up with you."}
+      eyebrow={isAr ? "ابدأ الآن" : "Get started"}
+      title={isAr ? "ابدأ تفعيل حسابك" : "Start your AqarBooks account"}
       subtitle={
         isAr
-          ? "حسابات AqarBooks يتم تأسيسها عبر فريقنا حتى يبدأ دليلك المحاسبي وسنتك المالية صحيحين من أول يوم."
-          : "AqarBooks accounts are provisioned by our team, so your chart of accounts and fiscal year start correct."
+          ? "أكمل بيانات شركتك واختر الباقة المناسبة للبدء."
+          : "Complete your company details and pick the right plan to get started."
       }
       locale={locale}
       maxWidth="xl"
@@ -74,24 +75,24 @@ export default async function RegisterPage({
       <div className="space-y-5">
         <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           {isAr
-            ? "شاهد النظام على بيانات حقيقية أولاً، ثم تواصل معنا لتأسيس منظومة شركتك."
-            : "See the system on real data first, then talk to us to have your company's workspace provisioned."}
+            ? "اختر الباقة المناسبة لشركتك وسنجهّز حسابك للانطلاق."
+            : "Pick the plan that fits your company and we'll get your account ready to go."}
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/demo"
+            href="/pricing"
             locale={locale as Locale}
             className="inline-flex flex-1 items-center justify-center rounded-xl bg-[#07425d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#06364c]"
           >
-            {isAr ? "استكشف النظام" : "Explore the system"}
+            {isAr ? "اختر الباقة المناسبة" : "Choose your plan"}
           </Link>
           <Link
-            href="/contact"
+            href="/demo"
             locale={locale as Locale}
             className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            {isAr ? "تحدث مع فريق AqarBooks" : "Talk to AqarBooks"}
+            {isAr ? "جرّب العرض الحي" : "Try the live demo"}
           </Link>
         </div>
 
