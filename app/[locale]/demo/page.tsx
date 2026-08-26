@@ -132,10 +132,12 @@ export default async function DemoEntryPage({
                 <p className="font-heading text-lg font-black text-slate-950">
                   {isAr ? DEMO_STORY.organization.nameAr : DEMO_STORY.organization.nameEn}
                 </p>
+                {/* The "this is a demo" framing lives here, one line below the
+                    company name -- never appended onto the name itself. */}
                 <p className="mt-1 text-xs font-medium text-slate-500">
                   {isAr
-                    ? `الفترة التشغيلية: ${DEMO_STORY.headline.periodAr}`
-                    : `Operating period: ${DEMO_STORY.headline.periodEn}`}
+                    ? `بيئة العرض التجريبية · ${DEMO_STORY.headline.periodAr}`
+                    : `Interactive demo environment · ${DEMO_STORY.headline.periodEn}`}
                 </p>
 
                 <div className="my-6 grid grid-cols-3 gap-3">

@@ -22,10 +22,15 @@
 
 export const DEMO_STORY = {
   organization: {
-    // Named so it is unmistakable internally which tenant this is, while still
-    // reading as a real operating company on screen.
-    nameEn: "AqarBooks Demo Holdings",
-    nameAr: "أقاربوكس القابضة — بيئة العرض",
+    // The fictional company the demo dataset belongs to. AqarBooks is the
+    // product; Osoul is the customer being demonstrated inside it -- the two
+    // must never be conflated on screen. This matches organizations.name for
+    // the live demo tenant (id 7807b481-6003-414f-9c15-8afa44c19150), so the
+    // pre-login entry page and the post-login sidebar say the same thing.
+    // Do not append a "demo environment" suffix here -- that framing belongs
+    // in the UI copy that surrounds the name, not in the name itself.
+    nameEn: "Osoul Real Estate Management",
+    nameAr: "أوصول لإدارة الكيانات العقارية",
     slug: "aqarbooks-demo",
     entityType: "FACILITY_MANAGEMENT" as const,
     currency: "EGP" as const,
