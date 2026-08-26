@@ -13,6 +13,9 @@ import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { getOperationalAlerts } from "@/lib/alerts/operational-alerts";
+import { isDemoOrganization } from "@/lib/demo/config";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { DemoModeProvider } from "@/components/demo/demo-mode-context";
 import {
   buildPermissionChecker,
   collectNavPermissionKeys,
@@ -335,9 +338,16 @@ export default async function AppShellLayout({
     isSuperAdmin: platformAdmin,
   };
 
+  // Demo-ness is derived from the organization this session resolved to on the
+  // server -- never from a cookie, a header or a query parameter. A visitor
+  // cannot put themselves into demo mode, and just as importantly cannot take
+  // themselves out of it to shed the banner.
+  const inDemo = isDemoOrganization(organization?.id);
+
   return (
     <Toaster>
       <div className="flex min-h-full flex-1 flex-col">
+        {inDemo ? <DemoBanner locale={loc} /> : null}
         <SiteHeader locale={loc} alerts={alerts} />
         <div className="flex flex-1 flex-col md:flex-row">
           <AppSidebar
@@ -346,7 +356,12 @@ export default async function AppShellLayout({
             userProfile={userProfile}
             signOutAction={boundSignOut}
           />
-          <main className="flex-1 p-3.5 sm:p-6 md:p-8 min-w-0 max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-[#090D16] transition-colors">{children}</main>
+          <main className="flex-1 p-3.5 sm:p-6 md:p-8 min-w-0 max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-[#090D16] transition-colors">
+            {/* Presentation only -- see components/demo/demo-mode-context.tsx.
+                Nothing may be authorized on this value; it exists so client
+                components can render demo copy without another round trip. */}
+            <DemoModeProvider isDemo={inDemo}>{children}</DemoModeProvider>
+          </main>
         </div>
         <AskAqarBooksDrawer locale={loc} />
       </div>

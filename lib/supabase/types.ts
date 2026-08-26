@@ -50,6 +50,13 @@ export type Database = {
           logo_url: string | null;
           commercial_registry: string | null;
           tagline: string | null;
+          /**
+           * Marks the public demo tenant. Added by migration
+           * 20260825084639_organizations_is_demo and used by the demo write
+           * policies and the lease-rent sweep. Not in Insert: it is set
+           * deliberately by an operator, never as part of creating a tenant.
+           */
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
           created_by: string | null;
