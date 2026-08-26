@@ -189,6 +189,89 @@ describe("public submission never touches organizations directly", () => {
   });
 });
 
+describe("Step 1 requires real email verification, never Admin-API auto-confirmation", () => {
+  const actionSource = readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8");
+  const accountFormSource = readFileSync(
+    join(process.cwd(), "app/[locale]/get-started/account-step-form.tsx"),
+    "utf8",
+  );
+  const checkEmailPageSource = readFileSync(
+    join(process.cwd(), "app/[locale]/get-started/check-email/page.tsx"),
+    "utf8",
+  );
+
+  it("startOnboardingAccountAction never calls the Admin API to create or auto-confirm an identity", () => {
+    expect(actionSource, "must not force email_confirm").not.toContain("email_confirm");
+    expect(actionSource, "must not use the Admin API to create a user").not.toContain("admin.auth.admin.createUser");
+    expect(actionSource, "must not use the Admin API to delete a user (no orphan to compensate for anymore)").not.toContain(
+      "admin.auth.admin.deleteUser",
+    );
+    expect(actionSource, "must not touch an existing account's password/metadata").not.toContain("updateUserById");
+    expect(actionSource, "must use the real, unprivileged signUp flow").toContain(".auth.signUp(");
+  });
+
+  it("a brand-new signup gets no session until the emailed confirmation link is used (no email_confirm override reaches signUp's options)", () => {
+    const signUpCallStart = actionSource.indexOf(".auth.signUp(");
+    const signUpCallEnd = actionSource.indexOf("});", signUpCallStart);
+    const signUpCall = actionSource.slice(signUpCallStart, signUpCallEnd);
+    expect(signUpCall, "signUp() must be called with only email/password/options -- no confirmation override exists on this API").not.toContain(
+      "email_confirm",
+    );
+    expect(signUpCall, "the confirmation link must resume the wizard at the company step").toContain(
+      "/get-started/company",
+    );
+  });
+
+  it("submitOnboardingRequestAction refuses when there is no session, rather than trusting a client-supplied identity", () => {
+    expect(actionSource).toContain('error: "not_authenticated"');
+    const submitFnStart = actionSource.indexOf("export async function submitOnboardingRequestAction");
+    const getUserGuard = actionSource.indexOf("if (!user) {", submitFnStart);
+    expect(getUserGuard, "submitOnboardingRequestAction must guard on the session's own user, not a form field").toBeGreaterThan(-1);
+  });
+
+  it("neither the account form nor the post-submit page discloses whether an email is already registered", () => {
+    const haystack = (actionSource + accountFormSource + checkEmailPageSource).toLowerCase();
+    expect(haystack, "no UI-facing branch may state that an email already exists").not.toContain("already registered");
+    expect(actionSource, "no distinguishing error code for an existing email").not.toContain("email_already_registered");
+  });
+
+  it("the new-user trigger on auth.users creates a profile row and nothing tenant-shaped, confirmed or not", async () => {
+    const fakeId = randomUUID();
+    const email = `verify-trigger-${fakeId}@aqarbooks-test.invalid`;
+
+    // Mirrors exactly what supabase.auth.signUp() leaves behind before the
+    // confirmation link is ever clicked: a real auth.users row with
+    // email_confirmed_at still null. Inserted directly (not via signUp,
+    // which this test file cannot call without a request scope) so the
+    // trigger this row fires is exercised the same way either way.
+    const { data: createdData, error: insertUserError } = await admin.auth.admin.createUser({
+      email,
+      password: TEST_PASSWORD,
+      email_confirm: false,
+      user_metadata: { full_name: "Trigger Probe" },
+    });
+    expect(insertUserError, "fixture setup must succeed").toBeNull();
+    const created = createdData?.user;
+    expect(created, "fixture user must exist").toBeTruthy();
+    createdUserIds.push(created!.id);
+    expect(created!.email_confirmed_at, "this fixture must reproduce the pre-confirmation state").toBeFalsy();
+
+    const { data: profile } = await admin.from("profiles").select("id").eq("id", created!.id).maybeSingle();
+    expect(profile, "the new-user trigger must still create the ordinary profile row").toBeTruthy();
+
+    const [orgs, memberships, roleAssignments, onboardingRequests] = await Promise.all([
+      admin.from("organizations").select("id", { count: "exact", head: true }).eq("created_by", created!.id),
+      admin.from("organization_memberships").select("id", { count: "exact", head: true }).eq("user_id", created!.id),
+      admin.from("user_role_assignments").select("id", { count: "exact", head: true }).eq("user_id", created!.id),
+      admin.from("onboarding_requests").select("id", { count: "exact", head: true }).eq("requester_user_id", created!.id),
+    ]);
+    expect(orgs.count, "an unconfirmed signup must own zero organizations").toBe(0);
+    expect(memberships.count, "an unconfirmed signup must have zero memberships").toBe(0);
+    expect(roleAssignments.count, "an unconfirmed signup must have zero role assignments").toBe(0);
+    expect(onboardingRequests.count, "an unconfirmed signup must have zero onboarding requests").toBe(0);
+  });
+});
+
 describe("request idempotency: onboarding_requests_one_actionable_per_requester", () => {
   it("a second actionable-status insert for the same requester is refused (23505), not a second row", async () => {
     const { requesterId, request } = await submitRequest();

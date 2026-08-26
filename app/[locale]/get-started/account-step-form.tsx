@@ -50,8 +50,6 @@ export function AccountStepForm({ locale, initialPlan }: { locale: Locale; initi
   const passwordsTyped = confirmPassword.length > 0;
   const passwordsMismatch = passwordsTyped && password !== confirmPassword;
 
-  const emailAlreadyRegistered = !state.ok && state.error === "email_already_registered";
-
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="locale" value={locale} />
@@ -103,30 +101,18 @@ export function AccountStepForm({ locale, initialPlan }: { locale: Locale; initi
       )}
 
       {!state.ok && (
-        <div role="alert" className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs">
-          <div className="flex items-center gap-2 font-medium text-amber-900">
-            <AlertCircle className="size-4 shrink-0" />
-            <span>
-              {emailAlreadyRegistered
-                ? isAr
-                  ? "هذا البريد الإلكتروني مسجّل بالفعل."
-                  : "This email is already registered."
-                : isAr
-                  ? ERROR_COPY[state.error]?.ar ?? state.error
-                  : ERROR_COPY[state.error]?.en ?? state.error}
-            </span>
-          </div>
-          {emailAlreadyRegistered && (
-            <Link
-              href="/login?redirect_to=/get-started/company"
-              locale={locale}
-              className="inline-flex font-bold text-[#07425d] underline underline-offset-4"
-            >
-              {isAr ? "تسجيل الدخول ومتابعة الطلب" : "Sign in and continue"}
-            </Link>
-          )}
+        <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          <span>{isAr ? ERROR_COPY[state.error]?.ar ?? state.error : ERROR_COPY[state.error]?.en ?? state.error}</span>
         </div>
       )}
+
+      <p className="text-center text-xs text-slate-500">
+        {isAr ? "لديك حساب بالفعل؟ " : "Already have an account? "}
+        <Link href="/login?redirect_to=/get-started/company" locale={locale} className="font-bold text-[#07425d] hover:underline">
+          {isAr ? "تسجيل الدخول" : "Sign in"}
+        </Link>
+      </p>
 
       <Button type="submit" className="w-full" disabled={pending || passwordsMismatch}>
         {pending ? (isAr ? "جارٍ إنشاء الحساب..." : "Creating account...") : isAr ? "متابعة" : "Continue"}

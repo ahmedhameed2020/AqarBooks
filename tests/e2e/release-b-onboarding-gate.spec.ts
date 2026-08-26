@@ -44,21 +44,47 @@
  *
  * HOW TO RUN (against the branch preview URL, with a human ready to clean up)
  *   PLAYWRIGHT_BASE_URL=https://claude-aqarbooks-conversion-flow-2tplsl-aqarbooks.ahmedhameed2020.workers.dev \
+ *   NEXT_PUBLIC_SUPABASE_URL=https://ataslxkcflxuilpgyepm.supabase.co \
+ *   SUPABASE_SERVICE_ROLE_KEY=the-real-service-role-key \
  *   E2E_PLATFORM_ADMIN_EMAIL=the-actual-platform-admin-email@example.com \
  *   E2E_PLATFORM_ADMIN_PASSWORD=the-actual-platform-admin-password \
  *   E2E_CUSTOMER_EMAIL=an-existing-real-customer-login@example.com \
  *   E2E_CUSTOMER_PASSWORD=the-actual-existing-customer-password \
  *   npx playwright test tests/e2e/release-b-onboarding-gate.spec.ts
  *
- * The locale/viewport checks below run without credentials and will run and
- * report even if the platform-admin/customer env vars are absent -- only the
- * submit-to-approval, submit-to-rejection, and existing-customer flows skip
- * in that case, with an explicit reason (this is the same pattern
+ * WHY THIS SUITE NOW NEEDS SUPABASE_SERVICE_ROLE_KEY TOO
+ * Step 1 (lib/actions/onboarding-request.ts) now goes through the real
+ * supabase.auth.signUp() confirmation flow instead of an auto-confirmed
+ * Admin-API account -- a fresh signup gets no session until its emailed
+ * link is opened. There is no real inbox in CI to read that email from, so
+ * this suite's own admin client (not the application's) calls
+ * admin.auth.admin.generateLink({ type: "signup", ... }) to obtain the exact
+ * same action link Supabase would have emailed, then has Playwright visit
+ * it -- exercising the real /auth/callback route and the real session it
+ * establishes, not a shortcut around either. This mirrors exactly how
+ * tests/onboarding-request.integration.test.ts already needs the same key.
+ *
+ * The locale/viewport checks below run without any credentials and will run
+ * and report regardless -- only the submit-to-approval, submit-to-rejection,
+ * and existing-customer flows skip when their required env vars are absent,
+ * with an explicit reason (this is the same pattern
  * release-a-production-gate.spec.ts uses for its existing-customer-session
  * check).
  */
 import { test, expect, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
+
+function isUsableEnv(value: string | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.trim() !== "...";
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceRoleUsable = isUsableEnv(supabaseUrl) && isUsableEnv(serviceRoleKey);
+const adminClient = serviceRoleUsable
+  ? createClient(supabaseUrl!, serviceRoleKey!, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
 const VIEWPORTS = [
   { name: "mobile-375", width: 375, height: 812 },
@@ -74,11 +100,20 @@ function testPassword(): string {
   return `Onb-${randomUUID()}!`;
 }
 
-/** Drives the full public wizard for one locale and returns the credentials used. */
+/**
+ * Drives the full public wizard for one locale and returns the credentials
+ * used. Requires the service-role admin client -- see the file header for
+ * why: Step 1 no longer signs the visitor in itself, so this helper opens
+ * the exact confirmation link Supabase would have emailed, the same way a
+ * real applicant clicking it in their inbox would.
+ */
 async function submitOnboardingRequest(
   page: Page,
   locale: "ar" | "en",
 ): Promise<{ email: string; password: string; organizationName: string }> {
+  if (!adminClient) {
+    throw new Error("submitOnboardingRequest requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  }
   const email = `onb-gate-${randomUUID()}@aqarbooks-test.invalid`;
   const password = testPassword();
   const organizationName = `Gate Test Co ${randomUUID().slice(0, 8)}`;
@@ -90,7 +125,23 @@ async function submitOnboardingRequest(
   await page.locator("#confirmPassword").fill(password);
   await page.getByRole("button", { name: /Continue|متابعة/ }).click();
 
+  await page.waitForURL(/\/get-started\/check-email/, { timeout: 15_000 });
+
+  // The real applicant would click this exact link from their inbox --
+  // generateLink() only stands in for the email transport, not for the
+  // confirmation itself. Visiting it exercises the real /auth/callback
+  // route and establishes a real session, same as production.
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: "signup",
+    email,
+    password,
+  });
+  if (linkError || !linkData?.properties?.action_link) {
+    throw linkError ?? new Error("generateLink returned no action_link");
+  }
+  await page.goto(linkData.properties.action_link, { waitUntil: "networkidle" });
   await page.waitForURL(/\/get-started\/company/, { timeout: 15_000 });
+
   await page.locator("#organizationName").fill(organizationName);
   // Base UI's Select needs a real click-open-select interaction, not a native <select>.
   await page.locator("#entityType").click();
@@ -139,16 +190,19 @@ test.describe("locale/viewport: the get-started wizard renders correctly", () =>
 test.describe("public submission never grants tenant access before approval", () => {
   for (const locale of ["en", "ar"] as const) {
     test(`${locale}: a submitted request lands PENDING and the requester sees no workspace`, async ({ page }) => {
-      const { email, password } = await submitOnboardingRequest(page, locale);
+      test.skip(
+        !serviceRoleUsable,
+        "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to generate the signup confirmation link.",
+      );
 
-      // Log in as the brand-new requester immediately after submission --
-      // no approval has happened yet.
-      await loginAs(page, "en", email, password);
-      await page.waitForURL(/\/en\/dashboard/, { timeout: 15_000 });
+      // Visiting the confirmation link inside submitOnboardingRequest already
+      // established a real session for this requester -- no separate login.
+      await submitOnboardingRequest(page, locale);
+      await page.goto("/en/dashboard", { waitUntil: "networkidle" });
 
       const bodyText = await page.evaluate(() => document.body.innerText);
-      // The dashboard's own "no organization" placeholder is the expected
-      // state here -- not a real tenant workspace, not an error page.
+      // The dashboard's own "request under review" placeholder is the
+      // expected state here -- not a real tenant workspace, not an error page.
       expect(bodyText, "must not show a real tenant workspace before approval").not.toMatch(
         /application error|something went wrong/i,
       );
@@ -216,12 +270,12 @@ test.describe("platform approval grants tenant owner access; rejection grants no
   function isUsable(value: string | undefined): value is string {
     return typeof value === "string" && value.trim().length > 0 && value.trim() !== "...";
   }
-  const credentialsUsable = isUsable(adminEmail) && isUsable(adminPassword);
+  const credentialsUsable = isUsable(adminEmail) && isUsable(adminPassword) && serviceRoleUsable;
 
   test("approve: the requester becomes TENANT_OWNER of a new workspace", async ({ page, context }) => {
     test.skip(
       !credentialsUsable,
-      "Set E2E_PLATFORM_ADMIN_EMAIL and E2E_PLATFORM_ADMIN_PASSWORD (real, non-placeholder) to run this check.",
+      "Set E2E_PLATFORM_ADMIN_EMAIL, E2E_PLATFORM_ADMIN_PASSWORD, NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY (real, non-placeholder) to run this check.",
     );
 
     const { email, password, organizationName } = await submitOnboardingRequest(page, "en");
@@ -248,7 +302,7 @@ test.describe("platform approval grants tenant owner access; rejection grants no
   test("reject: the requester still has no workspace afterward", async ({ page }) => {
     test.skip(
       !credentialsUsable,
-      "Set E2E_PLATFORM_ADMIN_EMAIL and E2E_PLATFORM_ADMIN_PASSWORD (real, non-placeholder) to run this check.",
+      "Set E2E_PLATFORM_ADMIN_EMAIL, E2E_PLATFORM_ADMIN_PASSWORD, NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY (real, non-placeholder) to run this check.",
     );
 
     const { email, password, organizationName } = await submitOnboardingRequest(page, "en");

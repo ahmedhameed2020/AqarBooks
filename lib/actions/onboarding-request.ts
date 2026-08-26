@@ -6,6 +6,7 @@ import { redirect } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { serverEnv } from "@/lib/env/server";
 import type { ActionResult } from "@/lib/actions/platform";
 
 /**
@@ -30,6 +31,28 @@ import type { ActionResult } from "@/lib/actions/platform";
  * No organization, membership, or role assignment is created by either
  * action here. That only ever happens inside approve_onboarding_request()
  * (lib/actions/platform.ts), which only a platform Super Admin can invoke.
+ *
+ * WHY STEP 1 USES supabase.auth.signUp, NEVER admin.auth.admin.createUser
+ * The Admin API's `email_confirm: true` was rejected: it lets anyone claim
+ * an arbitrary email address as a "verified requester" with no proof of
+ * ownership. signUp() is the real, unprivileged Supabase Auth flow -- it
+ * requires the project's normal email-confirmation link before a session
+ * exists, so requester_user_id (resolved from the session in Step 4) can
+ * never point at an unverified mailbox. This also removes the previous
+ * orphan-cleanup problem entirely: there is no Admin-API-created user to
+ * compensate for if anything downstream fails, only an ordinary
+ * unconfirmed signup -- the same state any web app leaves behind for a
+ * visitor who never opens the confirmation email.
+ *
+ * WHY AN EXISTING EMAIL GETS THE EXACT SAME RESPONSE AS A NEW ONE
+ * Whether signUp() reports "already registered" or succeeds, this action
+ * takes identical action either way: redirect to the same neutral
+ * "check your email or sign in" page. This does not rely on the project's
+ * own GoTrue anti-enumeration behavior (which this codebase cannot
+ * introspect) -- it is enforced in this function regardless of what GoTrue
+ * itself would have revealed, the same way requestPasswordResetAction's
+ * caller (app/[locale]/auth/forgot-password/forgot-password-form.tsx)
+ * already shows "if an account exists for X..." rather than confirming it.
  */
 
 const ENTITY_TYPES = [
@@ -94,20 +117,22 @@ const accountSchema = z
   });
 
 /**
- * Case A (new email): rate-limited, then creates a real Auth account and
- * signs it in.
+ * Case A (new email): rate-limited, then starts the normal Supabase signUp
+ * confirmation flow -- no session yet, nothing provisioned. The visitor
+ * lands on /get-started/check-email and must click the emailed link before
+ * a session (and therefore a requester identity) exists.
  * Case B (already authenticated): this action is a defensive no-op --
  * app/[locale]/get-started/page.tsx redirects an authenticated visitor
  * straight to /get-started/company without ever rendering the form that
  * calls this action, so reaching here already-authenticated means the
  * visitor bypassed the normal navigation. Reusing their existing session
  * is still the correct, safe response rather than an error.
- * Case C (existing email, not authenticated): admin.auth.admin.createUser
- * refuses (the real, load-bearing mechanism is auth.users'
- * users_email_partial_key unique index, not application logic), and the
- * UI's job is to route them to /login?redirect_to=/get-started/company --
- * signing in from there resumes this same flow as Case B. Nothing about
- * the account is reset, overwritten, or otherwise touched.
+ * Case C (existing email, not authenticated): signUp() either refuses or
+ * silently no-ops depending on the project's own anti-enumeration
+ * behavior -- either way this function reaches the exact same
+ * /get-started/check-email redirect as Case A, which itself never states
+ * whether the address was new. Nothing about the existing account is read,
+ * reset, or otherwise touched.
  */
 export async function startOnboardingAccountAction(
   _prevState: ActionResult,
@@ -144,9 +169,12 @@ export async function startOnboardingAccountAction(
   const admin = createAdminClient();
   const clientKey = await resolveClientKey();
 
-  // Rate-limited BEFORE createUser -- a denied attempt must never reach the
-  // Admin Auth API, so the limit bounds account-creation volume rather than
-  // just bounding how often the UI reports success.
+  // Rate-limited BEFORE signUp -- a denied attempt must never reach Auth at
+  // all, so the limit bounds account-creation volume rather than just
+  // bounding how often the UI reports success. check_and_record_rate_limit
+  // is only executable by service_role, which is why the admin client is
+  // still used here -- this is a Postgres RPC call, not an Admin Auth API
+  // identity operation, and stays unrelated to the createUser concern above.
   const { data: allowed, error: rateLimitError } = await admin.rpc("check_and_record_rate_limit", {
     p_action: "onboarding_account_create",
     p_client_key: clientKey,
@@ -157,34 +185,29 @@ export async function startOnboardingAccountAction(
     return { ok: false, error: "rate_limited" };
   }
 
-  const { data: created, error: createUserError } = await admin.auth.admin.createUser({
+  const siteUrl = serverEnv.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  const { error: signUpError } = await supabase.auth.signUp({
     email: parsed.data.workEmail,
     password: parsed.data.password,
-    email_confirm: true,
-    user_metadata: { full_name: parsed.data.fullName, phone: parsed.data.phone || null },
+    options: {
+      data: { full_name: parsed.data.fullName, phone: parsed.data.phone || null },
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/${locale}/get-started/company`,
+    },
   });
 
-  if (createUserError || !created?.user) {
-    if (createUserError?.message?.toLowerCase().includes("already")) {
-      return { ok: false, error: "email_already_registered" };
-    }
+  // A genuine, unrelated failure (network, misconfiguration, GoTrue outage)
+  // is the only case reported as an error -- "this email already exists" is
+  // deliberately folded into the same success redirect below, whatever
+  // shape signUp() returned it in, so this action never discloses account
+  // existence on its own.
+  if (signUpError && !signUpError.message?.toLowerCase().includes("already")) {
     return { ok: false, error: "submission_failed" };
   }
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: parsed.data.workEmail,
-    password: parsed.data.password,
+  return redirect({
+    href: `/get-started/check-email?email=${encodeURIComponent(parsed.data.workEmail)}`,
+    locale,
   });
-
-  if (signInError) {
-    // This account is known, certainly, to be brand new -- created a moment
-    // ago inside this same call -- so removing it here can never touch a
-    // pre-existing customer's account.
-    await admin.auth.admin.deleteUser(created.user.id);
-    return { ok: false, error: "submission_failed" };
-  }
-
-  return redirect({ href: "/get-started/company", locale });
 }
 
 // ---------------------------------------------------------------------
