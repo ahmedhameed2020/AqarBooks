@@ -82,32 +82,43 @@ const MIGRATION_FILES = [
   { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182" },
   { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98" },
   { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce" },
+  { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97" },
+  { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba" },
+  { file: "20260825124342_internal_helper_acls.sql", bytes: 7595, sha256: "3cbcc49b3308e8a2bf772579d2573d60f7b034de74067b20f2dd43fb44bc5082" },
+  { file: "20260825182109_rent_partial_period_guard.sql", bytes: 11966, sha256: "884dddada7f5b6703e844f1bc8f7a055d5f0692fc73f243865c4da37cc6c6cd4" },
   { file: "20260825231151_demo_readonly_hardening_and_cashier_read.sql", bytes: 9984, sha256: "d7dd715e0a06f7457d5cd2ad338e73450569697bfbc22f64bc3aa41e49baf233" },
 ] as const;
 
 /**
- * THIRD AMENDMENT (2026-08-25). Extends the allowlist to ten for the Release A
- * security stage (demo read-only hardening, provisioning closure, cashier read
- * permission). The reasoning is unchanged: an eleventh file, or a changed byte
- * in any of these, still fails.
+ * THIRD AMENDMENT (2026-08-25). Extends the allowlist to fourteen. The
+ * reasoning is unchanged: a fifteenth file, or a changed byte in any of these,
+ * still fails.
  *
- * KNOWN DRIFT, DELIBERATELY NOT PAPERED OVER. At the time this entry was added
- * the ledger held FOUR further applied versions with no file in this
- * repository:
+ * Ten of the fourteen were already listed. The other four closed a real gap:
  *
  *   20260825084639  organizations_is_demo
  *   20260825124312  generate_lease_rent_dues_authz
  *   20260825124342  internal_helper_acls
  *   20260825182109  rent_partial_period_guard
  *
- * They were applied through apply_migration, which writes a ledger row but no
- * file. Their own headers state the intended convention -- applied migrations
- * belong in supabase/migrations/ -- so the gap is an incomplete handoff, not a
- * decision. This suite reads the filesystem only and therefore cannot see it;
- * recovering those four (their SQL is retrievable verbatim from
- * supabase_migrations.schema_migrations.statements) is tracked separately and
- * is NOT asserted here. Do not add them to the list above without also adding
- * the files.
+ * They were applied to production through apply_migration -- which writes a
+ * ledger row but no file -- from a branch whose work was never merged, so for a
+ * day the repository could not describe its own database. This suite reads the
+ * filesystem only and could not see that: it passed the whole time.
+ *
+ * RESTORED, NOT RECONSTRUCTED. The originals were recovered from git history
+ * (feat/public-demo-phase-1, commits f6e5cb6 / 423f0b0 / 2802399) at the same
+ * paths they were authored at. Each blob is byte-identical between the commit
+ * that introduced it and that branch's tip, so these are the files that were
+ * applied, not a re-derivation of them. Reconstructing the SQL from
+ * supabase_migrations.schema_migrations.statements was deliberately NOT done --
+ * that would have produced text that merely behaves the same, and the digests
+ * pinned above would then have attested to something nobody actually ran.
+ *
+ * The list order matches the ledger's version order, which is also filename
+ * order. None of these will execute again: every version below is already
+ * recorded in supabase_migrations.schema_migrations, so the CLI treats them as
+ * applied and skips them.
  */
 
 /**
