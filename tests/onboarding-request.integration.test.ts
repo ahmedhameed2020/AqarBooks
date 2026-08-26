@@ -12,12 +12,13 @@
  * scope -- exercising it via a running dev server would add an HTTP hop without
  * adding any assurance the RLS/RPC layer itself doesn't already give, matching the
  * same reasoning tests/demo-entry-rate-limit.integration.test.ts documents for the
- * demo rate limiter. This suite calls the database directly and, where it needs to
- * reproduce "what the submission action does," does so with the same two calls the
- * action makes (admin.auth.admin.createUser then an admin insert) rather than
- * importing the action.
+ * demo rate limiter. This suite calls the database directly and, where it needs
+ * "a verified requester with a pending request", builds that state with fixture
+ * helpers (an Admin-API-created confirmed user plus a service-role insert -- a
+ * stand-in for the post-confirmation state signUp leaves, see submitRequest's
+ * doc comment) rather than importing the action.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterEach, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import { randomUUID } from "node:crypto";
@@ -36,10 +37,81 @@ const admin = createClient(url, serviceKey, {
 
 const TEST_PASSWORD = `Onboarding-${randomUUID()}`;
 
-const createdUserIds: string[] = [];
-const createdOrgIds: string[] = [];
-const createdRequestIds: string[] = [];
-const createdRoleAssignmentIds: string[] = [];
+const createdUserIds = new Set<string>();
+const createdOrgIds = new Set<string>();
+const createdRequestIds = new Set<string>();
+const createdRoleAssignmentIds = new Set<string>();
+
+/**
+ * Removes // and slash-star comments while respecting string and template
+ * literals, so assertions about a file's EXECUTABLE code can never be
+ * tripped by documentation that mentions a forbidden identifier while
+ * explaining why it is forbidden (`email_confirm: true`, "already
+ * registered", admin.auth.admin.createUser all legitimately appear in the
+ * action's doc comments for exactly that reason). Not a full parser --
+ * sufficient for the sources under test, which contain no regex literal
+ * with a quote and no template interpolation containing strings/comments.
+ */
+function stripComments(source: string): string {
+  let out = "";
+  let i = 0;
+  let state: "code" | "line" | "block" | "single" | "double" | "template" = "code";
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (state === "code") {
+      if (ch === "/" && next === "/") {
+        state = "line";
+        i += 2;
+        continue;
+      }
+      if (ch === "/" && next === "*") {
+        state = "block";
+        i += 2;
+        continue;
+      }
+      if (ch === "'") state = "single";
+      else if (ch === '"') state = "double";
+      else if (ch === "`") state = "template";
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (state === "line") {
+      if (ch === "\n") {
+        state = "code";
+        out += ch;
+      }
+      i += 1;
+      continue;
+    }
+    if (state === "block") {
+      if (ch === "*" && next === "/") {
+        state = "code";
+        i += 2;
+      } else {
+        i += 1;
+      }
+      continue;
+    }
+    // Inside a string/template literal.
+    if (ch === "\\") {
+      out += ch + (next ?? "");
+      i += 2;
+      continue;
+    }
+    if (
+      (state === "single" && ch === "'") ||
+      (state === "double" && ch === '"') ||
+      (state === "template" && ch === "`")
+    ) {
+      state = "code";
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
 
 /** Creates a confirmed auth user and returns a signed-in client for them. */
 async function createSignedInUser(prefix: string) {
@@ -50,7 +122,7 @@ async function createSignedInUser(prefix: string) {
     email_confirm: true,
   });
   if (error) throw error;
-  createdUserIds.push(data.user.id);
+  createdUserIds.add(data.user.id);
 
   const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { error: signInError } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD });
@@ -83,7 +155,7 @@ async function createPlatformAdmin() {
     .select("id")
     .single();
   if (assignError) throw assignError;
-  createdRoleAssignmentIds.push(assignment.id);
+  createdRoleAssignmentIds.add(assignment.id);
 
   return { userId, email, client };
 }
@@ -110,7 +182,7 @@ async function submitRequest(overrides: Record<string, unknown> = {}) {
     user_metadata: { full_name: "Test Requester" },
   });
   if (createError || !created?.user) throw createError ?? new Error("createUser failed");
-  createdUserIds.push(created.user.id);
+  createdUserIds.add(created.user.id);
 
   const { data: inserted, error: insertError } = await admin
     .from("onboarding_requests")
@@ -126,7 +198,7 @@ async function submitRequest(overrides: Record<string, unknown> = {}) {
     .select("*")
     .single();
   if (insertError || !inserted) throw insertError ?? new Error("insert failed");
-  createdRequestIds.push(inserted.id);
+  createdRequestIds.add(inserted.id);
 
   await admin.from("onboarding_request_events").insert({
     request_id: inserted.id,
@@ -137,30 +209,118 @@ async function submitRequest(overrides: Record<string, unknown> = {}) {
   return { requesterId: created.user.id, request: inserted };
 }
 
-afterAll(async () => {
-  for (const orgId of createdOrgIds) {
-    await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
-    await admin.from("user_role_assignments").delete().eq("organization_id", orgId);
-    await admin.from("organization_memberships").delete().eq("organization_id", orgId);
-    await admin.from("role_permissions").delete().in(
-      "role_id",
-      (await admin.from("roles").select("id").eq("organization_id", orgId)).data?.map((r) => r.id) ?? [],
-    );
-    await admin.from("roles").delete().eq("organization_id", orgId);
-    await admin.from("subscriptions").delete().eq("organization_id", orgId);
-    await admin.from("organizations").delete().eq("id", orgId);
+/**
+ * Deterministic, idempotent cleanup of ONLY the rows this run created --
+ * every deletion targets a tracked id (never a name prefix or email
+ * suffix), so real tenant data can never be in scope.
+ *
+ * Runs after EVERY test (not just once at suite end) so the pending work is
+ * always one test's worth of fixtures; a mid-suite crash leaves at most one
+ * test's residue for afterAll's final idempotent sweep. Trackers are only
+ * cleared when every deletion succeeded, so a partial failure is retried by
+ * the next hook and surfaced (thrown) instead of silently ignored -- the
+ * previous version discarded PostgREST errors, which is how organizations
+ * survived: onboarding_requests.organization_id REFERENCES organizations
+ * with no ON DELETE, and orgs were deleted BEFORE the request rows pointing
+ * at them, so every org delete was refused and the refusal thrown away.
+ *
+ * FK order (all RESTRICT unless noted):
+ *   1. org-scoped dependents: platform_audit_logs, user_role_assignments,
+ *      organization_memberships, role_permissions (via the org's roles),
+ *      subscriptions
+ *   2. onboarding_request_events -> onboarding_requests
+ *      (requests hold organization_id -> organizations, so BEFORE orgs)
+ *   3. roles -> organizations
+ *   4. platform-level user_role_assignments (tracked ids)
+ *   5. platform_audit_logs by actor_id (reject-path rows have a NULL
+ *      organization_id but actor_id -> auth.users with no cascade)
+ *   6. auth users last (profiles cascades from auth.users)
+ */
+async function cleanupCreated() {
+  const failures: string[] = [];
+  const run = async (
+    label: string,
+    fn: () => Promise<{ error: { message?: string } | null }>,
+  ) => {
+    try {
+      const { error } = await fn();
+      if (error) failures.push(`${label}: ${error.message ?? "unknown error"}`);
+    } catch (err) {
+      failures.push(`${label}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const orgIds = [...createdOrgIds];
+  const requestIds = [...createdRequestIds];
+  const assignmentIds = [...createdRoleAssignmentIds];
+  const userIds = [...createdUserIds];
+
+  if (orgIds.length > 0) {
+    await run("platform_audit_logs(org)", () =>
+      admin.from("platform_audit_logs").delete().in("organization_id", orgIds));
+    await run("user_role_assignments(org)", () =>
+      admin.from("user_role_assignments").delete().in("organization_id", orgIds));
+    await run("organization_memberships", () =>
+      admin.from("organization_memberships").delete().in("organization_id", orgIds));
+    const { data: orgRoles, error: orgRolesError } = await admin
+      .from("roles")
+      .select("id")
+      .in("organization_id", orgIds);
+    if (orgRolesError) failures.push(`roles lookup: ${orgRolesError.message}`);
+    const roleIds = orgRoles?.map((r) => r.id) ?? [];
+    if (roleIds.length > 0) {
+      await run("role_permissions", () =>
+        admin.from("role_permissions").delete().in("role_id", roleIds));
+    }
+    await run("subscriptions", () =>
+      admin.from("subscriptions").delete().in("organization_id", orgIds));
   }
-  for (const requestId of createdRequestIds) {
-    await admin.from("onboarding_request_events").delete().eq("request_id", requestId);
-    await admin.from("onboarding_requests").delete().eq("id", requestId);
+
+  if (requestIds.length > 0) {
+    await run("onboarding_request_events", () =>
+      admin.from("onboarding_request_events").delete().in("request_id", requestIds));
+    await run("onboarding_requests", () =>
+      admin.from("onboarding_requests").delete().in("id", requestIds));
   }
-  for (const assignmentId of createdRoleAssignmentIds) {
-    await admin.from("user_role_assignments").delete().eq("id", assignmentId);
+
+  if (orgIds.length > 0) {
+    await run("roles(org)", () => admin.from("roles").delete().in("organization_id", orgIds));
+    await run("organizations", () => admin.from("organizations").delete().in("id", orgIds));
   }
-  for (const userId of createdUserIds) {
-    await admin.auth.admin.deleteUser(userId);
+
+  if (assignmentIds.length > 0) {
+    await run("user_role_assignments(platform)", () =>
+      admin.from("user_role_assignments").delete().in("id", assignmentIds));
   }
-});
+
+  if (userIds.length > 0) {
+    await run("platform_audit_logs(actor)", () =>
+      admin.from("platform_audit_logs").delete().in("actor_id", userIds));
+    for (const userId of userIds) {
+      await run(`auth user ${userId}`, async () => {
+        const { error } = await admin.auth.admin.deleteUser(userId);
+        // Already gone (a prior partial sweep) counts as success for an
+        // idempotent hook.
+        if (error && `${error.message}`.toLowerCase().includes("not found")) {
+          return { error: null };
+        }
+        return { error };
+      });
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`cleanup left residue (trackers kept for retry):\n${failures.join("\n")}`);
+  }
+
+  createdOrgIds.clear();
+  createdRequestIds.clear();
+  createdRoleAssignmentIds.clear();
+  createdUserIds.clear();
+}
+
+afterEach(cleanupCreated, 60_000);
+afterAll(cleanupCreated, 60_000);
 
 describe("public submission never touches organizations directly", () => {
   it("onboarding_requests has no anon/authenticated INSERT policy -- the door is the service-role action, nothing else", async () => {
@@ -190,49 +350,79 @@ describe("public submission never touches organizations directly", () => {
 });
 
 describe("Step 1 requires real email verification, never Admin-API auto-confirmation", () => {
-  const actionSource = readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8");
-  const accountFormSource = readFileSync(
-    join(process.cwd(), "app/[locale]/get-started/account-step-form.tsx"),
-    "utf8",
+  // All assertions in this block run against comment-stripped sources: the
+  // files' doc comments legitimately NAME the rejected patterns
+  // (`email_confirm: true`, admin.auth.admin.createUser, "already
+  // registered") while explaining why they were rejected, and documentation
+  // must never fail a test about executable behavior.
+  const executableAction = stripComments(
+    readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8"),
   );
-  const checkEmailPageSource = readFileSync(
-    join(process.cwd(), "app/[locale]/get-started/check-email/page.tsx"),
-    "utf8",
+  const executableAccountForm = stripComments(
+    readFileSync(join(process.cwd(), "app/[locale]/get-started/account-step-form.tsx"), "utf8"),
+  );
+  const executableCheckEmailPage = stripComments(
+    readFileSync(join(process.cwd(), "app/[locale]/get-started/check-email/page.tsx"), "utf8"),
   );
 
-  it("startOnboardingAccountAction never calls the Admin API to create or auto-confirm an identity", () => {
-    expect(actionSource, "must not force email_confirm").not.toContain("email_confirm");
-    expect(actionSource, "must not use the Admin API to create a user").not.toContain("admin.auth.admin.createUser");
-    expect(actionSource, "must not use the Admin API to delete a user (no orphan to compensate for anymore)").not.toContain(
-      "admin.auth.admin.deleteUser",
+  it("startOnboardingAccountAction's executable code never calls the Admin API to create or auto-confirm an identity", () => {
+    expect(executableAction, "must use the real, unprivileged signUp flow").toContain(".auth.signUp(");
+    expect(executableAction, "must not use the Admin API to create a user").not.toContain(".auth.admin.createUser(");
+    expect(executableAction, "must not use the Admin API to delete a user (no orphan to compensate for anymore)").not.toContain(
+      ".auth.admin.deleteUser(",
     );
-    expect(actionSource, "must not touch an existing account's password/metadata").not.toContain("updateUserById");
-    expect(actionSource, "must use the real, unprivileged signUp flow").toContain(".auth.signUp(");
+    expect(executableAction, "must not touch an existing account's password/metadata").not.toContain("updateUserById");
   });
 
   it("a brand-new signup gets no session until the emailed confirmation link is used (no email_confirm override reaches signUp's options)", () => {
-    const signUpCallStart = actionSource.indexOf(".auth.signUp(");
-    const signUpCallEnd = actionSource.indexOf("});", signUpCallStart);
-    const signUpCall = actionSource.slice(signUpCallStart, signUpCallEnd);
-    expect(signUpCall, "signUp() must be called with only email/password/options -- no confirmation override exists on this API").not.toContain(
+    const signUpCallStart = executableAction.indexOf(".auth.signUp(");
+    expect(signUpCallStart, "the signUp call must exist in executable code").toBeGreaterThan(-1);
+    const signUpCallEnd = executableAction.indexOf("});", signUpCallStart);
+    const signUpCall = executableAction.slice(signUpCallStart, signUpCallEnd);
+    expect(signUpCall, "signUp() must be called with only email/password/options -- no confirmation override").not.toContain(
       "email_confirm",
     );
+    expect(signUpCall, "no confirmed-at override either").not.toContain("email_confirmed");
     expect(signUpCall, "the confirmation link must resume the wizard at the company step").toContain(
       "/get-started/company",
     );
   });
 
   it("submitOnboardingRequestAction refuses when there is no session, rather than trusting a client-supplied identity", () => {
-    expect(actionSource).toContain('error: "not_authenticated"');
-    const submitFnStart = actionSource.indexOf("export async function submitOnboardingRequestAction");
-    const getUserGuard = actionSource.indexOf("if (!user) {", submitFnStart);
+    expect(executableAction).toContain('error: "not_authenticated"');
+    const submitFnStart = executableAction.indexOf("export async function submitOnboardingRequestAction");
+    const getUserGuard = executableAction.indexOf("if (!user) {", submitFnStart);
     expect(getUserGuard, "submitOnboardingRequestAction must guard on the session's own user, not a form field").toBeGreaterThan(-1);
   });
 
   it("neither the account form nor the post-submit page discloses whether an email is already registered", () => {
-    const haystack = (actionSource + accountFormSource + checkEmailPageSource).toLowerCase();
-    expect(haystack, "no UI-facing branch may state that an email already exists").not.toContain("already registered");
-    expect(actionSource, "no distinguishing error code for an existing email").not.toContain("email_already_registered");
+    // User-visible copy: comment-stripped UI sources, both languages. The
+    // neutral "Already have an account? Sign in" prompt is deliberately NOT
+    // in this list -- it appears for every visitor and discloses nothing.
+    const visibleUi = (executableAccountForm + executableCheckEmailPage).toLowerCase();
+    for (const phrase of [
+      "already registered",
+      "already exists",
+      "already in use",
+      "مسجل بالفعل",
+      "مسجل مسبق",
+      "موجود بالفعل",
+      "مستخدم بالفعل",
+    ]) {
+      expect(visibleUi, `UI copy must never disclose account existence ("${phrase}")`).not.toContain(phrase);
+    }
+
+    // And the action cannot even express such a disclosure: the complete set
+    // of ActionResult error codes it can return is fixed and none of them
+    // distinguishes an existing email. check-email is reached by redirect,
+    // identically for new and existing addresses.
+    const errorCodes = new Set(
+      [...executableAction.matchAll(/error:\s*"([a-z_]+)"/g)].map((m) => m[1]),
+    );
+    expect(errorCodes).toEqual(
+      new Set(["invalid_input", "rate_limited", "submission_failed", "not_authenticated"]),
+    );
+    expect(executableAction, "no distinguishing error code for an existing email").not.toContain("email_already_registered");
   });
 
   it("the new-user trigger on auth.users creates a profile row and nothing tenant-shaped, confirmed or not", async () => {
@@ -253,7 +443,7 @@ describe("Step 1 requires real email verification, never Admin-API auto-confirma
     expect(insertUserError, "fixture setup must succeed").toBeNull();
     const created = createdData?.user;
     expect(created, "fixture user must exist").toBeTruthy();
-    createdUserIds.push(created!.id);
+    createdUserIds.add(created!.id);
     expect(created!.email_confirmed_at, "this fixture must reproduce the pre-confirmation state").toBeFalsy();
 
     const { data: profile } = await admin.from("profiles").select("id").eq("id", created!.id).maybeSingle();
@@ -312,7 +502,7 @@ describe("request idempotency: onboarding_requests_one_actionable_per_requester"
       .select("id")
       .single();
     expect(secondError, `a new request after REJECTED must be allowed: ${secondError?.message}`).toBeNull();
-    if (secondRequest) createdRequestIds.push(secondRequest.id);
+    if (secondRequest) createdRequestIds.add(secondRequest.id);
   });
 });
 
@@ -326,7 +516,7 @@ describe("an existing customer requesting a second entity keeps their existing t
       .select("id")
       .single();
     if (orgError || !placeholderOrg) throw orgError ?? new Error("failed to create placeholder org");
-    createdOrgIds.push(placeholderOrg.id);
+    createdOrgIds.add(placeholderOrg.id);
 
     const { error: membershipError } = await admin
       .from("organization_memberships")
@@ -386,13 +576,29 @@ describe("onboarding account-creation rate limit (separate from request-submissi
     expect(requestSubmitStillAllowed, "onboarding_request_submit must not share onboarding_account_create's bucket").toBe(true);
   });
 
-  it("rate-limit ordering: lib/actions/onboarding-request.ts calls check_and_record_rate_limit before admin.auth.admin.createUser (verified by source order, not executable here -- see file doc comment on why headers() blocks importing the action directly)", () => {
-    const source = readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8");
-    const rateLimitIndex = source.indexOf("onboarding_account_create");
-    const createUserIndex = source.indexOf("admin.auth.admin.createUser(");
-    expect(rateLimitIndex, "the rate-limit call must appear in the source").toBeGreaterThan(-1);
-    expect(createUserIndex, "the createUser call must appear in the source").toBeGreaterThan(-1);
-    expect(rateLimitIndex, "the rate-limit check must be written before createUser in startOnboardingAccountAction").toBeLessThan(createUserIndex);
+  it("rate-limit ordering: startOnboardingAccountAction checks check_and_record_rate_limit('onboarding_account_create') before supabase.auth.signUp, and a denied attempt returns before any Auth signup operation (verified on comment-stripped source order -- see file doc comment on why headers() blocks importing the action directly)", () => {
+    const executableAction = stripComments(
+      readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8"),
+    );
+    const stepOneStart = executableAction.indexOf("export async function startOnboardingAccountAction");
+    const stepOneEnd = executableAction.indexOf("export async function submitOnboardingRequestAction");
+    expect(stepOneStart, "startOnboardingAccountAction must exist").toBeGreaterThan(-1);
+    expect(stepOneEnd, "submitOnboardingRequestAction must follow it").toBeGreaterThan(stepOneStart);
+    const stepOne = executableAction.slice(stepOneStart, stepOneEnd);
+
+    expect(stepOne, "Step 1 must call the durable rate limiter").toContain("check_and_record_rate_limit");
+    const rateLimitIndex = stepOne.indexOf('"onboarding_account_create"');
+    const signUpIndex = stepOne.indexOf(".auth.signUp(");
+    expect(rateLimitIndex, "the onboarding_account_create rate-limit call must appear in Step 1").toBeGreaterThan(-1);
+    expect(signUpIndex, "the signUp call must appear in Step 1").toBeGreaterThan(-1);
+    expect(rateLimitIndex, "the rate-limit check must run before signUp").toBeLessThan(signUpIndex);
+
+    // The denial short-circuit sits BETWEEN the check and signUp: a denied
+    // attempt returns rate_limited without ever reaching an Auth signup
+    // operation -- zero identities created past the limit.
+    const deniedReturnIndex = stepOne.indexOf('error: "rate_limited"');
+    expect(deniedReturnIndex, "the rate_limited denial return must exist in Step 1").toBeGreaterThan(rateLimitIndex);
+    expect(deniedReturnIndex, "the denial must return before signUp is ever reached").toBeLessThan(signUpIndex);
   });
 });
 
@@ -436,7 +642,7 @@ describe("approval provisions exactly one organization, correctly", () => {
     });
     expect(error, `approval must succeed: ${error?.message}`).toBeNull();
     expect(organizationId).toBeTruthy();
-    createdOrgIds.push(organizationId);
+    createdOrgIds.add(organizationId);
 
     const { data: updated } = await admin.from("onboarding_requests").select("*").eq("id", request.id).single();
     expect(updated.status).toBe("ACTIVE");
@@ -487,7 +693,7 @@ describe("approval provisions exactly one organization, correctly", () => {
 
     const first = await platformAdmin.rpc("approve_onboarding_request", { p_request_id: request.id });
     expect(first.error, `first approval must succeed: ${first.error?.message}`).toBeNull();
-    createdOrgIds.push(first.data);
+    createdOrgIds.add(first.data);
 
     const orgsBeforeRetry = await admin.from("organizations").select("id", { count: "exact", head: true });
 
@@ -607,7 +813,7 @@ describe("the demo tenant remains frozen and read-only", () => {
         .select("id")
         .eq("work_email", "demo-principal-should-not-write@aqarbooks-test.invalid")
         .single();
-      if (data) createdRequestIds.push(data.id);
+      if (data) createdRequestIds.add(data.id);
     }
   });
 });
