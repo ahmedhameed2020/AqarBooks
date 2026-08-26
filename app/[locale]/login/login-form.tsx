@@ -127,13 +127,13 @@ export function LoginForm({
         </button>
       </div>
 
-      {/* Acquisition block. The activation journey is entered from
-          /auth/register; internal approval steps are an operational detail
-          and must never surface in this copy. */}
+      {/* Acquisition block. /get-started is the single canonical
+          acquisition/onboarding entry; internal approval steps are an
+          operational detail and must never surface in this copy. */}
       <div className="text-center pt-3 border-t border-slate-100 space-y-1.5">
         <p className="text-xs text-slate-500">
           {isAr ? "ليس لديك حساب في AqarBooks؟ " : "Don't have an AqarBooks account? "}
-          <Link href="/auth/register" locale={locale} className="font-bold text-[#07425d] hover:underline">
+          <Link href="/get-started" locale={locale} className="font-bold text-[#07425d] hover:underline">
             {isAr ? "ابدأ الآن" : "Get started"}
           </Link>
         </p>
