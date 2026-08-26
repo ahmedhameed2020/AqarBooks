@@ -15,11 +15,14 @@
  *   PLAYWRIGHT_BASE_URL=https://aqarbooks.com npx playwright test tests/e2e/release-a-production-gate.spec.ts
  *
  * To also check existing-customer-session preservation (skipped by default,
- * see the last describe block), provide real credentials for a NON-DEMO
- * tenant login you don't mind this script signing into:
+ * see the "existing customer session" describe block below), provide real
+ * credentials for a NON-DEMO tenant login you don't mind this script signing
+ * into. Both values must be the ACTUAL email and password -- not a
+ * placeholder -- the test explicitly rejects (skips, with a clear reason)
+ * anything missing or literally the string "...":
  *   PLAYWRIGHT_BASE_URL=https://aqarbooks.com \
- *   E2E_CUSTOMER_EMAIL=someone@example.com \
- *   E2E_CUSTOMER_PASSWORD='...' \
+ *   E2E_CUSTOMER_EMAIL=the-actual-login-email@example.com \
+ *   E2E_CUSTOMER_PASSWORD=the-actual-login-password \
  *   npx playwright test tests/e2e/release-a-production-gate.spec.ts
  *
  * This suite only ever reads. It signs in as the read-only demo principal
@@ -214,80 +217,19 @@ test.describe("two concurrent anonymous demo sessions do not invalidate each oth
   });
 });
 
-/**
- * Polls a freshly-clicked demo entry to its actual outcome instead of racing
- * two awaits against each other (which would leave one of them dangling and
- * rejecting after the context that owns it is closed). Returns "timeout"
- * rather than guessing when neither outcome shows up in time -- a timeout is
- * a distinct, real failure, not evidence of either allow or deny.
- */
-async function waitForDemoEntryOutcome(page: Page, timeoutMs: number): Promise<"redirected" | "denied" | "timeout"> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (page.url().includes("/en/dashboard")) return "redirected";
-    if (await page.getByRole("alert").isVisible().catch(() => false)) return "denied";
-    await page.waitForTimeout(250);
-  }
-  return "timeout";
-}
-
-test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
-  test("exactly 5 of 6 rapid entries succeed; the 6th is denied with the bilingual message", async ({ browser }) => {
-    // check_and_record_rate_limit's window is 60s, and every other test in
-    // this file that clicks the demo CTA (the locale/viewport smoke isn't
-    // one of them, but the CTA and concurrency tests are) shares this
-    // machine's one real IP -- and therefore the same client_key -- as this
-    // test. Rather than reaching into the database to inspect or clear that
-    // state (which the task explicitly rules out: no mutating/deleting
-    // production rate-limit rows from a test), wait out a full window
-    // first. 61s of this client_key making zero attempts guarantees every
-    // row a prior test left behind has aged out of the 60s window before
-    // attempt 1 below, so the 5-allowed/1-denied assertion is a property of
-    // THIS test's own six attempts, not of what ran before it.
-    test.setTimeout(220_000);
-    await new Promise((resolve) => setTimeout(resolve, 61_000));
-
-    const results: Array<{ outcome: "redirected" | "denied"; alertText?: string }> = [];
-
-    for (let i = 0; i < 6; i += 1) {
-      const context = await browser.newContext();
-      const page = await context.newPage();
-      await page.goto("/en/demo", { waitUntil: "networkidle" });
-      await page.getByRole("button", { name: "Explore Live Demo" }).click();
-
-      const outcome = await waitForDemoEntryOutcome(page, 15_000);
-
-      if (outcome === "timeout") {
-        await context.close();
-        throw new Error(
-          `attempt ${i + 1} of 6: neither a dashboard redirect nor a denial alert appeared within 15s. ` +
-            `This is a real failure -- a timeout is not evidence of either outcome and must not be treated as one.`,
-        );
-      }
-
-      if (outcome === "redirected") {
-        results.push({ outcome });
-      } else {
-        results.push({ outcome, alertText: await page.getByRole("alert").innerText() });
-      }
-
-      await context.close();
-    }
-
-    const allowed = results.filter((r) => r.outcome === "redirected");
-    const denied = results.filter((r) => r.outcome === "denied");
-
-    expect(allowed.length, `expected exactly 5 allowed of 6: ${JSON.stringify(results)}`).toBe(5);
-    expect(denied.length, `expected exactly 1 denied of 6: ${JSON.stringify(results)}`).toBe(1);
-    expect(denied[0]?.alertText, "denial shows the exact bilingual copy").toContain(
-      "Too many demo access attempts. Please try again shortly.",
-    );
-  });
-});
-
 test.describe("existing customer session is unaffected by the public demo (requires real credentials)", () => {
   const email = process.env.E2E_CUSTOMER_EMAIL;
   const password = process.env.E2E_CUSTOMER_PASSWORD;
+
+  // Guards against the exact mistake made in the prior local run: literal
+  // placeholder text ("...") left in the environment is not a credential,
+  // and attempting to log in with it just times out looking like a product
+  // failure. Treat "absent" and "placeholder" the same way -- skip with a
+  // clear reason instead of attempting a login that cannot succeed.
+  function isUsableCredential(value: string | undefined): value is string {
+    return typeof value === "string" && value.trim().length > 0 && value.trim() !== "...";
+  }
+  const credentialsUsable = isUsableCredential(email) && isUsableCredential(password);
 
   // MANDATORY FOR RELEASE A. Skipping is acceptable for an ordinary CI run
   // with no customer credentials available, but per the Release A gate
@@ -295,8 +237,10 @@ test.describe("existing customer session is unaffected by the public demo (requi
   // check has not actually been proven, only deferred. See the final report.
   test("real tenant login survives a visit to /demo and is never switched into the Osoul demo tenant", async ({ page }) => {
     test.skip(
-      !email || !password,
-      "Set E2E_CUSTOMER_EMAIL and E2E_CUSTOMER_PASSWORD to run this check. Release A verdict remains STOP until it runs and passes.",
+      !credentialsUsable,
+      "Set E2E_CUSTOMER_EMAIL and E2E_CUSTOMER_PASSWORD to real, non-placeholder credentials to run this check " +
+        "(a missing value or the literal \"...\" placeholder both skip rather than attempt a login that cannot " +
+        "succeed). Release A verdict remains STOP until it runs and passes.",
     );
 
     // The login form's <label> elements have no htmlFor and are not
@@ -348,5 +292,118 @@ test.describe("frozen financial snapshot is unchanged (read-only check via the d
     // actually rendered on this screen; it is not a substitute for re-running
     // the SQL check if this test's selectors drift from a future redesign.
     expect(bodyText, "dues screen renders without an error").not.toMatch(/application error|something went wrong/i);
+  });
+});
+
+// -----------------------------------------------------------------------
+// Rate-limit test -- MUST STAY LAST IN THIS FILE.
+//
+// This test deliberately exhausts the 5-attempts/60s quota for this
+// machine's one real IP (check_and_record_rate_limit keys on
+// CF-Connecting-IP, not on any cookie or browser context). Every test
+// above it that clicks the demo CTA -- the two CTA tests, the two-context
+// concurrency test, the dues-snapshot test -- shares that same quota.
+// Placing this block last means nothing downstream of it can be poisoned
+// by what it consumes; the 61s clean-window wait below is what protects
+// this test FROM what ran before it.
+// -----------------------------------------------------------------------
+
+const DEMO_RATE_LIMITED_TEXT = "Too many demo access attempts. Please try again shortly.";
+
+type DemoEntryOutcome =
+  | { kind: "allowed" }
+  | { kind: "denied"; alertText: string }
+  | { kind: "ambiguous"; url: string; bodySnippet: string };
+
+/**
+ * Classifies one already-clicked demo entry attempt by demonstrated final
+ * state, not by "didn't redirect in time, so assume denied":
+ *
+ *   - ALLOWED requires the URL to have actually become /en/dashboard AND the
+ *     navigation to have settled (domcontentloaded) -- a URL string match
+ *     mid-transition is not "reached the dashboard".
+ *   - DENIED requires an alert whose TEXT is the specific rate-limit copy,
+ *     not merely "some element with role=alert is visible somewhere on the
+ *     page" -- the app renders role="alert" on plenty of unrelated form
+ *     errors and toasts elsewhere, and a generic role+visibility check can
+ *     false-positive on one of those instead of the actual denial.
+ *   - Neither within the timeout is AMBIGUOUS, not denied -- it is reported
+ *     with the page's URL and a body snippet so a real failure is visible
+ *     instead of being silently folded into "denied".
+ */
+async function classifyDemoEntryOutcome(page: Page, timeoutMs: number): Promise<DemoEntryOutcome> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (page.url().includes("/en/dashboard")) {
+      try {
+        await page.waitForLoadState("domcontentloaded", { timeout: 5_000 });
+        return { kind: "allowed" };
+      } catch {
+        // URL changed but the navigation hasn't settled yet -- keep polling
+        // instead of deciding early.
+      }
+    }
+
+    const alertText = await page
+      .getByRole("alert")
+      .filter({ hasText: DEMO_RATE_LIMITED_TEXT })
+      .first()
+      .innerText({ timeout: 500 })
+      .catch(() => null);
+    if (alertText) return { kind: "denied", alertText };
+
+    await page.waitForTimeout(250);
+  }
+
+  return {
+    kind: "ambiguous",
+    url: page.url(),
+    bodySnippet: (await page.evaluate(() => document.body.innerText).catch(() => "<unavailable>")).slice(0, 500),
+  };
+}
+
+test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
+  test("exactly 5 of 6 rapid entries reach the dashboard; the 6th shows the localized denial", async ({ browser }) => {
+    // check_and_record_rate_limit's window is 60s. Wait out a full window
+    // before this test's own attempts rather than reaching into the
+    // database to inspect or clear state (ruled out: no mutating/deleting
+    // production rate-limit rows from a test) -- 61s of this client_key
+    // making zero attempts guarantees every row a prior test in this file
+    // left behind has aged out before attempt 1 below.
+    test.setTimeout(220_000);
+    await new Promise((resolve) => setTimeout(resolve, 61_000));
+
+    const results: Array<{ outcome: "allowed" | "denied"; alertText?: string }> = [];
+
+    for (let i = 0; i < 6; i += 1) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto("/en/demo", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Explore Live Demo" }).click();
+
+      const outcome = await classifyDemoEntryOutcome(page, 20_000);
+
+      if (outcome.kind === "ambiguous") {
+        await context.close();
+        throw new Error(
+          `attempt ${i + 1} of 6: ambiguous outcome -- neither a settled dashboard nor the rate-limit message ` +
+            `was demonstrably reached within 20s. url=${outcome.url} body="${outcome.bodySnippet}". ` +
+            `This is a real failure, not evidence of either allow or deny.`,
+        );
+      }
+
+      results.push(
+        outcome.kind === "allowed" ? { outcome: "allowed" } : { outcome: "denied", alertText: outcome.alertText },
+      );
+      await context.close();
+    }
+
+    const allowed = results.filter((r) => r.outcome === "allowed");
+    const denied = results.filter((r) => r.outcome === "denied");
+
+    expect(allowed.length, `expected exactly 5 allowed of 6: ${JSON.stringify(results)}`).toBe(5);
+    expect(denied.length, `expected exactly 1 denied of 6: ${JSON.stringify(results)}`).toBe(1);
+    expect(denied[0]?.alertText, "denial shows the exact bilingual copy").toContain(DEMO_RATE_LIMITED_TEXT);
   });
 });
