@@ -364,46 +364,69 @@ async function classifyDemoEntryOutcome(page: Page, timeoutMs: number): Promise<
 }
 
 test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
-  test("exactly 5 of 6 rapid entries reach the dashboard; the 6th shows the localized denial", async ({ browser }) => {
+  test("6 concurrent entries in one 60s window: exactly 5 allowed, 1 denied, 0 ambiguous", async ({ browser }) => {
     // check_and_record_rate_limit's window is 60s. Wait out a full window
     // before this test's own attempts rather than reaching into the
     // database to inspect or clear state (ruled out: no mutating/deleting
     // production rate-limit rows from a test) -- 61s of this client_key
     // making zero attempts guarantees every row a prior test in this file
     // left behind has aged out before attempt 1 below.
-    test.setTimeout(220_000);
+    //
+    // WHY CONCURRENT, NOT SEQUENTIAL: six full login/redirect journeys run
+    // one after another can themselves span enough wall-clock time for the
+    // window to roll -- the first attempt can age out of the 60s window
+    // before the sixth even reaches the server, which makes "5 allowed, 1
+    // denied" nondeterministic through no fault of the limiter. Creating all
+    // six contexts up front and firing all six clicks via one Promise.all
+    // keeps every attempt's arrival at the RPC within a few hundred
+    // milliseconds of each other, comfortably inside the same window.
+    test.setTimeout(150_000);
     await new Promise((resolve) => setTimeout(resolve, 61_000));
 
-    const results: Array<{ outcome: "allowed" | "denied"; alertText?: string }> = [];
+    const ATTEMPTS = 6;
+    const contexts = await Promise.all(Array.from({ length: ATTEMPTS }, () => browser.newContext()));
 
-    for (let i = 0; i < 6; i += 1) {
-      const context = await browser.newContext();
-      const page = await context.newPage();
-      await page.goto("/en/demo", { waitUntil: "networkidle" });
-      await page.getByRole("button", { name: "Explore Live Demo" }).click();
+    try {
+      const pages = await Promise.all(contexts.map((context) => context.newPage()));
 
-      const outcome = await classifyDemoEntryOutcome(page, 20_000);
+      // Navigate all six and confirm every CTA is actually ready before any
+      // of them is clicked -- a click racing against a not-yet-hydrated
+      // button would desync the "near-simultaneous" arrival this test relies on.
+      await Promise.all(
+        pages.map(async (page) => {
+          await page.goto("/en/demo", { waitUntil: "networkidle" });
+          await expect(page.getByRole("button", { name: "Explore Live Demo" })).toBeVisible();
+        }),
+      );
 
-      if (outcome.kind === "ambiguous") {
-        await context.close();
+      // Fire all six clicks together.
+      await Promise.all(pages.map((page) => page.getByRole("button", { name: "Explore Live Demo" }).click()));
+
+      // Classify each independently -- concurrent execution means the
+      // server, not click order, decides which one is denied, so nothing
+      // here assumes it knows which index that will be.
+      const outcomes = await Promise.all(pages.map((page) => classifyDemoEntryOutcome(page, 20_000)));
+
+      const ambiguous = outcomes.filter((o) => o.kind === "ambiguous");
+      if (ambiguous.length > 0) {
         throw new Error(
-          `attempt ${i + 1} of 6: ambiguous outcome -- neither a settled dashboard nor the rate-limit message ` +
-            `was demonstrably reached within 20s. url=${outcome.url} body="${outcome.bodySnippet}". ` +
+          `${ambiguous.length} of ${ATTEMPTS} attempts were ambiguous -- neither a settled dashboard nor the ` +
+            `rate-limit message was demonstrably reached within 20s: ${JSON.stringify(ambiguous)}. ` +
             `This is a real failure, not evidence of either allow or deny.`,
         );
       }
 
-      results.push(
-        outcome.kind === "allowed" ? { outcome: "allowed" } : { outcome: "denied", alertText: outcome.alertText },
-      );
-      await context.close();
+      const allowed = outcomes.filter((o) => o.kind === "allowed");
+      const denied = outcomes.filter((o): o is { kind: "denied"; alertText: string } => o.kind === "denied");
+
+      expect(allowed.length, `expected exactly 5 allowed of ${ATTEMPTS}: ${JSON.stringify(outcomes)}`).toBe(5);
+      expect(denied.length, `expected exactly 1 denied of ${ATTEMPTS}: ${JSON.stringify(outcomes)}`).toBe(1);
+      expect(denied[0]?.alertText, "denial shows the exact bilingual copy").toContain(DEMO_RATE_LIMITED_TEXT);
+    } finally {
+      // Every result is classified before any context closes -- closing
+      // early could tear down a page mid-poll and turn a real outcome into
+      // a false "ambiguous".
+      await Promise.all(contexts.map((context) => context.close()));
     }
-
-    const allowed = results.filter((r) => r.outcome === "allowed");
-    const denied = results.filter((r) => r.outcome === "denied");
-
-    expect(allowed.length, `expected exactly 5 allowed of 6: ${JSON.stringify(results)}`).toBe(5);
-    expect(denied.length, `expected exactly 1 denied of 6: ${JSON.stringify(results)}`).toBe(1);
-    expect(denied[0]?.alertText, "denial shows the exact bilingual copy").toContain(DEMO_RATE_LIMITED_TEXT);
   });
 });
