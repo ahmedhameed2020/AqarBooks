@@ -121,20 +121,31 @@ export function LoginForm({
           ) : (
             <>
               <Check className="size-4" />
-              <span>{isAr ? "تسجيل الدخول للمنظومة" : "Sign In to Workspace"}</span>
+              <span>{isAr ? "تسجيل الدخول" : "Sign In"}</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Acquisition link. Self-service registration is retired -- workspaces
-          are provisioned by an approved request -- so this points at the
-          demo rather than a signup form. */}
-      <div className="text-center pt-3 border-t border-slate-100">
+      {/* Acquisition block. /get-started is the single canonical
+          acquisition/onboarding entry; internal approval steps are an
+          operational detail and must never surface in this copy. */}
+      <div className="text-center pt-3 border-t border-slate-100 space-y-1.5">
         <p className="text-xs text-slate-500">
-          {isAr ? "ليس لديك حساب منشأة؟ " : "Don't have an enterprise account? "}
-          <Link href="/demo" locale={locale} className="font-bold text-[#07425d] hover:underline">
-            {isAr ? "استكشف النظام" : "Explore the system"}
+          {isAr ? "ليس لديك حساب في AqarBooks؟ " : "Don't have an AqarBooks account? "}
+          <Link href="/get-started" locale={locale} className="font-bold text-[#07425d] hover:underline">
+            {isAr ? "ابدأ الآن" : "Get started"}
+          </Link>
+        </p>
+        <p className="text-xs text-slate-500">
+          {isAr
+            ? "أكمل بيانات شركتك واختر الباقة المناسبة للبدء."
+            : "Complete your company details and pick the right plan to get started."}
+        </p>
+        <p className="text-[11px] text-slate-400">
+          {isAr ? "تريد استكشاف AqarBooks أولًا؟ " : "Want to explore AqarBooks first? "}
+          <Link href="/demo" locale={locale} className="font-semibold text-slate-500 hover:text-[#07425d] hover:underline">
+            {isAr ? "جرّب العرض الحي" : "Try the live demo"}
           </Link>
         </p>
       </div>
