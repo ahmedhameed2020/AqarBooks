@@ -91,6 +91,8 @@ export function ExpensesClient({
   organizationId,
   organizationName = "AqarBooks",
   resortId,
+  canRecordExpense = false,
+  canManageCategories = false,
   currency = "EGP",
   locale,
 }: {
@@ -103,6 +105,8 @@ export function ExpensesClient({
   organizationId: string;
   organizationName?: string;
   resortId: string;
+  canRecordExpense?: boolean;
+  canManageCategories?: boolean;
   currency?: string;
   locale: string;
 }) {
@@ -424,25 +428,29 @@ _AqarBooks Financial Suite_`;
           </Button>
 
           {/* Categories Dialog */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setCategoriesOpen(true)}
-            className="text-xs font-bold gap-1.5 h-9"
-          >
-            <Tag className="size-3.5 text-purple-600 dark:text-purple-400" />
-            <span>{isAr ? "إدارة الفئات" : "Expense Categories"}</span>
-          </Button>
+          {canManageCategories && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCategoriesOpen(true)}
+              className="text-xs font-bold gap-1.5 h-9"
+            >
+              <Tag className="size-3.5 text-purple-600 dark:text-purple-400" />
+              <span>{isAr ? "إدارة الفئات" : "Expense Categories"}</span>
+            </Button>
+          )}
 
           {/* Record Expense Button */}
-          <Button
-            type="button"
-            onClick={() => setRecordExpenseOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-9 shadow-sm cursor-pointer"
-          >
-            <Plus className="size-4" />
-            <span>{isAr ? "تسجيل سند صرف جديد" : "Record Expense"}</span>
-          </Button>
+          {canRecordExpense && (
+            <Button
+              type="button"
+              onClick={() => setRecordExpenseOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 h-9 shadow-sm cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>{isAr ? "تسجيل سند صرف جديد" : "Record Expense"}</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -647,11 +655,15 @@ _AqarBooks Financial Suite_`;
                         ? isAr
                           ? "جرب تعديل كلمات البحث أو تصفية الفئات."
                           : "Try adjusting your search query or category filters."
+                        : canRecordExpense
+                        ? isAr
+                          ? "ابدأ بإصدار أول سند صرف مباشر لتسجيل مصروفات التشغيل والصيانة."
+                          : "Start by creating your first expense voucher."
                         : isAr
-                        ? "ابدأ بإصدار أول سند صرف مباشر لتسجيل مصروفات التشغيل والصيانة."
-                        : "Start by creating your first expense voucher."}
+                        ? "لم يُسجَّل أي سند صرف بعد، وصلاحيتك على هذه الشاشة للاطلاع فقط."
+                        : "No expense voucher has been recorded yet, and your access here is view-only."}
                     </p>
-                    {!searchQuery && selectedCategory === "ALL" && (
+                    {canRecordExpense && !searchQuery && selectedCategory === "ALL" && (
                       <div className="mt-4">
                         <Button
                           type="button"

@@ -8,6 +8,7 @@ import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
 import { PaymentsClient, type PaymentItem } from "./payments-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   CreditCard,
   CheckCircle2,
@@ -56,6 +57,15 @@ export default async function PaymentsPage({
 
   const denied = await denyIfMissingPermission(organization.id, "finance.payments.read", locale);
   if (denied) return denied;
+
+  // Reading the receipts register says nothing about being allowed to cut a new
+  // one, so the record-payment control asks for the create key on its own.
+  // record_payment enforces `receivables.payments.create`, NOT
+  // `finance.payments.create`. Both keys exist and are currently granted to the
+  // same six role templates, so today the two are behaviourally identical --
+  // but gating the button on the key the RPC does not check would silently
+  // become wrong the moment those grants diverge. Match the enforcement point.
+  const canRecordPayment = await hasPermission(organization.id, "receivables.payments.create");
 
   const supabase = await createClient();
   const { data: resort } = await supabase
@@ -285,6 +295,7 @@ export default async function PaymentsPage({
           organizationName={organization.name}
           resortId={resort.id}
           resortName={resort.name}
+          canRecordPayment={canRecordPayment}
           currency={currency}
           locale={locale}
           preselectedUnitId={preselectedUnitId}

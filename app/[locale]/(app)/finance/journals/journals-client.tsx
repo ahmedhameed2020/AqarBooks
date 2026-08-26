@@ -51,12 +51,14 @@ export function JournalsClient({
   entries,
   organizationName,
   resortName,
+  canCreateEntry = false,
   currency = "EGP",
   locale,
 }: {
   entries: JournalEntryItem[];
   organizationName: string;
   resortName?: string;
+  canCreateEntry?: boolean;
   currency?: string;
   locale: string;
 }) {
@@ -174,12 +176,14 @@ export function JournalsClient({
           </Button>
 
           {/* New Entry Button */}
-          <Link href="/finance/journals/new">
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs gap-1.5 h-9 shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
-              <Plus className="size-3.5" />
-              <span>{isAr ? "قيد يومية جديد" : "New Journal Entry"}</span>
-            </Button>
-          </Link>
+          {canCreateEntry && (
+            <Link href="/finance/journals/new">
+              <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs gap-1.5 h-9 shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                <Plus className="size-3.5" />
+                <span>{isAr ? "قيد يومية جديد" : "New Journal Entry"}</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

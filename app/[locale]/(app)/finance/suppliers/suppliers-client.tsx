@@ -86,6 +86,9 @@ export function SuppliersClient({
   periods,
   organizationId,
   resortId,
+  canPostInvoice = false,
+  canPaySupplier = false,
+  canManageSuppliers = false,
   currency = "EGP",
   locale,
 }: {
@@ -98,6 +101,9 @@ export function SuppliersClient({
   periods: Option[];
   organizationId: string;
   resortId: string;
+  canPostInvoice?: boolean;
+  canPaySupplier?: boolean;
+  canManageSuppliers?: boolean;
   currency?: string;
   locale: string;
 }) {
@@ -516,30 +522,36 @@ export function SuppliersClient({
             <span>{isAr ? "تصدير Excel" : "Export Excel"}</span>
           </Button>
 
-          <Button
-            onClick={() => setCreateSupplierOpen(true)}
-            variant="outline"
-            className="text-xs font-bold gap-1.5 h-9"
-          >
-            <Truck className="size-3.5 text-slate-500" />
-            <span>{isAr ? "مورد جديد" : "New Supplier"}</span>
-          </Button>
+          {canManageSuppliers && (
+            <Button
+              onClick={() => setCreateSupplierOpen(true)}
+              variant="outline"
+              className="text-xs font-bold gap-1.5 h-9"
+            >
+              <Truck className="size-3.5 text-slate-500" />
+              <span>{isAr ? "مورد جديد" : "New Supplier"}</span>
+            </Button>
+          )}
 
-          <Button
-            onClick={() => setRecordPaymentOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
-          >
-            <CreditCard className="size-3.5" />
-            <span>{isAr ? "سداد دفعة" : "Pay Supplier"}</span>
-          </Button>
+          {canPaySupplier && (
+            <Button
+              onClick={() => setRecordPaymentOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9 shadow-sm"
+            >
+              <CreditCard className="size-3.5" />
+              <span>{isAr ? "سداد دفعة" : "Pay Supplier"}</span>
+            </Button>
+          )}
 
-          <Button
-            onClick={() => setPostInvoiceOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-1.5 h-9 shadow-xs press-feedback motion-control"
-          >
-            <Plus className="size-3.5" />
-            <span>{isAr ? "ترحيل فاتورة" : "Post Invoice"}</span>
-          </Button>
+          {canPostInvoice && (
+            <Button
+              onClick={() => setPostInvoiceOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-1.5 h-9 shadow-xs press-feedback motion-control"
+            >
+              <Plus className="size-3.5" />
+              <span>{isAr ? "ترحيل فاتورة" : "Post Invoice"}</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -626,7 +638,7 @@ export function SuppliersClient({
                         </td>
 
                         <td className="p-3.5 text-end">
-                          {!isPaid && (
+                          {canPaySupplier && !isPaid && (
                             <Button
                               onClick={() => handlePayInvoice(inv.id)}
                               size="sm"

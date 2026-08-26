@@ -1,0 +1,63 @@
+name: Lease rent generation
+
+# Why a workflow and not a page render: run_lease_rent_generation() used to be
+# invoked from the render path of /finance/dues, which meant a GET performed a
+# cross-tenant financial mutation under the service role, and rent was billed
+# only if somebody happened to open a screen. Page rendering is not a scheduler.
+#
+# Why a workflow and not a Cloudflare Cron Trigger: OpenNext generates the
+# worker entry point, so adding a `scheduled` handler would mean maintaining
+# generated output. A workflow that posts to the route is visible, retryable by
+# hand, and leaves a log someone can read when a run does not happen.
+#
+# The route refuses to run unless CRON_SECRET is set, so a missing secret fails
+# closed rather than exposing an endpoint that writes to every tenant.
+
+on:
+  schedule:
+    # 05:00 Africa/Cairo, an hour ahead of the alert digest so the digest reads
+    # a ledger that already includes the day's generated rent. GitHub schedules
+    # in UTC and does not observe DST, so this is fixed at 03:00 UTC year-round.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: lease-rent
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger lease rent generation
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -uo pipefail
+
+          # Not yet configured is a known, intended state right after this
+          # shipped -- so it warns rather than failing. A daily red run for a
+          # deliberate gap trains people to ignore the badge, which is exactly
+          # what you do not want the day it goes red for a real reason.
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::warning::CRON_SECRET is not set; no rent was generated. Add it in repository secrets and as a Cloudflare secret."
+            exit 0
+          fi
+
+          response=$(mktemp)
+          code=$(curl -s -o "$response" -w '%{http_code}' -m 300 \
+            -X POST "https://aqarbooks.com/api/cron/lease-rent" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Length: 0")
+
+          echo "HTTP $code"
+          cat "$response"
+          echo
+
+          # 503 means the deployment has no CRON_SECRET attached -- a real
+          # misconfiguration, not a transient error, so it fails the run.
+          if [ "$code" != "200" ]; then
+            echo "Rent generation did not complete cleanly."
+            exit 1
+          fi

@@ -127,12 +127,14 @@ export function LoginForm({
         </button>
       </div>
 
-      {/* Register Link */}
+      {/* Acquisition link. Self-service registration is retired -- workspaces
+          are provisioned by an approved request -- so this points at the
+          demo rather than a signup form. */}
       <div className="text-center pt-3 border-t border-slate-100">
         <p className="text-xs text-slate-500">
           {isAr ? "ليس لديك حساب منشأة؟ " : "Don't have an enterprise account? "}
-          <Link href="/auth/register" locale={locale} className="font-bold text-[#07425d] hover:underline">
-            {isAr ? "إنشاء حساب جديد" : "Create account"}
+          <Link href="/demo" locale={locale} className="font-bold text-[#07425d] hover:underline">
+            {isAr ? "استكشف النظام" : "Explore the system"}
           </Link>
         </p>
       </div>

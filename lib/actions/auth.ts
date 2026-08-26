@@ -72,44 +72,29 @@ const signUpSchema = z.object({
   acceptTerms: z.string().optional(),
 });
 
-export async function signUpAction(formData: FormData): Promise<{
+/**
+ * Public self-service registration is retired.
+ *
+ * Removing the form is not enough: a server action stays addressable by its
+ * generated id, so a crafted POST could keep creating accounts after the UI
+ * was gone. This refuses unconditionally instead, and never reaches
+ * supabase.auth.signUp.
+ *
+ * The signature is preserved so the retirement is a behaviour change rather
+ * than an API change, and so the refusal is greppable from one place if the
+ * approval-gated flow later reinstates a public entry point.
+ */
+export async function signUpAction(_formData: FormData): Promise<{
   ok: boolean;
   error?: string;
   requiresVerification?: boolean;
 }> {
-  const parsed = signUpSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
-    acceptTerms: formData.get("acceptTerms"),
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message || "بيانات التسجيل غير صالحة" };
-  }
-
-  if (parsed.data.password !== parsed.data.confirmPassword) {
-    return { ok: false, error: "كلمتا المرور غير متطابقتين" };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      data: {
-        full_name: parsed.data.fullName,
-      },
-    },
-  });
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  const requiresVerification = !data.session && !!data.user;
-  return { ok: true, requiresVerification };
+  return {
+    ok: false,
+    error:
+      "التسجيل الذاتي غير متاح حالياً. تواصل مع فريق AqarBooks لتأسيس منظومة شركتك." +
+      " / Self-service registration is unavailable. Contact AqarBooks to have your workspace provisioned.",
+  };
 }
 
 export async function signOut(locale: Locale) {

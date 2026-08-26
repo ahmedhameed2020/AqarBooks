@@ -12,6 +12,7 @@ import {
 } from "./credit-notes-client";
 import { type DueCreditableOption } from "./credit-notes-dialog";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import {
   FileMinus2,
   CheckCircle2,
@@ -55,6 +56,10 @@ export default async function CreditNotesPage({
 
   const denied = await denyIfMissingPermission(organization.id, "finance.dues.read", locale);
   if (denied) return denied;
+
+  // A credit note walks back a posted due, so the database treats issuing one as
+  // a reversal rather than as a plain create.
+  const canIssueCreditNote = await hasPermission(organization.id, "finance.entries.reverse");
 
   const supabase = await createClient();
 
@@ -246,6 +251,7 @@ export default async function CreditNotesPage({
         dues={dueCreditableOptions}
         organizationName={organization.name}
         resortName={resort?.name}
+        canIssueCreditNote={canIssueCreditNote}
         currency={currency}
         locale={locale}
       />

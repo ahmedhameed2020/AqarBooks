@@ -96,6 +96,10 @@ export function CashierClient({
   fiscalPeriodId,
   currency = "EGP",
   locale,
+  canCreateCashbox = false,
+  canOpenSession = false,
+  canCloseSession = false,
+  canCollect = false,
 }: {
   cashboxes: CashboxRow[];
   sessions: CashierSessionRow[];
@@ -109,6 +113,16 @@ export function CashierClient({
   fiscalPeriodId?: string;
   currency?: string;
   locale: string;
+  /**
+   * Each control is gated on the permission that its own server action and RLS
+   * policy already require, so a read-only viewer is never shown a button whose
+   * only outcome is a raw Postgres error. These default to false: a caller that
+   * forgets to pass them renders read-only, which is the safe direction.
+   */
+  canCreateCashbox?: boolean;
+  canOpenSession?: boolean;
+  canCloseSession?: boolean;
+  canCollect?: boolean;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
@@ -266,15 +280,17 @@ export function CashierClient({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setCreateCashboxOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 shadow-sm"
-          >
-            <Plus className="size-4" />
-            <span>{isAr ? "إضافة صندوق خزينة" : "Add Cashbox"}</span>
-          </Button>
-        </div>
+        {canCreateCashbox && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setCreateCashboxOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5 shadow-sm"
+            >
+              <Plus className="size-4" />
+              <span>{isAr ? "إضافة صندوق خزينة" : "Add Cashbox"}</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
@@ -375,36 +391,46 @@ export function CashierClient({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                      {isOpen && openSession ? (
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          <Button
-                            onClick={() => setCollectDueTarget({ session: openSession, cashbox })}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 gap-1 shadow-sm"
+                    {(isOpen && openSession ? canCollect || canCloseSession : canOpenSession) && (
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        {isOpen && openSession ? (
+                          <div
+                            className={`grid grid-cols-1 gap-2 ${
+                              canCollect && canCloseSession ? "sm:grid-cols-2" : ""
+                            }`}
                           >
-                            <Receipt className="size-3.5" />
-                            <span>{isAr ? "تحصيل نقدي" : "Collect POS"}</span>
-                          </Button>
+                            {canCollect && (
+                              <Button
+                                onClick={() => setCollectDueTarget({ session: openSession, cashbox })}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 gap-1 shadow-sm"
+                              >
+                                <Receipt className="size-3.5" />
+                                <span>{isAr ? "تحصيل نقدي" : "Collect POS"}</span>
+                              </Button>
+                            )}
 
+                            {canCloseSession && (
+                              <Button
+                                onClick={() => setCloseSessionTarget(openSession)}
+                                variant="outline"
+                                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 border-rose-200 dark:border-rose-900 dark:hover:bg-rose-950 font-bold text-xs h-9 gap-1"
+                              >
+                                <Lock className="size-3.5" />
+                                <span>{isAr ? "إقفال الوردية" : "Close Shift"}</span>
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
                           <Button
-                            onClick={() => setCloseSessionTarget(openSession)}
-                            variant="outline"
-                            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 border-rose-200 dark:border-rose-900 dark:hover:bg-rose-950 font-bold text-xs h-9 gap-1"
+                            onClick={() => setOpenSessionTarget(cashbox)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 gap-1.5 shadow-sm"
                           >
-                            <Lock className="size-3.5" />
-                            <span>{isAr ? "إقفال الوردية" : "Close Shift"}</span>
+                            <Unlock className="size-3.5" />
+                            <span>{isAr ? "فتح وردية جديدة" : "Open Shift"}</span>
                           </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() => setOpenSessionTarget(cashbox)}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 gap-1.5 shadow-sm"
-                        >
-                          <Unlock className="size-3.5" />
-                          <span>{isAr ? "فتح وردية جديدة" : "Open Shift"}</span>
-                        </Button>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -415,17 +441,23 @@ export function CashierClient({
                   {isAr ? "لا توجد صناديق خزينة مسجلة" : "No Cashboxes Created"}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto mb-5">
-                  {isAr
-                    ? "قم بإضافة صندوق خزينة (مثل خزينة الاستقبال أو الصندوق الرئيسي) للبدء في إدارة الورديات وسندات القبض."
-                    : "Create a cashbox to start managing cash drawers, receipts, and shifts."}
+                  {canCreateCashbox
+                    ? isAr
+                      ? "قم بإضافة صندوق خزينة (مثل خزينة الاستقبال أو الصندوق الرئيسي) للبدء في إدارة الورديات وسندات القبض."
+                      : "Create a cashbox to start managing cash drawers, receipts, and shifts."
+                    : isAr
+                      ? "لم يتم تسجيل أي صندوق خزينة بعد."
+                      : "No cashbox has been registered yet."}
                 </p>
-                <Button
-                  onClick={() => setCreateCashboxOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
-                >
-                  <Plus className="size-4" />
-                  <span>{isAr ? "إضافة صندوق خزينة الآن" : "Add Cashbox Now"}</span>
-                </Button>
+                {canCreateCashbox && (
+                  <Button
+                    onClick={() => setCreateCashboxOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+                  >
+                    <Plus className="size-4" />
+                    <span>{isAr ? "إضافة صندوق خزينة الآن" : "Add Cashbox Now"}</span>
+                  </Button>
+                )}
               </div>
             )}
           </div>
