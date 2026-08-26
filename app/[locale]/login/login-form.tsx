@@ -128,13 +128,14 @@ export function LoginForm({
       </div>
 
       {/* Acquisition link. Self-service registration is retired -- workspaces
-          are provisioned by an approved request -- so this points at the
-          demo rather than a signup form. */}
+          are only provisioned after an approved activation request -- so
+          this points at /get-started, the assisted-onboarding flow, rather
+          than a signup form that would create an active workspace on the spot. */}
       <div className="text-center pt-3 border-t border-slate-100">
         <p className="text-xs text-slate-500">
           {isAr ? "ليس لديك حساب منشأة؟ " : "Don't have an enterprise account? "}
-          <Link href="/demo" locale={locale} className="font-bold text-[#07425d] hover:underline">
-            {isAr ? "استكشف النظام" : "Explore the system"}
+          <Link href="/get-started" locale={locale} className="font-bold text-[#07425d] hover:underline">
+            {isAr ? "اطلب تفعيل حسابك" : "Request activation"}
           </Link>
         </p>
       </div>

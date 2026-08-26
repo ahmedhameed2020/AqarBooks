@@ -102,7 +102,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
             locale={locale}
             className="group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white transition-all hover:bg-[#053247] shadow-xs active:translate-y-px"
           >
-            <span>{isAr ? "استكشف النظام" : "Explore ERP"}</span>
+            <span>{isAr ? "جرّب العرض الحي" : "Explore Live Demo"}</span>
             <span className="flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5">
               <ArrowUpRight className="size-3.5" />
             </span>
@@ -167,7 +167,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
               locale={locale}
               className="group flex items-center justify-center gap-2 rounded-xl bg-[#07425d] py-2.5 text-center text-xs font-bold text-white shadow-sm hover:bg-[#053247]"
             >
-              <span>{isAr ? "استكشف النظام" : "Explore ERP"}</span>
+              <span>{isAr ? "جرّب العرض الحي" : "Explore Live Demo"}</span>
               <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5" />
             </Link>
           </div>

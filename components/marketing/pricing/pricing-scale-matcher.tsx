@@ -30,7 +30,7 @@ export function PricingScaleMatcher({ locale }: PricingScaleMatcherProps) {
         colorClass: "border-purple-600 bg-purple-50/50 text-purple-950",
         badgeBg: "bg-purple-600 text-white",
         btnClass: "bg-purple-900 hover:bg-purple-950 text-white",
-        href: "/contact?plan=enterprise",
+        href: "/get-started?plan=ENTERPRISE",
         reason: isAr
           ? "نشاطك يتطلب قوائم مالية مجمعة، مراكز تكلفة مستقلة، أو سعة تتجاوز 500 وحدة وحوكمة بينية."
           : "Your operations require multi-entity consolidation, custom cost centers, or >500 units scale.",
@@ -45,7 +45,7 @@ export function PricingScaleMatcher({ locale }: PricingScaleMatcherProps) {
         colorClass: "border-[#07425d] bg-[#07425d]/5 text-slate-950",
         badgeBg: "bg-[#07425d] text-white",
         btnClass: "bg-[#07425d] hover:bg-[#06354a] text-white",
-        href: "/contact?plan=professional&program=founding",
+        href: "/get-started?plan=PROFESSIONAL&program=founding",
         reason: isAr
           ? "هيكلك يتطلب فصلاً لودائع الصيانة CAM، حوكمة الاعتمادات Maker-Checker، ومطابقة بنكية متقدمة."
           : "Your structure requires CAM sinking fund splits, Maker-Checker governance, and smart reconciliation.",
@@ -59,7 +59,7 @@ export function PricingScaleMatcher({ locale }: PricingScaleMatcherProps) {
       colorClass: "border-slate-300 bg-white text-slate-950",
       badgeBg: "bg-slate-800 text-white",
       btnClass: "bg-slate-900 hover:bg-slate-800 text-white",
-      href: "/contact?plan=essential",
+      href: "/get-started?plan=STARTER",
       reason: isAr
         ? "حجم نشاطك ودرجة التعقيد البسيطة تناسبها باقة الأساسيات لبدء تشغيل محاسبي متكامل ومنضبط."
         : "Your operational scale fits perfectly with our Essential tier for clean double-entry books.",
