@@ -111,7 +111,7 @@ export function PricingTierCards({
             {/* CTA Button */}
             <div className="pt-6 border-t border-slate-100">
               <Link
-                href="/contact?plan=essential"
+                href="/get-started?plan=STARTER"
                 className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-900 transition-all hover:bg-slate-100 hover:border-slate-400 shadow-2xs active:scale-[0.99]"
               >
                 <span>{copy.tiers.essential.ctaText}</span>
@@ -213,7 +213,7 @@ export function PricingTierCards({
               {/* CTA Button */}
               <div className="pt-6 border-t border-slate-100">
                 <Link
-                  href="/contact?plan=professional&program=founding"
+                  href="/get-started?plan=PROFESSIONAL&program=founding"
                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#07425d] px-5 py-4 text-xs sm:text-sm font-black text-white transition-all hover:bg-[#06354a] shadow-md active:scale-[0.99]"
                 >
                   <span>{copy.tiers.professional.ctaText}</span>
@@ -282,7 +282,7 @@ export function PricingTierCards({
             {/* CTA Button */}
             <div className="pt-6 border-t border-slate-100">
               <Link
-                href="/contact?plan=enterprise"
+                href="/get-started?plan=ENTERPRISE"
                 className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-900 transition-all hover:bg-slate-100 hover:border-slate-400 shadow-2xs active:scale-[0.99]"
               >
                 <span>{copy.tiers.enterprise.ctaText}</span>

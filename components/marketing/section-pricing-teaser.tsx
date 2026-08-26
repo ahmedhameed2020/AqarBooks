@@ -149,7 +149,7 @@ export function SectionPricingTeaser({ locale }: { locale: Locale }) {
             {/* CTA */}
             <div className="pt-5 border-t border-slate-200/80">
               <Link
-                href="/contact?plan=essential"
+                href="/get-started?plan=STARTER"
                 locale={locale}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-400 shadow-2xs active:scale-[0.99]"
               >
@@ -234,7 +234,7 @@ export function SectionPricingTeaser({ locale }: { locale: Locale }) {
               {/* CTA */}
               <div className="pt-5 border-t border-slate-100">
                 <Link
-                  href="/contact?plan=professional&program=founding"
+                  href="/get-started?plan=PROFESSIONAL&program=founding"
                   locale={locale}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#07425d] px-5 py-4 text-xs sm:text-sm font-black text-white transition-all hover:bg-[#06354a] shadow-md active:scale-[0.99]"
                 >
@@ -303,7 +303,7 @@ export function SectionPricingTeaser({ locale }: { locale: Locale }) {
             {/* CTA */}
             <div className="pt-5 border-t border-slate-200/80">
               <Link
-                href="/contact?plan=enterprise"
+                href="/get-started?plan=ENTERPRISE"
                 locale={locale}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-400 shadow-2xs active:scale-[0.99]"
               >

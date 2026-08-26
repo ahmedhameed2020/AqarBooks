@@ -15,6 +15,11 @@ export default function robots(): MetadataRoute.Robots {
         "/*/property",
         "/*/members",
         "/*/login",
+        // Creates real Supabase Auth accounts across a 4-step wizard --
+        // same category as /login: a sign-in/account-creation door, not an
+        // acquisition surface. /pricing is what should rank; this shouldn't.
+        "/*/get-started",
+        "/*/get-started/*",
         // The public demo runs the real product screens. Those screens are all
         // already listed above, so a crawler could not reach them anyway --
         // but the demo's own entry page signs the visitor in, and an indexed

@@ -2281,6 +2281,78 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["demo_leads"]["Row"]>;
         Relationships: [];
       };
+      onboarding_requests: {
+        Row: {
+          id: string;
+          status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "PROVISIONING" | "ACTIVE" | "FAILED";
+          requester_user_id: string;
+          full_name: string;
+          work_email: string;
+          phone: string | null;
+          organization_name: string;
+          entity_type:
+            | "DEVELOPER"
+            | "FACILITY_MANAGEMENT"
+            | "OWNERS_ASSOCIATION"
+            | "INDIVIDUAL_OWNER"
+            | "TOURIST_RESORT"
+            | "TOURIST_VILLAGE"
+            | "RESIDENTIAL_COMPOUND"
+            | "OTHER";
+          entity_type_custom_label: string | null;
+          country: string | null;
+          city: string | null;
+          expected_properties_count: number | null;
+          expected_units_count: number | null;
+          notes: string | null;
+          requested_plan_key: "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+          organization_id: string | null;
+          failure_reason: string | null;
+          submitted_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["onboarding_requests"]["Row"],
+          "id" | "status" | "organization_id" | "failure_reason" | "submitted_at" | "reviewed_at" | "reviewed_by" | "review_notes" | "created_at" | "updated_at"
+        > & {
+          id?: string;
+          status?: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "PROVISIONING" | "ACTIVE" | "FAILED";
+        };
+        Update: Partial<Database["public"]["Tables"]["onboarding_requests"]["Row"]>;
+        Relationships: [];
+      };
+      onboarding_request_events: {
+        Row: {
+          id: number;
+          request_id: string;
+          event_type:
+            | "SUBMITTED"
+            | "APPROVED"
+            | "REJECTED"
+            | "PROVISIONING_STARTED"
+            | "PROVISIONED"
+            | "PROVISIONING_FAILED";
+          actor_id: string | null;
+          notes: string | null;
+          metadata: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["onboarding_request_events"]["Row"],
+          "id" | "actor_id" | "notes" | "metadata" | "created_at"
+        > & {
+          id?: number;
+          actor_id?: string | null;
+          notes?: string | null;
+          metadata?: Record<string, unknown> | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["onboarding_request_events"]["Row"]>;
+        Relationships: [];
+      };
       member_invitations: {
         Row: {
           id: string;
@@ -2972,6 +3044,14 @@ export type Database = {
           p_window_seconds: number;
         };
         Returns: boolean;
+      };
+      approve_onboarding_request: {
+        Args: { p_request_id: string; p_review_notes?: string | null };
+        Returns: string | null;
+      };
+      reject_onboarding_request: {
+        Args: { p_request_id: string; p_review_notes: string };
+        Returns: undefined;
       };
       create_installment_plan: {
         Args: {

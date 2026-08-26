@@ -40,6 +40,7 @@ import {
   ShieldAlert,
   Scale,
   Landmark,
+  UserCheck,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -277,6 +278,7 @@ export default async function AppShellLayout({
           labelEn: "Admin",
           items: [
             { href: "/platform/organizations", labelAr: "المنظمات", labelEn: "Organizations", icon: <Building2 className={ic} /> },
+            { href: "/platform/onboarding", labelAr: "طلبات التفعيل", labelEn: "Onboarding requests", icon: <UserCheck className={ic} /> },
             { href: "/platform/leads", labelAr: "العروض", labelEn: "Leads", icon: <Inbox className={ic} /> },
             { href: "/platform/audit", labelAr: "التدقيق", labelEn: "Audit", icon: <ShieldAlert className={ic} /> },
           ],

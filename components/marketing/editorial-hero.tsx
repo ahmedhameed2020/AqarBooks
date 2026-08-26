@@ -59,7 +59,7 @@ export function EditorialHero({ locale }: { locale: Locale }) {
               locale={locale}
               className="group relative inline-flex w-full sm:w-auto items-center justify-between sm:justify-center gap-3 rounded-2xl bg-[#07425d] ps-6 pe-3 py-3 text-sm font-bold text-white shadow-md shadow-[#07425d]/20 transition-all hover:bg-[#053247] active:translate-y-px"
             >
-              <span>{isAr ? "استكشف النظام" : "Explore Platform"}</span>
+              <span>{isAr ? "جرّب العرض الحي" : "Explore Live Demo"}</span>
               <span className="flex size-7 items-center justify-center rounded-xl bg-white/15 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5">
                 <ArrowUpRight className="size-4" />
               </span>
