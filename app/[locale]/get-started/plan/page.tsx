@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
+import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PlanStepForm } from "./plan-step-form";
@@ -32,6 +34,14 @@ export default async function GetStartedPlanPage({
   const { plan } = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect({ href: "/get-started", locale: locale as Locale });
+  }
 
   const initialPlan = plan && VALID_PLAN_KEYS.includes(plan) ? (plan as PlanKey) : undefined;
 

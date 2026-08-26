@@ -21,6 +21,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 config({ path: ".env.local" });
 
@@ -86,7 +88,19 @@ async function createPlatformAdmin() {
   return { userId, email, client };
 }
 
-/** Mirrors exactly what submitOnboardingRequestAction does, minus headers(). */
+/**
+ * Fixture helper: creates a fresh confirmed user and one onboarding_requests
+ * row for them via the service-role client. NOTE: this does not simulate
+ * lib/actions/onboarding-request.ts's exact call sequence anymore -- since
+ * the Release B follow-up split that action in two (startOnboardingAccountAction
+ * for Step 1, submitOnboardingRequestAction for Step 4, joined by a real
+ * session rather than one all-or-nothing transaction), the request INSERT
+ * itself is still always done via the service-role admin client either way
+ * (submitOnboardingRequestAction resolves the requester from the session,
+ * but still writes through createAdminClient() -- see that file), so this
+ * helper's shape is still an accurate stand-in for "a request exists for
+ * this requester", which is what most tests below need.
+ */
 async function submitRequest(overrides: Record<string, unknown> = {}) {
   const email = `onboarding-request-${randomUUID()}@aqarbooks-test.invalid`;
   const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -172,6 +186,130 @@ describe("public submission never touches organizations directly", () => {
 
     const orgsAfter = await admin.from("organizations").select("id", { count: "exact", head: true });
     expect(orgsAfter.count, "submission alone must create zero organizations").toBe(orgsBefore.count);
+  });
+});
+
+describe("request idempotency: onboarding_requests_one_actionable_per_requester", () => {
+  it("a second actionable-status insert for the same requester is refused (23505), not a second row", async () => {
+    const { requesterId, request } = await submitRequest();
+
+    const { error: retryError } = await admin.from("onboarding_requests").insert({
+      requester_user_id: requesterId,
+      full_name: "Test Requester",
+      work_email: request.work_email,
+      organization_name: "Retry Co",
+      entity_type: "DEVELOPER",
+      requested_plan_key: "STARTER",
+    });
+    expect(retryError, "a second actionable request for the same requester must be refused").toBeTruthy();
+    expect(retryError!.code).toBe("23505");
+
+    const { count } = await admin
+      .from("onboarding_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_user_id", requesterId);
+    expect(count, "exactly one row must exist for this requester, not two").toBe(1);
+  });
+
+  it("after a terminal state (REJECTED), the same requester may submit a new actionable request", async () => {
+    const { requesterId, request } = await submitRequest();
+
+    await admin.from("onboarding_requests").update({ status: "REJECTED" }).eq("id", request.id);
+
+    const { data: secondRequest, error: secondError } = await admin
+      .from("onboarding_requests")
+      .insert({
+        requester_user_id: requesterId,
+        full_name: "Test Requester",
+        work_email: request.work_email,
+        organization_name: "Second Entity Co",
+        entity_type: "DEVELOPER",
+        requested_plan_key: "PROFESSIONAL",
+      })
+      .select("id")
+      .single();
+    expect(secondError, `a new request after REJECTED must be allowed: ${secondError?.message}`).toBeNull();
+    if (secondRequest) createdRequestIds.push(secondRequest.id);
+  });
+});
+
+describe("an existing customer requesting a second entity keeps their existing tenant access", () => {
+  it("a new onboarding request does not touch the requester's pre-existing organization_memberships row", async () => {
+    const { userId, client } = await createSignedInUser("existing-customer-second-entity");
+
+    const { data: placeholderOrg, error: orgError } = await admin
+      .from("organizations")
+      .insert({ name: `Pre-existing Co ${randomUUID()}`, slug: `pre-existing-${randomUUID()}`, default_currency: "EGP" })
+      .select("id")
+      .single();
+    if (orgError || !placeholderOrg) throw orgError ?? new Error("failed to create placeholder org");
+    createdOrgIds.push(placeholderOrg.id);
+
+    const { error: membershipError } = await admin
+      .from("organization_memberships")
+      .insert({ organization_id: placeholderOrg.id, user_id: userId, status: "active" });
+    if (membershipError) throw membershipError;
+
+    // The existing customer's own session still resolves to their existing org.
+    const { data: sessionUser } = await client.auth.getUser();
+    expect(sessionUser.user?.id).toBe(userId);
+
+    const { request } = await submitRequest({ requester_user_id: userId, work_email: sessionUser.user!.email! });
+
+    const { data: membershipAfter, error: membershipAfterError } = await admin
+      .from("organization_memberships")
+      .select("status")
+      .eq("organization_id", placeholderOrg.id)
+      .eq("user_id", userId)
+      .single();
+    expect(membershipAfterError, "the pre-existing membership must still exist").toBeNull();
+    expect(membershipAfter?.status, "the pre-existing membership must remain active, untouched").toBe("active");
+    expect(request.status).toBe("PENDING_APPROVAL");
+  });
+});
+
+describe("onboarding account-creation rate limit (separate from request-submission rate limit)", () => {
+  it("onboarding_account_create is durably rate-limited at 5/hour/client, independently of onboarding_request_submit", async () => {
+    const key = `account-create-gate-${randomUUID()}`;
+
+    for (let i = 0; i < 5; i += 1) {
+      const { data: allowed, error } = await admin.rpc("check_and_record_rate_limit", {
+        p_action: "onboarding_account_create",
+        p_client_key: key,
+        p_limit: 5,
+        p_window_seconds: 3600,
+      });
+      expect(error, `attempt ${i + 1} of 5`).toBeNull();
+      expect(allowed, `attempt ${i + 1} of 5`).toBe(true);
+    }
+
+    const { data: sixth } = await admin.rpc("check_and_record_rate_limit", {
+      p_action: "onboarding_account_create",
+      p_client_key: key,
+      p_limit: 5,
+      p_window_seconds: 3600,
+    });
+    expect(sixth, "6th account-creation attempt in one hour must be denied").toBe(false);
+
+    // A denied account-creation attempt is a distinct action from request
+    // submission -- the same client_key must still have full quota there,
+    // proving the two rate limits are independent, not one shared bucket.
+    const { data: requestSubmitStillAllowed } = await admin.rpc("check_and_record_rate_limit", {
+      p_action: "onboarding_request_submit",
+      p_client_key: key,
+      p_limit: 5,
+      p_window_seconds: 3600,
+    });
+    expect(requestSubmitStillAllowed, "onboarding_request_submit must not share onboarding_account_create's bucket").toBe(true);
+  });
+
+  it("rate-limit ordering: lib/actions/onboarding-request.ts calls check_and_record_rate_limit before admin.auth.admin.createUser (verified by source order, not executable here -- see file doc comment on why headers() blocks importing the action directly)", () => {
+    const source = readFileSync(join(process.cwd(), "lib/actions/onboarding-request.ts"), "utf8");
+    const rateLimitIndex = source.indexOf("onboarding_account_create");
+    const createUserIndex = source.indexOf("admin.auth.admin.createUser(");
+    expect(rateLimitIndex, "the rate-limit call must appear in the source").toBeGreaterThan(-1);
+    expect(createUserIndex, "the createUser call must appear in the source").toBeGreaterThan(-1);
+    expect(rateLimitIndex, "the rate-limit check must be written before createUser in startOnboardingAccountAction").toBeLessThan(createUserIndex);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
@@ -31,15 +31,7 @@ const ERROR_COPY: Record<string, { ar: string; en: string }> = {
 export function CompanyStepForm({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
   const router = useRouter();
-  const { account, company, setCompany } = useOnboardingWizard();
-
-  // Account is required before this step exists -- a hard refresh (or
-  // direct link) with no account draft in memory has nothing to submit.
-  useEffect(() => {
-    if (!account) {
-      router.replace("/get-started");
-    }
-  }, [account, router]);
+  const { company, setCompany } = useOnboardingWizard();
 
   const [organizationName, setOrganizationName] = useState(company?.organizationName ?? "");
   const [entityType, setEntityType] = useState<EntityType | "">(company?.entityType ?? "");
@@ -50,10 +42,6 @@ export function CompanyStepForm({ locale }: { locale: Locale }) {
   const [expectedUnitsCount, setExpectedUnitsCount] = useState(company?.expectedUnitsCount ?? "");
   const [notes, setNotes] = useState(company?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
-
-  if (!account) {
-    return null;
-  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

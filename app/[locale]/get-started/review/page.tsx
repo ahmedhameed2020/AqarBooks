@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
+import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ReviewStepForm } from "./review-step-form";
@@ -27,6 +29,17 @@ export default async function GetStartedReviewPage({
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect({ href: "/get-started", locale: locale as Locale });
+  }
+
+  const fullName = (user!.user_metadata?.full_name as string | undefined)?.trim() || user!.email || "";
+  const phone = (user!.user_metadata?.phone as string | undefined) || "";
+
   return (
     <AuthShell
       brandName="AqarBooks"
@@ -40,7 +53,7 @@ export default async function GetStartedReviewPage({
       locale={locale}
       maxWidth="lg"
     >
-      <ReviewStepForm locale={locale as Locale} />
+      <ReviewStepForm locale={locale as Locale} fullName={fullName} email={user!.email ?? ""} phone={phone} />
     </AuthShell>
   );
 }

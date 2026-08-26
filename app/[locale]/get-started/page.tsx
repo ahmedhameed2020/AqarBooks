@@ -38,14 +38,18 @@ export default async function GetStartedAccountPage({
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
-  // An existing customer never needs this flow -- send them straight to
-  // their workspace, the same guard the old /auth/register page carried.
+  // An already-authenticated visitor -- a new signup or an existing
+  // customer requesting a second entity, this page can't tell which and
+  // doesn't need to -- has nothing to do at the Account step: their
+  // identity already exists. Skip straight to Company. Their existing
+  // memberships and tenant access are untouched by any of this; nothing
+  // here reads or writes them.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect({ href: "/dashboard", locale: locale as Locale });
+    redirect({ href: "/get-started/company", locale: locale as Locale });
   }
 
   const initialPlan = plan && VALID_PLAN_KEYS.includes(plan) ? (plan as PlanKey) : undefined;

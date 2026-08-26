@@ -30,10 +30,7 @@ const PLAN_LABELS: Record<string, { ar: string; en: string }> = {
 const ERROR_COPY: Record<string, { ar: string; en: string }> = {
   invalid_input: { ar: "توجد بيانات غير صحيحة. يرجى مراجعة الخطوات السابقة.", en: "Some details are invalid. Please review the previous steps." },
   rate_limited: { ar: "تم إجراء عدة محاولات متتالية. حاول مرة أخرى بعد قليل.", en: "Too many attempts. Please try again shortly." },
-  email_already_registered: {
-    ar: "هذا البريد الإلكتروني مسجّل بالفعل. سجّل الدخول أو استخدم بريدًا آخر.",
-    en: "This email is already registered. Sign in instead, or use a different email.",
-  },
+  not_authenticated: { ar: "انتهت جلستك. يرجى تسجيل الدخول والمتابعة.", en: "Your session has expired. Please sign in and continue." },
   submission_failed: { ar: "تعذّر إرسال الطلب. حاول مرة أخرى.", en: "We couldn't submit your request. Please try again." },
 };
 
@@ -46,37 +43,40 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ReviewStepForm({ locale }: { locale: Locale }) {
+export function ReviewStepForm({
+  locale,
+  fullName,
+  email,
+  phone,
+}: {
+  locale: Locale;
+  fullName: string;
+  email: string;
+  phone: string;
+}) {
   const isAr = locale === "ar";
   const router = useRouter();
-  const { account, company, planKey } = useOnboardingWizard();
+  const { company, planKey } = useOnboardingWizard();
 
   useEffect(() => {
-    if (!account) {
-      router.replace("/get-started");
-    } else if (!company) {
+    if (!company) {
       router.replace("/get-started/company");
     } else if (!planKey) {
       router.replace("/get-started/plan");
     }
-  }, [account, company, planKey, router]);
+  }, [company, planKey, router]);
 
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(submitOnboardingRequestAction, {
     ok: true,
   });
 
-  if (!account || !company || !planKey) {
+  if (!company || !planKey) {
     return null;
   }
 
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name="fullName" value={account.fullName} />
-      <input type="hidden" name="workEmail" value={account.workEmail} />
-      <input type="hidden" name="phone" value={account.phone} />
-      <input type="hidden" name="password" value={account.password} />
-      <input type="hidden" name="confirmPassword" value={account.confirmPassword} />
       <input type="hidden" name="organizationName" value={company.organizationName} />
       <input type="hidden" name="entityType" value={company.entityType} />
       <input type="hidden" name="entityTypeCustomLabel" value={company.entityTypeCustomLabel} />
@@ -86,16 +86,19 @@ export function ReviewStepForm({ locale }: { locale: Locale }) {
       <input type="hidden" name="expectedUnitsCount" value={company.expectedUnitsCount} />
       <input type="hidden" name="notes" value={company.notes} />
       <input type="hidden" name="requestedPlanKey" value={planKey} />
-      {/* Honeypot -- never rendered visibly, a real visitor never touches it. */}
-      <input type="text" name="website" defaultValue="" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
 
       <section className="rounded-xl border border-slate-200 p-4">
         <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
           {isAr ? "الحساب" : "Account"}
         </h3>
-        <SummaryRow label={isAr ? "الاسم" : "Name"} value={account.fullName} />
-        <SummaryRow label={isAr ? "البريد الإلكتروني" : "Email"} value={account.workEmail} />
-        {account.phone && <SummaryRow label={isAr ? "الهاتف" : "Phone"} value={account.phone} />}
+        {/* Read-only -- this is the current session's identity, established
+            in Step 1 (new account) or already existing (a customer
+            requesting a second entity). Nothing here is submitted; the
+            server derives the requester from the session, never from a
+            form field. */}
+        <SummaryRow label={isAr ? "الاسم" : "Name"} value={fullName} />
+        <SummaryRow label={isAr ? "البريد الإلكتروني" : "Email"} value={email} />
+        {phone && <SummaryRow label={isAr ? "الهاتف" : "Phone"} value={phone} />}
       </section>
 
       <section className="rounded-xl border border-slate-200 p-4">

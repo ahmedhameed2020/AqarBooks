@@ -89,6 +89,7 @@ const MIGRATION_FILES = [
   { file: "20260825231151_demo_readonly_hardening_and_cashier_read.sql", bytes: 9984, sha256: "d7dd715e0a06f7457d5cd2ad338e73450569697bfbc22f64bc3aa41e49baf233" },
   { file: "20260826072010_public_action_rate_limits.sql", bytes: 5823, sha256: "80611b7bf5e2835d3e8600e45c36a850d6b902e53724f46287422ca843502b3d" },
   { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc" },
+  { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566" },
 ] as const;
 
 /**

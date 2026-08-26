@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
+import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { CompanyStepForm } from "./company-step-form";
@@ -26,6 +28,16 @@ export default async function GetStartedCompanyPage({
   const { locale } = await params;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
+
+  // Requester identity is now established in Step 1 (a real, signed-in
+  // session, new or pre-existing) -- every step past it requires one.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect({ href: "/get-started", locale: locale as Locale });
+  }
 
   return (
     <AuthShell

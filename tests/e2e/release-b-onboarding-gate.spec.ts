@@ -2,32 +2,60 @@
  * RELEASE B — assisted onboarding pre-merge browser gate.
  *
  * WHY THIS FILE EXISTS AND WHY IT WASN'T RUN HERE
- * This session has no outbound network path to either the production domain
- * or the Supabase project directly (confirmed via `curl` -- both return a
- * CONNECT-tunnel 403 from this session's egress proxy), and the public
- * submission step needs a real SUPABASE_SERVICE_ROLE_KEY that is
- * deliberately never present outside Cloudflare's encrypted secret store
- * (see .github/workflows/deploy.yml's own comment on this). Neither
- * constraint can be worked around from inside this session. Nothing in this
- * file was run; nothing about its outcome should be inferred.
+ * This session has no outbound HTTPS egress at all -- confirmed via `curl`
+ * against three unrelated hosts (aqarbooks.com, the Supabase project
+ * directly, and a generic public domain), all returning an identical
+ * CONNECT-tunnel 403 from this session's egress proxy. This is a blanket
+ * block, not a production-specific or Supabase-specific one, so it applies
+ * equally to a PR preview URL. On top of that, the public submission step
+ * needs a real SUPABASE_SERVICE_ROLE_KEY that is deliberately never present
+ * outside Cloudflare's encrypted secret store (see
+ * .github/workflows/deploy.yml's own comment on this). Neither constraint
+ * can be worked around from inside this session. Nothing in this file was
+ * run; nothing about its outcome should be inferred.
  *
- * HOW TO RUN
- *   PLAYWRIGHT_BASE_URL=https://aqarbooks.com \
+ * THERE IS NO ISOLATED STAGING BACKEND FOR THIS BRANCH
+ * wrangler.jsonc defines a single Worker ("aqarbooks") with no `env.preview`
+ * block, and the production deploy step runs `--keep-vars` specifically so
+ * account-level secrets/vars survive redeploys -- there is no per-branch or
+ * per-PR secret scoping in this repo's Cloudflare setup. The Cloudflare Git
+ * integration's "Branch Preview URL" comment on this PR
+ * (https://claude-aqarbooks-conversion-flow-2tplsl-aqarbooks.ahmedhameed2020.workers.dev,
+ * current as of commit 93b7da1 -- it repoints on every push to this branch)
+ * is therefore the SAME Worker script bound to the SAME Supabase project as
+ * production, not a separate staging database. Running this suite against
+ * either URL writes real rows to the real production database. Prefer the
+ * branch preview URL over production only to avoid exercising untested code
+ * against real customer traffic -- it buys no data isolation.
+ * Consequently:
+ *   - Every identity this suite creates uses the @aqarbooks-test.invalid
+ *     email domain (already excluded from any real customer segment).
+ *   - The approve-path test provisions exactly one real, disposable
+ *     organization. Clean it up afterward -- for each throwaway org name
+ *     printed by the test (or matched by `like 'Gate Test Co %'`), delete in
+ *     this order: onboarding_request_events, onboarding_requests,
+ *     user_role_assignments, organization_memberships, subscriptions,
+ *     role_permissions, roles, organizations (by id), then
+ *     auth.admin.deleteUser for each @aqarbooks-test.invalid user created.
+ *     This mirrors the afterAll cleanup already in
+ *     tests/onboarding-request.integration.test.ts.
+ *   - Do not run the approve/reject tests against this shared backend
+ *     unattended or in CI without that cleanup step wired in.
+ *
+ * HOW TO RUN (against the branch preview URL, with a human ready to clean up)
+ *   PLAYWRIGHT_BASE_URL=https://claude-aqarbooks-conversion-flow-2tplsl-aqarbooks.ahmedhameed2020.workers.dev \
  *   E2E_PLATFORM_ADMIN_EMAIL=the-actual-platform-admin-email@example.com \
  *   E2E_PLATFORM_ADMIN_PASSWORD=the-actual-platform-admin-password \
+ *   E2E_CUSTOMER_EMAIL=an-existing-real-customer-login@example.com \
+ *   E2E_CUSTOMER_PASSWORD=the-actual-existing-customer-password \
  *   npx playwright test tests/e2e/release-b-onboarding-gate.spec.ts
  *
  * The locale/viewport checks below run without credentials and will run and
- * report even if the platform-admin env vars are absent -- only the
- * submit-to-approval and submit-to-rejection flows skip in that case, with
- * an explicit reason (this is the same pattern release-a-production-gate.spec.ts
- * uses for its existing-customer-session check).
- *
- * This suite creates real data on whatever environment it targets: one
- * throwaway Supabase Auth account and one onboarding_requests row per test
- * run (email domain @aqarbooks-test.invalid), and on the approval test, one
- * real organization via approve_onboarding_request. It never touches the
- * demo organization, its financial rows, or any existing customer account.
+ * report even if the platform-admin/customer env vars are absent -- only the
+ * submit-to-approval, submit-to-rejection, and existing-customer flows skip
+ * in that case, with an explicit reason (this is the same pattern
+ * release-a-production-gate.spec.ts uses for its existing-customer-session
+ * check).
  */
 import { test, expect, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
@@ -126,6 +154,59 @@ test.describe("public submission never grants tenant access before approval", ()
       );
     });
   }
+});
+
+test.describe("an existing customer can request a second entity without losing their existing workspace (requires real customer credentials)", () => {
+  const customerEmail = process.env.E2E_CUSTOMER_EMAIL;
+  const customerPassword = process.env.E2E_CUSTOMER_PASSWORD;
+
+  function isUsableCredential(value: string | undefined): value is string {
+    return typeof value === "string" && value.trim().length > 0 && value.trim() !== "...";
+  }
+  const credentialsUsable = isUsableCredential(customerEmail) && isUsableCredential(customerPassword);
+
+  test("logging in, then visiting /get-started, resumes as the SAME session -- no second Auth account, existing workspace untouched", async ({
+    page,
+  }) => {
+    test.skip(
+      !credentialsUsable,
+      "Set E2E_CUSTOMER_EMAIL and E2E_CUSTOMER_PASSWORD to real, non-placeholder credentials to run this check.",
+    );
+
+    await loginAs(page, "en", customerEmail!, customerPassword!);
+    await page.waitForURL(/\/en\/dashboard/, { timeout: 15_000 });
+    const workspaceBefore = await page.evaluate(() => document.body.innerText);
+
+    // Case B: already authenticated -- /get-started must redirect straight
+    // to /company (never re-render the account form, never create a second
+    // Auth user) while leaving this session's existing membership untouched.
+    await page.goto("/en/get-started", { waitUntil: "networkidle" });
+    await page.waitForURL(/\/en\/get-started\/company/, { timeout: 15_000 });
+
+    const organizationName = `Gate Test Second Entity ${randomUUID().slice(0, 8)}`;
+    await page.locator("#organizationName").fill(organizationName);
+    await page.locator("#entityType").click();
+    await page.getByRole("option", { name: /Developer|مطوّر عقاري/ }).click();
+    await page.getByRole("button", { name: /Continue|متابعة/ }).click();
+
+    await page.waitForURL(/\/get-started\/plan/, { timeout: 15_000 });
+    await page.getByText(/Essential|الأساسيات/).click();
+    await page.getByRole("button", { name: /Continue|متابعة/ }).click();
+
+    // The review step's "Account" summary must show the CURRENT customer's
+    // own name/email -- proving the requester was resolved from the session,
+    // never re-collected -- and no password field exists on this page at all.
+    await page.waitForURL(/\/get-started\/review/, { timeout: 15_000 });
+    expect(await page.locator('input[type="password"]').count(), "no password field on the review step").toBe(0);
+    await page.getByRole("button", { name: /Submit request|إرسال الطلب/ }).click();
+    await page.waitForURL(/\/get-started\/submitted/, { timeout: 20_000 });
+
+    // The new entity is now PENDING_APPROVAL, unprovisioned -- but this same
+    // customer's original workspace must still be exactly as it was.
+    await page.goto("/en/dashboard", { waitUntil: "networkidle" });
+    const workspaceAfter = await page.evaluate(() => document.body.innerText);
+    expect(workspaceAfter, "the existing tenant workspace must be unaffected by the new pending request").toBe(workspaceBefore);
+  });
 });
 
 test.describe("platform approval grants tenant owner access; rejection grants nothing (requires platform admin credentials)", () => {
