@@ -7,6 +7,9 @@ import { BookOpen } from "lucide-react";
 import { GeneralLedgerClient, type AccountOption, type LedgerLine } from "./general-ledger-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({
   params,
 }: {
@@ -47,26 +50,45 @@ export default async function GeneralLedgerPage({
   const endDate = end || new Date().toISOString().slice(0, 10);
 
   const supabase = await createClient();
-  const { data: accountsData } = await supabase
-    .from("chart_of_accounts")
-    .select("id, code, name_ar, name_en")
-    .eq("organization_id", organization.id)
-    .eq("is_group", false)
-    .order("code");
+  const pageSize = 1000;
+  const accounts: AccountOption[] = [];
 
-  const accounts = (accountsData ?? []) as AccountOption[];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("chart_of_accounts")
+      .select("id, code, name_ar, name_en")
+      .eq("organization_id", organization.id)
+      .eq("is_group", false)
+      .order("code")
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as AccountOption[];
+    accounts.push(...page);
+    if (page.length < pageSize) break;
+  }
   const selectedAccount = accounts.find((a) => a.id === accountId) || null;
 
-  const { data: linesData } = accountId
-    ? await supabase.rpc("get_account_ledger", {
-        p_organization_id: organization.id,
-        p_account_id: accountId,
-        p_start_date: startDate,
-        p_end_date: endDate,
-      })
-    : { data: null };
+  const lines: LedgerLine[] = [];
+  if (accountId) {
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .rpc("get_account_ledger", {
+          p_organization_id: organization.id,
+          p_account_id: accountId,
+          p_start_date: startDate,
+          p_end_date: endDate,
+        })
+        .range(from, from + pageSize - 1);
 
-  const lines = (linesData ?? []) as LedgerLine[];
+      if (error) throw error;
+
+      const page = (data ?? []) as LedgerLine[];
+      lines.push(...page);
+      if (page.length < pageSize) break;
+    }
+  }
 
   return (
     <div className="space-y-6">
