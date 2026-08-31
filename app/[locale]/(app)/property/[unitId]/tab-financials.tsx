@@ -4,6 +4,11 @@ import type { MonthlyFinancialPoint } from "@/lib/property/unit-financials";
 import { DuesTable } from "../dues-table";
 import { PaymentsTable } from "../payments-table";
 import { UnitFinancialsChart } from "./unit-financials-chart";
+import {
+  LegacyFinancialHistory,
+  type LegacyFinancialAccount,
+  type LegacyLedgerLine,
+} from "./legacy-financial-history";
 
 // Aging severity reads as a heat progression, cool -> hot, so the eye finds
 // the worst bucket without reading numbers first.
@@ -22,6 +27,8 @@ export function TabFinancials({
   currency,
   monthly,
   agingTotals,
+  legacyAccounts,
+  legacyLines,
 }: {
   organizationId: string;
   unitId: string;
@@ -29,10 +36,19 @@ export function TabFinancials({
   currency: string;
   monthly: MonthlyFinancialPoint[];
   agingTotals: Map<AgingBucketKey, number>;
+  legacyAccounts: LegacyFinancialAccount[];
+  legacyLines: LegacyLedgerLine[];
 }) {
   const isAr = locale === "ar";
   return (
     <div className="space-y-6">
+      <LegacyFinancialHistory
+        accounts={legacyAccounts}
+        lines={legacyLines}
+        locale={locale}
+        currency={currency}
+      />
+
       <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
         <h2 className="mb-4 text-sm font-semibold">{isAr ? "المستحقات مقابل المدفوعات (شهريًا)" : "Dues vs payments (monthly)"}</h2>
         <UnitFinancialsChart
