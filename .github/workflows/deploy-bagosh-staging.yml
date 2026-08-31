@@ -1,0 +1,60 @@
+name: Deploy Bagosh Staging
+
+on:
+  push:
+    branches:
+      - codex/bagosh-staging-deploy
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-bagosh-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SITE_URL: https://aqarbooks-bagosh-staging.ahmedhameed2020.workers.dev
+      NEXT_PUBLIC_SUPABASE_URL: https://mlaayjrrscnxomkxgqwm.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_hk9tTLmBxqO7QuhGpSu3Pw_R0n0fSAY
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm i -g npm@11
+      - run: npm ci
+
+      - name: Build Bagosh staging
+        run: npx opennextjs-cloudflare build
+
+      - name: Deploy isolated staging worker
+        run: npx opennextjs-cloudflare deploy -- --config wrangler.bagosh-staging.jsonc --keep-vars
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Smoke check staging routes
+        run: |
+          set -uo pipefail
+          base="https://aqarbooks-bagosh-staging.ahmedhameed2020.workers.dev"
+          fail=0
+          check() {
+            path="$1"; want="$2"; code=""
+            for _ in $(seq 1 10); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$base$path" || echo "000")
+              [ "$code" = "$want" ] && { echo "OK    $path -> $code"; return 0; }
+              sleep 6
+            done
+            echo "FAIL  $path -> $code (expected $want)"
+            fail=1
+          }
+          check /ar/login 200
+          check /en/login 200
+          check /ar/dashboard 307
+          exit $fail
