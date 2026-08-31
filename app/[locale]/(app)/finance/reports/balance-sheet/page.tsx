@@ -7,6 +7,9 @@ import { Landmark } from "lucide-react";
 import { BalanceSheetClient, type BalanceSheetAccountRow } from "./balance-sheet-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({
   params,
 }: {
@@ -45,13 +48,24 @@ export default async function BalanceSheetPage({
 
   const asOfDate = asOf || new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
-  const { data: rowsData } = await supabase.rpc("get_trial_balance", {
-    p_organization_id: organization.id,
-    p_start_date: "1900-01-01",
-    p_end_date: asOfDate,
-  });
+  const pageSize = 1000;
+  const rawRows: BalanceSheetAccountRow[] = [];
 
-  const rawRows = (rowsData ?? []) as unknown as BalanceSheetAccountRow[];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .rpc("get_trial_balance", {
+        p_organization_id: organization.id,
+        p_start_date: "1900-01-01",
+        p_end_date: asOfDate,
+      })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as unknown as BalanceSheetAccountRow[];
+    rawRows.push(...page);
+    if (page.length < pageSize) break;
+  }
   const assetRows = rawRows.filter((r) => r.category === "ASSET" && r.balance !== 0);
   const liabilityRows = rawRows.filter((r) => r.category === "LIABILITY" && r.balance !== 0);
   const equityRows = rawRows.filter((r) => r.category === "EQUITY" && r.balance !== 0);
