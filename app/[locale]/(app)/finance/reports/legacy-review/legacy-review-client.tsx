@@ -40,6 +40,48 @@ const money = (value: number, locale: string) =>
     maximumFractionDigits: 2,
   }).format(value);
 
+function evidenceRecord(evidence: unknown): Record<string, unknown> {
+  return evidence && typeof evidence === "object" && !Array.isArray(evidence)
+    ? (evidence as Record<string, unknown>)
+    : {};
+}
+
+function resolutionText(finding: LegacyReviewFinding, isAr: boolean) {
+  if (finding.status !== "RESOLVED") return null;
+  const evidence = evidenceRecord(finding.evidence);
+  if (evidence.resolution_basis !== "INTERNAL_SOURCE_EVIDENCE") return null;
+
+  const classification = String(evidence.resolution_classification ?? "");
+  const labels: Record<string, { ar: string; en: string }> = {
+    HEADER_DESCRIPTION_TYPO: {
+      ar: "خطأ كتابي في رأس البيان؛ التفاصيل الداخلية والسطور المصدرية متطابقة.",
+      en: "Header-description typo; internal detail and source lines agree.",
+    },
+    HEADER_OMITTED_STRUCTURED_COMPONENT: {
+      ar: "رأس البيان أغفل مكوّنًا موجودًا صراحة في تفاصيل المصدر المنظمة.",
+      en: "The header omitted a component explicitly present in structured source detail.",
+    },
+    CROSS_DOCUMENT_NARRATIVE_FALSE_POSITIVE: {
+      ar: "البيان جمع عمليتين مستقلتين تم ترحيلهما كاملتين؛ الفرق كان نتيجة مقارنة عابرة للمستندات.",
+      en: "The narrative spans two independently migrated transactions; the mismatch was a cross-document false positive.",
+    },
+    SPLIT_SETTLEMENT_ACROSS_SEQUENTIAL_JOURNALS: {
+      ar: "التسوية موزعة على قيدين متتابعين بنفس الحساب وتكمل المبلغ المذكور بالكامل.",
+      en: "The settlement is split across sequential journals on the same account and fully completes the stated amount.",
+    },
+    COPIED_HEADER_AMOUNT_WITH_SUBSEQUENT_SETTLEMENT_CONFIRMATION: {
+      ar: "مبلغ رأس البيان منسوخ من فترة سابقة؛ قيد السداد اللاحق يؤكد المبلغ المرحّل للفترة الصحيحة.",
+      en: "The header amount was copied from an earlier period; the subsequent settlement confirms the posted amount for the correct period.",
+    },
+    HEADER_TRANSPOSITION_TYPO_CONFIRMED_BY_ORIGINATING_ENTRY: {
+      ar: "خطأ تبديل أرقام في رأس البيان؛ القيد الأصلي وقيد التحويل يؤكدان نفس المبلغ المرحّل.",
+      en: "Header transposition typo; the originating and transfer entries confirm the posted amount.",
+    },
+  };
+  const label = labels[classification];
+  return `${isAr ? "حُسم داخليًا من المصدر" : "Resolved from internal source evidence"}: ${label ? (isAr ? label.ar : label.en) : classification}. ${isAr ? "لا يلزم تصحيح دفتر الأستاذ." : "No ledger correction is required."}`;
+}
+
 export function LegacyReviewClient({
   findings,
   organizationName,
@@ -59,17 +101,20 @@ export function LegacyReviewClient({
     () =>
       findings.filter((f) => {
         const q = query.trim().toLowerCase();
+        const resolved = resolutionText(f, isAr) ?? "";
         const matchesText =
           !q ||
           String(f.entry_number).includes(q) ||
           f.entry_description.toLowerCase().includes(q) ||
-          f.requested_evidence.toLowerCase().includes(q);
+          f.requested_evidence.toLowerCase().includes(q) ||
+          resolved.toLowerCase().includes(q);
         return matchesText && (status === "ALL" || f.status === status);
       }),
-    [findings, query, status],
+    [findings, isAr, query, status],
   );
 
   const openCount = findings.filter((f) => f.status === "OPEN").length;
+  const resolvedCount = findings.filter((f) => f.status === "RESOLVED").length;
   const highCount = findings.filter(
     (f) => f.status === "OPEN" && f.severity === "HIGH",
   ).length;
@@ -85,7 +130,7 @@ export function LegacyReviewClient({
     stated: f.description_amount ?? 0,
     posted: f.posted_amount,
     difference: f.difference,
-    evidence: f.requested_evidence,
+    evidence: resolutionText(f, isAr) ?? f.requested_evidence,
   }));
 
   const handlePdf = () =>
@@ -94,8 +139,8 @@ export function LegacyReviewClient({
         ? "سجل مراجعة البيانات المالية القديمة"
         : "Legacy Financial Review Register",
       subtitle: isAr
-        ? "استثناءات الترحيل التي تتطلب مستندًا معتمدًا قبل أي تصحيح"
-        : "Migration findings requiring approved evidence before correction",
+        ? "استثناءات الترحيل ونتائج الحسم المبنية على المصدر"
+        : "Migration findings and source-evidence resolutions",
       organizationName,
       currencyLabel,
       dateRangeLabel: new Date().toISOString().slice(0, 10),
@@ -121,7 +166,7 @@ export function LegacyReviewClient({
           isNumber: true,
         },
         {
-          header: isAr ? "المستند المطلوب" : "Evidence Required",
+          header: isAr ? "الدليل / الحسم" : "Evidence / Resolution",
           key: "evidence",
           align: "start",
         },
@@ -131,6 +176,10 @@ export function LegacyReviewClient({
         {
           label: isAr ? "استثناءات مفتوحة" : "Open Findings",
           value: String(openCount),
+        },
+        {
+          label: isAr ? "تم حسمها" : "Resolved",
+          value: String(resolvedCount),
         },
         {
           label: isAr ? "عالية الخطورة" : "High Severity",
@@ -173,7 +222,7 @@ export function LegacyReviewClient({
           isNumber: true,
         },
         {
-          header: isAr ? "المستند المطلوب" : "Evidence Required",
+          header: isAr ? "الدليل / الحسم" : "Evidence / Resolution",
           key: "evidence",
         },
       ],
@@ -200,8 +249,8 @@ export function LegacyReviewClient({
             </h1>
             <p className="mt-1 max-w-3xl text-xs font-medium text-slate-500">
               {isAr
-                ? "سجل رقابي للاستثناءات المثبتة أثناء الترحيل. لا يُعدّل أي قيد قبل استلام مستند معتمد ومراجعته."
-                : "Controlled migration findings register. No ledger entry is changed before approved evidence is received and reviewed."}
+                ? "سجل رقابي للاستثناءات المثبتة أثناء الترحيل. الحالات التي يحسمها المصدر الداخلي تُغلق دون تعديل دفتر الأستاذ، وما لا يكفيه المصدر يظل مفتوحًا للمستند المعتمد."
+                : "Controlled migration findings register. Source-evidence cases are resolved without ledger changes; cases lacking sufficient evidence remain open for approved documentation."}
             </p>
           </div>
           <div className="flex gap-2">
@@ -215,11 +264,16 @@ export function LegacyReviewClient({
             </Button>
           </div>
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric
             label={isAr ? "الاستثناءات المفتوحة" : "Open Findings"}
             value={String(openCount)}
             tone="rose"
+          />
+          <Metric
+            label={isAr ? "تم حسمها من المراجعة" : "Resolved Findings"}
+            value={String(resolvedCount)}
+            tone="emerald"
           />
           <Metric
             label={isAr ? "عالية الخطورة" : "High Severity"}
@@ -239,8 +293,8 @@ export function LegacyReviewClient({
           <ShieldCheck className="mt-0.5 size-4 shrink-0" />
           <span>
             {isAr
-              ? "هذا السجل للرقابة والمتابعة فقط، وليس سندًا لتغيير القيود أو الملكيات. الحسم يتطلب صورة القيد أو مذكرة تسوية معتمدة."
-              : "This register is for control and follow-up only. Corrections require an approved journal document or reconciliation memo."}
+              ? "هذا السجل للرقابة والمتابعة. لا يُعدّل قيد تاريخي لإغلاق Finding. إما أن يثبت المصدر أن القيد صحيح فتُوثق نتيجة الحسم، أو يظل مفتوحًا حتى وصول المستند المعتمد."
+              : "This is a control register. Historical journals are never changed merely to close a finding. Source evidence either proves the posting and documents the resolution, or the case stays open pending approved evidence."}
           </span>
         </div>
       </div>
@@ -264,8 +318,8 @@ export function LegacyReviewClient({
             className="h-9 ps-9 text-xs"
             placeholder={
               isAr
-                ? "بحث برقم القيد أو البيان..."
-                : "Search entry or description..."
+                ? "بحث برقم القيد أو البيان أو نتيجة الحسم..."
+                : "Search entry, description, or resolution..."
             }
           />
         </div>
@@ -288,7 +342,7 @@ export function LegacyReviewClient({
                   {isAr ? "الفرق" : "Difference"}
                 </th>
                 <th className="p-3 text-start">
-                  {isAr ? "المستند المطلوب" : "Evidence Required"}
+                  {isAr ? "الدليل / الحسم" : "Evidence / Resolution"}
                 </th>
                 <th className="p-3 text-center">
                   {isAr ? "الحالة" : "Status"}
@@ -297,47 +351,66 @@ export function LegacyReviewClient({
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.length ? (
-                rows.map((f) => (
-                  <tr
-                    key={f.finding_id}
-                    className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
-                    <td className="p-3 font-bold">
-                      <div>#{f.entry_number}</div>
-                      <div className="mt-1 text-slate-500">{f.entry_date}</div>
-                    </td>
-                    <td className="max-w-xs p-3 font-medium text-slate-700 dark:text-slate-200">
-                      {f.entry_description}
-                    </td>
-                    <td className="p-3 text-end font-mono">
-                      {f.description_amount == null
-                        ? "—"
-                        : money(f.description_amount, locale)}
-                    </td>
-                    <td className="p-3 text-end font-mono">
-                      {money(f.posted_amount, locale)}
-                    </td>
-                    <td className="p-3 text-end font-mono font-black text-rose-600">
-                      {money(f.difference, locale)}
-                    </td>
-                    <td className="max-w-sm p-3 font-medium text-amber-800 dark:text-amber-300">
-                      {f.requested_evidence}
-                    </td>
-                    <td className="p-3 text-center">
-                      <Badge
-                        variant="outline"
-                        className={
-                          f.status === "OPEN"
-                            ? "border-rose-200 bg-rose-50 text-rose-700"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        }
+                rows.map((f) => {
+                  const resolved = resolutionText(f, isAr);
+                  return (
+                    <tr
+                      key={f.finding_id}
+                      className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    >
+                      <td className="p-3 font-bold">
+                        <div>#{f.entry_number}</div>
+                        <div className="mt-1 text-slate-500">{f.entry_date}</div>
+                      </td>
+                      <td className="max-w-xs p-3 font-medium text-slate-700 dark:text-slate-200">
+                        {f.entry_description}
+                      </td>
+                      <td className="p-3 text-end font-mono">
+                        {f.description_amount == null
+                          ? "—"
+                          : money(f.description_amount, locale)}
+                      </td>
+                      <td className="p-3 text-end font-mono">
+                        {money(f.posted_amount, locale)}
+                      </td>
+                      <td
+                        className={`p-3 text-end font-mono font-black ${
+                          f.status === "RESOLVED"
+                            ? "text-slate-400 line-through"
+                            : "text-rose-600"
+                        }`}
                       >
-                        <AlertTriangle className="me-1 size-3" />
-                        {f.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))
+                        {money(f.difference, locale)}
+                      </td>
+                      <td
+                        className={`max-w-sm p-3 font-medium ${
+                          resolved
+                            ? "text-emerald-800 dark:text-emerald-300"
+                            : "text-amber-800 dark:text-amber-300"
+                        }`}
+                      >
+                        {resolved ?? f.requested_evidence}
+                      </td>
+                      <td className="p-3 text-center">
+                        <Badge
+                          variant="outline"
+                          className={
+                            f.status === "OPEN"
+                              ? "border-rose-200 bg-rose-50 text-rose-700"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          }
+                        >
+                          {f.status === "OPEN" ? (
+                            <AlertTriangle className="me-1 size-3" />
+                          ) : (
+                            <ShieldCheck className="me-1 size-3" />
+                          )}
+                          {f.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td
@@ -363,11 +436,12 @@ function Metric({
 }: {
   label: string;
   value: string;
-  tone: "rose" | "amber" | "slate";
+  tone: "rose" | "amber" | "emerald" | "slate";
 }) {
   const colors = {
     rose: "text-rose-600",
     amber: "text-amber-600",
+    emerald: "text-emerald-600",
     slate: "text-slate-900 dark:text-white",
   };
   return (
