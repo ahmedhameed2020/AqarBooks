@@ -26,6 +26,7 @@ export interface BalanceSheetAccountRow {
 
 export function BalanceSheetClient({
   assetRows,
+  contraAssetRows,
   liabilityRows,
   equityRows,
   accumulatedEarnings,
@@ -36,6 +37,7 @@ export function BalanceSheetClient({
   locale,
 }: {
   assetRows: BalanceSheetAccountRow[];
+  contraAssetRows: BalanceSheetAccountRow[];
   liabilityRows: BalanceSheetAccountRow[];
   equityRows: BalanceSheetAccountRow[];
   accumulatedEarnings: number;
@@ -49,7 +51,6 @@ export function BalanceSheetClient({
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
-
   const [currentAsOf, setCurrentAsOf] = useState(asOfDate);
 
   const handleDateChange = (e: React.FormEvent) => {
@@ -57,12 +58,13 @@ export function BalanceSheetClient({
     router.push(`${pathname}?asOf=${currentAsOf}`);
   };
 
-  const totalAssets = assetRows.reduce((s, r) => s + r.balance, 0);
+  const grossAssets = assetRows.reduce((s, r) => s + r.balance, 0);
+  const totalContraAssets = contraAssetRows.reduce((s, r) => s + r.balance, 0);
+  const totalAssets = grossAssets - totalContraAssets;
   const totalLiabilities = liabilityRows.reduce((s, r) => s + r.balance, 0);
   const baseEquity = equityRows.reduce((s, r) => s + r.balance, 0);
   const totalEquity = baseEquity + accumulatedEarnings;
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-
   const diff = Math.abs(totalAssets - totalLiabilitiesAndEquity);
   const isBalanced = diff < 0.005;
 
@@ -72,26 +74,43 @@ export function BalanceSheetClient({
       maximumFractionDigits: 2,
     });
 
-  // PDF Export
-  const handleExportPdf = () => {
-    const formattedRows: Record<string, unknown>[] = [];
-
-    // 1. ASSETS
-    formattedRows.push({
-      __isGroup: true,
-      code: "",
-      name: isAr ? "١. الأصول (Assets)" : "1. Total Assets",
-      amount: totalAssets,
-    });
+  const appendAssetExportRows = (rows: Record<string, unknown>[]) => {
     assetRows.forEach((r) => {
-      formattedRows.push({
+      rows.push({
         code: r.code,
         name: isAr ? r.name_ar : r.name_en,
         amount: r.balance,
       });
     });
 
-    // 2. LIABILITIES
+    if (contraAssetRows.length) {
+      rows.push({
+        __isGroup: true,
+        code: "",
+        name: isAr ? "يخصم: مجمع الإهلاك (Contra-asset)" : "Less: Accumulated Depreciation (Contra-asset)",
+        amount: -totalContraAssets,
+      });
+      contraAssetRows.forEach((r) => {
+        rows.push({
+          code: r.code,
+          name: isAr ? r.name_ar : r.name_en,
+          amount: -r.balance,
+        });
+      });
+    }
+  };
+
+  const handleExportPdf = () => {
+    const formattedRows: Record<string, unknown>[] = [];
+
+    formattedRows.push({
+      __isGroup: true,
+      code: "",
+      name: isAr ? "١. صافي الأصول (Net Assets)" : "1. Net Assets",
+      amount: totalAssets,
+    });
+    appendAssetExportRows(formattedRows);
+
     formattedRows.push({
       __isGroup: true,
       code: "",
@@ -106,7 +125,6 @@ export function BalanceSheetClient({
       });
     });
 
-    // 3. EQUITY
     formattedRows.push({
       __isGroup: true,
       code: "",
@@ -146,22 +164,31 @@ export function BalanceSheetClient({
           amount: totalLiabilitiesAndEquity,
         },
         summaries: [
-          { label: isAr ? "إجمالي الأصول" : "Total Assets", value: totalAssets, highlight: true },
+          { label: isAr ? "إجمالي الأصول قبل الخصم" : "Gross Assets", value: grossAssets },
+          { label: isAr ? "مجمع الإهلاك المخصوم" : "Accumulated Depreciation", value: totalContraAssets },
+          { label: isAr ? "صافي الأصول" : "Net Assets", value: totalAssets, highlight: true },
           { label: isAr ? "إجمالي الخصوم" : "Total Liabilities", value: totalLiabilities },
           { label: isAr ? "حقوق الملكية والفائض" : "Total Equity", value: totalEquity },
-          { label: isAr ? "توازن المركز المالي" : "Equation Integrity", value: isBalanced ? (isAr ? "متوازن 100%" : "Balanced") : (isAr ? `فارق (${diff.toFixed(2)})` : `Diff (${diff.toFixed(2)})`) },
+          {
+            label: isAr ? "توازن المركز المالي" : "Equation Integrity",
+            value: isBalanced
+              ? isAr ? "متوازن 100%" : "Balanced"
+              : isAr ? `فارق (${diff.toFixed(2)})` : `Diff (${diff.toFixed(2)})`,
+          },
         ],
         notes: [
           isAr
-            ? "تتطابق الأصول تماماً مع مجموع الخصوم وحقوق الملكية وفقاً للمعادلة المحاسبية الأساسية."
-            : "Total Assets conform to the fundamental accounting equation (Assets = Liabilities + Equity).",
+            ? "يُعرض مجمع الإهلاك التاريخي كحساب مقابل للأصول ويُخصم من إجمالي الأصول لأغراض العرض فقط، دون تغيير تصنيف الحساب في دفتر الأستاذ أو أي قيد تاريخي."
+            : "Legacy accumulated depreciation is presented as a contra-asset and deducted from gross assets for statement presentation only; no ledger classification or historical journal is changed.",
+          isAr
+            ? "يتطابق صافي الأصول مع مجموع الخصوم وحقوق الملكية وفقاً للمعادلة المحاسبية."
+            : "Net assets conform to the accounting equation (Assets = Liabilities + Equity).",
         ],
       },
-      locale
+      locale,
     );
   };
 
-  // Excel Export
   const handleExportExcel = async () => {
     toast.add({
       type: "info",
@@ -173,16 +200,10 @@ export function BalanceSheetClient({
     exportRows.push({
       __isGroup: true,
       code: "",
-      name: isAr ? "الأصول" : "Assets",
+      name: isAr ? "صافي الأصول" : "Net Assets",
       amount: totalAssets,
     });
-    assetRows.forEach((r) => {
-      exportRows.push({
-        code: r.code,
-        name: isAr ? r.name_ar : r.name_en,
-        amount: r.balance,
-      });
-    });
+    appendAssetExportRows(exportRows);
 
     exportRows.push({
       __isGroup: true,
@@ -238,12 +259,14 @@ export function BalanceSheetClient({
           amount: totalLiabilitiesAndEquity,
         },
         summaries: [
-          { label: isAr ? "إجمالي الأصول" : "Total Assets", value: totalAssets },
+          { label: isAr ? "إجمالي الأصول قبل الخصم" : "Gross Assets", value: grossAssets },
+          { label: isAr ? "مجمع الإهلاك المخصوم" : "Accumulated Depreciation", value: totalContraAssets },
+          { label: isAr ? "صافي الأصول" : "Net Assets", value: totalAssets },
           { label: isAr ? "الخصوم وحقوق الملكية" : "Liabilities & Equity", value: totalLiabilitiesAndEquity },
           { label: isAr ? "المعادلة المحاسبية" : "Equation", value: isBalanced ? (isAr ? "متوازن" : "Balanced") : (isAr ? "غير متوازن" : "Unbalanced") },
         ],
       },
-      locale
+      locale,
     );
 
     toast.add({
@@ -255,9 +278,6 @@ export function BalanceSheetClient({
 
   return (
     <div className="space-y-6">
-      {/* ──────────────────────────────────────────────────────────────────────────
-          PAGE TOOLBAR & DATE FILTER
-          ────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <form onSubmit={handleDateChange} className="flex items-center gap-2 w-full md:w-auto">
           <div className="relative">
@@ -284,7 +304,6 @@ export function BalanceSheetClient({
             <Printer className="size-3.5 text-purple-600" />
             <span>{isAr ? "طباعة / تصدير PDF" : "Print / PDF"}</span>
           </Button>
-
           <Button
             onClick={handleExportExcel}
             size="sm"
@@ -296,15 +315,19 @@ export function BalanceSheetClient({
         </div>
       </div>
 
-      {/* ──────────────────────────────────────────────────────────────────────────
-          EXECUTIVE BALANCE SHEET KPIS & EQUATION INTEGRITY
-          ────────────────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <span className="text-xs font-bold text-slate-500">{isAr ? "إجمالي الأصول" : "Total Assets"}</span>
+          <span className="text-xs font-bold text-slate-500">{isAr ? "صافي الأصول" : "Net Assets"}</span>
           <div className="mt-1 font-mono text-xl font-black text-blue-600 dark:text-blue-400">
             {fmt(totalAssets)} <span className="text-xs text-slate-500 font-semibold">{currency}</span>
           </div>
+          {totalContraAssets > 0 && (
+            <p className="mt-1 text-[10px] font-semibold text-slate-500">
+              {isAr
+                ? `إجمالي قبل الإهلاك ${fmt(grossAssets)} − مجمع إهلاك ${fmt(totalContraAssets)}`
+                : `Gross ${fmt(grossAssets)} − accumulated depreciation ${fmt(totalContraAssets)}`}
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -334,14 +357,18 @@ export function BalanceSheetClient({
         </div>
       </div>
 
-      {/* ──────────────────────────────────────────────────────────────────────────
-          TWO-COLUMN STRUCTURE: ASSETS VS LIABILITIES & EQUITY
-          ────────────────────────────────────────────────────────────────────────── */}
+      {contraAssetRows.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          {isAr
+            ? "إفصاح عرض: مجمع الإهلاك التاريخي محفوظ في دفتر الأستاذ بتصنيفه الأصلي، لكنه يُعرض هنا كحساب مقابل للأصول ويُخصم من إجمالي الأصول. هذا التعديل خاص بالعرض ولا يغيّر أي قيد أو رصيد تاريخي."
+            : "Presentation disclosure: legacy accumulated depreciation remains stored under its original ledger classification, but is presented here as a contra-asset deducted from gross assets. This is presentation-only and changes no historical journal or balance."}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* LEFT / TOP COLUMN: ASSETS */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <div className="bg-blue-900 text-white p-3.5 font-bold text-xs flex items-center justify-between">
-            <span>{isAr ? "الأصول (Assets)" : "Assets"}</span>
+            <span>{isAr ? "صافي الأصول (Net Assets)" : "Net Assets"}</span>
             <span className="font-mono text-sm">{fmt(totalAssets)} {currency}</span>
           </div>
           <div className="overflow-x-auto">
@@ -354,14 +381,29 @@ export function BalanceSheetClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {assetRows.length ? (
-                  assetRows.map((r) => (
-                    <tr key={r.account_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="p-3 font-mono font-bold text-purple-700 dark:text-purple-400">{r.code}</td>
-                      <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? r.name_ar : r.name_en}</td>
-                      <td className="p-3 text-end font-mono font-bold text-blue-600 dark:text-blue-400">{fmt(r.balance)}</td>
-                    </tr>
-                  ))
+                {assetRows.length || contraAssetRows.length ? (
+                  <>
+                    {assetRows.map((r) => (
+                      <tr key={r.account_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="p-3 font-mono font-bold text-purple-700 dark:text-purple-400">{r.code}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? r.name_ar : r.name_en}</td>
+                        <td className="p-3 text-end font-mono font-bold text-blue-600 dark:text-blue-400">{fmt(r.balance)}</td>
+                      </tr>
+                    ))}
+                    {contraAssetRows.length > 0 && (
+                      <tr className="bg-amber-50/70 font-bold text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+                        <td colSpan={2} className="p-2.5 ps-3">{isAr ? "يخصم: مجمع الإهلاك" : "Less: accumulated depreciation"}</td>
+                        <td className="p-2.5 text-end font-mono">({fmt(totalContraAssets)})</td>
+                      </tr>
+                    )}
+                    {contraAssetRows.map((r) => (
+                      <tr key={r.account_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="p-3 font-mono font-bold text-amber-700 dark:text-amber-400 ps-5">{r.code}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? r.name_ar : r.name_en}</td>
+                        <td className="p-3 text-end font-mono font-bold text-amber-700 dark:text-amber-400">({fmt(r.balance)})</td>
+                      </tr>
+                    ))}
+                  </>
                 ) : (
                   <tr>
                     <td colSpan={3} className="p-6 text-center text-slate-400 text-xs">
@@ -373,7 +415,7 @@ export function BalanceSheetClient({
               <tfoot className="bg-slate-50 dark:bg-slate-800 font-bold border-t border-slate-200 dark:border-slate-700">
                 <tr>
                   <td colSpan={2} className="p-3 text-start font-black text-slate-900 dark:text-white">
-                    {isAr ? "إجمالي الأصول" : "Total Assets"}
+                    {isAr ? "صافي الأصول" : "Net Assets"}
                   </td>
                   <td className="p-3 text-end font-mono text-sm font-black text-blue-700 dark:text-blue-400">
                     {fmt(totalAssets)}
@@ -384,7 +426,6 @@ export function BalanceSheetClient({
           </div>
         </div>
 
-        {/* RIGHT / BOTTOM COLUMN: LIABILITIES & EQUITY */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <div className="bg-slate-900 text-white p-3.5 font-bold text-xs flex items-center justify-between">
             <span>{isAr ? "الخصوم وحقوق الملكية (Liabilities & Equity)" : "Liabilities & Equity"}</span>
@@ -400,7 +441,6 @@ export function BalanceSheetClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {/* 1. Liabilities */}
                 <tr className="bg-rose-50/50 dark:bg-rose-950/20 font-bold text-rose-900 dark:text-rose-200">
                   <td colSpan={2} className="p-2.5 ps-3">{isAr ? "الخصوم والالتزامات" : "Liabilities"}</td>
                   <td className="p-2.5 text-end font-mono font-bold">{fmt(totalLiabilities)}</td>
@@ -413,7 +453,6 @@ export function BalanceSheetClient({
                   </tr>
                 ))}
 
-                {/* 2. Equity */}
                 <tr className="bg-purple-50/50 dark:bg-purple-950/20 font-bold text-purple-900 dark:text-purple-200">
                   <td colSpan={2} className="p-2.5 ps-3">{isAr ? "حقوق الملكية والفائض" : "Equity & Reserves"}</td>
                   <td className="p-2.5 text-end font-mono font-bold">{fmt(totalEquity)}</td>
