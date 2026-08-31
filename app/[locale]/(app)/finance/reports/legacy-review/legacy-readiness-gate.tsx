@@ -65,8 +65,8 @@ export function LegacyReadinessGate({
             </h2>
             <p className="mt-2 max-w-3xl text-xs font-semibold text-slate-600 dark:text-slate-300">
               {isAr
-                ? "هذه البوابة مستقلة عن توازن دفتر الأستاذ. سلامة القيود لا تعني أن الملاحظات المستندية حُسمت. لا يتم تعديل أي قيد أو نقل البيانات للإنتاج حتى استكمال المراجعة المعتمدة."
-                : "This gate is independent from ledger balance. A balanced ledger does not mean documentary findings are cleared. No journal correction or Production promotion is authorized until the approved review is complete."}
+                ? "هذه البوابة مستقلة عن توازن دفتر الأستاذ، وتشمل الملاحظات المستندية وفجوات البيانات الرئيسية المالية. سلامة القيود لا تعني اكتمال بيانات التشغيل، ولا يتم اختلاق رقم حساب أو تعديل قيد لإجبار النظام على الجاهزية."
+                : "This gate is independent from ledger balance and includes both documentary findings and financial master-data gaps. Balanced journals do not imply operational master data is complete, and no account identifier or journal value is fabricated to force readiness."}
             </p>
           </div>
         </div>
@@ -82,12 +82,12 @@ export function LegacyReadinessGate({
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <GateMetric label={isAr ? "ملاحظات مفتوحة" : "Open findings"} value={String(readiness.open_total)} />
+        <GateMetric label={isAr ? "كل الملاحظات المفتوحة" : "All open findings"} value={String(readiness.open_total)} />
         <GateMetric label={isAr ? "عالية" : "High"} value={String(readiness.open_high)} />
         <GateMetric label={isAr ? "متوسطة" : "Medium"} value={String(readiness.open_medium)} />
         <GateMetric label={isAr ? "منخفضة" : "Low"} value={String(readiness.open_low)} />
         <GateMetric
-          label={isAr ? "فرق محل المراجعة" : "Difference under review"}
+          label={isAr ? "فرق مستندي محل المراجعة" : "Documentary difference under review"}
           value={`${amount} ${currency}`}
         />
       </div>
@@ -95,8 +95,8 @@ export function LegacyReadinessGate({
       {readiness.audit_is_stale && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
           {isAr
-            ? "تنبيه: أحدث ملاحظة مالية أُنشئت بعد آخر Audit Gate مسجل؛ يلزم تشغيل بوابة المراجعة من جديد بعد حسم الملاحظات."
-            : "Warning: the newest financial finding is newer than the last recorded audit gate; the audit gate must be rerun after the findings are resolved."}
+            ? "تنبيه: أحدث ملاحظة مالية أو فجوة Master Data أُنشئت بعد آخر Audit Gate مسجل؛ يلزم تشغيل بوابة المراجعة من جديد بعد حسم جميع الملاحظات."
+            : "Warning: the newest financial or master-data finding is newer than the last recorded audit gate; the audit gate must be rerun after all findings are resolved."}
         </p>
       )}
     </section>
