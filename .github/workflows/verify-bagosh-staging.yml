@@ -34,6 +34,7 @@ jobs:
           'app/[locale]/(app)/finance/reports/fixed-assets/page.tsx'
           'app/[locale]/(app)/finance/reports/fixed-assets/fixed-assets-client.tsx'
           'app/[locale]/(app)/finance/reports/legacy-review/page.tsx'
+          'app/[locale]/(app)/finance/reports/legacy-review/legacy-review-client.tsx'
           'app/[locale]/(app)/finance/reports/legacy-review/legacy-readiness-gate.tsx'
           'app/[locale]/(app)/finance/reports/legacy-review/legacy-master-data-findings.tsx'
           'app/[locale]/(app)/finance/reports/balance-sheet/page.tsx'
