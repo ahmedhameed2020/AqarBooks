@@ -3374,6 +3374,24 @@ export type Database = {
           net_amount: number;
         }[];
       };
+      get_unit_legacy_financial_accounts: {
+        Args: {
+          p_organization_id: string;
+          p_unit_id: string;
+        };
+        Returns: {
+          account_id: string;
+          account_code: string;
+          legacy_account_name: string;
+          current_member_name: string;
+          source_debit: number;
+          source_credit: number;
+          source_net: number;
+          staging_debit: number;
+          staging_credit: number;
+          staging_net: number;
+        }[];
+      };
       get_account_ledger: {
         Args: {
           p_organization_id: string;
