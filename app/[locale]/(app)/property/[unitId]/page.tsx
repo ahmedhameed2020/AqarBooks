@@ -12,11 +12,15 @@ import { UnitHeader } from "./unit-header";
 import { UnitDetailTabs } from "./unit-detail-tabs";
 import { TabOverview } from "./tab-overview";
 import { TabFinancials } from "./tab-financials";
+import type { LegacyFinancialAccount, LegacyLedgerLine } from "./legacy-financial-history";
 import { TabOwnership } from "./tab-ownership";
 import { TabLease } from "./tab-lease";
 import { TabInstallments } from "./tab-installments";
 import { TabActivity } from "./tab-activity";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function UnitDetailPage({
   params,
@@ -51,6 +55,44 @@ export default async function UnitDetailPage({
 
   const today = new Date().toISOString().slice(0, 10);
   const currency = organization.default_currency;
+
+  // Legacy financial links are audit references only. Users without finance
+  // report access still get the unit page, but the protected history stays hidden.
+  const { data: legacyAccountRows, error: legacyAccountError } = await supabase.rpc(
+    "get_unit_legacy_financial_accounts",
+    {
+      p_organization_id: organization.id,
+      p_unit_id: unitId,
+    },
+  );
+  if (legacyAccountError && legacyAccountError.code !== "42501") throw legacyAccountError;
+  const legacyAccounts = (legacyAccountError ? [] : (legacyAccountRows ?? [])) as LegacyFinancialAccount[];
+  const legacyLines: LegacyLedgerLine[] = [];
+  const ledgerPageSize = 1000;
+
+  for (const account of legacyAccounts) {
+    for (let from = 0; ; from += ledgerPageSize) {
+      const { data: ledgerRows, error: ledgerError } = await supabase
+        .rpc("get_account_ledger", {
+          p_organization_id: organization.id,
+          p_account_id: account.account_id,
+          p_start_date: "1900-01-01",
+          p_end_date: today,
+        })
+        .range(from, from + ledgerPageSize - 1);
+      if (ledgerError) throw ledgerError;
+
+      const pageRows = ledgerRows ?? [];
+      legacyLines.push(
+        ...pageRows.map((line) => ({
+          ...line,
+          account_id: account.account_id,
+          account_code: account.account_code,
+        })),
+      );
+      if (pageRows.length < ledgerPageSize) break;
+    }
+  }
 
   // units_with_financials lacks created_at, so fetch it from the base table.
   const { data: unitMeta } = await supabase
@@ -218,6 +260,8 @@ export default async function UnitDetailPage({
             currency={currency}
             monthly={monthly}
             agingTotals={agingTotals}
+            legacyAccounts={legacyAccounts}
+            legacyLines={legacyLines}
           />
         }
         ownership={
