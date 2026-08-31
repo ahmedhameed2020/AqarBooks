@@ -1,4 +1,4 @@
-import { AlertTriangle, Landmark, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Building2, Landmark, ShieldAlert } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 export interface LegacyMasterDataFinding {
@@ -28,34 +28,46 @@ export function LegacyMasterDataFindings({
   const isAr = locale === "ar";
   const open = findings.filter((finding) => finding.status === "OPEN");
   const high = open.filter((finding) => finding.severity === "HIGH").length;
+  const bankCount = findings.filter((finding) => finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING").length;
+  const receivableCount = findings.filter((finding) => finding.finding_type === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER").length;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
       <div className="border-b border-amber-100 bg-amber-50/80 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
-            <Landmark className="mt-0.5 size-5 shrink-0 text-amber-700 dark:text-amber-400" />
+            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-700 dark:text-amber-400" />
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700 dark:text-amber-400">
                 {isAr ? "سلامة البيانات الرئيسية المالية" : "Financial master-data integrity"}
               </p>
               <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">
-                {isAr ? "حسابات بنكية في دفتر الأستاذ غير مكتملة الإعداد التشغيلي" : "Legacy GL bank accounts missing operational setup"}
+                {isAr ? "فجوات تشغيلية لا يجوز استنتاج بياناتها من دفتر الأستاذ" : "Operational gaps that must not be inferred from the ledger"}
               </h2>
               <p className="mt-2 max-w-3xl text-xs font-semibold leading-6 text-slate-600 dark:text-slate-300">
                 {isAr
-                  ? "تم العثور على الحسابات البنكية في دفتر الأستاذ، لكن المصدر القديم لا يحتوي رقم الحساب أو IBAN بشكل موثوق. لن ينشئ AqarBooks رقمًا بديلًا من كود الحساب أو أرقام الشيكات."
-                  : "The bank accounts exist in the general ledger, but the legacy source does not provide a reliable account number or IBAN. AqarBooks will not fabricate one from GL codes or cheque references."}
+                  ? "دفتر الأستاذ محفوظ كما هو. هذه الحالات تحتاج مستندًا أو اعتمادًا إداريًا قبل إنشاء Bank Account أو Unit أو Owner Link. لا يستخدم AqarBooks كود الحساب أو اسم القيد كبديل عن بيانات Master Data المفقودة."
+                  : "The general ledger remains unchanged. These cases require documentary or management approval before creating a bank account, unit, or owner link. AqarBooks does not substitute GL codes or journal text for missing master data."}
               </p>
             </div>
           </div>
-          <div className="flex gap-2 text-xs font-black">
+          <div className="flex flex-wrap gap-2 text-xs font-black">
             <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-amber-800 dark:bg-amber-950">
               {isAr ? `${open.length} مفتوحة` : `${open.length} open`}
             </span>
             {high > 0 && (
               <span className="rounded-full border border-rose-300 bg-rose-50 px-3 py-1 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
                 {isAr ? `${high} عالية` : `${high} high`}
+              </span>
+            )}
+            {bankCount > 0 && (
+              <span className="rounded-full border border-cyan-300 bg-cyan-50 px-3 py-1 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-300">
+                {isAr ? `${bankCount} بنوك` : `${bankCount} bank`}
+              </span>
+            )}
+            {receivableCount > 0 && (
+              <span className="rounded-full border border-violet-300 bg-violet-50 px-3 py-1 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300">
+                {isAr ? `${receivableCount} ذمم/وحدات` : `${receivableCount} receivable`}
               </span>
             )}
           </div>
@@ -68,26 +80,40 @@ export function LegacyMasterDataFindings({
           const accountName = typeof finding.evidence.gl_account_name === "string" ? finding.evidence.gl_account_name : finding.entity_key;
           const rawBalance = Number(finding.evidence.gl_balance ?? 0);
           const lastActivity = typeof finding.evidence.last_activity_date === "string" ? finding.evidence.last_activity_date : null;
+          const sourceSector = typeof finding.evidence.legacy_source_sector === "string" ? finding.evidence.legacy_source_sector : null;
+          const sourceSectorTitle = typeof finding.evidence.legacy_source_sector_title === "string" ? finding.evidence.legacy_source_sector_title : null;
+          const sourceUnit = typeof finding.evidence.legacy_source_unit === "string" ? finding.evidence.legacy_source_unit : null;
           const balance = rawBalance.toLocaleString(isAr ? "ar-EG" : "en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
           const isHigh = finding.severity === "HIGH";
+          const isBank = finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING";
 
           return (
             <article key={finding.finding_id} className="p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    {isHigh ? (
-                      <ShieldAlert className="size-4 text-rose-600" />
+                    {isBank ? (
+                      <Landmark className="size-4 text-cyan-700" />
                     ) : (
-                      <AlertTriangle className="size-4 text-amber-600" />
+                      <Building2 className="size-4 text-violet-700" />
                     )}
+                    {isHigh ? <ShieldAlert className="size-4 text-rose-600" /> : <AlertTriangle className="size-4 text-amber-600" />}
                     <span className="font-mono text-sm font-black text-slate-950 dark:text-white">{finding.entity_key}</span>
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{accountName}</span>
+                    <FindingTypeBadge findingType={finding.finding_type} locale={locale} />
                     <SeverityBadge severity={finding.severity} locale={locale} />
                   </div>
+
+                  {!isBank && (sourceSector || sourceUnit) && (
+                    <p className="mt-2 text-xs font-semibold text-violet-700 dark:text-violet-300">
+                      {isAr ? "مرجع المصدر القديم:" : "Legacy source reference:"}{" "}
+                      {[sourceSectorTitle, sourceSector, sourceUnit].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+
                   <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                     {isAr ? "الرصيد في دفتر الأستاذ:" : "General-ledger balance:"}{" "}
                     <span className="font-mono font-black text-slate-950 dark:text-white">{balance} {currency}</span>
@@ -97,17 +123,17 @@ export function LegacyMasterDataFindings({
                       </span>
                     )}
                   </p>
+
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-6 dark:border-slate-800 dark:bg-slate-950/50">
                     <p className="font-black text-slate-800 dark:text-slate-200">
-                      {isAr ? "المستند المطلوب:" : "Required evidence:"}
+                      {isAr ? "المستند/الاعتماد المطلوب:" : "Required evidence / approval:"}
                     </p>
                     <p className="mt-1 font-medium text-slate-600 dark:text-slate-300">
-                      {isAr
-                        ? "كشف حساب بنكي رسمي أو مستند فتح الحساب يوضح اسم البنك ورقم الحساب أو IBAN والعملة وما إذا كان الحساب ما زال نشطًا."
-                        : finding.requested_evidence}
+                      {isAr ? requestedEvidenceAr(finding.finding_type) : finding.requested_evidence}
                     </p>
                   </div>
                 </div>
+
                 {accountId && (
                   <Link
                     href={`/finance/reports/general-ledger?accountId=${accountId}`}
@@ -122,6 +148,32 @@ export function LegacyMasterDataFindings({
         })}
       </div>
     </section>
+  );
+}
+
+function requestedEvidenceAr(findingType: string) {
+  if (findingType === "BANK_ACCOUNT_IDENTIFIER_MISSING") {
+    return "كشف حساب بنكي رسمي أو مستند فتح الحساب يوضح اسم البنك ورقم الحساب أو IBAN والعملة وما إذا كان الحساب ما زال نشطًا.";
+  }
+
+  if (findingType === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER") {
+    return "كشف معتمد للوحدات/الملكية أو إفادة من الإدارة تحدد هل القطاع أو الوحدة ما زالت ضمن نطاق الإدارة الحالي. إذا كانت ضمن النطاق يلزم تحديد الوحدة والمالك/العضو الحالي للربط الصريح، وإذا كانت خارج النطاق يلزم اعتماد تصنيفها كذمة تاريخية أو خارجية دون إنشاء ملكية حالية.";
+  }
+
+  return "مستند مؤيد أو اعتماد إداري يحدد المعالجة الصحيحة دون استنتاج بيانات جديدة من القيد المحاسبي.";
+}
+
+function FindingTypeBadge({ findingType, locale }: { findingType: string; locale: string }) {
+  const isAr = locale === "ar";
+  const isBank = findingType === "BANK_ACCOUNT_IDENTIFIER_MISSING";
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${
+      isBank
+        ? "border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-300"
+        : "border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300"
+    }`}>
+      {isBank ? (isAr ? "حساب بنكي" : "Bank account") : (isAr ? "ذمة خارج الماستر" : "Outside property master")}
+    </span>
   );
 }
 
