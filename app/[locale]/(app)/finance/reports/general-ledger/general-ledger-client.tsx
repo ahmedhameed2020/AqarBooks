@@ -6,10 +6,6 @@ import {
   BookOpen,
   Printer,
   FileSpreadsheet,
-  Calendar,
-  Search,
-  ArrowUpDown,
-  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +34,7 @@ export function GeneralLedgerClient({
   accounts,
   selectedAccount,
   lines,
+  openingBalance,
   startDate,
   endDate,
   organizationName,
@@ -48,6 +45,7 @@ export function GeneralLedgerClient({
   accounts: AccountOption[];
   selectedAccount: AccountOption | null;
   lines: LedgerLine[];
+  openingBalance: number;
   startDate: string;
   endDate: string;
   organizationName: string;
@@ -117,6 +115,7 @@ export function GeneralLedgerClient({
           running_balance: closingBalance,
         },
         summaries: [
+          { label: isAr ? "رصيد أول المدة" : "Opening Balance", value: openingBalance },
           { label: isAr ? "إجمالي الحركات المدينة" : "Total Debit", value: totalDebit },
           { label: isAr ? "إجمالي الحركات الدائنة" : "Total Credit", value: totalCredit },
           { label: isAr ? "رصيد الإقفال الحالي" : "Closing Balance", value: closingBalance, highlight: true },
@@ -175,6 +174,7 @@ export function GeneralLedgerClient({
           running_balance: closingBalance,
         },
         summaries: [
+          { label: isAr ? "رصيد أول المدة" : "Opening Balance", value: openingBalance },
           { label: isAr ? "إجمالي المدين" : "Total Debit", value: totalDebit },
           { label: isAr ? "إجمالي الدائن" : "Total Credit", value: totalCredit },
           { label: isAr ? "رصيد الإقفال" : "Closing Balance", value: closingBalance },
@@ -274,7 +274,13 @@ export function GeneralLedgerClient({
           ────────────────────────────────────────────────────────────────────────── */}
       {selectedAccount ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+            <div className="rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 shadow-sm dark:border-cyan-900/50 dark:bg-cyan-950/40">
+              <span className="text-xs font-bold text-cyan-800 dark:text-cyan-300">{isAr ? "رصيد أول المدة" : "Opening Balance"}</span>
+              <div className="mt-1 font-mono text-xl font-black text-cyan-700 dark:text-cyan-300">
+                {fmt(openingBalance)} <span className="text-xs text-slate-500 font-semibold">{currency}</span>
+              </div>
+            </div>
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <span className="text-xs font-bold text-slate-500">{isAr ? "مجموع الحركات المدينة" : "Total Debits"}</span>
               <div className="mt-1 font-mono text-xl font-black text-slate-900 dark:text-white">
