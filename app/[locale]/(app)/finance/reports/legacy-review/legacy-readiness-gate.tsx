@@ -13,12 +13,22 @@ export interface LegacyFinancialReadiness {
   audit_is_stale: boolean;
 }
 
+export interface LegacyResolutionSummary {
+  documentary: number;
+  receivables: number;
+  banks: number;
+  suppliers: number;
+  fixedAssets: number;
+}
+
 export function LegacyReadinessGate({
   readiness,
+  resolutionSummary,
   locale,
   currency,
 }: {
   readiness: LegacyFinancialReadiness;
+  resolutionSummary: LegacyResolutionSummary;
   locale: string;
   currency: string;
 }) {
@@ -92,6 +102,41 @@ export function LegacyReadinessGate({
         />
       </div>
 
+      {!isReady && (
+        <div className="mt-4 rounded-xl border border-rose-200 bg-white/80 p-4 dark:border-rose-900/60 dark:bg-slate-950/35">
+          <p className="text-xs font-black text-rose-900 dark:text-rose-200">
+            {isAr ? "ما الذي يمنع الترقية الآن؟" : "What currently blocks promotion?"}
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <ResolutionMetric
+              label={isAr ? "مراجعات مستندية" : "Documentary reviews"}
+              value={resolutionSummary.documentary}
+              note={isAr ? "يلزم مستند معتمد قبل أي تصحيح" : "Approved evidence required before correction"}
+            />
+            <ResolutionMetric
+              label={isAr ? "ذمم خارج Property Master" : "Receivables outside property master"}
+              value={resolutionSummary.receivables}
+              note={isAr ? "قرار نطاق وربط صريح" : "Scope decision and explicit linking"}
+            />
+            <ResolutionMetric
+              label={isAr ? "حسابات بنكية" : "Bank accounts"}
+              value={resolutionSummary.banks}
+              note={isAr ? "رقم حساب/IBAN موثق فقط" : "Documented account number / IBAN only"}
+            />
+            <ResolutionMetric
+              label={isAr ? "جهات دائنة / AP" : "Payable counterparties / AP"}
+              value={resolutionSummary.suppliers}
+              note={isAr ? "تأكيد المورد أو GL-only" : "Confirm supplier or GL-only status"}
+            />
+            <ResolutionMetric
+              label={isAr ? "سجل الأصول" : "Fixed-asset register"}
+              value={resolutionSummary.fixedAssets}
+              note={isAr ? "سجل معتمد، لا تفكيك من GL" : "Approved register; no GL reconstruction"}
+            />
+          </div>
+        </div>
+      )}
+
       {readiness.audit_is_stale && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
           {isAr
@@ -108,6 +153,28 @@ function GateMetric({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-white/80 bg-white/80 p-3 dark:border-slate-800 dark:bg-slate-900/80">
       <p className="text-[11px] font-semibold text-slate-500">{label}</p>
       <p className="mt-1 font-mono text-sm font-black text-slate-950 dark:text-white">{value}</p>
+    </div>
+  );
+}
+
+function ResolutionMetric({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: number;
+  note: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/70">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{label}</p>
+        <span className="rounded-full bg-slate-950 px-2 py-0.5 font-mono text-[10px] font-black text-white dark:bg-white dark:text-slate-950">
+          {value}
+        </span>
+      </div>
+      <p className="mt-2 text-[10px] font-semibold leading-4 text-slate-500">{note}</p>
     </div>
   );
 }
