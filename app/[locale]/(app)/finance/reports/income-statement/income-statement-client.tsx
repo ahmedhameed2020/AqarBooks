@@ -7,7 +7,6 @@ import {
   TrendingDown,
   Printer,
   FileSpreadsheet,
-  Calendar,
   DollarSign,
   Percent,
 } from "lucide-react";
@@ -61,7 +60,7 @@ export function IncomeStatementClient({
   const totalRevenue = revenueRows.reduce((s, r) => s + r.balance, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.balance, 0);
   const netSurplus = totalRevenue - totalExpense;
-  const marginPct = totalRevenue > 0 ? Math.round((netSurplus / totalRevenue) * 100) : 0;
+  const marginPct = totalRevenue !== 0 ? Number(((netSurplus / totalRevenue) * 100).toFixed(2)) : 0;
 
   const fmt = (n: number) =>
     n.toLocaleString(isAr ? "ar-EG" : "en-US", {
@@ -71,7 +70,7 @@ export function IncomeStatementClient({
 
   // PDF Export
   const handleExportPdf = () => {
-    const formattedRows: Record<string, any>[] = [];
+    const formattedRows: Record<string, unknown>[] = [];
 
     // Header 1: Revenue
     formattedRows.push({
@@ -146,7 +145,7 @@ export function IncomeStatementClient({
       description: isAr ? "يتم تجهيز ملف الإكسل المنسق" : "Preparing workbook",
     });
 
-    const exportRows: Record<string, any>[] = [];
+    const exportRows: Record<string, unknown>[] = [];
     exportRows.push({
       __isGroup: true,
       code: "",
