@@ -48,13 +48,25 @@ export default async function TrialBalancePage({
 
   const asOfDate = asOf || new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
-  const { data: rowsData } = await supabase.rpc("get_trial_balance", {
-    p_organization_id: organization.id,
-    p_start_date: "1900-01-01",
-    p_end_date: asOfDate,
-  });
+  const pageSize = 1000;
+  const rawRows: TrialBalanceRow[] = [];
 
-  const rawRows = (rowsData ?? []) as unknown as TrialBalanceRow[];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .rpc("get_trial_balance", {
+        p_organization_id: organization.id,
+        p_start_date: "1900-01-01",
+        p_end_date: asOfDate,
+      })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as unknown as TrialBalanceRow[];
+    rawRows.push(...page);
+
+    if (page.length < pageSize) break;
+  }
   const rows = rawRows.filter((r) => r.total_debit !== 0 || r.total_credit !== 0);
 
   return (
