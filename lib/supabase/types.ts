@@ -3159,6 +3159,20 @@ export type Database = {
           balance: number;
         }[];
       };
+      get_income_statement: {
+        Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
+        Returns: {
+          account_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          category: "REVENUE" | "EXPENSE";
+          normal_balance: "DEBIT" | "CREDIT";
+          total_debit: number;
+          total_credit: number;
+          balance: number;
+        }[];
+      };
       issue_dues: {
         Args: {
           p_organization_id: string;
