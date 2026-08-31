@@ -8,6 +8,10 @@ import {
   LegacyReviewClient,
   type LegacyReviewFinding,
 } from "./legacy-review-client";
+import {
+  LegacyReadinessGate,
+  type LegacyFinancialReadiness,
+} from "./legacy-readiness-gate";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -59,12 +63,41 @@ export default async function LegacyReviewPage({
   );
   if (error) throw error;
 
+  // The generated client types intentionally trail staging-only migrations.
+  // Keep the one new RPC locally typed until the schema is promoted and types
+  // are regenerated; do not weaken the Supabase client globally.
+  const readinessRpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: "get_legacy_financial_readiness",
+    args: { p_organization_id: string },
+  ) => Promise<{
+    data: LegacyFinancialReadiness[] | null;
+    error: { message: string; code?: string } | null;
+  }>;
+
+  const { data: readinessRows, error: readinessError } = await readinessRpc(
+    "get_legacy_financial_readiness",
+    { p_organization_id: organization.id },
+  );
+  if (readinessError) throw readinessError;
+
+  const readiness = readinessRows?.[0];
+  if (!readiness) {
+    throw new Error("Legacy financial readiness gate returned no result");
+  }
+
   return (
-    <LegacyReviewClient
-      findings={(data ?? []) as LegacyReviewFinding[]}
-      organizationName={organization.name}
-      currency={organization.default_currency || "EGP"}
-      locale={locale}
-    />
+    <div className="space-y-5">
+      <LegacyReadinessGate
+        readiness={readiness}
+        locale={locale}
+        currency={organization.default_currency || "EGP"}
+      />
+      <LegacyReviewClient
+        findings={(data ?? []) as LegacyReviewFinding[]}
+        organizationName={organization.name}
+        currency={organization.default_currency || "EGP"}
+        locale={locale}
+      />
+    </div>
   );
 }
