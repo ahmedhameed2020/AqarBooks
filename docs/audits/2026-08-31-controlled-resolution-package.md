@@ -2,12 +2,12 @@
 
 **Environment:** AqarBooks Bagosh **Staging only**  
 **Supabase project:** `mlaayjrrscnxomkxgqwm`  
-**Audit snapshot:** 2026-08-31 19:40:59 UTC / 22:40:59 Qatar  
+**Latest audit snapshot:** 2026-08-31 19:50:26 UTC / 22:50:26 Qatar  
 **Production status:** **HOLD**
 
 ## 1. Executive decision
 
-The imported general ledger remains arithmetically and structurally intact. Review of the preserved Access source plus the three exported Excel workbooks has now resolved **10 of the original 13 documentary findings** without changing a single historical journal amount.
+The imported general ledger remains arithmetically and structurally intact. Review of the preserved Access source plus the three exported Excel workbooks has resolved **10 of the original 13 documentary findings** without changing a single historical journal amount.
 
 Evidence workbooks reviewed:
 
@@ -24,7 +24,7 @@ Current controls and balances:
 - Entries without lines: **0**
 - Negative journal-line amounts: **0**
 - Lines with both debit and credit positive: **0**
-- Zero/zero lines: **0**
+- Zero/zero lines in Staging: **0**
 - Documentary findings: **13 total**
   - Resolved internally: **10**
   - Still open: **3**
@@ -42,7 +42,57 @@ No imported historical journal is rewritten to close a finding. Internal evidenc
 
 ---
 
-## 2. Documentary findings resolved internally — no ledger correction
+## 2. Source-to-Staging count reconciliation — CLOSED
+
+The Excel Data Health Check initially exposed an apparent count difference between Access headers and Staging journal entries. The difference has now been fully reconciled against `legacy_import.rows`, `legacy_import.document_resolutions`, and the actual Staging journal entries.
+
+### Source bridge
+
+| Stage | Count |
+|---|---:|
+| Access / Excel source header rows | **16,818** |
+| Headers with no journal lines | **224** |
+| Headers whose lines are entirely zero-value | **31** |
+| Source identities with financial movement | **16,563** |
+| Direct one-to-one imported identities | **16,524** |
+| Controlled exceptional source identities | **39** |
+| Exceptional identities without a resolution record | **0** |
+
+All **39** exceptional source identities are explicitly covered by `legacy_import.document_resolutions`.
+
+Those 39 source identities resolve to:
+
+- **31 unique Staging target entries**; and
+- **1 cancelled source identity (`8041`)** intentionally excluded because the source header states **قيد لاغى** and its sole dual-sided line nets to zero.
+
+Therefore:
+
+`16,524 direct entries + 31 unique resolution targets = 16,555 Staging journal entries`
+
+**Calculated Staging count = actual Staging count = 16,555. Difference = 0.**
+
+Additional controls:
+
+- Unresolved exceptional source identities: **0**.
+- Orphan `document_resolutions.target_entry_id`: **0**.
+- Reused voucher numbers are handled by date-inclusive `legacy-resolution` keys where required.
+- Complementary unbalanced source documents are represented by controlled paired reconstructions rather than being silently discarded.
+
+### Reused voucher-number finding
+
+The Data Health Check reported five voucher-number reuse cases. These are not lost through idempotency collisions:
+
+- receipt `12` — both 2008-04-05 and 2008-04-12 exist as separate date-qualified resolutions;
+- journal `2051` — both 2014-04-02 and 2014-04-04 exist separately;
+- journal `2213` — both historical dates exist separately;
+- payment `32` — both 2019-05-13 and 2019-05-28 exist separately;
+- journal `7736` — both 2025-10-18 and 2025-11-04 exist separately.
+
+The earlier collision concern is therefore **resolved**. The ledger is not merely balanced; the source-document population is now count-reconciled to Staging.
+
+---
+
+## 3. Documentary findings resolved internally — no ledger correction
 
 ### Previously resolved
 
@@ -68,7 +118,7 @@ All ten findings are `RESOLVED`; ledger corrections required: **0**.
 
 ---
 
-## 3. Remaining documentary findings requiring external evidence
+## 4. Remaining documentary findings requiring external evidence
 
 Only three documentary cases remain open.
 
@@ -82,7 +132,7 @@ Open documentary difference: **275,910.95 EGP**.
 
 ---
 
-## 4. Resolution ownership matrix
+## 5. Resolution ownership matrix
 
 | Workstream | Open | Primary decision owner | Required input | Permitted outcome | Prohibited shortcut |
 |---|---:|---|---|---|---|
@@ -94,13 +144,14 @@ Open documentary difference: **275,910.95 EGP**.
 
 ---
 
-## 5. Receivables outside current Property/Member Master
+## 6. Receivables outside current Property/Member Master
 
 There are **23** non-zero legacy receivable accounts outside the current Property/Member Master.
 
 - Absolute exposure: **3,233,722.00 EGP**
 - Source vs Supabase monetary difference: **0.00 EGP**
 - The Excel export independently confirms historical sectors including **A, B, V and VU**.
+- The Excel `Members` master does not establish current members for those historical sectors.
 - Finding type: scope/linkage, **not migration amount integrity**.
 
 Management must approve one classification for each account:
@@ -113,7 +164,7 @@ Management must approve one classification for each account:
 
 ---
 
-## 6. Bank master data
+## 7. Bank master data
 
 Operational `bank_accounts` remain unconfigured where no verified account number/IBAN exists in the source or Excel export.
 
@@ -126,13 +177,13 @@ Material active balances:
 
 Historical zero-balance findings remain for `1511000`, `1515000`, and `1515002`.
 
-The workbook sheet `معاملات البنوك - Bank Factors` contains accounting factors/mappings, not verified account numbers or IBANs, and is therefore **not** used to fabricate operational bank identifiers.
+The workbook sheet `معاملات البنوك - Bank Factors` contains accounting factors/mappings, not verified account numbers or IBANs, and contains no usable identifier rows for the five bank GL accounts. It is therefore **not** used to fabricate operational bank identifiers.
 
 **Policy:** `DO_NOT_FABRICATE_BANK_ACCOUNT_IDENTIFIER`.
 
 ---
 
-## 7. Supplier/AP counterparties
+## 8. Supplier/AP counterparties
 
 Three material external liabilities remain in the GL and are source-verified with zero monetary difference:
 
@@ -142,13 +193,15 @@ Three material external liabilities remain in the GL and are source-verified wit
 | **2110001** | هيئة التنمية السياحية — إسكان سياحي | **622,142.00** |
 | **2160001** | شركة كهرباء البحيرة لتوزيع الكهرباء | **417,995.00** |
 
+The Excel account master confirms these GL accounts and names, but does not provide a legal supplier/counterparty master sufficient to create Supplier records safely.
+
 Management must approve Supplier/AP setup or GL-only/historical classification.
 
 **Policy:** `NO_AUTOMATIC_SUPPLIER_CREATION_FROM_GL_NAME`.
 
 ---
 
-## 8. Fixed assets
+## 9. Fixed assets
 
 The Excel account master contains fixed-asset GL accounts, but it does **not** provide a reliable operational asset register containing acquisition date, individual historical cost, useful life, salvage value, status, and explicit GL mapping for each asset.
 
@@ -161,12 +214,13 @@ The Excel account master contains fixed-asset GL accounts, but it does **not** p
 
 ---
 
-## 9. Latest audit gate
+## 10. Latest audit gate
 
 Latest audit run:
 
-- Executed: **2026-08-31 19:40:59 UTC**
-- Audit run ID: `4ec59e52-69bd-4f4b-8bb0-0ab636551166`
+- Executed: **2026-08-31 19:50:26 UTC**
+- Audit run ID: `a1f67e0c-e0f7-4173-b4e3-083abb2fc115`
+- Snapshot: `FINANCIAL_INTEGRITY_SOURCE_COUNT_RECONCILIATION_2026_08_31`
 - Gate: **HOLD**
 - Audit stale: **No**
 - Open blockers: **35**
@@ -176,10 +230,11 @@ Latest audit run:
 - MEDIUM: **0**
 - LOW: **4**
 - Ledger difference: **0.0000 EGP**
+- Source count reconciliation difference: **0**
 
 ---
 
-## 10. Production release criteria
+## 11. Production release criteria
 
 Production remains **HOLD** until:
 
@@ -190,10 +245,10 @@ Production remains **HOLD** until:
 5. An approved Fixed Asset Register migration decision is completed.
 6. Every finding state is updated through controlled review.
 7. The Financial Integrity Audit is rerun after the final finding change.
-8. Debit equals credit and structural checks remain zero.
+8. Debit equals credit, source-count reconciliation remains zero, and structural checks remain zero.
 9. TypeScript, Financial Integrity ESLint, build, Staging deploy, and smoke checks pass on the final promotion candidate.
 
-## 11. Non-negotiable controls
+## 12. Non-negotiable controls
 
 - Production is not touched during this phase.
 - Imported historical journal amounts are immutable evidence.
