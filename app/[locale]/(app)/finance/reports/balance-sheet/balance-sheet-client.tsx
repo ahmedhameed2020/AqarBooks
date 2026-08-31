@@ -3,14 +3,11 @@
 import { useState } from "react";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import {
-  Landmark,
-  ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   Printer,
   FileSpreadsheet,
   Calendar,
-  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +28,7 @@ export function BalanceSheetClient({
   assetRows,
   liabilityRows,
   equityRows,
-  currentEarnings,
+  accumulatedEarnings,
   asOfDate,
   organizationName,
   taxNumber,
@@ -41,7 +38,7 @@ export function BalanceSheetClient({
   assetRows: BalanceSheetAccountRow[];
   liabilityRows: BalanceSheetAccountRow[];
   equityRows: BalanceSheetAccountRow[];
-  currentEarnings: number;
+  accumulatedEarnings: number;
   asOfDate: string;
   organizationName: string;
   taxNumber?: string | null;
@@ -63,7 +60,7 @@ export function BalanceSheetClient({
   const totalAssets = assetRows.reduce((s, r) => s + r.balance, 0);
   const totalLiabilities = liabilityRows.reduce((s, r) => s + r.balance, 0);
   const baseEquity = equityRows.reduce((s, r) => s + r.balance, 0);
-  const totalEquity = baseEquity + currentEarnings;
+  const totalEquity = baseEquity + accumulatedEarnings;
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
   const diff = Math.abs(totalAssets - totalLiabilitiesAndEquity);
@@ -77,7 +74,7 @@ export function BalanceSheetClient({
 
   // PDF Export
   const handleExportPdf = () => {
-    const formattedRows: Record<string, any>[] = [];
+    const formattedRows: Record<string, unknown>[] = [];
 
     // 1. ASSETS
     formattedRows.push({
@@ -125,8 +122,8 @@ export function BalanceSheetClient({
     });
     formattedRows.push({
       code: "—",
-      name: isAr ? "صافي أرباح / فائض الفترة الحالية" : "Current Period Surplus / Earnings",
-      amount: currentEarnings,
+      name: isAr ? "الفائض المتراكم حتى التاريخ" : "Accumulated Surplus Through Date",
+      amount: accumulatedEarnings,
     });
 
     generateFinancialStatementPdf(
@@ -172,7 +169,7 @@ export function BalanceSheetClient({
       description: isAr ? "يتم تجهيز ملف الإكسل المنسق" : "Preparing workbook",
     });
 
-    const exportRows: Record<string, any>[] = [];
+    const exportRows: Record<string, unknown>[] = [];
     exportRows.push({
       __isGroup: true,
       code: "",
@@ -216,8 +213,8 @@ export function BalanceSheetClient({
     });
     exportRows.push({
       code: "—",
-      name: isAr ? "صافي أرباح / فائض الفترة" : "Current Period Earnings",
-      amount: currentEarnings,
+      name: isAr ? "الفائض المتراكم حتى التاريخ" : "Accumulated Surplus Through Date",
+      amount: accumulatedEarnings,
     });
 
     await exportFinancialStatementToExcel(
@@ -318,7 +315,7 @@ export function BalanceSheetClient({
         </div>
 
         <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <span className="text-xs font-bold text-slate-500">{isAr ? "حقوق الملكية وفائض الفترة" : "Equity & Surplus"}</span>
+          <span className="text-xs font-bold text-slate-500">{isAr ? "حقوق الملكية والفائض المتراكم" : "Equity & Accumulated Surplus"}</span>
           <div className="mt-1 font-mono text-xl font-black text-purple-600 dark:text-purple-400">
             {fmt(totalEquity)} <span className="text-xs text-slate-500 font-semibold">{currency}</span>
           </div>
@@ -430,8 +427,8 @@ export function BalanceSheetClient({
                 ))}
                 <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="p-3 font-mono font-bold text-slate-400 ps-5">—</td>
-                  <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? "صافي أرباح / فائض الفترة الحالية" : "Current Period Surplus / Earnings"}</td>
-                  <td className="p-3 text-end font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(currentEarnings)}</td>
+                  <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? "الفائض المتراكم حتى التاريخ" : "Accumulated Surplus Through Date"}</td>
+                  <td className="p-3 text-end font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(accumulatedEarnings)}</td>
                 </tr>
               </tbody>
               <tfoot className="bg-slate-50 dark:bg-slate-800 font-bold border-t border-slate-200 dark:border-slate-700">
