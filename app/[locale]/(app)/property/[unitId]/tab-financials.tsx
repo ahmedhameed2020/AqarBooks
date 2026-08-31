@@ -1,6 +1,7 @@
 import { Money } from "@/components/money";
 import { AGING_BUCKETS, type AgingBucketKey } from "@/lib/finance/aging";
 import type { MonthlyFinancialPoint } from "@/lib/property/unit-financials";
+import { createClient } from "@/lib/supabase/server";
 import { DuesTable } from "../dues-table";
 import { PaymentsTable } from "../payments-table";
 import { UnitFinancialsChart } from "./unit-financials-chart";
@@ -24,7 +25,7 @@ const AGING_SEVERITY: Record<AgingBucketKey, string> = {
   d90plus: "border-rose-600/35 bg-rose-600/[0.08] text-rose-700 dark:text-rose-400",
 };
 
-export function TabFinancials({
+export async function TabFinancials({
   organizationId,
   unitId,
   locale,
@@ -33,7 +34,6 @@ export function TabFinancials({
   agingTotals,
   legacyAccounts,
   legacyLines,
-  historicalUnitAccounts,
 }: {
   organizationId: string;
   unitId: string;
@@ -43,9 +43,27 @@ export function TabFinancials({
   agingTotals: Map<AgingBucketKey, number>;
   legacyAccounts: LegacyFinancialAccount[];
   legacyLines: LegacyLedgerLine[];
-  historicalUnitAccounts: HistoricalUnitFinancialAccount[];
 }) {
   const isAr = locale === "ar";
+  const supabase = await createClient();
+
+  // Staging-only RPC: keep the narrow local type until the schema is promoted
+  // and the generated Supabase types are regenerated from the promoted schema.
+  const historicalRpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: "get_unit_legacy_historical_accounts",
+    args: { p_organization_id: string; p_unit_id: string },
+  ) => Promise<{
+    data: HistoricalUnitFinancialAccount[] | null;
+    error: { message: string; code?: string } | null;
+  }>;
+
+  const { data: historicalRows, error: historicalError } = await historicalRpc(
+    "get_unit_legacy_historical_accounts",
+    { p_organization_id: organizationId, p_unit_id: unitId },
+  );
+  if (historicalError && historicalError.code !== "42501") throw historicalError;
+  const historicalUnitAccounts = historicalError ? [] : (historicalRows ?? []);
+
   return (
     <div className="space-y-6">
       <LegacyFinancialHistory
