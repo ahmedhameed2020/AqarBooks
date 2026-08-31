@@ -3,16 +3,12 @@
 import { useState, useMemo } from "react";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import {
-  Scale,
   Printer,
   FileSpreadsheet,
   CheckCircle2,
   AlertTriangle,
   Search,
   Calendar,
-  Layers,
-  ArrowUpDown,
-  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +23,7 @@ export interface TrialBalanceRow {
   name_ar: string;
   name_en: string;
   category: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE" | string;
+  normal_balance: "DEBIT" | "CREDIT" | string;
   total_debit: number;
   total_credit: number;
   balance: number;
@@ -158,7 +155,7 @@ export function TrialBalanceClient({
           { header: isAr ? "التصنيف" : "Category", key: "categoryLabel", isNumber: false, width: 16 },
           { header: isAr ? "مجموع المدين" : "Debit", key: "total_debit", isNumber: true, width: 20 },
           { header: isAr ? "مجموع الدائن" : "Credit", key: "total_credit", isNumber: true, width: 20 },
-          { header: isAr ? "الرصيد الصافي" : "Net Balance", key: "balance", isNumber: true, width: 20 },
+          { header: isAr ? "الرصيد الصافي (+مدين/-دائن)" : "Net Balance (+Dr/-Cr)", key: "balance", isNumber: true, width: 20 },
         ],
         rows: filteredRows.map((r) => ({
           code: r.code,
@@ -166,7 +163,7 @@ export function TrialBalanceClient({
           categoryLabel: categoryLabels[r.category]?.[isAr ? "ar" : "en"] || r.category,
           total_debit: r.total_debit,
           total_credit: r.total_credit,
-          balance: r.balance,
+          balance: r.normal_balance === "DEBIT" ? r.balance : -r.balance,
         })),
         totalRow: {
           code: isAr ? "الإجمالي العام" : "Grand Total",
@@ -334,7 +331,8 @@ export function TrialBalanceClient({
               {filteredRows.length ? (
                 filteredRows.map((r) => {
                   const catLabel = categoryLabels[r.category]?.[isAr ? "ar" : "en"] || r.category;
-                  const isDebitBalance = r.balance >= 0;
+                  const debitSignedBalance = r.normal_balance === "DEBIT" ? r.balance : -r.balance;
+                  const isDebitBalance = debitSignedBalance > 0;
 
                   return (
                     <tr
@@ -360,7 +358,7 @@ export function TrialBalanceClient({
                       </td>
                       <td className="p-3.5 text-end font-mono font-bold">
                         <span className={isDebitBalance ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400"}>
-                          {fmt(Math.abs(r.balance))} {isDebitBalance ? (isAr ? "مدين" : "Dr") : (isAr ? "دائن" : "Cr")}
+                          {fmt(Math.abs(debitSignedBalance))}{debitSignedBalance !== 0 ? ` ${isDebitBalance ? (isAr ? "مدين" : "Dr") : (isAr ? "دائن" : "Cr")}` : ""}
                         </span>
                       </td>
                     </tr>
