@@ -71,7 +71,7 @@ export default async function BalanceSheetPage({
   const equityRows = rawRows.filter((r) => r.category === "EQUITY" && r.balance !== 0);
   const revenueTotal = rawRows.filter((r) => r.category === "REVENUE").reduce((s, r) => s + r.balance, 0);
   const expenseTotal = rawRows.filter((r) => r.category === "EXPENSE").reduce((s, r) => s + r.balance, 0);
-  const currentEarnings = revenueTotal - expenseTotal;
+  const accumulatedEarnings = revenueTotal - expenseTotal;
 
   return (
     <div className="space-y-6">
@@ -102,7 +102,7 @@ export default async function BalanceSheetPage({
         assetRows={assetRows}
         liabilityRows={liabilityRows}
         equityRows={equityRows}
-        currentEarnings={currentEarnings}
+        accumulatedEarnings={accumulatedEarnings}
         asOfDate={asOfDate}
         organizationName={organization.name}
         taxNumber={organization.tax_id}
