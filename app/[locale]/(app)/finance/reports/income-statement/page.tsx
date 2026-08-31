@@ -7,6 +7,9 @@ import { TrendingUp } from "lucide-react";
 import { IncomeStatementClient, type IncomeStatementRow } from "./income-statement-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({
   params,
 }: {
@@ -60,13 +63,24 @@ export default async function IncomeStatementPage({
     endDate = endDate || openPeriod?.end_date || new Date().toISOString().slice(0, 10);
   }
 
-  const { data: rowsData } = await supabase.rpc("get_trial_balance", {
-    p_organization_id: organization.id,
-    p_start_date: startDate,
-    p_end_date: endDate,
-  });
+  const pageSize = 1000;
+  const rawRows: IncomeStatementRow[] = [];
 
-  const rawRows = (rowsData ?? []) as unknown as IncomeStatementRow[];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .rpc("get_trial_balance", {
+        p_organization_id: organization.id,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as unknown as IncomeStatementRow[];
+    rawRows.push(...page);
+    if (page.length < pageSize) break;
+  }
   const revenueRows = rawRows.filter((r) => r.category === "REVENUE" && r.balance !== 0);
   const expenseRows = rawRows.filter((r) => r.category === "EXPENSE" && r.balance !== 0);
 
