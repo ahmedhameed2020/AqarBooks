@@ -3173,6 +3173,25 @@ export type Database = {
           balance: number;
         }[];
       };
+      list_legacy_financial_review_findings: {
+        Args: { p_organization_id: string; p_status?: string | null };
+        Returns: {
+          finding_id: number;
+          entry_id: string;
+          entry_number: number;
+          entry_date: string;
+          entry_description: string;
+          finding_type: string;
+          severity: "LOW" | "MEDIUM" | "HIGH";
+          status: "OPEN" | "RESOLVED" | "DISMISSED";
+          description_amount: number | null;
+          posted_amount: number;
+          difference: number;
+          requested_evidence: string;
+          evidence: Record<string, unknown>;
+          created_at: string;
+        }[];
+      };
       issue_dues: {
         Args: {
           p_organization_id: string;
