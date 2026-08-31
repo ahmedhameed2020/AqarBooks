@@ -9,6 +9,10 @@ import {
   type LegacyFinancialAccount,
   type LegacyLedgerLine,
 } from "./legacy-financial-history";
+import {
+  LegacyHistoricalUnitAccounts,
+  type HistoricalUnitFinancialAccount,
+} from "./legacy-historical-unit-accounts";
 
 // Aging severity reads as a heat progression, cool -> hot, so the eye finds
 // the worst bucket without reading numbers first.
@@ -29,6 +33,7 @@ export function TabFinancials({
   agingTotals,
   legacyAccounts,
   legacyLines,
+  historicalUnitAccounts,
 }: {
   organizationId: string;
   unitId: string;
@@ -38,6 +43,7 @@ export function TabFinancials({
   agingTotals: Map<AgingBucketKey, number>;
   legacyAccounts: LegacyFinancialAccount[];
   legacyLines: LegacyLedgerLine[];
+  historicalUnitAccounts: HistoricalUnitFinancialAccount[];
 }) {
   const isAr = locale === "ar";
   return (
@@ -45,6 +51,12 @@ export function TabFinancials({
       <LegacyFinancialHistory
         accounts={legacyAccounts}
         lines={legacyLines}
+        locale={locale}
+        currency={currency}
+      />
+
+      <LegacyHistoricalUnitAccounts
+        accounts={historicalUnitAccounts}
         locale={locale}
         currency={currency}
       />
