@@ -71,12 +71,28 @@ export default async function GeneralLedgerPage({
   const selectedAccount = accounts.find((a) => a.id === accountId) || null;
 
   const lines: LedgerLine[] = [];
-  if (accountId) {
+  let openingBalance = 0;
+  if (selectedAccount) {
+    const openingEnd = new Date(`${startDate}T00:00:00Z`);
+    openingEnd.setUTCDate(openingEnd.getUTCDate() - 1);
+
+    const { data: openingRow, error: openingError } = await supabase
+      .rpc("get_trial_balance", {
+        p_organization_id: organization.id,
+        p_start_date: "1900-01-01",
+        p_end_date: openingEnd.toISOString().slice(0, 10),
+      })
+      .eq("account_id", selectedAccount.id)
+      .maybeSingle();
+
+    if (openingError) throw openingError;
+    openingBalance = Number(openingRow?.balance || 0);
+
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .rpc("get_account_ledger", {
           p_organization_id: organization.id,
-          p_account_id: accountId,
+          p_account_id: selectedAccount.id,
           p_start_date: startDate,
           p_end_date: endDate,
         })
@@ -119,6 +135,7 @@ export default async function GeneralLedgerPage({
         accounts={accounts}
         selectedAccount={selectedAccount}
         lines={lines}
+        openingBalance={openingBalance}
         startDate={startDate}
         endDate={endDate}
         organizationName={organization.name}
