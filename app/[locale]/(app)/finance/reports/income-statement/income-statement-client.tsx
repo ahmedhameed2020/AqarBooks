@@ -129,8 +129,8 @@ export function IncomeStatementClient({
         ],
         notes: [
           isAr
-            ? "تم إعداد قائمة الدخل وفقاً لمبدأ الاستحقاق المحاسبي ومعايير التقارير المالية الدولية."
-            : "Prepared under the accrual basis of accounting in conformity with statutory reporting standards.",
+            ? "تعرض قائمة الدخل الحركات التشغيلية للفترة مع استبعاد قيود إقفال الإيرادات والمصروفات السنوية المصنفة تدقيقياً."
+            : "The statement shows period operating activity and excludes audit-classified year-end revenue and expense closing entries.",
         ],
       },
       locale
