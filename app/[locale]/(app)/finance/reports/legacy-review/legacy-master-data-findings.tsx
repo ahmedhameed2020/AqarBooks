@@ -63,7 +63,7 @@ export function LegacyMasterDataFindings({
               </span>
             )}
             {bankCount > 0 && <CountBadge label={isAr ? `${bankCount} بنوك` : `${bankCount} bank`} tone="cyan" />}
-            {receivableCount > 0 && <CountBadge label={isAr ? `${receivableCount} ذمم/وحدات` : `${receivableCount} receivable`} tone="violet" />}
+            {receivableCount > 0 && <CountBadge label={isAr ? `${receivableCount} ذمم نشطة خارج الماستر` : `${receivableCount} active receivable`} tone="violet" />}
             {supplierCount > 0 && <CountBadge label={isAr ? `${supplierCount} موردين/AP` : `${supplierCount} supplier/AP`} tone="blue" />}
             {fixedAssetCount > 0 && <CountBadge label={isAr ? `${fixedAssetCount} سجل أصول` : `${fixedAssetCount} asset register`} tone="amber" />}
           </div>
@@ -75,6 +75,7 @@ export function LegacyMasterDataFindings({
           const isBank = finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING";
           const isSupplier = finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER";
           const isFixedAsset = finding.finding_type === "FIXED_ASSET_REGISTER_NOT_MIGRATED";
+          const isReceivable = finding.finding_type === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER";
           const accountId = typeof finding.evidence.gl_account_id === "string" ? finding.evidence.gl_account_id : null;
           const accountName = isFixedAsset
             ? isAr ? "سجل الأصول الثابتة التشغيلي" : "Operational fixed-asset register"
@@ -94,6 +95,10 @@ export function LegacyMasterDataFindings({
           const sourceSector = typeof finding.evidence.legacy_source_sector === "string" ? finding.evidence.legacy_source_sector : null;
           const sourceSectorTitle = typeof finding.evidence.legacy_source_sector_title === "string" ? finding.evidence.legacy_source_sector_title : null;
           const sourceUnit = typeof finding.evidence.legacy_source_unit === "string" ? finding.evidence.legacy_source_unit : null;
+          const scopeAnalysis = asRecord(finding.evidence.scope_analysis);
+          const scopeClassification = typeof scopeAnalysis?.classification === "string" ? scopeAnalysis.classification : null;
+          const decisionGroup = typeof scopeAnalysis?.decision_group === "string" ? scopeAnalysis.decision_group : null;
+          const recommendedHandling = typeof scopeAnalysis?.recommended_handling === "string" ? scopeAnalysis.recommended_handling : null;
           const balance = rawBalance.toLocaleString(isAr ? "ar-EG" : "en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -138,12 +143,30 @@ export function LegacyMasterDataFindings({
                     )}
                   </p>
 
+                  {isReceivable && scopeClassification === "ACTIVE_RECEIVABLE_OUTSIDE_PROPERTY_MASTER" && (
+                    <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/70 p-3 text-xs leading-6 dark:border-violet-900/60 dark:bg-violet-950/20">
+                      <p className="font-black text-violet-900 dark:text-violet-200">
+                        {isAr ? "التصنيف المثبت من المصدر والحركة:" : "Source/activity classification:"}{" "}
+                        {isAr ? "ذمة نشطة خارج Property Master" : "Active receivable outside Property Master"}
+                      </p>
+                      <p className="mt-1 font-semibold text-violet-700 dark:text-violet-300">
+                        {isAr ? "مجموعة قرار النطاق:" : "Scope decision group:"}{" "}
+                        <span className="font-mono font-black">{decisionGroup ?? sourceSector ?? "—"}</span>
+                        {" · "}
+                        {isAr ? "التوصية:" : "Recommendation:"}{" "}
+                        {recommendedHandling === "INSTITUTIONAL_RECEIVABLE_NO_UNIT_OWNER_LINK"
+                          ? isAr ? "الإبقاء كذمة مؤسسية دون Unit/Owner Link" : "Keep as institutional receivable without Unit/Owner link"
+                          : isAr ? "الإبقاء كذمة مالية خارج الماستر دون إنشاء Unit/Owner تلقائيًا" : "Keep as financial receivable outside master without automatic Unit/Owner creation"}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-6 dark:border-slate-800 dark:bg-slate-950/50">
                     <p className="font-black text-slate-800 dark:text-slate-200">
                       {isAr ? "المستند/الاعتماد المطلوب:" : "Required evidence / approval:"}
                     </p>
                     <p className="mt-1 font-medium text-slate-600 dark:text-slate-300">
-                      {isAr ? requestedEvidenceAr(finding.finding_type) : finding.requested_evidence}
+                      {isAr ? requestedEvidenceAr(finding) : finding.requested_evidence}
                     </p>
                   </div>
                 </div>
@@ -165,17 +188,26 @@ export function LegacyMasterDataFindings({
   );
 }
 
-function requestedEvidenceAr(findingType: string) {
-  if (findingType === "BANK_ACCOUNT_IDENTIFIER_MISSING") {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function requestedEvidenceAr(finding: LegacyMasterDataFinding) {
+  if (finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING") {
     return "كشف حساب بنكي رسمي أو مستند فتح الحساب يوضح اسم البنك ورقم الحساب أو IBAN والعملة وما إذا كان الحساب ما زال نشطًا.";
   }
-  if (findingType === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER") {
-    return "كشف معتمد للوحدات/الملكية أو إفادة من الإدارة تحدد هل القطاع أو الوحدة ما زالت ضمن نطاق الإدارة الحالي. إذا كانت ضمن النطاق يلزم تحديد الوحدة والمالك/العضو الحالي للربط الصريح، وإذا كانت خارج النطاق يلزم اعتماد تصنيفها كذمة تاريخية أو خارجية دون إنشاء ملكية حالية.";
+  if (finding.finding_type === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER") {
+    const scopeAnalysis = asRecord(finding.evidence.scope_analysis);
+    const decisionGroup = typeof scopeAnalysis?.decision_group === "string" ? scopeAnalysis.decision_group : null;
+    const sectorLabel = decisionGroup ? `المجموعة ${decisionGroup}` : "القطاع/الوحدة";
+    return `اعتماد إداري على مستوى ${sectorLabel} للإبقاء على هذه الذمة ضمن النطاق المالي النشط خارج Property/Member Master دون إنشاء Unit أو Owner تلقائيًا؛ أو تزويدنا بـProperty/Ownership Master معتمد إذا كان المطلوب إدخالها صراحة في النطاق العقاري الحالي.`;
   }
-  if (findingType === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER") {
+  if (finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER") {
     return "كشف معتمد بالجهة الدائنة أو ملف المورد. إذا كان الالتزام ما زال تشغيليًا يلزم تحديد الكيان القانوني وبيانات المورد اللازمة لإعداده صراحة في AP. وإذا كان تاريخيًا أو GL-only يلزم اعتماد هذا التصنيف دون إنشاء مورد من اسم الحساب فقط.";
   }
-  if (findingType === "FIXED_ASSET_REGISTER_NOT_MIGRATED") {
+  if (finding.finding_type === "FIXED_ASSET_REGISTER_NOT_MIGRATED") {
     return "سجل أصول ثابتة معتمد يوضح كود واسم كل أصل، تاريخ الاقتناء، التكلفة التاريخية، العمر الإنتاجي، القيمة التخريدية عند انطباقها، الحالة، والربط الصريح بحسابات الأستاذ. لا يجوز تفكيك الرصيد الإجمالي في الأستاذ إلى أصول فردية أو جداول إهلاك بالاستنتاج.";
   }
   return "مستند مؤيد أو اعتماد إداري يحدد المعالجة الصحيحة دون استنتاج بيانات جديدة من القيد المحاسبي.";
@@ -192,7 +224,7 @@ function FindingTypeBadge({ findingType, locale }: { findingType: string; locale
   if (findingType === "FIXED_ASSET_REGISTER_NOT_MIGRATED") {
     return <TypeBadge label={isAr ? "سجل أصول غير مُرحّل" : "Asset register not migrated"} tone="amber" />;
   }
-  return <TypeBadge label={isAr ? "ذمة خارج Property Master" : "Outside property master"} tone="violet" />;
+  return <TypeBadge label={isAr ? "ذمة نشطة خارج Property Master" : "Active outside property master"} tone="violet" />;
 }
 
 function TypeBadge({ label, tone }: { label: string; tone: "cyan" | "blue" | "violet" | "amber" }) {
