@@ -68,7 +68,7 @@ export default async function IncomeStatementPage({
 
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
-      .rpc("get_trial_balance", {
+      .rpc("get_income_statement", {
         p_organization_id: organization.id,
         p_start_date: startDate,
         p_end_date: endDate,
@@ -101,8 +101,8 @@ export default async function IncomeStatementPage({
               </h1>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
                 {isAr
-                  ? `بيان الأداء المالي وصافي الفائض التشغيلي للفترة من ${startDate} إلى ${endDate}`
-                  : `Operating performance and net period surplus from ${startDate} to ${endDate}`}
+                  ? `بيان الأداء المالي للفترة من ${startDate} إلى ${endDate} — مع استبعاد قيود الإقفال السنوي`
+                  : `Operating performance from ${startDate} to ${endDate} — excluding year-end closing entries`}
               </p>
             </div>
           </div>
