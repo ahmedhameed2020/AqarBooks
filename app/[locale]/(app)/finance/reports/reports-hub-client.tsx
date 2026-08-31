@@ -31,6 +31,7 @@ import {
   Droplets,
   Wrench,
   CalendarClock,
+  ShieldAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,6 @@ export interface ReportDefinition {
   colorClass: string;
   bgGradient: string;
 }
-
 const ALL_REPORTS: ReportDefinition[] = [
   {
     id: "trial-balance",
@@ -217,6 +217,21 @@ const ALL_REPORTS: ReportDefinition[] = [
     badgeVariant: "outline",
     colorClass: "text-cyan-600 dark:text-cyan-400",
     bgGradient: "from-cyan-600/10 to-blue-600/10",
+  },
+  {
+    id: "legacy-review",
+    href: "/finance/reports/legacy-review",
+    category: "LEDGERS",
+    titleAr: "مراجعة البيانات المالية القديمة",
+    titleEn: "Legacy Financial Review",
+    descAr: "سجل رقابي للاستثناءات المكتشفة أثناء ترحيل النظام القديم والمستندات المطلوبة لحسمها دون تعديل القيود قبل الاعتماد.",
+    descEn: "Controlled register of legacy migration findings and the evidence required before any ledger correction.",
+    icon: ShieldAlert,
+    badgeAr: "يتطلب مستندًا",
+    badgeEn: "Evidence Required",
+    badgeVariant: "default",
+    colorClass: "text-rose-600 dark:text-rose-400",
+    bgGradient: "from-rose-600/10 to-amber-600/10",
   },
   {
     id: "audit-trail",
