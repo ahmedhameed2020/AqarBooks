@@ -31,6 +31,7 @@ export function LegacyMasterDataFindings({
   const bankCount = findings.filter((finding) => finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING").length;
   const receivableCount = findings.filter((finding) => finding.finding_type === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER").length;
   const supplierCount = findings.filter((finding) => finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER").length;
+  const fixedAssetCount = findings.filter((finding) => finding.finding_type === "FIXED_ASSET_REGISTER_NOT_MIGRATED").length;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
@@ -47,8 +48,8 @@ export function LegacyMasterDataFindings({
               </h2>
               <p className="mt-2 max-w-3xl text-xs font-semibold leading-6 text-slate-600 dark:text-slate-300">
                 {isAr
-                  ? "دفتر الأستاذ محفوظ كما هو. هذه الحالات تحتاج مستندًا أو اعتمادًا إداريًا قبل إنشاء Bank Account أو Unit أو Owner Link أو Supplier. لا يستخدم AqarBooks اسم الحساب كبديل عن بيانات Master Data المفقودة."
-                  : "The general ledger remains unchanged. These cases require documentary or management approval before creating a bank account, unit, owner link, or supplier. AqarBooks does not substitute GL names for missing master data."}
+                  ? "دفتر الأستاذ محفوظ كما هو. هذه الحالات تحتاج مستندًا أو اعتمادًا إداريًا قبل إنشاء Bank Account أو Unit أو Owner Link أو Supplier أو Fixed Asset Register. لا يستخدم AqarBooks اسم الحساب أو رصيده كبديل عن بيانات Master Data المفقودة."
+                  : "The general ledger remains unchanged. These cases require documentary or management approval before creating a bank account, unit, owner link, supplier, or fixed-asset register. AqarBooks does not substitute GL names or balances for missing master data."}
               </p>
             </div>
           </div>
@@ -64,16 +65,32 @@ export function LegacyMasterDataFindings({
             {bankCount > 0 && <CountBadge label={isAr ? `${bankCount} بنوك` : `${bankCount} bank`} tone="cyan" />}
             {receivableCount > 0 && <CountBadge label={isAr ? `${receivableCount} ذمم/وحدات` : `${receivableCount} receivable`} tone="violet" />}
             {supplierCount > 0 && <CountBadge label={isAr ? `${supplierCount} موردين/AP` : `${supplierCount} supplier/AP`} tone="blue" />}
+            {fixedAssetCount > 0 && <CountBadge label={isAr ? `${fixedAssetCount} سجل أصول` : `${fixedAssetCount} asset register`} tone="amber" />}
           </div>
         </div>
       </div>
 
       <div className="divide-y divide-slate-100 dark:divide-slate-800">
         {findings.map((finding) => {
+          const isBank = finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING";
+          const isSupplier = finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER";
+          const isFixedAsset = finding.finding_type === "FIXED_ASSET_REGISTER_NOT_MIGRATED";
           const accountId = typeof finding.evidence.gl_account_id === "string" ? finding.evidence.gl_account_id : null;
-          const accountName = typeof finding.evidence.gl_account_name === "string" ? finding.evidence.gl_account_name : finding.entity_key;
-          const rawBalance = Number(finding.evidence.gl_balance ?? 0);
-          const lastActivity = typeof finding.evidence.last_activity_date === "string" ? finding.evidence.last_activity_date : null;
+          const accountName = isFixedAsset
+            ? isAr ? "سجل الأصول الثابتة التشغيلي" : "Operational fixed-asset register"
+            : typeof finding.evidence.gl_account_name === "string"
+              ? finding.evidence.gl_account_name
+              : finding.entity_key;
+          const rawBalance = Number(
+            finding.evidence.gl_balance ??
+            finding.evidence.legacy_accumulated_depreciation_balance ??
+            0,
+          );
+          const lastActivity = typeof finding.evidence.last_activity_date === "string"
+            ? finding.evidence.last_activity_date
+            : typeof finding.evidence.last_depreciation_activity === "string"
+              ? finding.evidence.last_depreciation_activity
+              : null;
           const sourceSector = typeof finding.evidence.legacy_source_sector === "string" ? finding.evidence.legacy_source_sector : null;
           const sourceSectorTitle = typeof finding.evidence.legacy_source_sector_title === "string" ? finding.evidence.legacy_source_sector_title : null;
           const sourceUnit = typeof finding.evidence.legacy_source_unit === "string" ? finding.evidence.legacy_source_unit : null;
@@ -82,8 +99,6 @@ export function LegacyMasterDataFindings({
             maximumFractionDigits: 2,
           });
           const isHigh = finding.severity === "HIGH";
-          const isBank = finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING";
-          const isSupplier = finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER";
 
           return (
             <article key={finding.finding_id} className="p-5">
@@ -95,7 +110,7 @@ export function LegacyMasterDataFindings({
                     ) : isSupplier ? (
                       <Truck className="size-4 text-blue-700" />
                     ) : (
-                      <Building2 className="size-4 text-violet-700" />
+                      <Building2 className={`size-4 ${isFixedAsset ? "text-amber-700" : "text-violet-700"}`} />
                     )}
                     {isHigh ? <ShieldAlert className="size-4 text-rose-600" /> : <AlertTriangle className="size-4 text-amber-600" />}
                     <span className="font-mono text-sm font-black text-slate-950 dark:text-white">{finding.entity_key}</span>
@@ -104,7 +119,7 @@ export function LegacyMasterDataFindings({
                     <SeverityBadge severity={finding.severity} locale={locale} />
                   </div>
 
-                  {!isBank && !isSupplier && (sourceSector || sourceUnit) && (
+                  {!isBank && !isSupplier && !isFixedAsset && (sourceSector || sourceUnit) && (
                     <p className="mt-2 text-xs font-semibold text-violet-700 dark:text-violet-300">
                       {isAr ? "مرجع المصدر القديم:" : "Legacy source reference:"}{" "}
                       {[sourceSectorTitle, sourceSector, sourceUnit].filter(Boolean).join(" · ")}
@@ -112,7 +127,9 @@ export function LegacyMasterDataFindings({
                   )}
 
                   <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    {isAr ? "الرصيد في دفتر الأستاذ:" : "General-ledger balance:"}{" "}
+                    {isFixedAsset
+                      ? isAr ? "مجمع الإهلاك التاريخي في دفتر الأستاذ:" : "Legacy accumulated depreciation in GL:"
+                      : isAr ? "الرصيد في دفتر الأستاذ:" : "General-ledger balance:"}{" "}
                     <span className="font-mono font-black text-slate-950 dark:text-white">{balance} {currency}</span>
                     {lastActivity && (
                       <span className="ms-2 text-slate-500">
@@ -158,6 +175,9 @@ function requestedEvidenceAr(findingType: string) {
   if (findingType === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER") {
     return "كشف معتمد بالجهة الدائنة أو ملف المورد. إذا كان الالتزام ما زال تشغيليًا يلزم تحديد الكيان القانوني وبيانات المورد اللازمة لإعداده صراحة في AP. وإذا كان تاريخيًا أو GL-only يلزم اعتماد هذا التصنيف دون إنشاء مورد من اسم الحساب فقط.";
   }
+  if (findingType === "FIXED_ASSET_REGISTER_NOT_MIGRATED") {
+    return "سجل أصول ثابتة معتمد يوضح كود واسم كل أصل، تاريخ الاقتناء، التكلفة التاريخية، العمر الإنتاجي، القيمة التخريدية عند انطباقها، الحالة، والربط الصريح بحسابات الأستاذ. لا يجوز تفكيك الرصيد الإجمالي في الأستاذ إلى أصول فردية أو جداول إهلاك بالاستنتاج.";
+  }
   return "مستند مؤيد أو اعتماد إداري يحدد المعالجة الصحيحة دون استنتاج بيانات جديدة من القيد المحاسبي.";
 }
 
@@ -169,24 +189,31 @@ function FindingTypeBadge({ findingType, locale }: { findingType: string; locale
   if (findingType === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER") {
     return <TypeBadge label={isAr ? "مورد/AP خارج الماستر" : "Outside Supplier/AP master"} tone="blue" />;
   }
+  if (findingType === "FIXED_ASSET_REGISTER_NOT_MIGRATED") {
+    return <TypeBadge label={isAr ? "سجل أصول غير مُرحّل" : "Asset register not migrated"} tone="amber" />;
+  }
   return <TypeBadge label={isAr ? "ذمة خارج Property Master" : "Outside property master"} tone="violet" />;
 }
 
-function TypeBadge({ label, tone }: { label: string; tone: "cyan" | "blue" | "violet" }) {
+function TypeBadge({ label, tone }: { label: string; tone: "cyan" | "blue" | "violet" | "amber" }) {
   const styles = tone === "cyan"
     ? "border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-300"
     : tone === "blue"
       ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
-      : "border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300";
+      : tone === "amber"
+        ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+        : "border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300";
   return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${styles}`}>{label}</span>;
 }
 
-function CountBadge({ label, tone }: { label: string; tone: "cyan" | "blue" | "violet" }) {
+function CountBadge({ label, tone }: { label: string; tone: "cyan" | "blue" | "violet" | "amber" }) {
   const styles = tone === "cyan"
     ? "border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-300"
     : tone === "blue"
       ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
-      : "border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300";
+      : tone === "amber"
+        ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+        : "border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300";
   return <span className={`rounded-full border px-3 py-1 ${styles}`}>{label}</span>;
 }
 
