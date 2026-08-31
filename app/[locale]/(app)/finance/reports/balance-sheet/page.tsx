@@ -10,6 +10,12 @@ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+type FinancialAccountPresentation = {
+  account_id: string;
+  presentation_class: "CONTRA_ASSET" | string;
+  reason: string;
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -66,8 +72,39 @@ export default async function BalanceSheetPage({
     rawRows.push(...page);
     if (page.length < pageSize) break;
   }
-  const assetRows = rawRows.filter((r) => r.category === "ASSET" && r.balance !== 0);
-  const liabilityRows = rawRows.filter((r) => r.category === "LIABILITY" && r.balance !== 0);
+
+  // Staging-only presentation metadata is kept separate from the GL chart.
+  // It changes statement presentation only; account category and journal history
+  // remain untouched. Keep the local typing until authoritative types regenerate.
+  const presentationRpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: "get_financial_account_presentations",
+    args: { p_organization_id: string },
+  ) => Promise<{
+    data: FinancialAccountPresentation[] | null;
+    error: { message: string; code?: string } | null;
+  }>;
+
+  const { data: presentationRows, error: presentationError } = await presentationRpc(
+    "get_financial_account_presentations",
+    { p_organization_id: organization.id },
+  );
+  if (presentationError) throw presentationError;
+
+  const contraAssetIds = new Set(
+    (presentationRows ?? [])
+      .filter((row) => row.presentation_class === "CONTRA_ASSET")
+      .map((row) => row.account_id),
+  );
+
+  const contraAssetRows = rawRows.filter(
+    (r) => contraAssetIds.has(r.account_id) && r.balance !== 0,
+  );
+  const assetRows = rawRows.filter(
+    (r) => r.category === "ASSET" && !contraAssetIds.has(r.account_id) && r.balance !== 0,
+  );
+  const liabilityRows = rawRows.filter(
+    (r) => r.category === "LIABILITY" && !contraAssetIds.has(r.account_id) && r.balance !== 0,
+  );
   const equityRows = rawRows.filter((r) => r.category === "EQUITY" && r.balance !== 0);
   const revenueTotal = rawRows.filter((r) => r.category === "REVENUE").reduce((s, r) => s + r.balance, 0);
   const expenseTotal = rawRows.filter((r) => r.category === "EXPENSE").reduce((s, r) => s + r.balance, 0);
@@ -75,9 +112,6 @@ export default async function BalanceSheetPage({
 
   return (
     <div className="space-y-6">
-      {/* ──────────────────────────────────────────────────────────────────────────
-          PAGE HEADER
-          ────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2.5">
@@ -100,6 +134,7 @@ export default async function BalanceSheetPage({
 
       <BalanceSheetClient
         assetRows={assetRows}
+        contraAssetRows={contraAssetRows}
         liabilityRows={liabilityRows}
         equityRows={equityRows}
         accumulatedEarnings={accumulatedEarnings}
