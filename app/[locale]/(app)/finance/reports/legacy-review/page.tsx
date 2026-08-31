@@ -11,6 +11,7 @@ import {
 import {
   LegacyReadinessGate,
   type LegacyFinancialReadiness,
+  type LegacyResolutionSummary,
 } from "./legacy-readiness-gate";
 import {
   LegacyMasterDataFindings,
@@ -86,8 +87,13 @@ export default async function LegacyReviewPage({
     error: { message: string; code?: string } | null;
   }>;
 
-  const [{ data: readinessRows, error: readinessError }, { data: masterRows, error: masterError }] = await Promise.all([
-    readinessRpc("get_legacy_financial_readiness", { p_organization_id: organization.id }),
+  const [
+    { data: readinessRows, error: readinessError },
+    { data: masterRows, error: masterError },
+  ] = await Promise.all([
+    readinessRpc("get_legacy_financial_readiness", {
+      p_organization_id: organization.id,
+    }),
     masterDataRpc("list_legacy_financial_master_data_findings", {
       p_organization_id: organization.id,
       p_status: null,
@@ -101,20 +107,48 @@ export default async function LegacyReviewPage({
     throw new Error("Legacy financial readiness gate returned no result");
   }
 
+  const financialFindings = (data ?? []) as LegacyReviewFinding[];
+  const masterFindings = masterRows ?? [];
+  const openFinancial = financialFindings.filter(
+    (finding) => finding.status === "OPEN",
+  );
+  const openMaster = masterFindings.filter(
+    (finding) => finding.status === "OPEN",
+  );
+
+  const resolutionSummary: LegacyResolutionSummary = {
+    documentary: openFinancial.length,
+    receivables: openMaster.filter(
+      (finding) =>
+        finding.finding_type === "RECEIVABLE_ACCOUNT_OUTSIDE_PROPERTY_MASTER",
+    ).length,
+    banks: openMaster.filter(
+      (finding) => finding.finding_type === "BANK_ACCOUNT_IDENTIFIER_MISSING",
+    ).length,
+    suppliers: openMaster.filter(
+      (finding) =>
+        finding.finding_type === "PAYABLE_COUNTERPARTY_OUTSIDE_SUPPLIER_MASTER",
+    ).length,
+    fixedAssets: openMaster.filter(
+      (finding) => finding.finding_type === "FIXED_ASSET_REGISTER_NOT_MIGRATED",
+    ).length,
+  };
+
   return (
     <div className="space-y-5">
       <LegacyReadinessGate
         readiness={readiness}
+        resolutionSummary={resolutionSummary}
         locale={locale}
         currency={organization.default_currency || "EGP"}
       />
       <LegacyMasterDataFindings
-        findings={masterRows ?? []}
+        findings={masterFindings}
         locale={locale}
         currency={organization.default_currency || "EGP"}
       />
       <LegacyReviewClient
-        findings={(data ?? []) as LegacyReviewFinding[]}
+        findings={financialFindings}
         organizationName={organization.name}
         currency={organization.default_currency || "EGP"}
         locale={locale}
