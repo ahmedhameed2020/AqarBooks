@@ -7,6 +7,9 @@ import { Scale } from "lucide-react";
 import { TrialBalanceClient, type TrialBalanceRow } from "./trial-balance-client";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({
   params,
 }: {
