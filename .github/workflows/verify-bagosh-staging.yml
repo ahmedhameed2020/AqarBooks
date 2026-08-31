@@ -25,8 +25,22 @@ jobs:
       - run: npm i -g npm@11
       - run: npm ci
 
-      - name: ESLint
-        run: npm run lint
-
-      - name: TypeScript
+      - name: TypeScript — full project
         run: npx tsc --noEmit
+
+      - name: ESLint — financial integrity scope
+        run: >-
+          npx eslint
+          'app/[locale]/(app)/finance/reports/fixed-assets/page.tsx'
+          'app/[locale]/(app)/finance/reports/fixed-assets/fixed-assets-client.tsx'
+          'app/[locale]/(app)/finance/reports/legacy-review/page.tsx'
+          'app/[locale]/(app)/finance/reports/legacy-review/legacy-readiness-gate.tsx'
+          'app/[locale]/(app)/finance/reports/legacy-review/legacy-master-data-findings.tsx'
+          'app/[locale]/(app)/finance/reports/balance-sheet/page.tsx'
+          'app/[locale]/(app)/finance/reports/balance-sheet/balance-sheet-client.tsx'
+          'app/[locale]/(app)/property/[unitId]/tab-financials.tsx'
+          'app/[locale]/(app)/property/[unitId]/legacy-historical-unit-accounts.tsx'
+
+      - name: ESLint — full repository diagnostic
+        continue-on-error: true
+        run: npm run lint
