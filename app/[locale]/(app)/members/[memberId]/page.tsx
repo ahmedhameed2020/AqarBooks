@@ -45,6 +45,7 @@ import { SendReminderDialog } from "../send-reminder-dialog";
 import { InviteToPortalDialog } from "./invite-to-portal-dialog";
 import { MemberStatementButton } from "./member-statement-button";
 import { LinkUnitDialog, type UnitOption } from "./link-unit-dialog";
+import { OpeningBalanceDialog } from "./opening-balance-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { MemberDossierRail } from "./member-dossier-rail";
 
@@ -88,6 +89,9 @@ export default async function MemberDetailPage({
   if (!member) notFound();
 
   const canManage = await hasPermission(organization.id, "property.members.manage");
+  // Opening balances are dues, so they follow the dues permission, not the
+  // member-management one: whoever may issue a charge may carry one in.
+  const canIssueDues = await hasPermission(organization.id, "finance.dues.issue");
 
   const { data: memberPhones } = await supabase
     .from("member_phones")
@@ -141,6 +145,20 @@ export default async function MemberDetailPage({
     .select("id, code, building_name_ar, building_name_en")
     .eq("organization_id", organization.id)
     .order("code");
+
+  // Leaf asset accounts the operator may book the opening balance to. Left
+  // empty in the dialog, the server falls back to the account this
+  // organization already books its dues to.
+  const { data: receivableAccounts } = canIssueDues
+    ? await supabase
+        .from("chart_of_accounts")
+        .select("id, code, name_ar, name_en")
+        .eq("organization_id", organization.id)
+        .eq("category", "ASSET")
+        .eq("is_group", false)
+        .eq("is_active", true)
+        .order("code")
+    : { data: [] };
 
   const { data: memberDues } = await supabase
     .from("dues")
@@ -261,6 +279,28 @@ export default async function MemberDetailPage({
                   building_name_ar: u.building_name_ar,
                   building_name_en: u.building_name_en,
                 }))}
+                locale={locale}
+              />
+            )}
+
+            {canIssueDues && (
+              <OpeningBalanceDialog
+                organizationId={organization.id}
+                memberId={member.id}
+                memberName={member.full_name}
+                units={activeUnits
+                  .filter((o) => o.unit)
+                  .map((o) => ({
+                    id: o.unit!.id,
+                    code: o.unit!.code,
+                    building_name_ar: o.unit!.building_name_ar,
+                    building_name_en: o.unit!.building_name_en,
+                  }))}
+                receivableAccounts={(receivableAccounts ?? []).map((a) => ({
+                  id: a.id,
+                  label: `${a.code} — ${isAr ? a.name_ar : a.name_en}`,
+                }))}
+                currency={currency}
                 locale={locale}
               />
             )}

@@ -72,7 +72,12 @@ export function AddMemberDialog({
               <TabsIndicator />
             </TabsList>
             <TabsPanel value="member">
-              <CreateMemberForm organizationId={organizationId} locale={locale} onSuccess={() => setOpen(false)} />
+              <CreateMemberForm
+                organizationId={organizationId}
+                units={units}
+                locale={locale}
+                onSuccess={() => setOpen(false)}
+              />
             </TabsPanel>
             <TabsPanel value="ownership">
               <LinkOwnershipForm
