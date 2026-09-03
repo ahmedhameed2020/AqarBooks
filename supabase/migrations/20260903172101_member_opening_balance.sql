@@ -39,6 +39,12 @@
 -- has_financial_permission(..., 'finance.dues.issue', ...). Both names are
 -- added to the allowlist in tests/security-function-grants.integration.test.ts
 -- in this same commit.
+--
+-- APPLIED VIA MCP, RECORDED IN THE LEDGER
+-- This ran through Supabase's apply_migration rather than `supabase db push`
+-- on 2026-09-03, and its version here matches the row it wrote to
+-- supabase_migrations.schema_migrations, so repository and database describe
+-- the same history.
 
 begin;
 

@@ -5,7 +5,7 @@ import type { ActionResult } from "@/lib/actions/platform";
 // organization moved onto AqarBooks. It is recorded as an OPENING_BALANCE due
 // on one of the client's units (Dr receivable / Cr opening-balance equity) so
 // that balances, statements, payment allocation and dunning all see it -- see
-// supabase/migrations/20260903090000_member_opening_balance.sql for why a
+// supabase/migrations/20260903172101_member_opening_balance.sql for why a
 // column on members would not have worked.
 //
 // This module is deliberately NOT a "use server" file: it is shared plumbing
