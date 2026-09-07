@@ -1504,7 +1504,7 @@ export type Database = {
           status: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "VOID";
           journal_entry_id: string | null;
           created_at: string;
-          source_type: "LEASE_RENT" | null;
+          source_type: "LEASE_RENT" | "INSTALLMENT_PLAN" | "OPENING_BALANCE" | null;
           source_id: string | null;
         };
         Insert: never;
@@ -3179,6 +3179,31 @@ export type Database = {
       get_cash_position: {
         Args: { p_organization_id: string; p_as_of_date: string };
         Returns: number;
+      };
+      /**
+       * Finds or creates the organization's «رصيد افتتاحي» due type and its
+       * EQUITY offset account. Idempotent. Returns the due type id.
+       */
+      ensure_opening_balance_due_type: {
+        Args: { p_organization_id: string };
+        Returns: string;
+      };
+      /**
+       * Records a client's carried-in debt as an OPENING_BALANCE due on one of
+       * their units (Dr receivable / Cr opening-balance equity). One per client
+       * per unit. Returns the due id.
+       */
+      record_member_opening_balance: {
+        Args: {
+          p_organization_id: string;
+          p_member_id: string;
+          p_unit_id: string;
+          p_amount: number;
+          p_as_of_date: string;
+          p_receivable_account_id?: string | null;
+          p_description?: string | null;
+        };
+        Returns: string;
       };
       recognize_pending_dues: {
         Args: { p_organization_id: string; p_fiscal_period_id: string };

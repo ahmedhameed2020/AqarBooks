@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { recordOpeningBalance } from "@/lib/finance/opening-balance";
 
 const createUnitSchema = z
   .object({
@@ -155,12 +156,22 @@ const phoneEntrySchema = z.object({
   primary: z.boolean(),
 });
 
+// Optional at registration: the debt the client already carries from before
+// AqarBooks. It needs a unit to land on (balances are read per unit), so the
+// form asks for one and the action links the ownership in the same step.
+const openingBalanceSchema = z.object({
+  unitId: z.string().uuid(),
+  amount: z.coerce.number().positive(),
+  asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
 const createMemberSchema = z.object({
   organizationId: z.string().uuid(),
   fullName: z.string().min(1).max(200),
   email: z.string().email().optional().or(z.literal("")),
   isCompany: z.boolean(),
   phones: z.array(phoneEntrySchema),
+  openingBalance: openingBalanceSchema.optional(),
 });
 
 export async function createMemberAction(
@@ -174,12 +185,20 @@ export async function createMemberAction(
     return { ok: false, error: "invalid_input" };
   }
 
+  const wantsOpeningBalance = formData.get("openingBalanceEnabled") === "true";
   const parsed = createMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     fullName: formData.get("fullName"),
     email: formData.get("email") || undefined,
     isCompany: formData.get("isCompany") === "true",
     phones: phonesRaw,
+    openingBalance: wantsOpeningBalance
+      ? {
+          unitId: formData.get("openingBalanceUnitId"),
+          amount: formData.get("openingBalanceAmount"),
+          asOfDate: formData.get("openingBalanceAsOf"),
+        }
+      : undefined,
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
@@ -223,6 +242,40 @@ export async function createMemberAction(
       await supabase.from("members").delete().eq("id", member.id);
       return { ok: false, error: phonesError.message };
     }
+  }
+
+  const ob = parsed.data.openingBalance;
+  if (ob) {
+    // The balance is read through the unit, so the client must own it first.
+    // Ownership starts on the as-of date: the debt predates today.
+    const { error: ownershipError } = await supabase.from("unit_ownerships").insert({
+      organization_id: parsed.data.organizationId,
+      unit_id: ob.unitId,
+      member_id: member.id,
+      share_percentage: 100,
+      start_date: ob.asOfDate,
+    });
+    if (ownershipError) {
+      await supabase.from("members").delete().eq("id", member.id);
+      return { ok: false, error: ownershipError.message };
+    }
+
+    const result = await recordOpeningBalance(supabase, {
+      organizationId: parsed.data.organizationId,
+      memberId: member.id,
+      unitId: ob.unitId,
+      amount: ob.amount,
+      asOfDate: ob.asOfDate,
+    });
+    if (!result.ok) {
+      // Nothing financial exists yet for this member (the due was refused),
+      // so the record can still be undone rather than left half-registered.
+      // member_phones and unit_ownerships cascade from members.
+      await supabase.from("members").delete().eq("id", member.id);
+      return result;
+    }
+    revalidatePath("/[locale]/finance/dues", "page");
+    revalidatePath("/[locale]/property", "page");
   }
 
   revalidatePath("/[locale]/members", "page");

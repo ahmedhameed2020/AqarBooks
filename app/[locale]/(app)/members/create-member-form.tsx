@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Building2, Loader2, MessageCircle, Phone, Plus, Star, Trash2, User } from "lucide-react";
+import { Building2, Loader2, MessageCircle, Phone, Plus, Scale, Star, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,16 +46,27 @@ type PhoneRow = {
 
 let keySeq = 0;
 
+export type CreateMemberUnitOption = {
+  id: string;
+  code: string;
+  building_name_ar?: string | null;
+  building_name_en?: string | null;
+};
+
 export function CreateMemberForm({
   organizationId,
+  units = [],
   locale,
   onSuccess,
 }: {
   organizationId: string;
+  /** Units the opening balance can be recorded on. Empty hides that section. */
+  units?: CreateMemberUnitOption[];
   locale: string;
   onSuccess?: () => void;
 }) {
   const isAr = locale === "ar";
+  const today = new Date().toISOString().slice(0, 10);
   const toast = useToast();
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     createMemberAction,
@@ -70,6 +81,32 @@ export function CreateMemberForm({
   ]);
   const [primaryKey, setPrimaryKey] = useState<number>(phones[0].key);
   const [touched, setTouched] = useState<{ fullName?: boolean; phones?: Set<number> }>({});
+
+  // Opening balance: what the client already owed before AqarBooks. Optional,
+  // and only meaningful when there is a unit for the debt to live on -- the
+  // action links that unit to the new client and records the due in one go.
+  const [openingBalanceEnabled, setOpeningBalanceEnabled] = useState(false);
+  const [obUnitId, setObUnitId] = useState<string>("");
+  const [obAmount, setObAmount] = useState("");
+  const [obAsOf, setObAsOf] = useState(today);
+  const [obTouched, setObTouched] = useState(false);
+
+  const obAmountNumber = Number(obAmount);
+  const obAmountValid = obAmount.trim() !== "" && Number.isFinite(obAmountNumber) && obAmountNumber > 0;
+  const obValid = !openingBalanceEnabled || (Boolean(obUnitId) && obAmountValid && Boolean(obAsOf));
+  const obUnitError =
+    openingBalanceEnabled && obTouched && !obUnitId
+      ? isAr ? "اختر الوحدة التي يُسجَّل عليها الرصيد" : "Choose the unit the balance is recorded on"
+      : undefined;
+  const obAmountError =
+    openingBalanceEnabled && obTouched && !obAmountValid
+      ? isAr ? "أدخل مبلغًا أكبر من صفر" : "Enter an amount greater than zero"
+      : undefined;
+
+  function unitLabel(u: CreateMemberUnitOption) {
+    const building = isAr ? u.building_name_ar : u.building_name_en;
+    return building ? `${u.code} • ${building}` : u.code;
+  }
 
   const nameError =
     touched.fullName && !fullName.trim()
@@ -96,6 +133,11 @@ export function CreateMemberForm({
     if (wasPending.current && !pending && state.ok) {
       toast.add({
         title: isAr ? "تمت إضافة العضو بنجاح" : "Member added successfully",
+        description: openingBalanceEnabled
+          ? isAr
+            ? "وسُجِّل رصيده الافتتاحي كمستحق على الوحدة."
+            : "Opening balance recorded as a due on the unit."
+          : undefined,
         type: "success",
       });
       onSuccess?.();
@@ -128,7 +170,8 @@ export function CreateMemberForm({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     setTouched({ fullName: true, phones: new Set(phones.map((p) => p.key)) });
-    if (!fullName.trim() || hasInvalidPhone) {
+    setObTouched(true);
+    if (!fullName.trim() || hasInvalidPhone || !obValid) {
       e.preventDefault();
     }
   }
@@ -151,6 +194,14 @@ export function CreateMemberForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="isCompany" value={isCompany ? "true" : "false"} />
       <input type="hidden" name="phones" value={phonesPayload} />
+      <input type="hidden" name="openingBalanceEnabled" value={openingBalanceEnabled ? "true" : "false"} />
+      {openingBalanceEnabled && (
+        <>
+          <input type="hidden" name="openingBalanceUnitId" value={obUnitId} />
+          <input type="hidden" name="openingBalanceAmount" value={obAmount.trim()} />
+          <input type="hidden" name="openingBalanceAsOf" value={obAsOf} />
+        </>
+      )}
 
       {/* Member type switch */}
       <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-border bg-muted/40 p-1">
@@ -325,9 +376,104 @@ export function CreateMemberForm({
         </div>
       </div>
 
+      {/* Opening balance -- shown only when there is somewhere for it to live. */}
+      {units.length > 0 && (
+        <div
+          className={cn(
+            "rounded-xl border p-3 transition-all",
+            openingBalanceEnabled ? "border-amber-300/60 bg-amber-50/40 dark:bg-amber-950/20" : "border-border bg-muted/30",
+          )}
+        >
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox
+              checked={openingBalanceEnabled}
+              onCheckedChange={(checked) => setOpeningBalanceEnabled(checked === true)}
+              className="mt-0.5"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                <Scale className="size-3.5 text-amber-600" />
+                {isAr ? "على العميل رصيد سابق (رصيد افتتاحي)" : "Client has a prior balance (opening balance)"}
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                {isAr
+                  ? "المبلغ المستحق عليه قبل بدء العمل على النظام. يُسجَّل كمستحق على وحدته ويُرحَّل: مدين ذمم العملاء / دائن أرصدة افتتاحية."
+                  : "What the client owed before this system went live. Recorded as a due on their unit and posted: Dr receivables / Cr opening-balance equity."}
+              </span>
+            </span>
+          </label>
+
+          {openingBalanceEnabled && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5 sm:col-span-3">
+                <Label className="text-xs font-bold text-foreground">
+                  {isAr ? "الوحدة (تُربط بالعميل كمالك)" : "Unit (linked to the client as owner)"}{" "}
+                  <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={obUnitId}
+                  onValueChange={(v) => setObUnitId(v ?? "")}
+                  items={units.map((u) => ({ value: u.id, label: unitLabel(u) }))}
+                >
+                  <SelectTrigger
+                    aria-invalid={Boolean(obUnitError)}
+                    className="h-10 w-full text-xs font-bold bg-background border-border"
+                  >
+                    <SelectValue placeholder={isAr ? "اختر الوحدة..." : "Select unit..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id} className="text-xs font-bold">
+                        {unitLabel(u)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {obUnitError && <p className="text-xs font-bold text-rose-600">{obUnitError}</p>}
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="openingBalanceAmountInput" className="text-xs font-bold text-foreground">
+                  {isAr ? "المبلغ المستحق" : "Amount owed"} <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="openingBalanceAmountInput"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="0.01"
+                  dir="ltr"
+                  value={obAmount}
+                  onChange={(e) => setObAmount(e.target.value)}
+                  onBlur={() => setObTouched(true)}
+                  aria-invalid={Boolean(obAmountError)}
+                  placeholder="0.00"
+                  className="h-10 font-mono text-sm font-bold bg-background border-border"
+                />
+                {obAmountError && <p className="text-xs font-bold text-rose-600">{obAmountError}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="openingBalanceAsOfInput" className="text-xs font-bold text-foreground">
+                  {isAr ? "كما في تاريخ" : "As of"} <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="openingBalanceAsOfInput"
+                  type="date"
+                  value={obAsOf}
+                  max={today}
+                  onChange={(e) => setObAsOf(e.target.value)}
+                  className="h-10 text-xs bg-background border-border"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {!state.ok && (
         <p role="alert" className="text-xs font-bold text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
-          {state.error}
+          {state.error === "invalid_input"
+            ? isAr ? "تحقق من البيانات المدخلة" : "Check the entered data"
+            : state.error}
         </p>
       )}
       <div className="pt-2">
