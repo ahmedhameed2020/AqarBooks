@@ -88,8 +88,33 @@ const MIGRATION_FILES = [
   { file: "20260825182109_rent_partial_period_guard.sql", bytes: 11966, sha256: "884dddada7f5b6703e844f1bc8f7a055d5f0692fc73f243865c4da37cc6c6cd4" },
   { file: "20260825231151_demo_readonly_hardening_and_cashier_read.sql", bytes: 9984, sha256: "d7dd715e0a06f7457d5cd2ad338e73450569697bfbc22f64bc3aa41e49baf233" },
   { file: "20260826072010_public_action_rate_limits.sql", bytes: 5823, sha256: "80611b7bf5e2835d3e8600e45c36a850d6b902e53724f46287422ca843502b3d" },
+  { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc" },
+  { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566" },
   { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42" },
 ] as const;
+
+/**
+ * SIXTH AMENDMENT (2026-09-07). Extends the allowlist to eighteen with two
+ * migrations that were applied to the project on 2026-08-26 through
+ * apply_migration from branch claude/aqarbooks-conversion-flow-2tplsl, which
+ * was never merged:
+ *
+ *   20260826102930  assisted_onboarding_requests
+ *   20260826124013  onboarding_request_idempotency_and_self_read
+ *
+ * RESTORED, NOT RECONSTRUCTED, as with the third amendment: each blob is
+ * byte-identical between the commit that introduced it (8a4b6e1 / 7764931)
+ * and that branch's tip, so these are the files that were applied.
+ *
+ * STILL MISSING, DELIBERATELY NOT FABRICATED. The ledger holds fifteen more
+ * rows after these (20260829104638 .. 20260831205217: the legacy-access
+ * control plane and the accsys_* staging series) with no file in any branch
+ * of this repository, and this session could not read
+ * supabase_migrations.schema_migrations.statements to recover them. Until the
+ * originals are found, the repository describes fewer migrations than the
+ * database has -- this list says so rather than hiding it behind a
+ * reconstruction whose digests would attest to text nobody actually ran.
+ */
 
 /**
  * FIFTH AMENDMENT (2026-09-03). Extends the allowlist to sixteen: member

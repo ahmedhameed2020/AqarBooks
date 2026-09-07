@@ -59,7 +59,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "allocate_document_number", "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
-  "approve_purchase_order", "approve_tax_rule", "archive_unit", "assign_subscription",
+  "approve_onboarding_request", "approve_purchase_order", "approve_tax_rule", "archive_unit", "assign_subscription",
   "auto_match_bank_statement", "cancel_installment_plan", "cancel_supplier_invoice", "cancel_unit_lease",
   "capitalise_project_cost", "check_asset_disposal_readiness", "check_einvoice_emission_readiness",
   "check_fx_readiness", "check_input_tax_readiness", "check_installment_plan_completion",
@@ -93,7 +93,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "record_dunning_delivery", "record_einvoice_attempt", "record_expense", "record_incoming_cheque",
   "record_input_tax_decision", "record_lease_deposit_event", "record_member_opening_balance", "record_payment",
   "record_payment_provider_verification", "record_supplier_payment", "record_tax_decision_for_due",
-  "record_tax_decision_for_due_internal", "release_project_wip", "reopen_bank_reconciliation",
+  "record_tax_decision_for_due_internal", "reject_onboarding_request", "release_project_wip", "reopen_bank_reconciliation",
   "resolve_due_buyer", "resolve_input_tax_account", "resolve_output_tax_account", "resolve_tax_rule",
   "restore_unit", "reverse_journal_entry", "reverse_tax_decision",
   "revoke_due_type_revenue_nature_approval", "run_due_schedules", "schedule_unit_handover",
