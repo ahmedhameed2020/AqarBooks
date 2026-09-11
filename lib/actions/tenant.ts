@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { proveTenantPermission } from "@/lib/auth/authorize";
+import { denyIfDemo } from "@/lib/demo/guard";
+
 
 const updateProfileSchema = z.object({
   organizationId: z.string().uuid(),
@@ -258,6 +261,9 @@ export async function inviteMemberAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = inviteMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     email: formData.get("email"),
@@ -265,28 +271,93 @@ export async function inviteMemberAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  // Permission is (re-)enforced inside add_organization_member below; this
-  // admin client call only creates/invites the auth user, which has no
-  // organization concept of its own to authorize against.
+  // Explicit application-layer tenant authorization proof BEFORE inviting
+  const authProof = await proveTenantPermission(
+    parsed.data.organizationId,
+    "tenant.users.manage",
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Disallow inviting into platform admin role
+  if (parsed.data.roleKey === "PLATFORM_SUPER_ADMIN") {
+    return { ok: false, error: "role_not_found" };
+  }
+
   const adminClient = createAdminClient();
+
+  // Verify role exists and is appropriate
+  const { data: roleData, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id")
+    .or(`organization_id.eq.${parsed.data.organizationId},organization_id.is.null`)
+    .eq("key", parsed.data.roleKey)
+    .maybeSingle();
+
+  if (roleErr || !roleData) {
+    return { ok: false, error: "role_not_found" };
+  }
+
+  let invitedUserId: string | null = null;
+  let isNewUserCreated = false;
+
   const { data: invited, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(parsed.data.email);
 
   if (inviteError || !invited.user) {
-    return { ok: false, error: inviteError?.message ?? "invite_failed" };
+    // If user already exists in auth, find by email
+    const { data: listData } = await adminClient.auth.admin.listUsers();
+    const existingUser = listData?.users?.find(
+      (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
+    );
+
+    if (existingUser) {
+      invitedUserId = existingUser.id;
+      isNewUserCreated = false;
+    } else {
+      return { ok: false, error: inviteError?.message ?? "invite_failed" };
+    }
+  } else {
+    invitedUserId = invited.user.id;
+    isNewUserCreated = true;
   }
 
   const supabase = await createClient();
   const { error: membershipError } = await supabase.rpc("add_organization_member", {
     p_organization_id: parsed.data.organizationId,
-    p_user_id: invited.user.id,
+    p_user_id: invitedUserId,
     p_role_key: parsed.data.roleKey,
   });
 
   if (membershipError) {
+    // Cross-system auth compensation: delete newly invited user if subsequent DB write fails
+    if (isNewUserCreated && invitedUserId) {
+      try {
+        await adminClient.auth.admin.deleteUser(invitedUserId);
+      } catch (cleanupErr) {
+        console.error("[SEC-05] Failed to compensate member invitation:", cleanupErr);
+      }
+    }
     return { ok: false, error: membershipError.message };
+  }
+
+  // Write audit trail
+  try {
+    await adminClient.from("platform_audit_logs").insert({
+      actor_id: authProof.userId,
+      organization_id: parsed.data.organizationId,
+      action: "member.invited",
+      entity_type: "user",
+      entity_id: invitedUserId,
+      safe_change_summary: {
+        email: parsed.data.email,
+        roleKey: parsed.data.roleKey,
+      },
+    });
+  } catch (auditErr) {
+    console.error("[OBS-02] Failed to write platform_audit_logs:", auditErr);
   }
 
   revalidatePath("/[locale]/admin/users", "page");
   return { ok: true };
 }
+
