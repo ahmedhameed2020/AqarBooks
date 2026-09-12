@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
-import { proveTenantPermission } from "@/lib/auth/authorize";
+import { getCurrentUser } from "@/lib/auth/session";
+import { proveTenantPermission, getCallerTenantPermissions } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 
@@ -271,12 +272,33 @@ export async function inviteMemberAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { ok: false, error: "unauthorized" };
+
   // Explicit application-layer tenant authorization proof BEFORE inviting
   const authProof = await proveTenantPermission(
     parsed.data.organizationId,
     "tenant.users.manage",
+    currentUser.id,
   );
   if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Attack D / Self-Escalation Guard: Caller cannot invite their own email
+  if (currentUser.email && parsed.data.email.toLowerCase() === currentUser.email.toLowerCase()) {
+    return { ok: false, error: "cannot_invite_self" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack C: Only an active TENANT_OWNER can invite another TENANT_OWNER
+  if (parsed.data.roleKey === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
 
   // Disallow inviting into platform admin role
   if (parsed.data.roleKey === "PLATFORM_SUPER_ADMIN") {
@@ -295,6 +317,29 @@ export async function inviteMemberAction(
 
   if (roleErr || !roleData) {
     return { ok: false, error: "role_not_found" };
+  }
+
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const { data: targetRoleGrants } = await adminClient
+      .from("role_permissions")
+      .select("permission_id")
+      .eq("role_id", roleData.id);
+
+    if (targetRoleGrants && targetRoleGrants.length > 0) {
+      const grantIds = targetRoleGrants.map((g) => g.permission_id);
+      const { data: targetPerms } = await adminClient
+        .from("permissions")
+        .select("key")
+        .in("id", grantIds);
+
+      if (targetPerms) {
+        const hasUnheldPerm = targetPerms.some((p) => !callerPermsResult.permissions.has(p.key));
+        if (hasUnheldPerm) {
+          return { ok: false, error: "role_privilege_escalation" };
+        }
+      }
+    }
   }
 
   let invitedUserId: string | null = null;
@@ -319,6 +364,18 @@ export async function inviteMemberAction(
   } else {
     invitedUserId = invited.user.id;
     isNewUserCreated = true;
+  }
+
+  // Guard: Do not downgrade or wipe existing members through invite
+  const { data: existingMembership } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", invitedUserId)
+    .maybeSingle();
+
+  if (existingMembership) {
+    return { ok: false, error: "user_already_member" };
   }
 
   const supabase = await createClient();

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
-import { proveTenantPermission } from "@/lib/auth/authorize";
+import { proveTenantPermission, getCallerTenantPermissions } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 // Helper: Safely insert platform audit logs without breaking tenant operations
@@ -130,6 +130,23 @@ export async function inviteUserAction(
   );
   if (!authProof.ok) return { ok: false, error: authProof.error };
 
+  // Attack D / Self-Escalation Guard: Caller cannot invite their own email
+  if (currentUser.email && parsed.data.email.toLowerCase() === currentUser.email.toLowerCase()) {
+    return { ok: false, error: "cannot_invite_self" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack C: Only an active TENANT_OWNER can invite another TENANT_OWNER
+  if (parsed.data.roleKey === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
+
   const adminClient = createAdminClient();
 
   // Find role strictly for this organization (disallow platform super admin)
@@ -148,6 +165,29 @@ export async function inviteUserAction(
 
   if (roleErr || !roleData) {
     return { ok: false, error: "role_not_found" };
+  }
+
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const { data: targetRoleGrants } = await adminClient
+      .from("role_permissions")
+      .select("permission_id")
+      .eq("role_id", roleData.id);
+
+    if (targetRoleGrants && targetRoleGrants.length > 0) {
+      const grantIds = targetRoleGrants.map((g) => g.permission_id);
+      const { data: targetPerms } = await adminClient
+        .from("permissions")
+        .select("key")
+        .in("id", grantIds);
+
+      if (targetPerms) {
+        const hasUnheldPerm = targetPerms.some((p) => !callerPermsResult.permissions.has(p.key));
+        if (hasUnheldPerm) {
+          return { ok: false, error: "role_privilege_escalation" };
+        }
+      }
+    }
   }
 
   let invitedUserId: string | null = null;
@@ -174,6 +214,18 @@ export async function inviteUserAction(
   } else {
     invitedUserId = invited.user.id;
     isNewUserCreated = true;
+  }
+
+  // Guard: Do not downgrade or wipe existing members through invite
+  const { data: existingMembership } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", invitedUserId)
+    .maybeSingle();
+
+  if (existingMembership) {
+    return { ok: false, error: "user_already_member" };
   }
 
   try {
@@ -309,6 +361,38 @@ export async function changeUserRoleAction(
   }
   if (role.organization_id !== null && role.organization_id !== organizationId) {
     return { ok: false, error: "role_organization_mismatch" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(organizationId, currentUser.id);
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack E: Only an active TENANT_OWNER can assign or change a user to TENANT_OWNER
+  if (role.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
+
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const { data: targetRoleGrants } = await adminClient
+      .from("role_permissions")
+      .select("permission_id")
+      .eq("role_id", role.id);
+
+    if (targetRoleGrants && targetRoleGrants.length > 0) {
+      const grantIds = targetRoleGrants.map((g) => g.permission_id);
+      const { data: targetPerms } = await adminClient
+        .from("permissions")
+        .select("key")
+        .in("id", grantIds);
+
+      if (targetPerms) {
+        const hasUnheldPerm = targetPerms.some((p) => !callerPermsResult.permissions.has(p.key));
+        if (hasUnheldPerm) {
+          return { ok: false, error: "role_privilege_escalation" };
+        }
+      }
+    }
   }
 
   // Prevent demoting the last active TENANT_OWNER

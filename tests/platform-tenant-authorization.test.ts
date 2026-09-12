@@ -27,7 +27,7 @@ let mockMembership: { status: string } | null = null;
 let mockTargetMemberships = new Map<string, { status: string } | null>();
 let mockAssignments: Array<{ role_id: string }> = [];
 let mockRoles: Array<{ id: string; key: string; organization_id: string | null; is_system: boolean }> = [];
-let mockRolePermissions: Array<{ permission_id: string; permissions?: { key: string } }> = [];
+let mockRolePermissions: Array<{ role_id?: string; permission_id: string; permissions?: { key: string } }> = [];
 let mockPermissions: Array<{ id: string; key: string }> = [];
 let mockRoleTemplatePerms: Array<{ role_template_key?: string; permission_key: string }> = [];
 let mockOtherOwners: Array<{ user_id: string; status?: string }> = [];
@@ -104,11 +104,15 @@ vi.mock("@/lib/supabase/admin", () => ({
           const chain: any = {
             eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
               eq: vi.fn().mockImplementation((col2: string, val2: string) => {
-                const requestedUserId = col1 === "user_id" ? val1 : val2;
-                const memberData =
-                  requestedUserId && mockTargetMemberships.has(requestedUserId)
-                    ? mockTargetMemberships.get(requestedUserId)
-                    : mockMembership;
+                const requestedUserId = col1 === "user_id" ? val1 : col2 === "user_id" ? val2 : null;
+                let memberData: { status: string } | null = null;
+                if (requestedUserId === callerUserId) {
+                  memberData = mockMembership;
+                } else if (requestedUserId && mockTargetMemberships.has(requestedUserId)) {
+                  memberData = mockTargetMemberships.get(requestedUserId) || null;
+                } else {
+                  memberData = null;
+                }
                 return {
                   in: vi.fn().mockResolvedValue({ data: mockOtherOwners, error: null }),
                   maybeSingle: vi.fn().mockResolvedValue({ data: memberData, error: null }),
@@ -242,11 +246,25 @@ vi.mock("@/lib/supabase/admin", () => ({
       }
 
       if (table === "role_permissions") {
-        queryBuilder.select.mockImplementation(() => ({
-          in: vi.fn().mockImplementation((field: string, vals: string[]) => {
-            return Promise.resolve({ data: mockRolePermissions, error: null });
-          }),
-        }));
+        queryBuilder.select.mockImplementation(() => {
+          const chain: any = {
+            in: vi.fn().mockImplementation((field: string, vals: string[]) => {
+              if (field === "role_id") {
+                const matched = mockRolePermissions.filter((rp) => !rp.role_id || vals.includes(rp.role_id));
+                return Promise.resolve({ data: matched, error: null });
+              }
+              return Promise.resolve({ data: mockRolePermissions, error: null });
+            }),
+            eq: vi.fn().mockImplementation((field: string, val: string) => {
+              if (field === "role_id") {
+                const matched = mockRolePermissions.filter((rp) => !rp.role_id || rp.role_id === val);
+                return Promise.resolve({ data: matched, error: null });
+              }
+              return Promise.resolve({ data: mockRolePermissions, error: null });
+            }),
+          };
+          return chain;
+        });
         queryBuilder.delete.mockImplementation(() => ({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }));
@@ -256,7 +274,14 @@ vi.mock("@/lib/supabase/admin", () => ({
       if (table === "permissions") {
         queryBuilder.select.mockImplementation(() => ({
           in: vi.fn().mockImplementation((field: string, vals: string[]) => {
-            const matched = mockPermissions.filter((p) => vals.includes((p as any)[field]));
+            const seen = new Set<string>();
+            const matched: Array<{ id: string; key: string }> = [];
+            for (const p of mockPermissions) {
+              if (vals.includes((p as any)[field]) && !seen.has(p.id)) {
+                seen.add(p.id);
+                matched.push(p);
+              }
+            }
             return {
               eq: vi.fn().mockImplementation((f2: string, v2: string) => ({
                 maybeSingle: vi.fn().mockImplementation(() => {
@@ -269,7 +294,14 @@ vi.mock("@/lib/supabase/admin", () => ({
           }),
         }));
         queryBuilder.in.mockImplementation((field: string, ids: string[]) => {
-          const matched = mockPermissions.filter((p) => ids.includes(p.id));
+          const seen = new Set<string>();
+          const matched: Array<{ id: string; key: string }> = [];
+          for (const p of mockPermissions) {
+            if (ids.includes(p.id) && !seen.has(p.id)) {
+              seen.add(p.id);
+              matched.push(p);
+            }
+          }
           return Promise.resolve({ data: matched, error: null });
         });
       }
@@ -356,6 +388,8 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     mockAuthAdminUsers = [];
     deleteUserCalls = [];
     inviteUserFail = false;
+    mockTargetMemberships = new Map<string, { status: string } | null>();
+    mockTargetMemberships.set(targetUserId, { status: "active" });
   });
 
   describe("Application-Layer Tenant Authorization Proof (proveTenantPermission)", () => {
@@ -644,6 +678,143 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
 
       // Compensation must have triggered deleteUser for newly invited user
       expect(deleteUserCalls).toContain("37bf5d4a-0c33-4f35-a2a1-d9e37b7225d7");
+    });
+  });
+
+  describe("Privilege Escalation & Delegation Containment (Attacks A through E)", () => {
+    const ownerPermFinanceId = "81c3b123-5e78-4390-84cf-2407238210f1";
+    const permFinanceKey = "finance.payments.void";
+
+    beforeEach(() => {
+      // Add finance.payments.void to permissions and role_template_permissions (TENANT_OWNER has it)
+      mockPermissions.push({ id: ownerPermFinanceId, key: permFinanceKey });
+      mockRoleTemplatePerms.push({ role_template_key: "TENANT_OWNER", permission_key: permFinanceKey });
+    });
+
+    it("Attack A: TENANT_ADMIN cannot update a role to add permissions they do not possess (e.g. finance.payments.void)", async () => {
+      // Caller has TENANT_ADMIN (tenant.users.manage, tenant.roles.manage).
+      // Target role is a custom role. Caller tries to add finance.payments.void which caller lacks.
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
+      ];
+
+      const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId, ownerPermFinanceId]);
+      expect(res).toEqual({ ok: false, error: "permission_amplification_denied" });
+    });
+
+    it("Attack B: TENANT_ADMIN cannot create an owner-equivalent custom role with permissions they do not possess", async () => {
+      // Caller is TENANT_ADMIN, tries to create a role with finance.payments.void
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("key", "SHADOW_OWNER");
+      fd.append("nameAr", "مالك ظل");
+      fd.append("nameEn", "Shadow Owner");
+      fd.append("permissionIds", JSON.stringify([ownerPermFinanceId]));
+
+      const res = await createRoleAction({ ok: false, error: "" }, fd);
+      expect(res).toEqual({ ok: false, error: "permission_amplification_denied" });
+    });
+
+    it("Attack C: Non-owner TENANT_ADMIN cannot invite a second account directly as TENANT_OWNER", async () => {
+      // Caller is TENANT_ADMIN. Tries to invite a collaborator as TENANT_OWNER
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("email", "second-account@example.com");
+      fd.append("roleKey", "TENANT_OWNER");
+
+      const res = await inviteUserAction({ ok: false, error: "" }, fd);
+      expect(res).toEqual({ ok: false, error: "cannot_assign_tenant_owner" });
+
+      const resMember = await inviteMemberAction({ ok: false, error: "" }, fd);
+      expect(resMember).toEqual({ ok: false, error: "cannot_assign_tenant_owner" });
+    });
+
+    it("Attack D: TENANT_ADMIN cannot invite their own email to self-escalate", async () => {
+      // Caller's email is admin@aqarbooks.com
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("email", "admin@aqarbooks.com");
+      fd.append("roleKey", "TENANT_OWNER");
+
+      const res = await inviteUserAction({ ok: false, error: "" }, fd);
+      expect(res).toEqual({ ok: false, error: "cannot_invite_self" });
+
+      const resMember = await inviteMemberAction({ ok: false, error: "" }, fd);
+      expect(resMember).toEqual({ ok: false, error: "cannot_invite_self" });
+    });
+
+    it("Attack E: TENANT_ADMIN cannot change another user to TENANT_OWNER or assign unheld permissions", async () => {
+      // 1. Cannot assign TENANT_OWNER
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "TENANT_OWNER", organization_id: orgId, is_system: false },
+      ];
+
+      const resOwner = await changeUserRoleAction(orgId, targetUserId, roleNewId);
+      expect(resOwner).toEqual({ ok: false, error: "cannot_assign_tenant_owner" });
+
+      // 2. Cannot assign custom role containing unheld permissions (e.g. finance.payments.void)
+      const unheldRoleId = "7c1b5042-1bf7-40c2-9e2c-2c9748b61e29";
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: unheldRoleId, key: "FINANCE_DIRECTOR", organization_id: orgId, is_system: false },
+      ];
+      // Caller has TENANT_ADMIN perms (permRolesId, permUsersId)
+      // Target role has unheld permission ownerPermFinanceId
+      mockRolePermissions = [
+        { role_id: roleAdminId, permission_id: permRolesId },
+        { role_id: roleAdminId, permission_id: permUsersId },
+        { role_id: unheldRoleId, permission_id: ownerPermFinanceId },
+      ];
+
+      const resEscalation = await changeUserRoleAction(orgId, targetUserId, unheldRoleId);
+      expect(resEscalation).toEqual({ ok: false, error: "role_privilege_escalation" });
+    });
+
+    it("Protection: Inviting an existing member is rejected (does not wipe or downgrade status)", async () => {
+      // Target is an existing member
+      mockTargetMemberships.set("37bf5d4a-0c33-4f35-a2a1-d9e37b7225d7", { status: "active" });
+
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("email", "existing@example.com");
+      fd.append("roleKey", "TENANT_ADMIN");
+
+      const res = await inviteUserAction({ ok: false, error: "" }, fd);
+      expect(res).toEqual({ ok: false, error: "user_already_member" });
+
+      const resMember = await inviteMemberAction({ ok: false, error: "" }, fd);
+      expect(resMember).toEqual({ ok: false, error: "user_already_member" });
+    });
+
+    it("Positive Control: Active TENANT_OWNER can assign roles, create roles, and invite users", async () => {
+      // Caller has TENANT_OWNER role
+      const ownerRoleId = "f5f5c010-8b4e-4f3b-8ea9-42b7c6c449c2";
+      mockRoles = [
+        { id: ownerRoleId, key: "TENANT_OWNER", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
+      ];
+      mockAssignments = [{ role_id: ownerRoleId }];
+      mockRolePermissions = [
+        { permission_id: permRolesId },
+        { permission_id: permUsersId },
+        { permission_id: ownerPermFinanceId },
+      ];
+      mockPermissions.push({ id: ownerPermFinanceId, key: permFinanceKey });
+
+      // 1. Owner can grant finance permission to custom role
+      const resPerms = await updateRolePermissionsAction(orgId, roleNewId, [ownerPermFinanceId]);
+      expect(resPerms).toEqual({ ok: true });
+
+      // 2. Owner can invite another user as TENANT_OWNER
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("email", "newowner@example.com");
+      fd.append("roleKey", "TENANT_OWNER");
+
+      const resInvite = await inviteUserAction({ ok: false, error: "" }, fd);
+      expect(resInvite).toEqual({ ok: true });
     });
   });
 

@@ -145,3 +145,92 @@ export async function proveTenantPermission(
 
   return { ok: true, userId };
 }
+
+/**
+ * Returns the effective set of tenant permission keys granted to a caller in an organization,
+ * as well as whether the caller holds an active TENANT_OWNER assignment.
+ * Evaluates strictly BEFORE mutations to ensure no privilege amplification.
+ */
+export async function getCallerTenantPermissions(
+  organizationId: string,
+  userId: string,
+): Promise<{
+  ok: true;
+  permissions: Set<string>;
+  isOwner: boolean;
+} | {
+  ok: false;
+  error: string;
+}> {
+  const adminClient = (await import("@/lib/supabase/admin")).createAdminClient();
+
+  // 1. Verify ACTIVE membership
+  const { data: membership, error: memErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memErr || !membership || membership.status !== "active") {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  // 2. Fetch tenant-scoped role assignments
+  const { data: assignments, error: assignErr } = await adminClient
+    .from("user_role_assignments")
+    .select("role_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId);
+
+  if (assignErr || !assignments || assignments.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const roleIds = assignments.map((a) => a.role_id);
+
+  // 3. Find roles
+  const { data: roles, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id, organization_id, is_system, key")
+    .in("id", roleIds);
+
+  if (roleErr || !roles || roles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const validOrgRoles = roles.filter(
+    (r) => r.key !== "PLATFORM_SUPER_ADMIN" && (r.organization_id === organizationId || r.organization_id === null)
+  );
+
+  if (validOrgRoles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const isOwner = validOrgRoles.some((r) => r.key === "TENANT_OWNER");
+  const validRoleIds = validOrgRoles.map((r) => r.id);
+
+  // 4. Fetch permissions
+  const { data: grants, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("permission_id")
+    .in("role_id", validRoleIds);
+
+  if (grantErr || !grants || grants.length === 0) {
+    return { ok: true, permissions: new Set<string>(), isOwner };
+  }
+
+  const permissionIds = grants.map((g) => g.permission_id);
+
+  const { data: perms, error: permErr } = await adminClient
+    .from("permissions")
+    .select("key")
+    .in("id", permissionIds);
+
+  if (permErr || !perms) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const permKeys = new Set(perms.map((p) => p.key));
+  return { ok: true, permissions: permKeys, isOwner };
+}

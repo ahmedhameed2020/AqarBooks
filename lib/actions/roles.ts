@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
-import { proveTenantPermission } from "@/lib/auth/authorize";
+import { proveTenantPermission, getCallerTenantPermissions } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 // Helper: Safely insert platform audit logs without breaking tenant operations
@@ -39,10 +39,12 @@ async function logAuditTrail(
 }
 
 // Helper: Validate that all requested permission IDs are valid tenant permissions
-// Uses canonical tenant template permission keys from public.role_template_permissions
+// AND strictly within the caller's effective tenant permissions (No Privilege Amplification).
 async function validateTenantPermissionIds(
   adminClient: ReturnType<typeof createAdminClient>,
   permissionIds: string[],
+  callerPerms: Set<string>,
+  isCallerOwner: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (permissionIds.length === 0) return { ok: true };
 
@@ -62,7 +64,7 @@ async function validateTenantPermissionIds(
     return { ok: false, error: "invalid_permission_scope" };
   }
 
-  // 3. Verify each permission key is present in tenant role templates (union of all tenant templates)
+  // 3. Verify each permission key is present in tenant role templates (tenant-assignable set)
   const requestedKeys = perms.map((p) => p.key);
   const { data: templatePerms, error: templateErr } = await adminClient
     .from("role_template_permissions")
@@ -74,10 +76,19 @@ async function validateTenantPermissionIds(
   }
 
   const allowedKeySet = new Set(templatePerms.map((tp) => tp.permission_key));
-  const allAllowed = requestedKeys.every((k) => allowedKeySet.has(k));
+  const allTenantAssignable = requestedKeys.every((k) => allowedKeySet.has(k));
 
-  if (!allAllowed) {
+  if (!allTenantAssignable) {
     return { ok: false, error: "invalid_permission_scope" };
+  }
+
+  // 4. Privilege Amplification Guard:
+  // Non-owner tenant administrators can only grant permissions they currently possess themselves.
+  if (!isCallerOwner) {
+    const hasUnheldPerm = requestedKeys.some((k) => !callerPerms.has(k));
+    if (hasUnheldPerm) {
+      return { ok: false, error: "permission_amplification_denied" };
+    }
   }
 
   return { ok: true };
@@ -115,6 +126,10 @@ export async function updateRolePermissionsAction(
   );
   if (!authProof.ok) return { ok: false, error: authProof.error };
 
+  // Fetch caller's effective tenant permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(organizationId, currentUser.id);
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
   const adminClient = createAdminClient();
 
   // Verify target role belongs to this organization and is not a system role
@@ -130,13 +145,24 @@ export async function updateRolePermissionsAction(
     return { ok: false, error: "cannot_modify_system_role" };
   }
 
+  // Non-owners cannot modify TENANT_OWNER role
+  if (role.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_manage_owner_role" };
+  }
+
   // Protect TENANT_OWNER permissions from being cleared
   if (role.key === "TENANT_OWNER" && permissionIds.length === 0) {
     return { ok: false, error: "cannot_clear_owner_permissions" };
   }
 
-  // Validate permission scope: reject platform.% or non-tenant permissions
-  const scopeCheck = await validateTenantPermissionIds(adminClient, permissionIds);
+  // Validate permission scope: reject platform.% or non-tenant permissions,
+  // and enforce No-Privilege-Amplification against caller's effective grants.
+  const scopeCheck = await validateTenantPermissionIds(
+    adminClient,
+    permissionIds,
+    callerPermsResult.permissions,
+    callerPermsResult.isOwner,
+  );
   if (!scopeCheck.ok) {
     return { ok: false, error: scopeCheck.error };
   }
@@ -231,10 +257,28 @@ export async function createRoleAction(
   );
   if (!authProof.ok) return { ok: false, error: authProof.error };
 
+  // Fetch caller's effective tenant permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Non-owners cannot create TENANT_OWNER role
+  if (parsed.data.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_manage_owner_role" };
+  }
+
   const adminClient = createAdminClient();
 
-  // Validate permission scope: reject platform.% or non-tenant permissions
-  const scopeCheck = await validateTenantPermissionIds(adminClient, parsed.data.permissionIds);
+  // Validate permission scope: reject platform.% or non-tenant permissions,
+  // and enforce No-Privilege-Amplification against caller's effective grants.
+  const scopeCheck = await validateTenantPermissionIds(
+    adminClient,
+    parsed.data.permissionIds,
+    callerPermsResult.permissions,
+    callerPermsResult.isOwner,
+  );
   if (!scopeCheck.ok) {
     return { ok: false, error: scopeCheck.error };
   }
