@@ -24,11 +24,12 @@ const permRolesId = "5f6872bc-6d37-4ce7-8cd4-e77b571a2dd4";
 let mockCurrentUser: { id: string; email: string } | null = null;
 let mockIsDemo = false;
 let mockMembership: { status: string } | null = null;
+let mockTargetMemberships = new Map<string, { status: string } | null>();
 let mockAssignments: Array<{ role_id: string }> = [];
 let mockRoles: Array<{ id: string; key: string; organization_id: string | null; is_system: boolean }> = [];
 let mockRolePermissions: Array<{ permission_id: string; permissions?: { key: string } }> = [];
 let mockPermissions: Array<{ id: string; key: string }> = [];
-let mockRoleTemplatePerms: Array<{ permission_id: string }> = [];
+let mockRoleTemplatePerms: Array<{ role_template_key?: string; permission_key: string }> = [];
 let mockOtherOwners: Array<{ user_id: string; status?: string }> = [];
 let mockAuditLogs: Array<any> = [];
 
@@ -98,14 +99,21 @@ vi.mock("@/lib/supabase/admin", () => ({
       };
 
       if (table === "organization_memberships") {
-        queryBuilder.maybeSingle.mockResolvedValue({ data: mockMembership, error: null });
+        queryBuilder.maybeSingle.mockImplementation(() => Promise.resolve({ data: mockMembership, error: null }));
         queryBuilder.select.mockImplementation(() => {
           const chain: any = {
-            eq: vi.fn().mockImplementation(() => ({
-              eq: vi.fn().mockImplementation(() => ({
-                in: vi.fn().mockResolvedValue({ data: mockOtherOwners, error: null }),
-                maybeSingle: vi.fn().mockResolvedValue({ data: mockMembership, error: null }),
-              })),
+            eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
+              eq: vi.fn().mockImplementation((col2: string, val2: string) => {
+                const requestedUserId = col1 === "user_id" ? val1 : val2;
+                const memberData =
+                  requestedUserId && mockTargetMemberships.has(requestedUserId)
+                    ? mockTargetMemberships.get(requestedUserId)
+                    : mockMembership;
+                return {
+                  in: vi.fn().mockResolvedValue({ data: mockOtherOwners, error: null }),
+                  maybeSingle: vi.fn().mockResolvedValue({ data: memberData, error: null }),
+                };
+              }),
               maybeSingle: vi.fn().mockResolvedValue({ data: mockMembership, error: null }),
             })),
             in: vi.fn().mockResolvedValue({ data: mockOtherOwners, error: null }),
@@ -247,14 +255,18 @@ vi.mock("@/lib/supabase/admin", () => ({
 
       if (table === "permissions") {
         queryBuilder.select.mockImplementation(() => ({
-          in: vi.fn().mockImplementation((field: string, vals: string[]) => ({
-            eq: vi.fn().mockImplementation((f2: string, v2: string) => ({
-              maybeSingle: vi.fn().mockImplementation(() => {
-                const found = mockPermissions.find((p) => p.key === v2);
-                return Promise.resolve({ data: found || null, error: null });
-              }),
-            })),
-          })),
+          in: vi.fn().mockImplementation((field: string, vals: string[]) => {
+            const matched = mockPermissions.filter((p) => vals.includes((p as any)[field]));
+            return {
+              eq: vi.fn().mockImplementation((f2: string, v2: string) => ({
+                maybeSingle: vi.fn().mockImplementation(() => {
+                  const found = mockPermissions.find((p) => p.key === v2);
+                  return Promise.resolve({ data: found || null, error: null });
+                }),
+              })),
+              then: (resolve: any) => resolve({ data: matched, error: null }),
+            };
+          }),
         }));
         queryBuilder.in.mockImplementation((field: string, ids: string[]) => {
           const matched = mockPermissions.filter((p) => ids.includes(p.id));
@@ -264,7 +276,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 
       if (table === "role_template_permissions") {
         queryBuilder.select.mockImplementation(() => ({
-          in: vi.fn().mockResolvedValue({ data: mockRoleTemplatePerms, error: null }),
+          in: vi.fn().mockImplementation((field: string, keys: string[]) => {
+            const matched = mockRoleTemplatePerms.filter((tp) => keys.includes(tp.permission_key));
+            return Promise.resolve({ data: matched, error: null });
+          }),
         }));
       }
 
@@ -333,8 +348,8 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       { id: permRolesId, key: "tenant.roles.manage" },
     ];
     mockRoleTemplatePerms = [
-      { permission_id: permUsersId },
-      { permission_id: permRolesId },
+      { role_template_key: "TENANT_ADMIN", permission_key: "tenant.users.manage" },
+      { role_template_key: "TENANT_ADMIN", permission_key: "tenant.roles.manage" },
     ];
     mockOtherOwners = [{ user_id: "dba74b87-1c6b-4520-99ea-1ac69468f00a" }];
     mockAuditLogs = [];
@@ -443,6 +458,59 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     });
 
 
+    it("Self-Role Escalation Protection: TENANT_ADMIN cannot promote or change their own role", async () => {
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "TENANT_OWNER", organization_id: orgId, is_system: false },
+      ];
+
+      // Attempting to promote self from TENANT_ADMIN to TENANT_OWNER
+      const resPromoteSelf = await changeUserRoleAction(orgId, callerUserId, roleNewId);
+      expect(resPromoteSelf).toEqual({ ok: false, error: "cannot_change_own_role" });
+
+      // Attempting to change self to any other role
+      const resChangeSelf = await changeUserRoleAction(orgId, callerUserId, roleAdminId);
+      expect(resChangeSelf).toEqual({ ok: false, error: "cannot_change_own_role" });
+    });
+
+    it("Legitimate modification: caller can change role of another active member", async () => {
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "ACCOUNTANT", organization_id: orgId, is_system: false },
+      ];
+
+      const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
+      expect(res).toEqual({ ok: true });
+    });
+
+    it("Target Membership Requirement: rejects mutation if target user is not a member of the organization", async () => {
+      // Mock that target has NO membership in this organization
+      const foreignUserId = "9b64c0ae-6d60-449d-b8eb-9d10cbe432e1";
+
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "ACCOUNTANT", organization_id: orgId, is_system: false },
+      ];
+
+      // Caller has active membership, target has null membership
+      mockMembership = { status: "active" };
+      mockTargetMemberships.set(foreignUserId, null);
+
+      // Test changeUserRoleAction
+      const resRole = await changeUserRoleAction(orgId, foreignUserId, roleNewId);
+      expect(resRole).toEqual({ ok: false, error: "target_not_member" });
+
+      // Test updateUserStatusAction
+      const resStatus = await updateUserStatusAction(orgId, foreignUserId, "suspended");
+      expect(resStatus).toEqual({ ok: false, error: "target_not_member" });
+
+      // Test removeUserAction
+      const resRemove = await removeUserAction(orgId, foreignUserId);
+      expect(resRemove).toEqual({ ok: false, error: "target_not_member" });
+
+      mockTargetMemberships.clear();
+    });
+
     it("SEC-01 / Negative: cannot assign PLATFORM_SUPER_ADMIN in changeUserRoleAction", async () => {
       mockRoles = [
         { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
@@ -528,6 +596,19 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       const resCreate = await createRoleAction({ ok: false, error: "" }, fd);
       expect(resCreate).toEqual({ ok: false, error: "demo_read_only" });
     });
+
+    it("Real Schema Validation: createRoleAction with valid tenant permissions succeeds against role_template_permissions schema", async () => {
+      // Proves validateTenantPermissionIds maps permission IDs to keys and checks role_template_permissions.permission_key
+      const fd = new FormData();
+      fd.append("organizationId", orgId);
+      fd.append("key", "FINANCE_SPECIALIST");
+      fd.append("nameAr", "أخصائي مالي");
+      fd.append("nameEn", "Finance Specialist");
+      fd.append("permissionIds", JSON.stringify([permUsersId, permRolesId]));
+
+      const res = await createRoleAction({ ok: false, error: "" }, fd);
+      expect(res).toEqual({ ok: true });
+    });
   });
 
   describe("tenant.ts inviteMemberAction Security & Auth Compensation (SEC-05)", () => {
@@ -568,17 +649,46 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
 
   describe("Database Trigger Invariants Simulation", () => {
     it("simulates user_role_assignments trigger: rejects PLATFORM_SUPER_ADMIN with organization_id", () => {
-      const simulateTrigger = (roleKey: string, assignmentOrgId: string | null) => {
-        if (roleKey === "PLATFORM_SUPER_ADMIN" && assignmentOrgId !== null) {
-          throw new Error("PLATFORM_SUPER_ADMIN role cannot be assigned to an organization scope");
+      const simulateTrigger = (roleKey: string, roleOrgId: string | null, assignmentOrgId: string | null) => {
+        if (roleKey === "PLATFORM_SUPER_ADMIN") {
+          if (assignmentOrgId !== null || roleOrgId !== null) {
+            throw new Error("PLATFORM_SUPER_ADMIN role cannot be assigned to an organization scope");
+          }
+        }
+        if (roleOrgId !== null) {
+          if (assignmentOrgId === null || assignmentOrgId !== roleOrgId) {
+            throw new Error(`Tenant-owned role cannot be assigned to different scope`);
+          }
         }
       };
 
-      expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", orgId)).toThrow(
+      expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", null, orgId)).toThrow(
         "PLATFORM_SUPER_ADMIN role cannot be assigned to an organization scope"
       );
-      expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", null)).not.toThrow();
-      expect(() => simulateTrigger("TENANT_ADMIN", orgId)).not.toThrow();
+      expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", orgId, null)).toThrow(
+        "PLATFORM_SUPER_ADMIN role cannot be assigned to an organization scope"
+      );
+      expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", null, null)).not.toThrow();
+    });
+
+    it("simulates user_role_assignments trigger: rejects cross-tenant role assignments", () => {
+      const simulateTrigger = (roleKey: string, roleOrgId: string | null, assignmentOrgId: string | null) => {
+        if (roleOrgId !== null) {
+          if (assignmentOrgId === null || assignmentOrgId !== roleOrgId) {
+            throw new Error(`Tenant-owned role cannot be assigned to different scope`);
+          }
+        }
+      };
+
+      const foreignOrgId = "dba74b87-1c6b-4520-99ea-1ac69468f00a";
+      // Role owned by Org A assigned to Org B
+      expect(() => simulateTrigger("CUSTOM_ROLE", orgId, foreignOrgId)).toThrow(
+        "Tenant-owned role cannot be assigned to different scope"
+      );
+      // Role owned by Org A assigned to Org A succeeds
+      expect(() => simulateTrigger("CUSTOM_ROLE", orgId, orgId)).not.toThrow();
+      // Legacy global role (roleOrgId === null) assigned to Org A succeeds
+      expect(() => simulateTrigger("TENANT_ADMIN", null, orgId)).not.toThrow();
     });
 
     it("simulates roles trigger: rejects creating PLATFORM_SUPER_ADMIN with organization_id", () => {
@@ -593,6 +703,52 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       );
       expect(() => simulateTrigger("PLATFORM_SUPER_ADMIN", null)).not.toThrow();
       expect(() => simulateTrigger("CUSTOM_ROLE", orgId)).not.toThrow();
+    });
+
+    it("simulates hardened is_platform_admin: ignores malformed org-scoped assignments", () => {
+      // Hardened SQL logic:
+      // SELECT EXISTS (
+      //   SELECT 1 FROM user_role_assignments ura
+      //   JOIN roles r ON r.id = ura.role_id
+      //   WHERE ura.user_id = p_user_id
+      //     AND ura.organization_id IS NULL
+      //     AND r.key = 'PLATFORM_SUPER_ADMIN'
+      //     AND r.organization_id IS NULL
+      // );
+      const simulateHardenedIsPlatformAdmin = (
+        assignments: Array<{ user_id: string; organization_id: string | null; role: { key: string; organization_id: string | null } }>,
+        checkUserId: string
+      ) => {
+        return assignments.some(
+          (a) =>
+            a.user_id === checkUserId &&
+            a.organization_id === null &&
+            a.role.key === "PLATFORM_SUPER_ADMIN" &&
+            a.role.organization_id === null
+        );
+      };
+
+      const attackerId = "attacker-123";
+      const legitimateAdminId = "admin-456";
+
+      // Attacker holds PLATFORM_SUPER_ADMIN with organization_id = orgId (malformed assignment)
+      const testAssignments = [
+        {
+          user_id: attackerId,
+          organization_id: orgId,
+          role: { key: "PLATFORM_SUPER_ADMIN", organization_id: null },
+        },
+        {
+          user_id: legitimateAdminId,
+          organization_id: null,
+          role: { key: "PLATFORM_SUPER_ADMIN", organization_id: null },
+        },
+      ];
+
+      // Hardened check rejects attacker with malformed org-scoped assignment
+      expect(simulateHardenedIsPlatformAdmin(testAssignments, attackerId)).toBe(false);
+      // Legitimate admin with NULL organization_id is accepted
+      expect(simulateHardenedIsPlatformAdmin(testAssignments, legitimateAdminId)).toBe(true);
     });
 
     it("simulates role_permissions trigger: rejects granting platform.% permissions to tenant roles", () => {

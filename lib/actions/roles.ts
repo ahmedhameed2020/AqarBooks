@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,6 +9,7 @@ import { proveTenantPermission } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 // Helper: Safely insert platform audit logs without breaking tenant operations
+// OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01
 async function logAuditTrail(
   adminClient: ReturnType<typeof createAdminClient>,
   payload: {
@@ -21,7 +22,7 @@ async function logAuditTrail(
   },
 ) {
   try {
-    await adminClient.from("platform_audit_logs").insert({
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
       actor_id: payload.actor_id,
       organization_id: payload.organization_id,
       action: payload.action,
@@ -29,19 +30,23 @@ async function logAuditTrail(
       entity_id: payload.entity_id,
       safe_change_summary: payload.safe_change_summary,
     });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
   } catch (err) {
     console.error("[OBS-02] Failed to write platform_audit_logs:", err);
   }
 }
 
 // Helper: Validate that all requested permission IDs are valid tenant permissions
+// Uses canonical tenant template permission keys from public.role_template_permissions
 async function validateTenantPermissionIds(
   adminClient: ReturnType<typeof createAdminClient>,
   permissionIds: string[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (permissionIds.length === 0) return { ok: true };
 
-  // Fetch keys for requested permissions
+  // 1. Resolve requested permission IDs into keys
   const { data: perms, error: permErr } = await adminClient
     .from("permissions")
     .select("id, key")
@@ -51,24 +56,25 @@ async function validateTenantPermissionIds(
     return { ok: false, error: "invalid_permission_scope" };
   }
 
-  // Check 1: Reject any platform permission
+  // 2. Reject any platform permission
   const hasPlatformPerm = perms.some((p) => p.key.startsWith("platform."));
   if (hasPlatformPerm) {
     return { ok: false, error: "invalid_permission_scope" };
   }
 
-  // Check 2: Verify each permission is present in tenant role templates
-  const { data: templatePerms, error: templateErr } = await (adminClient as any)
+  // 3. Verify each permission key is present in tenant role templates (union of all tenant templates)
+  const requestedKeys = perms.map((p) => p.key);
+  const { data: templatePerms, error: templateErr } = await adminClient
     .from("role_template_permissions")
-    .select("permission_id")
-    .in("permission_id", permissionIds);
+    .select("permission_key")
+    .in("permission_key", requestedKeys);
 
   if (templateErr || !templatePerms) {
     return { ok: false, error: "invalid_permission_scope" };
   }
 
-  const allowedSet = new Set((templatePerms as Array<{ permission_id: string }>).map((tp) => tp.permission_id));
-  const allAllowed = permissionIds.every((id) => allowedSet.has(id));
+  const allowedKeySet = new Set(templatePerms.map((tp) => tp.permission_key));
+  const allAllowed = requestedKeys.every((k) => allowedKeySet.has(k));
 
   if (!allAllowed) {
     return { ok: false, error: "invalid_permission_scope" };

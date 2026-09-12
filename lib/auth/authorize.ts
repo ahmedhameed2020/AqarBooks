@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -37,11 +37,23 @@ export async function hasPermission(
 
 /**
  * Proves tenant-scoped authorization for an action without relying on public.is_platform_admin() bypass.
+ *
+ * AUTHORIZATION MODEL:
+ * - Temporary Legacy-Compatible Model:
+ *   Tenant authorization accepts organization-owned cloned roles (roles.organization_id = organizationId)
+ *   as well as legacy global tenant template roles (roles.organization_id IS NULL, e.g. seeded TENANT_ADMIN / TENANT_OWNER)
+ *   ONLY when the user_role_assignments row is strictly scoped to the exact organizationId.
+ *   PLATFORM_SUPER_ADMIN is explicitly and categorically banned from this path.
+ *
+ * - Future Normalization Path (post DB-01):
+ *   Once all organizations have completed cloned tenant role backfilling, this will transition to the
+ *   Preferred Final Model where ONLY roles with roles.organization_id = organizationId are permitted.
+ *
  * Explicitly verifies:
  * 1. Caller is authenticated.
  * 2. Caller has an ACTIVE membership in the specific organization.
- * 3. Caller has a tenant-scoped role assignment in that organization.
- * 4. Assigned role is scoped to the organization (or a valid system role).
+ * 3. Caller has a tenant-scoped role assignment (ura.organization_id = organizationId).
+ * 4. Assigned role belongs to this org (or is a legacy global template, excluding PLATFORM_SUPER_ADMIN).
  * 5. Permission is granted to that role and matches the requested key.
  */
 export async function proveTenantPermission(

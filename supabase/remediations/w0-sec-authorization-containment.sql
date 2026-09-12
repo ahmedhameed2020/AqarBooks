@@ -1,4 +1,4 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- W0-SEC REMEDIATION: DATABASE AUTHORIZATION CONTAINMENT
 -- ==============================================================================
 -- IMPORTANT NOTICE:
@@ -34,7 +34,13 @@ AS $$
 $$;
 
 -- 2. STRUCTURAL TRIGGER GUARD: user_role_assignments
--- Rejects any attempt to assign PLATFORM_SUPER_ADMIN with a non-null organization_id
+-- Enforces explicit structural scoping:
+--   - For tenant-owned roles (r.organization_id IS NOT NULL):
+--       ura.organization_id MUST equal r.organization_id (blocks cross-tenant role assignments).
+--   - For PLATFORM_SUPER_ADMIN:
+--       role organization must be NULL AND assignment organization must be NULL.
+--   - For global system template roles (r.organization_id IS NULL, e.g. TENANT_ADMIN / TENANT_OWNER):
+--       Allowed in tenant scopes (NEW.organization_id IS NOT NULL) for temporary legacy compatibility.
 CREATE OR REPLACE FUNCTION public.guard_user_role_assignments_security()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -49,9 +55,24 @@ BEGIN
   FROM public.roles
   WHERE id = NEW.role_id;
 
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Referenced role does not exist'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  -- Invariant A: PLATFORM_SUPER_ADMIN can only exist globally
   IF v_role_key = 'PLATFORM_SUPER_ADMIN' THEN
-    IF NEW.organization_id IS NOT NULL THEN
+    IF NEW.organization_id IS NOT NULL OR v_role_org_id IS NOT NULL THEN
       RAISE EXCEPTION 'PLATFORM_SUPER_ADMIN role cannot be assigned to an organization scope'
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  -- Invariant B: Tenant-owned roles must match the assignment organization exactly
+  IF v_role_org_id IS NOT NULL THEN
+    IF NEW.organization_id IS NULL OR NEW.organization_id != v_role_org_id THEN
+      RAISE EXCEPTION 'Tenant-owned role (org: %) cannot be assigned to different scope (org: %)',
+        v_role_org_id, NEW.organization_id
         USING ERRCODE = 'P0001';
     END IF;
   END IF;

@@ -340,9 +340,9 @@ export async function inviteMemberAction(
     return { ok: false, error: membershipError.message };
   }
 
-  // Write audit trail
+  // Write audit trail (OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01)
   try {
-    await adminClient.from("platform_audit_logs").insert({
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
       actor_id: authProof.userId,
       organization_id: parsed.data.organizationId,
       action: "member.invited",
@@ -353,6 +353,9 @@ export async function inviteMemberAction(
         roleKey: parsed.data.roleKey,
       },
     });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
   } catch (auditErr) {
     console.error("[OBS-02] Failed to write platform_audit_logs:", auditErr);
   }

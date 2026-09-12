@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,6 +9,7 @@ import { proveTenantPermission } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 // Helper: Safely insert platform audit logs without breaking tenant operations
+// OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01
 async function logAuditTrail(
   adminClient: ReturnType<typeof createAdminClient>,
   payload: {
@@ -21,7 +22,7 @@ async function logAuditTrail(
   },
 ) {
   try {
-    await adminClient.from("platform_audit_logs").insert({
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
       actor_id: payload.actor_id,
       organization_id: payload.organization_id,
       action: payload.action,
@@ -29,6 +30,9 @@ async function logAuditTrail(
       entity_id: payload.entity_id,
       safe_change_summary: payload.safe_change_summary,
     });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
   } catch (err) {
     console.error("[OBS-02] Failed to write platform_audit_logs:", err);
   }
@@ -271,7 +275,24 @@ export async function changeUserRoleAction(
   );
   if (!authProof.ok) return { ok: false, error: authProof.error };
 
+  // Defense-in-depth: Prevent self-role escalation or self-demotion
+  if (currentUser.id === userId) {
+    return { ok: false, error: "cannot_change_own_role" };
+  }
+
   const adminClient = createAdminClient();
+
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
 
   // Verify new role exists and belongs to this org or is a valid tenant template
   const { data: role, error: roleErr } = await adminClient
@@ -368,6 +389,18 @@ export async function updateUserStatusAction(
 
   const adminClient = createAdminClient();
 
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
+
   // Prevent suspending the last active TENANT_OWNER
   if (status !== "active") {
     const isLast = await isLastTenantOwner(adminClient, organizationId, userId);
@@ -421,6 +454,18 @@ export async function removeUserAction(
   }
 
   const adminClient = createAdminClient();
+
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
 
   // Prevent removing the last active TENANT_OWNER
   const isLast = await isLastTenantOwner(adminClient, organizationId, userId);
