@@ -1,0 +1,130 @@
+{
+  "evidence_manifest": "DB-01 15 Ledger-Only Rows Manifest",
+  "project_ref": "ataslxkcflxuilpgyepm",
+  "extraction_timestamp": "2026-09-12T20:09:17.006Z",
+  "read_only_query": "SELECT version, name, statements FROM supabase_migrations.schema_migrations WHERE version >= '20260829104638' AND version <= '20260831205217' ORDER BY version ASC;",
+  "raw_export_sha256": "b0313b78f1823e88c2c04c010567991b83eb6e6b50ec0e9437095d06b399131e",
+  "row_count": 15,
+  "rows": [
+    {
+      "version": "20260829104638",
+      "name": "legacy_access_migration_control_plane",
+      "statement_count": 1,
+      "statement_byte_length": 4145,
+      "sha256": "06b5775fb93b95671a85d69fdb6976eb0c68cc62ffa8f33c98f81b1438b67d31",
+      "classification": "historical_migration_control_plane"
+    },
+    {
+      "version": "20260829105948",
+      "name": "legacy_migration_raw_staging_tables",
+      "statement_count": 1,
+      "statement_byte_length": 6262,
+      "sha256": "4fe95af7f7693ed45b5d9644b75ce9f66999ae344d34f8c455cba28d2e375b08",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260829110027",
+      "name": "legacy_migration_validation_views_v2",
+      "statement_count": 1,
+      "statement_byte_length": 3196,
+      "sha256": "a315a68bd1dbac1e57901f6d8bd511521ded8de7a5429b0125f87a5baf43c66b",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260831194315",
+      "name": "accsys_migration_staging_schema",
+      "statement_count": 1,
+      "statement_byte_length": 2402,
+      "sha256": "38e91be64e9baf5ccd5baa55f3d3991f8fbc9630c8a80d631f220de29a568582",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260831194442",
+      "name": "accsys_stage_loader_casts",
+      "statement_count": 1,
+      "statement_byte_length": 1110,
+      "sha256": "86fa6d83784456b42308060b9b47ab33c552fa669e509496ae1654603d350bdd",
+      "classification": "historical_batch_loader_function"
+    },
+    {
+      "version": "20260831194633",
+      "name": "accsys_stage_compact_bulk_tables",
+      "statement_count": 1,
+      "statement_byte_length": 471,
+      "sha256": "b83376dd8f9fcb9c76ef3add0c4986f6f43dedbc5f08a354adfb73c544372cf8",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260831194850",
+      "name": "accsys_stage_coa_shape",
+      "statement_count": 1,
+      "statement_byte_length": 156,
+      "sha256": "5ae5fd26e96c2d86b5344c28b7c1261c0688e92deb8a43bfcdbd3f25f87d7273",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260831195011",
+      "name": "accsys_materialize_function",
+      "statement_count": 1,
+      "statement_byte_length": 8473,
+      "sha256": "75c30b557bd41d98478c758e565fc5cad30abd89994efddcd5b8a2bace62d8e4",
+      "classification": "historical_materialize_procedure"
+    },
+    {
+      "version": "20260831195049",
+      "name": "accsys_materialize_function_fix",
+      "statement_count": 1,
+      "statement_byte_length": 7814,
+      "sha256": "08e36c704cf07da3b065f993f8f8ad088237d5ee2727e50d369b774ca2592565",
+      "classification": "historical_materialize_procedure"
+    },
+    {
+      "version": "20260831195824",
+      "name": "accsys_materialize_no_demo_flag",
+      "statement_count": 1,
+      "statement_byte_length": 7861,
+      "sha256": "7817015c9aa389ba2fa79edfa7b589ef8231bd082706381f33be4af612f69845",
+      "classification": "historical_materialize_procedure"
+    },
+    {
+      "version": "20260831200103",
+      "name": "accsys_materialize_operations",
+      "statement_count": 1,
+      "statement_byte_length": 6817,
+      "sha256": "c0738060150bde48d9b61278bd4c39e2b3d33b032eb16620f46e90d192eabb3c",
+      "classification": "historical_materialize_procedure"
+    },
+    {
+      "version": "20260831200142",
+      "name": "accsys_ops_unique_receipt_numbers",
+      "statement_count": 1,
+      "statement_byte_length": 6964,
+      "sha256": "1ef414912c63be7077f8b77d91eee9191bd7923a9762c47a41ba0c1e146520d1",
+      "classification": "historical_staging_schema"
+    },
+    {
+      "version": "20260831201313",
+      "name": "accsys_stage_verified_loader",
+      "statement_count": 1,
+      "statement_byte_length": 872,
+      "sha256": "05bd6b9009366850f831ea517fd0b7551b20ddab51bc7b61fa31bf5bb03c1b59",
+      "classification": "historical_batch_loader_function"
+    },
+    {
+      "version": "20260831201513",
+      "name": "accsys_stage_dictionary_and_reset",
+      "statement_count": 1,
+      "statement_byte_length": 1170,
+      "sha256": "22b674c02cd0bc7280703fe0a511e457e84eea630b0d8981a6297239337f83c5",
+      "classification": "historical_dictionary_staging"
+    },
+    {
+      "version": "20260831205217",
+      "name": "accsys_loader_strip_cr",
+      "statement_count": 1,
+      "statement_byte_length": 2022,
+      "sha256": "8269e86dc3cb7d311705fafb445bfe806137713bd0731b3a6e30167d0cb3e21b",
+      "classification": "historical_batch_loader_function"
+    }
+  ]
+}

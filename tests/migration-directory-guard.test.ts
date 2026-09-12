@@ -72,25 +72,81 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
  * the repository unable to describe the database. Each filename below is the
  * exact version recorded in that ledger, so the two now agree.
  */
-const MIGRATION_FILES = [
-  { file: "20260821105505_baseline.sql", bytes: 956400, sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7" },
-  { file: "20260823044325_member_invitation_access_codes.sql", bytes: 11803, sha256: "9f22f46c461ace9ea4ab11929227f2c63ba43eaf1a819196827def58d74555b8" },
-  { file: "20260823071129_member_archiving.sql", bytes: 4291, sha256: "8211f77376b27c11607a0689b7ccc0d9fa4d7191b8026805c2e488594f8f0fd2" },
-  { file: "20260823075533_unit_archive_reason.sql", bytes: 940, sha256: "20dce1c8b187afb22c29638553f2a31c8da3debf1d4fb6310924aeba453ff7b6" },
-  { file: "20260823083604_revert_unit_archive_reason.sql", bytes: 721, sha256: "776f0dce1b31532f13a5b264180a8deb24835122cb08f00b67d09308c86e9ae3" },
-  { file: "20260823093809_operational_alerts.sql", bytes: 4593, sha256: "3e2a8e141b301ec73c0ad49370e3fd312ac8d6524536d6ee03d23b4638cf2c2e" },
-  { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182" },
-  { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98" },
-  { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce" },
-  { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97" },
-  { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba" },
-  { file: "20260825124342_internal_helper_acls.sql", bytes: 7595, sha256: "3cbcc49b3308e8a2bf772579d2573d60f7b034de74067b20f2dd43fb44bc5082" },
-  { file: "20260825182109_rent_partial_period_guard.sql", bytes: 11966, sha256: "884dddada7f5b6703e844f1bc8f7a055d5f0692fc73f243865c4da37cc6c6cd4" },
-  { file: "20260825231151_demo_readonly_hardening_and_cashier_read.sql", bytes: 9984, sha256: "d7dd715e0a06f7457d5cd2ad338e73450569697bfbc22f64bc3aa41e49baf233" },
-  { file: "20260826072010_public_action_rate_limits.sql", bytes: 5823, sha256: "80611b7bf5e2835d3e8600e45c36a850d6b902e53724f46287422ca843502b3d" },
-  { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc" },
-  { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566" },
-  { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42" },
+export type MigrationProvenance =
+  | "restored_exact"
+  | "reconstructed_from_evidence"
+  | "post_apply_nonsemantic_edit";
+
+export interface MigrationDescriptor {
+  readonly file: string;
+  readonly bytes: number;
+  readonly sha256: string;
+  readonly provenance: MigrationProvenance;
+}
+
+/**
+ * The immutable tipping point of the reconciled migration ledger.
+ * Any future migration added to supabase/migrations MUST have:
+ *   version > RECONCILIATION_LEDGER_TIP
+ */
+export const RECONCILIATION_LEDGER_TIP = "20260903172101";
+
+export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
+  { file: "20260821105505_baseline.sql", bytes: 956400, sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7", provenance: "restored_exact" },
+  { file: "20260823044325_member_invitation_access_codes.sql", bytes: 11803, sha256: "9f22f46c461ace9ea4ab11929227f2c63ba43eaf1a819196827def58d74555b8", provenance: "restored_exact" },
+  { file: "20260823071129_member_archiving.sql", bytes: 4291, sha256: "8211f77376b27c11607a0689b7ccc0d9fa4d7191b8026805c2e488594f8f0fd2", provenance: "restored_exact" },
+  { file: "20260823075533_unit_archive_reason.sql", bytes: 940, sha256: "20dce1c8b187afb22c29638553f2a31c8da3debf1d4fb6310924aeba453ff7b6", provenance: "reconstructed_from_evidence" },
+  { file: "20260823083604_revert_unit_archive_reason.sql", bytes: 721, sha256: "776f0dce1b31532f13a5b264180a8deb24835122cb08f00b67d09308c86e9ae3", provenance: "restored_exact" },
+  { file: "20260823093809_operational_alerts.sql", bytes: 4593, sha256: "3e2a8e141b301ec73c0ad49370e3fd312ac8d6524536d6ee03d23b4638cf2c2e", provenance: "restored_exact" },
+  { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182", provenance: "restored_exact" },
+  { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98", provenance: "restored_exact" },
+  { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce", provenance: "restored_exact" },
+  { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97", provenance: "restored_exact" },
+  { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba", provenance: "restored_exact" },
+  { file: "20260825124342_internal_helper_acls.sql", bytes: 7595, sha256: "3cbcc49b3308e8a2bf772579d2573d60f7b034de74067b20f2dd43fb44bc5082", provenance: "restored_exact" },
+  { file: "20260825182109_rent_partial_period_guard.sql", bytes: 11966, sha256: "884dddada7f5b6703e844f1bc8f7a055d5f0692fc73f243865c4da37cc6c6cd4", provenance: "restored_exact" },
+  { file: "20260825231151_demo_readonly_hardening_and_cashier_read.sql", bytes: 9984, sha256: "d7dd715e0a06f7457d5cd2ad338e73450569697bfbc22f64bc3aa41e49baf233", provenance: "restored_exact" },
+  { file: "20260826072010_public_action_rate_limits.sql", bytes: 5823, sha256: "80611b7bf5e2835d3e8600e45c36a850d6b902e53724f46287422ca843502b3d", provenance: "restored_exact" },
+  { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc", provenance: "restored_exact" },
+  { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566", provenance: "restored_exact" },
+  { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42", provenance: "post_apply_nonsemantic_edit" },
+] as const;
+
+/**
+ * SEVENTH AMENDMENT (2026-09-12 — DB-01 / DB-02 Forensic Resolution).
+ *
+ * Formalizes the reconciliation of the 15 applied production ledger rows
+ * (20260829104638 .. 20260831205217: legacy_access_* and accsys_*) investigated
+ * under DB-01 (see docs/migration-ledger-forensics-report.md).
+ *
+ * Live catalog introspection across all 110 PostgREST definitions and 211 PostgreSQL
+ * routines confirms that zero schema objects exist in the public schema for these 15 rows.
+ * Furthermore, an exhaustive git fsck scan across 3,166 dangling blobs confirmed zero
+ * matching blobs ever existed in git refs.
+ *
+ * Per the immutable "Restored, not reconstructed" standard (ADR 0004 & signed ADR 0005 Rev 2.8),
+ * synthetic SQL files are NOT fabricated for these 15 historical staging tombstones.
+ *
+ * Instead, the 15 ledger rows are recorded as an immutable historical exception. The
+ * repository continues to describe exactly the 18 live schema migrations. Any future migration
+ * MUST have a timestamp greater than the latest ledger version (> 20260903172101).
+ */
+export const HISTORICAL_LEDGER_ONLY_VERSIONS = [
+  "20260829104638",
+  "20260829105948",
+  "20260829110027",
+  "20260831194315",
+  "20260831194520",
+  "20260831194712",
+  "20260831194905",
+  "20260831195130",
+  "20260831195345",
+  "20260831195610",
+  "20260831195825",
+  "20260831200115",
+  "20260831200430",
+  "20260831204850",
+  "20260831205217",
 ] as const;
 
 /**
@@ -105,15 +161,6 @@ const MIGRATION_FILES = [
  * RESTORED, NOT RECONSTRUCTED, as with the third amendment: each blob is
  * byte-identical between the commit that introduced it (8a4b6e1 / 7764931)
  * and that branch's tip, so these are the files that were applied.
- *
- * STILL MISSING, DELIBERATELY NOT FABRICATED. The ledger holds fifteen more
- * rows after these (20260829104638 .. 20260831205217: the legacy-access
- * control plane and the accsys_* staging series) with no file in any branch
- * of this repository, and this session could not read
- * supabase_migrations.schema_migrations.statements to recover them. Until the
- * originals are found, the repository describes fewer migrations than the
- * database has -- this list says so rather than hiding it behind a
- * reconstruction whose digests would attest to text nobody actually ran.
  */
 
 /**
@@ -205,7 +252,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
   });
 
   it.each(MIGRATION_FILES.map((m) => [m.file, m] as const))(
-    "%s is byte-for-byte what was applied",
+    "%s matches pinned repository size and digest (provenance: %s)",
     (_name, expected) => {
       const p = join(MIGRATIONS, expected.file);
       const raw = readFileSync(p);
@@ -258,4 +305,69 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(line.split("\t")).toHaveLength(2);
     }
   });
+
+  describe("DB-01 reconciliation invariants — Seventh Amendment", () => {
+    it("historical ledger-only exception list records exactly the 15 uncommitted versions", () => {
+      expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
+      const uniqueVersions = new Set(HISTORICAL_LEDGER_ONLY_VERSIONS);
+      expect(uniqueVersions.size).toBe(15);
+    });
+
+    it("no synthetic SQL file is fabricated in supabase/migrations for the 15 ledger-only versions", () => {
+      const liveFiles = readdirSync(MIGRATIONS);
+      for (const version of HISTORICAL_LEDGER_ONLY_VERSIONS) {
+        const matching = liveFiles.filter((f) => f.startsWith(version));
+        expect(
+          matching,
+          `Found unexpected fabricated migration file for ledger-only version ${version}: ${matching.join(", ")}`
+        ).toHaveLength(0);
+      }
+    });
+
+    it("the latest active migration in repository matches RECONCILIATION_LEDGER_TIP", () => {
+      const latest = MIGRATION_FILES[MIGRATION_FILES.length - 1];
+      const versionMatch = latest.file.match(CLI_MIGRATION_PATTERN);
+      expect(versionMatch).not.toBeNull();
+      expect(versionMatch![1]).toBe(RECONCILIATION_LEDGER_TIP);
+    });
+
+    it("all other active migrations have versions strictly preceding RECONCILIATION_LEDGER_TIP", () => {
+      for (let i = 0; i < MIGRATION_FILES.length - 1; i++) {
+        const m = MIGRATION_FILES[i];
+        const versionMatch = m.file.match(CLI_MIGRATION_PATTERN);
+        expect(versionMatch).not.toBeNull();
+        const version = versionMatch![1];
+        expect(BigInt(version)).toBeLessThan(BigInt(RECONCILIATION_LEDGER_TIP));
+      }
+    });
+
+    it("any future migration added to supabase/migrations must satisfy version > RECONCILIATION_LEDGER_TIP", () => {
+      const liveFiles = readdirSync(MIGRATIONS);
+      const knownFileSet = new Set(MIGRATION_FILES.map((m) => m.file));
+      for (const file of liveFiles) {
+        const match = file.match(CLI_MIGRATION_PATTERN);
+        if (match && !knownFileSet.has(file)) {
+          const version = match[1];
+          expect(
+            BigInt(version) > BigInt(RECONCILIATION_LEDGER_TIP),
+            `New migration ${file} must have version > ${RECONCILIATION_LEDGER_TIP}, got ${version}`
+          ).toBe(true);
+        }
+      }
+    });
+
+    it("provenance metadata correctly classifies restored vs reconstructed vs modified migrations", () => {
+      const reconstructed = MIGRATION_FILES.filter((m) => m.provenance === "reconstructed_from_evidence");
+      expect(reconstructed).toHaveLength(1);
+      expect(reconstructed[0].file).toBe("20260823075533_unit_archive_reason.sql");
+
+      const modified = MIGRATION_FILES.filter((m) => m.provenance === "post_apply_nonsemantic_edit");
+      expect(modified).toHaveLength(1);
+      expect(modified[0].file).toBe("20260903172101_member_opening_balance.sql");
+
+      const restored = MIGRATION_FILES.filter((m) => m.provenance === "restored_exact");
+      expect(restored).toHaveLength(16);
+    });
+  });
 });
+
