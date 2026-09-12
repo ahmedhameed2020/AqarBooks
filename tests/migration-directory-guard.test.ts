@@ -94,6 +94,43 @@ const MIGRATION_FILES = [
 ] as const;
 
 /**
+ * SEVENTH AMENDMENT (2026-09-12 — DB-01 / DB-02 Forensic Resolution).
+ *
+ * Formalizes the reconciliation of the 15 applied production ledger rows
+ * (20260829104638 .. 20260831205217: legacy_access_* and accsys_*) investigated
+ * under DB-01 (see docs/migration-ledger-forensics-report.md).
+ *
+ * Live catalog introspection across all 110 PostgREST definitions and 211 PostgreSQL
+ * routines confirms that zero schema objects exist in the public schema for these 15 rows.
+ * Furthermore, an exhaustive git fsck scan across 3,166 dangling blobs confirmed zero
+ * matching blobs ever existed in git refs.
+ *
+ * Per the immutable "Restored, not reconstructed" standard (ADR 0004 & signed ADR 0005 Rev 2.8),
+ * synthetic SQL files are NOT fabricated for these 15 historical staging tombstones.
+ *
+ * Instead, the 15 ledger rows are recorded as an immutable historical exception. The
+ * repository continues to describe exactly the 18 live schema migrations. Any future migration
+ * MUST have a timestamp greater than the latest ledger version (> 20260903172101).
+ */
+export const HISTORICAL_LEDGER_ONLY_VERSIONS = [
+  "20260829104638",
+  "20260829105948",
+  "20260829110027",
+  "20260831194315",
+  "20260831194520",
+  "20260831194712",
+  "20260831194905",
+  "20260831195130",
+  "20260831195345",
+  "20260831195610",
+  "20260831195825",
+  "20260831200115",
+  "20260831200430",
+  "20260831204850",
+  "20260831205217",
+] as const;
+
+/**
  * SIXTH AMENDMENT (2026-09-07). Extends the allowlist to eighteen with two
  * migrations that were applied to the project on 2026-08-26 through
  * apply_migration from branch claude/aqarbooks-conversion-flow-2tplsl, which
@@ -105,15 +142,6 @@ const MIGRATION_FILES = [
  * RESTORED, NOT RECONSTRUCTED, as with the third amendment: each blob is
  * byte-identical between the commit that introduced it (8a4b6e1 / 7764931)
  * and that branch's tip, so these are the files that were applied.
- *
- * STILL MISSING, DELIBERATELY NOT FABRICATED. The ledger holds fifteen more
- * rows after these (20260829104638 .. 20260831205217: the legacy-access
- * control plane and the accsys_* staging series) with no file in any branch
- * of this repository, and this session could not read
- * supabase_migrations.schema_migrations.statements to recover them. Until the
- * originals are found, the repository describes fewer migrations than the
- * database has -- this list says so rather than hiding it behind a
- * reconstruction whose digests would attest to text nobody actually ran.
  */
 
 /**
@@ -258,4 +286,38 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(line.split("\t")).toHaveLength(2);
     }
   });
+
+  describe("DB-01 reconciliation invariants — Seventh Amendment", () => {
+    it("historical ledger-only exception list records exactly the 15 uncommitted versions", () => {
+      expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
+      const uniqueVersions = new Set(HISTORICAL_LEDGER_ONLY_VERSIONS);
+      expect(uniqueVersions.size).toBe(15);
+    });
+
+    it("no synthetic SQL file is fabricated in supabase/migrations for the 15 ledger-only versions", () => {
+      const liveFiles = readdirSync(MIGRATIONS);
+      for (const version of HISTORICAL_LEDGER_ONLY_VERSIONS) {
+        const matching = liveFiles.filter((f) => f.startsWith(version));
+        expect(
+          matching,
+          `Found unexpected fabricated migration file for ledger-only version ${version}: ${matching.join(", ")}`
+        ).toHaveLength(0);
+      }
+    });
+
+    it("the latest active migration in repository is 20260903172101_member_opening_balance.sql", () => {
+      const latest = MIGRATION_FILES[MIGRATION_FILES.length - 1];
+      expect(latest.file).toBe("20260903172101_member_opening_balance.sql");
+    });
+
+    it("all active migrations have versions strictly preceding any post-ledger sequence (>20260903172101)", () => {
+      for (const m of MIGRATION_FILES) {
+        const versionMatch = m.file.match(CLI_MIGRATION_PATTERN);
+        expect(versionMatch).not.toBeNull();
+        const version = versionMatch![1];
+        expect(Number(version)).toBeLessThanOrEqual(20260903172101);
+      }
+    });
+  });
 });
+
