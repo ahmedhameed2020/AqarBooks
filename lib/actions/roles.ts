@@ -167,6 +167,9 @@ export async function updateRolePermissionsAction(
     return { ok: false, error: scopeCheck.error };
   }
 
+  // NOTE (DB-01 / Atomicity Risk):
+  // Deleting existing grants and inserting new grants is currently performed as two separate operations.
+  // Full transactional atomicity is pending DB-01 migration/RPC reconciliation.
   // Delete existing grants
   const { error: delErr } = await adminClient
     .from("role_permissions")
@@ -303,17 +306,39 @@ export async function createRoleAction(
     return { ok: false, error: roleErr?.message || "failed_to_create_role" };
   }
 
-  // Grant permissions
+  // Grant permissions (with safe compensation if insertion fails)
   if (parsed.data.permissionIds.length > 0) {
     const rows = parsed.data.permissionIds.map((pId) => ({
       role_id: newRole.id,
       permission_id: pId,
     }));
 
-    await adminClient.from("role_permissions").insert(rows);
+    const { error: insPermErr } = await adminClient.from("role_permissions").insert(rows);
+    if (insPermErr) {
+      console.error("[SEC-COMPENSATION] Failed to insert role permissions, compensating by deleting created role:", {
+        roleId: newRole.id,
+        error: insPermErr.message,
+      });
+
+      // Temporary compensation: Delete the newly created empty role because this exact operation created it.
+      // True transactional atomicity is pending DB-01 RPC/migration support.
+      try {
+        const { error: compDelErr } = await adminClient.from("roles").delete().eq("id", newRole.id);
+        if (compDelErr) {
+          console.error("[SEC-COMPENSATION-FAILED] Failed to clean up created role during compensation:", {
+            roleId: newRole.id,
+            error: compDelErr.message,
+          });
+        }
+      } catch (cleanupErr) {
+        console.error("[SEC-COMPENSATION-FAILED] Exception during role cleanup:", cleanupErr);
+      }
+
+      return { ok: false, error: "failed_to_assign_role_permissions" };
+    }
   }
 
-  // Write audit trail
+  // Write audit trail only on full success
   await logAuditTrail(adminClient, {
     actor_id: currentUser.id,
     organization_id: parsed.data.organizationId,

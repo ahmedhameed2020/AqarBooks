@@ -33,10 +33,17 @@ let mockRoleTemplatePerms: Array<{ role_template_key?: string; permission_key: s
 let mockOtherOwners: Array<{ user_id: string; status?: string }> = [];
 let mockAuditLogs: Array<any> = [];
 
-// Track auth admin calls
+// Track auth admin and compensation calls
 let mockAuthAdminUsers: Array<{ id: string; email: string }> = [];
 let deleteUserCalls: string[] = [];
+let deleteRoleCalls: string[] = [];
 let inviteUserFail = false;
+let mockRolePermissionsSelectError: { message: string } | null = null;
+let mockRolePermissionsTargetOnly = false;
+let mockRolePermissionsInsertError: { message: string } | null = null;
+let mockPermissionsSelectError: { message: string } | null = null;
+let mockPermissionsTargetOnly = false;
+let mockMembershipSelectError: { message: string } | null = null;
 
 // Mock dependencies
 vi.mock("@/lib/auth/session", () => ({
@@ -105,6 +112,12 @@ vi.mock("@/lib/supabase/admin", () => ({
             eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
               eq: vi.fn().mockImplementation((col2: string, val2: string) => {
                 const requestedUserId = col1 === "user_id" ? val1 : col2 === "user_id" ? val2 : null;
+                if (mockMembershipSelectError && requestedUserId !== callerUserId) {
+                  return {
+                    in: vi.fn().mockResolvedValue({ data: null, error: mockMembershipSelectError }),
+                    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: mockMembershipSelectError }),
+                  };
+                }
                 let memberData: { status: string } | null = null;
                 if (requestedUserId === callerUserId) {
                   memberData = mockMembership;
@@ -243,12 +256,28 @@ vi.mock("@/lib/supabase/admin", () => ({
             single: () => Promise.resolve({ data: { id: "92cf89b3-0bb3-456a-92dd-a9a657695e52" }, error: null }),
           }),
         }));
+        queryBuilder.delete.mockImplementation(() => ({
+          eq: vi.fn().mockImplementation((field: string, val: string) => {
+            if (field === "id") deleteRoleCalls.push(val);
+            return Promise.resolve({ error: null });
+          }),
+        }));
       }
 
       if (table === "role_permissions") {
         queryBuilder.select.mockImplementation(() => {
+          if (mockRolePermissionsSelectError && !mockRolePermissionsTargetOnly) {
+            const errChain: any = {
+              in: vi.fn().mockResolvedValue({ data: null, error: mockRolePermissionsSelectError }),
+              eq: vi.fn().mockResolvedValue({ data: null, error: mockRolePermissionsSelectError }),
+            };
+            return errChain;
+          }
           const chain: any = {
             in: vi.fn().mockImplementation((field: string, vals: string[]) => {
+              if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && vals.includes(roleNewId)) {
+                return Promise.resolve({ data: null, error: mockRolePermissionsSelectError });
+              }
               if (field === "role_id") {
                 const matched = mockRolePermissions.filter((rp) => !rp.role_id || vals.includes(rp.role_id));
                 return Promise.resolve({ data: matched, error: null });
@@ -256,6 +285,9 @@ vi.mock("@/lib/supabase/admin", () => ({
               return Promise.resolve({ data: mockRolePermissions, error: null });
             }),
             eq: vi.fn().mockImplementation((field: string, val: string) => {
+              if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && val === roleNewId) {
+                return Promise.resolve({ data: null, error: mockRolePermissionsSelectError });
+              }
               if (field === "role_id") {
                 const matched = mockRolePermissions.filter((rp) => !rp.role_id || rp.role_id === val);
                 return Promise.resolve({ data: matched, error: null });
@@ -268,31 +300,46 @@ vi.mock("@/lib/supabase/admin", () => ({
         queryBuilder.delete.mockImplementation(() => ({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }));
-        queryBuilder.insert.mockResolvedValue({ error: null });
+        queryBuilder.insert.mockImplementation(() => {
+          if (mockRolePermissionsInsertError) {
+            return Promise.resolve({ error: mockRolePermissionsInsertError });
+          }
+          return Promise.resolve({ error: null });
+        });
       }
 
       if (table === "permissions") {
-        queryBuilder.select.mockImplementation(() => ({
-          in: vi.fn().mockImplementation((field: string, vals: string[]) => {
-            const seen = new Set<string>();
-            const matched: Array<{ id: string; key: string }> = [];
-            for (const p of mockPermissions) {
-              if (vals.includes((p as any)[field]) && !seen.has(p.id)) {
-                seen.add(p.id);
-                matched.push(p);
-              }
-            }
+        queryBuilder.select.mockImplementation(() => {
+          if (mockPermissionsSelectError && !mockPermissionsTargetOnly) {
             return {
-              eq: vi.fn().mockImplementation((f2: string, v2: string) => ({
-                maybeSingle: vi.fn().mockImplementation(() => {
-                  const found = mockPermissions.find((p) => p.key === v2);
-                  return Promise.resolve({ data: found || null, error: null });
-                }),
-              })),
-              then: (resolve: any) => resolve({ data: matched, error: null }),
+              in: vi.fn().mockResolvedValue({ data: null, error: mockPermissionsSelectError }),
             };
-          }),
-        }));
+          }
+          return {
+            in: vi.fn().mockImplementation((field: string, vals: string[]) => {
+              if (mockPermissionsSelectError && mockPermissionsTargetOnly && vals.some((v) => v !== permUsersId && v !== permRolesId)) {
+                return Promise.resolve({ data: null, error: mockPermissionsSelectError });
+              }
+              const seen = new Set<string>();
+              const matched: Array<{ id: string; key: string }> = [];
+              for (const p of mockPermissions) {
+                if (vals.includes((p as any)[field]) && !seen.has(p.id)) {
+                  seen.add(p.id);
+                  matched.push(p);
+                }
+              }
+              return {
+                eq: vi.fn().mockImplementation((f2: string, v2: string) => ({
+                  maybeSingle: vi.fn().mockImplementation(() => {
+                    const found = mockPermissions.find((p) => p.key === v2);
+                    return Promise.resolve({ data: found || null, error: null });
+                  }),
+                })),
+                then: (resolve: any) => resolve({ data: matched, error: null }),
+              };
+            }),
+          };
+        });
         queryBuilder.in.mockImplementation((field: string, ids: string[]) => {
           const seen = new Set<string>();
           const matched: Array<{ id: string; key: string }> = [];
@@ -358,7 +405,7 @@ import {
   updateRolePermissionsAction,
 } from "@/lib/actions/roles";
 import { inviteMemberAction } from "@/lib/actions/tenant";
-import { proveTenantPermission } from "@/lib/auth/authorize";
+import { proveTenantPermission, getRolePermissionKeys } from "@/lib/auth/authorize";
 
 describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
   beforeEach(() => {
@@ -387,6 +434,13 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     mockAuditLogs = [];
     mockAuthAdminUsers = [];
     deleteUserCalls = [];
+    deleteRoleCalls = [];
+    mockRolePermissionsSelectError = null;
+    mockRolePermissionsTargetOnly = false;
+    mockRolePermissionsInsertError = null;
+    mockPermissionsSelectError = null;
+    mockPermissionsTargetOnly = false;
+    mockMembershipSelectError = null;
     inviteUserFail = false;
     mockTargetMemberships = new Map<string, { status: string } | null>();
     mockTargetMemberships.set(targetUserId, { status: "active" });
@@ -934,6 +988,93 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       );
       expect(() => simulateTrigger(null, "platform.tenants.manage")).not.toThrow();
       expect(() => simulateTrigger(orgId, "tenant.users.manage")).not.toThrow();
+    });
+  });
+
+  describe("Fail-Closed Authorization & Partial Write Compensation (Amendment 4)", () => {
+    it("getRolePermissionKeys: fails closed when role_permissions lookup errors", async () => {
+      mockRolePermissionsSelectError = { message: "database connection timeout" };
+      const res = await getRolePermissionKeys(roleAdminId);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe("authorization_check_failed");
+      }
+    });
+
+    it("getRolePermissionKeys: fails closed when permissions lookup errors", async () => {
+      mockPermissionsSelectError = { message: "disk read error" };
+      const res = await getRolePermissionKeys(roleAdminId);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe("authorization_check_failed");
+      }
+    });
+
+    it("getRolePermissionKeys: fails closed when permission row count is inconsistent", async () => {
+      mockRolePermissions = [
+        { role_id: roleAdminId, permission_id: permUsersId },
+        { role_id: roleAdminId, permission_id: permRolesId },
+      ];
+      mockPermissions = [
+        { id: permUsersId, key: "tenant.users.manage" },
+      ];
+      const res = await getRolePermissionKeys(roleAdminId);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe("authorization_check_failed");
+      }
+    });
+
+    it("changeUserRoleAction: denies role assignment when target role permission lookup fails (fail-closed)", async () => {
+      mockRolePermissionsSelectError = { message: "query timeout" };
+      mockRolePermissionsTargetOnly = true;
+
+      const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("authorization_check_failed");
+    });
+
+    it("inviteUserAction: stops provisioning and fails closed when membership check errors", async () => {
+      mockMembershipSelectError = { message: "network partition" };
+      const formData = new FormData();
+      formData.set("organizationId", orgId);
+      formData.set("email", "newperson@example.com");
+      formData.set("roleKey", "TENANT_ADMIN");
+
+      const res = await inviteUserAction({ ok: false }, formData);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("membership_check_failed");
+      expect(deleteUserCalls).toContain("37bf5d4a-0c33-4f35-a2a1-d9e37b7225d7");
+      expect(mockAuditLogs.length).toBe(0);
+    });
+
+    it("inviteMemberAction: stops provisioning and fails closed when membership check errors", async () => {
+      mockMembershipSelectError = { message: "database offline" };
+      const formData = new FormData();
+      formData.set("organizationId", orgId);
+      formData.set("email", "newperson@example.com");
+      formData.set("roleKey", "TENANT_ADMIN");
+
+      const res = await inviteMemberAction({ ok: false }, formData);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("membership_check_failed");
+      expect(deleteUserCalls).toContain("37bf5d4a-0c33-4f35-a2a1-d9e37b7225d7");
+    });
+
+    it("createRoleAction: compensates by deleting created role and returns failure when role_permissions insert fails", async () => {
+      mockRolePermissionsInsertError = { message: "foreign key constraint violation" };
+      const formData = new FormData();
+      formData.set("organizationId", orgId);
+      formData.set("key", "CUSTOM_ACCOUNTANT");
+      formData.set("nameAr", "محاسب مخصص");
+      formData.set("nameEn", "Custom Accountant");
+      formData.set("permissionIds", JSON.stringify([permUsersId]));
+
+      const res = await createRoleAction({ ok: false }, formData);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("failed_to_assign_role_permissions");
+      expect(deleteRoleCalls).toContain("92cf89b3-0bb3-456a-92dd-a9a657695e52");
+      expect(mockAuditLogs.length).toBe(0);
     });
   });
 });

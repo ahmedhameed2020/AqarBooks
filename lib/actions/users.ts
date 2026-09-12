@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
-import { proveTenantPermission, getCallerTenantPermissions } from "@/lib/auth/authorize";
+import { proveTenantPermission, getCallerTenantPermissions, getRolePermissionKeys } from "@/lib/auth/authorize";
 import { denyIfDemo } from "@/lib/demo/guard";
 
 // Helper: Safely insert platform audit logs without breaking tenant operations
@@ -169,24 +169,16 @@ export async function inviteUserAction(
 
   // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
   if (!callerPermsResult.isOwner) {
-    const { data: targetRoleGrants } = await adminClient
-      .from("role_permissions")
-      .select("permission_id")
-      .eq("role_id", roleData.id);
+    const rolePermsResult = await getRolePermissionKeys(roleData.id);
+    if (!rolePermsResult.ok) {
+      return { ok: false, error: rolePermsResult.error };
+    }
 
-    if (targetRoleGrants && targetRoleGrants.length > 0) {
-      const grantIds = targetRoleGrants.map((g) => g.permission_id);
-      const { data: targetPerms } = await adminClient
-        .from("permissions")
-        .select("key")
-        .in("id", grantIds);
-
-      if (targetPerms) {
-        const hasUnheldPerm = targetPerms.some((p) => !callerPermsResult.permissions.has(p.key));
-        if (hasUnheldPerm) {
-          return { ok: false, error: "role_privilege_escalation" };
-        }
-      }
+    const hasUnheldPerm = Array.from(rolePermsResult.permissions).some(
+      (k) => !callerPermsResult.permissions.has(k)
+    );
+    if (hasUnheldPerm) {
+      return { ok: false, error: "role_privilege_escalation" };
     }
   }
 
@@ -216,13 +208,21 @@ export async function inviteUserAction(
     isNewUserCreated = true;
   }
 
-  // Guard: Do not downgrade or wipe existing members through invite
-  const { data: existingMembership } = await adminClient
+  // Guard: Do not downgrade or wipe existing members through invite. Fail-closed on DB error.
+  const { data: existingMembership, error: existMemErr } = await adminClient
     .from("organization_memberships")
     .select("status")
     .eq("organization_id", parsed.data.organizationId)
     .eq("user_id", invitedUserId)
     .maybeSingle();
+
+  if (existMemErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to check existing membership:", existMemErr.message);
+    if (isNewUserCreated && invitedUserId) {
+      await adminClient.auth.admin.deleteUser(invitedUserId).catch(() => {});
+    }
+    return { ok: false, error: "membership_check_failed" };
+  }
 
   if (existingMembership) {
     return { ok: false, error: "user_already_member" };
@@ -374,24 +374,16 @@ export async function changeUserRoleAction(
 
   // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
   if (!callerPermsResult.isOwner) {
-    const { data: targetRoleGrants } = await adminClient
-      .from("role_permissions")
-      .select("permission_id")
-      .eq("role_id", role.id);
+    const rolePermsResult = await getRolePermissionKeys(role.id);
+    if (!rolePermsResult.ok) {
+      return { ok: false, error: rolePermsResult.error };
+    }
 
-    if (targetRoleGrants && targetRoleGrants.length > 0) {
-      const grantIds = targetRoleGrants.map((g) => g.permission_id);
-      const { data: targetPerms } = await adminClient
-        .from("permissions")
-        .select("key")
-        .in("id", grantIds);
-
-      if (targetPerms) {
-        const hasUnheldPerm = targetPerms.some((p) => !callerPermsResult.permissions.has(p.key));
-        if (hasUnheldPerm) {
-          return { ok: false, error: "role_privilege_escalation" };
-        }
-      }
+    const hasUnheldPerm = Array.from(rolePermsResult.permissions).some(
+      (k) => !callerPermsResult.permissions.has(k)
+    );
+    if (hasUnheldPerm) {
+      return { ok: false, error: "role_privilege_escalation" };
     }
   }
 

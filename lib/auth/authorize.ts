@@ -234,3 +234,53 @@ export async function getCallerTenantPermissions(
   const permKeys = new Set(perms.map((p) => p.key));
   return { ok: true, permissions: permKeys, isOwner };
 }
+
+/**
+ * Fails closed: Resolves the exact permission keys assigned to a given role.
+ * Inspects all returned Supabase errors and verifies consistent references.
+ * Never interprets a failed query or lookup as "no permissions".
+ */
+export async function getRolePermissionKeys(
+  roleId: string,
+): Promise<{ ok: true; permissions: Set<string> } | { ok: false; error: "authorization_check_failed" }> {
+  const adminClient = (await import("@/lib/supabase/admin")).createAdminClient();
+
+  // 1. Query role_permissions for this role
+  const { data: grants, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("permission_id")
+    .eq("role_id", roleId);
+
+  if (grantErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query role_permissions for role:", roleId, grantErr.message);
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  if (!grants || grants.length === 0) {
+    return { ok: true, permissions: new Set<string>() };
+  }
+
+  // 2. Resolve permission IDs into permission keys
+  const permissionIds = grants.map((g) => g.permission_id);
+  const { data: perms, error: permErr } = await adminClient
+    .from("permissions")
+    .select("id, key")
+    .in("id", permissionIds);
+
+  if (permErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query permissions for role:", roleId, permErr.message);
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  // 3. Reject missing / inconsistent references
+  if (!perms || perms.length !== permissionIds.length) {
+    console.error("[SEC-FAIL-CLOSED] Inconsistent permissions count for role:", roleId, {
+      expected: permissionIds.length,
+      received: perms?.length || 0,
+    });
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  const permKeys = new Set(perms.map((p) => p.key));
+  return { ok: true, permissions: permKeys };
+}
