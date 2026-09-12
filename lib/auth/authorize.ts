@@ -34,3 +34,253 @@ export async function hasPermission(
   if (error) return false;
   return Boolean(data);
 }
+
+/**
+ * Proves tenant-scoped authorization for an action without relying on public.is_platform_admin() bypass.
+ *
+ * AUTHORIZATION MODEL:
+ * - Temporary Legacy-Compatible Model:
+ *   Tenant authorization accepts organization-owned cloned roles (roles.organization_id = organizationId)
+ *   as well as legacy global tenant template roles (roles.organization_id IS NULL, e.g. seeded TENANT_ADMIN / TENANT_OWNER)
+ *   ONLY when the user_role_assignments row is strictly scoped to the exact organizationId.
+ *   PLATFORM_SUPER_ADMIN is explicitly and categorically banned from this path.
+ *
+ * - Future Normalization Path (post DB-01):
+ *   Once all organizations have completed cloned tenant role backfilling, this will transition to the
+ *   Preferred Final Model where ONLY roles with roles.organization_id = organizationId are permitted.
+ *
+ * Explicitly verifies:
+ * 1. Caller is authenticated.
+ * 2. Caller has an ACTIVE membership in the specific organization.
+ * 3. Caller has a tenant-scoped role assignment (ura.organization_id = organizationId).
+ * 4. Assigned role belongs to this org (or is a legacy global template, excluding PLATFORM_SUPER_ADMIN).
+ * 5. Permission is granted to that role and matches the requested key.
+ */
+export async function proveTenantPermission(
+  organizationId: string,
+  permissionKey: string,
+  callerUserId?: string,
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  let userId = callerUserId;
+  if (!userId) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "unauthorized" };
+    userId = user.id;
+  }
+
+  const adminClient = (await import("@/lib/supabase/admin")).createAdminClient();
+
+  // 1. Verify ACTIVE membership in exact organization
+  const { data: membership, error: memErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memErr || !membership || membership.status !== "active") {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  // 2. Fetch tenant-scoped role assignments for caller in this organization
+  const { data: assignments, error: assignErr } = await adminClient
+    .from("user_role_assignments")
+    .select("role_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId);
+
+  if (assignErr || !assignments || assignments.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const roleIds = assignments.map((a) => a.role_id);
+
+  // 3. Find roles belonging to this org (or org-scoped)
+  const { data: roles, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id, organization_id, is_system, key")
+    .in("id", roleIds);
+
+  if (roleErr || !roles || roles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  // Only consider roles valid for this organization:
+  // Must belong to this org, or if system role, cannot be PLATFORM_SUPER_ADMIN
+  const validOrgRoles = roles.filter(
+    (r) => r.key !== "PLATFORM_SUPER_ADMIN" && (r.organization_id === organizationId || r.organization_id === null)
+  );
+
+  if (validOrgRoles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const validRoleIds = validOrgRoles.map((r) => r.id);
+
+  // 4. Verify permission is granted through that tenant-scoped role
+  const { data: grants, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("permission_id")
+    .in("role_id", validRoleIds);
+
+  if (grantErr || !grants || grants.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const permissionIds = grants.map((g) => g.permission_id);
+
+  const { data: permMatch, error: permErr } = await adminClient
+    .from("permissions")
+    .select("id")
+    .in("id", permissionIds)
+    .eq("key", permissionKey)
+    .maybeSingle();
+
+  if (permErr || !permMatch) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  return { ok: true, userId };
+}
+
+/**
+ * Returns the effective set of tenant permission keys granted to a caller in an organization,
+ * as well as whether the caller holds an active TENANT_OWNER assignment.
+ * Evaluates strictly BEFORE mutations to ensure no privilege amplification.
+ */
+export async function getCallerTenantPermissions(
+  organizationId: string,
+  userId: string,
+): Promise<{
+  ok: true;
+  permissions: Set<string>;
+  isOwner: boolean;
+} | {
+  ok: false;
+  error: string;
+}> {
+  const adminClient = (await import("@/lib/supabase/admin")).createAdminClient();
+
+  // 1. Verify ACTIVE membership
+  const { data: membership, error: memErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memErr || !membership || membership.status !== "active") {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  // 2. Fetch tenant-scoped role assignments
+  const { data: assignments, error: assignErr } = await adminClient
+    .from("user_role_assignments")
+    .select("role_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId);
+
+  if (assignErr || !assignments || assignments.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const roleIds = assignments.map((a) => a.role_id);
+
+  // 3. Find roles
+  const { data: roles, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id, organization_id, is_system, key")
+    .in("id", roleIds);
+
+  if (roleErr || !roles || roles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const validOrgRoles = roles.filter(
+    (r) => r.key !== "PLATFORM_SUPER_ADMIN" && (r.organization_id === organizationId || r.organization_id === null)
+  );
+
+  if (validOrgRoles.length === 0) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const isOwner = validOrgRoles.some((r) => r.key === "TENANT_OWNER");
+  const validRoleIds = validOrgRoles.map((r) => r.id);
+
+  // 4. Fetch permissions
+  const { data: grants, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("permission_id")
+    .in("role_id", validRoleIds);
+
+  if (grantErr || !grants || grants.length === 0) {
+    return { ok: true, permissions: new Set<string>(), isOwner };
+  }
+
+  const permissionIds = grants.map((g) => g.permission_id);
+
+  const { data: perms, error: permErr } = await adminClient
+    .from("permissions")
+    .select("key")
+    .in("id", permissionIds);
+
+  if (permErr || !perms) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const permKeys = new Set(perms.map((p) => p.key));
+  return { ok: true, permissions: permKeys, isOwner };
+}
+
+/**
+ * Fails closed: Resolves the exact permission keys assigned to a given role.
+ * Inspects all returned Supabase errors and verifies consistent references.
+ * Never interprets a failed query or lookup as "no permissions".
+ */
+export async function getRolePermissionKeys(
+  roleId: string,
+): Promise<{ ok: true; permissions: Set<string> } | { ok: false; error: "authorization_check_failed" }> {
+  const adminClient = (await import("@/lib/supabase/admin")).createAdminClient();
+
+  // 1. Query role_permissions for this role
+  const { data: grants, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("permission_id")
+    .eq("role_id", roleId);
+
+  if (grantErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query role_permissions for role:", roleId, grantErr.message);
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  if (!grants || grants.length === 0) {
+    return { ok: true, permissions: new Set<string>() };
+  }
+
+  // 2. Resolve permission IDs into permission keys
+  const permissionIds = grants.map((g) => g.permission_id);
+  const { data: perms, error: permErr } = await adminClient
+    .from("permissions")
+    .select("id, key")
+    .in("id", permissionIds);
+
+  if (permErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query permissions for role:", roleId, permErr.message);
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  // 3. Reject missing / inconsistent references
+  if (!perms || perms.length !== permissionIds.length) {
+    console.error("[SEC-FAIL-CLOSED] Inconsistent permissions count for role:", roleId, {
+      expected: permissionIds.length,
+      received: perms?.length || 0,
+    });
+    return { ok: false, error: "authorization_check_failed" };
+  }
+
+  const permKeys = new Set(perms.map((p) => p.key));
+  return { ok: true, permissions: permKeys };
+}

@@ -1,12 +1,98 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { proveTenantPermission, getCallerTenantPermissions } from "@/lib/auth/authorize";
+import { denyIfDemo } from "@/lib/demo/guard";
+
+// Helper: Safely insert platform audit logs without breaking tenant operations
+// OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01
+async function logAuditTrail(
+  adminClient: ReturnType<typeof createAdminClient>,
+  payload: {
+    actor_id: string;
+    organization_id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string;
+    safe_change_summary: Record<string, unknown>;
+  },
+) {
+  try {
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
+      actor_id: payload.actor_id,
+      organization_id: payload.organization_id,
+      action: payload.action,
+      entity_type: payload.entity_type,
+      entity_id: payload.entity_id,
+      safe_change_summary: payload.safe_change_summary,
+    });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
+  } catch (err) {
+    console.error("[OBS-02] Failed to write platform_audit_logs:", err);
+  }
+}
+
+// Helper: Validate that all requested permission IDs are valid tenant permissions
+// AND strictly within the caller's effective tenant permissions (No Privilege Amplification).
+async function validateTenantPermissionIds(
+  adminClient: ReturnType<typeof createAdminClient>,
+  permissionIds: string[],
+  callerPerms: Set<string>,
+  isCallerOwner: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (permissionIds.length === 0) return { ok: true };
+
+  // 1. Resolve requested permission IDs into keys
+  const { data: perms, error: permErr } = await adminClient
+    .from("permissions")
+    .select("id, key")
+    .in("id", permissionIds);
+
+  if (permErr || !perms || perms.length !== permissionIds.length) {
+    return { ok: false, error: "invalid_permission_scope" };
+  }
+
+  // 2. Reject any platform permission
+  const hasPlatformPerm = perms.some((p) => p.key.startsWith("platform."));
+  if (hasPlatformPerm) {
+    return { ok: false, error: "invalid_permission_scope" };
+  }
+
+  // 3. Verify each permission key is present in tenant role templates (tenant-assignable set)
+  const requestedKeys = perms.map((p) => p.key);
+  const { data: templatePerms, error: templateErr } = await adminClient
+    .from("role_template_permissions")
+    .select("permission_key")
+    .in("permission_key", requestedKeys);
+
+  if (templateErr || !templatePerms) {
+    return { ok: false, error: "invalid_permission_scope" };
+  }
+
+  const allowedKeySet = new Set(templatePerms.map((tp) => tp.permission_key));
+  const allTenantAssignable = requestedKeys.every((k) => allowedKeySet.has(k));
+
+  if (!allTenantAssignable) {
+    return { ok: false, error: "invalid_permission_scope" };
+  }
+
+  // 4. Privilege Amplification Guard:
+  // Non-owner tenant administrators can only grant permissions they currently possess themselves.
+  if (!isCallerOwner) {
+    const hasUnheldPerm = requestedKeys.some((k) => !callerPerms.has(k));
+    if (hasUnheldPerm) {
+      return { ok: false, error: "permission_amplification_denied" };
+    }
+  }
+
+  return { ok: true };
+}
 
 const updatePermissionsSchema = z.object({
   organizationId: z.string().uuid(),
@@ -19,6 +105,9 @@ export async function updateRolePermissionsAction(
   roleId: string,
   permissionIds: string[],
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updatePermissionsSchema.safeParse({
     organizationId,
     roleId,
@@ -26,15 +115,24 @@ export async function updateRolePermissionsAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "unauthorized" };
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { ok: false, error: "unauthorized" };
 
-  const org = await getPrimaryOrganization(user.id);
-  if (!org || org.id !== organizationId) return { ok: false, error: "unauthorized" };
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    organizationId,
+    "tenant.roles.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Fetch caller's effective tenant permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(organizationId, currentUser.id);
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
 
   const adminClient = createAdminClient();
 
-  // Verify role belongs to this organization
+  // Verify target role belongs to this organization and is not a system role
   const { data: role, error: roleErr } = await adminClient
     .from("roles")
     .select("id, organization_id, is_system, key")
@@ -43,11 +141,35 @@ export async function updateRolePermissionsAction(
 
   if (roleErr || !role) return { ok: false, error: "role_not_found" };
 
-  // Don't allow clearing all permissions on TENANT_OWNER
+  if (role.is_system || role.organization_id !== organizationId) {
+    return { ok: false, error: "cannot_modify_system_role" };
+  }
+
+  // Non-owners cannot modify TENANT_OWNER role
+  if (role.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_manage_owner_role" };
+  }
+
+  // Protect TENANT_OWNER permissions from being cleared
   if (role.key === "TENANT_OWNER" && permissionIds.length === 0) {
     return { ok: false, error: "cannot_clear_owner_permissions" };
   }
 
+  // Validate permission scope: reject platform.% or non-tenant permissions,
+  // and enforce No-Privilege-Amplification against caller's effective grants.
+  const scopeCheck = await validateTenantPermissionIds(
+    adminClient,
+    permissionIds,
+    callerPermsResult.permissions,
+    callerPermsResult.isOwner,
+  );
+  if (!scopeCheck.ok) {
+    return { ok: false, error: scopeCheck.error };
+  }
+
+  // NOTE (DB-01 / Atomicity Risk):
+  // Deleting existing grants and inserting new grants is currently performed as two separate operations.
+  // Full transactional atomicity is pending DB-01 migration/RPC reconciliation.
   // Delete existing grants
   const { error: delErr } = await adminClient
     .from("role_permissions")
@@ -70,6 +192,19 @@ export async function updateRolePermissionsAction(
     if (insErr) return { ok: false, error: insErr.message };
   }
 
+  // Write audit trail
+  await logAuditTrail(adminClient, {
+    actor_id: currentUser.id,
+    organization_id: organizationId,
+    action: "role.permissions_updated",
+    entity_type: "role",
+    entity_id: roleId,
+    safe_change_summary: {
+      roleKey: role.key,
+      permissionCount: permissionIds.length,
+    },
+  });
+
   revalidatePath("/[locale]/admin/roles", "page");
   return { ok: true };
 }
@@ -86,6 +221,9 @@ export async function createRoleAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const permIdsRaw = formData.get("permissionIds");
   let permissionIds: string[] = [];
   try {
@@ -106,15 +244,49 @@ export async function createRoleAction(
 
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "unauthorized" };
+  // Explicitly reject reserved PLATFORM_SUPER_ADMIN key
+  if (parsed.data.key === "PLATFORM_SUPER_ADMIN") {
+    return { ok: false, error: "reserved_role_key" };
+  }
 
-  const org = await getPrimaryOrganization(user.id);
-  if (!org || org.id !== parsed.data.organizationId) return { ok: false, error: "unauthorized" };
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { ok: false, error: "unauthorized" };
+
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    parsed.data.organizationId,
+    "tenant.roles.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Fetch caller's effective tenant permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Non-owners cannot create TENANT_OWNER role
+  if (parsed.data.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_manage_owner_role" };
+  }
 
   const adminClient = createAdminClient();
 
-  // Create role
+  // Validate permission scope: reject platform.% or non-tenant permissions,
+  // and enforce No-Privilege-Amplification against caller's effective grants.
+  const scopeCheck = await validateTenantPermissionIds(
+    adminClient,
+    parsed.data.permissionIds,
+    callerPermsResult.permissions,
+    callerPermsResult.isOwner,
+  );
+  if (!scopeCheck.ok) {
+    return { ok: false, error: scopeCheck.error };
+  }
+
+  // Create role strictly scoped to this organization, is_system = false
   const { data: newRole, error: roleErr } = await adminClient
     .from("roles")
     .insert({
@@ -134,15 +306,51 @@ export async function createRoleAction(
     return { ok: false, error: roleErr?.message || "failed_to_create_role" };
   }
 
-  // Grant permissions
+  // Grant permissions (with safe compensation if insertion fails)
   if (parsed.data.permissionIds.length > 0) {
     const rows = parsed.data.permissionIds.map((pId) => ({
       role_id: newRole.id,
       permission_id: pId,
     }));
 
-    await adminClient.from("role_permissions").insert(rows);
+    const { error: insPermErr } = await adminClient.from("role_permissions").insert(rows);
+    if (insPermErr) {
+      console.error("[SEC-COMPENSATION] Failed to insert role permissions, compensating by deleting created role:", {
+        roleId: newRole.id,
+        error: insPermErr.message,
+      });
+
+      // Temporary compensation: Delete the newly created empty role because this exact operation created it.
+      // True transactional atomicity is pending DB-01 RPC/migration support.
+      try {
+        const { error: compDelErr } = await adminClient.from("roles").delete().eq("id", newRole.id);
+        if (compDelErr) {
+          console.error("[SEC-COMPENSATION-FAILED] Failed to clean up created role during compensation:", {
+            roleId: newRole.id,
+            error: compDelErr.message,
+          });
+        }
+      } catch (cleanupErr) {
+        console.error("[SEC-COMPENSATION-FAILED] Exception during role cleanup:", cleanupErr);
+      }
+
+      return { ok: false, error: "failed_to_assign_role_permissions" };
+    }
   }
+
+  // Write audit trail only on full success
+  await logAuditTrail(adminClient, {
+    actor_id: currentUser.id,
+    organization_id: parsed.data.organizationId,
+    action: "role.created",
+    entity_type: "role",
+    entity_id: newRole.id,
+    safe_change_summary: {
+      key: parsed.data.key,
+      nameEn: parsed.data.nameEn,
+      permissionCount: parsed.data.permissionIds.length,
+    },
+  });
 
   revalidatePath("/[locale]/admin/roles", "page");
   return { ok: true };
