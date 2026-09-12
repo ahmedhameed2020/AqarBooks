@@ -8,6 +8,7 @@
 --
 -- TARGET FINDINGS:
 --   - SEC-01: Harden public.is_platform_admin() against tenant-scoped role assignment escalation.
+--   - SEC-01: Harden public.has_permission() to require ACTIVE membership for tenant permissions.
 --   - SEC-02: Prevent assigning PLATFORM_SUPER_ADMIN with non-null organization_id.
 --   - SEC-02: Prevent creating tenant-owned roles (organization_id IS NOT NULL) with PLATFORM_SUPER_ADMIN.
 --   - SEC-02: Prevent assigning platform-scoped permissions (key LIKE 'platform.%') to tenant roles.
@@ -147,3 +148,52 @@ CREATE TRIGGER trg_role_permissions_scope_guard
 BEFORE INSERT OR UPDATE ON public.role_permissions
 FOR EACH ROW
 EXECUTE FUNCTION public.guard_role_permissions_scope();
+
+-- 5. HARDEN public.has_permission() FOR ACTIVE MEMBERSHIP
+-- Required semantics:
+--   - Canonical platform admin may continue through the hardened is_platform_admin() path.
+--   - Ordinary tenant authorization requires:
+--       * matching organization_memberships row
+--       * exact organization
+--       * status = 'active'
+--       * matching tenant-scoped role assignment (ura.organization_id = p_organization_id)
+--       * matching permission
+CREATE OR REPLACE FUNCTION public.has_permission(
+  p_user_id uuid,
+  p_organization_id uuid,
+  p_permission_key text
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT (
+    -- 1. Canonical platform admin bypass (hardened is_platform_admin)
+    public.is_platform_admin(p_user_id)
+    OR (
+      -- 2. Ordinary tenant authorization: requires ACTIVE membership in exact organization
+      EXISTS (
+        SELECT 1
+        FROM public.organization_memberships om
+        WHERE om.user_id = p_user_id
+          AND om.organization_id = p_organization_id
+          AND om.status = 'active'
+      )
+      AND
+      -- 3. Tenant-scoped role assignment granting the requested permission
+      EXISTS (
+        SELECT 1
+        FROM public.user_role_assignments ura
+        JOIN public.roles r ON r.id = ura.role_id
+        JOIN public.role_permissions rp ON rp.role_id = r.id
+        JOIN public.permissions p ON p.id = rp.permission_id
+        WHERE ura.user_id = p_user_id
+          AND ura.organization_id = p_organization_id
+          AND p.key = p_permission_key
+          AND (r.organization_id = p_organization_id OR (r.organization_id IS NULL AND r.key != 'PLATFORM_SUPER_ADMIN'))
+      )
+    )
+  );
+$$;

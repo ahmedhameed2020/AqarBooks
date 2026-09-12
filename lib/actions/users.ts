@@ -38,24 +38,32 @@ async function logAuditTrail(
   }
 }
 
-// Helper: Check if target user is the last active TENANT_OWNER
+// Helper: Check if target user is the last active TENANT_OWNER (Fail-Closed)
 async function isLastTenantOwner(
   adminClient: ReturnType<typeof createAdminClient>,
   organizationId: string,
   targetUserId: string,
-): Promise<boolean> {
+): Promise<{ ok: true; isLast: boolean } | { ok: false; error: "owner_check_failed" }> {
   // Find TENANT_OWNER role(s) valid for this organization
-  const { data: ownerRoles } = await adminClient
+  const { data: ownerRoles, error: rolesErr } = await adminClient
     .from("roles")
     .select("id")
     .eq("key", "TENANT_OWNER")
     .or(`organization_id.eq.${organizationId},organization_id.is.null`);
 
-  if (!ownerRoles || ownerRoles.length === 0) return false;
+  if (rolesErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query owner roles:", rolesErr.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  if (!ownerRoles || ownerRoles.length === 0) {
+    console.error("[SEC-FAIL-CLOSED] No TENANT_OWNER role found for organization:", organizationId);
+    return { ok: false, error: "owner_check_failed" };
+  }
   const ownerRoleIds = ownerRoles.map((r) => r.id);
 
   // Check if target user has active TENANT_OWNER assignment in this organization
-  const { data: targetAssignment } = await adminClient
+  const { data: targetAssignment, error: targetAssignErr } = await adminClient
     .from("user_role_assignments")
     .select("id")
     .eq("organization_id", organizationId)
@@ -63,36 +71,49 @@ async function isLastTenantOwner(
     .in("role_id", ownerRoleIds)
     .maybeSingle();
 
+  if (targetAssignErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query target owner assignment:", targetAssignErr.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
   if (!targetAssignment) {
-    return false; // Target is not a tenant owner
+    return { ok: true, isLast: false }; // Target is not a tenant owner
   }
 
   // Find all user IDs assigned to TENANT_OWNER in this organization
-  const { data: allOwnerAssignments } = await adminClient
+  const { data: allOwnerAssignments, error: allAssignErr } = await adminClient
     .from("user_role_assignments")
     .select("user_id")
     .eq("organization_id", organizationId)
     .in("role_id", ownerRoleIds);
 
-  if (!allOwnerAssignments || allOwnerAssignments.length === 0) return false;
+  if (allAssignErr || !allOwnerAssignments) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query all owner assignments:", allAssignErr?.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
 
   const otherUserIds = Array.from(
     new Set(allOwnerAssignments.map((a) => a.user_id).filter((uid) => uid !== targetUserId))
   );
 
   if (otherUserIds.length === 0) {
-    return true; // No other users assigned this role
+    return { ok: true, isLast: true }; // No other users assigned this role
   }
 
   // Count OTHER active members among those users
-  const { data: activeOtherOwners } = await adminClient
+  const { data: activeOtherOwners, error: activeOwnersErr } = await adminClient
     .from("organization_memberships")
     .select("user_id")
     .eq("organization_id", organizationId)
     .eq("status", "active")
     .in("user_id", otherUserIds);
 
-  return !activeOtherOwners || activeOtherOwners.length === 0;
+  if (activeOwnersErr || !activeOtherOwners) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query active other owners:", activeOwnersErr?.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  return { ok: true, isLast: activeOtherOwners.length === 0 };
 }
 
 const inviteUserSchema = z.object({
@@ -240,12 +261,17 @@ export async function inviteUserAction(
 
     if (memErr) throw new Error(memErr.message);
 
-    // Assign role
-    await adminClient
+    // Assign role (fail closed on delete error)
+    const { error: delRoleErr } = await adminClient
       .from("user_role_assignments")
       .delete()
       .eq("organization_id", parsed.data.organizationId)
       .eq("user_id", invitedUserId);
+
+    if (delRoleErr) {
+      console.error("[SEC-FAIL-CLOSED] Failed to clear previous role assignments on invite:", delRoleErr.message);
+      throw new Error(`failed_to_clear_previous_assignments: ${delRoleErr.message}`);
+    }
 
     const { error: assignErr } = await adminClient
       .from("user_role_assignments")
@@ -389,18 +415,27 @@ export async function changeUserRoleAction(
 
   // Prevent demoting the last active TENANT_OWNER
   if (role.key !== "TENANT_OWNER") {
-    const isLast = await isLastTenantOwner(adminClient, organizationId, userId);
-    if (isLast) {
+    const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+    if (!ownerCheck.ok) {
+      return { ok: false, error: ownerCheck.error };
+    }
+    if (ownerCheck.isLast) {
       return { ok: false, error: "cannot_demote_last_tenant_owner" };
     }
   }
 
   // Delete current organization role assignments for this user
-  await adminClient
+  // Non-atomic note: Full atomic role replacement remains pending transactional DB/RPC work under DB-01.
+  const { error: roleDeleteErr } = await adminClient
     .from("user_role_assignments")
     .delete()
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
+
+  if (roleDeleteErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to delete existing role assignments:", roleDeleteErr.message);
+    return { ok: false, error: "failed_to_remove_existing_roles" };
+  }
 
   // Insert new role assignment
   const { error: insErr } = await adminClient
@@ -479,8 +514,11 @@ export async function updateUserStatusAction(
 
   // Prevent suspending the last active TENANT_OWNER
   if (status !== "active") {
-    const isLast = await isLastTenantOwner(adminClient, organizationId, userId);
-    if (isLast) {
+    const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+    if (!ownerCheck.ok) {
+      return { ok: false, error: ownerCheck.error };
+    }
+    if (ownerCheck.isLast) {
       return { ok: false, error: "cannot_suspend_last_tenant_owner" };
     }
   }
@@ -544,19 +582,27 @@ export async function removeUserAction(
   }
 
   // Prevent removing the last active TENANT_OWNER
-  const isLast = await isLastTenantOwner(adminClient, organizationId, userId);
-  if (isLast) {
+  const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+  if (!ownerCheck.ok) {
+    return { ok: false, error: ownerCheck.error };
+  }
+  if (ownerCheck.isLast) {
     return { ok: false, error: "cannot_remove_last_tenant_owner" };
   }
 
-  // Delete role assignments
-  await adminClient
+  // 1. Delete organization-scoped role assignments (fail-closed)
+  const { error: roleDelErr } = await adminClient
     .from("user_role_assignments")
     .delete()
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
 
-  // Delete membership
+  if (roleDelErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to delete role assignments before removing user:", roleDelErr.message);
+    return { ok: false, error: "failed_to_remove_role_assignments" };
+  }
+
+  // 2. Delete membership only after role assignment removal succeeds
   const { error } = await adminClient
     .from("organization_memberships")
     .delete()

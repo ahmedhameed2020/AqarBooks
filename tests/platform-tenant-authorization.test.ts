@@ -20,6 +20,7 @@ const roleAdminId = "8c9768df-063c-4341-a8b7-cd878c32084f";
 const roleNewId = "a05ebdf9-8641-4281-bb2a-1d33a730737a";
 const permUsersId = "323aaea2-f77f-4a4e-8512-bf99a19a10f5";
 const permRolesId = "5f6872bc-6d37-4ce7-8cd4-e77b571a2dd4";
+const roleOwnerId = "7d4422e1-4512-4cf4-91bf-2d93e1178491";
 
 let mockCurrentUser: { id: string; email: string } | null = null;
 let mockIsDemo = false;
@@ -44,6 +45,11 @@ let mockRolePermissionsInsertError: { message: string } | null = null;
 let mockPermissionsSelectError: { message: string } | null = null;
 let mockPermissionsTargetOnly = false;
 let mockMembershipSelectError: { message: string } | null = null;
+let mockRoleAssignmentDeleteError: { message: string } | null = null;
+let mockRoleAssignmentInsertCalls: any[] = [];
+let mockMembershipDeleteCalls: any[] = [];
+let mockOwnerCheckRolesError: { message: string } | null = null;
+let mockOwnerCheckTargetAssignmentError: { message: string } | null = null;
 
 // Mock dependencies
 vi.mock("@/lib/auth/session", () => ({
@@ -144,9 +150,12 @@ vi.mock("@/lib/supabase/admin", () => ({
           }),
         }));
         queryBuilder.delete.mockImplementation(() => ({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          }),
+          eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
+            eq: vi.fn().mockImplementation((col2: string, val2: string) => {
+              mockMembershipDeleteCalls.push({ col1, val1, col2, val2 });
+              return Promise.resolve({ error: null });
+            }),
+          })),
         }));
       }
 
@@ -157,6 +166,12 @@ vi.mock("@/lib/supabase/admin", () => ({
               eq: vi.fn().mockImplementation(() => ({
                 in: vi.fn().mockImplementation((col: string, vals: any[]) => {
                   if (col === "role_id") {
+                    if (mockOwnerCheckTargetAssignmentError) {
+                      return {
+                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: mockOwnerCheckTargetAssignmentError }),
+                        then: (resolve: any) => resolve({ data: null, error: mockOwnerCheckTargetAssignmentError }),
+                      };
+                    }
                     return {
                       maybeSingle: vi.fn().mockResolvedValue({ data: { id: "assign-1" }, error: null }),
                       then: (resolve: any) => resolve({ data: mockOtherOwners.map((o) => ({ user_id: o.user_id })), error: null }),
@@ -179,6 +194,9 @@ vi.mock("@/lib/supabase/admin", () => ({
               })),
               in: vi.fn().mockImplementation((col: string, vals: any[]) => {
                 if (col === "role_id") {
+                  if (mockOwnerCheckTargetAssignmentError) {
+                    return Promise.resolve({ data: null, error: mockOwnerCheckTargetAssignmentError });
+                  }
                   const owners = mockOtherOwners.map((o) => ({ user_id: o.user_id }));
                   owners.push({ user_id: targetUserId });
                   return Promise.resolve({ data: owners, error: null });
@@ -204,11 +222,19 @@ vi.mock("@/lib/supabase/admin", () => ({
           return chain;
         });
         queryBuilder.delete.mockImplementation(() => ({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          }),
+          eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
+            eq: vi.fn().mockImplementation((col2: string, val2: string) => {
+              if (mockRoleAssignmentDeleteError) {
+                return Promise.resolve({ error: mockRoleAssignmentDeleteError });
+              }
+              return Promise.resolve({ error: null });
+            }),
+          })),
         }));
-        queryBuilder.insert.mockResolvedValue({ error: null });
+        queryBuilder.insert.mockImplementation((payload: any) => {
+          mockRoleAssignmentInsertCalls.push(payload);
+          return Promise.resolve({ error: null });
+        });
       }
 
       if (table === "roles") {
@@ -225,6 +251,11 @@ vi.mock("@/lib/supabase/admin", () => ({
           const roleSelect: any = {
             or: vi.fn().mockReturnThis(),
             eq: vi.fn().mockImplementation((field: string, val: string) => {
+              if (field === "key" && val === "TENANT_OWNER" && mockOwnerCheckRolesError) {
+                return {
+                  or: vi.fn().mockResolvedValue({ data: null, error: mockOwnerCheckRolesError }),
+                };
+              }
               const matched = mockRoles.filter((r) => (r as any)[field] === val);
               const resObj: any = {
                 single: vi.fn().mockResolvedValue({ data: matched[0] || mockRoles[0] || null, error: null }),
@@ -417,6 +448,7 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     mockRoles = [
       { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
       { id: roleNewId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+      { id: roleOwnerId, key: "TENANT_OWNER", organization_id: orgId, is_system: true },
     ];
     mockRolePermissions = [
       { permission_id: permUsersId },
@@ -441,6 +473,11 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     mockPermissionsSelectError = null;
     mockPermissionsTargetOnly = false;
     mockMembershipSelectError = null;
+    mockRoleAssignmentDeleteError = null;
+    mockRoleAssignmentInsertCalls = [];
+    mockMembershipDeleteCalls = [];
+    mockOwnerCheckRolesError = null;
+    mockOwnerCheckTargetAssignmentError = null;
     inviteUserFail = false;
     mockTargetMemberships = new Map<string, { status: string } | null>();
     mockTargetMemberships.set(targetUserId, { status: "active" });
@@ -565,6 +602,7 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       mockRoles = [
         { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
         { id: roleNewId, key: "ACCOUNTANT", organization_id: orgId, is_system: false },
+        { id: roleOwnerId, key: "TENANT_OWNER", organization_id: orgId, is_system: true },
       ];
 
       const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
@@ -623,6 +661,7 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       mockRoles = [
         { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
         { id: roleNewId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleOwnerId, key: "TENANT_OWNER", organization_id: orgId, is_system: true },
       ];
 
       const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
@@ -1075,6 +1114,64 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       expect(res.error).toBe("failed_to_assign_role_permissions");
       expect(deleteRoleCalls).toContain("92cf89b3-0bb3-456a-92dd-a9a657695e52");
       expect(mockAuditLogs.length).toBe(0);
+    });
+  });
+
+  describe("Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5)", () => {
+    it("changeUserRoleAction: fails closed when deleting existing role assignment fails; new role is NOT inserted", async () => {
+      mockRoleAssignmentDeleteError = { message: "deadlock detected" };
+
+      const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("failed_to_remove_existing_roles");
+      expect(mockRoleAssignmentInsertCalls.length).toBe(0);
+    });
+
+    it("removeUserAction: does NOT attempt membership deletion when role assignment deletion fails", async () => {
+      mockRoleAssignmentDeleteError = { message: "foreign key constraint violation" };
+
+      const res = await removeUserAction(orgId, targetUserId);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("failed_to_remove_role_assignments");
+      expect(mockMembershipDeleteCalls.length).toBe(0);
+    });
+
+    it("changeUserRoleAction: denies demotion when isLastTenantOwner query fails", async () => {
+      mockOwnerCheckTargetAssignmentError = { message: "database timeout" };
+
+      const res = await changeUserRoleAction(orgId, targetUserId, roleNewId);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("owner_check_failed");
+    });
+
+    it("updateUserStatusAction: denies suspension when isLastTenantOwner query fails", async () => {
+      mockOwnerCheckRolesError = { message: "connection dropped" };
+
+      const res = await updateUserStatusAction(orgId, targetUserId, "suspended");
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("owner_check_failed");
+    });
+
+    it("removeUserAction: denies removal when isLastTenantOwner query fails", async () => {
+      mockOwnerCheckRolesError = { message: "disk read error" };
+
+      const res = await removeUserAction(orgId, targetUserId);
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe("owner_check_failed");
+    });
+
+    it("inviteUserAction: aborts provisioning and compensates when role-replacement delete fails", async () => {
+      mockRoleAssignmentDeleteError = { message: "write conflict" };
+      const formData = new FormData();
+      formData.set("organizationId", orgId);
+      formData.set("email", "freshuser@example.com");
+      formData.set("roleKey", "TENANT_ADMIN");
+
+      const res = await inviteUserAction({ ok: false }, formData);
+      expect(res.ok).toBe(false);
+      expect(res.error).toContain("failed_to_clear_previous_assignments");
+      expect(deleteUserCalls).toContain("37bf5d4a-0c33-4f35-a2a1-d9e37b7225d7");
+      expect(mockRoleAssignmentInsertCalls.length).toBe(0);
     });
   });
 });
