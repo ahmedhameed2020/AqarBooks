@@ -38,7 +38,7 @@ A comprehensive, non-mutating forensic investigation and reproducibility audit w
      - **Triggers**: 59 in Rebuild, 59 in Production — **0 diff** (100% match)
      - **RLS Policies**: 177 in Rebuild, 177 in Production — **0 diff** (100% match)
      - **Indexes**: 319 in Rebuild, 319 in Production — **0 diff** (100% match)
-   - **Verdict**: The 18 repository migrations completely and deterministically reproduce the live production schema of AqarBooks.
+   - **Verdict**: The 18 repository migrations reproduce the current AqarBooks public product schema for the checked structural/security classes.
 
 4. **ADR 0005 Provenance Cryptographically Proven**:
    - Audit confirmed that base commit `960f3f2fb9a7a4936911eb8da6b49977a8e9b753` exists in the repository's git object database (`git cat-file -t 960f3f2f` returned `commit`).
@@ -58,38 +58,38 @@ A comprehensive, non-mutating forensic investigation and reproducibility audit w
 
 ## 2. Forensic Evidence of the 15 Ledger-Only Rows
 
-The 15 uncommitted rows in `supabase_migrations.schema_migrations` represent historical staging and ETL scripts applied between 2026-08-29 and 2026-08-31 during the legacy data migration.
+The 15 uncommitted rows in `supabase_migrations.schema_migrations` represent a one-off Microsoft Access data-import / ETL workflow executed for a specific customer migration between 2026-08-29 and 2026-08-31. They are NOT part of the canonical AqarBooks product migration history and are not required to rebuild or operate the current product. All 15 rows are formally classified as `retired_one_off_access_import_etl`. No SQL migration files are fabricated for them.
 
 ### 2.1 Manifest Summary
 
 | Version | Migration Name | Statements | Bytes | Classification |
 |---|---|:---:|:---:|---|
-| `20260829104638` | `legacy_access_migration_control_plane` | 1 | 4,145 | `historical_migration_control_plane` |
-| `20260829105948` | `legacy_migration_raw_staging_tables` | 1 | 6,262 | `historical_staging_schema` |
-| `20260829110027` | `legacy_migration_validation_views_v2` | 1 | 3,196 | `historical_staging_schema` |
-| `20260831194315` | `accsys_migration_staging_schema` | 1 | 2,402 | `historical_staging_schema` |
-| `20260831194442` | `accsys_stage_loader_casts` | 1 | 1,110 | `historical_batch_loader_function` |
-| `20260831194633` | `accsys_stage_compact_bulk_tables` | 1 | 471 | `historical_staging_schema` |
-| `20260831194850` | `accsys_stage_coa_shape` | 1 | 156 | `historical_staging_schema` |
-| `20260831195011` | `accsys_materialize_function` | 1 | 8,473 | `historical_etl_materialization` |
-| `20260831195049` | `accsys_materialize_function_fix` | 1 | 7,814 | `historical_etl_materialization` |
-| `20260831195824` | `accsys_materialize_no_demo_flag` | 1 | 7,861 | `historical_etl_materialization` |
-| `20260831200103` | `accsys_materialize_operations` | 1 | 6,817 | `historical_etl_materialization` |
-| `20260831200142` | `accsys_ops_unique_receipt_numbers` | 1 | 6,964 | `historical_etl_materialization` |
-| `20260831201313` | `accsys_stage_verified_loader` | 1 | 872 | `historical_batch_loader_function` |
-| `20260831201513` | `accsys_stage_dictionary_and_reset` | 1 | 1,170 | `historical_staging_schema` |
-| `20260831205217` | `accsys_loader_strip_cr` | 1 | 2,022 | `historical_batch_loader_function` |
+| `20260829104638` | `legacy_access_migration_control_plane` | 1 | 4,145 | `retired_one_off_access_import_etl` |
+| `20260829105948` | `legacy_migration_raw_staging_tables` | 1 | 6,262 | `retired_one_off_access_import_etl` |
+| `20260829110027` | `legacy_migration_validation_views_v2` | 1 | 3,196 | `retired_one_off_access_import_etl` |
+| `20260831194315` | `accsys_migration_staging_schema` | 1 | 2,402 | `retired_one_off_access_import_etl` |
+| `20260831194442` | `accsys_stage_loader_casts` | 1 | 1,110 | `retired_one_off_access_import_etl` |
+| `20260831194633` | `accsys_stage_compact_bulk_tables` | 1 | 471 | `retired_one_off_access_import_etl` |
+| `20260831194850` | `accsys_stage_coa_shape` | 1 | 156 | `retired_one_off_access_import_etl` |
+| `20260831195011` | `accsys_materialize_function` | 1 | 8,473 | `retired_one_off_access_import_etl` |
+| `20260831195049` | `accsys_materialize_function_fix` | 1 | 7,814 | `retired_one_off_access_import_etl` |
+| `20260831195824` | `accsys_materialize_no_demo_flag` | 1 | 7,861 | `retired_one_off_access_import_etl` |
+| `20260831200103` | `accsys_materialize_operations` | 1 | 6,817 | `retired_one_off_access_import_etl` |
+| `20260831200142` | `accsys_ops_unique_receipt_numbers` | 1 | 6,964 | `retired_one_off_access_import_etl` |
+| `20260831201313` | `accsys_stage_verified_loader` | 1 | 872 | `retired_one_off_access_import_etl` |
+| `20260831201513` | `accsys_stage_dictionary_and_reset` | 1 | 1,170 | `retired_one_off_access_import_etl` |
+| `20260831205217` | `accsys_loader_strip_cr` | 1 | 2,022 | `retired_one_off_access_import_etl` |
 
 Total statement bytes: **59,735 bytes**.  
 Cryptographic hash of canonical raw export:
 `b0313b78f1823e88c2c04c010567991b83eb6e6b50ec0e9437095d06b399131e`.
 
-### 2.2 Schema Separation in PostgreSQL Catalog
-Analysis of `information_schema.schemata` and `pg_tables` in production confirms:
-1. `legacy_migration` schema holds 14 staging tables (e.g., `legacy_migration.raw_owners`, `legacy_migration.raw_units`) and 6 views.
-2. `accsys_stage` schema holds 22 staging tables (e.g., `accsys_stage.stg_accounts`, `accsys_stage.stg_vouchers`).
-3. Neither schema is exposed via PostgREST (PostgREST is configured with `db-schemas = "public"`).
-4. Zero tables or functions in `public` reference or depend on these staging objects.
+### 2.2 Schema Separation, Zero Runtime Dependency & Residual Staging Schemas
+Direct inspection of the codebase and PostgreSQL catalog confirms:
+1. **Retired Historical Import Schemas in Production**: `legacy_migration` (14 staging tables, 6 views) and `accsys_stage` (22 staging tables) exist in production solely as artifacts of the historical customer import.
+2. **Not Exposed to Application**: PostgREST serves exclusively `public` (`db-schemas = "public"`). Neither staging schema is exposed to APIs, client callers, or anon/authenticated roles.
+3. **Zero Runtime Dependency**: A comprehensive codebase search confirms zero application code, RPCs, triggers, policies, or runtime functions reference `accsys_`, `accsys_stage`, `legacy_migration`, or `legacy_access_`.
+4. **No Schema Drop in PR #34**: These historical schemas are **not** dropped in PR #34. Leaving them undisturbed preserves the zero-mutation production invariant. Cleanup, retention, archival, or removal can be evaluated and executed later through a dedicated, separately reviewed migration.
 
 ---
 

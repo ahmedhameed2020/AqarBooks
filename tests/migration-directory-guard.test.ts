@@ -119,6 +119,14 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
  * (20260829104638 .. 20260831205217: legacy_access_* and accsys_*) investigated
  * under DB-01 (see docs/migration-ledger-forensics-report.md).
  *
+ * CONTEXT CORRECTION & CLASSIFICATION:
+ * These 15 rows represent a one-off Microsoft Access data-import / ETL workflow
+ * executed for a specific customer migration between 2026-08-29 and 2026-08-31.
+ * They are NOT part of the canonical AqarBooks product migration history and are
+ * not required to rebuild or operate the current product. All 15 rows are formally
+ * classified as `retired_one_off_access_import_etl`. No SQL migration files are
+ * fabricated for them.
+ *
  * Live catalog introspection across all 110 PostgREST definitions and 211 PostgreSQL
  * routines confirms that zero schema objects exist in the public schema for these 15 rows.
  * Furthermore, an exhaustive git fsck scan across 3,166 dangling blobs confirmed zero
@@ -464,6 +472,41 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(totalBytes).toBe(manifest.total_statement_bytes);
       expect(totalBytes).toBe(59735);
     });
+
+    it("proves zero runtime dependency on historical staging schemas in application code and migrations", () => {
+      const searchDirs = ["app", "components", "lib", "supabase/migrations"];
+      const bannedPatterns = [/\baccsys_/i, /\baccsys_stage\b/i, /\blegacy_migration\b/i, /\blegacy_access_/i];
+
+      function scanDir(dir: string): string[] {
+        const fullDir = join(process.cwd(), dir);
+        if (!existsSync(fullDir)) return [];
+        const entries = readdirSync(fullDir, { withFileTypes: true });
+        const findings: string[] = [];
+
+        for (const entry of entries) {
+          const relPath = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            findings.push(...scanDir(relPath));
+          } else if (/\.(ts|tsx|js|mjs|cjs|sql)$/.test(entry.name)) {
+            const content = readFileSync(join(process.cwd(), relPath), "utf8");
+            for (const pat of bannedPatterns) {
+              if (pat.test(content)) {
+                findings.push(`${relPath} matches ${pat}`);
+              }
+            }
+          }
+        }
+        return findings;
+      }
+
+      const allFindings: string[] = [];
+      for (const dir of searchDirs) {
+        allFindings.push(...scanDir(dir));
+      }
+
+      expect(allFindings).toEqual([]);
+    });
   });
 });
+
 
