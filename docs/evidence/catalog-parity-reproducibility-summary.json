@@ -1,0 +1,68 @@
+{
+  "title": "AqarBooks Schema Reproducibility & Catalog Parity Summary",
+  "comparator_version": "1.0.0",
+  "comparator_sha256": "c3851d6637c8f1b683763a1dffe6d494b8a6f104d89378890dda54686eaee180",
+  "execution_timestamp": "2026-09-13T07:13:34.956Z",
+  "target_project": "ataslxkcflxuilpgyepm",
+  "target_schema": "public",
+  "reproduced_from": "18 migrations in supabase/migrations/",
+  "result": "PERFECT_MATCH_ZERO_DIFF",
+  "catalog_classes": {
+    "tables": {
+      "rebuild": 107,
+      "prod": 107,
+      "diff": 0
+    },
+    "views": {
+      "rebuild": 3,
+      "prod": 3,
+      "diff": 0
+    },
+    "columns": {
+      "rebuild": 1255,
+      "prod": 1255,
+      "diff": 0
+    },
+    "explicit_constraints": {
+      "rebuild": 729,
+      "prod": 729,
+      "diff": 0
+    },
+    "application_functions": {
+      "rebuild": 211,
+      "prod": 211,
+      "diff": 0
+    },
+    "triggers": {
+      "rebuild": 59,
+      "prod": 59,
+      "diff": 0
+    },
+    "rls_policies": {
+      "rebuild": 177,
+      "prod": 177,
+      "diff": 0
+    },
+    "indexes": {
+      "rebuild": 319,
+      "prod": 319,
+      "diff": 0
+    }
+  },
+  "intentionally_excluded_classes": {
+    "synthetic_not_null_check_constraints": {
+      "reason": "PostgreSQL 16/17 synthetically names NOT NULL checks differently from PostgreSQL 15 managed instances",
+      "mitigation": "All columns nullability verified directly via information_schema.columns.is_nullable (0 diff)",
+      "residual_risk": "none"
+    },
+    "extension_internal_functions": {
+      "reason": "PostgreSQL version difference in btree_gist sortsupport routines between PG15 and PG16/17",
+      "mitigation": "All 211 application routines verified with security definer attributes (0 diff)",
+      "residual_risk": "none"
+    },
+    "sequences_and_types": {
+      "reason": "Underlying sequences are created automatically by bigserial/identity and enums by baseline",
+      "residual_risk": "negligible"
+    }
+  }
+}
