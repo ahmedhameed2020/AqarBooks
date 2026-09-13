@@ -1,12 +1,120 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getPrimaryOrganization } from "@/lib/auth/org-context";
+import { proveTenantPermission, getCallerTenantPermissions, getRolePermissionKeys } from "@/lib/auth/authorize";
+import { denyIfDemo } from "@/lib/demo/guard";
+
+// Helper: Safely insert platform audit logs without breaking tenant operations
+// OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01
+async function logAuditTrail(
+  adminClient: ReturnType<typeof createAdminClient>,
+  payload: {
+    actor_id: string;
+    organization_id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string;
+    safe_change_summary: Record<string, unknown>;
+  },
+) {
+  try {
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
+      actor_id: payload.actor_id,
+      organization_id: payload.organization_id,
+      action: payload.action,
+      entity_type: payload.entity_type,
+      entity_id: payload.entity_id,
+      safe_change_summary: payload.safe_change_summary,
+    });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
+  } catch (err) {
+    console.error("[OBS-02] Failed to write platform_audit_logs:", err);
+  }
+}
+
+// Helper: Check if target user is the last active TENANT_OWNER (Fail-Closed)
+async function isLastTenantOwner(
+  adminClient: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  targetUserId: string,
+): Promise<{ ok: true; isLast: boolean } | { ok: false; error: "owner_check_failed" }> {
+  // Find TENANT_OWNER role(s) valid for this organization
+  const { data: ownerRoles, error: rolesErr } = await adminClient
+    .from("roles")
+    .select("id")
+    .eq("key", "TENANT_OWNER")
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`);
+
+  if (rolesErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query owner roles:", rolesErr.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  if (!ownerRoles || ownerRoles.length === 0) {
+    console.error("[SEC-FAIL-CLOSED] No TENANT_OWNER role found for organization:", organizationId);
+    return { ok: false, error: "owner_check_failed" };
+  }
+  const ownerRoleIds = ownerRoles.map((r) => r.id);
+
+  // Check if target user has active TENANT_OWNER assignment in this organization
+  const { data: targetAssignment, error: targetAssignErr } = await adminClient
+    .from("user_role_assignments")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", targetUserId)
+    .in("role_id", ownerRoleIds)
+    .maybeSingle();
+
+  if (targetAssignErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query target owner assignment:", targetAssignErr.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  if (!targetAssignment) {
+    return { ok: true, isLast: false }; // Target is not a tenant owner
+  }
+
+  // Find all user IDs assigned to TENANT_OWNER in this organization
+  const { data: allOwnerAssignments, error: allAssignErr } = await adminClient
+    .from("user_role_assignments")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .in("role_id", ownerRoleIds);
+
+  if (allAssignErr || !allOwnerAssignments) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query all owner assignments:", allAssignErr?.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  const otherUserIds = Array.from(
+    new Set(allOwnerAssignments.map((a) => a.user_id).filter((uid) => uid !== targetUserId))
+  );
+
+  if (otherUserIds.length === 0) {
+    return { ok: true, isLast: true }; // No other users assigned this role
+  }
+
+  // Count OTHER active members among those users
+  const { data: activeOtherOwners, error: activeOwnersErr } = await adminClient
+    .from("organization_memberships")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .in("user_id", otherUserIds);
+
+  if (activeOwnersErr || !activeOtherOwners) {
+    console.error("[SEC-FAIL-CLOSED] Failed to query active other owners:", activeOwnersErr?.message);
+    return { ok: false, error: "owner_check_failed" };
+  }
+
+  return { ok: true, isLast: activeOtherOwners.length === 0 };
+}
 
 const inviteUserSchema = z.object({
   organizationId: z.string().uuid(),
@@ -19,6 +127,9 @@ export async function inviteUserAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const fullNameRaw = formData.get("fullName");
   const parsed = inviteUserSchema.safeParse({
     organizationId: formData.get("organizationId"),
@@ -32,15 +143,41 @@ export async function inviteUserAction(
   const currentUser = await getCurrentUser();
   if (!currentUser) return { ok: false, error: "unauthorized" };
 
-  const org = await getPrimaryOrganization(currentUser.id);
-  if (!org || org.id !== parsed.data.organizationId) return { ok: false, error: "unauthorized" };
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    parsed.data.organizationId,
+    "tenant.users.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Attack D / Self-Escalation Guard: Caller cannot invite their own email
+  if (currentUser.email && parsed.data.email.toLowerCase() === currentUser.email.toLowerCase()) {
+    return { ok: false, error: "cannot_invite_self" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack C: Only an active TENANT_OWNER can invite another TENANT_OWNER
+  if (parsed.data.roleKey === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
 
   const adminClient = createAdminClient();
 
-  // 1. Find role for this organization (prefer org-specific role over system template)
+  // Find role strictly for this organization (disallow platform super admin)
+  if (parsed.data.roleKey === "PLATFORM_SUPER_ADMIN") {
+    return { ok: false, error: "role_not_found" };
+  }
+
   const { data: roleData, error: roleErr } = await adminClient
     .from("roles")
-    .select("id")
+    .select("id, organization_id, is_system")
     .or(`organization_id.eq.${parsed.data.organizationId},organization_id.is.null`)
     .eq("key", parsed.data.roleKey)
     .order("organization_id", { ascending: false, nullsFirst: false })
@@ -51,14 +188,30 @@ export async function inviteUserAction(
     return { ok: false, error: "role_not_found" };
   }
 
-  let invitedUserId: string | null = null;
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const rolePermsResult = await getRolePermissionKeys(roleData.id);
+    if (!rolePermsResult.ok) {
+      return { ok: false, error: rolePermsResult.error };
+    }
 
-  // 2. Invite or find auth user
+    const hasUnheldPerm = Array.from(rolePermsResult.permissions).some(
+      (k) => !callerPermsResult.permissions.has(k)
+    );
+    if (hasUnheldPerm) {
+      return { ok: false, error: "role_privilege_escalation" };
+    }
+  }
+
+  let invitedUserId: string | null = null;
+  let isNewUserCreated = false;
+
+  // Invite or find existing auth user
   const { data: invited, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(parsed.data.email);
 
   if (inviteError || !invited.user) {
-    // If user already exists in auth, find by email
+    // If user already exists in auth, find user by email
     const { data: listData } = await adminClient.auth.admin.listUsers();
     const existingUser = listData?.users?.find(
       (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
@@ -66,63 +219,110 @@ export async function inviteUserAction(
 
     if (existingUser) {
       invitedUserId = existingUser.id;
+      isNewUserCreated = false;
     } else {
-      // Fallback: create user directly (useful when SMTP is in test mode / rate-limited)
-      const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
-        email: parsed.data.email,
-        email_confirm: true,
-      });
-
-      if (createErr || !created?.user) {
-        return { ok: false, error: inviteError?.message || createErr?.message || "invite_failed" };
-      }
-      invitedUserId = created.user.id;
+      // Do NOT use createUser(email_confirm: true) fallback. Fail with clear error.
+      return { ok: false, error: inviteError?.message || "invite_failed" };
     }
   } else {
     invitedUserId = invited.user.id;
+    isNewUserCreated = true;
   }
 
-  // 3. Upsert membership
-  const { error: memErr } = await adminClient
+  // Guard: Do not downgrade or wipe existing members through invite. Fail-closed on DB error.
+  const { data: existingMembership, error: existMemErr } = await adminClient
     .from("organization_memberships")
-    .upsert({
-      organization_id: parsed.data.organizationId,
-      user_id: invitedUserId,
-      status: "invited",
-    });
-
-  if (memErr) return { ok: false, error: memErr.message };
-
-  // 4. Assign role
-  await adminClient
-    .from("user_role_assignments")
-    .delete()
+    .select("status")
     .eq("organization_id", parsed.data.organizationId)
-    .eq("user_id", invitedUserId);
+    .eq("user_id", invitedUserId)
+    .maybeSingle();
 
-  const { error: assignErr } = await adminClient
-    .from("user_role_assignments")
-    .insert({
-      organization_id: parsed.data.organizationId,
-      user_id: invitedUserId,
-      role_id: roleData.id,
-      created_by: currentUser.id,
-    });
-
-  if (assignErr) return { ok: false, error: assignErr.message };
-
-  // 5. Update profile full name if provided
-  if (parsed.data.fullName) {
-    await adminClient
-      .from("profiles")
-      .upsert({
-        id: invitedUserId,
-        full_name: parsed.data.fullName,
-      });
+  if (existMemErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to check existing membership:", existMemErr.message);
+    if (isNewUserCreated && invitedUserId) {
+      await adminClient.auth.admin.deleteUser(invitedUserId).catch(() => {});
+    }
+    return { ok: false, error: "membership_check_failed" };
   }
 
-  revalidatePath("/[locale]/admin/users", "page");
-  return { ok: true };
+  if (existingMembership) {
+    return { ok: false, error: "user_already_member" };
+  }
+
+  try {
+    // Upsert membership
+    const { error: memErr } = await adminClient
+      .from("organization_memberships")
+      .upsert({
+        organization_id: parsed.data.organizationId,
+        user_id: invitedUserId,
+        status: "invited",
+      });
+
+    if (memErr) throw new Error(memErr.message);
+
+    // Assign role (fail closed on delete error)
+    const { error: delRoleErr } = await adminClient
+      .from("user_role_assignments")
+      .delete()
+      .eq("organization_id", parsed.data.organizationId)
+      .eq("user_id", invitedUserId);
+
+    if (delRoleErr) {
+      console.error("[SEC-FAIL-CLOSED] Failed to clear previous role assignments on invite:", delRoleErr.message);
+      throw new Error(`failed_to_clear_previous_assignments: ${delRoleErr.message}`);
+    }
+
+    const { error: assignErr } = await adminClient
+      .from("user_role_assignments")
+      .insert({
+        organization_id: parsed.data.organizationId,
+        user_id: invitedUserId,
+        role_id: roleData.id,
+        created_by: currentUser.id,
+      });
+
+    if (assignErr) throw new Error(assignErr.message);
+
+    // Update profile full name if provided
+    if (parsed.data.fullName) {
+      await adminClient
+        .from("profiles")
+        .upsert({
+          id: invitedUserId,
+          full_name: parsed.data.fullName,
+        });
+    }
+
+    // Write audit trail
+    await logAuditTrail(adminClient, {
+      actor_id: currentUser.id,
+      organization_id: parsed.data.organizationId,
+      action: "user.invited",
+      entity_type: "user",
+      entity_id: invitedUserId,
+      safe_change_summary: {
+        email: parsed.data.email,
+        roleKey: parsed.data.roleKey,
+        roleId: roleData.id,
+        fullName: parsed.data.fullName,
+      },
+    });
+
+    revalidatePath("/[locale]/admin/users", "page");
+    return { ok: true };
+  } catch (err: unknown) {
+    // Compensation: If DB write fails and we created a brand-new auth user, remove it
+    if (isNewUserCreated && invitedUserId) {
+      try {
+        await adminClient.auth.admin.deleteUser(invitedUserId);
+      } catch (cleanupErr) {
+        console.error("[SEC-05] Failed to compensate user creation:", cleanupErr);
+      }
+    }
+    const message = err instanceof Error ? err.message : "invite_failed";
+    return { ok: false, error: message };
+  }
 }
 
 const changeRoleSchema = z.object({
@@ -136,18 +336,43 @@ export async function changeUserRoleAction(
   userId: string,
   newRoleId: string,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = changeRoleSchema.safeParse({ organizationId, userId, newRoleId });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const currentUser = await getCurrentUser();
   if (!currentUser) return { ok: false, error: "unauthorized" };
 
-  const org = await getPrimaryOrganization(currentUser.id);
-  if (!org || org.id !== organizationId) return { ok: false, error: "unauthorized" };
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    organizationId,
+    "tenant.users.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Defense-in-depth: Prevent self-role escalation or self-demotion
+  if (currentUser.id === userId) {
+    return { ok: false, error: "cannot_change_own_role" };
+  }
 
   const adminClient = createAdminClient();
 
-  // Verify new role exists and belongs to this org or is system role
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
+
+  // Verify new role exists and belongs to this org or is a valid tenant template
   const { data: role, error: roleErr } = await adminClient
     .from("roles")
     .select("id, organization_id, key")
@@ -156,12 +381,61 @@ export async function changeUserRoleAction(
 
   if (roleErr || !role) return { ok: false, error: "role_not_found" };
 
+  // Reject assigning platform super admin or foreign org role
+  if (role.key === "PLATFORM_SUPER_ADMIN") {
+    return { ok: false, error: "invalid_role_assignment" };
+  }
+  if (role.organization_id !== null && role.organization_id !== organizationId) {
+    return { ok: false, error: "role_organization_mismatch" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(organizationId, currentUser.id);
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack E: Only an active TENANT_OWNER can assign or change a user to TENANT_OWNER
+  if (role.key === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
+
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const rolePermsResult = await getRolePermissionKeys(role.id);
+    if (!rolePermsResult.ok) {
+      return { ok: false, error: rolePermsResult.error };
+    }
+
+    const hasUnheldPerm = Array.from(rolePermsResult.permissions).some(
+      (k) => !callerPermsResult.permissions.has(k)
+    );
+    if (hasUnheldPerm) {
+      return { ok: false, error: "role_privilege_escalation" };
+    }
+  }
+
+  // Prevent demoting the last active TENANT_OWNER
+  if (role.key !== "TENANT_OWNER") {
+    const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+    if (!ownerCheck.ok) {
+      return { ok: false, error: ownerCheck.error };
+    }
+    if (ownerCheck.isLast) {
+      return { ok: false, error: "cannot_demote_last_tenant_owner" };
+    }
+  }
+
   // Delete current organization role assignments for this user
-  await adminClient
+  // Non-atomic note: Full atomic role replacement remains pending transactional DB/RPC work under DB-01.
+  const { error: roleDeleteErr } = await adminClient
     .from("user_role_assignments")
     .delete()
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
+
+  if (roleDeleteErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to delete existing role assignments:", roleDeleteErr.message);
+    return { ok: false, error: "failed_to_remove_existing_roles" };
+  }
 
   // Insert new role assignment
   const { error: insErr } = await adminClient
@@ -174,6 +448,19 @@ export async function changeUserRoleAction(
     });
 
   if (insErr) return { ok: false, error: insErr.message };
+
+  // Write audit trail
+  await logAuditTrail(adminClient, {
+    actor_id: currentUser.id,
+    organization_id: organizationId,
+    action: "user.role_changed",
+    entity_type: "user",
+    entity_id: userId,
+    safe_change_summary: {
+      newRoleId,
+      roleKey: role.key,
+    },
+  });
 
   revalidatePath("/[locale]/admin/users", "page");
   return { ok: true };
@@ -190,20 +477,51 @@ export async function updateUserStatusAction(
   userId: string,
   status: "active" | "invited" | "suspended",
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = updateStatusSchema.safeParse({ organizationId, userId, status });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
   const currentUser = await getCurrentUser();
   if (!currentUser) return { ok: false, error: "unauthorized" };
 
-  const org = await getPrimaryOrganization(currentUser.id);
-  if (!org || org.id !== organizationId) return { ok: false, error: "unauthorized" };
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    organizationId,
+    "tenant.users.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
 
   if (currentUser.id === userId && status !== "active") {
     return { ok: false, error: "cannot_suspend_self" };
   }
 
   const adminClient = createAdminClient();
+
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
+
+  // Prevent suspending the last active TENANT_OWNER
+  if (status !== "active") {
+    const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+    if (!ownerCheck.ok) {
+      return { ok: false, error: ownerCheck.error };
+    }
+    if (ownerCheck.isLast) {
+      return { ok: false, error: "cannot_suspend_last_tenant_owner" };
+    }
+  }
 
   const { error } = await adminClient
     .from("organization_memberships")
@@ -213,6 +531,16 @@ export async function updateUserStatusAction(
 
   if (error) return { ok: false, error: error.message };
 
+  // Write audit trail
+  await logAuditTrail(adminClient, {
+    actor_id: currentUser.id,
+    organization_id: organizationId,
+    action: "user.status_updated",
+    entity_type: "user",
+    entity_id: userId,
+    safe_change_summary: { status },
+  });
+
   revalidatePath("/[locale]/admin/users", "page");
   return { ok: true };
 }
@@ -221,11 +549,19 @@ export async function removeUserAction(
   organizationId: string,
   userId: string,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const currentUser = await getCurrentUser();
   if (!currentUser) return { ok: false, error: "unauthorized" };
 
-  const org = await getPrimaryOrganization(currentUser.id);
-  if (!org || org.id !== organizationId) return { ok: false, error: "unauthorized" };
+  // Explicit application-layer tenant authorization proof
+  const authProof = await proveTenantPermission(
+    organizationId,
+    "tenant.users.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
 
   if (currentUser.id === userId) {
     return { ok: false, error: "cannot_remove_self" };
@@ -233,14 +569,40 @@ export async function removeUserAction(
 
   const adminClient = createAdminClient();
 
-  // Delete role assignments
-  await adminClient
+  // Verify target user belongs to the exact organization
+  const { data: targetMembership, error: targetMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMemErr || !targetMembership) {
+    return { ok: false, error: "target_not_member" };
+  }
+
+  // Prevent removing the last active TENANT_OWNER
+  const ownerCheck = await isLastTenantOwner(adminClient, organizationId, userId);
+  if (!ownerCheck.ok) {
+    return { ok: false, error: ownerCheck.error };
+  }
+  if (ownerCheck.isLast) {
+    return { ok: false, error: "cannot_remove_last_tenant_owner" };
+  }
+
+  // 1. Delete organization-scoped role assignments (fail-closed)
+  const { error: roleDelErr } = await adminClient
     .from("user_role_assignments")
     .delete()
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
 
-  // Delete membership
+  if (roleDelErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to delete role assignments before removing user:", roleDelErr.message);
+    return { ok: false, error: "failed_to_remove_role_assignments" };
+  }
+
+  // 2. Delete membership only after role assignment removal succeeds
   const { error } = await adminClient
     .from("organization_memberships")
     .delete()
@@ -248,6 +610,16 @@ export async function removeUserAction(
     .eq("user_id", userId);
 
   if (error) return { ok: false, error: error.message };
+
+  // Write audit trail
+  await logAuditTrail(adminClient, {
+    actor_id: currentUser.id,
+    organization_id: organizationId,
+    action: "user.removed",
+    entity_type: "user",
+    entity_id: userId,
+    safe_change_summary: { removed_at: new Date().toISOString() },
+  });
 
   revalidatePath("/[locale]/admin/users", "page");
   return { ok: true };

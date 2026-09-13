@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { getCurrentUser } from "@/lib/auth/session";
+import { proveTenantPermission, getCallerTenantPermissions, getRolePermissionKeys } from "@/lib/auth/authorize";
+import { denyIfDemo } from "@/lib/demo/guard";
+
 
 const updateProfileSchema = z.object({
   organizationId: z.string().uuid(),
@@ -258,6 +262,9 @@ export async function inviteMemberAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  const demoRefusal = await denyIfDemo();
+  if (demoRefusal) return demoRefusal;
+
   const parsed = inviteMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     email: formData.get("email"),
@@ -265,28 +272,152 @@ export async function inviteMemberAction(
   });
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  // Permission is (re-)enforced inside add_organization_member below; this
-  // admin client call only creates/invites the auth user, which has no
-  // organization concept of its own to authorize against.
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { ok: false, error: "unauthorized" };
+
+  // Explicit application-layer tenant authorization proof BEFORE inviting
+  const authProof = await proveTenantPermission(
+    parsed.data.organizationId,
+    "tenant.users.manage",
+    currentUser.id,
+  );
+  if (!authProof.ok) return { ok: false, error: authProof.error };
+
+  // Attack D / Self-Escalation Guard: Caller cannot invite their own email
+  if (currentUser.email && parsed.data.email.toLowerCase() === currentUser.email.toLowerCase()) {
+    return { ok: false, error: "cannot_invite_self" };
+  }
+
+  // Privilege Ceiling Guard: Fetch caller's effective permissions and owner status
+  const callerPermsResult = await getCallerTenantPermissions(
+    parsed.data.organizationId,
+    currentUser.id,
+  );
+  if (!callerPermsResult.ok) return { ok: false, error: callerPermsResult.error };
+
+  // Attack C: Only an active TENANT_OWNER can invite another TENANT_OWNER
+  if (parsed.data.roleKey === "TENANT_OWNER" && !callerPermsResult.isOwner) {
+    return { ok: false, error: "cannot_assign_tenant_owner" };
+  }
+
+  // Disallow inviting into platform admin role
+  if (parsed.data.roleKey === "PLATFORM_SUPER_ADMIN") {
+    return { ok: false, error: "role_not_found" };
+  }
+
   const adminClient = createAdminClient();
+
+  // Verify role exists and is appropriate
+  const { data: roleData, error: roleErr } = await adminClient
+    .from("roles")
+    .select("id")
+    .or(`organization_id.eq.${parsed.data.organizationId},organization_id.is.null`)
+    .eq("key", parsed.data.roleKey)
+    .maybeSingle();
+
+  if (roleErr || !roleData) {
+    return { ok: false, error: "role_not_found" };
+  }
+
+  // Privilege Ceiling Guard: Non-owner cannot assign a role with permissions they do not possess
+  if (!callerPermsResult.isOwner) {
+    const rolePermsResult = await getRolePermissionKeys(roleData.id);
+    if (!rolePermsResult.ok) {
+      return { ok: false, error: rolePermsResult.error };
+    }
+
+    const hasUnheldPerm = Array.from(rolePermsResult.permissions).some(
+      (k) => !callerPermsResult.permissions.has(k)
+    );
+    if (hasUnheldPerm) {
+      return { ok: false, error: "role_privilege_escalation" };
+    }
+  }
+
+  let invitedUserId: string | null = null;
+  let isNewUserCreated = false;
+
   const { data: invited, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(parsed.data.email);
 
   if (inviteError || !invited.user) {
-    return { ok: false, error: inviteError?.message ?? "invite_failed" };
+    // If user already exists in auth, find by email
+    const { data: listData } = await adminClient.auth.admin.listUsers();
+    const existingUser = listData?.users?.find(
+      (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
+    );
+
+    if (existingUser) {
+      invitedUserId = existingUser.id;
+      isNewUserCreated = false;
+    } else {
+      return { ok: false, error: inviteError?.message ?? "invite_failed" };
+    }
+  } else {
+    invitedUserId = invited.user.id;
+    isNewUserCreated = true;
+  }
+
+  // Guard: Do not downgrade or wipe existing members through invite. Fail-closed on DB error.
+  const { data: existingMembership, error: existMemErr } = await adminClient
+    .from("organization_memberships")
+    .select("status")
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", invitedUserId)
+    .maybeSingle();
+
+  if (existMemErr) {
+    console.error("[SEC-FAIL-CLOSED] Failed to check existing membership:", existMemErr.message);
+    if (isNewUserCreated && invitedUserId) {
+      await adminClient.auth.admin.deleteUser(invitedUserId).catch(() => {});
+    }
+    return { ok: false, error: "membership_check_failed" };
+  }
+
+  if (existingMembership) {
+    return { ok: false, error: "user_already_member" };
   }
 
   const supabase = await createClient();
   const { error: membershipError } = await supabase.rpc("add_organization_member", {
     p_organization_id: parsed.data.organizationId,
-    p_user_id: invited.user.id,
+    p_user_id: invitedUserId,
     p_role_key: parsed.data.roleKey,
   });
 
   if (membershipError) {
+    // Cross-system auth compensation: delete newly invited user if subsequent DB write fails
+    if (isNewUserCreated && invitedUserId) {
+      try {
+        await adminClient.auth.admin.deleteUser(invitedUserId);
+      } catch (cleanupErr) {
+        console.error("[SEC-05] Failed to compensate member invitation:", cleanupErr);
+      }
+    }
     return { ok: false, error: membershipError.message };
+  }
+
+  // Write audit trail (OBS-02: PARTIALLY REMEDIATED -- atomicity pending DB-01)
+  try {
+    const { error: auditErr } = await adminClient.from("platform_audit_logs").insert({
+      actor_id: authProof.userId,
+      organization_id: parsed.data.organizationId,
+      action: "member.invited",
+      entity_type: "user",
+      entity_id: invitedUserId,
+      safe_change_summary: {
+        email: parsed.data.email,
+        roleKey: parsed.data.roleKey,
+      },
+    });
+    if (auditErr) {
+      console.error("[OBS-02] platform_audit_logs insert returned error:", auditErr.message);
+    }
+  } catch (auditErr) {
+    console.error("[OBS-02] Failed to write platform_audit_logs:", auditErr);
   }
 
   revalidatePath("/[locale]/admin/users", "page");
   return { ok: true };
 }
+
