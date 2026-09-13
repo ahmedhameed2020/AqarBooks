@@ -70,17 +70,17 @@ The 15 uncommitted rows in `supabase_migrations.schema_migrations` represent his
 | `20260831194315` | `accsys_migration_staging_schema` | 1 | 2,402 | `historical_staging_schema` |
 | `20260831194442` | `accsys_stage_loader_casts` | 1 | 1,110 | `historical_batch_loader_function` |
 | `20260831194633` | `accsys_stage_compact_bulk_tables` | 1 | 471 | `historical_staging_schema` |
-| `20260831194850` | `accsys_stage_coa_shape` | 1 | 674 | `historical_staging_schema` |
-| `20260831195047` | `accsys_stage_load_batches` | 1 | 913 | `historical_staging_schema` |
-| `20260831195325` | `accsys_stage_batch_loader_functions` | 1 | 4,896 | `historical_batch_loader_function` |
-| `20260831195540` | `accsys_stage_core_dimension_views` | 1 | 6,432 | `historical_staging_schema` |
-| `20260831195810` | `accsys_stage_operational_views` | 1 | 10,772 | `historical_staging_schema` |
-| `20260831200103` | `accsys_stage_materialize_operations` | 1 | 7,657 | `historical_etl_materialization` |
-| `20260831200142` | `accsys_stage_materialize_operations_fix` | 1 | 7,678 | `historical_etl_materialization` |
-| `20260831204850` | `accsys_stage_reconcile_pre_opening_receipts` | 1 | 5,160 | `historical_staging_reconciliation` |
-| `20260831205217` | `accsys_stage_reconcile_unassigned_leases` | 1 | 1,675 | `historical_staging_reconciliation` |
+| `20260831194850` | `accsys_stage_coa_shape` | 1 | 156 | `historical_staging_schema` |
+| `20260831195011` | `accsys_materialize_function` | 1 | 8,473 | `historical_etl_materialization` |
+| `20260831195049` | `accsys_materialize_function_fix` | 1 | 7,814 | `historical_etl_materialization` |
+| `20260831195824` | `accsys_materialize_no_demo_flag` | 1 | 7,861 | `historical_etl_materialization` |
+| `20260831200103` | `accsys_materialize_operations` | 1 | 6,817 | `historical_etl_materialization` |
+| `20260831200142` | `accsys_ops_unique_receipt_numbers` | 1 | 6,964 | `historical_etl_materialization` |
+| `20260831201313` | `accsys_stage_verified_loader` | 1 | 872 | `historical_batch_loader_function` |
+| `20260831201513` | `accsys_stage_dictionary_and_reset` | 1 | 1,170 | `historical_staging_schema` |
+| `20260831205217` | `accsys_loader_strip_cr` | 1 | 2,022 | `historical_batch_loader_function` |
 
-Total statement bytes: **63,453 bytes**.  
+Total statement bytes: **59,735 bytes**.  
 Cryptographic hash of canonical raw export:
 `b0313b78f1823e88c2c04c010567991b83eb6e6b50ec0e9437095d06b399131e`.
 
@@ -134,15 +134,20 @@ A side-by-side catalog comparison against production `ataslxkcflxuilpgyepm` was 
 
 ---
 
-## 4. ADR 0005 Provenance
+## 4. ADR 0005 Provenance & Durable Adoption
 
 To resolve provenance regarding ADR 0005 (Rev 2.8):
-1. The base commit `960f3f2fb9a7a4936911eb8da6b49977a8e9b753` was verified to exist in the local git repository object store (`git cat-file -t 960f3f2f` returned `commit`).
-2. Commit `7a66638474573ae5eec3b46b76705eabe43ad6c1` on branch `step8/adr-draft` applied the formal signature block by project lead Ahmed Abdelhamid over `960f3f2f`.
-3. The normalized LF SHA-256 hash of the document in `docs/adr/0005-migration-workflow-after-reconciliation.md` matches byte-for-byte:
-   `3e5e9119ecfa59e977e1c30eae53a2873bc570695b9628fc3b1744c9debbe40b`.
+1. **Forensic Local Git History**:
+   - The base commit `960f3f2fb9a7a4936911eb8da6b49977a8e9b753` was verified to exist in the local git repository object database (`git cat-file -t 960f3f2f` returned `commit`).
+   - Commit `7a66638474573ae5eec3b46b76705eabe43ad6c1` on branch `step8/adr-draft` applied the formal signature block by project lead Ahmed Abdelhamid over `960f3f2f`.
+   - The normalized LF SHA-256 hash of the document in `docs/adr/0005-migration-workflow-after-reconciliation.md` matches byte-for-byte:
+     `3e5e9119ecfa59e977e1c30eae53a2873bc570695b9628fc3b1744c9debbe40b`.
+2. **Durable Repository Trust Anchor**:
+   - Because historical local branches (`step8/adr-draft`) may not be reachable on canonical remote remotes (e.g. GitHub origin), the permanent trust anchor for ADR 0005 does **not** rely on dangling or unreachable local git objects.
+   - The authoritative, durable adoption of ADR 0005 is established by its introduction into the canonical repository tree via this reconciliation PR (`chore(migrations): DB-01 / DB-02 Migration Ledger Reconciliation & Forensic Resolution`).
+   - If the historical branch `step8/adr-draft` is pushed or tagged at a later date, that serves as corroborating forensic evidence, but does not alter or condition the validity of the committed ADR document.
 
-The adoption of ADR 0005 formally binds all future database changes to:
+The formal adoption of ADR 0005 binds all future database changes to:
 - Singular authoring authority (`|AUTH| = 1`);
 - No uncommitted or direct production SQL execution;
 - Strict forward migration discipline using `supabase migration new`;

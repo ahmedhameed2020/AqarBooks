@@ -136,16 +136,16 @@ export const HISTORICAL_LEDGER_ONLY_VERSIONS = [
   "20260829105948",
   "20260829110027",
   "20260831194315",
-  "20260831194520",
-  "20260831194712",
-  "20260831194905",
-  "20260831195130",
-  "20260831195345",
-  "20260831195610",
-  "20260831195825",
-  "20260831200115",
-  "20260831200430",
-  "20260831204850",
+  "20260831194442",
+  "20260831194633",
+  "20260831194850",
+  "20260831195011",
+  "20260831195049",
+  "20260831195824",
+  "20260831200103",
+  "20260831200142",
+  "20260831201313",
+  "20260831201513",
   "20260831205217",
 ] as const;
 
@@ -367,6 +367,102 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       const restored = MIGRATION_FILES.filter((m) => m.provenance === "restored_exact");
       expect(restored).toHaveLength(16);
+    });
+
+    it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
+      const tsvPath = join("docs/evidence", "migration-ledger-version-name-2026-09-12.tsv");
+      expect(existsSync(tsvPath)).toBe(true);
+
+      const tsvLines = readFileSync(tsvPath, "utf8")
+        .replace(/\r\n/g, "\n")
+        .trimEnd()
+        .split("\n")
+        .slice(1); // skip header
+
+      const remoteVersions = tsvLines.map((line) => line.split("\t")[0]);
+      const repoVersions = MIGRATION_FILES.map((m) => {
+        const match = m.file.match(CLI_MIGRATION_PATTERN);
+        expect(match).not.toBeNull();
+        return match![1];
+      });
+
+      // 1. remote rows = 33
+      expect(remoteVersions).toHaveLength(33);
+
+      // 2. repository migration versions = 18
+      expect(repoVersions).toHaveLength(18);
+
+      // 3. historical ledger-only versions = 15
+      expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
+
+      // 4. HISTORICAL_LEDGER_ONLY_VERSIONS equals exactly (remote - repo) in sorted order
+      const repoSet = new Set(repoVersions);
+      const computedDiff = remoteVersions.filter((v) => !repoSet.has(v)).sort();
+      const expectedSorted = [...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
+      expect(expectedSorted).toEqual(computedDiff);
+
+      // 5. union(repo versions, historical-only versions) == remote versions
+      const allReconciled = [...repoVersions, ...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
+      const sortedRemote = [...remoteVersions].sort();
+      expect(allReconciled).toEqual(sortedRemote);
+
+      // 6. intersection(repo versions, historical-only versions) == empty
+      const intersection = repoVersions.filter((v) =>
+        HISTORICAL_LEDGER_ONLY_VERSIONS.includes(v as any)
+      );
+      expect(intersection).toEqual([]);
+
+      // 7. latest remote version == RECONCILIATION_LEDGER_TIP
+      const latestRemote = remoteVersions[remoteVersions.length - 1];
+      expect(latestRemote).toBe(RECONCILIATION_LEDGER_TIP);
+    });
+
+    it("public manifest rows match HISTORICAL_LEDGER_ONLY_VERSIONS exactly", () => {
+      const manifestPath = join("docs/evidence", "migration-ledger-15-manifest.json");
+      expect(existsSync(manifestPath)).toBe(true);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      expect(manifest.rows).toHaveLength(15);
+      const manifestVersions = manifest.rows.map((r: any) => r.version);
+      expect(manifestVersions).toEqual([...HISTORICAL_LEDGER_ONLY_VERSIONS]);
+    });
+
+    it("forensics report 15-row table and total bytes match public manifest byte-for-byte", () => {
+      const manifestPath = join("docs/evidence", "migration-ledger-15-manifest.json");
+      expect(existsSync(manifestPath)).toBe(true);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+
+      const reportPath = join("docs", "migration-ledger-forensics-report.md");
+      expect(existsSync(reportPath)).toBe(true);
+      const reportLines = readFileSync(reportPath, "utf8")
+        .replace(/\r\n/g, "\n")
+        .split("\n");
+
+      const tableRows = reportLines.filter((line) => line.startsWith("| `2026"));
+      expect(tableRows).toHaveLength(15);
+
+      let totalBytes = 0;
+      tableRows.forEach((row, i) => {
+        const parts = row
+          .split("|")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const version = parts[0].replace(/`/g, "");
+        const name = parts[1].replace(/`/g, "");
+        const stmts = parseInt(parts[2], 10);
+        const bytes = parseInt(parts[3].replace(/,/g, ""), 10);
+        const classification = parts[4].replace(/`/g, "");
+
+        const expected = manifest.rows[i];
+        expect(version).toBe(expected.version);
+        expect(name).toBe(expected.name);
+        expect(stmts).toBe(expected.statement_count);
+        expect(bytes).toBe(expected.statement_byte_length);
+        expect(classification).toBe(expected.classification);
+        totalBytes += bytes;
+      });
+
+      expect(totalBytes).toBe(manifest.total_statement_bytes);
+      expect(totalBytes).toBe(59735);
     });
   });
 });

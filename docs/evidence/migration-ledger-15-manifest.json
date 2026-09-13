@@ -5,6 +5,7 @@
   "read_only_query": "SELECT version, name, statements FROM supabase_migrations.schema_migrations WHERE version >= '20260829104638' AND version <= '20260831205217' ORDER BY version ASC;",
   "raw_export_sha256": "b0313b78f1823e88c2c04c010567991b83eb6e6b50ec0e9437095d06b399131e",
   "row_count": 15,
+  "total_statement_bytes": 59735,
   "rows": [
     {
       "version": "20260829104638",
@@ -68,7 +69,7 @@
       "statement_count": 1,
       "statement_byte_length": 8473,
       "sha256": "75c30b557bd41d98478c758e565fc5cad30abd89994efddcd5b8a2bace62d8e4",
-      "classification": "historical_materialize_procedure"
+      "classification": "historical_etl_materialization"
     },
     {
       "version": "20260831195049",
@@ -76,7 +77,7 @@
       "statement_count": 1,
       "statement_byte_length": 7814,
       "sha256": "08e36c704cf07da3b065f993f8f8ad088237d5ee2727e50d369b774ca2592565",
-      "classification": "historical_materialize_procedure"
+      "classification": "historical_etl_materialization"
     },
     {
       "version": "20260831195824",
@@ -84,7 +85,7 @@
       "statement_count": 1,
       "statement_byte_length": 7861,
       "sha256": "7817015c9aa389ba2fa79edfa7b589ef8231bd082706381f33be4af612f69845",
-      "classification": "historical_materialize_procedure"
+      "classification": "historical_etl_materialization"
     },
     {
       "version": "20260831200103",
@@ -92,7 +93,7 @@
       "statement_count": 1,
       "statement_byte_length": 6817,
       "sha256": "c0738060150bde48d9b61278bd4c39e2b3d33b032eb16620f46e90d192eabb3c",
-      "classification": "historical_materialize_procedure"
+      "classification": "historical_etl_materialization"
     },
     {
       "version": "20260831200142",
@@ -100,7 +101,7 @@
       "statement_count": 1,
       "statement_byte_length": 6964,
       "sha256": "1ef414912c63be7077f8b77d91eee9191bd7923a9762c47a41ba0c1e146520d1",
-      "classification": "historical_staging_schema"
+      "classification": "historical_etl_materialization"
     },
     {
       "version": "20260831201313",
@@ -116,7 +117,7 @@
       "statement_count": 1,
       "statement_byte_length": 1170,
       "sha256": "22b674c02cd0bc7280703fe0a511e457e84eea630b0d8981a6297239337f83c5",
-      "classification": "historical_dictionary_staging"
+      "classification": "historical_staging_schema"
     },
     {
       "version": "20260831205217",
