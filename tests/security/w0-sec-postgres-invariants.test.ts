@@ -84,8 +84,8 @@ describe("W0-SEC Real PostgreSQL Engine Verification (Disposable PGlite)", () =>
       );
     `);
 
-    // 2. Load and apply staged remediation DDL
-    const ddlPath = path.resolve(__dirname, "../../supabase/remediations/w0-sec-authorization-containment.sql");
+    // 2. Load and apply canonical migration DDL
+    const ddlPath = path.resolve(__dirname, "../../supabase/migrations/20260913165500_w0_sec_authorization_containment.sql");
     const ddlSql = fs.readFileSync(ddlPath, "utf8");
     await db.exec(ddlSql);
 

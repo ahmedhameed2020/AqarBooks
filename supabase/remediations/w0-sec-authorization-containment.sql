@@ -1,10 +1,14 @@
 -- ==============================================================================
+-- HISTORICAL REVIEW EVIDENCE (PR #33)
+-- SUPERSEDED FOR DEPLOYMENT BY supabase/migrations/20260913165500_w0_sec_authorization_containment.sql
+-- Pinned Review SHA-256 (Prior to supersession header): ce7fb22d44af35948da9e265a87f71c8a362b182370fb8155d24f5aef3fe2997
+-- ==============================================================================
 -- W0-SEC REMEDIATION: DATABASE AUTHORIZATION CONTAINMENT
 -- ==============================================================================
--- IMPORTANT NOTICE:
---   DO NOT APPLY THIS SCRIPT DIRECTLY TO PRODUCTION!
---   This file is staged in supabase/remediations/ per strict remediation rules.
---   It will be incorporated into migrations ONLY after DB-01 reconciliation.
+-- NOTICE:
+--   This file is preserved for historical review evidence only.
+--   The canonical deployment authority is now:
+--   supabase/migrations/20260913165500_w0_sec_authorization_containment.sql
 --
 -- TARGET FINDINGS:
 --   - SEC-01: Harden public.is_platform_admin() against tenant-scoped role assignment escalation.
