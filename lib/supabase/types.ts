@@ -247,6 +247,18 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["permissions"]["Row"]>;
         Relationships: [];
       };
+      role_templates: {
+        Row: { key: string; name_ar: string; name_en: string; sort_order: number };
+        Insert: { key: string; name_ar: string; name_en: string; sort_order?: number };
+        Update: Partial<Database["public"]["Tables"]["role_templates"]["Row"]>;
+        Relationships: [];
+      };
+      role_template_permissions: {
+        Row: { role_template_key: string; permission_key: string };
+        Insert: { role_template_key: string; permission_key: string };
+        Update: Partial<Database["public"]["Tables"]["role_template_permissions"]["Row"]>;
+        Relationships: [];
+      };
       organization_finance_settings: {
         Row: {
           id: string;
