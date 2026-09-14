@@ -7,14 +7,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import { PortalPageHeader } from "../../portal-ui";
+import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "../maintenance-attachments-client";
 import { STATUS_LABELS_FOR_DETAIL } from "./status-labels";
 
 export default async function PortalMaintenanceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; requestId: string }>;
+  searchParams: Promise<{ attachments?: string }>;
 }) {
   const { locale, requestId } = await params;
+  const query = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -30,13 +34,19 @@ export default async function PortalMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: category }, { data: updates }] = await Promise.all([
+  const [{ data: unit }, { data: category }, { data: updates }, { data: attachments }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("maintenance_categories").select("name_ar, name_en").eq("id", request.category_id).maybeSingle(),
     supabase
       .from("maintenance_request_updates")
       .select("id, note, previous_status, resulting_status, visibility, created_at")
       .eq("maintenance_request_id", request.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("maintenance_request_attachments")
+      .select("id, kind, visibility, original_file_name, mime_type, byte_size, created_at, ready_at, uploaded_by_member_id")
+      .eq("maintenance_request_id", request.id)
+      .eq("status", "READY")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -62,6 +72,17 @@ export default async function PortalMaintenanceDetailPage({
           {request.description}
         </p>
       </section>
+
+      <MaintenanceAttachmentsPanel
+        requestId={request.id}
+        attachments={(attachments ?? []) as MaintenanceAttachmentItem[]}
+        locale={locale as "ar" | "en"}
+        canUpload={!["CANCELLED", "CLOSED"].includes(request.status)}
+        allowedKinds={["ISSUE", "OTHER"]}
+        defaultKind="ISSUE"
+        defaultVisibility="MEMBER_VISIBLE"
+        initialNotice={query.attachments === "partial" ? "partial-upload" : null}
+      />
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-950 dark:text-white">{isAr ? "التحديثات" : "Updates"}</h2>

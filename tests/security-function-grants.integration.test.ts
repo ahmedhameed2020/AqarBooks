@@ -75,6 +75,8 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "expire_stale_member_invitations", // service-role sweep
   "expire_stale_online_payment_transactions", // service-role sweep
   "assert_maintenance_status_transition", // internal validator wrapped by maintenance mutation RPCs
+  "maintenance_attachment_extension", // canonical path helper
+  "maintenance_request_accepts_attachments", // request state helper
   "seed_default_maintenance_categories", // trigger helper, not a direct client API
 ] as const;
 
@@ -92,6 +94,7 @@ const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
  * migrations 20260820190233-6). 169 entries.
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
+  "abort_maintenance_attachment_upload",
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
   "approve_onboarding_request", "approve_purchase_order", "approve_tax_rule", "archive_unit", "assign_subscription",
@@ -109,9 +112,11 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "current_member_id", "decide_purchase_request", "delete_resort", "depreciable_remaining",
   "depreciation_for_period", "disable_payment_provider", "dispose_fixed_asset",
   "due_ids_have_pending_online_checkout", "due_outstanding", "enable_payment_provider",
+  "begin_maintenance_attachment_upload",
   "guard_role_permissions_scope", "guard_roles_security", "guard_user_role_assignments_security",
   "is_demo_organization", "is_demo_principal",
   "end_unit_lease", "ensure_opening_balance_due_type", "finalize_bank_reconciliation", "generate_lease_rent_dues",
+  "finalize_maintenance_attachment_upload",
   "generate_recurring_dues", "get_account_ledger", "get_bank_match_candidates",
   "get_bank_reconciliation_summary", "get_cash_flow_statement", "get_cash_position",
   "get_einvoice_source_for_credit_note", "get_einvoice_source_for_due", "get_entitlement",
@@ -125,6 +130,9 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "list_creditable_dues", "list_due_type_catalogue_links", "list_due_type_tax_mappings",
   "list_dunning_candidates", "list_dunning_notices", "list_exchange_rates", "list_fixed_assets",
   "list_projects", "list_tax_enforcement_lapses", "log_coa_change",
+  "maintenance_attachment_can_delete_object", "maintenance_attachment_can_select_object",
+  "maintenance_attachment_can_upload_object", "maintenance_attachment_member_can_read",
+  "maintenance_attachment_staff_can_manage", "maintenance_attachment_staff_can_read",
   "maintenance_module_enabled", "maintenance_request_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
   "post_fx_difference", "post_journal_entry", "post_supplier_invoice",

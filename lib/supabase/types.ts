@@ -706,6 +706,44 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["maintenance_categories"]["Row"]>;
         Relationships: [];
       };
+      maintenance_request_attachments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          maintenance_request_id: string;
+          uploaded_by_user_id: string;
+          uploaded_by_member_id: string | null;
+          kind: "ISSUE" | "BEFORE" | "AFTER" | "INVOICE" | "OTHER";
+          visibility: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          original_file_name: string;
+          storage_bucket: "maintenance-attachments";
+          storage_path: string;
+          mime_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+          byte_size: number;
+          status: "PENDING" | "READY" | "FAILED";
+          created_at: string;
+          ready_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          maintenance_request_id: string;
+          uploaded_by_user_id: string;
+          uploaded_by_member_id?: string | null;
+          kind: "ISSUE" | "BEFORE" | "AFTER" | "INVOICE" | "OTHER";
+          visibility?: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          original_file_name: string;
+          storage_bucket?: "maintenance-attachments";
+          storage_path: string;
+          mime_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+          byte_size: number;
+          status?: "PENDING" | "READY" | "FAILED";
+          created_at?: string;
+          ready_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["maintenance_request_attachments"]["Row"]>;
+        Relationships: [];
+      };
       maintenance_requests: {
         Row: {
           id: string;
@@ -2797,6 +2835,37 @@ export type Database = {
           p_visibility?: string;
         };
         Returns: undefined;
+      };
+      begin_maintenance_attachment_upload: {
+        Args: {
+          p_request_id: string;
+          p_original_file_name: string;
+          p_mime_type: string;
+          p_byte_size: number;
+          p_kind: string;
+          p_visibility?: string;
+        };
+        Returns: {
+          attachment_id: string;
+          storage_bucket: string;
+          storage_path: string;
+        }[];
+      };
+      finalize_maintenance_attachment_upload: {
+        Args: { p_attachment_id: string };
+        Returns: undefined;
+      };
+      abort_maintenance_attachment_upload: {
+        Args: { p_attachment_id: string };
+        Returns: undefined;
+      };
+      maintenance_attachment_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      maintenance_attachment_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
       };
       create_online_payment_checkout_transaction: {
         Args: { p_due_ids: string[]; p_provider: string };

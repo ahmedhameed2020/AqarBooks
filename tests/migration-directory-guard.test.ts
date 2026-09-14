@@ -123,6 +123,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42", provenance: "post_apply_nonsemantic_edit" },
   { file: "20260913165500_w0_sec_authorization_containment.sql", bytes: 6570, sha256: "eba7ae525f91fb9ff3f0a124d99fa108ddc9731e14815931d0b9a75543d35a7f", provenance: "new_authorized_migration" },
   { file: "20260914131953_maintenance_request_core.sql", bytes: 32171, sha256: "d319cc3c80bea64b7f8576c831f498acaba80f5abf5cd351abaaad9ab480dcbc", provenance: "new_authorized_migration" },
+  { file: "20260914200226_maintenance_request_attachments.sql", bytes: 21696, sha256: "7df40451cc9815d1b1b1e18ea3ed943ce41fed8d598b6f8d5fbaaf0be979014a", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -406,9 +407,10 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(restored).toHaveLength(15);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(2);
+      expect(authorized).toHaveLength(3);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
+      expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -462,7 +464,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 8. new authorized migration(s) strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(2);
+      expect(newMigrations).toHaveLength(3);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
