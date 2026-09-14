@@ -9,6 +9,7 @@ import type { Locale } from "@/i18n/routing";
 import { PortalPageHeader } from "../../portal-ui";
 import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "../maintenance-attachments-client";
 import { STATUS_LABELS_FOR_DETAIL } from "./status-labels";
+import { WORK_ORDER_STATUS_LABELS, type WorkOrderStatus } from "@/app/[locale]/(app)/operations/maintenance/work-orders/work-orders-client";
 
 export default async function PortalMaintenanceDetailPage({
   params,
@@ -34,7 +35,7 @@ export default async function PortalMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: category }, { data: updates }, { data: attachments }] = await Promise.all([
+  const [{ data: unit }, { data: category }, { data: updates }, { data: attachments }, { data: workOrders }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("maintenance_categories").select("name_ar, name_en").eq("id", request.category_id).maybeSingle(),
     supabase
@@ -48,7 +49,21 @@ export default async function PortalMaintenanceDetailPage({
       .eq("maintenance_request_id", request.id)
       .eq("status", "READY")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("work_orders")
+      .select("id, work_order_no, status, scheduled_start_at, scheduled_end_at, sla_due_at, member_visible_summary, created_at")
+      .eq("maintenance_request_id", request.id)
+      .order("created_at", { ascending: false }),
   ]);
+
+  const workOrderIds = (workOrders ?? []).map((wo) => wo.id);
+  const { data: workOrderUpdates } = workOrderIds.length
+    ? await supabase
+        .from("work_order_updates")
+        .select("id, work_order_id, note, resulting_status, created_at")
+        .in("work_order_id", workOrderIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
 
   const label = STATUS_LABELS_FOR_DETAIL[request.status];
 
@@ -83,6 +98,36 @@ export default async function PortalMaintenanceDetailPage({
         defaultVisibility="MEMBER_VISIBLE"
         initialNotice={query.attachments === "partial" ? "partial-upload" : null}
       />
+
+      {(workOrders ?? []).length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold text-slate-950 dark:text-white">{isAr ? "تقدم أمر العمل" : "Work Order Progress"}</h2>
+          <div className="space-y-3">
+            {(workOrders ?? []).map((wo) => {
+              const statusLabel = WORK_ORDER_STATUS_LABELS[wo.status as WorkOrderStatus];
+              const latestUpdate = (workOrderUpdates ?? []).find((update) => update.work_order_id === wo.id);
+              return (
+                <article key={wo.id} className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-slate-400">{wo.work_order_no}</p>
+                    <Badge variant="outline" className={statusLabel.tone}>{isAr ? statusLabel.ar : statusLabel.en}</Badge>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+                    <p>{isAr ? "الموعد" : "Scheduled"}: {wo.scheduled_start_at ? new Date(wo.scheduled_start_at).toLocaleString(isAr ? "ar-EG" : "en-US") : "—"}</p>
+                    <p>SLA: {wo.sla_due_at ? new Date(wo.sla_due_at).toLocaleString(isAr ? "ar-EG" : "en-US") : "—"}</p>
+                  </div>
+                  {wo.member_visible_summary ? (
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-200">{wo.member_visible_summary}</p>
+                  ) : null}
+                  {latestUpdate ? (
+                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 dark:bg-slate-900 dark:text-slate-200">{latestUpdate.note}</p>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-950 dark:text-white">{isAr ? "التحديثات" : "Updates"}</h2>

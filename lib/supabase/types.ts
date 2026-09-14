@@ -824,6 +824,86 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["maintenance_request_updates"]["Row"]>;
         Relationships: [];
       };
+      work_orders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          maintenance_request_id: string;
+          work_order_no: string;
+          status: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED";
+          assigned_user_id: string | null;
+          supplier_id: string | null;
+          scheduled_start_at: string | null;
+          scheduled_end_at: string | null;
+          sla_due_at: string | null;
+          started_at: string | null;
+          waiting_at: string | null;
+          resumed_at: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          completion_summary: string | null;
+          member_visible_summary: string | null;
+          created_by: string;
+          updated_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          maintenance_request_id: string;
+          work_order_no: string;
+          status?: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED";
+          assigned_user_id?: string | null;
+          supplier_id?: string | null;
+          scheduled_start_at?: string | null;
+          scheduled_end_at?: string | null;
+          sla_due_at?: string | null;
+          started_at?: string | null;
+          waiting_at?: string | null;
+          resumed_at?: string | null;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          completion_summary?: string | null;
+          member_visible_summary?: string | null;
+          created_by: string;
+          updated_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["work_orders"]["Row"]>;
+        Relationships: [];
+      };
+      work_order_updates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          work_order_id: string;
+          actor_user_id: string;
+          previous_status: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED" | null;
+          resulting_status: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED" | null;
+          note: string;
+          visibility: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          work_order_id: string;
+          actor_user_id: string;
+          previous_status?: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED" | null;
+          resulting_status?: "DRAFT" | "ASSIGNED" | "SCHEDULED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CANCELLED" | null;
+          note: string;
+          visibility?: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["work_order_updates"]["Row"]>;
+        Relationships: [];
+      };
       online_payment_transactions: {
         Row: {
           id: string;
@@ -2866,6 +2946,90 @@ export type Database = {
       maintenance_attachment_staff_can_read: {
         Args: { p_organization_id: string };
         Returns: boolean;
+      };
+      work_order_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_staff_can_assign: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_staff_can_complete: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_sla_breached: {
+        Args: { p_work_order: Database["public"]["Tables"]["work_orders"]["Row"] };
+        Returns: boolean;
+      };
+      create_work_order: {
+        Args: {
+          p_maintenance_request_id: string;
+          p_assigned_user_id?: string | null;
+          p_supplier_id?: string | null;
+          p_scheduled_start_at?: string | null;
+          p_scheduled_end_at?: string | null;
+          p_sla_due_at?: string | null;
+          p_note?: string | null;
+          p_visibility?: string;
+        };
+        Returns: string;
+      };
+      assign_work_order: {
+        Args: {
+          p_work_order_id: string;
+          p_assigned_user_id?: string | null;
+          p_supplier_id?: string | null;
+          p_note?: string | null;
+          p_visibility?: string;
+        };
+        Returns: undefined;
+      };
+      schedule_work_order: {
+        Args: {
+          p_work_order_id: string;
+          p_scheduled_start_at: string;
+          p_scheduled_end_at: string;
+          p_sla_due_at?: string | null;
+          p_note?: string | null;
+          p_visibility?: string;
+        };
+        Returns: undefined;
+      };
+      add_work_order_update: {
+        Args: { p_work_order_id: string; p_note: string; p_visibility?: string };
+        Returns: undefined;
+      };
+      start_work_order: {
+        Args: { p_work_order_id: string; p_note?: string | null; p_visibility?: string };
+        Returns: undefined;
+      };
+      wait_work_order: {
+        Args: { p_work_order_id: string; p_note?: string | null; p_visibility?: string };
+        Returns: undefined;
+      };
+      resume_work_order: {
+        Args: { p_work_order_id: string; p_note?: string | null; p_visibility?: string };
+        Returns: undefined;
+      };
+      complete_work_order: {
+        Args: {
+          p_work_order_id: string;
+          p_completion_summary: string;
+          p_member_visible_summary?: string | null;
+          p_note?: string | null;
+          p_visibility?: string;
+        };
+        Returns: undefined;
+      };
+      cancel_work_order: {
+        Args: { p_work_order_id: string; p_note?: string | null; p_visibility?: string };
+        Returns: undefined;
       };
       create_online_payment_checkout_transaction: {
         Args: { p_due_ids: string[]; p_provider: string };

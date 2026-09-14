@@ -78,6 +78,11 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "maintenance_attachment_extension", // canonical path helper
   "maintenance_request_accepts_attachments", // request state helper
   "seed_default_maintenance_categories", // trigger helper, not a direct client API
+  "assert_work_order_status_transition", // internal validator wrapped by work order mutation RPCs
+  "validate_work_order_assignee", // internal assignment validator
+  "insert_work_order_update", // operational evidence writer
+  "audit_work_order_action", // platform audit writer
+  "transition_work_order", // wrapped by narrow lifecycle RPCs
 ] as const;
 
 const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
@@ -134,6 +139,11 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "maintenance_attachment_can_upload_object", "maintenance_attachment_member_can_read",
   "maintenance_attachment_staff_can_manage", "maintenance_attachment_staff_can_read",
   "maintenance_module_enabled", "maintenance_request_staff_can_read",
+  "add_work_order_update", "assign_work_order", "cancel_work_order", "complete_work_order",
+  "create_work_order", "resume_work_order", "schedule_work_order", "start_work_order",
+  "wait_work_order", "work_order_member_can_read",
+  "work_order_staff_can_assign", "work_order_staff_can_complete", "work_order_staff_can_manage",
+  "work_order_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
   "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
   "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", "project_wip_summary",

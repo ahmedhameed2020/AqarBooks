@@ -57,8 +57,54 @@ const attachmentIdSchema = z.object({
   attachmentId: z.string().uuid(),
 });
 
+const nullableUuidSchema = z.string().uuid().optional().nullable();
+const optionalDateTimeSchema = z.string().datetime({ offset: true }).optional().nullable();
+
+const createWorkOrderSchema = z.object({
+  requestId: z.string().uuid(),
+  assignedUserId: nullableUuidSchema,
+  supplierId: nullableUuidSchema,
+  scheduledStartAt: optionalDateTimeSchema,
+  scheduledEndAt: optionalDateTimeSchema,
+  slaDueAt: optionalDateTimeSchema,
+  note: z.string().trim().max(4000).optional(),
+  visibility: visibilitySchema.default("STAFF_ONLY"),
+});
+
+const assignWorkOrderSchema = z.object({
+  workOrderId: z.string().uuid(),
+  assignedUserId: nullableUuidSchema,
+  supplierId: nullableUuidSchema,
+  note: z.string().trim().max(4000).optional(),
+  visibility: visibilitySchema.default("STAFF_ONLY"),
+});
+
+const scheduleWorkOrderSchema = z.object({
+  workOrderId: z.string().uuid(),
+  scheduledStartAt: z.string().datetime({ offset: true }),
+  scheduledEndAt: z.string().datetime({ offset: true }),
+  slaDueAt: optionalDateTimeSchema,
+  note: z.string().trim().max(4000).optional(),
+  visibility: visibilitySchema.default("STAFF_ONLY"),
+});
+
+const workOrderTransitionSchema = z.object({
+  workOrderId: z.string().uuid(),
+  note: z.string().trim().max(4000).optional(),
+  visibility: visibilitySchema.default("MEMBER_VISIBLE"),
+});
+
+const completeWorkOrderSchema = workOrderTransitionSchema.extend({
+  completionSummary: z.string().trim().min(1).max(4000),
+  memberVisibleSummary: z.string().trim().max(4000).optional(),
+});
+
 export type MaintenanceActionResult =
   | { ok: true; requestId?: string }
+  | { ok: false; error: string };
+
+export type WorkOrderActionResult =
+  | { ok: true; workOrderId?: string }
   | { ok: false; error: string };
 
 export type MaintenanceAttachmentUploadResult =
@@ -113,6 +159,22 @@ function mapMaintenanceAttachmentError(message: string | undefined): string {
   if (message.includes("ATTACHMENT_SIZE_MISMATCH")) return "size_mismatch";
   if (message.includes("ATTACHMENT_MIME_MISMATCH")) return "mime_mismatch";
   if (message.includes("INVALID_ATTACHMENT_STATUS") || message.includes("READY_ATTACHMENT_IMMUTABLE")) return "invalid_status";
+  return "failed";
+}
+
+function mapWorkOrderError(message: string | undefined): string {
+  if (!message) return "failed";
+  if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
+  if (message.includes("MAINTENANCE_NOT_ENTITLED")) return "not_entitled";
+  if (message.includes("WORK_ORDER_NOT_FOUND") || message.includes("REQUEST_NOT_FOUND")) return "not_found";
+  if (message.includes("FORBIDDEN_WORK_ORDER")) return "forbidden";
+  if (message.includes("INVALID_WORK_ORDER_TRANSITION")) return "invalid_transition";
+  if (message.includes("INVALID_WORK_ORDER_SCHEDULE")) return "invalid_schedule";
+  if (message.includes("INVALID_WORK_ORDER_ASSIGNEE") || message.includes("WORK_ORDER_ASSIGNEE_REQUIRED")) return "invalid_assignee";
+  if (message.includes("INVALID_WORK_ORDER_SUPPLIER")) return "invalid_supplier";
+  if (message.includes("COMPLETION_SUMMARY_REQUIRED")) return "completion_summary_required";
+  if (message.includes("REQUEST_NOT_ACCEPTING_WORK_ORDERS")) return "request_closed";
+  if (message.includes("INVALID_VISIBILITY")) return "invalid_visibility";
   return "failed";
 }
 
@@ -314,4 +376,177 @@ export async function getMaintenanceAttachmentLinkAction(
     mimeType: attachment.mime_type,
     byteSize: attachment.byte_size,
   };
+}
+
+export async function createWorkOrderAction(
+  input: z.input<typeof createWorkOrderSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = createWorkOrderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_work_order", {
+    p_maintenance_request_id: parsed.data.requestId,
+    p_assigned_user_id: parsed.data.assignedUserId || null,
+    p_supplier_id: parsed.data.supplierId || null,
+    p_scheduled_start_at: parsed.data.scheduledStartAt || null,
+    p_scheduled_end_at: parsed.data.scheduledEndAt || null,
+    p_sla_due_at: parsed.data.slaDueAt || null,
+    p_note: parsed.data.note || null,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error || !data) {
+    console.error("[createWorkOrderAction] failed:", error?.message);
+    return { ok: false, error: mapWorkOrderError(error?.message) };
+  }
+
+  revalidatePath("/[locale]/operations/maintenance", "page");
+  revalidatePath("/[locale]/operations/maintenance/[requestId]", "page");
+  revalidatePath("/[locale]/operations/maintenance/work-orders", "page");
+  revalidatePath("/[locale]/portal/maintenance/[requestId]", "page");
+  return { ok: true, workOrderId: data };
+}
+
+export async function assignWorkOrderAction(
+  input: z.input<typeof assignWorkOrderSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = assignWorkOrderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("assign_work_order", {
+    p_work_order_id: parsed.data.workOrderId,
+    p_assigned_user_id: parsed.data.assignedUserId || null,
+    p_supplier_id: parsed.data.supplierId || null,
+    p_note: parsed.data.note || null,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error) {
+    console.error("[assignWorkOrderAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderError(error.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true };
+}
+
+export async function scheduleWorkOrderAction(
+  input: z.input<typeof scheduleWorkOrderSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = scheduleWorkOrderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("schedule_work_order", {
+    p_work_order_id: parsed.data.workOrderId,
+    p_scheduled_start_at: parsed.data.scheduledStartAt,
+    p_scheduled_end_at: parsed.data.scheduledEndAt,
+    p_sla_due_at: parsed.data.slaDueAt || null,
+    p_note: parsed.data.note || null,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error) {
+    console.error("[scheduleWorkOrderAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderError(error.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true };
+}
+
+export async function startWorkOrderAction(input: z.input<typeof workOrderTransitionSchema>) {
+  return transitionWorkOrderAction("start_work_order", input);
+}
+
+export async function waitWorkOrderAction(input: z.input<typeof workOrderTransitionSchema>) {
+  return transitionWorkOrderAction("wait_work_order", input);
+}
+
+export async function resumeWorkOrderAction(input: z.input<typeof workOrderTransitionSchema>) {
+  return transitionWorkOrderAction("resume_work_order", input);
+}
+
+export async function cancelWorkOrderAction(input: z.input<typeof workOrderTransitionSchema>) {
+  return transitionWorkOrderAction("cancel_work_order", input);
+}
+
+export async function completeWorkOrderAction(
+  input: z.input<typeof completeWorkOrderSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = completeWorkOrderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("complete_work_order", {
+    p_work_order_id: parsed.data.workOrderId,
+    p_completion_summary: parsed.data.completionSummary,
+    p_member_visible_summary: parsed.data.memberVisibleSummary || null,
+    p_note: parsed.data.note || null,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error) {
+    console.error("[completeWorkOrderAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderError(error.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true };
+}
+
+export async function addWorkOrderUpdateAction(
+  input: z.input<typeof workOrderTransitionSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = workOrderTransitionSchema.safeParse(input);
+  if (!parsed.success || !parsed.data.note) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_work_order_update", {
+    p_work_order_id: parsed.data.workOrderId,
+    p_note: parsed.data.note,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error) {
+    console.error("[addWorkOrderUpdateAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderError(error.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true };
+}
+
+async function transitionWorkOrderAction(
+  rpcName: "start_work_order" | "wait_work_order" | "resume_work_order" | "cancel_work_order",
+  input: z.input<typeof workOrderTransitionSchema>,
+): Promise<WorkOrderActionResult> {
+  const parsed = workOrderTransitionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(rpcName, {
+    p_work_order_id: parsed.data.workOrderId,
+    p_note: parsed.data.note || null,
+    p_visibility: parsed.data.visibility,
+  });
+
+  if (error) {
+    console.error(`[${rpcName}] failed:`, error.message);
+    return { ok: false, error: mapWorkOrderError(error.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true };
+}
+
+function revalidateWorkOrderPaths(workOrderId?: string) {
+  void workOrderId;
+  revalidatePath("/[locale]/operations/maintenance", "page");
+  revalidatePath("/[locale]/operations/maintenance/[requestId]", "page");
+  revalidatePath("/[locale]/operations/maintenance/work-orders", "page");
+  revalidatePath("/[locale]/operations/maintenance/work-orders/[workOrderId]", "page");
+  revalidatePath("/[locale]/portal/maintenance/[requestId]", "page");
 }

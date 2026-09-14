@@ -11,6 +11,9 @@ import type { Locale } from "@/i18n/routing";
 import type { MaintenancePriority, MaintenanceStatus } from "@/app/[locale]/portal/(member)/maintenance/portal-maintenance-client";
 import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "@/app/[locale]/portal/(member)/maintenance/maintenance-attachments-client";
 import { StaffMaintenanceUpdateForm } from "./staff-maintenance-update-form";
+import { CreateWorkOrderForm } from "./create-work-order-form";
+import { WORK_ORDER_STATUS_LABELS, type WorkOrderStatus } from "../work-orders/work-orders-client";
+import type { Option } from "../work-orders/[workOrderId]/work-order-controls";
 
 export default async function StaffMaintenanceDetailPage({
   params,
@@ -35,6 +38,9 @@ export default async function StaffMaintenanceDetailPage({
   const { data: canManageAttachments } = await supabase.rpc("maintenance_attachment_staff_can_manage", {
     p_organization_id: organization.id,
   });
+  const { data: canManageWorkOrders } = await supabase.rpc("work_order_staff_can_manage", {
+    p_organization_id: organization.id,
+  });
 
   if (!moduleEnabled) notFound();
 
@@ -47,7 +53,7 @@ export default async function StaffMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: property }, { data: member }, { data: categories }, { data: updates }, { data: attachments }] = await Promise.all([
+  const [{ data: unit }, { data: property }, { data: member }, { data: categories }, { data: updates }, { data: attachments }, { data: workOrders }, { data: memberships }, { data: suppliers }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("properties").select("name").eq("id", request.property_id).maybeSingle(),
     supabase.from("members").select("full_name, email, phone").eq("id", request.requester_member_id).maybeSingle(),
@@ -59,10 +65,26 @@ export default async function StaffMaintenanceDetailPage({
       .eq("maintenance_request_id", request.id)
       .eq("status", "READY")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("work_orders")
+      .select("id, work_order_no, status, assigned_user_id, supplier_id, scheduled_start_at, sla_due_at, created_at")
+      .eq("maintenance_request_id", request.id)
+      .order("created_at", { ascending: false }),
+    supabase.from("organization_memberships").select("user_id").eq("organization_id", organization.id).eq("status", "active").limit(100),
+    supabase.from("suppliers").select("id, name").eq("organization_id", organization.id).eq("is_active", true).order("name").limit(100),
   ]);
 
   const categoryOptions = (categories ?? []).map((c) => ({ id: c.id, label: isAr ? c.name_ar : c.name_en }));
   const category = categoryOptions.find((c) => c.id === request.category_id);
+  const userIds = (memberships ?? []).map((m) => m.user_id).filter(Boolean) as string[];
+  const assignedIds = (workOrders ?? []).map((wo) => wo.assigned_user_id).filter(Boolean) as string[];
+  const { data: profiles } = [...new Set([...userIds, ...assignedIds])].length
+    ? await supabase.from("profiles").select("id, full_name").in("id", [...new Set([...userIds, ...assignedIds])])
+    : { data: [] };
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? p.id]));
+  const supplierById = new Map((suppliers ?? []).map((s) => [s.id, s.name]));
+  const staffOptions: Option[] = userIds.map((id) => ({ id, label: profileById.get(id) ?? id }));
+  const supplierOptions: Option[] = (suppliers ?? []).map((s) => ({ id: s.id, label: s.name }));
 
   return (
     <div className="space-y-6 pb-12">
@@ -106,6 +128,47 @@ export default async function StaffMaintenanceDetailPage({
         categories={categoryOptions}
         locale={locale as "ar" | "en"}
       />
+
+      <CreateWorkOrderForm
+        requestId={request.id}
+        staffOptions={staffOptions}
+        supplierOptions={supplierOptions}
+        canCreate={Boolean(canManageWorkOrders) && !["CANCELLED", "CLOSED"].includes(request.status)}
+        locale={locale as "ar" | "en"}
+      />
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-slate-950 dark:text-white">{isAr ? "أوامر العمل" : "Work Orders"}</h2>
+          <Link href="/operations/maintenance/work-orders" locale={locale as Locale} className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 rounded-xl text-xs" })}>
+            {isAr ? "كل الأوامر" : "All Orders"}
+          </Link>
+        </div>
+        {(workOrders ?? []).length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-card p-6 text-center text-xs text-slate-500">
+            {isAr ? "لم يتم إنشاء أوامر عمل لهذا الطلب بعد." : "No work orders have been created for this request yet."}
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {(workOrders ?? []).map((wo) => {
+              const label = WORK_ORDER_STATUS_LABELS[wo.status as WorkOrderStatus];
+              const assignee = wo.assigned_user_id ? profileById.get(wo.assigned_user_id) : wo.supplier_id ? supplierById.get(wo.supplier_id) : "—";
+              return (
+                <Link key={wo.id} href={`/operations/maintenance/work-orders/${wo.id}`} locale={locale as Locale} className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs transition-colors hover:border-primary/40">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-slate-400">{wo.work_order_no}</p>
+                    <Badge variant="outline" className={label.tone}>{isAr ? label.ar : label.en}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-bold text-slate-950 dark:text-white">{assignee ?? "—"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {wo.sla_due_at ? `SLA: ${new Date(wo.sla_due_at).toLocaleString(isAr ? "ar-EG" : "en-US")}` : (isAr ? "بدون SLA" : "No SLA")}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <MaintenanceAttachmentsPanel
         requestId={request.id}
