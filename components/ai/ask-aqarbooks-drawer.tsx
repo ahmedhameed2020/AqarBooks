@@ -5,14 +5,8 @@ import {
   Sparkles,
   Send,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   ShieldCheck,
-  FileSpreadsheet,
   X,
-  HelpCircle,
-  MessageSquare,
-  Building2,
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,14 +77,16 @@ export function AskAqarBooksDrawer({
   return (
     <>
       {/* Floating Trigger Button (Restrained & Authoritative) */}
-      <div className="fixed bottom-6 end-6 z-40">
+      <div className="fixed bottom-4 end-4 z-40 sm:bottom-6 sm:end-6">
         <Button
           type="button"
+          aria-label={isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}
+          title={isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}
           onClick={() => setOpen(!open)}
-          className="h-11 px-4 rounded-full bg-[#07425d] hover:bg-[#053247] text-white font-bold text-xs shadow-lg hover:shadow-xl transition-all gap-2 cursor-pointer border border-white/15 press-feedback motion-control"
+          className="h-11 w-11 rounded-full border border-white/15 bg-[#07425d] px-0 text-xs font-bold text-white shadow-lg transition-all hover:bg-[#053247] hover:shadow-xl sm:w-auto sm:px-4 gap-2 cursor-pointer press-feedback motion-control"
         >
           <Sparkles className="size-4 text-purple-300" />
-          <span>{isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}</span>
+          <span className="hidden sm:inline">{isAr ? "اسأل AqarBooks" : "Ask AqarBooks"}</span>
         </Button>
       </div>
 

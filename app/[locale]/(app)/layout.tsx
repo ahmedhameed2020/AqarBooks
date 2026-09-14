@@ -255,6 +255,7 @@ export default async function AppShellLayout({
                 { href: "/admin/users", permission: "tenant.users.manage", labelAr: "المستخدمون وفريق العمل", labelEn: "Team & Users" },
                 { href: "/admin/roles", permission: "tenant.roles.manage", labelAr: "الصلاحيات والمصفوفة", labelEn: "Roles & Permissions" },
                 { href: "/admin/ai-governance", permission: "tenant.settings.manage", labelAr: "حوكمة الذكاء الاصطناعي (Shadow Pilot)", labelEn: "AI Governance & Pilot" },
+                { href: "/admin/security-health", permission: "tenant.settings.manage", labelAr: "صحة الأمن والتشغيل", labelEn: "Security & Ops Health" },
                 { href: "/finance/payment-providers", permission: "finance.online_payments.manage", labelAr: "بوابات الدفع الإلكتروني", labelEn: "Payment Gateways" },
               ],
             },
