@@ -40,6 +40,7 @@ import {
   ShieldAlert,
   Scale,
   Landmark,
+  Wrench,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -129,6 +130,12 @@ export default async function AppShellLayout({
                 { href: "/members", permission: "property.members.manage", labelAr: "دليل الملاك والمستأجرين", labelEn: "Members Directory" },
                 { href: "/finance/reports/owner-statement", permission: "property.reports.read", labelAr: "كشف حساب الملاك وتوزيعاتهم", labelEn: "Owner Statements" },
               ],
+            },
+            {
+              href: "/operations/maintenance", permission: "operations.maintenance.view",
+              labelAr: "عمليات الصيانة",
+              labelEn: "Maintenance Operations",
+              icon: <Wrench className={ic} />,
             },
           ],
         },

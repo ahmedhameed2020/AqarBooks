@@ -676,6 +676,116 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
       };
+      maintenance_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name_ar: string;
+          name_en: string;
+          default_priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+          is_active: boolean;
+          sort_order: number;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name_ar: string;
+          name_en: string;
+          default_priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+          is_active?: boolean;
+          sort_order?: number;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["maintenance_categories"]["Row"]>;
+        Relationships: [];
+      };
+      maintenance_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          requester_member_id: string;
+          category_id: string;
+          request_no: string;
+          title: string;
+          description: string;
+          priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+          status: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED";
+          submitted_at: string;
+          triaged_at: string | null;
+          started_at: string | null;
+          waiting_at: string | null;
+          completed_at: string | null;
+          closed_at: string | null;
+          cancelled_at: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          requester_member_id: string;
+          category_id: string;
+          request_no: string;
+          title: string;
+          description: string;
+          priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+          status?: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED";
+          submitted_at?: string;
+          triaged_at?: string | null;
+          started_at?: string | null;
+          waiting_at?: string | null;
+          completed_at?: string | null;
+          closed_at?: string | null;
+          cancelled_at?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["maintenance_requests"]["Row"]>;
+        Relationships: [];
+      };
+      maintenance_request_updates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          maintenance_request_id: string;
+          actor_user_id: string | null;
+          actor_member_id: string | null;
+          previous_status: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED" | null;
+          resulting_status: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED" | null;
+          note: string;
+          visibility: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          maintenance_request_id: string;
+          actor_user_id?: string | null;
+          actor_member_id?: string | null;
+          previous_status?: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED" | null;
+          resulting_status?: "SUBMITTED" | "TRIAGED" | "IN_PROGRESS" | "WAITING" | "COMPLETED" | "CLOSED" | "CANCELLED" | null;
+          note: string;
+          visibility?: "STAFF_ONLY" | "MEMBER_VISIBLE";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["maintenance_request_updates"]["Row"]>;
+        Relationships: [];
+      };
       online_payment_transactions: {
         Row: {
           id: string;
@@ -2646,6 +2756,47 @@ export type Database = {
       current_member_id: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
+      };
+      maintenance_module_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      is_current_member_unit_owner: {
+        Args: { p_member_id: string; p_organization_id: string; p_unit_id: string };
+        Returns: boolean;
+      };
+      maintenance_request_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      assert_maintenance_status_transition: {
+        Args: { p_previous_status: string; p_next_status: string; p_actor_kind: string };
+        Returns: undefined;
+      };
+      create_maintenance_request: {
+        Args: {
+          p_unit_id: string;
+          p_category_id: string;
+          p_title: string;
+          p_description: string;
+          p_priority?: string;
+        };
+        Returns: string;
+      };
+      cancel_own_maintenance_request: {
+        Args: { p_request_id: string; p_note?: string | null };
+        Returns: undefined;
+      };
+      update_maintenance_request_staff: {
+        Args: {
+          p_request_id: string;
+          p_next_status?: string | null;
+          p_category_id?: string | null;
+          p_priority?: string | null;
+          p_note?: string | null;
+          p_visibility?: string;
+        };
+        Returns: undefined;
       };
       create_online_payment_checkout_transaction: {
         Args: { p_due_ids: string[]; p_provider: string };

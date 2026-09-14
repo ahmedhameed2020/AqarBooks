@@ -85,6 +85,10 @@ export interface MigrationDescriptor {
   readonly provenance: MigrationProvenance;
 }
 
+interface HistoricalLedgerManifest {
+  readonly rows: readonly { readonly version: string }[];
+}
+
 /**
  * The immutable tipping point of the reconciled migration ledger.
  * Any future migration added to supabase/migrations MUST have:
@@ -112,6 +116,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566", provenance: "restored_exact" },
   { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42", provenance: "post_apply_nonsemantic_edit" },
   { file: "20260913165500_w0_sec_authorization_containment.sql", bytes: 6570, sha256: "eba7ae525f91fb9ff3f0a124d99fa108ddc9731e14815931d0b9a75543d35a7f", provenance: "new_authorized_migration" },
+  { file: "20260914131953_maintenance_request_core.sql", bytes: 30555, sha256: "f5bfe54ae6acac3ebb46c28ca17752ad66d15e670f195748c0bda96d9e63de07", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -392,8 +397,9 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(restored).toHaveLength(16);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(1);
+      expect(authorized).toHaveLength(2);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
+      expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -437,7 +443,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 6. intersection(historical repo versions, historical-only versions) == empty
       const intersection = historicalRepoVersions.filter((v) =>
-        HISTORICAL_LEDGER_ONLY_VERSIONS.includes(v as any)
+        (HISTORICAL_LEDGER_ONLY_VERSIONS as readonly string[]).includes(v)
       );
       expect(intersection).toEqual([]);
 
@@ -447,7 +453,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 8. new authorized migration(s) strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(1);
+      expect(newMigrations).toHaveLength(2);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
@@ -457,9 +463,9 @@ describe("migrations directory holds exactly the approved baseline", () => {
     it("public manifest rows match HISTORICAL_LEDGER_ONLY_VERSIONS exactly", () => {
       const manifestPath = join("docs/evidence", "migration-ledger-15-manifest.json");
       expect(existsSync(manifestPath)).toBe(true);
-      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as HistoricalLedgerManifest;
       expect(manifest.rows).toHaveLength(15);
-      const manifestVersions = manifest.rows.map((r: any) => r.version);
+      const manifestVersions = manifest.rows.map((r) => r.version);
       expect(manifestVersions).toEqual([...HISTORICAL_LEDGER_ONLY_VERSIONS]);
     });
 

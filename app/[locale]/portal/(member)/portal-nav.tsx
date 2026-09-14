@@ -8,6 +8,7 @@ import {
   Building2,
   FolderOpen,
   UserRound,
+  Wrench,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,20 @@ const NAV_GROUPS: NavGroup[] = [
         descAr: "المرفقات والتقارير",
         descEn: "Files & reports",
         icon: FolderOpen,
+      },
+    ],
+  },
+  {
+    titleAr: "الخدمات",
+    titleEn: "Services",
+    links: [
+      {
+        href: "/portal/maintenance",
+        labelAr: "الصيانة",
+        labelEn: "Maintenance",
+        descAr: "طلبات الصيانة والمتابعة",
+        descEn: "Requests & updates",
+        icon: Wrench,
       },
     ],
   },
