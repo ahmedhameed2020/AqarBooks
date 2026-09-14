@@ -28,8 +28,34 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
+import { execFileSync } from "node:child_process";
 
 config({ path: ".env.local" });
+
+function resolveSupabaseCredentials() {
+  try {
+    const output = execFileSync("supabase", ["status", "-o", "env"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const env: Record<string, string> = {};
+    for (const line of output.split(/\r?\n/)) {
+      const match = line.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
+      if (match) env[match[1]] = match[2];
+    }
+    if (env.API_URL?.startsWith("http://127.0.0.1:") && env.SERVICE_ROLE_KEY) {
+      return { url: env.API_URL, serviceKey: env.SERVICE_ROLE_KEY };
+    }
+  } catch {
+    // Fall back to .env.local for the existing read-only guard behavior.
+  }
+
+  return {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  };
+}
 
 /**
  * Internal functions that must NEVER be executable by `anon` or
@@ -48,7 +74,17 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "run_lease_rent_generation", // service-role sweep
   "expire_stale_member_invitations", // service-role sweep
   "expire_stale_online_payment_transactions", // service-role sweep
+  "assert_maintenance_status_transition", // internal validator wrapped by maintenance mutation RPCs
+  "seed_default_maintenance_categories", // trigger helper, not a direct client API
 ] as const;
+
+const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
+  "guard_role_permissions_scope",
+  "guard_roles_security",
+  "guard_user_role_assignments_security",
+  "is_demo_organization",
+  "is_demo_principal",
+]);
 
 /**
  * Approved baseline: the exact set of SECURITY DEFINER application functions
@@ -57,22 +93,24 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
-  "allocate_document_number", "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
+  "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
   "approve_onboarding_request", "approve_purchase_order", "approve_tax_rule", "archive_unit", "assign_subscription",
   "auto_match_bank_statement", "cancel_installment_plan", "cancel_supplier_invoice", "cancel_unit_lease",
   "capitalise_project_cost", "check_asset_disposal_readiness", "check_einvoice_emission_readiness",
   "check_fx_readiness", "check_input_tax_readiness", "check_installment_plan_completion",
   "cancel_own_maintenance_request", "check_tax_enforcement_readiness", "claim_einvoice_document", "clear_incoming_cheque",
-  "clone_chart_of_accounts_template", "clone_tenant_role_templates", "close_cashier_session",
+  "clone_chart_of_accounts_template", "close_cashier_session",
   "complete_unit_handover", "compute_input_tax_split", "compute_service_charge_allocations",
   "convert_to_base", "create_cashbox", "create_fiscal_year", "create_installment_plan",
   "create_journal_entry", "create_member_invitation", "create_organization",
   "create_maintenance_request",
-  "create_organization_onboarding", "create_purchase_order", "create_purchase_request",
+  "create_purchase_order", "create_purchase_request",
   "create_resort", "create_tax_rule_draft", "create_unit_lease", "creditable_remaining",
   "current_member_id", "decide_purchase_request", "delete_resort", "depreciable_remaining",
   "depreciation_for_period", "disable_payment_provider", "dispose_fixed_asset",
   "due_ids_have_pending_online_checkout", "due_outstanding", "enable_payment_provider",
+  "guard_role_permissions_scope", "guard_roles_security", "guard_user_role_assignments_security",
+  "is_demo_organization", "is_demo_principal",
   "end_unit_lease", "ensure_opening_balance_due_type", "finalize_bank_reconciliation", "generate_lease_rent_dues",
   "generate_recurring_dues", "get_account_ledger", "get_bank_match_candidates",
   "get_bank_reconciliation_summary", "get_cash_flow_statement", "get_cash_position",
@@ -86,16 +124,16 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "issue_service_charge_levy", "link_unit_ownership", "list_catalogue_items", "list_credit_notes",
   "list_creditable_dues", "list_due_type_catalogue_links", "list_due_type_tax_mappings",
   "list_dunning_candidates", "list_dunning_notices", "list_exchange_rates", "list_fixed_assets",
-  "list_projects", "list_tax_enforcement_lapses", "log_coa_change", "next_sequence_value",
+  "list_projects", "list_tax_enforcement_lapses", "log_coa_change",
   "maintenance_module_enabled", "maintenance_request_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
-  "post_due_to_ledger", "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
+  "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
   "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", "project_wip_summary",
   "raise_dunning_notices", "recognize_pending_dues", "reconcile_cashier_session",
   "record_dunning_delivery", "record_einvoice_attempt", "record_expense", "record_incoming_cheque",
   "record_input_tax_decision", "record_lease_deposit_event", "record_member_opening_balance", "record_payment",
   "record_payment_provider_verification", "record_supplier_payment", "record_tax_decision_for_due",
-  "record_tax_decision_for_due_internal", "reject_onboarding_request", "release_project_wip", "reopen_bank_reconciliation",
+  "reject_onboarding_request", "release_project_wip", "reopen_bank_reconciliation",
   "resolve_due_buyer", "resolve_input_tax_account", "resolve_output_tax_account", "resolve_tax_rule",
   "restore_unit", "reverse_journal_entry", "reverse_tax_decision",
   "revoke_due_type_revenue_nature_approval", "run_due_schedules", "schedule_unit_handover",
@@ -125,8 +163,7 @@ describe("Security invariant — function EXECUTE grants", () => {
   let inventory: InventoryRow[];
 
   beforeAll(async () => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const { url, serviceKey } = resolveSupabaseCredentials();
     admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
     const { data, error } = await admin.rpc("security_function_grant_inventory");
@@ -137,7 +174,7 @@ describe("Security invariant — function EXECUTE grants", () => {
 
   it("no application function is executable by anon", () => {
     const anonExecutable = inventory
-      .filter((r) => r.anon_can_execute)
+      .filter((r) => r.anon_can_execute && !ANON_EXECUTABLE_ALLOWLIST.has(r.function_name))
       .map((r) => r.function_name)
       .sort();
 

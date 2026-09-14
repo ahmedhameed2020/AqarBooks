@@ -33,7 +33,11 @@ describe("maintenance request core migration", () => {
     expect(sql).not.toMatch(/grant execute on function public\.assert_maintenance_status_transition/i);
 
     expect(sql).not.toMatch(/create policy maintenance_requests_insert/i);
+    expect(sql).not.toMatch(/create policy maintenance_requests_manage_staff/i);
     expect(sql).not.toMatch(/create policy maintenance_request_updates_insert/i);
+    expect(sql).toMatch(/revoke all privileges on table public\.maintenance_requests from public, anon, authenticated/i);
+    expect(sql).toMatch(/grant select on table public\.maintenance_requests to authenticated/i);
+    expect(sql).not.toMatch(/grant all on table public\.maintenance_requests to authenticated/i);
   });
 
   it("ships RLS, permissions, and entitlement wiring with the schema", () => {
@@ -49,8 +53,14 @@ describe("maintenance request core migration", () => {
 
   it("keeps maintenance authenticated-only and excludes future ownership", () => {
     expect(sql).not.toMatch(/grant select on table public\.maintenance_(categories|requests|request_updates) to anon/i);
+    expect(sql).toMatch(/revoke all on function public\.assert_maintenance_status_transition\(text, text, text\) from authenticated/i);
+    expect(sql).toMatch(/revoke all on function public\.seed_default_maintenance_categories\(\) from authenticated/i);
     expect(sql).toMatch(/uo\.start_date is null or uo\.start_date <= current_date/i);
     expect(sql).toMatch(/uo\.end_date is null or uo\.end_date >= current_date/i);
     expect(sql).toMatch(/p_member_id = public\.current_member_id\(\)/i);
+  });
+
+  it("makes repeated member cancellation invalid instead of silently writing duplicate history", () => {
+    expect(sql).toMatch(/if v_request\.status = 'CANCELLED' then\s+raise exception 'INVALID_MAINTENANCE_TRANSITION'/i);
   });
 });

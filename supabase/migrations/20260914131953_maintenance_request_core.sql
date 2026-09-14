@@ -519,6 +519,10 @@ begin
     raise exception 'MAINTENANCE_NOT_ENTITLED' using errcode = '42501';
   end if;
 
+  if v_request.status = 'CANCELLED' then
+    raise exception 'INVALID_MAINTENANCE_TRANSITION' using errcode = '22023';
+  end if;
+
   perform public.assert_maintenance_status_transition(v_request.status, 'CANCELLED', 'MEMBER');
 
   update public.maintenance_requests
@@ -744,21 +748,6 @@ create policy maintenance_categories_select_staff_or_member
     )
   );
 
-create policy maintenance_categories_manage_staff
-  on public.maintenance_categories
-  for all
-  to authenticated
-  using (
-    public.has_permission(auth.uid(), organization_id, 'operations.maintenance.manage')
-    and public.organization_is_active(organization_id)
-    and public.maintenance_module_enabled(organization_id)
-  )
-  with check (
-    public.has_permission(auth.uid(), organization_id, 'operations.maintenance.manage')
-    and public.organization_is_active(organization_id)
-    and public.maintenance_module_enabled(organization_id)
-  );
-
 create policy maintenance_requests_select_staff_or_owner
   on public.maintenance_requests
   for select
@@ -773,21 +762,6 @@ create policy maintenance_requests_select_staff_or_owner
         and public.is_current_member_unit_owner(public.current_member_id(), organization_id, unit_id)
       )
     )
-  );
-
-create policy maintenance_requests_manage_staff
-  on public.maintenance_requests
-  for update
-  to authenticated
-  using (
-    public.has_permission(auth.uid(), organization_id, 'operations.maintenance.manage')
-    and public.organization_is_active(organization_id)
-    and public.maintenance_module_enabled(organization_id)
-  )
-  with check (
-    public.has_permission(auth.uid(), organization_id, 'operations.maintenance.manage')
-    and public.organization_is_active(organization_id)
-    and public.maintenance_module_enabled(organization_id)
   );
 
 create policy maintenance_request_updates_select_staff_or_owner_visible
@@ -852,19 +826,47 @@ select gen_random_uuid(), p.id, 'maintenance_module',
 from public.plans p
 on conflict (plan_id, key) do nothing;
 
-grant all on table public.maintenance_categories to authenticated, service_role;
-grant all on table public.maintenance_requests to authenticated, service_role;
-grant all on table public.maintenance_request_updates to authenticated, service_role;
+revoke all privileges on table public.maintenance_categories from public, anon, authenticated;
+revoke all privileges on table public.maintenance_requests from public, anon, authenticated;
+revoke all privileges on table public.maintenance_request_updates from public, anon, authenticated;
+grant select on table public.maintenance_categories to authenticated;
+grant select on table public.maintenance_requests to authenticated;
+grant select on table public.maintenance_request_updates to authenticated;
+grant all privileges on table public.maintenance_categories to service_role;
+grant all privileges on table public.maintenance_requests to service_role;
+grant all privileges on table public.maintenance_request_updates to service_role;
 revoke all on function public.seed_default_maintenance_categories() from public;
 revoke all on function public.seed_default_maintenance_categories() from anon;
 revoke all on function public.seed_default_maintenance_categories() from authenticated;
+revoke all on function public.seed_default_maintenance_categories() from service_role;
 revoke all on function public.maintenance_module_enabled(uuid) from public;
+revoke all on function public.maintenance_module_enabled(uuid) from anon;
+revoke all on function public.maintenance_module_enabled(uuid) from authenticated;
+revoke all on function public.maintenance_module_enabled(uuid) from service_role;
 revoke all on function public.is_current_member_unit_owner(uuid, uuid, uuid) from public;
+revoke all on function public.is_current_member_unit_owner(uuid, uuid, uuid) from anon;
+revoke all on function public.is_current_member_unit_owner(uuid, uuid, uuid) from authenticated;
+revoke all on function public.is_current_member_unit_owner(uuid, uuid, uuid) from service_role;
 revoke all on function public.maintenance_request_staff_can_read(uuid) from public;
+revoke all on function public.maintenance_request_staff_can_read(uuid) from anon;
+revoke all on function public.maintenance_request_staff_can_read(uuid) from authenticated;
+revoke all on function public.maintenance_request_staff_can_read(uuid) from service_role;
 revoke all on function public.assert_maintenance_status_transition(text, text, text) from public;
+revoke all on function public.assert_maintenance_status_transition(text, text, text) from anon;
+revoke all on function public.assert_maintenance_status_transition(text, text, text) from authenticated;
+revoke all on function public.assert_maintenance_status_transition(text, text, text) from service_role;
 revoke all on function public.create_maintenance_request(uuid, uuid, text, text, text) from public;
+revoke all on function public.create_maintenance_request(uuid, uuid, text, text, text) from anon;
+revoke all on function public.create_maintenance_request(uuid, uuid, text, text, text) from authenticated;
+revoke all on function public.create_maintenance_request(uuid, uuid, text, text, text) from service_role;
 revoke all on function public.cancel_own_maintenance_request(uuid, text) from public;
+revoke all on function public.cancel_own_maintenance_request(uuid, text) from anon;
+revoke all on function public.cancel_own_maintenance_request(uuid, text) from authenticated;
+revoke all on function public.cancel_own_maintenance_request(uuid, text) from service_role;
 revoke all on function public.update_maintenance_request_staff(uuid, text, uuid, text, text, text) from public;
+revoke all on function public.update_maintenance_request_staff(uuid, text, uuid, text, text, text) from anon;
+revoke all on function public.update_maintenance_request_staff(uuid, text, uuid, text, text, text) from authenticated;
+revoke all on function public.update_maintenance_request_staff(uuid, text, uuid, text, text, text) from service_role;
 
 grant execute on function public.maintenance_module_enabled(uuid) to authenticated, service_role;
 grant execute on function public.is_current_member_unit_owner(uuid, uuid, uuid) to authenticated, service_role;
