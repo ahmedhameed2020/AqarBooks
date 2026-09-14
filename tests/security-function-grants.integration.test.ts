@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Phase 1 security regression guard — function EXECUTE grant posture.
  *
@@ -63,11 +62,12 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "auto_match_bank_statement", "cancel_installment_plan", "cancel_supplier_invoice", "cancel_unit_lease",
   "capitalise_project_cost", "check_asset_disposal_readiness", "check_einvoice_emission_readiness",
   "check_fx_readiness", "check_input_tax_readiness", "check_installment_plan_completion",
-  "check_tax_enforcement_readiness", "claim_einvoice_document", "clear_incoming_cheque",
+  "cancel_own_maintenance_request", "check_tax_enforcement_readiness", "claim_einvoice_document", "clear_incoming_cheque",
   "clone_chart_of_accounts_template", "clone_tenant_role_templates", "close_cashier_session",
   "complete_unit_handover", "compute_input_tax_split", "compute_service_charge_allocations",
   "convert_to_base", "create_cashbox", "create_fiscal_year", "create_installment_plan",
   "create_journal_entry", "create_member_invitation", "create_organization",
+  "create_maintenance_request",
   "create_organization_onboarding", "create_purchase_order", "create_purchase_request",
   "create_resort", "create_tax_rule_draft", "create_unit_lease", "creditable_remaining",
   "current_member_id", "decide_purchase_request", "delete_resort", "depreciable_remaining",
@@ -81,11 +81,13 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "get_own_organization_display", "get_payment_provider_settings_credentials",
   "get_service_charge_allocations", "get_tax_decision_coverage", "get_trial_balance",
   "get_unrecognized_dues_summary", "handle_new_user", "has_financial_permission", "has_permission",
+  "is_current_member_unit_owner",
   "is_org_member", "is_platform_admin", "is_resort_member", "issue_credit_note", "issue_dues",
   "issue_service_charge_levy", "link_unit_ownership", "list_catalogue_items", "list_credit_notes",
   "list_creditable_dues", "list_due_type_catalogue_links", "list_due_type_tax_mappings",
   "list_dunning_candidates", "list_dunning_notices", "list_exchange_rates", "list_fixed_assets",
   "list_projects", "list_tax_enforcement_lapses", "log_coa_change", "next_sequence_value",
+  "maintenance_module_enabled", "maintenance_request_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
   "post_due_to_ledger", "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
   "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", "project_wip_summary",
@@ -106,7 +108,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "submit_journal_entry_for_review", "supersede_tax_rule", "sync_member_primary_phone",
   "trg_credit_note_immutable", "trg_dues_post_to_ledger", "trg_dues_tax_decision",
   "trg_input_tax_decision_immutable", "trg_members_tax_identity_changed",
-  "trg_organizations_tax_identity_changed", "update_resort", "update_unit", "upsert_catalogue_item",
+  "trg_organizations_tax_identity_changed", "update_maintenance_request_staff", "update_resort", "update_unit", "upsert_catalogue_item",
   "upsert_einvoice_profile", "upsert_payment_provider_settings", "verify_financial_audit_chain",
   "void_payment", "void_supplier_payment",
 ]);
