@@ -104,7 +104,13 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260823083604_revert_unit_archive_reason.sql", bytes: 721, sha256: "776f0dce1b31532f13a5b264180a8deb24835122cb08f00b67d09308c86e9ae3", provenance: "restored_exact" },
   { file: "20260823093809_operational_alerts.sql", bytes: 4593, sha256: "3e2a8e141b301ec73c0ad49370e3fd312ac8d6524536d6ee03d23b4638cf2c2e", provenance: "restored_exact" },
   { file: "20260823100424_alert_digest_runs.sql", bytes: 1794, sha256: "e8f45da0ee44338dfe7215bea443653d76f5c5112c11d7495a89e6eea8bc0182", provenance: "restored_exact" },
-  { file: "20260823200624_property_reports_permission.sql", bytes: 2295, sha256: "26476ed0642dce52f072486dfe30b51c4513985a6e344c2f94906bb604dace98", provenance: "restored_exact" },
+  // 2026-09-14 parser repair: the historical repository file was not replayable
+  // because its final `on conflict do nothing` lacked a terminating semicolon.
+  // The repair adds only that terminator; it is a post-application
+  // nonsemantic edit. Local `supabase start` and `supabase db reset`
+  // successfully replayed the repaired history with no schema behavior or
+  // migration version change.
+  { file: "20260823200624_property_reports_permission.sql", bytes: 2296, sha256: "15fbb89edc560d0a29e99a798e8c623400385e33540bf77630f493cc4ad92aab", provenance: "post_apply_nonsemantic_edit" },
   { file: "20260823200722_property_reports_permission_widen.sql", bytes: 1488, sha256: "308a37b472e5f59c77ea8ff94363f2cee04e1b186a5dadbd43119b83b92551ce", provenance: "restored_exact" },
   { file: "20260825084639_organizations_is_demo.sql", bytes: 11904, sha256: "d24b7358734274c79a8eec23ccd444eb17dd78f32ab0e51d0066e87b01bd0f97", provenance: "restored_exact" },
   { file: "20260825124312_generate_lease_rent_dues_authz.sql", bytes: 8499, sha256: "d063fe2ae32188b1c469a722a8f918942b5ea2be99779dfe0a68af9e4a15faba", provenance: "restored_exact" },
@@ -390,11 +396,14 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconstructed[0].file).toBe("20260823075533_unit_archive_reason.sql");
 
       const modified = MIGRATION_FILES.filter((m) => m.provenance === "post_apply_nonsemantic_edit");
-      expect(modified).toHaveLength(1);
-      expect(modified[0].file).toBe("20260903172101_member_opening_balance.sql");
+      expect(modified).toHaveLength(2);
+      expect(modified.map((m) => m.file)).toEqual([
+        "20260823200624_property_reports_permission.sql",
+        "20260903172101_member_opening_balance.sql",
+      ]);
 
       const restored = MIGRATION_FILES.filter((m) => m.provenance === "restored_exact");
-      expect(restored).toHaveLength(16);
+      expect(restored).toHaveLength(15);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
       expect(authorized).toHaveLength(2);
