@@ -54,7 +54,13 @@ Expected business-data row mutation: NONE
 
 - **No DML operations**: Zero `INSERT`, `UPDATE`, `DELETE`, or `TRUNCATE` against business or accounting data tables.
 - **Zero backfills**: No existing business rows are altered or deleted.
-- **Pre-existing Data Safety**: Staged forensics confirmed zero existing production rows violate the new trigger constraints.
+- **Pre-migration Production Preflight**: **REQUIRED BEFORE DEPLOYMENT AUTHORIZATION**
+  - Staged forensics queries from `docs/forensics/w0-sec-production-check.sql` must be executed as a strictly read-only, count-only check against production by an authorized operator prior to release authorization.
+  - Required Preflight Invariants:
+    1. Cross-tenant assignments count: must be `0`.
+    2. Tenant roles with platform permissions count: must be `0`.
+    3. Malformed `PLATFORM_SUPER_ADMIN` assignments count: must be `0`.
+  - Production writes executed: **0** (Production remains strictly read-only).
 
 ---
 
@@ -70,13 +76,32 @@ All of the following surfaces are asserted and verified to experience **ZERO** s
 
 ---
 
-## 4. Post-Migration Delta Verification Result
+## 4. Replay & Catalog Delta Verification Result
 
-Measured in isolated disposable PGlite database:
+Measured in isolated disposable PGlite database (replayed from canonical baseline start `20260821105505_baseline.sql` through `20260903172101_member_opening_balance.sql`):
+- **Note on Replay Normalization**: Historical migration `20260823200624_property_reports_permission.sql` is strictly preserved byte-for-byte in repository `supabase/migrations/`. In-memory during disposable PGlite replay, the missing semicolon between `ON CONFLICT DO NOTHING` and `COMMIT;` is normalized for WASM parser compatibility.
 - **Tables changed**: 0
 - **Views changed**: 0
 - **Columns changed**: 0
 - **Policies changed**: 0
-- **Triggers added**: 3 (exact expected triggers)
-- **Functions added/modified**: 5 (exact expected functions)
-- **Unexpected Delta Count**: **0** (`unexpected delta = 0`)
+- **Triggers added**: 3 (exact expected triggers: `trg_user_role_assignments_security_guard`, `trg_roles_security_guard`, `trg_role_permissions_scope_guard`)
+- **Functions added/modified**: 5 (exact expected functions: `is_platform_admin`, `has_permission`, `guard_user_role_assignments_security`, `guard_roles_security`, `guard_role_permissions_scope`)
+- **Unexpected Forward Delta Count**: **0** (`unexpected forward delta = 0` ✅)
+
+---
+
+## 5. ADR 0005 Class R1 Compensating Recovery & Round-Trip Parity
+
+- **Compensating Script**: `supabase/recovery/20260913165500_w0_sec_authorization_containment_recovery.sql`
+- **Exact Restorations**:
+  - Restores `public.is_platform_admin(uuid)` to exact PRE-W0 baseline definition from `20260821105505_baseline.sql` lines 5009-5024.
+  - Restores `public.has_permission(uuid, uuid, text)` to exact PRE-W0 baseline definition from `20260821105505_baseline.sql` lines 4684-4701.
+  - Drops the 3 W0 guard triggers and 3 W0 guard functions.
+  - Re-applies exact baseline owners and grants to `authenticated` and `service_role`.
+- **Round-Trip Parity**: `PRE-W0 -> W0 -> RECOVERY -> PRE-W0`
+  - Replayed in disposable in-memory PGlite.
+  - Pre-W0: 107 tables, 3 views, 1255 cols, 423 fns, 59 triggers, 177 policies.
+  - Post-W0: 107 tables, 3 views, 1255 cols, 426 fns, 65 triggers, 177 policies.
+  - Post-Recovery: 107 tables, 3 views, 1255 cols, 423 fns, 59 triggers, 177 policies.
+  - **Unexpected Recovery Delta Count**: **0** (`unexpected recovery delta = 0` ✅)
+

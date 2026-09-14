@@ -1,10 +1,15 @@
 const { resolve, join } = require('node:path');
-const { readFileSync, readdirSync, existsSync } = require('node:fs');
+const { readFileSync } = require('node:fs');
+const { PGlite } = require('@electric-sql/pglite');
+const { pgcrypto } = require('@electric-sql/pglite/contrib/pgcrypto');
+const { uuid_ossp } = require('@electric-sql/pglite/contrib/uuid_ossp');
+const { btree_gist } = require('@electric-sql/pglite/contrib/btree_gist');
+const { pg_stat_statements } = require('@electric-sql/pglite/contrib/pg_stat_statements');
 
 const FORBIDDEN_PRODUCTION_REF = 'ataslxkcflxuilpgyepm';
 
 console.log('========================================================================');
-console.log('W0-SEC Disposable Environment Replay & Delta Validator');
+console.log('W0-SEC Disposable Environment Replay, Delta & Recovery Validator');
 console.log('========================================================================\n');
 
 // 1. Target Environment Identity Proof
@@ -16,31 +21,8 @@ if (targetType.includes(FORBIDDEN_PRODUCTION_REF)) {
 }
 console.log(`  [PASS] Target is verified isolated in-memory PGlite. NOT production (${FORBIDDEN_PRODUCTION_REF}).\n`);
 
-let pgliteModule;
-let pgcrypto, uuid_ossp, btree_gist, pg_stat_statements;
-
-const pglitePaths = [
-  'C:/Users/Lenovo/.gemini/antigravity/brain/28bdf628-a209-48f2-a17d-9e59a7e8de27/scratch/node_modules/@electric-sql/pglite',
-  '@electric-sql/pglite'
-];
-
-for (const p of pglitePaths) {
-  try {
-    const pkg = require(p);
-    pgliteModule = pkg.PGlite;
-    pgcrypto = require(p + '/dist/contrib/pgcrypto.cjs').pgcrypto;
-    uuid_ossp = require(p + '/dist/contrib/uuid_ossp.cjs').uuid_ossp;
-    btree_gist = require(p + '/dist/contrib/btree_gist.cjs').btree_gist;
-    pg_stat_statements = require(p + '/dist/contrib/pg_stat_statements.cjs').pg_stat_statements;
-    break;
-  } catch (e) {}
-}
-
-if (!pgliteModule) {
-  throw new Error('Could not resolve @electric-sql/pglite module');
-}
-
 const migrationsDir = resolve('supabase/migrations');
+const recoveryDir = resolve('supabase/recovery');
 const baselineMigrationFiles = [
   '20260821105505_baseline.sql',
   '20260823044325_member_invitation_access_codes.sql',
@@ -63,9 +45,10 @@ const baselineMigrationFiles = [
 ];
 
 const w0SecMigrationFile = '20260913165500_w0_sec_authorization_containment.sql';
+const w0SecRecoveryFile = '20260913165500_w0_sec_authorization_containment_recovery.sql';
 
 async function setupRebuildDb() {
-  const db = new pgliteModule({
+  const db = new PGlite({
     extensions: { pgcrypto, uuid_ossp, btree_gist, pg_stat_statements }
   });
   await db.waitReady;
@@ -137,10 +120,15 @@ async function setupRebuildDb() {
     END $$;
   `);
 
-  console.log('Step 2: Replaying 18 Canonical Baseline Product Migrations...');
+  console.log('Step 2: Replaying 18 Canonical Baseline Product Migrations (Starting 20260821105505)...');
   for (const f of baselineMigrationFiles) {
     const fullPath = join(migrationsDir, f);
     let sql = readFileSync(fullPath, 'utf8');
+
+    // NOTE: Historical migration 20260823200624_property_reports_permission.sql is preserved byte-for-byte
+    // in repository supabase/migrations/. In-memory during disposable PGlite replay, we normalize the missing
+    // semicolon between 'ON CONFLICT DO NOTHING' and 'COMMIT;' which Postgres psql CLI handles interactively
+    // but the non-interactive WASM SQL parser requires for statement boundary recognition.
     if (f === '20260823200624_property_reports_permission.sql') {
       sql = sql.replace(/on conflict do nothing\s+commit;/i, 'on conflict do nothing;\ncommit;');
     }
@@ -265,31 +253,116 @@ async function main() {
 
   const actualChangedFunctions = [...addedFns, ...modifiedFns].sort();
 
-  let unexpectedDeltaCount = 0;
+  let unexpectedForwardDeltaCount = 0;
 
-  if (tableDiff !== 0) unexpectedDeltaCount++;
-  if (viewDiff !== 0) unexpectedDeltaCount++;
-  if (columnDiff !== 0) unexpectedDeltaCount++;
-  if (policyDiff !== 0) unexpectedDeltaCount++;
+  if (tableDiff !== 0) unexpectedForwardDeltaCount++;
+  if (viewDiff !== 0) unexpectedForwardDeltaCount++;
+  if (columnDiff !== 0) unexpectedForwardDeltaCount++;
+  if (policyDiff !== 0) unexpectedForwardDeltaCount++;
 
   const unexpectedTriggers = addedTriggers.filter((t) => !EXPECTED_ADDED_TRIGGERS.includes(t));
   if (unexpectedTriggers.length > 0 || removedTriggers.length > 0) {
-    unexpectedDeltaCount += unexpectedTriggers.length + removedTriggers.length;
+    unexpectedForwardDeltaCount += unexpectedTriggers.length + removedTriggers.length;
   }
 
   const unexpectedFunctions = actualChangedFunctions.filter((f) => !EXPECTED_CHANGED_FUNCTIONS.includes(f));
   if (unexpectedFunctions.length > 0) {
-    unexpectedDeltaCount += unexpectedFunctions.length;
+    unexpectedForwardDeltaCount += unexpectedFunctions.length;
   }
 
   console.log('\n========================================================================');
-  console.log(`UNEXPECTED DELTA COUNT: ${unexpectedDeltaCount}`);
+  console.log(`UNEXPECTED FORWARD DELTA COUNT: ${unexpectedForwardDeltaCount}`);
   console.log('========================================================================');
 
-  if (unexpectedDeltaCount === 0) {
-    console.log('RESULT: PERFECT CATALOG DELTA MATCH! (unexpected delta = 0) ✅\n');
+  if (unexpectedForwardDeltaCount === 0) {
+    console.log('RESULT: PERFECT CATALOG FORWARD DELTA MATCH! (unexpected forward delta = 0) ✅\n');
   } else {
-    console.error('RESULT: FAILED! Unexpected schema changes detected.');
+    console.error('RESULT: FAILED! Unexpected forward schema changes detected.');
+    process.exit(1);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 6: Apply Compensating Recovery Artifact (ADR 0005 Class R1)
+  // ---------------------------------------------------------------------------
+  console.log(`Step 6: Applying Compensating Recovery Artifact: ${w0SecRecoveryFile}...`);
+  const recoverySql = readFileSync(join(recoveryDir, w0SecRecoveryFile), 'utf8');
+  await db.exec(`SET search_path TO public, extensions, auth;`);
+  await db.exec(recoverySql);
+  console.log('  [PASS] Compensating recovery artifact successfully applied.\n');
+
+  // ---------------------------------------------------------------------------
+  // Step 7: POST-RECOVERY Snapshot & Round-Trip Parity Verification
+  // ---------------------------------------------------------------------------
+  console.log('Step 7: Capturing POST-RECOVERY Catalog Snapshot & Verifying Round-Trip Parity...');
+  const recoveryState = await getCatalogSnapshot(db);
+  console.log(`  POST-RECOVERY: ${recoveryState.tables.length} tables, ${recoveryState.views.length} views, ${recoveryState.columns.length} columns, ${recoveryState.functions.length} functions, ${recoveryState.triggers.length} triggers, ${recoveryState.policies.length} policies.\n`);
+
+  let unexpectedRecoveryDeltaCount = 0;
+
+  // 1. Tables round-trip
+  const recTableDiff = recoveryState.tables.length - preState.tables.length;
+  if (recTableDiff !== 0) {
+    console.error(`  [FAIL] Table count mismatch: PRE=${preState.tables.length}, RECOVERY=${recoveryState.tables.length}`);
+    unexpectedRecoveryDeltaCount++;
+  }
+
+  // 2. Views round-trip
+  const recViewDiff = recoveryState.views.length - preState.views.length;
+  if (recViewDiff !== 0) {
+    console.error(`  [FAIL] View count mismatch: PRE=${preState.views.length}, RECOVERY=${recoveryState.views.length}`);
+    unexpectedRecoveryDeltaCount++;
+  }
+
+  // 3. Columns round-trip
+  const recColDiff = recoveryState.columns.length - preState.columns.length;
+  if (recColDiff !== 0) {
+    console.error(`  [FAIL] Column count mismatch: PRE=${preState.columns.length}, RECOVERY=${recoveryState.columns.length}`);
+    unexpectedRecoveryDeltaCount++;
+  }
+
+  // 4. Policies round-trip
+  const recPolDiff = recoveryState.policies.length - preState.policies.length;
+  if (recPolDiff !== 0) {
+    console.error(`  [FAIL] Policy count mismatch: PRE=${preState.policies.length}, RECOVERY=${recoveryState.policies.length}`);
+    unexpectedRecoveryDeltaCount++;
+  }
+
+  // 5. Triggers round-trip
+  const recTriggerNames = new Set(recoveryState.triggers.map((t) => `${t.event_object_table}.${t.trigger_name}`));
+  const triggerDiffAdd = [...recTriggerNames].filter((t) => !preTriggerNames.has(t));
+  const triggerDiffRem = [...preTriggerNames].filter((t) => !recTriggerNames.has(t));
+  if (triggerDiffAdd.length > 0 || triggerDiffRem.length > 0) {
+    console.error(`  [FAIL] Trigger set mismatch: Added=[${triggerDiffAdd.join(', ')}], Missing=[${triggerDiffRem.join(', ')}]`);
+    unexpectedRecoveryDeltaCount += triggerDiffAdd.length + triggerDiffRem.length;
+  }
+
+  // 6. Functions round-trip (signature, prosecdef, def)
+  const recFnMap = new Map(recoveryState.functions.map((f) => [`${f.proname}(${f.args})`, f.def]));
+  const fnDiffAdd = [];
+  const fnDiffMod = [];
+  for (const [fnSig, def] of recFnMap) {
+    if (!preFnMap.has(fnSig)) {
+      fnDiffAdd.push(fnSig);
+    } else if (preFnMap.get(fnSig) !== def) {
+      fnDiffMod.push(fnSig);
+    }
+  }
+  const fnDiffRem = [...preFnMap.keys()].filter((sig) => !recFnMap.has(sig));
+
+  if (fnDiffAdd.length > 0 || fnDiffRem.length > 0 || fnDiffMod.length > 0) {
+    console.error(`  [FAIL] Function mismatch: Added=[${fnDiffAdd.join(', ')}], Removed=[${fnDiffRem.join(', ')}], Modified=[${fnDiffMod.join(', ')}]`);
+    unexpectedRecoveryDeltaCount += fnDiffAdd.length + fnDiffRem.length + fnDiffMod.length;
+  }
+
+  console.log('========================================================================');
+  console.log(`UNEXPECTED FORWARD DELTA COUNT:  ${unexpectedForwardDeltaCount}`);
+  console.log(`UNEXPECTED RECOVERY DELTA COUNT: ${unexpectedRecoveryDeltaCount}`);
+  console.log('========================================================================');
+
+  if (unexpectedForwardDeltaCount === 0 && unexpectedRecoveryDeltaCount === 0) {
+    console.log('ROUND-TRIP RECOVERY VERIFICATION: PASS (PRE-W0 -> W0 -> RECOVERY -> PRE-W0 matched 100%) ✅\n');
+  } else {
+    console.error('ROUND-TRIP RECOVERY VERIFICATION: FAILED! Non-zero unexpected deltas detected.');
     process.exit(1);
   }
 }
