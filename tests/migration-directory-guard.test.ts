@@ -75,7 +75,8 @@ const ARCHIVED_FILES = join(ARCHIVE, "2026-08-21-pre-squash");
 export type MigrationProvenance =
   | "restored_exact"
   | "reconstructed_from_evidence"
-  | "post_apply_nonsemantic_edit";
+  | "post_apply_nonsemantic_edit"
+  | "new_authorized_migration";
 
 export interface MigrationDescriptor {
   readonly file: string;
@@ -110,6 +111,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc", provenance: "restored_exact" },
   { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566", provenance: "restored_exact" },
   { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42", provenance: "post_apply_nonsemantic_edit" },
+  { file: "20260913165500_w0_sec_authorization_containment.sql", bytes: 6570, sha256: "eba7ae525f91fb9ff3f0a124d99fa108ddc9731e14815931d0b9a75543d35a7f", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -332,20 +334,33 @@ describe("migrations directory holds exactly the approved baseline", () => {
       }
     });
 
-    it("the latest active migration in repository matches RECONCILIATION_LEDGER_TIP", () => {
-      const latest = MIGRATION_FILES[MIGRATION_FILES.length - 1];
-      const versionMatch = latest.file.match(CLI_MIGRATION_PATTERN);
+    it("the latest historical reconciled migration matches RECONCILIATION_LEDGER_TIP", () => {
+      const historical = MIGRATION_FILES.filter((m) => m.provenance !== "new_authorized_migration");
+      const latestHistorical = historical[historical.length - 1];
+      const versionMatch = latestHistorical.file.match(CLI_MIGRATION_PATTERN);
       expect(versionMatch).not.toBeNull();
       expect(versionMatch![1]).toBe(RECONCILIATION_LEDGER_TIP);
     });
 
-    it("all other active migrations have versions strictly preceding RECONCILIATION_LEDGER_TIP", () => {
-      for (let i = 0; i < MIGRATION_FILES.length - 1; i++) {
-        const m = MIGRATION_FILES[i];
+    it("all other historical migrations have versions strictly preceding RECONCILIATION_LEDGER_TIP", () => {
+      const historical = MIGRATION_FILES.filter((m) => m.provenance !== "new_authorized_migration");
+      for (let i = 0; i < historical.length - 1; i++) {
+        const m = historical[i];
         const versionMatch = m.file.match(CLI_MIGRATION_PATTERN);
         expect(versionMatch).not.toBeNull();
         const version = versionMatch![1];
         expect(BigInt(version)).toBeLessThan(BigInt(RECONCILIATION_LEDGER_TIP));
+      }
+    });
+
+    it("new authorized migrations strictly succeed RECONCILIATION_LEDGER_TIP", () => {
+      const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
+      expect(newMigrations.length).toBeGreaterThanOrEqual(1);
+      for (const m of newMigrations) {
+        const match = m.file.match(CLI_MIGRATION_PATTERN);
+        expect(match).not.toBeNull();
+        const version = match![1];
+        expect(BigInt(version)).toBeGreaterThan(BigInt(RECONCILIATION_LEDGER_TIP));
       }
     });
 
@@ -375,6 +390,10 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       const restored = MIGRATION_FILES.filter((m) => m.provenance === "restored_exact");
       expect(restored).toHaveLength(16);
+
+      const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
+      expect(authorized).toHaveLength(1);
+      expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -388,34 +407,36 @@ describe("migrations directory holds exactly the approved baseline", () => {
         .slice(1); // skip header
 
       const remoteVersions = tsvLines.map((line) => line.split("\t")[0]);
-      const repoVersions = MIGRATION_FILES.map((m) => {
-        const match = m.file.match(CLI_MIGRATION_PATTERN);
-        expect(match).not.toBeNull();
-        return match![1];
-      });
+      const historicalRepoVersions = MIGRATION_FILES
+        .filter((m) => m.provenance !== "new_authorized_migration")
+        .map((m) => {
+          const match = m.file.match(CLI_MIGRATION_PATTERN);
+          expect(match).not.toBeNull();
+          return match![1];
+        });
 
       // 1. remote rows = 33
       expect(remoteVersions).toHaveLength(33);
 
-      // 2. repository migration versions = 18
-      expect(repoVersions).toHaveLength(18);
+      // 2. reconciled repository migration versions at tip = 18
+      expect(historicalRepoVersions).toHaveLength(18);
 
       // 3. historical ledger-only versions = 15
       expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
 
       // 4. HISTORICAL_LEDGER_ONLY_VERSIONS equals exactly (remote - repo) in sorted order
-      const repoSet = new Set(repoVersions);
+      const repoSet = new Set(historicalRepoVersions);
       const computedDiff = remoteVersions.filter((v) => !repoSet.has(v)).sort();
       const expectedSorted = [...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
       expect(expectedSorted).toEqual(computedDiff);
 
-      // 5. union(repo versions, historical-only versions) == remote versions
-      const allReconciled = [...repoVersions, ...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
+      // 5. union(historical repo versions, historical-only versions) == remote versions
+      const allReconciled = [...historicalRepoVersions, ...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
       const sortedRemote = [...remoteVersions].sort();
       expect(allReconciled).toEqual(sortedRemote);
 
-      // 6. intersection(repo versions, historical-only versions) == empty
-      const intersection = repoVersions.filter((v) =>
+      // 6. intersection(historical repo versions, historical-only versions) == empty
+      const intersection = historicalRepoVersions.filter((v) =>
         HISTORICAL_LEDGER_ONLY_VERSIONS.includes(v as any)
       );
       expect(intersection).toEqual([]);
@@ -423,6 +444,14 @@ describe("migrations directory holds exactly the approved baseline", () => {
       // 7. latest remote version == RECONCILIATION_LEDGER_TIP
       const latestRemote = remoteVersions[remoteVersions.length - 1];
       expect(latestRemote).toBe(RECONCILIATION_LEDGER_TIP);
+
+      // 8. new authorized migration(s) strictly forward: version > RECONCILIATION_LEDGER_TIP
+      const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
+      expect(newMigrations).toHaveLength(1);
+      for (const m of newMigrations) {
+        const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
+        expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
+      }
     });
 
     it("public manifest rows match HISTORICAL_LEDGER_ONLY_VERSIONS exactly", () => {
