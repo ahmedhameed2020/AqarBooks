@@ -9,6 +9,7 @@ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import type { MaintenancePriority, MaintenanceStatus } from "@/app/[locale]/portal/(member)/maintenance/portal-maintenance-client";
+import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "@/app/[locale]/portal/(member)/maintenance/maintenance-attachments-client";
 import { StaffMaintenanceUpdateForm } from "./staff-maintenance-update-form";
 
 export default async function StaffMaintenanceDetailPage({
@@ -31,6 +32,9 @@ export default async function StaffMaintenanceDetailPage({
   const { data: moduleEnabled } = await supabase.rpc("maintenance_module_enabled", {
     p_organization_id: organization.id,
   });
+  const { data: canManageAttachments } = await supabase.rpc("maintenance_attachment_staff_can_manage", {
+    p_organization_id: organization.id,
+  });
 
   if (!moduleEnabled) notFound();
 
@@ -43,12 +47,18 @@ export default async function StaffMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: property }, { data: member }, { data: categories }, { data: updates }] = await Promise.all([
+  const [{ data: unit }, { data: property }, { data: member }, { data: categories }, { data: updates }, { data: attachments }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("properties").select("name").eq("id", request.property_id).maybeSingle(),
     supabase.from("members").select("full_name, email, phone").eq("id", request.requester_member_id).maybeSingle(),
     supabase.from("maintenance_categories").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("sort_order"),
     supabase.from("maintenance_request_updates").select("id, note, visibility, previous_status, resulting_status, created_at").eq("maintenance_request_id", request.id).order("created_at", { ascending: false }),
+    supabase
+      .from("maintenance_request_attachments")
+      .select("id, kind, visibility, original_file_name, mime_type, byte_size, created_at, ready_at, uploaded_by_member_id")
+      .eq("maintenance_request_id", request.id)
+      .eq("status", "READY")
+      .order("created_at", { ascending: false }),
   ]);
 
   const categoryOptions = (categories ?? []).map((c) => ({ id: c.id, label: isAr ? c.name_ar : c.name_en }));
@@ -95,6 +105,18 @@ export default async function StaffMaintenanceDetailPage({
         categoryId={request.category_id}
         categories={categoryOptions}
         locale={locale as "ar" | "en"}
+      />
+
+      <MaintenanceAttachmentsPanel
+        requestId={request.id}
+        attachments={(attachments ?? []) as MaintenanceAttachmentItem[]}
+        locale={locale as "ar" | "en"}
+        canUpload={Boolean(canManageAttachments) && !["CANCELLED", "CLOSED"].includes(request.status)}
+        showVisibility
+        allowedKinds={["ISSUE", "BEFORE", "AFTER", "INVOICE", "OTHER"]}
+        defaultKind="BEFORE"
+        defaultVisibility="STAFF_ONLY"
+        canChooseVisibility
       />
 
       <section className="space-y-3">

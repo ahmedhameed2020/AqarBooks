@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createMaintenanceRequestAction } from "@/lib/actions/maintenance";
 import type { MaintenancePriority } from "../portal-maintenance-client";
+import { uploadMaintenanceFiles } from "../maintenance-attachments-client";
 
 export interface MaintenanceUnitOption {
   id: string;
@@ -37,6 +38,8 @@ export function NewMaintenanceRequestForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<MaintenancePriority>(categories[0]?.defaultPriority ?? "NORMAL");
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -66,6 +69,19 @@ export function NewMaintenanceRequestForm({
         setError("failed");
         return;
       }
+
+      if (files.length > 0) {
+        const upload = await uploadMaintenanceFiles({
+          requestId: result.requestId,
+          files,
+          kind: "ISSUE",
+          visibility: "MEMBER_VISIBLE",
+          onProgress: (progress) => setUploadingFile(progress.current ?? null),
+        });
+        router.push(`/portal/maintenance/${result.requestId}${upload.failed > 0 ? "?attachments=partial" : ""}`);
+        return;
+      }
+
       router.push(`/portal/maintenance/${result.requestId}`);
     });
   }
@@ -141,6 +157,36 @@ export function NewMaintenanceRequestForm({
         {category ? (
           <p className="text-[11px] text-slate-400">
             {isAr ? "الأولوية الافتراضية لهذا التصنيف يمكن تعديلها قبل الإرسال." : "The category default priority can be adjusted before submission."}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="space-y-2 rounded-2xl border border-dashed border-border/70 bg-background p-3">
+        <label className="space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <span>{isAr ? "صور المشكلة (اختياري)" : "Issue photos (optional)"}</span>
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))}
+            className="block w-full rounded-xl border border-input bg-background px-3 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold dark:file:bg-slate-800"
+          />
+        </label>
+        <p className="text-[11px] text-slate-400">
+          {isAr ? "حتى 5 ملفات. JPG وPNG وWEBP وPDF، بحد أقصى 10 ميجابايت للملف." : "Up to 5 files. JPG, PNG, WEBP, and PDF, max 10 MiB per file."}
+        </p>
+        {files.length > 0 ? (
+          <div className="space-y-1">
+            {files.map((file) => (
+              <div key={`${file.name}-${file.size}-${file.lastModified}`} className="truncate text-[11px] font-semibold text-slate-500">
+                {file.name}
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {uploadingFile ? (
+          <p className="text-[11px] font-semibold text-indigo-600">
+            {isAr ? `جار رفع ${uploadingFile}` : `Uploading ${uploadingFile}`}
           </p>
         ) : null}
       </div>
