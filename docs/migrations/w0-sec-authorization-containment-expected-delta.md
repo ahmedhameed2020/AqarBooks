@@ -55,7 +55,7 @@ Expected business-data row mutation: NONE
 - **No DML operations**: Zero `INSERT`, `UPDATE`, `DELETE`, or `TRUNCATE` against business or accounting data tables.
 - **Zero backfills**: No existing business rows are altered or deleted.
 - **Pre-migration Production Preflight**: **REQUIRED BEFORE DEPLOYMENT AUTHORIZATION**
-  - Staged forensics queries from `docs/forensics/w0-sec-production-check.sql` must be executed as a strictly read-only, count-only check against production by an authorized operator prior to release authorization.
+  - Staged aggregate queries from `docs/forensics/w0-sec-production-check.sql` must be executed as a strictly read-only, count-only check against production by an authorized operator prior to release authorization.
   - Required Preflight Invariants:
     1. Cross-tenant assignments count: must be `0`.
     2. Tenant roles with platform permissions count: must be `0`.
