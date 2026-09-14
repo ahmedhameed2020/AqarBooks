@@ -53,6 +53,6 @@ where (
     where rp.role_id = r.id and fp.key = 'finance.reports.read'
   )
 )
-on conflict do nothing
+on conflict do nothing;
 
 commit;
