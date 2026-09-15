@@ -1,4 +1,4 @@
-import { redirect, Link } from "@/i18n/navigation";
+import { redirect } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import {
   AppSidebar,
@@ -6,8 +6,6 @@ import {
   type SidebarWorkspace,
   type UserSidebarProfile,
 } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toast";
 import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
@@ -31,7 +29,6 @@ import {
   Users,
   Settings,
   Building2,
-  BookOpen,
   Receipt,
   Wallet,
   Truck,
@@ -136,6 +133,10 @@ export default async function AppShellLayout({
               labelAr: "عمليات الصيانة",
               labelEn: "Maintenance Operations",
               icon: <Wrench className={ic} />,
+              subItems: [
+                { href: "/operations/maintenance", permission: "operations.maintenance.view", labelAr: "طلبات الصيانة", labelEn: "Maintenance Requests" },
+                { href: "/operations/maintenance/work-orders", permission: "operations.work_orders.view", labelAr: "أوامر العمل", labelEn: "Work Orders" },
+              ],
             },
           ],
         },

@@ -63,6 +63,9 @@ export function StaffMaintenanceClient({
             {isAr ? "طلبات الصيانة الواردة من بوابة الملاك بدون أوامر عمل أو محاسبة." : "Owner portal maintenance requests without work orders or accounting impact."}
           </p>
         </div>
+        <Link href="/operations/maintenance/work-orders" locale={locale} className={buttonVariants({ variant: "outline", size: "sm", className: "h-9 rounded-xl text-xs font-semibold" })}>
+          {isAr ? "أوامر العمل" : "Work Orders"}
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:flex-row sm:items-center">
