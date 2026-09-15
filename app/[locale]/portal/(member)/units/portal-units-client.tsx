@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Building2,
   CalendarClock,
   CheckCircle2,
   CreditCard,
   FileText,
+  History,
   Layers,
   Ruler,
   Star,
@@ -97,9 +98,12 @@ export function PortalUnitsClient({
   const totalPaid = units.reduce((s, u) => s + u.totalPaid, 0);
   const totalArea = units.reduce((s, u) => s + (u.area ?? 0), 0);
 
-  const buildingOf = (u: PortalUnitItem) =>
-    (isAr ? u.building_name_ar : u.building_name_en) || (isAr ? "الكيان الرئيسي" : "Main entity");
-  const zoneOf = (u: PortalUnitItem) => (isAr ? u.zone_name_ar : u.zone_name_en) || "—";
+  const buildingOf = useCallback(
+    (u: PortalUnitItem) =>
+      (isAr ? u.building_name_ar : u.building_name_en) || (isAr ? "الكيان الرئيسي" : "Main entity"),
+    [isAr],
+  );
+  const zoneOf = useCallback((u: PortalUnitItem) => (isAr ? u.zone_name_ar : u.zone_name_en) || "—", [isAr]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -114,7 +118,7 @@ export function PortalUnitsClient({
         zoneOf(u).toLowerCase().includes(q)
       );
     });
-  }, [units, status, query, isAr]);
+  }, [units, status, query, isAr, buildingOf, zoneOf]);
 
   const reportRows = visible.map((u) => ({
     code: u.code,
@@ -531,6 +535,18 @@ export function PortalUnitsClient({
                   >
                     <FileText className="size-3.5 text-indigo-500" />
                     <span>{isAr ? "كشف الحساب" : "Statement"}</span>
+                  </Link>
+                  <Link
+                    href={`/portal/units/${u.id}/timeline`}
+                    locale={locale}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                      className: "h-9 gap-1.5 rounded-xl text-xs font-semibold",
+                    })}
+                  >
+                    <History className="size-3.5 text-indigo-500" />
+                    <span>{isAr ? "النشاط" : "Activity"}</span>
                   </Link>
                 </div>
               </article>
