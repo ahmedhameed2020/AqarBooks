@@ -676,6 +676,121 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
       };
+      vehicles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          member_id: string;
+          plate_number: string;
+          plate_country: string;
+          plate_region: string | null;
+          normalized_plate: string;
+          make: string | null;
+          model: string | null;
+          color: string | null;
+          year: number | null;
+          notes: string | null;
+          is_active: boolean;
+          created_by: string;
+          updated_by: string | null;
+          deactivated_at: string | null;
+          deactivated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          member_id: string;
+          plate_number: string;
+          plate_country: string;
+          plate_region?: string | null;
+          normalized_plate: string;
+          make?: string | null;
+          model?: string | null;
+          color?: string | null;
+          year?: number | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_by: string;
+          updated_by?: string | null;
+          deactivated_at?: string | null;
+          deactivated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["vehicles"]["Row"]>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          recipient_user_id: string;
+          recipient_member_id: string | null;
+          type:
+            | "REQUEST_RECEIVED"
+            | "MAINTENANCE_UPDATE"
+            | "WORK_ORDER_SCHEDULED"
+            | "WORK_STARTED"
+            | "WORK_COMPLETED"
+            | "OWNER_CHARGE_CREATED"
+            | "VISITOR_INVITATION_CREATED"
+            | "VISITOR_ENTERED"
+            | "VISITOR_EXITED"
+            | "INVITATION_REVOKED"
+            | "DUE_CREATED"
+            | "PAYMENT_CONFIRMED"
+            | "RECEIPT_AVAILABLE"
+            | "VEHICLE_REGISTERED"
+            | "VEHICLE_DEACTIVATED";
+          title_ar: string;
+          title_en: string;
+          body_ar: string;
+          body_en: string;
+          source_type:
+            | "maintenance_request"
+            | "maintenance_request_update"
+            | "work_order"
+            | "work_order_update"
+            | "work_order_cost"
+            | "visitor_invitation"
+            | "access_event"
+            | "due"
+            | "payment"
+            | "vehicle";
+          source_id: string;
+          action_url: string | null;
+          priority: "LOW" | "NORMAL" | "HIGH";
+          is_read: boolean;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          recipient_user_id: string;
+          recipient_member_id?: string | null;
+          type: Database["public"]["Tables"]["notifications"]["Row"]["type"];
+          title_ar: string;
+          title_en: string;
+          body_ar: string;
+          body_en: string;
+          source_type: Database["public"]["Tables"]["notifications"]["Row"]["source_type"];
+          source_id: string;
+          action_url?: string | null;
+          priority?: "LOW" | "NORMAL" | "HIGH";
+          is_read?: boolean;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Row"]>;
+        Relationships: [];
+      };
       gates: {
         Row: {
           id: string;
@@ -3172,6 +3287,87 @@ export type Database = {
       visitor_management_enabled: {
         Args: { p_organization_id: string };
         Returns: boolean;
+      };
+      unit_experience_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      vehicle_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      vehicle_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      vehicle_member_can_read: {
+        Args: { p_vehicle: Database["public"]["Tables"]["vehicles"]["Row"] };
+        Returns: boolean;
+      };
+      create_vehicle: {
+        Args: {
+          p_unit_id: string;
+          p_plate_number: string;
+          p_plate_country: string;
+          p_plate_region?: string | null;
+          p_make?: string | null;
+          p_model?: string | null;
+          p_color?: string | null;
+          p_year?: number | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      update_vehicle_staff: {
+        Args: {
+          p_vehicle_id: string;
+          p_plate_number: string;
+          p_plate_country: string;
+          p_plate_region?: string | null;
+          p_make?: string | null;
+          p_model?: string | null;
+          p_color?: string | null;
+          p_year?: number | null;
+          p_notes?: string | null;
+          p_is_active?: boolean;
+        };
+        Returns: undefined;
+      };
+      deactivate_own_vehicle: {
+        Args: { p_vehicle_id: string };
+        Returns: undefined;
+      };
+      mark_notification_read: {
+        Args: { p_notification_id: string };
+        Returns: undefined;
+      };
+      mark_all_notifications_read: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      get_unit_timeline: {
+        Args: {
+          p_unit_id: string;
+          p_cursor_occurred_at?: string | null;
+          p_cursor_event_id?: string | null;
+          p_limit?: number;
+        };
+        Returns: {
+          event_id: string;
+          event_type: string;
+          occurred_at: string;
+          title_ar: string;
+          title_en: string;
+          summary_ar: string;
+          summary_en: string;
+          icon_key: string;
+          status_key: string | null;
+          source_type: string;
+          source_id: string;
+          visibility: string;
+          amount: number | null;
+          currency: string | null;
+        }[];
       };
       visitor_invitation_staff_can_read: {
         Args: { p_organization_id: string };

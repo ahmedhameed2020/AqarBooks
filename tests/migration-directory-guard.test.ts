@@ -128,6 +128,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260915050914_maintenance_cost_accounting_bridge.sql", bytes: 39495, sha256: "0f8220d9526e0ffcde3353addc7c12940cae9a80af9c5aefe255e27024c128da", provenance: "new_authorized_migration" },
   { file: "20260915073908_visitor_invitations_secure_qr_passes.sql", bytes: 20826, sha256: "5ab2671a9dcff5a36b46be94e2b4477c91d11c53933c302f902693f744a947a1", provenance: "new_authorized_migration" },
   { file: "20260915081839_gate_operations_access_ledger.sql", bytes: 28731, sha256: "df213495fc66a6b542df95b898c6344d35f9564eb3f1d70ac7e6d5e626fa7624", provenance: "new_authorized_migration" },
+  { file: "20260915100016_vehicles_unit_timeline_notifications.sql", bytes: 45464, sha256: "1c0eb671fba2ef3ca367030165c70d7a5ae18546ad31cd4443a90b2490a4c62d", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -241,8 +242,6 @@ export const HISTORICAL_LEDGER_ONLY_VERSIONS = [
  * passed through that state, and a history that quietly omits its own mistakes
  * cannot be replayed to the schema that actually exists.
  */
-const BASELINE = MIGRATION_FILES[0];
-
 /** Exactly what `supabase/migrations/` is allowed to contain. */
 const PERMITTED = ["README.md", ".gitkeep", ...MIGRATION_FILES.map((m) => m.file)].sort();
 
@@ -411,7 +410,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(restored).toHaveLength(15);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(7);
+      expect(authorized).toHaveLength(8);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -419,6 +418,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(authorized[4].file).toBe("20260915050914_maintenance_cost_accounting_bridge.sql");
       expect(authorized[5].file).toBe("20260915073908_visitor_invitations_secure_qr_passes.sql");
       expect(authorized[6].file).toBe("20260915081839_gate_operations_access_ledger.sql");
+      expect(authorized[7].file).toBe("20260915100016_vehicles_unit_timeline_notifications.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -472,7 +472,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 8. new authorized migration(s) strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(7);
+      expect(newMigrations).toHaveLength(8);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
