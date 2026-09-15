@@ -2,48 +2,26 @@
  * Migration directory guard.
  *
  * WHY THIS EXISTS
- * Step 6 moved 228 files out of `supabase/migrations/` into
- * `supabase/migrations-archive/2026-08-21-pre-squash/`, leaving the directory
- * with no SQL at all. Two things keep the Supabase CLI from treating the
- * archived files as live migrations:
+ * `supabase/migrations/` is a release contract, not a scratch directory. This
+ * guard pins every active migration by filename, byte size, and SHA256 so the
+ * Supabase CLI cannot silently see a different migration set than reviewers do.
  *
- *   1. the archive is outside the directory the CLI scans, and
- *   2. in CLI v2.78.1, files in a subdirectory are invisible anyway --
- *      not listed, not pushed, not even warned about.
+ * CURRENT SHAPE (2026-09-16)
+ * The active directory intentionally contains 41 SQL migrations:
  *
- * Both are conditions, not guarantees. This test is the part that notices when
- * a condition stops being true. It exists because a command exiting 0 proves it
- * ran, not that the directory holds what we intend it to hold.
+ *   - 33 historical migrations matching the production ledger through
+ *     RECONCILIATION_LEDGER_TIP (`20260903172101`)
+ *   - 8 authorized current migrations through FUTURE_MIGRATION_VERSION_FLOOR
+ *     (`20260915100016`) that remain pending for the production DB release
  *
- * WHAT CHANGED, AND WHY IT IS AN AMENDMENT RATHER THAN A RELAXATION
- * The original assertion was "zero .sql files, ever". That was correct for the
- * interval between Step 6 and the baseline activation, and it was written
- * precisely so that reintroducing a migration could not pass unnoticed.
- *
- * The baseline activation reintroduces exactly one, deliberately:
- *
- *   20260821105505_baseline.sql   956,400 bytes
- *   sha256 cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7
- *
- * So the assertion is not loosened to "some .sql files are fine". It is
- * re-pointed at a named allowlist of one, pinned by size and digest. Adding a
- * second migration, or altering this one's bytes, still fails -- which is the
- * property the original test was protecting.
- *
- * That file was proven before being admitted: applied on its own to a freshly
- * created, empty Supabase project, it reproduced production's schema, security
- * posture and reference state across all sixteen classes of the recovered
- * Step 5 comparator, with 456 reference rows, one global PLATFORM_SUPER_ADMIN
- * role, and zero rows in all 92 tenant tables.
+ * The 15 former ledger-only rows (`20260829104638` through `20260831205217`)
+ * are now real SQL files recovered from production migration history and pinned
+ * in RECONCILED_REMOTE_MIGRATIONS.
  *
  * WHAT A PASS HERE DOES NOT MEAN
- * Nothing about production. The Step 7 cutover ran on 2026-08-21 and production's
- * `supabase_migrations.schema_migrations` now holds exactly one row, the baseline
- * -- but this suite does not measure that, and a pass here is not evidence of it.
- * `supabase db push` against production remains prohibited by ADR 0004 regardless
- * of this test.
- *
- * This suite reads the filesystem only. It opens no database connection.
+ * This suite reads the filesystem only. It does not apply migrations, inspect
+ * production, or authorize a production `db push` outside an explicit DB
+ * release window.
  */
 import { describe, it, expect } from "vitest";
 import { createHash } from "node:crypto";
@@ -91,11 +69,15 @@ interface HistoricalLedgerManifest {
 }
 
 /**
- * The immutable tipping point of the reconciled migration ledger.
- * Any future migration added to supabase/migrations MUST have:
- *   version > RECONCILIATION_LEDGER_TIP
+ * Latest migration version already present in production history before the
+ * PR3-PR6 database release. Historical migration reconciliation ends here.
  */
 export const RECONCILIATION_LEDGER_TIP = "20260903172101";
+
+/**
+ * Highest migration version currently authorized in this repository. Any new
+ * migration added after this reconciliation must have a greater version.
+ */
 export const FUTURE_MIGRATION_VERSION_FLOOR = "20260915100016";
 
 export const RECONCILED_REMOTE_MIGRATIONS: readonly MigrationDescriptor[] = [
@@ -153,31 +135,19 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
 ] as const;
 
 /**
- * SEVENTH AMENDMENT (2026-09-12 — DB-01 / DB-02 Forensic Resolution).
+ * EIGHTH AMENDMENT (2026-09-16 — Production migration-history reconciliation).
  *
- * Formalizes the reconciliation of the 15 applied production ledger rows
- * (20260829104638 .. 20260831205217: legacy_access_* and accsys_*) investigated
- * under DB-01 (see docs/migration-ledger-forensics-report.md).
+ * The 15 production-only rows once tracked as ledger-only exceptions are now
+ * checked in as exact remote-history SQL files, pinned in
+ * RECONCILED_REMOTE_MIGRATIONS by filename, byte size, and SHA256. No unresolved
+ * ledger-only migration versions remain.
  *
- * CONTEXT CORRECTION & CLASSIFICATION:
- * These 15 rows represent a one-off Microsoft Access data-import / ETL workflow
- * executed for a specific customer migration between 2026-08-29 and 2026-08-31.
- * They are NOT part of the canonical AqarBooks product migration history and are
- * not required to rebuild or operate the current product. All 15 rows are formally
- * classified as `retired_one_off_access_import_etl`. No SQL migration files are
- * fabricated for them.
- *
- * Live catalog introspection across all 110 PostgREST definitions and 211 PostgreSQL
- * routines confirms that zero schema objects exist in the public schema for these 15 rows.
- * Furthermore, an exhaustive git fsck scan across 3,166 dangling blobs confirmed zero
- * matching blobs ever existed in git refs.
- *
- * Per the immutable "Restored, not reconstructed" standard (ADR 0004 & signed ADR 0005 Rev 2.8),
- * synthetic SQL files are NOT fabricated for these 15 historical staging tombstones.
- *
- * Instead, the 15 ledger rows are recorded as an immutable historical exception. The
- * repository continues to describe exactly the 18 live schema migrations. Any future migration
- * MUST have a timestamp greater than the latest ledger version (> 20260903172101).
+ * The repository now describes 33 historical migrations through
+ * RECONCILIATION_LEDGER_TIP plus 8 authorized current migrations through
+ * FUTURE_MIGRATION_VERSION_FLOOR. Historical `legacy_migration`, `legacy_access`,
+ * and `accsys_stage` namespaces are allowed only inside those exact 15 pinned
+ * reconciliation files; runtime code and all other migrations must remain free
+ * of those staging dependencies.
  */
 export const LEDGER_ONLY_VERSIONS: readonly string[] = [] as const;
 
@@ -344,7 +314,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(uniqueVersions.size).toBe(15);
     });
 
-    it("no synthetic SQL file is fabricated for unresolved ledger-only versions", () => {
+    it("has no unresolved ledger-only migration versions", () => {
       const liveFiles = readdirSync(MIGRATIONS);
       for (const version of LEDGER_ONLY_VERSIONS) {
         const matching = liveFiles.filter((f) => f.startsWith(version));
@@ -538,10 +508,19 @@ describe("migrations directory holds exactly the approved baseline", () => {
     });
 
     it("proves zero runtime dependency on historical staging schemas in application code and migrations", () => {
-      const searchDirs = ["app", "components", "lib", "supabase/migrations"];
-      const bannedPatterns = [/\baccsys_/i, /\baccsys_stage\b/i, /\blegacy_migration\b/i, /\blegacy_access_/i];
+      const runtimeDirs = ["app", "components", "lib"];
+      const reconciledRemoteFiles = new Set(RECONCILED_REMOTE_MIGRATIONS.map((m) => m.file));
+      const historicalNamespacePatterns = [
+        /\baccsys_/i,
+        /\baccsys_stage\b/i,
+        /\blegacy_migration\b/i,
+        /\blegacy_access_/i,
+      ];
 
-      function scanDir(dir: string): string[] {
+      function scanDir(
+        dir: string,
+        options: { readonly exemptReconciledRemoteMigrations?: boolean } = {}
+      ): string[] {
         const fullDir = join(process.cwd(), dir);
         if (!existsSync(fullDir)) return [];
         const entries = readdirSync(fullDir, { withFileTypes: true });
@@ -550,18 +529,19 @@ describe("migrations directory holds exactly the approved baseline", () => {
         for (const entry of entries) {
           const relPath = join(dir, entry.name);
           if (entry.isDirectory()) {
-            findings.push(...scanDir(relPath));
-        } else if (/\.(ts|tsx|js|mjs|cjs|sql)$/.test(entry.name)) {
-          if (
-            dir.replace(/\\/g, "/") === MIGRATIONS &&
-            RECONCILED_REMOTE_MIGRATIONS.some((m) => m.file === entry.name)
-          ) {
-            continue;
-          }
-          const content = readFileSync(join(process.cwd(), relPath), "utf8");
-            for (const pat of bannedPatterns) {
-              if (pat.test(content)) {
-                findings.push(`${relPath} matches ${pat}`);
+            findings.push(...scanDir(relPath, options));
+          } else if (/\.(ts|tsx|js|mjs|cjs|sql)$/.test(entry.name)) {
+            const isPinnedReconciledMigration =
+              options.exemptReconciledRemoteMigrations === true &&
+              dir.replace(/\\/g, "/") === MIGRATIONS &&
+              reconciledRemoteFiles.has(entry.name);
+
+            const content = readFileSync(join(process.cwd(), relPath), "utf8");
+            if (!isPinnedReconciledMigration) {
+              for (const pat of historicalNamespacePatterns) {
+                if (pat.test(content)) {
+                  findings.push(`${relPath} matches ${pat}`);
+                }
               }
             }
           }
@@ -570,9 +550,10 @@ describe("migrations directory holds exactly the approved baseline", () => {
       }
 
       const allFindings: string[] = [];
-      for (const dir of searchDirs) {
+      for (const dir of runtimeDirs) {
         allFindings.push(...scanDir(dir));
       }
+      allFindings.push(...scanDir(MIGRATIONS, { exemptReconciledRemoteMigrations: true }));
 
       expect(allFindings).toEqual([]);
     });
