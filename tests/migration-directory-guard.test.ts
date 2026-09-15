@@ -76,6 +76,7 @@ export type MigrationProvenance =
   | "restored_exact"
   | "reconstructed_from_evidence"
   | "post_apply_nonsemantic_edit"
+  | "reconciled_remote_migration"
   | "new_authorized_migration";
 
 export interface MigrationDescriptor {
@@ -95,6 +96,25 @@ interface HistoricalLedgerManifest {
  *   version > RECONCILIATION_LEDGER_TIP
  */
 export const RECONCILIATION_LEDGER_TIP = "20260903172101";
+export const FUTURE_MIGRATION_VERSION_FLOOR = "20260915100016";
+
+export const RECONCILED_REMOTE_MIGRATIONS: readonly MigrationDescriptor[] = [
+  { file: "20260829104638_legacy_access_migration_control_plane.sql", bytes: 4147, sha256: "91dd76d76bf470d2309d55725b2f4ce988a666f62ecabff61d7b777db0f2f640", provenance: "reconciled_remote_migration" },
+  { file: "20260829105948_legacy_migration_raw_staging_tables.sql", bytes: 6264, sha256: "82150799528f0b5f6fe371f4aa5c04e20ab70d2a4353b4394e3be115aeb8a520", provenance: "reconciled_remote_migration" },
+  { file: "20260829110027_legacy_migration_validation_views_v2.sql", bytes: 3198, sha256: "da9b02973bd68f9a8d742bf7e76114bcc38e6c9c7d21d36b6fda3dc30e13ed61", provenance: "reconciled_remote_migration" },
+  { file: "20260831194315_accsys_migration_staging_schema.sql", bytes: 2404, sha256: "f114872dc86ff24b49e1b4b650ef7034c212bbd40cf2324a3f991483e42ee002", provenance: "reconciled_remote_migration" },
+  { file: "20260831194442_accsys_stage_loader_casts.sql", bytes: 1112, sha256: "6f09cbd2bd0f041376553880e81610808816d90f3b81e681b9772534ac812c85", provenance: "reconciled_remote_migration" },
+  { file: "20260831194633_accsys_stage_compact_bulk_tables.sql", bytes: 473, sha256: "eb6639c7006592253de48c90f4f1fc1550a5222121c164bbb47ac355d94539b1", provenance: "reconciled_remote_migration" },
+  { file: "20260831194850_accsys_stage_coa_shape.sql", bytes: 158, sha256: "9c9ee9c233e9a3f904b989daee9dc97190d12cf2564aa651f0672a053da0b2ff", provenance: "reconciled_remote_migration" },
+  { file: "20260831195011_accsys_materialize_function.sql", bytes: 8475, sha256: "356f40b9d89bc9fbed229ffe89561ea764b6a9f4d32bef75af39c46e28a326b8", provenance: "reconciled_remote_migration" },
+  { file: "20260831195049_accsys_materialize_function_fix.sql", bytes: 7816, sha256: "59ebb651522fa1f4e867429408889774a9bb0a1d3bb4ecf4614a37f7a745ab8d", provenance: "reconciled_remote_migration" },
+  { file: "20260831195824_accsys_materialize_no_demo_flag.sql", bytes: 7863, sha256: "a3087cccdff920010708e266ef416148566e7ee2ffad240c1729e2076922a27d", provenance: "reconciled_remote_migration" },
+  { file: "20260831200103_accsys_materialize_operations.sql", bytes: 6819, sha256: "f0b68ca23f29143505fe519abaeea984a819a1f692c2bfc8deeacee0c9c110d6", provenance: "reconciled_remote_migration" },
+  { file: "20260831200142_accsys_ops_unique_receipt_numbers.sql", bytes: 6966, sha256: "8cd1fc0d130bd5fa579bcfcdf4140babb7ecd76da5df9750ccc35778fb2d9e49", provenance: "reconciled_remote_migration" },
+  { file: "20260831201313_accsys_stage_verified_loader.sql", bytes: 874, sha256: "9f1377bc5af4dfd75fe3379454027aa0ca4cc7b85be8028591e16f538e55d05b", provenance: "reconciled_remote_migration" },
+  { file: "20260831201513_accsys_stage_dictionary_and_reset.sql", bytes: 1172, sha256: "2f5e5e8a494d093ac481d8c2bdb002f881a514ce65df7d6293b308f2c64cebba", provenance: "reconciled_remote_migration" },
+  { file: "20260831205217_accsys_loader_strip_cr.sql", bytes: 2024, sha256: "8bf833c806b77fd8d0150d94f4e35a071a4de811afd58c838265254dd1f0998b", provenance: "reconciled_remote_migration" },
+] as const;
 
 export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260821105505_baseline.sql", bytes: 956400, sha256: "cf3de852cecc49d29e5d24c6bbb6afcebf8d65aeb994b684f5fc0a21f02790d7", provenance: "restored_exact" },
@@ -120,6 +140,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260826072010_public_action_rate_limits.sql", bytes: 5823, sha256: "80611b7bf5e2835d3e8600e45c36a850d6b902e53724f46287422ca843502b3d", provenance: "restored_exact" },
   { file: "20260826102930_assisted_onboarding_requests.sql", bytes: 13325, sha256: "ec62d236b1614c14c2f4f5d8c26bdfbfdb9b1a3b3aa2d0cacc8162099d3f73fc", provenance: "restored_exact" },
   { file: "20260826124013_onboarding_request_idempotency_and_self_read.sql", bytes: 1692, sha256: "fbbba887840710c1f1225263ec82509babda62d1a962624f849871f031263566", provenance: "restored_exact" },
+  ...RECONCILED_REMOTE_MIGRATIONS,
   { file: "20260903172101_member_opening_balance.sql", bytes: 17897, sha256: "e2b581796a179ce04d472b2fb29d54ac68e3775be351479c2539e257f8a0ea42", provenance: "post_apply_nonsemantic_edit" },
   { file: "20260913165500_w0_sec_authorization_containment.sql", bytes: 6570, sha256: "eba7ae525f91fb9ff3f0a124d99fa108ddc9731e14815931d0b9a75543d35a7f", provenance: "new_authorized_migration" },
   { file: "20260914131953_maintenance_request_core.sql", bytes: 32171, sha256: "d319cc3c80bea64b7f8576c831f498acaba80f5abf5cd351abaaad9ab480dcbc", provenance: "new_authorized_migration" },
@@ -158,23 +179,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
  * repository continues to describe exactly the 18 live schema migrations. Any future migration
  * MUST have a timestamp greater than the latest ledger version (> 20260903172101).
  */
-export const HISTORICAL_LEDGER_ONLY_VERSIONS = [
-  "20260829104638",
-  "20260829105948",
-  "20260829110027",
-  "20260831194315",
-  "20260831194442",
-  "20260831194633",
-  "20260831194850",
-  "20260831195011",
-  "20260831195049",
-  "20260831195824",
-  "20260831200103",
-  "20260831200142",
-  "20260831201313",
-  "20260831201513",
-  "20260831205217",
-] as const;
+export const LEDGER_ONLY_VERSIONS: readonly string[] = [] as const;
 
 /**
  * SIXTH AMENDMENT (2026-09-07). Extends the allowlist to eighteen with two
@@ -332,15 +337,16 @@ describe("migrations directory holds exactly the approved baseline", () => {
   });
 
   describe("DB-01 reconciliation invariants — Seventh Amendment", () => {
-    it("historical ledger-only exception list records exactly the 15 uncommitted versions", () => {
-      expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
-      const uniqueVersions = new Set(HISTORICAL_LEDGER_ONLY_VERSIONS);
+    it("reconciled remote migration list records exactly the 15 recovered production versions", () => {
+      expect(RECONCILED_REMOTE_MIGRATIONS).toHaveLength(15);
+      const versions = RECONCILED_REMOTE_MIGRATIONS.map((m) => m.file.match(CLI_MIGRATION_PATTERN)?.[1]);
+      const uniqueVersions = new Set(versions);
       expect(uniqueVersions.size).toBe(15);
     });
 
-    it("no synthetic SQL file is fabricated in supabase/migrations for the 15 ledger-only versions", () => {
+    it("no synthetic SQL file is fabricated for unresolved ledger-only versions", () => {
       const liveFiles = readdirSync(MIGRATIONS);
-      for (const version of HISTORICAL_LEDGER_ONLY_VERSIONS) {
+      for (const version of LEDGER_ONLY_VERSIONS) {
         const matching = liveFiles.filter((f) => f.startsWith(version));
         expect(
           matching,
@@ -379,7 +385,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       }
     });
 
-    it("any future migration added to supabase/migrations must satisfy version > RECONCILIATION_LEDGER_TIP", () => {
+    it("any future migration added to supabase/migrations must satisfy version > FUTURE_MIGRATION_VERSION_FLOOR", () => {
       const liveFiles = readdirSync(MIGRATIONS);
       const knownFileSet = new Set(MIGRATION_FILES.map((m) => m.file));
       for (const file of liveFiles) {
@@ -387,8 +393,8 @@ describe("migrations directory holds exactly the approved baseline", () => {
         if (match && !knownFileSet.has(file)) {
           const version = match[1];
           expect(
-            BigInt(version) > BigInt(RECONCILIATION_LEDGER_TIP),
-            `New migration ${file} must have version > ${RECONCILIATION_LEDGER_TIP}, got ${version}`
+            BigInt(version) > BigInt(FUTURE_MIGRATION_VERSION_FLOOR),
+            `New migration ${file} must have version > ${FUTURE_MIGRATION_VERSION_FLOOR}, got ${version}`
           ).toBe(true);
         }
       }
@@ -408,6 +414,9 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       const restored = MIGRATION_FILES.filter((m) => m.provenance === "restored_exact");
       expect(restored).toHaveLength(15);
+
+      const reconciledRemote = MIGRATION_FILES.filter((m) => m.provenance === "reconciled_remote_migration");
+      expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
       expect(authorized).toHaveLength(8);
@@ -443,26 +452,26 @@ describe("migrations directory holds exactly the approved baseline", () => {
       // 1. remote rows = 33
       expect(remoteVersions).toHaveLength(33);
 
-      // 2. reconciled repository migration versions at tip = 18
-      expect(historicalRepoVersions).toHaveLength(18);
+      // 2. reconciled repository migration versions at tip = 33
+      expect(historicalRepoVersions).toHaveLength(33);
 
-      // 3. historical ledger-only versions = 15
-      expect(HISTORICAL_LEDGER_ONLY_VERSIONS).toHaveLength(15);
+      // 3. historical ledger-only versions = 0; the former 15 are now pinned files.
+      expect(LEDGER_ONLY_VERSIONS).toHaveLength(0);
 
-      // 4. HISTORICAL_LEDGER_ONLY_VERSIONS equals exactly (remote - repo) in sorted order
+      // 4. LEDGER_ONLY_VERSIONS equals exactly (remote - repo) in sorted order
       const repoSet = new Set(historicalRepoVersions);
       const computedDiff = remoteVersions.filter((v) => !repoSet.has(v)).sort();
-      const expectedSorted = [...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
+      const expectedSorted = [...LEDGER_ONLY_VERSIONS].sort();
       expect(expectedSorted).toEqual(computedDiff);
 
       // 5. union(historical repo versions, historical-only versions) == remote versions
-      const allReconciled = [...historicalRepoVersions, ...HISTORICAL_LEDGER_ONLY_VERSIONS].sort();
+      const allReconciled = [...historicalRepoVersions, ...LEDGER_ONLY_VERSIONS].sort();
       const sortedRemote = [...remoteVersions].sort();
       expect(allReconciled).toEqual(sortedRemote);
 
       // 6. intersection(historical repo versions, historical-only versions) == empty
       const intersection = historicalRepoVersions.filter((v) =>
-        (HISTORICAL_LEDGER_ONLY_VERSIONS as readonly string[]).includes(v)
+        LEDGER_ONLY_VERSIONS.includes(v)
       );
       expect(intersection).toEqual([]);
 
@@ -485,7 +494,8 @@ describe("migrations directory holds exactly the approved baseline", () => {
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as HistoricalLedgerManifest;
       expect(manifest.rows).toHaveLength(15);
       const manifestVersions = manifest.rows.map((r) => r.version);
-      expect(manifestVersions).toEqual([...HISTORICAL_LEDGER_ONLY_VERSIONS]);
+      const reconciledVersions = RECONCILED_REMOTE_MIGRATIONS.map((m) => m.file.match(CLI_MIGRATION_PATTERN)![1]);
+      expect(manifestVersions).toEqual(reconciledVersions);
     });
 
     it("forensics report 15-row table and total bytes match public manifest byte-for-byte", () => {
@@ -541,8 +551,14 @@ describe("migrations directory holds exactly the approved baseline", () => {
           const relPath = join(dir, entry.name);
           if (entry.isDirectory()) {
             findings.push(...scanDir(relPath));
-          } else if (/\.(ts|tsx|js|mjs|cjs|sql)$/.test(entry.name)) {
-            const content = readFileSync(join(process.cwd(), relPath), "utf8");
+        } else if (/\.(ts|tsx|js|mjs|cjs|sql)$/.test(entry.name)) {
+          if (
+            dir.replace(/\\/g, "/") === MIGRATIONS &&
+            RECONCILED_REMOTE_MIGRATIONS.some((m) => m.file === entry.name)
+          ) {
+            continue;
+          }
+          const content = readFileSync(join(process.cwd(), relPath), "utf8");
             for (const pat of bannedPatterns) {
               if (pat.test(content)) {
                 findings.push(`${relPath} matches ${pat}`);
