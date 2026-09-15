@@ -878,6 +878,60 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["work_orders"]["Row"]>;
         Relationships: [];
       };
+      work_order_costs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          work_order_id: string;
+          cost_type: "LABOR" | "SUPPLIER" | "MATERIAL" | "OTHER";
+          description: string;
+          quantity: number;
+          unit_cost: number;
+          total_cost: number;
+          currency: string;
+          supplier_id: string | null;
+          source_reference: string | null;
+          financial_status: "UNPOSTED" | "POSTED_EXPENSE" | "POSTED_SUPPLIER_INVOICE" | "VOIDED";
+          owner_charge_status: "NOT_CHARGED" | "OWNER_CHARGED";
+          expense_id: string | null;
+          supplier_invoice_id: string | null;
+          owner_due_id: string | null;
+          created_by: string;
+          updated_by: string;
+          posted_at: string | null;
+          owner_charged_at: string | null;
+          voided_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          work_order_id: string;
+          cost_type: "LABOR" | "SUPPLIER" | "MATERIAL" | "OTHER";
+          description: string;
+          quantity: number;
+          unit_cost: number;
+          total_cost: number;
+          currency: string;
+          supplier_id?: string | null;
+          source_reference?: string | null;
+          financial_status?: "UNPOSTED" | "POSTED_EXPENSE" | "POSTED_SUPPLIER_INVOICE" | "VOIDED";
+          owner_charge_status?: "NOT_CHARGED" | "OWNER_CHARGED";
+          expense_id?: string | null;
+          supplier_invoice_id?: string | null;
+          owner_due_id?: string | null;
+          created_by: string;
+          updated_by: string;
+          posted_at?: string | null;
+          owner_charged_at?: string | null;
+          voided_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["work_order_costs"]["Row"]>;
+        Relationships: [];
+      };
       work_order_updates: {
         Row: {
           id: string;
@@ -3004,6 +3058,95 @@ export type Database = {
       add_work_order_update: {
         Args: { p_work_order_id: string; p_note: string; p_visibility?: string };
         Returns: undefined;
+      };
+      work_order_cost_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_cost_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_cost_staff_can_post: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_cost_staff_can_charge_owner: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      work_order_cost_member_can_read_due: {
+        Args: { p_due: Database["public"]["Tables"]["dues"]["Row"] };
+        Returns: boolean;
+      };
+      add_work_order_cost: {
+        Args: {
+          p_work_order_id: string;
+          p_cost_type: string;
+          p_description: string;
+          p_quantity: number;
+          p_unit_cost: number;
+          p_currency: string;
+          p_supplier_id?: string | null;
+          p_source_reference?: string | null;
+        };
+        Returns: string;
+      };
+      update_unposted_work_order_cost: {
+        Args: {
+          p_cost_id: string;
+          p_cost_type: string;
+          p_description: string;
+          p_quantity: number;
+          p_unit_cost: number;
+          p_currency: string;
+          p_supplier_id?: string | null;
+          p_source_reference?: string | null;
+        };
+        Returns: undefined;
+      };
+      void_unposted_work_order_cost: {
+        Args: { p_cost_id: string; p_reason?: string | null };
+        Returns: undefined;
+      };
+      post_work_order_cost_as_expense: {
+        Args: {
+          p_cost_id: string;
+          p_expense_category_id: string;
+          p_payment_account_id: string;
+          p_fiscal_period_id: string;
+          p_expense_date?: string;
+          p_cashier_session_id?: string | null;
+        };
+        Returns: string;
+      };
+      post_work_order_cost_as_supplier_invoice: {
+        Args: {
+          p_cost_id: string;
+          p_invoice_number: string;
+          p_expense_account_id: string;
+          p_fiscal_period_id: string;
+          p_invoice_date?: string;
+          p_due_date?: string;
+          p_discount_amount?: number;
+          p_vat_rate?: number;
+          p_vat_account_id?: string | null;
+          p_wht_rate?: number;
+          p_wht_account_id?: string | null;
+        };
+        Returns: string;
+      };
+      charge_work_order_cost_to_owner: {
+        Args: {
+          p_cost_id: string;
+          p_due_type_id: string;
+          p_receivable_account_id: string;
+          p_amount?: number | null;
+          p_issue_date?: string;
+          p_due_date?: string;
+          p_description?: string | null;
+        };
+        Returns: string;
       };
       start_work_order: {
         Args: { p_work_order_id: string; p_note?: string | null; p_visibility?: string };
