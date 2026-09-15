@@ -676,6 +676,110 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
       };
+      gates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          direction_mode: "ENTRY" | "EXIT" | "BOTH";
+          is_active: boolean;
+          created_by: string;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          direction_mode?: "ENTRY" | "EXIT" | "BOTH";
+          is_active?: boolean;
+          created_by: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gates"]["Row"]>;
+        Relationships: [];
+      };
+      access_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          visitor_invitation_id: string | null;
+          unit_id: string | null;
+          direction: "ENTRY" | "EXIT";
+          decision: "ALLOW" | "DENY";
+          reason_code: string;
+          client_scan_id: string;
+          operator_user_id: string;
+          usage_policy: "SINGLE_USE" | "MULTI_USE" | null;
+          guest_name: string | null;
+          invitation_no: string | null;
+          is_inside_after: boolean | null;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          visitor_invitation_id?: string | null;
+          unit_id?: string | null;
+          direction: "ENTRY" | "EXIT";
+          decision: "ALLOW" | "DENY";
+          reason_code: string;
+          client_scan_id: string;
+          operator_user_id: string;
+          usage_policy?: "SINGLE_USE" | "MULTI_USE" | null;
+          guest_name?: string | null;
+          invitation_no?: string | null;
+          is_inside_after?: boolean | null;
+          occurred_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["access_events"]["Row"]>;
+        Relationships: [];
+      };
+      visitor_access_state: {
+        Row: {
+          visitor_invitation_id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          is_inside: boolean;
+          entry_count: number;
+          exit_count: number;
+          last_entry_at: string | null;
+          last_exit_at: string | null;
+          last_gate_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          visitor_invitation_id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          is_inside?: boolean;
+          entry_count?: number;
+          exit_count?: number;
+          last_entry_at?: string | null;
+          last_exit_at?: string | null;
+          last_gate_id?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["visitor_access_state"]["Row"]>;
+        Relationships: [];
+      };
       maintenance_categories: {
         Row: {
           id: string;
@@ -3112,6 +3216,71 @@ export type Database = {
           valid_from: string | null;
           valid_until: string | null;
           guest_name: string | null;
+        }[];
+      };
+      gate_operations_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      gate_staff_can_view: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      gate_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      gate_staff_can_scan: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      gate_staff_can_view_access_events: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      create_gate: {
+        Args: {
+          p_property_id: string;
+          p_code: string;
+          p_name_ar: string;
+          p_name_en: string;
+          p_direction_mode?: string;
+        };
+        Returns: string;
+      };
+      update_gate: {
+        Args: {
+          p_gate_id: string;
+          p_code: string;
+          p_name_ar: string;
+          p_name_en: string;
+          p_direction_mode: string;
+          p_is_active: boolean;
+        };
+        Returns: undefined;
+      };
+      process_visitor_gate_scan: {
+        Args: {
+          p_gate_id: string;
+          p_invitation_id: string;
+          p_raw_secret: string;
+          p_direction: string;
+          p_client_scan_id: string;
+        };
+        Returns: {
+          decision: "ALLOW" | "DENY";
+          reason_code: string;
+          event_id: string;
+          guest_name: string | null;
+          invitation_no: string | null;
+          unit_id: string | null;
+          invitation_id: string | null;
+          usage_policy: "SINGLE_USE" | "MULTI_USE" | null;
+          valid_until: string | null;
+          is_inside: boolean | null;
+          gate_id: string;
+          property_id: string;
+          occurred_at: string;
         }[];
       };
       work_order_staff_can_read: {
