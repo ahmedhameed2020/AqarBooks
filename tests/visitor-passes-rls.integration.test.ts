@@ -7,7 +7,7 @@ import type { Database } from "../lib/supabase/types";
 type Client = SupabaseClient<Database>;
 
 const TEST_PASSWORD = "Visitor_Passes_RLS_Test_P@ssw0rd_2026!";
-const SECRET = "visitor-pass-secret-for-runtime-rls";
+const SECRET_PREFIX = "visitor-pass-secret-for-runtime-rls";
 
 type LocalSupabaseEnv = {
   API_URL: string;
@@ -92,7 +92,7 @@ function runLocalDbQuery(sql: string): string {
   ).trim();
 }
 
-function tokenHash(secret = SECRET) {
+function tokenHash(secret = `${SECRET_PREFIX}-${randomUUID()}`) {
   return createHash("sha256").update(secret).digest("hex");
 }
 
@@ -269,7 +269,7 @@ async function createOrgFixture(
 async function createInvitation(
   client: Client,
   unitId: string,
-  secret = SECRET,
+  secret = `${SECRET_PREFIX}-${randomUUID()}`,
   overrides: Partial<{
     validFrom: string;
     validUntil: string;
@@ -387,12 +387,13 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
   });
 
   it("validates opaque tokens server-side without leaking on UUID-only or wrong-token attempts", async () => {
-    const valid = await createInvitation(orgA.memberA.client, orgA.unitAId, "valid-secret");
+    const validSecret = `valid-secret-${randomUUID()}`;
+    const valid = await createInvitation(orgA.memberA.client, orgA.unitAId, validSecret);
     expect(valid.error, `valid invitation create failed: ${valid.error?.message}`).toBeNull();
 
     const ok = await orgA.memberA.client.rpc("validate_visitor_pass_token", {
       p_invitation_id: valid.data!,
-      p_raw_secret: "valid-secret",
+      p_raw_secret: validSecret,
     });
     expect(ok.error, `valid token check failed: ${ok.error?.message}`).toBeNull();
     expect(ok.data![0]).toMatchObject({ valid: true, reason_code: "VALID", invitation_id: valid.data });
@@ -406,14 +407,15 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
 
     const unrelatedWithSecret = await orgA.memberB.client.rpc("validate_visitor_pass_token", {
       p_invitation_id: valid.data!,
-      p_raw_secret: "valid-secret",
+      p_raw_secret: validSecret,
     });
     expect(unrelatedWithSecret.error, `unrelated token check errored: ${unrelatedWithSecret.error?.message}`).toBeNull();
     expect(unrelatedWithSecret.data![0]).toMatchObject({ valid: false, reason_code: "NOT_FOUND_OR_INVALID", invitation_id: null });
   });
 
   it("returns explicit state reasons for future, expired, and revoked passes", async () => {
-    const future = await createInvitation(orgA.memberA.client, orgA.unitAId, "future-secret", {
+    const futureSecret = `future-secret-${randomUUID()}`;
+    const future = await createInvitation(orgA.memberA.client, orgA.unitAId, futureSecret, {
       validFrom: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       validUntil: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     });
@@ -421,11 +423,12 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
 
     const futureValidation = await orgA.memberA.client.rpc("validate_visitor_pass_token", {
       p_invitation_id: future.data!,
-      p_raw_secret: "future-secret",
+      p_raw_secret: futureSecret,
     });
     expect(futureValidation.data![0].reason_code).toBe("NOT_YET_VALID");
 
-    const expired = await createInvitation(orgA.memberA.client, orgA.unitAId, "expired-secret", {
+    const expiredSecret = `expired-secret-${randomUUID()}`;
+    const expired = await createInvitation(orgA.memberA.client, orgA.unitAId, expiredSecret, {
       validFrom: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       validUntil: new Date(Date.now() + 60_000).toISOString(),
     });
@@ -437,24 +440,25 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
 
     const expiredValidation = await orgA.memberA.client.rpc("validate_visitor_pass_token", {
       p_invitation_id: expired.data!,
-      p_raw_secret: "expired-secret",
+      p_raw_secret: expiredSecret,
     });
     expect(expiredValidation.data![0].reason_code).toBe("EXPIRED");
 
-    const revoked = await createInvitation(orgA.memberA.client, orgA.unitAId, "revoked-secret");
+    const revokedSecret = `revoked-secret-${randomUUID()}`;
+    const revoked = await createInvitation(orgA.memberA.client, orgA.unitAId, revokedSecret);
     expect(revoked.error, `revoked invitation create failed: ${revoked.error?.message}`).toBeNull();
     const revoke = await orgA.memberA.client.rpc("revoke_visitor_invitation", { p_invitation_id: revoked.data! });
     expect(revoke.error, `revoke failed: ${revoke.error?.message}`).toBeNull();
 
     const revokedValidation = await orgA.memberA.client.rpc("validate_visitor_pass_token", {
       p_invitation_id: revoked.data!,
-      p_raw_secret: "revoked-secret",
+      p_raw_secret: revokedSecret,
     });
     expect(revokedValidation.data![0].reason_code).toBe("REVOKED");
   });
 
   it("keeps staff organization-scoped and separates view from manage", async () => {
-    const created = await createInvitation(orgA.memberA.client, orgA.unitAId, "staff-scope-secret");
+    const created = await createInvitation(orgA.memberA.client, orgA.unitAId, `staff-scope-secret-${randomUUID()}`);
     expect(created.error, `staff scope invitation create failed: ${created.error?.message}`).toBeNull();
 
     const managerRead = await orgA.staffManager.client.from("visitor_invitations").select("id").eq("id", created.data!);
@@ -482,8 +486,13 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgA.orgId)
       .in("action", ["visitor_invitation.created", "visitor_invitation.revoked"]);
+    const beforeAccessEvents = runLocalDbQuery(`
+      select count(*)
+      from public.access_events
+      where organization_id = '${orgA.orgId}'
+    `);
 
-    const created = await createInvitation(orgA.memberA.client, orgA.unitAId, "audit-secret");
+    const created = await createInvitation(orgA.memberA.client, orgA.unitAId, `audit-secret-${randomUUID()}`);
     expect(created.error, `audit invitation create failed: ${created.error?.message}`).toBeNull();
 
     const after = await admin
@@ -493,7 +502,12 @@ describe("Visitor passes Runtime Supabase/PostgreSQL RLS gate", () => {
       .in("action", ["visitor_invitation.created", "visitor_invitation.revoked"]);
 
     expect((after.count ?? 0) - (before.count ?? 0)).toBe(1);
-    expect(runLocalDbQuery("select to_regclass('public.access_events') is null")).toBe("t");
+    const afterAccessEvents = runLocalDbQuery(`
+      select count(*)
+      from public.access_events
+      where organization_id = '${orgA.orgId}'
+    `);
+    expect(afterAccessEvents).toBe(beforeAccessEvents);
 
     const accountingCounts = runLocalDbQuery(`
       select

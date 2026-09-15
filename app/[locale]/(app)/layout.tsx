@@ -144,6 +144,12 @@ export default async function AppShellLayout({
               labelAr: "تصاريح الزوار",
               labelEn: "Access / Visitors",
               icon: <TicketCheck className={ic} />,
+              subItems: [
+                { href: "/operations/visitors", permission: "operations.visitors.view", labelAr: "تصاريح الزوار", labelEn: "Visitor Passes" },
+                { href: "/operations/gate", permission: "operations.gates.scan", labelAr: "ماسح البوابة", labelEn: "Gate Scanner" },
+                { href: "/operations/gates", permission: "operations.gates.view", labelAr: "إدارة البوابات", labelEn: "Gate Management" },
+                { href: "/operations/access-events", permission: "operations.access_events.view", labelAr: "سجل الدخول والخروج", labelEn: "Access Event Ledger" },
+              ],
             },
           ],
         },
