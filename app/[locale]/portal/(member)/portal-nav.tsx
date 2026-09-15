@@ -7,6 +7,7 @@ import {
   Landmark,
   Building2,
   FolderOpen,
+  TicketCheck,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -116,6 +117,14 @@ const NAV_GROUPS: NavGroup[] = [
         descAr: "طلبات الصيانة والمتابعة",
         descEn: "Requests & updates",
         icon: Wrench,
+      },
+      {
+        href: "/portal/visitors",
+        labelAr: "الزوار",
+        labelEn: "Visitors",
+        descAr: "دعوات وتصاريح QR",
+        descEn: "Invites & QR passes",
+        icon: TicketCheck,
       },
     ],
   },
