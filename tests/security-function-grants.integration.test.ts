@@ -79,9 +79,11 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "maintenance_request_accepts_attachments", // request state helper
   "seed_default_maintenance_categories", // trigger helper, not a direct client API
   "assert_work_order_status_transition", // internal validator wrapped by work order mutation RPCs
+  "assert_work_order_cost_currency", // internal cost currency guard wrapped by cost mutation RPCs
   "validate_work_order_assignee", // internal assignment validator
   "insert_work_order_update", // operational evidence writer
   "audit_work_order_action", // platform audit writer
+  "audit_work_order_cost_action", // platform audit writer
   "transition_work_order", // wrapped by narrow lifecycle RPCs
 ] as const;
 
@@ -144,6 +146,11 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "wait_work_order", "work_order_member_can_read",
   "work_order_staff_can_assign", "work_order_staff_can_complete", "work_order_staff_can_manage",
   "work_order_staff_can_read",
+  "add_work_order_cost", "charge_work_order_cost_to_owner", "post_work_order_cost_as_expense",
+  "post_work_order_cost_as_supplier_invoice", "update_unposted_work_order_cost",
+  "void_unposted_work_order_cost", "work_order_cost_staff_can_charge_owner",
+  "work_order_cost_member_can_read_due", "work_order_cost_staff_can_manage", "work_order_cost_staff_can_post",
+  "work_order_cost_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
   "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
   "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", "project_wip_summary",

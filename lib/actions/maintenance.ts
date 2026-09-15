@@ -94,6 +94,55 @@ const workOrderTransitionSchema = z.object({
   visibility: visibilitySchema.default("MEMBER_VISIBLE"),
 });
 
+const costTypeSchema = z.enum(["LABOR", "SUPPLIER", "MATERIAL", "OTHER"]);
+
+const addWorkOrderCostSchema = z.object({
+  workOrderId: z.string().uuid(),
+  costType: costTypeSchema,
+  description: z.string().trim().min(1).max(1000),
+  quantity: z.number().positive(),
+  unitCost: z.number().nonnegative(),
+  currency: z.string().trim().length(3).transform((v) => v.toUpperCase()),
+  supplierId: nullableUuidSchema,
+  sourceReference: z.string().trim().max(160).optional().nullable(),
+});
+
+const updateWorkOrderCostSchema = addWorkOrderCostSchema.omit({ workOrderId: true }).extend({
+  costId: z.string().uuid(),
+});
+
+const costIdSchema = z.object({
+  costId: z.string().uuid(),
+});
+
+const voidWorkOrderCostSchema = costIdSchema.extend({
+  reason: z.string().trim().max(1000).optional().nullable(),
+});
+
+const postCostAsExpenseSchema = costIdSchema.extend({
+  expenseCategoryId: z.string().uuid(),
+  paymentAccountId: z.string().uuid(),
+  fiscalPeriodId: z.string().uuid(),
+  expenseDate: z.string().date(),
+});
+
+const postCostAsSupplierInvoiceSchema = costIdSchema.extend({
+  invoiceNumber: z.string().trim().min(1).max(80),
+  expenseAccountId: z.string().uuid(),
+  fiscalPeriodId: z.string().uuid(),
+  invoiceDate: z.string().date(),
+  dueDate: z.string().date(),
+});
+
+const chargeCostToOwnerSchema = costIdSchema.extend({
+  dueTypeId: z.string().uuid(),
+  receivableAccountId: z.string().uuid(),
+  amount: z.number().positive().optional().nullable(),
+  issueDate: z.string().date(),
+  dueDate: z.string().date(),
+  description: z.string().trim().max(1000).optional().nullable(),
+});
+
 const completeWorkOrderSchema = workOrderTransitionSchema.extend({
   completionSummary: z.string().trim().min(1).max(4000),
   memberVisibleSummary: z.string().trim().max(4000).optional(),
@@ -105,6 +154,10 @@ export type MaintenanceActionResult =
 
 export type WorkOrderActionResult =
   | { ok: true; workOrderId?: string }
+  | { ok: false; error: string };
+
+export type WorkOrderCostActionResult =
+  | { ok: true; costId?: string; expenseId?: string; supplierInvoiceId?: string; ownerDueId?: string }
   | { ok: false; error: string };
 
 export type MaintenanceAttachmentUploadResult =
@@ -175,6 +228,26 @@ function mapWorkOrderError(message: string | undefined): string {
   if (message.includes("COMPLETION_SUMMARY_REQUIRED")) return "completion_summary_required";
   if (message.includes("REQUEST_NOT_ACCEPTING_WORK_ORDERS")) return "request_closed";
   if (message.includes("INVALID_VISIBILITY")) return "invalid_visibility";
+  return "failed";
+}
+
+function mapWorkOrderCostError(message: string | undefined): string {
+  if (!message) return "failed";
+  if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
+  if (message.includes("MAINTENANCE_NOT_ENTITLED")) return "not_entitled";
+  if (message.includes("WORK_ORDER_NOT_FOUND") || message.includes("WORK_ORDER_COST_NOT_FOUND")) return "not_found";
+  if (message.includes("FORBIDDEN_WORK_ORDER_COST") || message.includes("FORBIDDEN_FINANCE_PERMISSION")) return "forbidden";
+  if (message.includes("INVALID_WORK_ORDER_COST_AMOUNT") || message.includes("INVALID_OWNER_CHARGE_AMOUNT")) return "invalid_amount";
+  if (message.includes("INVALID_WORK_ORDER_COST_SUPPLIER")) return "invalid_supplier";
+  if (message.includes("INVALID_WORK_ORDER_COST_TYPE")) return "invalid_cost_type";
+  if (message.includes("UNSUPPORTED_COST_CURRENCY") || message.includes("INVALID_COST_CURRENCY")) return "invalid_currency";
+  if (message.includes("WORK_ORDER_COST_IMMUTABLE") || message.includes("WORK_ORDER_COST_ALREADY_POSTED")) return "immutable";
+  if (message.includes("INVALID_EXPENSE_CATEGORY")) return "invalid_expense_category";
+  if (message.includes("INVALID_PAYMENT_ACCOUNT")) return "invalid_payment_account";
+  if (message.includes("INVALID_EXPENSE_ACCOUNT")) return "invalid_expense_account";
+  if (message.includes("INVALID_FISCAL_PERIOD")) return "invalid_fiscal_period";
+  if (message.includes("INVALID_DUE_TYPE")) return "invalid_due_type";
+  if (message.includes("INVALID_RECEIVABLE_ACCOUNT")) return "invalid_receivable_account";
   return "failed";
 }
 
@@ -517,6 +590,162 @@ export async function addWorkOrderUpdateAction(
 
   revalidateWorkOrderPaths(parsed.data.workOrderId);
   return { ok: true };
+}
+
+export async function addWorkOrderCostAction(
+  input: z.input<typeof addWorkOrderCostSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = addWorkOrderCostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_work_order_cost", {
+    p_work_order_id: parsed.data.workOrderId,
+    p_cost_type: parsed.data.costType,
+    p_description: parsed.data.description,
+    p_quantity: parsed.data.quantity,
+    p_unit_cost: parsed.data.unitCost,
+    p_currency: parsed.data.currency,
+    p_supplier_id: parsed.data.supplierId || null,
+    p_source_reference: parsed.data.sourceReference || null,
+  });
+
+  if (error || !data) {
+    console.error("[addWorkOrderCostAction] failed:", error?.message);
+    return { ok: false, error: mapWorkOrderCostError(error?.message) };
+  }
+
+  revalidateWorkOrderPaths(parsed.data.workOrderId);
+  return { ok: true, costId: data };
+}
+
+export async function updateUnpostedWorkOrderCostAction(
+  input: z.input<typeof updateWorkOrderCostSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = updateWorkOrderCostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_unposted_work_order_cost", {
+    p_cost_id: parsed.data.costId,
+    p_cost_type: parsed.data.costType,
+    p_description: parsed.data.description,
+    p_quantity: parsed.data.quantity,
+    p_unit_cost: parsed.data.unitCost,
+    p_currency: parsed.data.currency,
+    p_supplier_id: parsed.data.supplierId || null,
+    p_source_reference: parsed.data.sourceReference || null,
+  });
+
+  if (error) {
+    console.error("[updateUnpostedWorkOrderCostAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderCostError(error.message) };
+  }
+
+  revalidateWorkOrderPaths();
+  return { ok: true };
+}
+
+export async function voidUnpostedWorkOrderCostAction(
+  input: z.input<typeof voidWorkOrderCostSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = voidWorkOrderCostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_unposted_work_order_cost", {
+    p_cost_id: parsed.data.costId,
+    p_reason: parsed.data.reason || null,
+  });
+
+  if (error) {
+    console.error("[voidUnpostedWorkOrderCostAction] failed:", error.message);
+    return { ok: false, error: mapWorkOrderCostError(error.message) };
+  }
+
+  revalidateWorkOrderPaths();
+  return { ok: true };
+}
+
+export async function postWorkOrderCostAsExpenseAction(
+  input: z.input<typeof postCostAsExpenseSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = postCostAsExpenseSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("post_work_order_cost_as_expense", {
+    p_cost_id: parsed.data.costId,
+    p_expense_category_id: parsed.data.expenseCategoryId,
+    p_payment_account_id: parsed.data.paymentAccountId,
+    p_fiscal_period_id: parsed.data.fiscalPeriodId,
+    p_expense_date: parsed.data.expenseDate,
+    p_cashier_session_id: null,
+  });
+
+  if (error || !data) {
+    console.error("[postWorkOrderCostAsExpenseAction] failed:", error?.message);
+    return { ok: false, error: mapWorkOrderCostError(error?.message) };
+  }
+
+  revalidateWorkOrderPaths();
+  return { ok: true, expenseId: data };
+}
+
+export async function postWorkOrderCostAsSupplierInvoiceAction(
+  input: z.input<typeof postCostAsSupplierInvoiceSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = postCostAsSupplierInvoiceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("post_work_order_cost_as_supplier_invoice", {
+    p_cost_id: parsed.data.costId,
+    p_invoice_number: parsed.data.invoiceNumber,
+    p_expense_account_id: parsed.data.expenseAccountId,
+    p_fiscal_period_id: parsed.data.fiscalPeriodId,
+    p_invoice_date: parsed.data.invoiceDate,
+    p_due_date: parsed.data.dueDate,
+    p_discount_amount: 0,
+    p_vat_rate: 0,
+    p_vat_account_id: null,
+    p_wht_rate: 0,
+    p_wht_account_id: null,
+  });
+
+  if (error || !data) {
+    console.error("[postWorkOrderCostAsSupplierInvoiceAction] failed:", error?.message);
+    return { ok: false, error: mapWorkOrderCostError(error?.message) };
+  }
+
+  revalidateWorkOrderPaths();
+  return { ok: true, supplierInvoiceId: data };
+}
+
+export async function chargeWorkOrderCostToOwnerAction(
+  input: z.input<typeof chargeCostToOwnerSchema>,
+): Promise<WorkOrderCostActionResult> {
+  const parsed = chargeCostToOwnerSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("charge_work_order_cost_to_owner", {
+    p_cost_id: parsed.data.costId,
+    p_due_type_id: parsed.data.dueTypeId,
+    p_receivable_account_id: parsed.data.receivableAccountId,
+    p_amount: parsed.data.amount || null,
+    p_issue_date: parsed.data.issueDate,
+    p_due_date: parsed.data.dueDate,
+    p_description: parsed.data.description || null,
+  });
+
+  if (error || !data) {
+    console.error("[chargeWorkOrderCostToOwnerAction] failed:", error?.message);
+    return { ok: false, error: mapWorkOrderCostError(error?.message) };
+  }
+
+  revalidateWorkOrderPaths();
+  return { ok: true, ownerDueId: data };
 }
 
 async function transitionWorkOrderAction(

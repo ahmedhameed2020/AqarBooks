@@ -11,6 +11,7 @@ import type { Locale } from "@/i18n/routing";
 import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "@/app/[locale]/portal/(member)/maintenance/maintenance-attachments-client";
 import { WORK_ORDER_STATUS_LABELS, type WorkOrderStatus } from "../work-orders-client";
 import { WorkOrderControls, type Option } from "./work-order-controls";
+import { WorkOrderCostsPanel, type WorkOrderCostItem } from "./work-order-costs-panel";
 
 type WorkOrderRow = {
   id: string;
@@ -58,6 +59,12 @@ export default async function WorkOrderDetailPage({
     supabase.rpc("work_order_staff_can_complete", { p_organization_id: organization.id }),
     supabase.rpc("maintenance_attachment_staff_can_manage", { p_organization_id: organization.id }),
   ]);
+  const [{ data: canViewCosts }, { data: canManageCosts }, { data: canPostCosts }, { data: canChargeOwner }] = await Promise.all([
+    supabase.rpc("work_order_cost_staff_can_read", { p_organization_id: organization.id }),
+    supabase.rpc("work_order_cost_staff_can_manage", { p_organization_id: organization.id }),
+    supabase.rpc("work_order_cost_staff_can_post", { p_organization_id: organization.id }),
+    supabase.rpc("work_order_cost_staff_can_charge_owner", { p_organization_id: organization.id }),
+  ]);
   if (!moduleEnabled) notFound();
 
   const { data: workOrder } = await supabase
@@ -70,7 +77,24 @@ export default async function WorkOrderDetailPage({
   if (!workOrder) notFound();
   const wo = workOrder as WorkOrderRow;
 
-  const [{ data: request }, { data: property }, { data: unit }, { data: assignee }, { data: supplier }, { data: updates }, { data: attachments }, { data: memberships }, { data: suppliers }] = await Promise.all([
+  const [
+    { data: request },
+    { data: property },
+    { data: unit },
+    { data: assignee },
+    { data: supplier },
+    { data: updates },
+    { data: attachments },
+    { data: memberships },
+    { data: suppliers },
+    { data: costs },
+    { data: expenseCategories },
+    { data: expenseAccounts },
+    { data: paymentAccounts },
+    { data: fiscalPeriods },
+    { data: dueTypes },
+    { data: receivableAccounts },
+  ] = await Promise.all([
     supabase.from("maintenance_requests").select("id, request_no, title, status").eq("id", wo.maintenance_request_id).maybeSingle(),
     supabase.from("properties").select("name").eq("id", wo.property_id).maybeSingle(),
     supabase.from("units").select("code").eq("id", wo.unit_id).maybeSingle(),
@@ -85,12 +109,32 @@ export default async function WorkOrderDetailPage({
       .order("created_at", { ascending: false }),
     supabase.from("organization_memberships").select("user_id").eq("organization_id", organization.id).eq("status", "active").limit(100),
     supabase.from("suppliers").select("id, name").eq("organization_id", organization.id).eq("is_active", true).order("name").limit(100),
+    Boolean(canViewCosts)
+      ? supabase.from("work_order_costs").select("id, cost_type, description, quantity, unit_cost, total_cost, currency, supplier_id, source_reference, financial_status, owner_charge_status, expense_id, supplier_invoice_id, owner_due_id, created_at").eq("work_order_id", wo.id).order("created_at", { ascending: false })
+      : { data: [] },
+    supabase.from("expense_categories").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100),
+    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "EXPENSE").eq("is_active", true).order("code").limit(100),
+    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100),
+    supabase.from("fiscal_periods").select("id, name, start_date, end_date").eq("organization_id", organization.id).eq("status", "OPEN").order("start_date", { ascending: false }).limit(24),
+    supabase.from("due_types").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100),
+    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100),
   ]);
 
   const userIds = (memberships ?? []).map((m) => m.user_id).filter(Boolean) as string[];
   const { data: profiles } = userIds.length ? await supabase.from("profiles").select("id, full_name").in("id", userIds) : { data: [] };
   const staffOptions: Option[] = (profiles ?? []).map((p) => ({ id: p.id, label: p.full_name ?? p.id }));
   const supplierOptions: Option[] = (suppliers ?? []).map((s) => ({ id: s.id, label: s.name }));
+  const currency = organization.default_currency ?? "EGP";
+  const labelFor = (row: { code?: string | null; name_ar?: string | null; name_en?: string | null; name?: string | null }) =>
+    "code" in row && row.code
+      ? `${row.code} · ${isAr ? row.name_ar ?? row.name_en ?? row.code : row.name_en ?? row.name_ar ?? row.code}`
+      : isAr ? row.name_ar ?? row.name_en ?? row.name ?? "—" : row.name_en ?? row.name_ar ?? row.name ?? "—";
+  const expenseCategoryOptions: Option[] = (expenseCategories ?? []).map((row) => ({ id: row.id, label: labelFor(row) }));
+  const expenseAccountOptions: Option[] = (expenseAccounts ?? []).map((row) => ({ id: row.id, label: labelFor(row) }));
+  const paymentAccountOptions: Option[] = (paymentAccounts ?? []).map((row) => ({ id: row.id, label: labelFor(row) }));
+  const fiscalPeriodOptions: Option[] = (fiscalPeriods ?? []).map((row) => ({ id: row.id, label: `${row.name} · ${row.start_date} - ${row.end_date}` }));
+  const dueTypeOptions: Option[] = (dueTypes ?? []).map((row) => ({ id: row.id, label: labelFor(row) }));
+  const receivableAccountOptions: Option[] = (receivableAccounts ?? []).map((row) => ({ id: row.id, label: labelFor(row) }));
   const label = WORK_ORDER_STATUS_LABELS[wo.status];
 
   return (
@@ -166,6 +210,25 @@ export default async function WorkOrderDetailPage({
         defaultVisibility="STAFF_ONLY"
         canChooseVisibility
       />
+
+      {Boolean(canViewCosts) ? (
+        <WorkOrderCostsPanel
+          workOrderId={wo.id}
+          costs={(costs ?? []) as WorkOrderCostItem[]}
+          suppliers={supplierOptions}
+          expenseCategories={expenseCategoryOptions}
+          expenseAccounts={expenseAccountOptions}
+          paymentAccounts={paymentAccountOptions}
+          fiscalPeriods={fiscalPeriodOptions}
+          dueTypes={dueTypeOptions}
+          receivableAccounts={receivableAccountOptions}
+          currency={currency}
+          canManage={Boolean(canManageCosts) && wo.status !== "CANCELLED"}
+          canPost={Boolean(canPostCosts) && wo.status !== "CANCELLED"}
+          canChargeOwner={Boolean(canChargeOwner) && wo.status !== "CANCELLED"}
+          locale={locale as "ar" | "en"}
+        />
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-950 dark:text-white">{isAr ? "سجل أمر العمل" : "Work Order History"}</h2>

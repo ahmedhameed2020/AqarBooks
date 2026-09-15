@@ -125,6 +125,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260914131953_maintenance_request_core.sql", bytes: 32171, sha256: "d319cc3c80bea64b7f8576c831f498acaba80f5abf5cd351abaaad9ab480dcbc", provenance: "new_authorized_migration" },
   { file: "20260914200226_maintenance_request_attachments.sql", bytes: 21696, sha256: "7df40451cc9815d1b1b1e18ea3ed943ce41fed8d598b6f8d5fbaaf0be979014a", provenance: "new_authorized_migration" },
   { file: "20260914203712_maintenance_work_orders.sql", bytes: 40233, sha256: "70c91bbe8ef03684f890bccb9acb6fa08762a3acd62c8a60df09a91f3488d57f", provenance: "new_authorized_migration" },
+  { file: "20260915050914_maintenance_cost_accounting_bridge.sql", bytes: 39495, sha256: "0f8220d9526e0ffcde3353addc7c12940cae9a80af9c5aefe255e27024c128da", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -408,11 +409,12 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(restored).toHaveLength(15);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(4);
+      expect(authorized).toHaveLength(5);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
       expect(authorized[3].file).toBe("20260914203712_maintenance_work_orders.sql");
+      expect(authorized[4].file).toBe("20260915050914_maintenance_cost_accounting_bridge.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -466,7 +468,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 8. new authorized migration(s) strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(4);
+      expect(newMigrations).toHaveLength(5);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
