@@ -243,6 +243,11 @@ begin
     return null;
   end if;
 
+  if not public.organization_is_active(p_organization_id)
+     or not public.unit_experience_enabled(p_organization_id) then
+    return null;
+  end if;
+
   if p_recipient_member_id is not null and not exists (
     select 1
     from public.members m
@@ -585,7 +590,9 @@ begin
   set is_read = true,
       read_at = coalesce(read_at, now())
   where id = p_notification_id
-    and recipient_user_id = v_user_id;
+    and recipient_user_id = v_user_id
+    and public.organization_is_active(organization_id)
+    and public.unit_experience_enabled(organization_id);
 
   if not found then
     raise exception 'NOTIFICATION_NOT_FOUND' using errcode = 'P0002';
@@ -611,7 +618,9 @@ begin
   set is_read = true,
       read_at = coalesce(read_at, now())
   where recipient_user_id = v_user_id
-    and is_read = false;
+    and is_read = false
+    and public.organization_is_active(organization_id)
+    and public.unit_experience_enabled(organization_id);
 
   get diagnostics v_count = row_count;
   return v_count;
@@ -876,6 +885,15 @@ begin
     where d.organization_id = v_unit.organization_id
       and d.unit_id = v_unit.id
       and d.status <> 'VOID'
+      and exists (
+        select 1
+        from public.unit_ownerships uo
+        where uo.organization_id = d.organization_id
+          and uo.unit_id = d.unit_id
+          and uo.member_id = v_member_id
+          and uo.start_date <= d.created_at::date
+          and (uo.end_date is null or uo.end_date >= d.created_at::date)
+      )
 
     union all
     select
@@ -1297,6 +1315,7 @@ create policy notifications_select_recipient
   using (
     recipient_user_id = auth.uid()
     and public.organization_is_active(organization_id)
+    and public.unit_experience_enabled(organization_id)
   );
 
 insert into public.permissions (id, key, description)

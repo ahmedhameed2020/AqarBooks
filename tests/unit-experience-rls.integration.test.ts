@@ -69,6 +69,90 @@ function expectSecurityRejection(error: { message: string } | null, context: str
   expect(error!.message).toMatch(/row-level security|permission denied|not authorized|not_authenticated|forbidden|unauthorized|not_entitled|not_authorized|duplicate|invalid/i);
 }
 
+function createFinancialDueViaSql(input: {
+  orgId: string;
+  propertyId: string;
+  unitId: string;
+  amount: number;
+  description: string;
+  createdAt: string;
+}): string {
+  return runLocalDbQuery(`
+    with receivable as (
+      insert into public.chart_of_accounts (
+        organization_id, property_id, code, name_ar, name_en, category, normal_balance
+      )
+      values (
+        ${sqlLiteral(input.orgId)}::uuid,
+        ${sqlLiteral(input.propertyId)}::uuid,
+        'UXREC-' || left(gen_random_uuid()::text, 8),
+        'ذمم تجربة',
+        'Unit experience receivable',
+        'ASSET',
+        'DEBIT'
+      )
+      returning id
+    ),
+    revenue as (
+      insert into public.chart_of_accounts (
+        organization_id, property_id, code, name_ar, name_en, category, normal_balance
+      )
+      values (
+        ${sqlLiteral(input.orgId)}::uuid,
+        ${sqlLiteral(input.propertyId)}::uuid,
+        'UXREV-' || left(gen_random_uuid()::text, 8),
+        'إيراد تجربة',
+        'Unit experience revenue',
+        'REVENUE',
+        'CREDIT'
+      )
+      returning id
+    ),
+    due_type as (
+      insert into public.due_types (
+        organization_id, name_ar, name_en, default_revenue_account_id
+      )
+      select
+        ${sqlLiteral(input.orgId)}::uuid,
+        'استحقاق تجربة',
+        'Unit experience due',
+        revenue.id
+      from revenue
+      returning id
+    ),
+    due as (
+      insert into public.dues (
+        organization_id,
+        property_id,
+        unit_id,
+        due_type_id,
+        receivable_account_id,
+        amount,
+        issue_date,
+        due_date,
+        description,
+        status,
+        created_at
+      )
+      select
+        ${sqlLiteral(input.orgId)}::uuid,
+        ${sqlLiteral(input.propertyId)}::uuid,
+        ${sqlLiteral(input.unitId)}::uuid,
+        due_type.id,
+        receivable.id,
+        ${input.amount},
+        ${sqlLiteral(input.createdAt)}::date,
+        ${sqlLiteral(input.createdAt)}::date + interval '14 days',
+        ${sqlLiteral(input.description)},
+        'ISSUED',
+        ${sqlLiteral(input.createdAt)}::timestamptz
+      from due_type, receivable
+      returning id
+    )
+    select id from due
+  `);
+}
+
 async function createSignedInClient(local: LocalSupabaseEnv, email: string): Promise<Client> {
   const client = createClient<Database>(local.API_URL, local.ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -233,6 +317,10 @@ describe.sequential("unit experience runtime Supabase/PostgreSQL RLS gate", () =
       await admin.from("visitor_invitation_secrets").delete().eq("organization_id", orgId);
       await admin.from("visitor_invitations").delete().eq("organization_id", orgId);
       await admin.from("gates").delete().eq("organization_id", orgId);
+      await admin.from("dues").delete().eq("organization_id", orgId);
+      await admin.from("due_types").delete().eq("organization_id", orgId);
+      await admin.from("chart_of_accounts").update({ is_used: false }).eq("organization_id", orgId);
+      await admin.from("chart_of_accounts").delete().eq("organization_id", orgId);
       await admin.from("work_order_costs").delete().eq("organization_id", orgId);
       await admin.from("work_order_updates").delete().eq("organization_id", orgId);
       await admin.from("work_orders").delete().eq("organization_id", orgId);
@@ -473,6 +561,29 @@ describe.sequential("unit experience runtime Supabase/PostgreSQL RLS gate", () =
     });
     expect(allowed.error, `allowed scan failed: ${allowed.error?.message}`).toBeNull();
 
+    expect((await admin
+      .from("unit_ownerships")
+      .update({ start_date: "2024-01-01" })
+      .eq("organization_id", orgA.orgId)
+      .eq("unit_id", orgA.unitAId)
+      .eq("member_id", orgA.memberA.memberId)).error).toBeNull();
+    createFinancialDueViaSql({
+      orgId: orgA.orgId,
+      propertyId: orgA.propertyId,
+      unitId: orgA.unitAId,
+      amount: 100,
+      description: "Previous owner private due must stay hidden",
+      createdAt: "2021-01-10T09:00:00Z",
+    });
+    createFinancialDueViaSql({
+      orgId: orgA.orgId,
+      propertyId: orgA.propertyId,
+      unitId: orgA.unitAId,
+      amount: 250,
+      description: "Current owner visible due",
+      createdAt: new Date().toISOString(),
+    });
+
     const timeline = await orgA.memberA.client.rpc("get_unit_timeline", {
       p_unit_id: orgA.unitAId,
       p_cursor_occurred_at: null,
@@ -486,8 +597,11 @@ describe.sequential("unit experience runtime Supabase/PostgreSQL RLS gate", () =
     expect(eventTypes).toContain("MAINTENANCE_UPDATE");
     expect(eventTypes).toContain("VISITOR_INVITATION_CREATED");
     expect(eventTypes).toContain("VISITOR_ENTERED");
+    expect(eventTypes).toContain("DUE_CREATED");
     expect(JSON.stringify(timeline.data)).not.toContain("Internal diagnosis must stay staff-only");
     expect(JSON.stringify(timeline.data)).not.toContain("INVALID_PASS");
+    expect(JSON.stringify(timeline.data)).not.toContain("Previous owner private due must stay hidden");
+    expect(JSON.stringify(timeline.data)).toContain("Current owner visible due");
 
     const memberBTimeline = await orgA.memberB.client.rpc("get_unit_timeline", {
       p_unit_id: orgA.unitAId,
@@ -496,6 +610,83 @@ describe.sequential("unit experience runtime Supabase/PostgreSQL RLS gate", () =
       p_limit: 10,
     });
     expectSecurityRejection(memberBTimeline.error, "unrelated member cannot view another unit timeline");
+  });
+
+  it("does not create, expose, or mark notifications for organizations without unit experience entitlement", async () => {
+    createFinancialDueViaSql({
+      orgId: disabledOrg.orgId,
+      propertyId: disabledOrg.propertyId,
+      unitId: disabledOrg.unitAId,
+      amount: 50,
+      description: "Starter org notification must not be created",
+      createdAt: new Date().toISOString(),
+    });
+
+    runLocalDbQuery(`
+      select public.create_notification_once(
+        ${sqlLiteral(disabledOrg.orgId)}::uuid,
+        ${sqlLiteral(disabledOrg.memberA.userId)}::uuid,
+        ${sqlLiteral(disabledOrg.memberA.memberId)}::uuid,
+        'DUE_CREATED',
+        'محجوب',
+        'Blocked',
+        'محجوب',
+        'Blocked',
+        'due',
+        gen_random_uuid(),
+        '/portal/dues',
+        'NORMAL'
+      )
+    `);
+
+    const serviceCount = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", disabledOrg.orgId);
+    expect(serviceCount.error, `service notification count failed: ${serviceCount.error?.message}`).toBeNull();
+    expect(serviceCount.count).toBe(0);
+
+    const hiddenNotificationId = runLocalDbQuery(`
+      insert into public.notifications (
+        organization_id,
+        recipient_user_id,
+        recipient_member_id,
+        type,
+        title_ar,
+        title_en,
+        body_ar,
+        body_en,
+        source_type,
+        source_id,
+        priority
+      )
+      values (
+        ${sqlLiteral(disabledOrg.orgId)}::uuid,
+        ${sqlLiteral(disabledOrg.memberA.userId)}::uuid,
+        ${sqlLiteral(disabledOrg.memberA.memberId)}::uuid,
+        'DUE_CREATED',
+        'محجوب',
+        'Blocked',
+        'محجوب',
+        'Blocked',
+        'due',
+        gen_random_uuid(),
+        'NORMAL'
+      )
+      returning id
+    `).split(/\r?\n/)[0];
+
+    const recipientRead = await disabledOrg.memberA.client.from("notifications").select("id").eq("id", hiddenNotificationId);
+    expect(recipientRead.error, `starter notification read errored: ${recipientRead.error?.message}`).toBeNull();
+    expect(recipientRead.data).toEqual([]);
+
+    const markOne = await disabledOrg.memberA.client.rpc("mark_notification_read", { p_notification_id: hiddenNotificationId });
+    expect(markOne.error).not.toBeNull();
+    expect(markOne.error!.message).toBe("NOTIFICATION_NOT_FOUND");
+
+    const markAll = await disabledOrg.memberA.client.rpc("mark_all_notifications_read");
+    expect(markAll.error, `starter mark-all failed: ${markAll.error?.message}`).toBeNull();
+    expect(markAll.data).toBe(0);
   });
 
   it("creates idempotent notifications and lets only the recipient mark them read", async () => {

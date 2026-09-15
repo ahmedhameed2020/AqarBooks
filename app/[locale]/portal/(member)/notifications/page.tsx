@@ -17,6 +17,9 @@ export default async function PortalNotificationsPage({
   if (ctx.status !== "ok") redirect("/portal/login");
 
   const supabase = await createClient();
+  const { data: enabled } = await supabase.rpc("unit_experience_enabled", { p_organization_id: ctx.member.organization_id });
+  if (!enabled) redirect("/portal");
+
   const { data, error } = await supabase
     .from("notifications")
     .select("id, type, title_ar, title_en, body_ar, body_en, action_url, priority, is_read, created_at")
