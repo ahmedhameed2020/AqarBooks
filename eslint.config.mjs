@@ -15,6 +15,17 @@ const eslintConfig = defineConfig([
     // Cloudflare build output — generated bundles, not source.
     ".open-next/**",
     ".wrangler/**",
+    // Local agent/tooling artifacts are not application source.
+    ".agents/**",
+    ".claude/**",
+    ".superpowers/**",
+    ".worktrees/**",
+    ".qa-scratch/**",
+    "scratch/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    "supabase/.temp/**",
   ]),
 ]);
 
