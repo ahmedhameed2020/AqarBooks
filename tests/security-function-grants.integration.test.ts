@@ -85,6 +85,16 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "audit_work_order_action", // platform audit writer
   "audit_work_order_cost_action", // platform audit writer
   "transition_work_order", // wrapped by narrow lifecycle RPCs
+  "normalize_vehicle_plate", // helper wrapped by vehicle mutation RPCs
+  "create_notification_once", // internal idempotent notification writer
+  "notify_maintenance_request_created", // trigger helper
+  "notify_maintenance_request_update", // trigger helper
+  "notify_work_order_lifecycle", // trigger helper
+  "notify_owner_charge_created", // trigger helper
+  "notify_visitor_invitation_lifecycle", // trigger helper
+  "notify_access_event_allowed", // trigger helper
+  "notify_due_created", // trigger helper
+  "notify_payment_confirmed", // trigger helper
 ] as const;
 
 const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
@@ -141,6 +151,10 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "maintenance_attachment_can_upload_object", "maintenance_attachment_member_can_read",
   "maintenance_attachment_staff_can_manage", "maintenance_attachment_staff_can_read",
   "maintenance_module_enabled", "maintenance_request_staff_can_read",
+  "unit_experience_enabled", "vehicle_staff_can_read", "vehicle_staff_can_manage",
+  "vehicle_member_can_read", "create_vehicle", "update_vehicle_staff",
+  "deactivate_own_vehicle", "mark_notification_read", "mark_all_notifications_read",
+  "get_unit_timeline",
   "create_visitor_invitation", "revoke_visitor_invitation", "validate_visitor_pass_token",
   "visitor_invitation_member_can_read", "visitor_invitation_staff_can_manage",
   "visitor_invitation_staff_can_read", "visitor_management_enabled",

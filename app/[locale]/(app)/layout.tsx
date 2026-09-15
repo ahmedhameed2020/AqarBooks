@@ -39,6 +39,7 @@ import {
   Landmark,
   Wrench,
   TicketCheck,
+  CarFront,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -150,6 +151,12 @@ export default async function AppShellLayout({
                 { href: "/operations/gates", permission: "operations.gates.view", labelAr: "إدارة البوابات", labelEn: "Gate Management" },
                 { href: "/operations/access-events", permission: "operations.access_events.view", labelAr: "سجل الدخول والخروج", labelEn: "Access Event Ledger" },
               ],
+            },
+            {
+              href: "/operations/vehicles", permission: "operations.vehicles.view",
+              labelAr: "سجل المركبات",
+              labelEn: "Vehicle Registry",
+              icon: <CarFront className={ic} />,
             },
           ],
         },

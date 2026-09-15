@@ -366,6 +366,7 @@ describe.sequential("maintenance work orders runtime RLS gate", () => {
       "complete_work_order|f|t",
       "create_work_order|f|t",
       "insert_work_order_update|f|f",
+      "notify_work_order_lifecycle|f|f",
       "post_work_order_cost_as_expense|f|t",
       "post_work_order_cost_as_supplier_invoice|f|t",
       "resume_work_order|f|t",
