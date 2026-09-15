@@ -824,6 +824,70 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["maintenance_request_updates"]["Row"]>;
         Relationships: [];
       };
+      visitor_invitations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          invited_by_member_id: string;
+          invitation_no: string;
+          guest_name: string;
+          guest_phone: string | null;
+          guest_note: string | null;
+          valid_from: string;
+          valid_until: string;
+          usage_policy: "SINGLE_USE" | "MULTI_USE";
+          status: "ACTIVE" | "REVOKED";
+          token_hint: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          created_by: string;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          invited_by_member_id: string;
+          invitation_no: string;
+          guest_name: string;
+          guest_phone?: string | null;
+          guest_note?: string | null;
+          valid_from: string;
+          valid_until: string;
+          usage_policy?: "SINGLE_USE" | "MULTI_USE";
+          status?: "ACTIVE" | "REVOKED";
+          token_hint?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          created_by: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["visitor_invitations"]["Row"]>;
+        Relationships: [];
+      };
+      visitor_invitation_secrets: {
+        Row: {
+          invitation_id: string;
+          organization_id: string;
+          token_hash: string;
+          created_at: string;
+        };
+        Insert: {
+          invitation_id: string;
+          organization_id: string;
+          token_hash: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["visitor_invitation_secrets"]["Row"]>;
+        Relationships: [];
+      };
       work_orders: {
         Row: {
           id: string;
@@ -3000,6 +3064,55 @@ export type Database = {
       maintenance_attachment_staff_can_read: {
         Args: { p_organization_id: string };
         Returns: boolean;
+      };
+      visitor_management_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      visitor_invitation_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      visitor_invitation_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      visitor_invitation_member_can_read: {
+        Args: { p_invitation: Database["public"]["Tables"]["visitor_invitations"]["Row"] };
+        Returns: boolean;
+      };
+      create_visitor_invitation: {
+        Args: {
+          p_unit_id: string;
+          p_token_hash: string;
+          p_token_hint: string | null;
+          p_guest_name: string;
+          p_guest_phone?: string | null;
+          p_guest_note?: string | null;
+          p_valid_from: string;
+          p_valid_until: string;
+          p_usage_policy?: string;
+        };
+        Returns: string;
+      };
+      revoke_visitor_invitation: {
+        Args: { p_invitation_id: string };
+        Returns: undefined;
+      };
+      validate_visitor_pass_token: {
+        Args: { p_invitation_id: string; p_raw_secret: string };
+        Returns: {
+          valid: boolean;
+          reason_code: string;
+          invitation_id: string | null;
+          organization_id: string | null;
+          property_id: string | null;
+          unit_id: string | null;
+          usage_policy: "SINGLE_USE" | "MULTI_USE" | null;
+          valid_from: string | null;
+          valid_until: string | null;
+          guest_name: string | null;
+        }[];
       };
       work_order_staff_can_read: {
         Args: { p_organization_id: string };

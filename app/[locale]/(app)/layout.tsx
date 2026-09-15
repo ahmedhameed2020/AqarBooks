@@ -38,6 +38,7 @@ import {
   Scale,
   Landmark,
   Wrench,
+  TicketCheck,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -137,6 +138,12 @@ export default async function AppShellLayout({
                 { href: "/operations/maintenance", permission: "operations.maintenance.view", labelAr: "طلبات الصيانة", labelEn: "Maintenance Requests" },
                 { href: "/operations/maintenance/work-orders", permission: "operations.work_orders.view", labelAr: "أوامر العمل", labelEn: "Work Orders" },
               ],
+            },
+            {
+              href: "/operations/visitors", permission: "operations.visitors.view",
+              labelAr: "تصاريح الزوار",
+              labelEn: "Access / Visitors",
+              icon: <TicketCheck className={ic} />,
             },
           ],
         },
