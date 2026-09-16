@@ -5,6 +5,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import type { DueDbRow } from "@/lib/portal/row-types";
 import { agingBucketOf, isoMonthsAgo } from "@/lib/portal/portal-finance";
+import { loadPortalCommandCenter } from "@/lib/portal/unit-command-center";
 import {
   PortalDashboardClient,
   type DashboardDue,
@@ -44,6 +45,7 @@ export default async function PortalDashboardPage({
     { data: openDuesData },
     { data: unitsData },
     { data: paymentsData },
+    commandCenter,
   ] = await Promise.all([
     supabase.rpc("get_own_organization_display").maybeSingle(),
     supabase
@@ -66,6 +68,10 @@ export default async function PortalDashboardPage({
       .eq("member_id", member.id)
       .gte("payment_date", trendStart)
       .order("payment_date", { ascending: true }),
+    loadPortalCommandCenter(supabase, {
+      organizationId: member.organization_id,
+      memberId: member.id,
+    }),
   ]);
 
   const rawDues = (openDuesData ?? []) as unknown as DueDbRow[];
@@ -137,6 +143,7 @@ export default async function PortalDashboardPage({
       dues={dues}
       units={units}
       trend={trend}
+      commandCenter={commandCenter}
       locale={locale}
     />
   );

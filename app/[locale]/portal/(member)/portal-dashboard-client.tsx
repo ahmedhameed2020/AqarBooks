@@ -23,7 +23,9 @@ import {
   formatAmount,
   type AgingBucket,
 } from "@/lib/portal/portal-finance";
+import type { PortalCommandCenterDTO } from "@/lib/portal/unit-command-center-types";
 import { AgingBar, EmptyState, ExportButtons, PortalPageHeader, StatCard } from "./portal-ui";
+import { PortalCommandCenter } from "./portal-command-center";
 
 export interface DashboardDue {
   id: string;
@@ -58,6 +60,7 @@ export function PortalDashboardClient({
   dues,
   units,
   trend,
+  commandCenter,
   locale,
 }: {
   memberName: string;
@@ -70,6 +73,7 @@ export function PortalDashboardClient({
   dues: DashboardDue[];
   units: DashboardUnit[];
   trend: MonthPoint[];
+  commandCenter: PortalCommandCenterDTO;
   locale: string;
 }) {
   const isAr = locale === "ar";
@@ -198,8 +202,8 @@ export function PortalDashboardClient({
         title={isAr ? `مرحبًا، ${memberName}` : `Welcome, ${memberName}`}
         description={
           isAr
-            ? "موقفك المالي الكامل لدى الكيان: ما عليك، ما سددته، وحداتك، وما يستحق السداد قريبًا."
-            : "Your complete financial position: what you owe, what you have paid, your units, and what falls due next."
+            ? "نظرة مالية وتشغيلية موحدة: مستحقاتك ووحداتك والخدمات التي تحتاج انتباهك."
+            : "One financial and operational view of your dues, units, and services that need attention."
         }
       >
         <ExportButtons
@@ -221,6 +225,8 @@ export function PortalDashboardClient({
           <span>{isAr ? "سداد المستحقات" : "Pay dues"}</span>
         </Link>
       </PortalPageHeader>
+
+      <PortalCommandCenter data={commandCenter} locale={isAr ? "ar" : "en"} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
