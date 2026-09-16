@@ -26,7 +26,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 const DEMO_ENTRY_ACTION = "demo_entry";
-const DEMO_ENTRY_LIMIT = 5;
+const DEMO_ENTRY_LIMIT = 20;
 const DEMO_ENTRY_WINDOW_SECONDS = 60;
 
 /**

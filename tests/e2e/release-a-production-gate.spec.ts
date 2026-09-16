@@ -298,7 +298,7 @@ test.describe("frozen financial snapshot is unchanged (read-only check via the d
 // -----------------------------------------------------------------------
 // Rate-limit test -- MUST STAY LAST IN THIS FILE.
 //
-// This test deliberately exhausts the 5-attempts/60s quota for this
+// This test deliberately exhausts the 20-attempts/60s quota for this
 // machine's one real IP (check_and_record_rate_limit keys on
 // CF-Connecting-IP, not on any cookie or browser context). Every test
 // above it that clicks the demo CTA -- the two CTA tests, the two-context
@@ -363,8 +363,8 @@ async function classifyDemoEntryOutcome(page: Page, timeoutMs: number): Promise<
   };
 }
 
-test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
-  test("6 concurrent entries in one 60s window: exactly 5 allowed, 1 denied, 0 ambiguous", async ({ browser }) => {
+test.describe("demo entry rate limiting is enforced (~20/min/client)", () => {
+  test("21 concurrent entries in one 60s window: exactly 20 allowed, 1 denied, 0 ambiguous", async ({ browser }) => {
     // check_and_record_rate_limit's window is 60s. Wait out a full window
     // before this test's own attempts rather than reaching into the
     // database to inspect or clear state (ruled out: no mutating/deleting
@@ -383,7 +383,8 @@ test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
     test.setTimeout(150_000);
     await new Promise((resolve) => setTimeout(resolve, 61_000));
 
-    const ATTEMPTS = 6;
+    const ATTEMPTS = 21;
+    const EXPECTED_ALLOWED = 20;
     const contexts = await Promise.all(Array.from({ length: ATTEMPTS }, () => browser.newContext()));
 
     try {
@@ -399,7 +400,7 @@ test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
         }),
       );
 
-      // Fire all six clicks together.
+      // Fire all clicks together.
       await Promise.all(pages.map((page) => page.getByRole("button", { name: "Explore Live Demo" }).click()));
 
       // Classify each independently -- concurrent execution means the
@@ -419,7 +420,10 @@ test.describe("demo entry rate limiting is enforced (~5/min/client)", () => {
       const allowed = outcomes.filter((o) => o.kind === "allowed");
       const denied = outcomes.filter((o): o is { kind: "denied"; alertText: string } => o.kind === "denied");
 
-      expect(allowed.length, `expected exactly 5 allowed of ${ATTEMPTS}: ${JSON.stringify(outcomes)}`).toBe(5);
+      expect(
+        allowed.length,
+        `expected exactly ${EXPECTED_ALLOWED} allowed of ${ATTEMPTS}: ${JSON.stringify(outcomes)}`,
+      ).toBe(EXPECTED_ALLOWED);
       expect(denied.length, `expected exactly 1 denied of ${ATTEMPTS}: ${JSON.stringify(outcomes)}`).toBe(1);
       expect(denied[0]?.alertText, "denial shows the exact bilingual copy").toContain(DEMO_RATE_LIMITED_TEXT);
     } finally {
