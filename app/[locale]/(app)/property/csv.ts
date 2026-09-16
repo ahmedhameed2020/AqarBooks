@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 import { unitTypeLabel, type UnitRow } from "./units-table";
 
 export { downloadCsv } from "@/lib/csv";
@@ -47,6 +47,15 @@ const CELL_BORDER = "FFE2E8F0";
 // "browser" field), since this is only ever invoked from a "use client"
 // component after a button click.
 export async function buildUnitsXlsxBuffer(rows: UnitRow[], isAr: boolean): Promise<ExcelJS.Buffer> {
+  // Loaded from a CDN instead of the local package: exceljs alone accounts for
+  // ~624 KiB gzipped, and the Cloudflare Worker deploy flattens every
+  // reachable import (dynamic or not) into one script, so bundling it locally
+  // would burn most of the free plan's 3 MB script-size headroom. This code
+  // path only ever runs in the browser after a button click.
+  const exceljsUrl = "https://esm.sh/exceljs@4.4.0";
+  const { default: ExcelJS } = (await import(/* webpackIgnore: true */ exceljsUrl)) as {
+    default: typeof import("exceljs");
+  };
   const headers = isAr
     ? ["كود الوحدة", "المبنى", "المنطقة", "المساحة (م²)", "النوع", "حالة الإشغال", "المالك الحالي", "الرصيد المالي", "عليها متأخرات"]
     : ["Unit Code", "Building", "Zone", "Area (m²)", "Type", "Occupancy", "Current Owner", "Financial Balance", "Has Arrears"];
