@@ -4197,11 +4197,11 @@ export type Database = {
         Returns: boolean;
       };
       lease_renewal_staff_can_read: {
-        Args: { p_organization_id: string };
+        Args: { p_organization_id: string; p_property_id: string };
         Returns: boolean;
       };
       lease_renewal_staff_can_manage: {
-        Args: { p_organization_id: string };
+        Args: { p_organization_id: string; p_property_id: string };
         Returns: boolean;
       };
       request_lease_renewal: {

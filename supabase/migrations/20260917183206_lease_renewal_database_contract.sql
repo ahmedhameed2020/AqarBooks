@@ -102,7 +102,10 @@ as $$
   select coalesce(public.get_entitlement(p_organization_id, 'lease_lifecycle'), 'false'::jsonb) = 'true'::jsonb
 $$;
 
-create or replace function public.lease_renewal_staff_can_read(p_organization_id uuid)
+create or replace function public.lease_renewal_staff_can_read(
+  p_organization_id uuid,
+  p_property_id uuid
+)
 returns boolean
 language sql
 stable
@@ -116,9 +119,25 @@ as $$
       public.has_permission(auth.uid(), p_organization_id, 'property.lease_renewals.view')
       or public.has_permission(auth.uid(), p_organization_id, 'property.lease_renewals.manage')
     )
+    and (
+      public.is_platform_admin(auth.uid())
+      or exists (
+        select 1
+        from public.user_role_assignments ura
+        join public.role_permissions rp on rp.role_id = ura.role_id
+        join public.permissions p on p.id = rp.permission_id
+        where ura.user_id = auth.uid()
+          and ura.organization_id = p_organization_id
+          and p.key in ('property.lease_renewals.view', 'property.lease_renewals.manage')
+          and (ura.property_id is null or ura.property_id = p_property_id)
+      )
+    )
 $$;
 
-create or replace function public.lease_renewal_staff_can_manage(p_organization_id uuid)
+create or replace function public.lease_renewal_staff_can_manage(
+  p_organization_id uuid,
+  p_property_id uuid
+)
 returns boolean
 language sql
 stable
@@ -129,6 +148,19 @@ as $$
     public.organization_is_active(p_organization_id)
     and public.lease_lifecycle_enabled(p_organization_id)
     and public.has_permission(auth.uid(), p_organization_id, 'property.lease_renewals.manage')
+    and (
+      public.is_platform_admin(auth.uid())
+      or exists (
+        select 1
+        from public.user_role_assignments ura
+        join public.role_permissions rp on rp.role_id = ura.role_id
+        join public.permissions p on p.id = rp.permission_id
+        where ura.user_id = auth.uid()
+          and ura.organization_id = p_organization_id
+          and p.key = 'property.lease_renewals.manage'
+          and (ura.property_id is null or ura.property_id = p_property_id)
+      )
+    )
 $$;
 
 create or replace function public.request_lease_renewal(
@@ -170,7 +202,7 @@ begin
     and public.lease_lifecycle_enabled(l.organization_id)
     and (
       l.tenant_member_id = v_member_id
-      or public.lease_renewal_staff_can_manage(l.organization_id)
+      or public.lease_renewal_staff_can_manage(l.organization_id, l.property_id)
     );
 
   if v_lease.id is null then
@@ -240,7 +272,7 @@ begin
   select r.* into v_request
   from public.lease_renewal_requests r
   where r.id = p_request_id
-    and public.lease_renewal_staff_can_manage(r.organization_id)
+    and public.lease_renewal_staff_can_manage(r.organization_id, r.property_id)
   for update;
 
   if v_request.id is null then
@@ -334,7 +366,7 @@ using (
   and public.lease_lifecycle_enabled(organization_id)
   and (
     tenant_member_id = public.current_member_id()
-    or public.lease_renewal_staff_can_read(organization_id)
+    or public.lease_renewal_staff_can_read(organization_id, property_id)
   )
 );
 
@@ -350,7 +382,7 @@ using (
       and public.lease_lifecycle_enabled(r.organization_id)
       and (
         r.tenant_member_id = public.current_member_id()
-        or public.lease_renewal_staff_can_read(r.organization_id)
+        or public.lease_renewal_staff_can_read(r.organization_id, r.property_id)
       )
   )
 );
@@ -412,15 +444,15 @@ grant all privileges on table public.lease_expiry_dispatches to service_role;
 
 revoke all on function public.prevent_lease_renewal_transition_mutation() from public, anon, authenticated, service_role;
 revoke all on function public.lease_lifecycle_enabled(uuid) from public, anon, authenticated, service_role;
-revoke all on function public.lease_renewal_staff_can_read(uuid) from public, anon, authenticated, service_role;
-revoke all on function public.lease_renewal_staff_can_manage(uuid) from public, anon, authenticated, service_role;
+revoke all on function public.lease_renewal_staff_can_read(uuid, uuid) from public, anon, authenticated, service_role;
+revoke all on function public.lease_renewal_staff_can_manage(uuid, uuid) from public, anon, authenticated, service_role;
 revoke all on function public.request_lease_renewal(uuid, date, date, numeric, text, text) from public, anon, authenticated, service_role;
 revoke all on function public.decide_lease_renewal(uuid, text, text) from public, anon, authenticated, service_role;
 revoke all on function public.get_owned_unit_lease_renewal_status(uuid) from public, anon, authenticated, service_role;
 
 grant execute on function public.lease_lifecycle_enabled(uuid) to authenticated, service_role;
-grant execute on function public.lease_renewal_staff_can_read(uuid) to authenticated, service_role;
-grant execute on function public.lease_renewal_staff_can_manage(uuid) to authenticated, service_role;
+grant execute on function public.lease_renewal_staff_can_read(uuid, uuid) to authenticated, service_role;
+grant execute on function public.lease_renewal_staff_can_manage(uuid, uuid) to authenticated, service_role;
 grant execute on function public.request_lease_renewal(uuid, date, date, numeric, text, text) to authenticated, service_role;
 grant execute on function public.decide_lease_renewal(uuid, text, text) to authenticated, service_role;
 grant execute on function public.get_owned_unit_lease_renewal_status(uuid) to authenticated, service_role;

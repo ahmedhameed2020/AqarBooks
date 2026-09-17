@@ -18,6 +18,7 @@ type Fixture = {
   owner: MemberActor;
   formerOwner: MemberActor;
   manager: Actor;
+  scopedManager: Actor;
   viewer: Actor;
 };
 
@@ -75,12 +76,18 @@ async function staffActor(
   orgId: string,
   roleKey: "PROPERTY_MANAGER" | "VIEWER",
   label: string,
+  propertyId?: string,
 ): Promise<Actor> {
   const actor = await authUser(admin, label);
   expect((await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: actor.userId, status: "active" })).error).toBeNull();
   const { data: role, error } = await admin.from("roles").select("id").eq("organization_id", orgId).eq("key", roleKey).single();
   expect(error).toBeNull();
-  expect((await admin.from("user_role_assignments").insert({ user_id: actor.userId, role_id: role!.id, organization_id: orgId })).error).toBeNull();
+  expect((await admin.from("user_role_assignments").insert({
+    user_id: actor.userId,
+    role_id: role!.id,
+    organization_id: orgId,
+    property_id: propertyId ?? null,
+  })).error).toBeNull();
   return { ...actor, client: await signedIn(env, actor.email) };
 }
 
@@ -150,6 +157,7 @@ async function fixture(admin: Client, env: LocalEnv, label: string, planKey: "PR
     owner,
     formerOwner,
     manager: await staffActor(admin, env, org!.id, "PROPERTY_MANAGER", `${label}-manager`),
+    scopedManager: await staffActor(admin, env, org!.id, "PROPERTY_MANAGER", `${label}-scoped-manager`, property!.id),
     viewer: await staffActor(admin, env, org!.id, "VIEWER", `${label}-viewer`),
   };
 }
@@ -181,7 +189,7 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     starter = await fixture(admin, env, "Starter", "STARTER");
     for (const f of [enabled, other, starter]) {
       orgIds.push(f.orgId);
-      userIds.push(f.tenant.userId, f.owner.userId, f.formerOwner.userId, f.manager.userId, f.viewer.userId);
+      userIds.push(f.tenant.userId, f.owner.userId, f.formerOwner.userId, f.manager.userId, f.scopedManager.userId, f.viewer.userId);
     }
   }, 120_000);
 
@@ -264,6 +272,82 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     expect((await enabled.manager.client.from("lease_renewal_transitions").select("from_status,to_status").eq("renewal_request_id", requestId).order("created_at")).data)
       .toEqual([{ from_status: null, to_status: "REQUESTED" }, { from_status: "REQUESTED", to_status: "APPROVED" }]);
     expect(dbQuery(`select count(*) from public.unit_leases where id <> '${enabled.leaseId}'::uuid and organization_id = '${enabled.orgId}'::uuid`)).toBe("0");
+  });
+
+  it("limits property-scoped staff while preserving organization-wide assignments", async () => {
+    const sourceLease = await (admin as unknown as LooseClient)
+      .from("unit_leases")
+      .select("due_type_id,receivable_account_id,rent_amount,rent_frequency,security_deposit_amount,billing_recipient")
+      .eq("id", enabled.leaseId)
+      .single();
+    expect(sourceLease.error).toBeNull();
+
+    const suffix = randomUUID().slice(0, 8);
+    const propertyB = await admin.from("properties").insert({
+      organization_id: enabled.orgId,
+      name: "Renewal Property B",
+      code: `RN-B-${suffix}`,
+      timezone: "Africa/Cairo",
+      property_type: "resort",
+    }).select("id").single();
+    expect(propertyB.error).toBeNull();
+    const unitB = await admin.from("units").insert({
+      organization_id: enabled.orgId,
+      property_id: propertyB.data!.id,
+      code: `RN-B-${suffix}`,
+    }).select("id").single();
+    expect(unitB.error).toBeNull();
+    const leaseB = await (admin as unknown as LooseClient).from("unit_leases").insert({
+      organization_id: enabled.orgId,
+      property_id: propertyB.data!.id,
+      unit_id: unitB.data!.id,
+      tenant_member_id: enabled.tenant.memberId,
+      due_type_id: sourceLease.data!.due_type_id,
+      receivable_account_id: sourceLease.data!.receivable_account_id,
+      status: "ACTIVE",
+      starts_on: "2026-01-01",
+      ends_on: "2026-12-31",
+      rent_amount: sourceLease.data!.rent_amount,
+      rent_frequency: sourceLease.data!.rent_frequency,
+      security_deposit_amount: sourceLease.data!.security_deposit_amount,
+      billing_recipient: sourceLease.data!.billing_recipient,
+    }).select("id").single();
+    expect(leaseB.error).toBeNull();
+
+    expect((await enabled.scopedManager.client.from("lease_renewal_requests").select("id").eq("id", requestId)).data)
+      .toEqual([{ id: requestId }]);
+    const inScopeCreate = await enabled.scopedManager.client.rpc("request_lease_renewal", requestArgs(enabled.leaseId));
+    expect(inScopeCreate.error).toBeNull();
+    expect(inScopeCreate.data).toBe(requestId);
+    const inScopeDecision = await enabled.scopedManager.client.rpc("decide_lease_renewal", {
+      p_request_id: requestId, p_decision: "APPROVED", p_reason: null,
+    });
+    expect(inScopeDecision.error).toBeNull();
+
+    const bookingB = await enabled.tenant.client.rpc("request_lease_renewal", requestArgs(leaseB.data!.id));
+    expect(bookingB.error).toBeNull();
+    expect((await enabled.scopedManager.client.from("lease_renewal_requests").select("id").eq("id", bookingB.data)).data).toEqual([]);
+
+    const missingCreate = await enabled.scopedManager.client.rpc("request_lease_renewal", requestArgs(randomUUID()));
+    const crossPropertyCreate = await enabled.scopedManager.client.rpc("request_lease_renewal", requestArgs(leaseB.data!.id));
+    expect(missingCreate.error?.message).toBe("LEASE_RENEWAL_NOT_FOUND");
+    expect(crossPropertyCreate.error?.message).toBe(missingCreate.error?.message);
+
+    const missingDecision = await enabled.scopedManager.client.rpc("decide_lease_renewal", {
+      p_request_id: randomUUID(), p_decision: "REJECTED", p_reason: "Out of scope",
+    });
+    const crossPropertyDecision = await enabled.scopedManager.client.rpc("decide_lease_renewal", {
+      p_request_id: bookingB.data, p_decision: "REJECTED", p_reason: "Out of scope",
+    });
+    expect(missingDecision.error?.message).toBe("LEASE_RENEWAL_NOT_FOUND");
+    expect(crossPropertyDecision.error?.message).toBe(missingDecision.error?.message);
+
+    expect((await enabled.manager.client.from("lease_renewal_requests").select("id").eq("id", bookingB.data)).data)
+      .toEqual([{ id: bookingB.data }]);
+    const organizationWideDecision = await enabled.manager.client.rpc("decide_lease_renewal", {
+      p_request_id: bookingB.data, p_decision: "REJECTED", p_reason: "Organization-wide review",
+    });
+    expect(organizationWideDecision.error).toBeNull();
   });
 
   it("keeps missing and cross-tenant resources indistinguishable", async () => {

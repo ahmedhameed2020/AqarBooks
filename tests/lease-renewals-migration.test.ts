@@ -33,6 +33,9 @@ describe("lease renewal database contract migration", () => {
     expect(migration).toContain("public.lease_lifecycle_enabled");
     expect(migration).toContain("public.organization_is_active");
     expect(migration).toContain("public.current_member_id()");
+    expect(migration).toMatch(/public\.lease_renewal_staff_can_read\(\s*p_organization_id uuid,\s*p_property_id uuid\s*\)/);
+    expect(migration).toMatch(/public\.lease_renewal_staff_can_manage\(\s*p_organization_id uuid,\s*p_property_id uuid\s*\)/);
+    expect(migration).toContain("ura.property_id is null or ura.property_id = p_property_id");
   });
 
   it("uses privacy-preserving errors and a current-owner projection", () => {
