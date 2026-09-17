@@ -25,6 +25,11 @@ const bookingSchema = z.object({
   memberNote: z.string().trim().max(500).optional().nullable(),
 });
 
+const amenityUpdateSchema = amenitySchema.omit({ propertyId: true }).extend({
+  amenityId: z.string().uuid(),
+  isActive: z.boolean(),
+});
+
 const bookingIdSchema = z.object({ bookingId: z.string().uuid() });
 const amenityStatusSchema = z.object({ amenityId: z.string().uuid(), isActive: z.boolean() });
 const decisionSchema = bookingIdSchema.extend({
@@ -106,6 +111,37 @@ export async function createAmenityBookingAction(
   }
   revalidateAmenityRoutes();
   return { ok: true, id: data };
+}
+
+export async function updateAmenityAction(
+  input: z.input<typeof amenityUpdateSchema>,
+): Promise<AmenityActionResult> {
+  const parsed = amenityUpdateSchema.safeParse(input);
+  if (!parsed.success || parsed.data.opensAt >= parsed.data.closesAt) {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_amenity", {
+    p_amenity_id: parsed.data.amenityId,
+    p_name_ar: parsed.data.nameAr,
+    p_name_en: parsed.data.nameEn,
+    p_description_ar: parsed.data.descriptionAr || null,
+    p_description_en: parsed.data.descriptionEn || null,
+    p_capacity: parsed.data.capacity,
+    p_slot_minutes: parsed.data.slotMinutes,
+    p_opens_at: parsed.data.opensAt,
+    p_closes_at: parsed.data.closesAt,
+    p_max_advance_days: parsed.data.maxAdvanceDays,
+    p_requires_approval: parsed.data.requiresApproval,
+    p_is_active: parsed.data.isActive,
+  });
+  if (error) {
+    console.error("[updateAmenityAction] failed:", error.message);
+    return { ok: false, error: mapError(error.message) };
+  }
+  revalidateAmenityRoutes();
+  return { ok: true, id: parsed.data.amenityId };
 }
 
 export async function setAmenityActiveAction(
