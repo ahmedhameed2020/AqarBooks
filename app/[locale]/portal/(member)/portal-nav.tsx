@@ -12,6 +12,7 @@ import {
   TicketCheck,
   UserRound,
   Wrench,
+  CalendarDays,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -135,6 +136,14 @@ const NAV_GROUPS: NavGroup[] = [
         descAr: "مركبات وحداتك",
         descEn: "Unit vehicle records",
         icon: CarFront,
+      },
+      {
+        href: "/portal/amenities",
+        labelAr: "حجز المرافق",
+        labelEn: "Amenities",
+        descAr: "المرافق والحجوزات",
+        descEn: "Facilities & bookings",
+        icon: CalendarDays,
       },
       {
         href: "/portal/notifications",

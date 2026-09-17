@@ -95,6 +95,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "notify_access_event_allowed", // trigger helper
   "notify_due_created", // trigger helper
   "notify_payment_confirmed", // trigger helper
+  "notify_amenity_booking_lifecycle", // trigger helper
 ] as const;
 
 const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
@@ -155,6 +156,9 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "vehicle_member_can_read", "create_vehicle", "update_vehicle_staff",
   "deactivate_own_vehicle", "mark_notification_read", "mark_all_notifications_read",
   "get_unit_timeline",
+  "amenity_booking_enabled", "amenity_staff_can_read", "amenity_staff_can_manage",
+  "create_amenity", "update_amenity", "set_amenity_active", "create_amenity_booking",
+  "cancel_own_amenity_booking", "decide_amenity_booking",
   "create_visitor_invitation", "revoke_visitor_invitation", "validate_visitor_pass_token",
   "visitor_invitation_member_can_read", "visitor_invitation_staff_can_manage",
   "visitor_invitation_staff_can_read", "visitor_management_enabled",
