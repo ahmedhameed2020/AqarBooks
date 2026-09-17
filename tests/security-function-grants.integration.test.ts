@@ -72,6 +72,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "append_financial_audit_event", // forging audit entries
   "record_online_payment", // service-role webhook path
   "run_lease_rent_generation", // service-role sweep
+  "run_lease_expiry_alerts", // service-role lease-expiry notification sweep
   "expire_stale_member_invitations", // service-role sweep
   "expire_stale_online_payment_transactions", // service-role sweep
   "assert_maintenance_status_transition", // internal validator wrapped by maintenance mutation RPCs
@@ -160,6 +161,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "create_amenity", "update_amenity", "set_amenity_active", "create_amenity_booking",
   "cancel_own_amenity_booking", "decide_amenity_booking",
   "lease_lifecycle_enabled", "lease_renewal_staff_can_read", "lease_renewal_staff_can_manage",
+  "notification_feature_enabled",
   "request_lease_renewal", "decide_lease_renewal", "get_owned_unit_lease_renewal_status",
   "create_visitor_invitation", "revoke_visitor_invitation", "validate_visitor_pass_token",
   "visitor_invitation_member_can_read", "visitor_invitation_staff_can_manage",

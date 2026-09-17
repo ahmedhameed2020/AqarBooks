@@ -1,0 +1,41 @@
+name: Lease expiry alerts
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: lease-expiry-alerts
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger lease expiry alerts
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::warning::CRON_SECRET is not set; no lease expiry alerts were created."
+            exit 0
+          fi
+
+          response=$(mktemp)
+          code=$(curl -s -o "$response" -w '%{http_code}' -m 300 \
+            -X POST "https://aqarbooks.com/api/cron/lease-expiry" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Length: 0")
+
+          echo "HTTP $code"
+          cat "$response"
+          echo
+
+          if [ "$code" != "200" ]; then
+            echo "Lease expiry alert run did not complete cleanly."
+            exit 1
+          fi

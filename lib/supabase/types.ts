@@ -4196,6 +4196,10 @@ export type Database = {
         Args: { p_organization_id: string };
         Returns: boolean;
       };
+      notification_feature_enabled: {
+        Args: { p_organization_id: string; p_notification_type: string };
+        Returns: boolean;
+      };
       lease_renewal_staff_can_read: {
         Args: { p_organization_id: string; p_property_id: string };
         Returns: boolean;
@@ -4234,6 +4238,10 @@ export type Database = {
       run_lease_rent_generation: {
         Args: Record<string, never>;
         Returns: { generated: number; idempotent: number; blocked: number; skipped: number; errored: number };
+      };
+      run_lease_expiry_alerts: {
+        Args: { p_as_of_date?: string };
+        Returns: { candidates: number; dispatched: number; idempotent: number };
       };
       check_and_record_rate_limit: {
         Args: {
