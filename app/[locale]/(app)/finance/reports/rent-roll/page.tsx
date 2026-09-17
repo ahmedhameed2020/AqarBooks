@@ -4,7 +4,7 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { Building2, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { RentRollClient, type RentRollUnitRow } from "./rent-roll-client";
 
 export async function generateMetadata({
@@ -99,9 +99,13 @@ export default async function RentRollPage({
     }
   });
 
-  const leaseMap = new Map<string, any>();
+  const leaseMap = new Map<string, NonNullable<typeof leasesData>[number]>();
+  const today = new Date().toISOString().slice(0, 10);
   leasesData?.forEach((l) => {
-    if (l.status === "ACTIVE" || (!leaseMap.has(l.unit_id) && l.status === "DRAFT")) {
+    const isCurrent = l.status === "ACTIVE"
+      && l.starts_on <= today
+      && (l.ends_on === null || l.ends_on > today);
+    if (isCurrent || (!leaseMap.has(l.unit_id) && l.status === "DRAFT")) {
       leaseMap.set(l.unit_id, l);
     }
   });
@@ -115,7 +119,7 @@ export default async function RentRollPage({
     if (lease?.status === "ACTIVE") {
       if (lease.ends_on) {
         const daysToExpiry = Math.ceil(
-          (new Date(lease.ends_on).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          (new Date(lease.ends_on).getTime() - Date.parse(`${today}T00:00:00Z`)) / (1000 * 60 * 60 * 24)
         );
         if (daysToExpiry <= 30 && daysToExpiry >= 0) {
           occupancyStatus = "EXPIRING_SOON";

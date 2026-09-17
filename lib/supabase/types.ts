@@ -2416,7 +2416,7 @@ export type Database = {
           tenant_member_id: string;
           due_type_id: string;
           receivable_account_id: string;
-          status: "DRAFT" | "ACTIVE" | "ENDED" | "CANCELLED";
+          status: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED" | "CANCELLED";
           starts_on: string;
           ends_on: string | null;
           rent_amount: number;
@@ -4224,6 +4224,10 @@ export type Database = {
       decide_lease_renewal: {
         Args: { p_request_id: string; p_decision: string; p_reason?: string | null };
         Returns: string;
+      };
+      promote_scheduled_lease_renewals: {
+        Args: { p_as_of_date?: string };
+        Returns: { promoted: number };
       };
       get_owned_unit_lease_renewal_status: {
         Args: { p_unit_id: string };

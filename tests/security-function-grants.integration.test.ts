@@ -72,6 +72,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "append_financial_audit_event", // forging audit entries
   "record_online_payment", // service-role webhook path
   "run_lease_rent_generation", // service-role sweep
+  "promote_scheduled_lease_renewals", // service-role lease activation boundary
   "run_lease_expiry_alerts", // service-role lease-expiry notification sweep
   "expire_stale_member_invitations", // service-role sweep
   "expire_stale_online_payment_transactions", // service-role sweep
@@ -97,6 +98,7 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "notify_due_created", // trigger helper
   "notify_payment_confirmed", // trigger helper
   "notify_amenity_booking_lifecycle", // trigger helper
+  "enforce_opening_balance_current_unit_link", // trigger-only current-tenancy guard
 ] as const;
 
 const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([

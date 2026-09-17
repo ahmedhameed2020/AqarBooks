@@ -194,6 +194,8 @@ export async function getOperationalAlerts(
       .select("id, ends_on, rent_amount, unit_id")
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
+      .lte("starts_on", today)
+      .or(`ends_on.is.null,ends_on.gt.${today}`)
       .not("ends_on", "is", null)
       .lte("ends_on", horizon)
       .order("ends_on", { ascending: true });
