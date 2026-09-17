@@ -133,7 +133,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260915073908_visitor_invitations_secure_qr_passes.sql", bytes: 20826, sha256: "5ab2671a9dcff5a36b46be94e2b4477c91d11c53933c302f902693f744a947a1", provenance: "new_authorized_migration" },
   { file: "20260915081839_gate_operations_access_ledger.sql", bytes: 28731, sha256: "df213495fc66a6b542df95b898c6344d35f9564eb3f1d70ac7e6d5e626fa7624", provenance: "new_authorized_migration" },
   { file: "20260915100016_vehicles_unit_timeline_notifications.sql", bytes: 46232, sha256: "e59ee9176c3b6469dd3e5116053cd57ef08f4c7a7bdb8d66eda998f814b123c5", provenance: "new_authorized_migration" },
-  { file: "20260917040349_amenity_bookings.sql", bytes: 26400, sha256: "da36b9bc78385d80eb2db42a81d42b8b0748ca46e2db4c33e9aec00ac22de3a0", provenance: "new_authorized_migration" },
+  { file: "20260917040349_amenity_bookings.sql", bytes: 25732, sha256: "48aa9f2639beae5d35a160c0b09fe95a5e6debeb887e215192d1a4725d3ff223", provenance: "new_authorized_migration" },
 ] as const;
 
 /**

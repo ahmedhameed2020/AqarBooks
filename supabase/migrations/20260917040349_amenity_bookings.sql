@@ -178,17 +178,13 @@ begin
     raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
   end if;
 
-  select * into v_property from public.properties where id = p_property_id;
+  select * into v_property
+  from public.properties p
+  where p.id = p_property_id
+    and public.organization_is_active(p.organization_id)
+    and public.amenity_booking_enabled(p.organization_id)
+    and public.amenity_staff_can_manage(p.organization_id);
   if v_property.id is null then
-    raise exception 'PROPERTY_NOT_FOUND' using errcode = 'P0002';
-  end if;
-  if not public.organization_is_active(v_property.organization_id) then
-    raise exception 'ORGANIZATION_INACTIVE' using errcode = '42501';
-  end if;
-  if not public.amenity_booking_enabled(v_property.organization_id) then
-    raise exception 'AMENITY_BOOKING_NOT_ENTITLED' using errcode = '42501';
-  end if;
-  if not public.amenity_staff_can_manage(v_property.organization_id) then
     raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
   end if;
   if nullif(btrim(p_name_ar), '') is null or nullif(btrim(p_name_en), '') is null then
@@ -240,13 +236,13 @@ begin
   if v_user_id is null then
     raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
   end if;
-  select * into v_amenity from public.amenities where id = p_amenity_id;
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id)
+    and public.amenity_staff_can_manage(a.organization_id);
   if v_amenity.id is null then
-    raise exception 'AMENITY_NOT_FOUND' using errcode = 'P0002';
-  end if;
-  if not public.organization_is_active(v_amenity.organization_id)
-     or not public.amenity_booking_enabled(v_amenity.organization_id)
-     or not public.amenity_staff_can_manage(v_amenity.organization_id) then
     raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
   end if;
   if nullif(btrim(p_name_ar), '') is null or nullif(btrim(p_name_en), '') is null then
@@ -284,13 +280,13 @@ begin
   if v_user_id is null then
     raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
   end if;
-  select * into v_amenity from public.amenities where id = p_amenity_id;
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id)
+    and public.amenity_staff_can_manage(a.organization_id);
   if v_amenity.id is null then
-    raise exception 'AMENITY_NOT_FOUND' using errcode = 'P0002';
-  end if;
-  if not public.organization_is_active(v_amenity.organization_id)
-     or not public.amenity_booking_enabled(v_amenity.organization_id)
-     or not public.amenity_staff_can_manage(v_amenity.organization_id) then
     raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
   end if;
   update public.amenities
@@ -326,13 +322,14 @@ begin
   if v_user_id is null or v_member_id is null then
     raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
   end if;
-  select * into v_amenity from public.amenities where id = p_amenity_id and is_active;
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and a.is_active
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id);
   if v_amenity.id is null then
-    raise exception 'AMENITY_NOT_FOUND' using errcode = 'P0002';
-  end if;
-  if not public.organization_is_active(v_amenity.organization_id)
-     or not public.amenity_booking_enabled(v_amenity.organization_id) then
-    raise exception 'AMENITY_BOOKING_NOT_ENTITLED' using errcode = '42501';
+    raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED' using errcode = '42501';
   end if;
 
   select * into v_unit from public.units
@@ -341,7 +338,7 @@ begin
      or v_unit.organization_id <> v_amenity.organization_id
      or v_unit.property_id <> v_amenity.property_id
      or not public.is_current_member_unit_owner(v_member_id, v_unit.organization_id, v_unit.id) then
-    raise exception 'UNIT_NOT_AUTHORIZED' using errcode = '42501';
+    raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED' using errcode = '42501';
   end if;
 
   select p.timezone into v_timezone from public.properties p where p.id = v_amenity.property_id;
@@ -437,13 +434,14 @@ begin
   if v_user_id is null then
     raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
   end if;
-  select * into v_booking from public.amenity_bookings where id = p_booking_id for update;
+  select * into v_booking
+  from public.amenity_bookings ab
+  where ab.id = p_booking_id
+    and public.organization_is_active(ab.organization_id)
+    and public.amenity_booking_enabled(ab.organization_id)
+    and public.amenity_staff_can_manage(ab.organization_id)
+  for update;
   if v_booking.id is null then
-    raise exception 'AMENITY_BOOKING_NOT_FOUND' using errcode = 'P0002';
-  end if;
-  if not public.organization_is_active(v_booking.organization_id)
-     or not public.amenity_booking_enabled(v_booking.organization_id)
-     or not public.amenity_staff_can_manage(v_booking.organization_id) then
     raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED' using errcode = '42501';
   end if;
   if v_booking.status <> 'REQUESTED' or p_decision not in ('CONFIRMED', 'REJECTED') then

@@ -8,7 +8,7 @@ type Client = SupabaseClient<Database>;
 type LocalEnv = { API_URL: string; ANON_KEY: string; SERVICE_ROLE_KEY: string };
 type Actor = { userId: string; email: string; client: Client };
 type MemberActor = Actor & { memberId: string };
-type Fixture = { orgId: string; propertyId: string; unitAId: string; unitBId: string; memberA: MemberActor; memberB: MemberActor; manager: Actor; viewer: Actor };
+type Fixture = { orgId: string; propertyId: string; unitAId: string; unitBId: string; formerUnitId: string; memberA: MemberActor; memberB: MemberActor; manager: Actor; viewer: Actor };
 const PASSWORD = "Amenity_RLS_Test_P@ssw0rd_2026!";
 
 function localEnv(): LocalEnv {
@@ -71,18 +71,20 @@ async function fixture(admin: Client, env: LocalEnv, label: string, planKey: "PR
   expect((await admin.from("subscriptions").insert({ organization_id: org!.id, plan_id: plan!.id, status: "ACTIVE" })).error).toBeNull();
   const { data: property, error: propertyError } = await admin.from("properties").insert({ organization_id: org!.id, name: `Amenity Property ${label}`, code: `AM-${suffix}`, timezone: "Africa/Cairo", property_type: "resort" }).select("id").single();
   expect(propertyError).toBeNull();
-  const [unitA, unitB] = await Promise.all([
+  const [unitA, unitB, formerUnit] = await Promise.all([
     admin.from("units").insert({ organization_id: org!.id, property_id: property!.id, code: `A-${suffix}` }).select("id").single(),
     admin.from("units").insert({ organization_id: org!.id, property_id: property!.id, code: `B-${suffix}` }).select("id").single(),
+    admin.from("units").insert({ organization_id: org!.id, property_id: property!.id, code: `OLD-${suffix}` }).select("id").single(),
   ]);
-  expect(unitA.error).toBeNull(); expect(unitB.error).toBeNull();
+  expect(unitA.error).toBeNull(); expect(unitB.error).toBeNull(); expect(formerUnit.error).toBeNull();
   const memberA = await memberActor(admin, env, org!.id, `${label}-a`);
   const memberB = await memberActor(admin, env, org!.id, `${label}-b`);
   expect((await admin.from("unit_ownerships").insert([
     { organization_id: org!.id, unit_id: unitA.data!.id, member_id: memberA.memberId, share_percentage: 100, start_date: "2020-01-01" },
     { organization_id: org!.id, unit_id: unitB.data!.id, member_id: memberB.memberId, share_percentage: 100, start_date: "2020-01-01" },
+    { organization_id: org!.id, unit_id: formerUnit.data!.id, member_id: memberA.memberId, share_percentage: 100, start_date: "2018-01-01", end_date: "2019-01-01" },
   ])).error).toBeNull();
-  return { orgId: org!.id, propertyId: property!.id, unitAId: unitA.data!.id, unitBId: unitB.data!.id, memberA, memberB, manager: await staffActor(admin, env, org!.id, "PROPERTY_MANAGER", `${label}-manager`), viewer: await staffActor(admin, env, org!.id, "VIEWER", `${label}-viewer`) };
+  return { orgId: org!.id, propertyId: property!.id, unitAId: unitA.data!.id, unitBId: unitB.data!.id, formerUnitId: formerUnit.data!.id, memberA, memberB, manager: await staffActor(admin, env, org!.id, "PROPERTY_MANAGER", `${label}-manager`), viewer: await staffActor(admin, env, org!.id, "VIEWER", `${label}-viewer`) };
 }
 
 describe.sequential("amenity booking runtime Supabase/PostgreSQL RLS gate", () => {
@@ -139,6 +141,64 @@ describe.sequential("amenity booking runtime Supabase/PostgreSQL RLS gate", () =
     const directInsert = await enabled.memberA.client.from("amenity_bookings").insert({ organization_id: enabled.orgId, property_id: enabled.propertyId, amenity_id: amenityId, unit_id: enabled.unitAId, member_id: enabled.memberA.memberId, starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(), created_by: enabled.memberA.userId });
     expectRejected(directInsert.error, "direct booking insert must be denied");
     expect((await enabled.memberB.client.from("amenity_bookings").select("id").eq("id", bookingId)).data).toEqual([]);
+  });
+
+  it("excludes ended ownerships from the current booking-unit query", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const result = await enabled.memberA.client.from("unit_ownerships").select("unit_id").eq("organization_id", enabled.orgId).eq("member_id", enabled.memberA.memberId).lte("start_date", today).or(`end_date.is.null,end_date.gte.${today}`);
+    expect(result.error).toBeNull();
+    expect(result.data?.map((row) => row.unit_id)).toContain(enabled.unitAId);
+    expect(result.data?.map((row) => row.unit_id)).not.toContain(enabled.formerUnitId);
+  });
+
+  it("does not reveal whether amenity resources exist across authorization boundaries", async () => {
+    const missingId = randomUUID();
+    const amenityArgs = {
+      p_name_ar: "مرفق مخفي",
+      p_name_en: "Hidden amenity",
+      p_capacity: 1,
+      p_slot_minutes: 60,
+      p_opens_at: "08:00",
+      p_closes_at: "22:00",
+      p_max_advance_days: 30,
+      p_requires_approval: false,
+    };
+    const updateArgs = {
+      p_name_ar: "مرفق",
+      p_name_en: "Amenity",
+      p_capacity: 1,
+      p_slot_minutes: 60,
+      p_opens_at: "08:00",
+      p_closes_at: "22:00",
+      p_max_advance_days: 30,
+      p_requires_approval: false,
+      p_is_active: true,
+    };
+
+    const createExisting = await disabled.manager.client.rpc("create_amenity", { p_property_id: enabled.propertyId, ...amenityArgs });
+    const createMissing = await disabled.manager.client.rpc("create_amenity", { p_property_id: missingId, ...amenityArgs });
+    expect(createExisting.error?.message).toBe("AMENITY_NOT_AUTHORIZED");
+    expect(createMissing.error?.message).toBe(createExisting.error?.message);
+
+    const updateExisting = await disabled.manager.client.rpc("update_amenity", { p_amenity_id: amenityId, ...updateArgs });
+    const updateMissing = await disabled.manager.client.rpc("update_amenity", { p_amenity_id: missingId, ...updateArgs });
+    expect(updateExisting.error?.message).toBe("AMENITY_NOT_AUTHORIZED");
+    expect(updateMissing.error?.message).toBe(updateExisting.error?.message);
+
+    const activeExisting = await disabled.manager.client.rpc("set_amenity_active", { p_amenity_id: amenityId, p_is_active: false });
+    const activeMissing = await disabled.manager.client.rpc("set_amenity_active", { p_amenity_id: missingId, p_is_active: false });
+    expect(activeExisting.error?.message).toBe("AMENITY_NOT_AUTHORIZED");
+    expect(activeMissing.error?.message).toBe(activeExisting.error?.message);
+
+    const bookingExisting = await disabled.memberA.client.rpc("create_amenity_booking", { p_amenity_id: amenityId, p_unit_id: disabled.unitAId, p_local_starts_at: "2030-01-01T10:00:00", p_member_note: null });
+    const bookingMissing = await disabled.memberA.client.rpc("create_amenity_booking", { p_amenity_id: missingId, p_unit_id: disabled.unitAId, p_local_starts_at: "2030-01-01T10:00:00", p_member_note: null });
+    expect(bookingExisting.error?.message).toBe("AMENITY_BOOKING_NOT_AUTHORIZED");
+    expect(bookingMissing.error?.message).toBe(bookingExisting.error?.message);
+
+    const decideExisting = await disabled.manager.client.rpc("decide_amenity_booking", { p_booking_id: bookingId, p_decision: "CONFIRMED", p_staff_note: null });
+    const decideMissing = await disabled.manager.client.rpc("decide_amenity_booking", { p_booking_id: missingId, p_decision: "CONFIRMED", p_staff_note: null });
+    expect(decideExisting.error?.message).toBe("AMENITY_BOOKING_NOT_AUTHORIZED");
+    expect(decideMissing.error?.message).toBe(decideExisting.error?.message);
   });
 
   it("lets only managing staff decide and emits an owner-scoped lifecycle notification", async () => {
