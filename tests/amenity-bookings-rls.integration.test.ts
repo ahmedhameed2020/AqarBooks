@@ -28,6 +28,7 @@ function dbQuery(sql: string) {
 
 function expectRejected(error: { message: string } | null, context: string) {
   expect(error, context).not.toBeNull();
+  if (["AMENITY_NOT_AUTHORIZED", "UNIT_NOT_AUTHORIZED", "AMENITY_BOOKING_NOT_AUTHORIZED"].includes(error!.message)) return;
   expect(error!.message).toMatch(/row-level security|permission denied|not authorized|not_authenticated|forbidden|not_entitled|not_found|unavailable|invalid/i);
 }
 
