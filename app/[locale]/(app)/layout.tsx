@@ -40,6 +40,7 @@ import {
   Wrench,
   TicketCheck,
   CarFront,
+  CalendarDays,
 } from "lucide-react";
 
 const ic = "size-4 shrink-0";
@@ -157,6 +158,12 @@ export default async function AppShellLayout({
               labelAr: "سجل المركبات",
               labelEn: "Vehicle Registry",
               icon: <CarFront className={ic} />,
+            },
+            {
+              href: "/operations/amenities", permission: "operations.amenities.view",
+              labelAr: "المرافق والحجوزات",
+              labelEn: "Amenities & Bookings",
+              icon: <CalendarDays className={ic} />,
             },
           ],
         },
