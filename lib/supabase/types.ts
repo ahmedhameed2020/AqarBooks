@@ -676,6 +676,94 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["members"]["Row"]>;
         Relationships: [];
       };
+      amenities: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          name_ar: string;
+          name_en: string;
+          description_ar: string | null;
+          description_en: string | null;
+          capacity: number;
+          slot_minutes: number;
+          opens_at: string;
+          closes_at: string;
+          max_advance_days: number;
+          requires_approval: boolean;
+          is_active: boolean;
+          created_by: string;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          name_ar: string;
+          name_en: string;
+          description_ar?: string | null;
+          description_en?: string | null;
+          capacity?: number;
+          slot_minutes?: number;
+          opens_at?: string;
+          closes_at?: string;
+          max_advance_days?: number;
+          requires_approval?: boolean;
+          is_active?: boolean;
+          created_by: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["amenities"]["Row"]>;
+        Relationships: [];
+      };
+      amenity_bookings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          amenity_id: string;
+          unit_id: string;
+          member_id: string;
+          starts_at: string;
+          ends_at: string;
+          status: "REQUESTED" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+          member_note: string | null;
+          staff_note: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          amenity_id: string;
+          unit_id: string;
+          member_id: string;
+          starts_at: string;
+          ends_at: string;
+          status?: Database["public"]["Tables"]["amenity_bookings"]["Row"]["status"];
+          member_note?: string | null;
+          staff_note?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["amenity_bookings"]["Row"]>;
+        Relationships: [];
+      };
       vehicles: {
         Row: {
           id: string;
@@ -747,7 +835,11 @@ export type Database = {
             | "PAYMENT_CONFIRMED"
             | "RECEIPT_AVAILABLE"
             | "VEHICLE_REGISTERED"
-            | "VEHICLE_DEACTIVATED";
+            | "VEHICLE_DEACTIVATED"
+            | "AMENITY_BOOKING_REQUESTED"
+            | "AMENITY_BOOKING_CONFIRMED"
+            | "AMENITY_BOOKING_REJECTED"
+            | "AMENITY_BOOKING_CANCELLED";
           title_ar: string;
           title_en: string;
           body_ar: string;
@@ -762,7 +854,8 @@ export type Database = {
             | "access_event"
             | "due"
             | "payment"
-            | "vehicle";
+            | "vehicle"
+            | "amenity_booking";
           source_id: string;
           action_url: string | null;
           priority: "LOW" | "NORMAL" | "HIGH";
@@ -3291,6 +3384,72 @@ export type Database = {
       unit_experience_enabled: {
         Args: { p_organization_id: string };
         Returns: boolean;
+      };
+      amenity_booking_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      amenity_staff_can_read: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      amenity_staff_can_manage: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      create_amenity: {
+        Args: {
+          p_property_id: string;
+          p_name_ar: string;
+          p_name_en: string;
+          p_description_ar?: string | null;
+          p_description_en?: string | null;
+          p_capacity?: number;
+          p_slot_minutes?: number;
+          p_opens_at?: string;
+          p_closes_at?: string;
+          p_max_advance_days?: number;
+          p_requires_approval?: boolean;
+        };
+        Returns: string;
+      };
+      update_amenity: {
+        Args: {
+          p_amenity_id: string;
+          p_name_ar: string;
+          p_name_en: string;
+          p_description_ar?: string | null;
+          p_description_en?: string | null;
+          p_capacity?: number;
+          p_slot_minutes?: number;
+          p_opens_at?: string;
+          p_closes_at?: string;
+          p_max_advance_days?: number;
+          p_requires_approval?: boolean;
+          p_is_active?: boolean;
+        };
+        Returns: undefined;
+      };
+      set_amenity_active: {
+        Args: { p_amenity_id: string; p_is_active: boolean };
+        Returns: undefined;
+      };
+      create_amenity_booking: {
+        Args: {
+          p_amenity_id: string;
+          p_unit_id: string;
+          p_local_starts_at: string;
+          p_member_note?: string | null;
+        };
+        Returns: string;
+      };
+      cancel_own_amenity_booking: {
+        Args: { p_booking_id: string };
+        Returns: undefined;
+      };
+      decide_amenity_booking: {
+        Args: { p_booking_id: string; p_decision: "CONFIRMED" | "REJECTED"; p_staff_note?: string | null };
+        Returns: undefined;
       };
       vehicle_staff_can_read: {
         Args: { p_organization_id: string };
