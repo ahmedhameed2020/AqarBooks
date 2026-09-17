@@ -159,6 +159,8 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "amenity_booking_enabled", "amenity_staff_can_read", "amenity_staff_can_manage",
   "create_amenity", "update_amenity", "set_amenity_active", "create_amenity_booking",
   "cancel_own_amenity_booking", "decide_amenity_booking",
+  "lease_lifecycle_enabled", "lease_renewal_staff_can_read", "lease_renewal_staff_can_manage",
+  "request_lease_renewal", "decide_lease_renewal", "get_owned_unit_lease_renewal_status",
   "create_visitor_invitation", "revoke_visitor_invitation", "validate_visitor_pass_token",
   "visitor_invitation_member_can_read", "visitor_invitation_staff_can_manage",
   "visitor_invitation_staff_can_read", "visitor_management_enabled",

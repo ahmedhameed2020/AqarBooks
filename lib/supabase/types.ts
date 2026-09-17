@@ -2434,6 +2434,62 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      lease_renewal_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          unit_id: string;
+          lease_id: string;
+          tenant_member_id: string;
+          status: "REQUESTED" | "APPROVED" | "REJECTED";
+          requester_kind: "TENANT" | "STAFF";
+          requested_by: string;
+          proposed_starts_on: string;
+          proposed_ends_on: string | null;
+          proposed_rent_amount: number;
+          proposed_rent_frequency: "MONTHLY" | "QUARTERLY" | "YEARLY";
+          request_note: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      lease_renewal_transitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          renewal_request_id: string;
+          from_status: "REQUESTED" | "APPROVED" | "REJECTED" | null;
+          to_status: "REQUESTED" | "APPROVED" | "REJECTED";
+          actor_id: string;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      lease_expiry_dispatches: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lease_id: string;
+          lease_ends_on: string;
+          threshold_days: 90 | 60 | 30;
+          recipient_user_id: string;
+          recipient_member_id: string | null;
+          dispatched_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       installment_plans: {
         Row: {
           id: string;
@@ -4135,6 +4191,45 @@ export type Database = {
       set_unit_lease_billing_recipient: {
         Args: { p_lease_id: string; p_billing_recipient: string };
         Returns: undefined;
+      };
+      lease_lifecycle_enabled: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      lease_renewal_staff_can_read: {
+        Args: { p_organization_id: string; p_property_id: string };
+        Returns: boolean;
+      };
+      lease_renewal_staff_can_manage: {
+        Args: { p_organization_id: string; p_property_id: string };
+        Returns: boolean;
+      };
+      request_lease_renewal: {
+        Args: {
+          p_lease_id: string;
+          p_proposed_starts_on?: string | null;
+          p_proposed_ends_on?: string | null;
+          p_proposed_rent_amount?: number | null;
+          p_proposed_rent_frequency?: string | null;
+          p_note?: string | null;
+        };
+        Returns: string;
+      };
+      decide_lease_renewal: {
+        Args: { p_request_id: string; p_decision: string; p_reason?: string | null };
+        Returns: string;
+      };
+      get_owned_unit_lease_renewal_status: {
+        Args: { p_unit_id: string };
+        Returns: {
+          renewal_request_id: string;
+          lease_id: string;
+          unit_id: string;
+          status: string;
+          requested_at: string;
+          decided_at: string | null;
+          lease_ends_on: string | null;
+        }[];
       };
       run_lease_rent_generation: {
         Args: Record<string, never>;
