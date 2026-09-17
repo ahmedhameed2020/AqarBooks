@@ -249,6 +249,17 @@ begin
     raise exception 'INVALID_AMENITY_NAME' using errcode = '22023';
   end if;
 
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_amenity.id::text, 0));
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id)
+    and public.amenity_staff_can_manage(a.organization_id);
+  if v_amenity.id is null then
+    raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
+  end if;
+
   update public.amenities
   set name_ar = btrim(p_name_ar), name_en = btrim(p_name_en),
       description_ar = nullif(btrim(p_description_ar), ''),
@@ -289,6 +300,18 @@ begin
   if v_amenity.id is null then
     raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
   end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_amenity.id::text, 0));
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id)
+    and public.amenity_staff_can_manage(a.organization_id);
+  if v_amenity.id is null then
+    raise exception 'AMENITY_NOT_AUTHORIZED' using errcode = '42501';
+  end if;
+
   update public.amenities
   set is_active = coalesce(p_is_active, false), updated_by = v_user_id
   where id = v_amenity.id;
@@ -332,6 +355,17 @@ begin
     raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED' using errcode = '42501';
   end if;
 
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_amenity.id::text, 0));
+  select * into v_amenity
+  from public.amenities a
+  where a.id = p_amenity_id
+    and a.is_active
+    and public.organization_is_active(a.organization_id)
+    and public.amenity_booking_enabled(a.organization_id);
+  if v_amenity.id is null then
+    raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED' using errcode = '42501';
+  end if;
+
   select * into v_unit from public.units
   where id = p_unit_id and archived_at is null;
   if v_unit.id is null
@@ -362,7 +396,6 @@ begin
     raise exception 'INVALID_BOOKING_NOTE' using errcode = '22023';
   end if;
 
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_amenity.id::text, 0));
   if exists (
     select 1 from public.amenity_bookings ab
     where ab.amenity_id = v_amenity.id
@@ -406,6 +439,7 @@ begin
   select * into v_booking from public.amenity_bookings where id = p_booking_id for update;
   if v_booking.id is null
      or v_booking.member_id <> v_member_id
+     or not public.organization_is_active(v_booking.organization_id)
      or not public.amenity_booking_enabled(v_booking.organization_id) then
     raise exception 'AMENITY_BOOKING_NOT_FOUND' using errcode = 'P0002';
   end if;

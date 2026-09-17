@@ -210,6 +210,64 @@ describe.sequential("amenity booking runtime Supabase/PostgreSQL RLS gate", () =
     expect(notifications.data).toEqual([{ type: "AMENITY_BOOKING_CONFIRMED", source_id: bookingId }]);
   });
 
+  it("serializes amenity deactivation against booking creation", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const amenity = await enabled.manager.client.rpc("create_amenity", {
+      p_property_id: enabled.propertyId,
+      p_name_ar: `مرفق تزامن ${suffix}`,
+      p_name_en: `Concurrency Amenity ${suffix}`,
+      p_capacity: 1,
+      p_slot_minutes: 60,
+      p_opens_at: "08:00",
+      p_closes_at: "22:00",
+      p_max_advance_days: 30,
+      p_requires_approval: false,
+    });
+    expect(amenity.error, amenity.error?.message).toBeNull();
+
+    const localStart = `${new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10)}T10:00:00`;
+    const bookingPromise = enabled.memberA.client.rpc("create_amenity_booking", {
+      p_amenity_id: amenity.data!,
+      p_unit_id: enabled.unitAId,
+      p_local_starts_at: localStart,
+      p_member_note: null,
+    });
+    const disablePromise = enabled.manager.client.rpc("set_amenity_active", {
+      p_amenity_id: amenity.data!,
+      p_is_active: false,
+    });
+    const [booking, disabledAmenity] = await Promise.all([bookingPromise, disablePromise]);
+
+    expect(disabledAmenity.error, disabledAmenity.error?.message).toBeNull();
+    if (booking.error) {
+      expect(booking.error.message).toBe("AMENITY_BOOKING_NOT_AUTHORIZED");
+    } else {
+      expect(booking.data).toBeTruthy();
+      expect(dbQuery(`select count(*) from public.amenity_bookings where id = '${booking.data}' and amenity_id = '${amenity.data}'`)).toBe("1");
+    }
+
+    const afterDisable = await enabled.memberA.client.rpc("create_amenity_booking", {
+      p_amenity_id: amenity.data!,
+      p_unit_id: enabled.unitAId,
+      p_local_starts_at: `${localStart.slice(0, 11)}12:00:00`,
+      p_member_note: null,
+    });
+    expect(afterDisable.error?.message).toBe("AMENITY_BOOKING_NOT_AUTHORIZED");
+  });
+
+  it("blocks owner cancellation while the organization is inactive", async () => {
+    dbQuery(`update public.organizations set status = 'SUSPENDED' where id = '${enabled.orgId}'`);
+    try {
+      const result = await enabled.memberA.client.rpc("cancel_own_amenity_booking", {
+        p_booking_id: bookingId,
+      });
+      expect(result.error?.message).toBe("AMENITY_BOOKING_NOT_FOUND");
+      expect(dbQuery(`select status from public.amenity_bookings where id = '${bookingId}'`)).toBe("CONFIRMED");
+    } finally {
+      dbQuery(`update public.organizations set status = 'ACTIVE' where id = '${enabled.orgId}'`);
+    }
+  });
+
   it("blocks STARTER organizations at the RPC boundary", async () => {
     const result = await disabled.manager.client.rpc("create_amenity", { p_property_id: disabled.propertyId, p_name_ar: "مرفق", p_name_en: "Amenity", p_capacity: 1, p_slot_minutes: 60, p_opens_at: "08:00", p_closes_at: "22:00", p_max_advance_days: 30, p_requires_approval: false });
     expectRejected(result.error, "starter plan must not create amenities");

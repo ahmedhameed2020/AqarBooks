@@ -20,6 +20,18 @@ describe("amenity booking closure guards", () => {
     expect(migration).toMatch(/create or replace function public\.decide_amenity_booking[\s\S]+raise exception 'AMENITY_BOOKING_NOT_AUTHORIZED'/);
   });
 
+  it("serializes booking creation with amenity updates and rechecks active state", () => {
+    const bookingFunction = migration.match(/create or replace function public\.create_amenity_booking[\s\S]+?\n\$\$;/)?.[0] ?? "";
+    const updateFunction = migration.match(/create or replace function public\.update_amenity[\s\S]+?\n\$\$;/)?.[0] ?? "";
+    const activeFunction = migration.match(/create or replace function public\.set_amenity_active[\s\S]+?\n\$\$;/)?.[0] ?? "";
+
+    expect(bookingFunction).toContain("pg_catalog.pg_advisory_xact_lock");
+    expect(updateFunction).toContain("pg_catalog.pg_advisory_xact_lock");
+    expect(activeFunction).toContain("pg_catalog.pg_advisory_xact_lock");
+    expect(bookingFunction.match(/select \* into v_amenity/g)).toHaveLength(2);
+    expect(migration).toContain("or not public.organization_is_active(v_booking.organization_id)");
+  });
+
   it("filters booking-unit choices to current ownerships", () => {
     expect(portalPage).toContain('.lte("start_date", today)');
     expect(portalPage).toContain('.or(`end_date.is.null,end_date.gte.${today}`)');
