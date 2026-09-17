@@ -199,6 +199,8 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
       await db.from("lease_expiry_dispatches").delete().eq("organization_id", orgId);
       await db.from("lease_renewal_transitions").delete().eq("organization_id", orgId);
       await db.from("lease_renewal_requests").delete().eq("organization_id", orgId);
+      await db.from("lease_rent_generation_runs").delete().eq("organization_id", orgId);
+      await db.from("dues").delete().eq("organization_id", orgId);
       await db.from("unit_leases").delete().eq("organization_id", orgId);
       await admin.from("unit_ownerships").delete().eq("organization_id", orgId);
       await admin.from("due_types").delete().eq("organization_id", orgId);
@@ -268,10 +270,45 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     expect(viewerDecision.error?.message).toBe("LEASE_RENEWAL_NOT_FOUND");
     const decision = await enabled.manager.client.rpc("decide_lease_renewal", { p_request_id: requestId, p_decision: "APPROVED", p_reason: "Terms reviewed" });
     expect(decision.error, decision.error?.message).toBeNull();
-    expect((await enabled.manager.client.from("lease_renewal_requests").select("status").eq("id", requestId).single()).data).toEqual({ status: "APPROVED" });
+    const approvedRequest = await enabled.manager.client.from("lease_renewal_requests")
+      .select("status,successor_lease_id").eq("id", requestId).single();
+    expect(approvedRequest.data).toEqual({ status: "APPROVED", successor_lease_id: expect.any(String) });
     expect((await enabled.manager.client.from("lease_renewal_transitions").select("from_status,to_status").eq("renewal_request_id", requestId).order("created_at")).data)
       .toEqual([{ from_status: null, to_status: "REQUESTED" }, { from_status: "REQUESTED", to_status: "APPROVED" }]);
-    expect(dbQuery(`select count(*) from public.unit_leases where id <> '${enabled.leaseId}'::uuid and organization_id = '${enabled.orgId}'::uuid`)).toBe("0");
+    expect(dbQuery(`select status, starts_on, ends_on, rent_amount, rent_frequency, renewed_from_lease_id
+      from public.unit_leases where id = '${approvedRequest.data!.successor_lease_id}'::uuid`))
+      .toBe(`ACTIVE|2027-01-01|2027-12-31|12500.0000|MONTHLY|${enabled.leaseId}`);
+    expect(dbQuery(`select count(*) from public.dues where source_id = '${approvedRequest.data!.successor_lease_id}'::uuid`)).toBe("0");
+
+    const replay = await enabled.manager.client.rpc("decide_lease_renewal", {
+      p_request_id: requestId, p_decision: "APPROVED", p_reason: "Replay",
+    });
+    expect(replay.error).toBeNull();
+    expect(dbQuery(`select count(*) from public.unit_leases where renewed_from_lease_id = '${enabled.leaseId}'::uuid`)).toBe("1");
+
+    const [raceA, raceB] = await Promise.all([
+      other.manager.client.rpc("decide_lease_renewal", { p_request_id: staffCreated.data, p_decision: "APPROVED", p_reason: "Concurrent A" }),
+      other.manager.client.rpc("decide_lease_renewal", { p_request_id: staffCreated.data, p_decision: "APPROVED", p_reason: "Concurrent B" }),
+    ]);
+    expect(raceA.error, raceA.error?.message).toBeNull();
+    expect(raceB.error, raceB.error?.message).toBeNull();
+    expect(dbQuery(`select count(*) from public.unit_leases where renewed_from_lease_id = '${other.leaseId}'::uuid`)).toBe("1");
+
+    const generated = await (admin as unknown as LooseClient).rpc("generate_lease_rent_dues", {
+      p_organization_id: enabled.orgId,
+      p_lease_id: approvedRequest.data!.successor_lease_id,
+      p_period: "2027-01",
+      p_issue_date: "2027-01-01",
+    });
+    const regenerated = await (admin as unknown as LooseClient).rpc("generate_lease_rent_dues", {
+      p_organization_id: enabled.orgId,
+      p_lease_id: approvedRequest.data!.successor_lease_id,
+      p_period: "2027-01",
+      p_issue_date: "2027-01-01",
+    });
+    expect(generated.data).toEqual(expect.objectContaining({ success: true, generated: true }));
+    expect(regenerated.data).toEqual(expect.objectContaining({ success: true, idempotent: true }));
+    expect(dbQuery(`select count(*) from public.dues where source_id = '${approvedRequest.data!.successor_lease_id}'::uuid`)).toBe("1");
   });
 
   it("limits property-scoped staff while preserving organization-wide assignments", async () => {

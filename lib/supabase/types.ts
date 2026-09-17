@@ -2429,6 +2429,7 @@ export type Database = {
           ended_by: string | null;
           ended_at: string | null;
           end_reason: string | null;
+          renewed_from_lease_id: string | null;
         };
         Insert: never;
         Update: never;
@@ -2453,6 +2454,7 @@ export type Database = {
           decided_by: string | null;
           decided_at: string | null;
           decision_reason: string | null;
+          successor_lease_id: string | null;
           created_at: string;
           updated_at: string;
         };
