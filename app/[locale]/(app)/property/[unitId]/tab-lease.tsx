@@ -6,6 +6,7 @@ import { CreateLeaseDialog } from "./create-lease-dialog";
 import { ActivateLeaseButton, CancelLeaseButton, EndLeaseButton } from "./lease-action-buttons";
 import { DepositPanel } from "./deposit-panel";
 import { HandoverPanel } from "./handover-panel";
+import { LeaseRenewalPanel, type StaffRenewalRequest } from "./lease-renewal-panel";
 
 const FREQUENCY_LABEL: Record<string, { ar: string; en: string }> = {
   MONTHLY: { ar: "شهري", en: "Monthly" },
@@ -38,7 +39,7 @@ export async function TabLease({
   const [{ data: leases }, { data: members }, { data: dueTypes }, { data: accounts }] = await Promise.all([
     supabase
       .from("unit_leases")
-      .select("id, tenant_member_id, status, starts_on, ends_on, rent_amount, rent_frequency, security_deposit_amount, billing_recipient, end_reason, created_at")
+      .select("id, property_id, tenant_member_id, status, starts_on, ends_on, rent_amount, rent_frequency, security_deposit_amount, billing_recipient, end_reason, created_at")
       .eq("organization_id", organizationId)
       .eq("unit_id", unitId)
       .order("created_at", { ascending: false }),
@@ -108,6 +109,32 @@ export async function TabLease({
   const depositSummary = depositRows?.[0];
   const draftLeases = (leases ?? []).filter((l) => l.status === "DRAFT" || l.status === "SCHEDULED");
   const historyLeases = (leases ?? []).filter((l) => l.status === "ENDED" || l.status === "CANCELLED");
+  const propertyId = (leases ?? [])[0]?.property_id;
+  const [{ data: canReadRenewals }, { data: canManageRenewals }] = propertyId
+    ? await Promise.all([
+        supabase.rpc("lease_renewal_staff_can_read", { p_organization_id: organizationId, p_property_id: propertyId }),
+        supabase.rpc("lease_renewal_staff_can_manage", { p_organization_id: organizationId, p_property_id: propertyId }),
+      ])
+    : [{ data: false }, { data: false }];
+  const { data: renewalRows } = canReadRenewals
+    ? await supabase
+        .from("lease_renewal_requests")
+        .select("id,status,requester_kind,tenant_member_id,proposed_starts_on,proposed_ends_on,proposed_rent_amount,proposed_rent_frequency,request_note,created_at")
+        .eq("unit_id", unitId)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const renewalRequests: StaffRenewalRequest[] = (renewalRows ?? []).map((request) => ({
+    id: request.id,
+    status: request.status,
+    requesterKind: request.requester_kind,
+    tenantName: memberName.get(request.tenant_member_id) ?? "—",
+    proposedStartsOn: request.proposed_starts_on,
+    proposedEndsOn: request.proposed_ends_on,
+    proposedRentAmount: request.proposed_rent_amount,
+    proposedRentFrequency: request.proposed_rent_frequency,
+    requestNote: request.request_note,
+    createdAt: request.created_at,
+  }));
 
   return (
     <div className="space-y-6">
@@ -226,6 +253,21 @@ export async function TabLease({
           </ul>
         </section>
       )}
+
+      {canReadRenewals ? (
+        <LeaseRenewalPanel
+          requests={renewalRequests}
+          activeLease={activeLease?.ends_on ? {
+            id: activeLease.id,
+            endsOn: activeLease.ends_on,
+            rentAmount: activeLease.rent_amount,
+            rentFrequency: activeLease.rent_frequency,
+          } : null}
+          canManage={Boolean(canManageRenewals)}
+          locale={locale as "ar" | "en"}
+          currency={currency}
+        />
+      ) : null}
 
       {historyLeases.length > 0 && (
         <section className="space-y-2">
