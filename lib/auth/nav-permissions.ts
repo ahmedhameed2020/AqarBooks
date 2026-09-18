@@ -23,21 +23,30 @@ export type PermissionKey = string;
 export async function buildPermissionChecker(
   organizationId: string,
   keys: PermissionKey[],
+  userId?: string,
 ): Promise<(key?: PermissionKey) => boolean> {
   const distinct = [...new Set(keys)];
   if (distinct.length === 0) return () => true;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let resolvedUserId = userId;
 
-  if (!user) return () => false;
+  // App-shell callers already resolved the authenticated user. Reusing that
+  // identity avoids a second remote auth.getUser() on every navigation while
+  // preserving the safe fallback for standalone callers.
+  if (!resolvedUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    resolvedUserId = user?.id;
+  }
+
+  if (!resolvedUserId) return () => false;
 
   const results = await Promise.all(
     distinct.map(async (key) => {
       const { data, error } = await supabase.rpc("has_permission", {
-        p_user_id: user.id,
+        p_user_id: resolvedUserId,
         p_organization_id: organizationId,
         p_permission_key: key,
       });
