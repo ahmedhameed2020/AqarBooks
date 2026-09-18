@@ -1,4 +1,10 @@
 export type LeaseRenewalStatus = "REQUESTED" | "APPROVED" | "REJECTED";
+export const PORTAL_PRIMARY_LEASE_STATUSES = ["ACTIVE", "ENDED"] as const;
+export type PortalPrimaryLeaseStatus = (typeof PORTAL_PRIMARY_LEASE_STATUSES)[number];
+
+export function isPortalPrimaryLeaseStatus(value: string): value is PortalPrimaryLeaseStatus {
+  return (PORTAL_PRIMARY_LEASE_STATUSES as readonly string[]).includes(value);
+}
 
 export const LEASE_RENEWAL_STATUS_COPY: Record<
   LeaseRenewalStatus,

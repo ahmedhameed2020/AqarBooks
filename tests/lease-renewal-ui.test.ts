@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isPortalPrimaryLeaseStatus } from "../lib/lease-renewal-ui";
 
 const read = (path: string) => readFileSync(join(...path.split("/")), "utf8");
 
@@ -44,6 +45,19 @@ describe("lease renewal product integration", () => {
     const leaseTab = read("app/[locale]/(app)/property/[unitId]/tab-lease.tsx").toLowerCase();
     expect(leaseTab).toContain('l.status === "draft" && <activateleasebutton');
     expect(leaseTab).toContain('l.status === "draft" && <cancelleasebutton');
+  });
+
+  it("exposes only ACTIVE and ENDED as independent portal leases", () => {
+    expect(isPortalPrimaryLeaseStatus("ACTIVE")).toBe(true);
+    expect(isPortalPrimaryLeaseStatus("ENDED")).toBe(true);
+    expect(isPortalPrimaryLeaseStatus("SCHEDULED")).toBe(false);
+    expect(isPortalPrimaryLeaseStatus("DRAFT")).toBe(false);
+    expect(isPortalPrimaryLeaseStatus("CANCELLED")).toBe(false);
+
+    const list = read("app/[locale]/portal/(member)/leases/page.tsx");
+    const detail = read("app/[locale]/portal/(member)/leases/[leaseId]/renewal/page.tsx");
+    expect(list).toContain("if (!isPortalPrimaryLeaseStatus(lease.status)) continue;");
+    expect(detail).toContain('.in("status", [...PORTAL_PRIMARY_LEASE_STATUSES])');
   });
 
   it("adds localized navigation and explicit loading/error states", () => {

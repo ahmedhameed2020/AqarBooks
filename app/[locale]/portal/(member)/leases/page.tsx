@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
+import { isPortalPrimaryLeaseStatus } from "@/lib/lease-renewal-ui";
 import { PortalLeasesClient, type PortalLeaseItem } from "./portal-leases-client";
 
 export default async function PortalLeasesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -21,7 +22,7 @@ export default async function PortalLeasesPage({ params }: { params: Promise<{ l
 
   const today = new Date().toISOString().slice(0, 10);
   const [{ data: leases, error: leasesError }, { data: requests, error: requestsError }, { data: ownerships, error: ownershipsError }] = await Promise.all([
-    supabase.from("unit_leases").select("id,unit_id,status,starts_on,ends_on,renewed_from_lease_id").eq("tenant_member_id", ctx.member.id).order("starts_on", { ascending: false }),
+    supabase.from("unit_leases").select("id,unit_id,status,starts_on,ends_on,renewed_from_lease_id").eq("tenant_member_id", ctx.member.id).in("status", ["ACTIVE", "ENDED", "SCHEDULED"]).order("starts_on", { ascending: false }),
     supabase.from("lease_renewal_requests").select("id,lease_id,unit_id,status,successor_lease_id,proposed_starts_on,created_at").eq("tenant_member_id", ctx.member.id).order("created_at", { ascending: false }),
     supabase.from("unit_ownerships").select("unit_id").eq("member_id", ctx.member.id).lte("start_date", today).or(`end_date.is.null,end_date.gte.${today}`),
   ]);
@@ -36,13 +37,14 @@ export default async function PortalLeasesPage({ params }: { params: Promise<{ l
   const items = new Map<string, PortalLeaseItem>();
   for (const lease of leases ?? []) {
     if (lease.renewed_from_lease_id) continue;
+    if (!isPortalPrimaryLeaseStatus(lease.status)) continue;
     const successor = successorBySource.get(lease.id);
     const request = requestByLease.get(lease.id);
     items.set(lease.id, {
       leaseId: lease.id,
       unitLabel: unitLabel.get(lease.unit_id) ?? `${isAr ? "عقد الوحدة" : "Unit lease"} · ${lease.unit_id.slice(0, 8)}`,
       relationship: "TENANT",
-      leaseStatus: lease.status as PortalLeaseItem["leaseStatus"],
+      leaseStatus: lease.status,
       startsOn: lease.starts_on,
       endsOn: lease.ends_on,
       successorStartsOn: successor?.starts_on ?? null,

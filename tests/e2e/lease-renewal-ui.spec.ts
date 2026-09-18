@@ -19,6 +19,10 @@ type Fixture = {
   unitBId: string;
   leaseAId: string;
   leaseBId: string;
+  endedLeaseId: string;
+  scheduledLeaseId: string;
+  draftLeaseId: string;
+  cancelledLeaseId: string;
   tenant: Actor;
   owner: Actor;
   manager: Actor;
@@ -57,10 +61,16 @@ async function setupFixture(): Promise<Fixture> {
   const { data: units, error: unitError } = await admin.from("units").insert([
     { organization_id: org!.id, property_id: propertyAId, code: "RENEW-A" },
     { organization_id: org!.id, property_id: propertyBId, code: "RENEW-B" },
+    { organization_id: org!.id, property_id: propertyAId, code: "RENEW-ENDED" },
+    { organization_id: org!.id, property_id: propertyAId, code: "RENEW-DRAFT" },
+    { organization_id: org!.id, property_id: propertyAId, code: "RENEW-CANCELLED" },
   ]).select("id,code");
   expect(unitError).toBeNull();
   const unitAId = units!.find((row) => row.code === "RENEW-A")!.id;
   const unitBId = units!.find((row) => row.code === "RENEW-B")!.id;
+  const endedUnitId = units!.find((row) => row.code === "RENEW-ENDED")!.id;
+  const draftUnitId = units!.find((row) => row.code === "RENEW-DRAFT")!.id;
+  const cancelledUnitId = units!.find((row) => row.code === "RENEW-CANCELLED")!.id;
 
   const tenant = await createUser("tenant");
   const owner = await createUser("owner");
@@ -102,10 +112,36 @@ async function setupFixture(): Promise<Fixture> {
   const { data: leases, error: leaseError } = await admin.from("unit_leases").insert([
     { ...leaseBase, property_id: propertyAId, unit_id: unitAId },
     { ...leaseBase, property_id: propertyBId, unit_id: unitBId },
+    {
+      ...leaseBase,
+      property_id: propertyAId,
+      unit_id: endedUnitId,
+      status: "ENDED",
+      starts_on: "2025-01-01",
+      ends_on: "2025-12-31",
+      ended_at: "2025-12-31T00:00:00Z",
+      ended_by: tenant.userId,
+      end_reason: "QA completed term",
+    },
+    { ...leaseBase, property_id: propertyAId, unit_id: draftUnitId, status: "DRAFT", starts_on: "2027-01-01", ends_on: "2027-12-31" },
+    { ...leaseBase, property_id: propertyAId, unit_id: cancelledUnitId, status: "CANCELLED", starts_on: "2027-01-01", ends_on: "2027-12-31" },
   ] as never).select("id,unit_id");
   expect(leaseError).toBeNull();
   const leaseAId = leases!.find((row) => row.unit_id === unitAId)!.id;
   const leaseBId = leases!.find((row) => row.unit_id === unitBId)!.id;
+  const endedLeaseId = leases!.find((row) => row.unit_id === endedUnitId)!.id;
+  const draftLeaseId = leases!.find((row) => row.unit_id === draftUnitId)!.id;
+  const cancelledLeaseId = leases!.find((row) => row.unit_id === cancelledUnitId)!.id;
+  const { data: scheduledLease, error: scheduledError } = await admin.from("unit_leases").insert({
+    ...leaseBase,
+    property_id: propertyAId,
+    unit_id: endedUnitId,
+    status: "SCHEDULED",
+    starts_on: "2027-01-01",
+    ends_on: "2027-12-31",
+    renewed_from_lease_id: endedLeaseId,
+  } as never).select("id").single();
+  expect(scheduledError).toBeNull();
 
   expect((await admin.from("organization_memberships").insert({ organization_id: org!.id, user_id: manager.userId, status: "active" })).error).toBeNull();
   const { data: managerRole } = await admin.from("roles").select("id").eq("organization_id", org!.id).eq("key", "PROPERTY_MANAGER").single();
@@ -125,7 +161,11 @@ async function setupFixture(): Promise<Fixture> {
   });
   expect(requestError).toBeNull();
 
-  return { orgId: org!.id, propertyAId, propertyBId, unitAId, unitBId, leaseAId, leaseBId, tenant, owner, manager };
+  return {
+    orgId: org!.id, propertyAId, propertyBId, unitAId, unitBId, leaseAId, leaseBId,
+    endedLeaseId, scheduledLeaseId: scheduledLease!.id, draftLeaseId, cancelledLeaseId,
+    tenant, owner, manager,
+  };
 }
 
 async function cleanup() {
@@ -192,7 +232,7 @@ test.describe.serial("lease renewal product experience", () => {
     fixture = await setupFixture();
   });
 
-  test.afterAll(async () => cleanup());
+  test.afterAll(async () => { if (fixture) await cleanup(); });
 
   test("tenant sees only supported renewal actions in English desktop and Arabic mobile", async ({ browser }) => {
     const desktop = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -200,9 +240,17 @@ test.describe.serial("lease renewal product experience", () => {
     await signInPortal(desktop, "en", fixture.tenant);
     await desktop.goto("/en/portal/leases");
     await expect(desktop.getByRole("heading", { name: "Leases & renewals" })).toBeVisible();
-    await expect(desktop.getByRole("link", { name: "View renewal status" })).toHaveCount(2);
+    await expect(desktop.getByRole("link", { name: "View renewal status" })).toHaveCount(3);
     await expect(desktop.locator(`a[href$="/portal/leases/${fixture.leaseAId}/renewal"]`)).toBeVisible();
     await expect(desktop.locator(`a[href$="/portal/leases/${fixture.leaseBId}/renewal"]`)).toBeVisible();
+    await expect(desktop.locator(`a[href$="/portal/leases/${fixture.endedLeaseId}/renewal"]`)).toBeVisible();
+    await expect(desktop.locator(`a[href$="/portal/leases/${fixture.scheduledLeaseId}/renewal"]`)).toHaveCount(0);
+    await expect(desktop.locator(`a[href$="/portal/leases/${fixture.draftLeaseId}/renewal"]`)).toHaveCount(0);
+    await expect(desktop.locator(`a[href$="/portal/leases/${fixture.cancelledLeaseId}/renewal"]`)).toHaveCount(0);
+    const leaseList = desktop.getByRole("list", { name: "Leases" });
+    await expect(leaseList.getByText("Current", { exact: true })).toHaveCount(2);
+    await expect(leaseList.getByText("Ended", { exact: true })).toHaveCount(1);
+    await expect(desktop.locator(`a[href$="/portal/leases/${fixture.endedLeaseId}/renewal"]`).locator("xpath=ancestor::li")).toContainText("1 Jan 2027");
     await desktop.screenshot({ path: "test-results/lease-renewal-tenant-en-desktop.png", fullPage: true });
     await desktop.goto(`/en/portal/leases/${fixture.leaseBId}/renewal`);
     await expect(desktop.getByRole("heading", { name: "Renewal status" })).toBeVisible();
@@ -210,6 +258,12 @@ test.describe.serial("lease renewal product experience", () => {
     await expect(desktop.getByRole("button", { name: /activate|cancel/i })).toHaveCount(0);
     await expectNoOverflow(desktop);
     expect(desktopErrors).toEqual([]);
+
+    for (const hiddenLeaseId of [fixture.scheduledLeaseId, fixture.draftLeaseId, fixture.cancelledLeaseId]) {
+      await desktop.goto(`/en/portal/leases/${hiddenLeaseId}/renewal`);
+      await expect(desktop.getByRole("heading", { name: "404" })).toBeVisible();
+      await expect(desktop.getByRole("heading", { name: "Renewal status" })).toHaveCount(0);
+    }
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const mobileErrors = observe(mobile);

@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { Badge } from "@/components/ui/badge";
-import { formatLeaseDate, LEASE_RENEWAL_STATUS_COPY, type LeaseRenewalStatus } from "@/lib/lease-renewal-ui";
+import { formatLeaseDate, LEASE_RENEWAL_STATUS_COPY, PORTAL_PRIMARY_LEASE_STATUSES, type LeaseRenewalStatus } from "@/lib/lease-renewal-ui";
 import { RenewalRequestForm } from "./renewal-request-form";
 
 export default async function PortalLeaseRenewalPage({ params }: { params: Promise<{ locale: string; leaseId: string }> }) {
@@ -23,7 +23,8 @@ export default async function PortalLeaseRenewalPage({ params }: { params: Promi
 
   const { data: tenantLease, error: leaseError } = await supabase.from("unit_leases")
     .select("id,unit_id,status,starts_on,ends_on,renewed_from_lease_id")
-    .eq("id", leaseId).eq("tenant_member_id", ctx.member.id).maybeSingle();
+    .eq("id", leaseId).eq("tenant_member_id", ctx.member.id)
+    .in("status", [...PORTAL_PRIMARY_LEASE_STATUSES]).maybeSingle();
   if (leaseError) return <DetailError locale={loc} />;
 
   let relationship: "TENANT" | "OWNER" = "TENANT";
@@ -49,7 +50,7 @@ export default async function PortalLeaseRenewalPage({ params }: { params: Promi
     ? await supabase.from("lease_renewal_requests").select("id,status,proposed_starts_on,proposed_ends_on,successor_lease_id,created_at,decided_at").eq("lease_id", leaseId).maybeSingle()
     : { data: ownerProjection ? { id: leaseId, status: ownerProjection.status, proposed_starts_on: null, proposed_ends_on: null, successor_lease_id: null, created_at: ownerProjection.requested_at, decided_at: ownerProjection.decided_at } : null };
   const { data: successor } = relationship === "TENANT"
-    ? await supabase.from("unit_leases").select("id,status,starts_on,ends_on").eq("renewed_from_lease_id", leaseId).maybeSingle()
+    ? await supabase.from("unit_leases").select("id,status,starts_on,ends_on").eq("renewed_from_lease_id", leaseId).in("status", ["SCHEDULED", "ACTIVE"]).maybeSingle()
     : { data: null };
   const requestCopy = request?.status ? LEASE_RENEWAL_STATUS_COPY[request.status as LeaseRenewalStatus] : null;
   const proposedStartsOn = lease.ends_on ? addOneDay(lease.ends_on) : "";

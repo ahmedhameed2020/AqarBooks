@@ -5,13 +5,18 @@ import { CalendarClock, CheckCircle2, FileClock, KeyRound } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, PortalPageHeader, SearchBox, Segmented, StatCard } from "../portal-ui";
-import { formatLeaseDate, LEASE_RENEWAL_STATUS_COPY, type LeaseRenewalStatus } from "@/lib/lease-renewal-ui";
+import { formatLeaseDate, LEASE_RENEWAL_STATUS_COPY, type LeaseRenewalStatus, type PortalPrimaryLeaseStatus } from "@/lib/lease-renewal-ui";
+
+const PRIMARY_LEASE_STATUS_COPY: Record<PortalPrimaryLeaseStatus, { ar: string; en: string }> = {
+  ACTIVE: { ar: "جارٍ", en: "Current" },
+  ENDED: { ar: "منتهٍ", en: "Ended" },
+};
 
 export interface PortalLeaseItem {
   leaseId: string;
   unitLabel: string;
   relationship: "TENANT" | "OWNER";
-  leaseStatus: "ACTIVE" | "SCHEDULED" | "ENDED";
+  leaseStatus: PortalPrimaryLeaseStatus;
   startsOn: string | null;
   endsOn: string | null;
   successorStartsOn: string | null;
@@ -26,7 +31,7 @@ export function PortalLeasesClient({ items, locale }: { items: PortalLeaseItem[]
   const [query, setQuery] = useState("");
   const visible = useMemo(() => items.filter((item) => {
     if (filter === "CURRENT" && item.leaseStatus !== "ACTIVE") return false;
-    if (filter === "SCHEDULED" && !item.successorStartsOn && item.leaseStatus !== "SCHEDULED") return false;
+    if (filter === "SCHEDULED" && !item.successorStartsOn) return false;
     if (filter === "REQUESTED" && item.requestStatus !== "REQUESTED") return false;
     return !query.trim() || item.unitLabel.toLowerCase().includes(query.trim().toLowerCase());
   }), [filter, items, query]);
@@ -41,7 +46,7 @@ export function PortalLeasesClient({ items, locale }: { items: PortalLeaseItem[]
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label={isAr ? "عقود جارية" : "Current leases"} value={items.filter((i) => i.leaseStatus === "ACTIVE").length} icon={<KeyRound className="size-4" />} />
         <StatCard label={isAr ? "تجديدات قيد المراجعة" : "Under review"} value={items.filter((i) => i.requestStatus === "REQUESTED").length} tone="accent" icon={<FileClock className="size-4" />} />
-        <StatCard label={isAr ? "عقود قادمة" : "Scheduled successors"} value={items.filter((i) => i.successorStartsOn || i.leaseStatus === "SCHEDULED").length} tone="positive" icon={<CalendarClock className="size-4" />} />
+        <StatCard label={isAr ? "عقود قادمة" : "Scheduled successors"} value={items.filter((i) => i.successorStartsOn).length} tone="positive" icon={<CalendarClock className="size-4" />} />
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -80,7 +85,7 @@ export function PortalLeasesClient({ items, locale }: { items: PortalLeaseItem[]
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={item.leaseStatus === "ACTIVE" ? "success" : "info"}>
-                      {item.leaseStatus === "ACTIVE" ? (isAr ? "جارٍ" : "Current") : item.leaseStatus === "SCHEDULED" ? (isAr ? "مجدول" : "Scheduled") : (isAr ? "منتهٍ" : "Ended")}
+                      {isAr ? PRIMARY_LEASE_STATUS_COPY[item.leaseStatus].ar : PRIMARY_LEASE_STATUS_COPY[item.leaseStatus].en}
                     </Badge>
                     {requestCopy ? <Badge variant={requestCopy.tone}>{isAr ? requestCopy.ar : requestCopy.en}</Badge> : null}
                   </div>
