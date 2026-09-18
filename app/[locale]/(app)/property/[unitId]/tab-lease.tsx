@@ -219,7 +219,7 @@ export async function TabLease({
                     {isAr ? STATUS_LABEL[l.status].ar : STATUS_LABEL[l.status].en}
                   </span>
                   {l.status === "DRAFT" && <ActivateLeaseButton leaseId={l.id} locale={locale} />}
-                  <CancelLeaseButton leaseId={l.id} locale={locale} />
+                  {l.status === "DRAFT" && <CancelLeaseButton leaseId={l.id} locale={locale} />}
                 </div>
               </li>
             ))}

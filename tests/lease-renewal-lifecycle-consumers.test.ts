@@ -22,10 +22,11 @@ describe("lease lifecycle consumers", () => {
     }
   });
 
-  it("shows scheduled leases without offering manual activation", () => {
+  it("shows scheduled leases without offering unsupported mutations", () => {
     const source = read("app/[locale]/(app)/property/[unitId]/tab-lease.tsx");
     expect(source).toContain('scheduled: { ar: "مجدول", en: "scheduled"');
     expect(source).toContain('l.status === "draft" && <activateleasebutton');
+    expect(source).toContain('l.status === "draft" && <cancelleasebutton');
   });
 
   it("filters operational alerts to currently effective leases", () => {
