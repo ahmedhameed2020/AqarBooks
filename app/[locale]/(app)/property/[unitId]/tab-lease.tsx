@@ -15,6 +15,7 @@ const FREQUENCY_LABEL: Record<string, { ar: string; en: string }> = {
 
 const STATUS_LABEL: Record<string, { ar: string; en: string; className: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft", className: "bg-muted text-muted-foreground" },
+  SCHEDULED: { ar: "مجدول", en: "Scheduled", className: "bg-sky-500/10 text-sky-700 dark:text-sky-300" },
   ACTIVE: { ar: "نشط", en: "Active", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   ENDED: { ar: "منتهٍ", en: "Ended", className: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
   CANCELLED: { ar: "ملغى", en: "Cancelled", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
@@ -85,7 +86,12 @@ export async function TabLease({
     : { data: null };
 
   const memberName = new Map((members ?? []).map((m) => [m.id, m.full_name]));
-  const activeLease = (leases ?? []).find((l) => l.status === "ACTIVE");
+  const today = new Date().toISOString().slice(0, 10);
+  const activeLease = (leases ?? []).find(
+    (l) => l.status === "ACTIVE"
+      && l.starts_on <= today
+      && (l.ends_on === null || l.ends_on > today),
+  );
 
   // Deposit position is derived from the event log, never from a stored
   // balance, so it cannot drift from its own history.
@@ -100,7 +106,7 @@ export async function TabLease({
       ])
     : [{ data: null }, { data: null }];
   const depositSummary = depositRows?.[0];
-  const draftLeases = (leases ?? []).filter((l) => l.status === "DRAFT");
+  const draftLeases = (leases ?? []).filter((l) => l.status === "DRAFT" || l.status === "SCHEDULED");
   const historyLeases = (leases ?? []).filter((l) => l.status === "ENDED" || l.status === "CANCELLED");
 
   return (
@@ -196,7 +202,7 @@ export async function TabLease({
 
       {draftLeases.length > 0 && (
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "مسودات عقود" : "Draft leases"}</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground">{isAr ? "العقود القادمة والمسودات" : "Upcoming and draft leases"}</h3>
           <ul className="space-y-2">
             {draftLeases.map((l) => (
               <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 p-3 text-sm">
@@ -209,8 +215,11 @@ export async function TabLease({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <ActivateLeaseButton leaseId={l.id} locale={locale} />
-                  <CancelLeaseButton leaseId={l.id} locale={locale} />
+                  <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${STATUS_LABEL[l.status].className}`}>
+                    {isAr ? STATUS_LABEL[l.status].ar : STATUS_LABEL[l.status].en}
+                  </span>
+                  {l.status === "DRAFT" && <ActivateLeaseButton leaseId={l.id} locale={locale} />}
+                  {l.status === "DRAFT" && <CancelLeaseButton leaseId={l.id} locale={locale} />}
                 </div>
               </li>
             ))}

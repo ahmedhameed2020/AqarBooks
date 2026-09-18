@@ -176,6 +176,7 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
   let admin: Client;
   let enabled: Fixture;
   let other: Fixture;
+  let conflict: Fixture;
   let starter: Fixture;
   let requestId: string;
   const orgIds: string[] = [];
@@ -186,8 +187,9 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     admin = createClient<Database>(env.API_URL, env.SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     enabled = await fixture(admin, env, "Enabled", "PROFESSIONAL");
     other = await fixture(admin, env, "Other", "PROFESSIONAL");
+    conflict = await fixture(admin, env, "Conflict", "PROFESSIONAL");
     starter = await fixture(admin, env, "Starter", "STARTER");
-    for (const f of [enabled, other, starter]) {
+    for (const f of [enabled, other, conflict, starter]) {
       orgIds.push(f.orgId);
       userIds.push(f.tenant.userId, f.owner.userId, f.formerOwner.userId, f.manager.userId, f.scopedManager.userId, f.viewer.userId);
     }
@@ -199,6 +201,8 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
       await db.from("lease_expiry_dispatches").delete().eq("organization_id", orgId);
       await db.from("lease_renewal_transitions").delete().eq("organization_id", orgId);
       await db.from("lease_renewal_requests").delete().eq("organization_id", orgId);
+      await db.from("lease_rent_generation_runs").delete().eq("organization_id", orgId);
+      await db.from("dues").delete().eq("organization_id", orgId);
       await db.from("unit_leases").delete().eq("organization_id", orgId);
       await admin.from("unit_ownerships").delete().eq("organization_id", orgId);
       await admin.from("due_types").delete().eq("organization_id", orgId);
@@ -225,7 +229,11 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
       has_function_privilege('anon','public.request_lease_renewal(uuid,date,date,numeric,text,text)','execute'),
       has_function_privilege('authenticated','public.request_lease_renewal(uuid,date,date,numeric,text,text)','execute'),
       has_function_privilege('authenticated','public.decide_lease_renewal(uuid,text,text)','execute'),
-      has_function_privilege('authenticated','public.get_owned_unit_lease_renewal_status(uuid)','execute')`)).toBe("t|f|t|f|f|f|t|t|t");
+      has_function_privilege('authenticated','public.get_owned_unit_lease_renewal_status(uuid)','execute'),
+      has_function_privilege('anon','public.promote_scheduled_lease_renewals(date)','execute'),
+      has_function_privilege('authenticated','public.promote_scheduled_lease_renewals(date)','execute'),
+      has_function_privilege('service_role','public.promote_scheduled_lease_renewals(date)','execute')`))
+      .toBe("t|f|t|f|f|f|t|t|t|f|f|t");
   });
 
   it("lets the lease tenant create one idempotent request and records append-only history", async () => {
@@ -268,10 +276,56 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     expect(viewerDecision.error?.message).toBe("LEASE_RENEWAL_NOT_FOUND");
     const decision = await enabled.manager.client.rpc("decide_lease_renewal", { p_request_id: requestId, p_decision: "APPROVED", p_reason: "Terms reviewed" });
     expect(decision.error, decision.error?.message).toBeNull();
-    expect((await enabled.manager.client.from("lease_renewal_requests").select("status").eq("id", requestId).single()).data).toEqual({ status: "APPROVED" });
+    const approvedRequest = await enabled.manager.client.from("lease_renewal_requests")
+      .select("status,successor_lease_id").eq("id", requestId).single();
+    expect(approvedRequest.data).toEqual({ status: "APPROVED", successor_lease_id: expect.any(String) });
     expect((await enabled.manager.client.from("lease_renewal_transitions").select("from_status,to_status").eq("renewal_request_id", requestId).order("created_at")).data)
       .toEqual([{ from_status: null, to_status: "REQUESTED" }, { from_status: "REQUESTED", to_status: "APPROVED" }]);
-    expect(dbQuery(`select count(*) from public.unit_leases where id <> '${enabled.leaseId}'::uuid and organization_id = '${enabled.orgId}'::uuid`)).toBe("0");
+    expect(dbQuery(`select status, starts_on, ends_on, rent_amount, rent_frequency, renewed_from_lease_id
+      from public.unit_leases where id = '${approvedRequest.data!.successor_lease_id}'::uuid`))
+      .toBe(`SCHEDULED|2027-01-01|2027-12-31|12500.0000|MONTHLY|${enabled.leaseId}`);
+    expect(dbQuery(`select count(*) from public.dues where source_id = '${approvedRequest.data!.successor_lease_id}'::uuid`)).toBe("0");
+
+    const replay = await enabled.manager.client.rpc("decide_lease_renewal", {
+      p_request_id: requestId, p_decision: "APPROVED", p_reason: "Replay",
+    });
+    expect(replay.error).toBeNull();
+    expect(dbQuery(`select count(*) from public.unit_leases where renewed_from_lease_id = '${enabled.leaseId}'::uuid`)).toBe("1");
+
+    const [raceA, raceB] = await Promise.all([
+      other.manager.client.rpc("decide_lease_renewal", { p_request_id: staffCreated.data, p_decision: "APPROVED", p_reason: "Concurrent A" }),
+      other.manager.client.rpc("decide_lease_renewal", { p_request_id: staffCreated.data, p_decision: "APPROVED", p_reason: "Concurrent B" }),
+    ]);
+    expect(raceA.error, raceA.error?.message).toBeNull();
+    expect(raceB.error, raceB.error?.message).toBeNull();
+    expect(dbQuery(`select count(*) from public.unit_leases where renewed_from_lease_id = '${other.leaseId}'::uuid`)).toBe("1");
+
+    const earlyGeneration = await (admin as unknown as LooseClient).rpc("generate_lease_rent_dues", {
+      p_organization_id: enabled.orgId,
+      p_lease_id: approvedRequest.data!.successor_lease_id,
+      p_period: "2027-01",
+      p_issue_date: "2027-01-01",
+    });
+    expect(earlyGeneration.error?.message).toBe("LEASE_RENT_NOT_STARTED");
+    expect(dbQuery(`select count(*) from public.dues where source_id = '${approvedRequest.data!.successor_lease_id}'::uuid`)).toBe("0");
+
+    const conflictRequest = await conflict.tenant.client.rpc("request_lease_renewal", requestArgs(conflict.leaseId));
+    expect(conflictRequest.error).toBeNull();
+    const [approve, reject] = await Promise.all([
+      conflict.manager.client.rpc("decide_lease_renewal", {
+        p_request_id: conflictRequest.data, p_decision: "APPROVED", p_reason: "Approve race",
+      }),
+      conflict.manager.client.rpc("decide_lease_renewal", {
+        p_request_id: conflictRequest.data, p_decision: "REJECTED", p_reason: "Reject race",
+      }),
+    ]);
+    expect([approve.error, reject.error].filter((error) => error === null)).toHaveLength(1);
+    expect([approve.error, reject.error].filter((error) => error?.message === "LEASE_RENEWAL_INVALID_STATE")).toHaveLength(1);
+    const finalState = dbQuery(`select status from public.lease_renewal_requests where id = '${conflictRequest.data}'::uuid`);
+    expect(["APPROVED", "REJECTED"]).toContain(finalState);
+    expect(dbQuery(`select count(*) from public.lease_renewal_transitions where renewal_request_id = '${conflictRequest.data}'::uuid`)).toBe("2");
+    expect(dbQuery(`select count(*) from public.unit_leases where renewed_from_lease_id = '${conflict.leaseId}'::uuid`))
+      .toBe(finalState === "APPROVED" ? "1" : "0");
   });
 
   it("limits property-scoped staff while preserving organization-wide assignments", async () => {
@@ -344,6 +398,32 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
 
     expect((await enabled.manager.client.from("lease_renewal_requests").select("id").eq("id", bookingB.data)).data)
       .toEqual([{ id: bookingB.data }]);
+
+    const overlap = await (admin as unknown as LooseClient).from("unit_leases").insert({
+      organization_id: enabled.orgId,
+      property_id: propertyB.data!.id,
+      unit_id: unitB.data!.id,
+      tenant_member_id: enabled.tenant.memberId,
+      due_type_id: sourceLease.data!.due_type_id,
+      receivable_account_id: sourceLease.data!.receivable_account_id,
+      status: "ACTIVE",
+      starts_on: "2027-01-01",
+      ends_on: "2027-12-31",
+      rent_amount: sourceLease.data!.rent_amount,
+      rent_frequency: sourceLease.data!.rent_frequency,
+      security_deposit_amount: sourceLease.data!.security_deposit_amount,
+      billing_recipient: sourceLease.data!.billing_recipient,
+    }).select("id").single();
+    expect(overlap.error).toBeNull();
+    const blockedApproval = await enabled.manager.client.rpc("decide_lease_renewal", {
+      p_request_id: bookingB.data, p_decision: "APPROVED", p_reason: "Overlap should roll back",
+    });
+    expect(blockedApproval.error?.message).toBe("LEASE_RENEWAL_INVALID_STATE");
+    expect(dbQuery(`select status, successor_lease_id is null from public.lease_renewal_requests where id = '${bookingB.data}'::uuid`))
+      .toBe("REQUESTED|t");
+    expect(dbQuery(`select count(*) from public.lease_renewal_transitions where renewal_request_id = '${bookingB.data}'::uuid`)).toBe("1");
+    expect((await (admin as unknown as LooseClient).from("unit_leases").delete().eq("id", overlap.data!.id)).error).toBeNull();
+
     const organizationWideDecision = await enabled.manager.client.rpc("decide_lease_renewal", {
       p_request_id: bookingB.data, p_decision: "REJECTED", p_reason: "Organization-wide review",
     });
@@ -389,5 +469,21 @@ describe.sequential("lease renewal runtime Supabase/PostgreSQL RLS gate", () => 
     const suspended = await other.tenant.client.rpc("request_lease_renewal", requestArgs(other.leaseId));
     expect(suspended.error?.message).toBe("LEASE_RENEWAL_NOT_FOUND");
     expect((await other.manager.client.from("lease_renewal_requests").select("id")).data).toEqual([]);
+  });
+
+  it("promotes due scheduled successors once and ends their source leases", async () => {
+    const successorId = dbQuery(`select successor_lease_id from public.lease_renewal_requests where id = '${requestId}'::uuid`);
+    expect(dbQuery(`select status from public.unit_leases where id = '${successorId}'::uuid`)).toBe("SCHEDULED");
+
+    const promoted = await (admin as unknown as LooseClient).rpc("promote_scheduled_lease_renewals", {
+      p_as_of_date: "2027-01-01",
+    });
+    const replayed = await (admin as unknown as LooseClient).rpc("promote_scheduled_lease_renewals", {
+      p_as_of_date: "2027-01-01",
+    });
+    expect((promoted.data as { promoted: number }).promoted).toBeGreaterThan(0);
+    expect(replayed.data).toEqual({ promoted: 0 });
+    expect(dbQuery(`select status from public.unit_leases where id = '${enabled.leaseId}'::uuid`)).toBe("ENDED");
+    expect(dbQuery(`select status from public.unit_leases where id = '${successorId}'::uuid`)).toBe("ACTIVE");
   });
 });
