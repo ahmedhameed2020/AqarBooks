@@ -13,6 +13,7 @@ import {
   UserRound,
   Wrench,
   CalendarDays,
+  ScrollText,
 } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -98,6 +99,14 @@ const NAV_GROUPS: NavGroup[] = [
         descAr: "الأصول ونسب الملكية",
         descEn: "Assets & ownership",
         icon: Building2,
+      },
+      {
+        href: "/portal/leases",
+        labelAr: "العقود والتجديد",
+        labelEn: "Leases & Renewals",
+        descAr: "حالة العقد وطلب التجديد",
+        descEn: "Terms & renewal status",
+        icon: ScrollText,
       },
       {
         href: "/portal/documents",
