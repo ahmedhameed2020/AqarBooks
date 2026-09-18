@@ -75,7 +75,12 @@ export default async function AppShellLayout({
   // Derived from live data on the server, so the bell can never show a count
   // that disagrees with the ledger. Every query inside runs as this user, so an
   // alert about dues only reaches someone allowed to read dues.
-  const alerts = organization ? await getOperationalAlerts(organization.id, user!.id) : [];
+  // Start alert derivation as soon as the tenant is known. It is independent
+  // of building the navigation tree, so keeping it in flight removes a
+  // request waterfall from every app-shell render.
+  const alertsPromise = organization
+    ? getOperationalAlerts(organization.id, user!.id)
+    : Promise.resolve([]);
 
   const homeGroup: SidebarNavGroup = {
     key: "home",
@@ -325,11 +330,23 @@ export default async function AppShellLayout({
   // tree used to ship to everyone: someone with only property access was shown
   // thirty-odd finance links that would bounce them, and the menu disclosed
   // every module and its exact route.
-  const navWorkspaces = organization
-    ? filterNavByPermission(
-        workspaces,
-        await buildPermissionChecker(organization.id, collectNavPermissionKeys(workspaces)),
+  const permissionCheckerPromise = organization
+    ? buildPermissionChecker(
+        organization.id,
+        collectNavPermissionKeys(workspaces),
+        user!.id,
       )
+    : Promise.resolve<(key?: string) => boolean>(() => true);
+
+  // Permission resolution and operational alerts are independent. Await them
+  // together so the app shell pays the slower cost once instead of serially.
+  const [canNavigate, alerts] = await Promise.all([
+    permissionCheckerPromise,
+    alertsPromise,
+  ]);
+
+  const navWorkspaces = organization
+    ? filterNavByPermission(workspaces, canNavigate)
     : workspaces;
 
   // Counts on the two entries where a number changes what someone does next.
