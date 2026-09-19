@@ -17,41 +17,46 @@ import type { SidebarWorkspace } from "@/components/app-sidebar";
 export type PermissionKey = string;
 
 /**
- * Resolves every permission the navigation asks about, in parallel, once.
+ * Resolves every permission the navigation asks about in one database round trip.
  * Returns a predicate the tree builder can call freely.
  */
 export async function buildPermissionChecker(
   organizationId: string,
   keys: PermissionKey[],
+  userId?: string,
 ): Promise<(key?: PermissionKey) => boolean> {
   const distinct = [...new Set(keys)];
   if (distinct.length === 0) return () => true;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let resolvedUserId = userId;
 
-  if (!user) return () => false;
+  // App-shell callers already resolved the authenticated user. Reusing that
+  // identity avoids a second remote auth.getUser() on every navigation while
+  // preserving the safe fallback for standalone callers.
+  if (!resolvedUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    resolvedUserId = user?.id;
+  }
 
-  const results = await Promise.all(
-    distinct.map(async (key) => {
-      const { data, error } = await supabase.rpc("has_permission", {
-        p_user_id: user.id,
-        p_organization_id: organizationId,
-        p_permission_key: key,
-      });
-      // A failed check is not a granted one. Erring towards hiding a link is
-      // recoverable; erring towards showing it is not.
-      return [key, error ? false : Boolean(data)] as const;
-    }),
-  );
+  if (!resolvedUserId) return () => false;
 
-  const granted = new Map(results);
+  const { data, error } = await supabase.rpc("get_navigation_permissions", {
+    p_user_id: resolvedUserId,
+    p_organization_id: organizationId,
+    p_permission_keys: distinct,
+  });
+
+  // Fail closed exactly as the previous per-key resolver did.
+  if (error) return (key?: PermissionKey) => !key;
+
+  const granted = new Set(data ?? []);
 
   // An item with no key is unrestricted on purpose -- the dashboard, the
   // user's own profile. Absence of a key means "everyone", never "nobody".
-  return (key?: PermissionKey) => (key ? granted.get(key) === true : true);
+  return (key?: PermissionKey) => (key ? granted.has(key) : true);
 }
 
 

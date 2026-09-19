@@ -4002,6 +4002,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      get_navigation_permissions: {
+        Args: {
+          p_user_id: string;
+          p_organization_id: string;
+          p_permission_keys: string[];
+        };
+        Returns: string[];
+      };
       get_entitlement: {
         Args: { p_organization_id: string; p_key: string };
         Returns: unknown;
