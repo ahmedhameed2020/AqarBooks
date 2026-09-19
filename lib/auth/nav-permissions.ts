@@ -43,43 +43,24 @@ export async function buildPermissionChecker(
 
   if (!resolvedUserId) return () => false;
 
-  // Resolve the complete grant set with ordinary RLS-protected reads instead
-  // of one has_permission RPC per navigation key. This turns dozens of network
-  // round trips into a small, fixed query set. Platform admins retain the same
-  // bypass semantics as has_permission().
-  const [{ data: platformAdmin }, { data: assignments, error: assignmentError }] =
-    await Promise.all([
-      supabase.rpc("is_platform_admin", { p_user_id: resolvedUserId }),
-      supabase
-        .from("user_role_assignments")
-        .select("role_id")
-        .eq("user_id", resolvedUserId)
-        .eq("organization_id", organizationId),
-    ]);
+  const results = await Promise.all(
+    distinct.map(async (key) => {
+      const { data, error } = await supabase.rpc("has_permission", {
+        p_user_id: resolvedUserId,
+        p_organization_id: organizationId,
+        p_permission_key: key,
+      });
+      // A failed check is not a granted one. Erring towards hiding a link is
+      // recoverable; erring towards showing it is not.
+      return [key, error ? false : Boolean(data)] as const;
+    }),
+  );
 
-  if (platformAdmin) return () => true;
-  if (assignmentError || !assignments?.length) return (key?: PermissionKey) => !key;
-
-  const roleIds = [...new Set(assignments.map((row) => row.role_id))];
-  const { data: grants, error: grantError } = await supabase
-    .from("role_permissions")
-    .select("permissions!inner(key)")
-    .in("role_id", roleIds);
-
-  if (grantError) return (key?: PermissionKey) => !key;
-
-  const granted = new Set<string>();
-  for (const row of grants ?? []) {
-    const permission = Array.isArray(row.permissions)
-      ? row.permissions[0]
-      : row.permissions;
-    const key = permission?.key;
-    if (key && distinct.includes(key)) granted.add(key);
-  }
+  const granted = new Map(results);
 
   // An item with no key is unrestricted on purpose -- the dashboard, the
   // user's own profile. Absence of a key means "everyone", never "nobody".
-  return (key?: PermissionKey) => (key ? granted.has(key) : true);
+  return (key?: PermissionKey) => (key ? granted.get(key) === true : true);
 }
 
 
