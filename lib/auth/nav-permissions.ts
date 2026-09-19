@@ -17,7 +17,7 @@ import type { SidebarWorkspace } from "@/components/app-sidebar";
 export type PermissionKey = string;
 
 /**
- * Resolves every permission the navigation asks about, in parallel, once.
+ * Resolves every permission the navigation asks about in one database round trip.
  * Returns a predicate the tree builder can call freely.
  */
 export async function buildPermissionChecker(
@@ -43,24 +43,20 @@ export async function buildPermissionChecker(
 
   if (!resolvedUserId) return () => false;
 
-  const results = await Promise.all(
-    distinct.map(async (key) => {
-      const { data, error } = await supabase.rpc("has_permission", {
-        p_user_id: resolvedUserId,
-        p_organization_id: organizationId,
-        p_permission_key: key,
-      });
-      // A failed check is not a granted one. Erring towards hiding a link is
-      // recoverable; erring towards showing it is not.
-      return [key, error ? false : Boolean(data)] as const;
-    }),
-  );
+  const { data, error } = await supabase.rpc("get_navigation_permissions", {
+    p_user_id: resolvedUserId,
+    p_organization_id: organizationId,
+    p_permission_keys: distinct,
+  });
 
-  const granted = new Map(results);
+  // Fail closed exactly as the previous per-key resolver did.
+  if (error) return (key?: PermissionKey) => !key;
+
+  const granted = new Set(data ?? []);
 
   // An item with no key is unrestricted on purpose -- the dashboard, the
   // user's own profile. Absence of a key means "everyone", never "nobody".
-  return (key?: PermissionKey) => (key ? granted.get(key) === true : true);
+  return (key?: PermissionKey) => (key ? granted.has(key) : true);
 }
 
 
