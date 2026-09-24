@@ -40,9 +40,10 @@ export interface OnlineTxnItem {
 }
 
 const TXN_STATUS_LABELS: Record<string, { ar: string; en: string }> = {
-  PENDING: { ar: "قيد المعالجة", en: "Processing" },
-  FAILED: { ar: "فشلت", en: "Failed" },
-  EXPIRED: { ar: "انتهت صلاحيتها", en: "Expired" },
+  PENDING: { ar: "بانتظار تأكيد مزود الدفع", en: "Pending provider confirmation" },
+  FAILED: { ar: "فشلت بأمان — لم يتم القيد", en: "Failed safely — not posted" },
+  EXPIRED: { ar: "انتهت صلاحيتها — يمكنك المحاولة مجددًا", en: "Expired — you can try again" },
+  QUARANTINED: { ar: "قيد المراجعة", en: "Under review" },
 };
 
 export function PortalPaymentsClient({
@@ -278,6 +279,11 @@ export function PortalPaymentsClient({
             {isAr
               ? "هذه محاولات دفع لم تُستكمل ولم تُقيَّد على حسابك، ولا يُخصم منك شيء مقابلها. المطالبات المرتبطة بها تظل مفتوحة حتى يتم السداد بنجاح."
               : "These attempts were never completed and are not posted to your account; nothing has been charged for them. Their related dues stay open until a payment succeeds."}
+          </p>
+          <p className="text-[11px] font-semibold text-amber-900 dark:text-amber-100">
+            {isAr
+              ? "إذا استمرت الحالة أو ظهر أنها قيد المراجعة، تواصل مع دعم إدارة العقار مع رقم المحاولة فقط."
+              : "If a status remains pending or under review, contact property support with the attempt number only."}
           </p>
           <div className="space-y-2">
             {onlineTxns.map((t) => (

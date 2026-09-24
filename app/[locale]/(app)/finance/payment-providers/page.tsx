@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { UpsertPaymentProviderSettingsForm, PaymentProviderRowActions } from "./payment-provider-forms";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { serverEnv } from "@/lib/env/server";
 import {
   CreditCard,
   ShieldCheck,
@@ -123,6 +124,7 @@ export default async function PaymentProvidersPage({
 
   const totalConfigured = settings?.length ?? 0;
   const activeCount = (settings ?? []).filter((s) => s.status === "ENABLED").length;
+  const productionPilotEligible = serverEnv.PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS.includes(organization.id);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-16">
@@ -148,6 +150,22 @@ export default async function PaymentProvidersPage({
               : "Configure and verify Fawry & Paymob merchant accounts for automated tenant payments and ledger posting."}
           </p>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+        <p className="font-black">
+          {isAr ? "جاهزية فوري للإنتاج" : "Fawry production readiness"}
+        </p>
+        <p className="mt-1 leading-relaxed">
+          {isAr
+            ? "فحص الاتصال لا يعني اعتماد معاملة إنتاج. يلزم تنفيذ معاملة إنتاج محدودة والتحقق من السند والقيد قبل الإطلاق."
+            : "Connectivity checked does not mean a production transaction is verified. A controlled live transaction and its receipt/journal evidence are still required."}
+        </p>
+        <Badge variant="outline" className="mt-2">
+          {productionPilotEligible
+            ? (isAr ? "مؤهل لتجربة الإنتاج المحدودة" : "Production pilot eligible")
+            : (isAr ? "غير مؤهل للإنتاج — وضع الاختبار فقط" : "Production ineligible — sandbox only")}
+        </Badge>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
