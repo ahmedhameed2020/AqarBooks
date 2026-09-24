@@ -6,14 +6,14 @@
  * guard pins every active migration by filename, byte size, and SHA256 so the
  * Supabase CLI cannot silently see a different migration set than reviewers do.
  *
- * CURRENT SHAPE (2026-09-18)
- * The active directory intentionally contains 45 SQL migrations:
+ * CURRENT SHAPE (2026-09-19)
+ * The active directory intentionally contains 46 SQL migrations:
  *
  *   - 33 historical migrations matching the production ledger through
  *     RECONCILIATION_LEDGER_TIP (`20260903172101`)
- *   - 12 authorized current migrations through FUTURE_MIGRATION_VERSION_FLOOR
- *     (`20260918010000`); the first eleven are production-applied and PR9.3 is
- *     a forward-only candidate pending review
+ *   - 13 authorized current migrations through FUTURE_MIGRATION_VERSION_FLOOR
+ *     (`20260919010000`); the first eleven are production-applied and the last
+ *     two are forward-only candidates pending review
  *
  * The 15 former ledger-only rows (`20260829104638` through `20260831205217`)
  * are now real SQL files recovered from production migration history and pinned
@@ -79,7 +79,7 @@ export const RECONCILIATION_LEDGER_TIP = "20260903172101";
  * Highest migration version currently authorized in this repository. Any new
  * migration added after this reconciliation must have a greater version.
  */
-export const FUTURE_MIGRATION_VERSION_FLOOR = "20260918010000";
+export const FUTURE_MIGRATION_VERSION_FLOOR = "20260919010000";
 
 export const RECONCILED_REMOTE_MIGRATIONS: readonly MigrationDescriptor[] = [
   { file: "20260829104638_legacy_access_migration_control_plane.sql", bytes: 4147, sha256: "91dd76d76bf470d2309d55725b2f4ce988a666f62ecabff61d7b777db0f2f640", provenance: "reconciled_remote_migration" },
@@ -137,6 +137,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260917183206_lease_renewal_database_contract.sql", bytes: 18039, sha256: "efa71563f4bdc49550f5eabae25d57e178013e7ad30e7801570e60247021bb66", provenance: "new_authorized_migration" },
   { file: "20260917195950_lease_expiry_alerts.sql", bytes: 9061, sha256: "fd0a8c06167b65d01703ddc7ef99f66fd647a65b22cf6cdc31763d7461420923", provenance: "new_authorized_migration" },
   { file: "20260918010000_lease_renewal_successor_activation.sql", bytes: 15716, sha256: "438111dde2fbab31c415383d774ba5a8945115a24d7a10170018b3f93ef50b9c", provenance: "new_authorized_migration" },
+  { file: "20260919010000_batch_navigation_permissions.sql", bytes: 1650, sha256: "2dc969478a9b15263458af3c297035e2012558edb945cb3c6fcbf32827014401", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -148,7 +149,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
  * ledger-only migration versions remain.
  *
  * The repository now describes 33 historical migrations through
- * RECONCILIATION_LEDGER_TIP plus 12 authorized current migrations through
+ * RECONCILIATION_LEDGER_TIP plus 13 authorized current migrations through
  * FUTURE_MIGRATION_VERSION_FLOOR. Historical `legacy_migration`, `legacy_access`,
  * and `accsys_stage` namespaces are allowed only inside those exact 15 pinned
  * reconciliation files; runtime code and all other migrations must remain free
@@ -394,7 +395,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(12);
+      expect(authorized).toHaveLength(13);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -407,6 +408,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(authorized[9].file).toBe("20260917183206_lease_renewal_database_contract.sql");
       expect(authorized[10].file).toBe("20260917195950_lease_expiry_alerts.sql");
       expect(authorized[11].file).toBe("20260918010000_lease_renewal_successor_activation.sql");
+      expect(authorized[12].file).toBe("20260919010000_batch_navigation_permissions.sql");
     });
 
     it("remote ledger snapshot matches mathematical set partitioning with repository migrations", () => {
@@ -460,7 +462,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 9. new authorized migrations strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(12);
+      expect(newMigrations).toHaveLength(13);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
