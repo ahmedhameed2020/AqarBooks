@@ -52,6 +52,11 @@ export function createWebhookRouteHandler(adapter: PaymentProviderAdapter) {
       providerStatus: parsed.providerStatus, amount: parsed.amountMinor / 100,
       currency: parsed.currency, merchantIdentifier: credentials.merchantIdentifier, occurredAt: null,
     };
+    // Some Fawry notification variants omit merchantCode. The signature was
+    // verified with this transaction's immutable settings secret, so the
+    // resolved merchant identifier is the trusted fallback; a supplied,
+    // conflicting merchantCode is preserved and quarantined by the processor.
+    if (!normalized.merchantIdentifier) normalized.merchantIdentifier = credentials.merchantIdentifier;
     const eventIdentifier = normalized.eventIdentifier || fallbackEventIdentifier(adapter.providerId, txn.environment, rawBody);
     const payloadHash = crypto.createHash("sha256").update(rawBody, "utf8").digest("hex");
     const { data: event, error: enqueueError } = await admin.rpc("enqueue_online_payment_event", {
