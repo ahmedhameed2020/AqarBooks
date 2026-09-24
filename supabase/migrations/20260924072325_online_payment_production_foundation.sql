@@ -220,7 +220,10 @@ begin
 end;
 $$;
 
-create function public.claim_online_payment_events(p_limit integer default 25)
+create function public.claim_online_payment_events(
+  p_limit integer default 25,
+  p_event_id uuid default null
+)
 returns setof public.online_payment_events
 language sql
 security definer
@@ -230,6 +233,7 @@ as $$
     select e.id
     from public.online_payment_events e
     where e.processing_status in ('RECEIVED', 'RETRYABLE_ERROR')
+      and (p_event_id is null or e.id = p_event_id)
       and coalesce(e.next_attempt_at, '-infinity'::timestamptz) <= now()
     order by e.created_at
     for update skip locked
@@ -451,11 +455,11 @@ $$;
 
 revoke all on function public.online_payment_events_append_only() from public, anon, authenticated;
 revoke all on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) from public, anon, authenticated;
-revoke all on function public.claim_online_payment_events(integer) from public, anon, authenticated;
+revoke all on function public.claim_online_payment_events(integer, uuid) from public, anon, authenticated;
 revoke all on function public.complete_online_payment_event(uuid, text, text, timestamptz) from public, anon, authenticated;
 revoke all on function public.mark_online_payment_checkout_created(uuid, text) from public, anon, authenticated;
 grant execute on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) to service_role;
-grant execute on function public.claim_online_payment_events(integer) to service_role;
+grant execute on function public.claim_online_payment_events(integer, uuid) to service_role;
 grant execute on function public.complete_online_payment_event(uuid, text, text, timestamptz) to service_role;
 grant execute on function public.mark_online_payment_checkout_created(uuid, text) to service_role;
 

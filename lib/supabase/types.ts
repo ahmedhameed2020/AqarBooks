@@ -3980,6 +3980,35 @@ export type Database = {
         Args: { p_transaction_id: string; p_provider_reference: string | null };
         Returns: undefined;
       };
+      claim_online_payment_events: {
+        Args: { p_limit?: number; p_event_id?: string | null };
+        Returns: Database["public"]["Tables"]["online_payment_events"]["Row"][];
+      };
+      complete_online_payment_event: {
+        Args: {
+          p_event_id: string;
+          p_processing_status: string;
+          p_last_error_code?: string | null;
+          p_next_attempt_at?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["online_payment_events"]["Row"];
+      };
+      enqueue_online_payment_event: {
+        Args: {
+          p_organization_id: string;
+          p_property_id: string;
+          p_transaction_id: string | null;
+          p_provider: string;
+          p_environment: string;
+          p_event_identifier: string;
+          p_event_type: string;
+          p_provider_status: string | null;
+          p_signature_verified: boolean;
+          p_redacted_payload: unknown;
+          p_payload_hash: string;
+        };
+        Returns: Database["public"]["Tables"]["online_payment_events"]["Row"];
+      };
       record_online_payment: {
         Args: { p_transaction_id: string; p_webhook_event_id: string; p_provider_payload?: unknown };
         Returns: {
