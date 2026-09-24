@@ -144,7 +144,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "get_exchange_rate", "get_journal_entry_for_view", "get_lease_deposit_summary",
   "get_own_organization_display", "get_payment_provider_settings_credentials",
   "get_service_charge_allocations", "get_tax_decision_coverage", "get_trial_balance",
-  "get_unrecognized_dues_summary", "handle_new_user", "has_financial_permission", "has_permission",
+  "get_navigation_permissions", "get_unrecognized_dues_summary", "handle_new_user", "has_financial_permission", "has_permission",
   "is_current_member_unit_owner",
   "is_org_member", "is_platform_admin", "is_resort_member", "issue_credit_note", "issue_dues",
   "issue_service_charge_levy", "link_unit_ownership", "list_catalogue_items", "list_credit_notes",

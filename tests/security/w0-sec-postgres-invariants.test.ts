@@ -20,6 +20,7 @@ import * as path from "path";
  *   7B. has_permission(): Suspended member + valid role assignment + permission -> false
  *   7C. has_permission(): Deleted membership + stale role assignment -> false
  *   7D. has_permission(): Canonical global PLATFORM_SUPER_ADMIN -> true
+ *   8. get_navigation_permissions(): batches the same grants and rejects identity spoofing
  */
 describe("W0-SEC Real PostgreSQL Engine Verification (Disposable PGlite)", () => {
   let db: PGlite;
@@ -42,6 +43,16 @@ describe("W0-SEC Real PostgreSQL Engine Verification (Disposable PGlite)", () =>
 
     // 1. Initialize isolated base schema in disposable PostgreSQL
     await db.exec(`
+      CREATE ROLE authenticated;
+      CREATE SCHEMA auth;
+      CREATE FUNCTION auth.uid()
+      RETURNS uuid
+      LANGUAGE sql
+      STABLE
+      AS $$
+        SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+      $$;
+
       CREATE TABLE public.organizations (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         name text NOT NULL
@@ -88,6 +99,10 @@ describe("W0-SEC Real PostgreSQL Engine Verification (Disposable PGlite)", () =>
     const ddlPath = path.resolve(__dirname, "../../supabase/migrations/20260913165500_w0_sec_authorization_containment.sql");
     const ddlSql = fs.readFileSync(ddlPath, "utf8");
     await db.exec(ddlSql);
+
+    const navigationDdlPath = path.resolve(__dirname, "../../supabase/migrations/20260919010000_batch_navigation_permissions.sql");
+    const navigationDdlSql = fs.readFileSync(navigationDdlPath, "utf8");
+    await db.exec(navigationDdlSql);
 
     // 3. Seed test fixtures
     await db.query("INSERT INTO public.organizations (id, name) VALUES ($1, 'Tenant Alpha'), ($2, 'Tenant Beta');", [orgA, orgB]);
@@ -243,5 +258,59 @@ describe("W0-SEC Real PostgreSQL Engine Verification (Disposable PGlite)", () =>
     );
 
     expect(res.rows[0].has_perm).toBe(true);
+  });
+
+  it("Invariant 8A (batched navigation grants): returns only requested grants for an active member", async () => {
+    await db.query(
+      `INSERT INTO public.organization_memberships (organization_id, user_id, status)
+       VALUES ($1, $2, 'active')
+       ON CONFLICT (organization_id, user_id) DO UPDATE SET status = 'active';`,
+      [orgA, userTenant]
+    );
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false);", [userTenant]);
+
+    const res = await db.query<{ grants: string[] }>(
+      "SELECT public.get_navigation_permissions($1, $2, ARRAY['tenant.users.manage', 'platform.tenants.manage']) AS grants;",
+      [userTenant, orgA]
+    );
+
+    expect(res.rows[0].grants).toEqual(["tenant.users.manage"]);
+  });
+
+  it("Invariant 8B (batched navigation identity): rejects resolving another user's grants", async () => {
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false);", [userAttacker]);
+
+    const res = await db.query<{ grants: string[] }>(
+      "SELECT public.get_navigation_permissions($1, $2, ARRAY['tenant.users.manage']) AS grants;",
+      [userTenant, orgA]
+    );
+
+    expect(res.rows[0].grants).toEqual([]);
+  });
+
+  it("Invariant 8C (batched navigation membership): returns no grants for a suspended member", async () => {
+    await db.query(
+      "UPDATE public.organization_memberships SET status = 'suspended' WHERE organization_id = $1 AND user_id = $2;",
+      [orgA, userTenant]
+    );
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false);", [userTenant]);
+
+    const res = await db.query<{ grants: string[] }>(
+      "SELECT public.get_navigation_permissions($1, $2, ARRAY['tenant.users.manage']) AS grants;",
+      [userTenant, orgA]
+    );
+
+    expect(res.rows[0].grants).toEqual([]);
+  });
+
+  it("Invariant 8D (batched navigation platform admin): returns every requested grant", async () => {
+    await db.query("SELECT set_config('request.jwt.claim.sub', $1, false);", [userAdmin]);
+
+    const res = await db.query<{ grants: string[] }>(
+      "SELECT public.get_navigation_permissions($1, $2, ARRAY['tenant.users.manage', 'platform.tenants.manage']) AS grants;",
+      [userAdmin, orgB]
+    );
+
+    expect(res.rows[0].grants).toEqual(["tenant.users.manage", "platform.tenants.manage"]);
   });
 });
