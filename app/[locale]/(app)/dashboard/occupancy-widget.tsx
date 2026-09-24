@@ -39,7 +39,7 @@ export function OccupancyWidget({
           </div>
         </div>
         <Link
-          href="/property/units"
+          href="/property"
           locale={locale}
           className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
