@@ -1,4 +1,5 @@
 export type ProviderId = "PAYMOB" | "FAWRY";
+export type PaymentEnvironment = "SANDBOX" | "PRODUCTION";
 
 export interface ProviderCredentials {
   merchantIdentifier: string;
@@ -29,6 +30,20 @@ export interface CreateCheckoutResult {
 }
 
 export type NormalizedWebhookStatus = "SUCCESS" | "FAILED" | "PENDING" | "EXPIRED";
+
+export interface NormalizedPaymentEvent {
+  provider: ProviderId;
+  environment: PaymentEnvironment;
+  eventIdentifier: string;
+  merchantOrderRef: string;
+  providerReference: string;
+  status: NormalizedWebhookStatus;
+  providerStatus: string;
+  amount: number;
+  currency: string;
+  merchantIdentifier: string;
+  occurredAt: string | null;
+}
 
 export interface NormalizedWebhookPayload {
   merchantOrderRef: string;
@@ -67,6 +82,10 @@ export interface PaymentProviderAdapter {
   readonly providerId: ProviderId;
   createCheckout(input: CreateCheckoutInput, credentials: ProviderCredentials): Promise<CreateCheckoutResult>;
   parseWebhookPayload(ctx: WebhookRequestContext): NormalizedWebhookPayload; // pure parsing, needs no credentials
+  normalizeWebhookEvent?(
+    ctx: WebhookRequestContext,
+    environment: PaymentEnvironment,
+  ): NormalizedPaymentEvent;
   verifyWebhookSignature(ctx: WebhookRequestContext, credentials: ProviderCredentials): boolean;
   // Returns a copy of the parsed payload with any sensitive fields (card
   // PAN, etc.) stripped before it's ever stored in
