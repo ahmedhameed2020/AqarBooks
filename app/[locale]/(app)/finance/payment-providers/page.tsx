@@ -22,11 +22,7 @@ import {
   Globe2,
   Lock,
   Building2,
-  CheckCircle2,
   AlertCircle,
-  Clock,
-  Sparkles,
-  Smartphone,
 } from "lucide-react";
 
 export async function generateMetadata({

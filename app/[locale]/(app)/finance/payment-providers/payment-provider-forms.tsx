@@ -23,18 +23,10 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  CreditCard,
   KeyRound,
-  ShieldCheck,
-  Building2,
-  Globe2,
-  Plus,
   RefreshCw,
   Power,
   PowerOff,
-  Sparkles,
-  Lock,
-  Copy,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
@@ -378,7 +370,7 @@ export function PaymentProviderRowActions({
     { ok: true }
   );
 
-  const [enableState, enableAction, enablePending] = useActionState<ActionResult, FormData>(
+  const [, enableAction, enablePending] = useActionState<ActionResult, FormData>(
     async (prev, formData) => {
       const res = await enablePaymentProviderAction(prev, formData);
       if (res.ok) {
@@ -393,7 +385,7 @@ export function PaymentProviderRowActions({
     { ok: true }
   );
 
-  const [disableState, disableAction, disablePending] = useActionState<ActionResult, FormData>(
+  const [, disableAction, disablePending] = useActionState<ActionResult, FormData>(
     async (prev, formData) => {
       const res = await disablePaymentProviderAction(prev, formData);
       if (res.ok) {
