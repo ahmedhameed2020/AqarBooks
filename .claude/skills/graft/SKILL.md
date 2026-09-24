@@ -17,6 +17,9 @@ Every command below is `$0`, needs no API key, and returns in under a second.
 There are six of them. **Pick the one that fits the task, run it, act on the
 answer; don't chain tools hoping for more. Most tasks need one call.**
 
+This repository is pinned to `@nanonets/graft@0.18.0`; keep the global CLI and
+the MCP package on that version until a reviewed tooling update changes both.
+
 ## The tools
 
 ### 1 · `graft ask "<question>" --source`: locate + understand (the default)
