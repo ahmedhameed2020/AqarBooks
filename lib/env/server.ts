@@ -12,6 +12,20 @@ const serverEnvSchema = z.object({
   RESEND_API_KEY: z.string().default(""),
   RESEND_FROM: z.string().default("AqarBooks <alerts@aqarbooks.com>"),
   CRON_SECRET: z.string().default(""),
+  PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS: z
+    .string()
+    .default("")
+    .transform((value, ctx) => {
+      const ids = value.split(",").map((id) => id.trim()).filter(Boolean);
+      for (const id of ids) {
+        if (!z.string().uuid().safeParse(id).success) {
+          ctx.addIssue({ code: "custom", message: `Invalid production pilot organization id: ${id}` });
+          return z.NEVER;
+        }
+      }
+      return ids;
+    }),
+  FAWRY_PRODUCTION_BASE_URL: z.string().url().or(z.literal("")).default(""),
 });
 
 type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -34,6 +48,9 @@ function resolve(): ServerEnv {
     RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
     RESEND_FROM: process.env.RESEND_FROM || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
+    PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS:
+      process.env.PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS || undefined,
+    FAWRY_PRODUCTION_BASE_URL: process.env.FAWRY_PRODUCTION_BASE_URL || undefined,
   });
 
   if (parsed.SUPABASE_SERVICE_ROLE_KEY === "placeholder-service-role-key") {
@@ -70,5 +87,11 @@ export const serverEnv = {
   },
   get CRON_SECRET() {
     return resolve().CRON_SECRET;
+  },
+  get PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS() {
+    return resolve().PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS;
+  },
+  get FAWRY_PRODUCTION_BASE_URL() {
+    return resolve().FAWRY_PRODUCTION_BASE_URL;
   },
 };

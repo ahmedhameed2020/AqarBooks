@@ -3,8 +3,9 @@
 import { z } from "zod";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
-import { resolveProviderCredentials } from "@/lib/payments/resolve-credentials";
+import { selectCheckoutProviderCredentials } from "@/lib/payments/resolve-credentials";
 // paymobAdapter intentionally NOT imported here -- see Task 3's status
 // note. Wiring it in requires an explicit follow-up task, not just adding
 // an import here.
@@ -15,6 +16,7 @@ const inputSchema = z.object({
   // adapter as contract-tests-only. Add it back only alongside the
   // follow-up task that re-enables it for production.
   provider: z.enum(["FAWRY"]),
+  clientRequestId: z.string().uuid(),
 });
 
 // The RPC's shape (see supabase/migrations/20260816000001_...):
@@ -22,6 +24,8 @@ const inputSchema = z.object({
 interface CheckoutTransactionRow {
   transaction_id: string;
   amount: number | string;
+  is_replay: boolean;
+  provider_reference: string | null;
 }
 
 export async function createOnlinePaymentCheckoutAction(input: unknown) {
@@ -42,6 +46,32 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
   }
 
   const supabase = await createClient();
+
+  const { data: dueScopes, error: dueScopeError } = await supabase
+    .from("dues")
+    .select("id, organization_id, property_id")
+    .in("id", parsed.data.dueIds);
+  const propertyIds = new Set((dueScopes ?? []).map((due) => due.property_id));
+  if (
+    dueScopeError ||
+    dueScopes?.length !== parsed.data.dueIds.length ||
+    propertyIds.size !== 1 ||
+    dueScopes.some((due) => due.organization_id !== memberContext.member.organization_id)
+  ) {
+    return { error: "INVALID_DUE_SCOPE" as const };
+  }
+  const propertyId = propertyIds.values().next().value as string;
+
+  let credentials;
+  try {
+    credentials = await selectCheckoutProviderCredentials(
+      memberContext.member.organization_id,
+      propertyId,
+      "FAWRY",
+    );
+  } catch (err) {
+    return { error: "PROVIDER_CHECKOUT_FAILED" as const, message: (err as Error).message };
+  }
 
   // members.email/members.phone are both nullable columns and aren't
   // selected by getPortalMemberContext() -- fetch them directly (covered by
@@ -70,6 +100,9 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
     .rpc("create_online_payment_checkout_transaction", {
       p_due_ids: parsed.data.dueIds,
       p_provider: parsed.data.provider,
+      p_environment: credentials.environment,
+      p_provider_settings_id: credentials.settingsId,
+      p_client_request_id: parsed.data.clientRequestId,
     })
     .single<CheckoutTransactionRow>();
 
@@ -77,46 +110,16 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
     return { error: "CHECKOUT_TRANSACTION_FAILED" as const, message: error?.message };
   }
 
+  if (data.is_replay) {
+    return {
+      error: "CHECKOUT_ALREADY_PENDING" as const,
+      providerReference: data.provider_reference,
+    };
+  }
+
   // Only FAWRY is wired -- parsed.data.provider is already narrowed to
   // the "FAWRY" literal by inputSchema's z.enum(["FAWRY"]) above.
   const adapter = fawryAdapter;
-
-  // property_id is read back off the transaction row that
-  // create_online_payment_checkout_transaction just inserted -- not
-  // supplied by the client. That RPC (SECURITY INVOKER) derives it
-  // entirely from public.current_member_id() and the requested dues'
-  // already-validated unit_ownerships/resort matching, never from
-  // unvalidated request input, and the row is only readable here via the
-  // online_payment_transactions_select_own RLS policy (this member's own
-  // session, own row). organizationId (memberContext.member.organization_id)
-  // is equally trustworthy, coming straight from getPortalMemberContext()'s
-  // own membership lookup. So both IDs passed to resolveProviderCredentials
-  // below are safe: neither is unvalidated client input.
-  const { data: txnScope } = await supabase
-    .from("online_payment_transactions")
-    .select("property_id")
-    .eq("id", data.transaction_id)
-    .single();
-
-  let credentials;
-  try {
-    // Hardcoded "SANDBOX": online_payment_transactions has no `environment`
-    // column yet (see lib/payments/webhook-handler.ts's matching note) --
-    // this project has only ever operated in sandbox mode, so this is not
-    // a new risk, but it is a real gap that must be closed before any
-    // tenant's PRODUCTION credentials could be resolved here.
-    credentials = await resolveProviderCredentials(
-      memberContext.member.organization_id,
-      txnScope?.property_id ?? null,
-      "FAWRY",
-      "SANDBOX"
-    );
-  } catch (err) {
-    return {
-      error: "PROVIDER_CHECKOUT_FAILED" as const,
-      message: (err as Error).message,
-    };
-  }
 
   let checkout;
   try {
@@ -139,11 +142,15 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
     return { error: "PROVIDER_CHECKOUT_FAILED" as const, message: (err as Error).message };
   }
 
-  if (checkout.providerReference) {
-    await supabase
-      .from("online_payment_transactions")
-      .update({ provider_reference: checkout.providerReference })
-      .eq("id", data.transaction_id);
+  const { error: finalizeError } = await createAdminClient().rpc(
+    "mark_online_payment_checkout_created",
+    {
+      p_transaction_id: data.transaction_id,
+      p_provider_reference: checkout.providerReference,
+    },
+  );
+  if (finalizeError) {
+    return { error: "CHECKOUT_FINALIZATION_FAILED" as const };
   }
 
   return { redirectUrl: checkout.redirectUrl };

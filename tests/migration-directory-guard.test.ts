@@ -137,7 +137,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260917195950_lease_expiry_alerts.sql", bytes: 9061, sha256: "fd0a8c06167b65d01703ddc7ef99f66fd647a65b22cf6cdc31763d7461420923", provenance: "new_authorized_migration" },
   { file: "20260918010000_lease_renewal_successor_activation.sql", bytes: 15716, sha256: "438111dde2fbab31c415383d774ba5a8945115a24d7a10170018b3f93ef50b9c", provenance: "new_authorized_migration" },
   { file: "20260919010000_batch_navigation_permissions.sql", bytes: 1650, sha256: "2dc969478a9b15263458af3c297035e2012558edb945cb3c6fcbf32827014401", provenance: "new_authorized_migration" },
-  { file: "20260924072325_online_payment_production_foundation.sql", bytes: 15626, sha256: "a79032284c162c4a3b21e5544f95ece2119e741bc1dcf80b48b1435d109920f5", provenance: "new_authorized_migration" },
+  { file: "20260924072325_online_payment_production_foundation.sql", bytes: 17676, sha256: "2b826f5e5d71c5e7c398d2be1e50b2bd7370b2f373c725c9ff49e3dedb1f9261", provenance: "new_authorized_migration" },
 ] as const;
 
 /**

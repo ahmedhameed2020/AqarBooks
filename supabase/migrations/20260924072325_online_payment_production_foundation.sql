@@ -284,15 +284,39 @@ begin
 end;
 $$;
 
+create function public.mark_online_payment_checkout_created(
+  p_transaction_id uuid,
+  p_provider_reference text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.online_payment_transactions
+  set provider_reference = coalesce(p_provider_reference, provider_reference),
+      checkout_created_at = now(),
+      updated_at = now()
+  where id = p_transaction_id
+    and status = 'PENDING'
+    and checkout_created_at is null;
+  if not found then
+    raise exception 'CHECKOUT_TRANSACTION_NOT_PENDING_OR_ALREADY_CREATED' using errcode = '22023';
+  end if;
+end;
+$$;
+
 drop function public.create_online_payment_checkout_transaction(uuid[], text);
 
 create function public.create_online_payment_checkout_transaction(
   p_due_ids uuid[],
   p_provider text,
   p_environment text,
-  p_provider_settings_id uuid
+  p_provider_settings_id uuid,
+  p_client_request_id text
 )
-returns table(transaction_id uuid, amount numeric)
+returns table(transaction_id uuid, amount numeric, is_replay boolean, provider_reference text)
 language plpgsql
 security definer
 set search_path = ''
@@ -307,6 +331,7 @@ declare
   v_total numeric(19,4) := 0;
   v_matched_count integer := 0;
   v_transaction_id uuid;
+  v_existing public.online_payment_transactions;
 begin
   if v_member_id is null then
     raise exception 'NOT_A_PORTAL_MEMBER' using errcode = '42501';
@@ -316,6 +341,9 @@ begin
   end if;
   if p_due_ids is null or array_length(p_due_ids, 1) is null then
     raise exception 'NO_DUES_SELECTED' using errcode = '22023';
+  end if;
+  if nullif(btrim(p_client_request_id), '') is null then
+    raise exception 'CLIENT_REQUEST_ID_REQUIRED' using errcode = '22023';
   end if;
 
   for v_due in
@@ -374,6 +402,28 @@ begin
     raise exception 'PRODUCTION_PILOT_NOT_ALLOWED' using errcode = '42501';
   end if;
 
+  select * into v_existing
+  from public.online_payment_transactions t
+  where t.organization_id = v_organization_id
+    and t.client_request_id = p_client_request_id;
+
+  if v_existing.id is not null then
+    if v_existing.member_id <> v_member_id
+       or v_existing.provider <> p_provider
+       or v_existing.environment <> p_environment
+       or v_existing.provider_settings_id is distinct from p_provider_settings_id
+       or (select array_agg(a.due_id order by a.due_id)
+           from public.online_payment_transaction_allocations a
+           where a.transaction_id = v_existing.id)
+          is distinct from
+          (select array_agg(x.due_id order by x.due_id)
+           from unnest(p_due_ids) as x(due_id)) then
+      raise exception 'CLIENT_REQUEST_ID_CONFLICT' using errcode = '22023';
+    end if;
+    return query select v_existing.id, v_existing.amount, true, v_existing.provider_reference;
+    return;
+  end if;
+
   if public.due_ids_have_pending_online_checkout(p_due_ids) then
     raise exception 'DUE_HAS_PENDING_CHECKOUT' using errcode = '22023';
   end if;
@@ -386,7 +436,7 @@ begin
     environment, currency, provider_settings_id,
     provider_merchant_identifier_snapshot, amount, checkout_requested_at, expires_at
   ) values (
-    v_organization_id, v_property_id, v_member_id, gen_random_uuid()::text, p_provider,
+    v_organization_id, v_property_id, v_member_id, p_client_request_id, p_provider,
     p_environment, v_currency, v_settings.id,
     v_settings.merchant_identifier, v_total, now(), now() + interval '20 minutes'
   ) returning id into v_transaction_id;
@@ -395,7 +445,7 @@ begin
   select v_transaction_id, d.id, d.amount
   from public.dues d where d.id = any(p_due_ids);
 
-  return query select v_transaction_id, v_total;
+  return query select v_transaction_id, v_total, false, null::text;
 end;
 $$;
 
@@ -403,9 +453,11 @@ revoke all on function public.online_payment_events_append_only() from public, a
 revoke all on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) from public, anon, authenticated;
 revoke all on function public.claim_online_payment_events(integer) from public, anon, authenticated;
 revoke all on function public.complete_online_payment_event(uuid, text, text, timestamptz) from public, anon, authenticated;
+revoke all on function public.mark_online_payment_checkout_created(uuid, text) from public, anon, authenticated;
 grant execute on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) to service_role;
 grant execute on function public.claim_online_payment_events(integer) to service_role;
 grant execute on function public.complete_online_payment_event(uuid, text, text, timestamptz) to service_role;
+grant execute on function public.mark_online_payment_checkout_created(uuid, text) to service_role;
 
-revoke all on function public.create_online_payment_checkout_transaction(uuid[], text, text, uuid) from public, anon;
-grant execute on function public.create_online_payment_checkout_transaction(uuid[], text, text, uuid) to authenticated, service_role;
+revoke all on function public.create_online_payment_checkout_transaction(uuid[], text, text, uuid, text) from public, anon;
+grant execute on function public.create_online_payment_checkout_transaction(uuid[], text, text, uuid, text) to authenticated, service_role;

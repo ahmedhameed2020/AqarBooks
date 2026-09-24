@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -72,6 +72,7 @@ export function DuesCheckout({
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const checkoutAttempt = useRef<{ selectionKey: string; id: string } | null>(null);
 
   const totalOutstanding = dues.reduce((s, d) => s + d.outstanding, 0);
   const overdueOutstanding = dues
@@ -127,11 +128,17 @@ export function DuesCheckout({
 
   function handlePay() {
     if (selected.size === 0) return;
+    const selectedDueIds = Array.from(selected).sort();
+    const selectionKey = selectedDueIds.join(",");
+    if (checkoutAttempt.current?.selectionKey !== selectionKey) {
+      checkoutAttempt.current = { selectionKey, id: crypto.randomUUID() };
+    }
     setError(null);
     startTransition(async () => {
       const result = await createOnlinePaymentCheckoutAction({
-        dueIds: Array.from(selected),
+        dueIds: selectedDueIds,
         provider: "FAWRY",
+        clientRequestId: checkoutAttempt.current!.id,
       });
       if ("redirectUrl" in result && result.redirectUrl) {
         window.location.href = result.redirectUrl;

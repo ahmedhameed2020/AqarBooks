@@ -1342,6 +1342,15 @@ export type Database = {
           member_id: string;
           client_request_id: string;
           provider: "PAYMOB" | "FAWRY";
+          environment: "SANDBOX" | "PRODUCTION";
+          currency: string;
+          provider_settings_id: string | null;
+          provider_merchant_identifier_snapshot: string | null;
+          checkout_requested_at: string | null;
+          checkout_created_at: string | null;
+          last_provider_status: string | null;
+          last_status_checked_at: string | null;
+          completed_at: string | null;
           provider_reference: string | null;
           provider_payload: unknown;
           amount: number;
@@ -1364,6 +1373,15 @@ export type Database = {
           member_id: string;
           client_request_id: string;
           provider: "PAYMOB" | "FAWRY";
+          environment?: "SANDBOX" | "PRODUCTION";
+          currency: string;
+          provider_settings_id?: string | null;
+          provider_merchant_identifier_snapshot?: string | null;
+          checkout_requested_at?: string | null;
+          checkout_created_at?: string | null;
+          last_provider_status?: string | null;
+          last_status_checked_at?: string | null;
+          completed_at?: string | null;
           provider_reference?: string | null;
           provider_payload?: unknown;
           amount: number;
@@ -1378,6 +1396,80 @@ export type Database = {
           expires_at: string;
         };
         Update: Partial<Database["public"]["Tables"]["online_payment_transactions"]["Row"]>;
+        Relationships: [];
+      };
+      online_payment_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          transaction_id: string | null;
+          provider: "FAWRY";
+          environment: "SANDBOX" | "PRODUCTION";
+          event_identifier: string;
+          event_type: string;
+          provider_status: string | null;
+          signature_verified: boolean;
+          redacted_payload: unknown;
+          payload_hash: string;
+          processing_status: "RECEIVED" | "PROCESSING" | "PROCESSED" | "IGNORED" | "QUARANTINED" | "RETRYABLE_ERROR" | "PERMANENT_ERROR";
+          attempt_count: number;
+          next_attempt_at: string | null;
+          last_error_code: string | null;
+          processed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["online_payment_events"]["Row"], "id" | "created_at" | "updated_at" | "attempt_count" | "processing_status"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          attempt_count?: number;
+          processing_status?: Database["public"]["Tables"]["online_payment_events"]["Row"]["processing_status"];
+        };
+        Update: Partial<Database["public"]["Tables"]["online_payment_events"]["Row"]>;
+        Relationships: [];
+      };
+      payment_provider_settings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string | null;
+          provider: "FAWRY" | "PAYMOB";
+          environment: "SANDBOX" | "PRODUCTION";
+          merchant_identifier: string | null;
+          public_key: string | null;
+          api_key_secret_id: string | null;
+          hmac_secret_id: string | null;
+          status: "DRAFT" | "VALIDATING" | "VERIFIED" | "ENABLED" | "DISABLED";
+          enabled: boolean;
+          verified_at: string | null;
+          last_verification_error: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id?: string | null;
+          provider: "FAWRY" | "PAYMOB";
+          environment: "SANDBOX" | "PRODUCTION";
+          merchant_identifier?: string | null;
+          public_key?: string | null;
+          api_key_secret_id?: string | null;
+          hmac_secret_id?: string | null;
+          status?: "DRAFT" | "VALIDATING" | "VERIFIED" | "ENABLED" | "DISABLED";
+          enabled?: boolean;
+          verified_at?: string | null;
+          last_verification_error?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_provider_settings"]["Insert"]>;
         Relationships: [];
       };
       member_tags: {
@@ -3870,11 +3962,23 @@ export type Database = {
         Returns: undefined;
       };
       create_online_payment_checkout_transaction: {
-        Args: { p_due_ids: string[]; p_provider: string };
+        Args: {
+          p_due_ids: string[];
+          p_provider: string;
+          p_environment: "SANDBOX" | "PRODUCTION";
+          p_provider_settings_id: string;
+          p_client_request_id: string;
+        };
         Returns: {
           transaction_id: string;
           amount: number;
+          is_replay: boolean;
+          provider_reference: string | null;
         }[];
+      };
+      mark_online_payment_checkout_created: {
+        Args: { p_transaction_id: string; p_provider_reference: string | null };
+        Returns: undefined;
       };
       record_online_payment: {
         Args: { p_transaction_id: string; p_webhook_event_id: string; p_provider_payload?: unknown };

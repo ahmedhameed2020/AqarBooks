@@ -2,6 +2,8 @@ export type ProviderId = "PAYMOB" | "FAWRY";
 export type PaymentEnvironment = "SANDBOX" | "PRODUCTION";
 
 export interface ProviderCredentials {
+  settingsId?: string;
+  environment?: PaymentEnvironment;
   merchantIdentifier: string;
   publicKey: string | null;
   apiKey: string;
