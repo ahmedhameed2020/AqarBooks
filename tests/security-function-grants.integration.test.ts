@@ -71,6 +71,10 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "get_payment_provider_credentials", // payment provider secrets
   "append_financial_audit_event", // forging audit entries
   "record_online_payment", // service-role webhook path
+  "enqueue_online_payment_event", // service-role durable webhook intake
+  "claim_online_payment_events", // service-role retry worker claim
+  "complete_online_payment_event", // service-role event state transition
+  "online_payment_events_append_only", // trigger-only immutability guard
   "run_lease_rent_generation", // service-role sweep
   "promote_scheduled_lease_renewals", // service-role lease activation boundary
   "run_lease_expiry_alerts", // service-role lease-expiry notification sweep
