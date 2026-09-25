@@ -50,8 +50,16 @@ const {
 vi.mock("@/lib/actions/gates", () => ({
   processVisitorGateScanAction,
 }));
+vi.mock("@/lib/actions/gate-connectivity", () => ({
+  recordGateConnectivityIncidentAction: vi.fn(async () => ({ ok: true })),
+}));
 vi.mock("@/lib/actions/gate-devices", () => ({
   redeemGateDeviceEnrollmentAction,
+}));
+vi.mock("@/lib/gates/scanner-feedback", () => ({
+  acquireScannerWakeLock: vi.fn(async () => null),
+  emitScannerFeedback: vi.fn(),
+  fingerprintQrPayload: vi.fn(async (payload: string) => payload),
 }));
 vi.mock("@/lib/gates/device-store", () => ({
   clearGateDevice,
@@ -177,6 +185,7 @@ describe("GateScannerClient camera polling", () => {
       firstDecision.resolve({ ok: false, error: "first_complete" });
       await firstDecision.promise;
       button(renderer, "Entry").props.onClick();
+      detect.mockResolvedValue([{ rawValue: `${qrPayload}-different` }]);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1200);
@@ -185,7 +194,7 @@ describe("GateScannerClient camera polling", () => {
     expect(processVisitorGateScanAction).toHaveBeenLastCalledWith(expect.objectContaining({
       deviceCredential,
       direction: "ENTRY",
-      qrPayload,
+      qrPayload: `${qrPayload}-different`,
     }));
 
     await act(async () => renderer.unmount());

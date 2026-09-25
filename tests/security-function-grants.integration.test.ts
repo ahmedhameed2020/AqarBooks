@@ -177,7 +177,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "create_gate", "gate_operations_enabled", "gate_staff_can_manage", "gate_staff_can_scan",
   "gate_staff_can_view", "gate_staff_can_view_access_events", "process_visitor_gate_scan",
   "update_gate", "create_gate_device_enrollment", "redeem_gate_device_enrollment",
-  "revoke_gate_device", "verify_gate_device_binding",
+  "record_gate_connectivity_incident", "revoke_gate_device", "verify_gate_device_binding",
   "add_work_order_update", "assign_work_order", "cancel_work_order", "complete_work_order",
   "create_work_order", "resume_work_order", "schedule_work_order", "start_work_order",
   "wait_work_order", "work_order_member_can_read",

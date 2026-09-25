@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
-import { processVisitorGateScanAction, type GateScanResult } from "@/lib/actions/gates";
 import { clearGateDevice, readGateDevice, saveGateDevice } from "@/lib/gates/device-store";
+import { useGateScanner } from "@/app/[locale]/(app)/operations/gate/use-gate-scanner";
 
 declare global {
   interface Window {
@@ -85,8 +85,21 @@ export function GateScannerClient({
   );
   const [manualPayload, setManualPayload] = useState("");
   const [cameraState, setCameraState] = useState<"idle" | "starting" | "active" | "unsupported" | "denied">("idle");
-  const [result, setResult] = useState<GateScanResult | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isEnrollmentPending, startTransition] = useTransition();
+  const scanner = useGateScanner({
+    deviceId: device?.id ?? null,
+    deviceCredential,
+    gateId: device?.gate.id ?? null,
+    direction,
+    onAuthorizationFailure: () => {
+      void clearGateDevice().catch(() => undefined).then(() => {
+        setDeviceCredential("");
+        router.replace(pathname);
+      });
+    },
+  });
+  const { result } = scanner;
+  const isPending = isEnrollmentPending || scanner.isPending;
 
   useEffect(() => {
     let cancelled = false;
@@ -125,11 +138,11 @@ export function GateScannerClient({
   }, [device, pathname, requestedDeviceId, router]);
 
   const pollForQrCode = useEffectEvent(async () => {
-    if (!detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || isPending) return;
+    if (!detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || scanner.isPending) return;
     try {
       const detected = await detectorRef.current.detect(videoRef.current);
       const first = detected[0]?.rawValue;
-      if (first) submitScan(first);
+      if (first) await scanner.submitScan(first);
     } catch {
       setCameraState("unsupported");
     }
@@ -171,25 +184,13 @@ export function GateScannerClient({
     };
   }, []);
 
-  function submitScan(qrPayload: string) {
-    if (!device || !deviceCredential || isPending) return;
-    startTransition(async () => {
-      const scanResult = await processVisitorGateScanAction({
-        deviceId: device.id,
-        deviceCredential,
-        gateId: device.gate.id,
-        qrPayload,
-        direction,
-        clientScanId: crypto.randomUUID(),
-      });
-      setResult(scanResult);
-      if (scanResult.ok) setManualPayload("");
-      if (!scanResult.ok && ["device_not_authorized", "unauthenticated"].includes(scanResult.error)) {
-        await clearGateDevice().catch(() => undefined);
-        setDeviceCredential("");
-        router.replace(pathname);
-      }
-    });
+  async function submitManualScan() {
+    const payload = manualPayload;
+    try {
+      await scanner.submitScan(payload);
+    } finally {
+      setManualPayload("");
+    }
   }
 
   function enrollDevice() {
@@ -326,7 +327,7 @@ export function GateScannerClient({
                     placeholder="AQP1..."
                     className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
                   />
-                  <Button type="button" disabled={!manualPayload || !device || !deviceCredential || isPending} onClick={() => submitScan(manualPayload)} className="h-11 rounded-xl">
+                  <Button type="button" disabled={!manualPayload || !device || !deviceCredential || isPending} onClick={() => void submitManualScan()} className="h-11 rounded-xl">
                     {isAr ? "تحقق" : "Scan"}
                   </Button>
                 </div>
@@ -349,15 +350,15 @@ export function GateScannerClient({
                 </div>
               </div>
 
-              <div className={`rounded-2xl border p-4 ${resultOk ? "border-emerald-300 bg-emerald-50 text-emerald-950" : result?.ok ? "border-rose-300 bg-rose-50 text-rose-950" : "border-white/10 bg-white/5 text-white"}`}>
+              <div aria-live="assertive" className={`rounded-2xl border p-4 ${resultOk ? "border-emerald-300 bg-emerald-50 text-emerald-950" : result?.ok ? "border-rose-300 bg-rose-50 text-rose-950" : result?.error === "unverified_offline" ? "border-amber-300 bg-amber-50 text-amber-950" : "border-white/10 bg-white/5 text-white"}`}>
                 <div className="flex items-center gap-3">
-                  {resultOk ? <CheckCircle2 className="size-10" /> : result?.ok ? <XCircle className="size-10" /> : <ScanQrCode className="size-10" />}
+                  {resultOk ? <CheckCircle2 className="size-10" /> : result?.ok ? <XCircle className="size-10" /> : result?.error === "unverified_offline" ? <ShieldAlert className="size-10" /> : <ScanQrCode className="size-10" />}
                   <div>
                     <p className="text-2xl font-black">
-                      {resultOk ? (isAr ? "مسموح" : "ALLOW") : result?.ok ? (isAr ? "مرفوض" : "DENY") : isAr ? "في انتظار المسح" : "Ready to scan"}
+                      {resultOk ? (isAr ? "مسموح" : "ALLOW") : result?.ok ? (isAr ? "مرفوض" : "DENY") : result?.error === "unverified_offline" ? (isAr ? "غير متحقق — غير متصل" : "UNVERIFIED — OFFLINE") : isAr ? "في انتظار المسح" : "Ready to scan"}
                     </p>
                     <p className="text-sm font-semibold">
-                      {result?.ok ? (resultReason ? (isAr ? resultReason.ar : resultReason.en) : result.reasonCode) : isAr ? "وجه الكود داخل الإطار أو استخدم الإدخال اليدوي." : "Place the QR in frame or use manual input."}
+                      {result?.ok ? (resultReason ? (isAr ? resultReason.ar : resultReason.en) : result.reasonCode) : result?.error === "unverified_offline" ? (isAr ? "لم يصدر قرار دخول. تحقق يدوياً مع المشرف." : "No access decision was issued. Verify manually with a supervisor.") : isAr ? "وجه الكود داخل الإطار أو استخدم الإدخال اليدوي." : "Place the QR in frame or use manual input."}
                     </p>
                     {result?.ok && result.guestName ? (
                       <p className="mt-1 text-xs">{result.guestName} · {result.invitationNo ?? ""}</p>
