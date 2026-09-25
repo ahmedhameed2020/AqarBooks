@@ -51,6 +51,11 @@ describe("gate device trust migration guard", () => {
     );
 
     expect(redeemFunction).toContain("returns public.gate_devices");
-    expect(redeemFunction).not.toMatch(/returning\s+[^;]*(code_hash|credential_hash)/s);
+    expect(redeemFunction).toMatch(
+      /v_device\.credential_hash := null;\s*v_device\.installation_id_hash := null;\s*return v_device;/s,
+    );
+    expect(redeemFunction.indexOf("v_device.credential_hash := null")).toBeLessThan(
+      redeemFunction.indexOf("return v_device;"),
+    );
   });
 });

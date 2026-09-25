@@ -12,6 +12,7 @@ type OrgFixture = {
   gateId: string;
   otherGateId: string;
   manager: Actor;
+  guard: Actor;
   viewer: Actor;
 };
 
@@ -97,6 +98,59 @@ async function createStaffActor(
   return { ...actor, client };
 }
 
+async function createGuardActor(
+  admin: Client,
+  apiUrl: string,
+  anonKey: string,
+  orgId: string,
+  label: string,
+): Promise<Actor> {
+  const actor = await createAuthUser(admin, label);
+  const { error: membershipError } = await admin.from("organization_memberships").insert({
+    organization_id: orgId,
+    user_id: actor.userId,
+    status: "active",
+  });
+  expect(membershipError, `guard membership create failed: ${membershipError?.message}`).toBeNull();
+
+  const { data: role, error: roleError } = await admin
+    .from("roles")
+    .insert({
+      organization_id: orgId,
+      key: "GATE_GUARD",
+      name_ar: "حارس البوابة",
+      name_en: "Gate Guard",
+      is_system: false,
+    })
+    .select("id")
+    .single();
+  expect(roleError, `guard role create failed: ${roleError?.message}`).toBeNull();
+  const { data: permission, error: permissionError } = await admin
+    .from("permissions")
+    .select("id")
+    .eq("key", "operations.gates.scan")
+    .single();
+  expect(permissionError, `scan permission lookup failed: ${permissionError?.message}`).toBeNull();
+  const { error: rolePermissionError } = await admin.from("role_permissions").insert({
+    role_id: role!.id,
+    permission_id: permission!.id,
+  });
+  expect(rolePermissionError, `guard permission grant failed: ${rolePermissionError?.message}`).toBeNull();
+  const { error: assignmentError } = await admin.from("user_role_assignments").insert({
+    organization_id: orgId,
+    user_id: actor.userId,
+    role_id: role!.id,
+  });
+  expect(assignmentError, `guard role assignment failed: ${assignmentError?.message}`).toBeNull();
+
+  const client = createClient<Database>(apiUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: signInError } = await client.auth.signInWithPassword({ email: actor.email, password: TEST_PASSWORD });
+  expect(signInError, `guard sign-in failed: ${signInError?.message}`).toBeNull();
+  return { ...actor, client };
+}
+
 async function createOrgFixture(
   admin: Client,
   apiUrl: string,
@@ -142,6 +196,7 @@ async function createOrgFixture(
   expect(propertyError, `property create failed: ${propertyError?.message}`).toBeNull();
 
   const manager = await createStaffActor(admin, apiUrl, anonKey, orgId, "PROPERTY_MANAGER", `${label}-manager`);
+  const guard = await createGuardActor(admin, apiUrl, anonKey, orgId, `${label}-guard`);
   const viewer = await createStaffActor(admin, apiUrl, anonKey, orgId, "VIEWER", `${label}-viewer`);
   const createGate = (code: string) =>
     manager.client.rpc("create_gate", {
@@ -161,6 +216,7 @@ async function createOrgFixture(
     gateId: gate.data!,
     otherGateId: otherGate.data!,
     manager,
+    guard,
     viewer,
   };
 }
@@ -222,7 +278,7 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
     expect(enrollment.error, `enrollment create failed: ${enrollment.error?.message}`).toBeNull();
 
     const guardA = orgA.manager.client;
-    const guardB = orgA.viewer.client;
+    const guardB = orgA.guard.client;
     const [first, second] = await Promise.all([
       redeemEnrollment(guardA, enrollment.data!, code),
       redeemEnrollment(guardB, enrollment.data!, code),
@@ -232,6 +288,7 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
 
     const device = (first.data ?? second.data)!;
     expect(device.credential_hash).toBeNull();
+    expect(device.installation_id_hash).toBeNull();
     const replay = await redeemEnrollment(guardA, enrollment.data!, code);
     expectSecurityRejection(replay.error, "single-use enrollment must deny replay");
   });
@@ -268,7 +325,16 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
     expect(redeemed.error, `redemption failed: ${redeemed.error?.message}`).toBeNull();
     const deviceId = redeemed.data!.id;
 
-    const valid = await orgA.viewer.client.rpc("verify_gate_device_binding", {
+    const viewerDenied = await orgA.viewer.client.rpc("verify_gate_device_binding", {
+      p_device_id: deviceId,
+      p_credential_hash: credentialHash,
+      p_gate_id: orgA.gateId,
+      p_direction: "ENTRY",
+    });
+    expect(viewerDenied.error, `viewer binding check errored: ${viewerDenied.error?.message}`).toBeNull();
+    expect(viewerDenied.data).toBe(false);
+
+    const valid = await orgA.guard.client.rpc("verify_gate_device_binding", {
       p_device_id: deviceId,
       p_credential_hash: credentialHash,
       p_gate_id: orgA.gateId,
@@ -278,9 +344,9 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
     expect(valid.data).toBe(true);
 
     for (const [client, gateId, direction, hash] of [
-      [orgA.viewer.client, orgA.gateId, "EXIT", credentialHash],
-      [orgA.viewer.client, orgA.otherGateId, "ENTRY", credentialHash],
-      [orgA.viewer.client, orgA.gateId, "ENTRY", sha256("wrong-credential")],
+      [orgA.guard.client, orgA.gateId, "EXIT", credentialHash],
+      [orgA.guard.client, orgA.otherGateId, "ENTRY", credentialHash],
+      [orgA.guard.client, orgA.gateId, "ENTRY", sha256("wrong-credential")],
       [orgB.manager.client, orgA.gateId, "ENTRY", credentialHash],
     ] as const) {
       const denied = await client.rpc("verify_gate_device_binding", {
@@ -304,7 +370,7 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
     });
     expect(managerRevoke.error, `manager revoke failed: ${managerRevoke.error?.message}`).toBeNull();
 
-    const revoked = await orgA.viewer.client.rpc("verify_gate_device_binding", {
+    const revoked = await orgA.guard.client.rpc("verify_gate_device_binding", {
       p_device_id: deviceId,
       p_credential_hash: credentialHash,
       p_gate_id: orgA.gateId,
@@ -312,6 +378,85 @@ describe.sequential("gate device trust runtime Supabase/PostgreSQL RLS gate", ()
     });
     expect(revoked.error, `revoked binding check errored: ${revoked.error?.message}`).toBeNull();
     expect(revoked.data).toBe(false);
+  });
+
+  it("fails closed for null binding inputs sent through the raw RPC boundary", async () => {
+    const code = opaqueSecret();
+    const credentialHash = sha256(`credential-${randomUUID()}`);
+    const enrollment = await createEnrollment(orgA.manager.client, orgA.gateId, "BOTH", code);
+    expect(enrollment.error, `enrollment create failed: ${enrollment.error?.message}`).toBeNull();
+    const redeemed = await orgA.guard.client.rpc("redeem_gate_device_enrollment", {
+      p_enrollment_id: enrollment.data!,
+      p_code: code,
+      p_installation_id_hash: sha256(`installation-${randomUUID()}`),
+      p_credential_hash: credentialHash,
+      p_display_name: "Null Boundary Scanner",
+    });
+    expect(redeemed.error, `redemption failed: ${redeemed.error?.message}`).toBeNull();
+
+    const nullGate = await orgA.guard.client.rpc("verify_gate_device_binding", {
+      p_device_id: redeemed.data!.id,
+      p_credential_hash: credentialHash,
+      p_gate_id: null as unknown as string,
+      p_direction: "ENTRY",
+    });
+    expect(nullGate.error, `null-gate binding check errored: ${nullGate.error?.message}`).toBeNull();
+    expect(nullGate.data).toBe(false);
+
+    const nullDirection = await orgA.guard.client.rpc("verify_gate_device_binding", {
+      p_device_id: redeemed.data!.id,
+      p_credential_hash: credentialHash,
+      p_gate_id: orgA.gateId,
+      p_direction: null as unknown as "ENTRY",
+    });
+    expect(nullDirection.error, `null-direction binding check errored: ${nullDirection.error?.message}`).toBeNull();
+    expect(nullDirection.data).toBe(false);
+  });
+
+  it("re-checks the canonical gate active state and direction mode", async () => {
+    const code = opaqueSecret();
+    const credentialHash = sha256(`credential-${randomUUID()}`);
+    const enrollment = await createEnrollment(orgA.manager.client, orgA.gateId, "ENTRY", code);
+    expect(enrollment.error, `enrollment create failed: ${enrollment.error?.message}`).toBeNull();
+    const redeemed = await orgA.guard.client.rpc("redeem_gate_device_enrollment", {
+      p_enrollment_id: enrollment.data!,
+      p_code: code,
+      p_installation_id_hash: sha256(`installation-${randomUUID()}`),
+      p_credential_hash: credentialHash,
+      p_display_name: "Gate Lifecycle Scanner",
+    });
+    expect(redeemed.error, `redemption failed: ${redeemed.error?.message}`).toBeNull();
+
+    const { error: disableError } = await admin.from("gates").update({ is_active: false }).eq("id", orgA.gateId);
+    expect(disableError, `gate disable failed: ${disableError?.message}`).toBeNull();
+    const inactive = await orgA.guard.client.rpc("verify_gate_device_binding", {
+      p_device_id: redeemed.data!.id,
+      p_credential_hash: credentialHash,
+      p_gate_id: orgA.gateId,
+      p_direction: "ENTRY",
+    });
+    expect(inactive.error, `inactive-gate check errored: ${inactive.error?.message}`).toBeNull();
+    expect(inactive.data).toBe(false);
+
+    const { error: reconfigureError } = await admin
+      .from("gates")
+      .update({ is_active: true, direction_mode: "EXIT" })
+      .eq("id", orgA.gateId);
+    expect(reconfigureError, `gate reconfiguration failed: ${reconfigureError?.message}`).toBeNull();
+    const incompatibleDirection = await orgA.guard.client.rpc("verify_gate_device_binding", {
+      p_device_id: redeemed.data!.id,
+      p_credential_hash: credentialHash,
+      p_gate_id: orgA.gateId,
+      p_direction: "ENTRY",
+    });
+    expect(incompatibleDirection.error, `direction-mode check errored: ${incompatibleDirection.error?.message}`).toBeNull();
+    expect(incompatibleDirection.data).toBe(false);
+
+    const { error: restoreError } = await admin
+      .from("gates")
+      .update({ direction_mode: "BOTH" })
+      .eq("id", orgA.gateId);
+    expect(restoreError, `gate fixture restore failed: ${restoreError?.message}`).toBeNull();
   });
 
   it("denies direct authenticated writes to both trust tables", async () => {

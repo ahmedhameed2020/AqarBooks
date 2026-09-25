@@ -3834,7 +3834,13 @@ export type Database = {
           p_credential_hash: string;
           p_display_name: string;
         };
-        Returns: Database["public"]["Tables"]["gate_devices"]["Row"];
+        Returns: Omit<
+          Database["public"]["Tables"]["gate_devices"]["Row"],
+          "credential_hash" | "installation_id_hash"
+        > & {
+          credential_hash: null;
+          installation_id_hash: null;
+        };
       };
       revoke_gate_device: {
         Args: { p_device_id: string; p_reason: string };

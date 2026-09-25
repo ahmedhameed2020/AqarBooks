@@ -437,10 +437,13 @@ declare
   v_credential_hash text := pg_catalog.lower(nullif(pg_catalog.btrim(p_credential_hash), ''));
   v_direction text := pg_catalog.upper(nullif(pg_catalog.btrim(p_direction), ''));
   v_device public.gate_devices;
+  v_gate public.gates;
 begin
   if v_user_id is null
      or v_credential_hash is null
      or v_credential_hash !~ '^[0-9a-f]{64}$'
+     or p_gate_id is null
+     or v_direction is null
      or v_direction not in ('ENTRY', 'EXIT') then
     return false;
   end if;
@@ -450,12 +453,25 @@ begin
   where d.id = p_device_id;
 
   if v_device.id is null
-     or not public.is_org_member(v_user_id, v_device.organization_id)
+     or public.is_org_member(v_user_id, v_device.organization_id) is not true
+     or public.gate_staff_can_scan(v_device.organization_id) is not true
      or v_device.status <> 'ACTIVE'
-     or v_device.gate_id <> p_gate_id
+     or v_device.gate_id is distinct from p_gate_id
      or (v_device.allowed_direction <> 'BOTH' and v_device.allowed_direction <> v_direction)
-     or not public.organization_is_active(v_device.organization_id)
-     or not public.gate_operations_enabled(v_device.organization_id) then
+     or public.organization_is_active(v_device.organization_id) is not true
+     or public.gate_operations_enabled(v_device.organization_id) is not true then
+    return false;
+  end if;
+
+  select g.* into v_gate
+  from public.gates g
+  where g.id = v_device.gate_id
+    and g.organization_id = v_device.organization_id
+    and g.property_id = v_device.property_id;
+
+  if v_gate.id is null
+     or v_gate.is_active is not true
+     or (v_gate.direction_mode <> 'BOTH' and v_gate.direction_mode <> v_direction) then
     return false;
   end if;
 
