@@ -65,9 +65,13 @@ export function DeviceEnrollmentDialog({
   const [previousActiveGateSignature, setPreviousActiveGateSignature] = useState(activeGateSignature);
 
   if (previousActiveGateSignature !== activeGateSignature) {
-    const nextGate = activeGates.find((gate) => gate.id === gateId) ?? activeGates[0];
+    const currentGate = activeGates.find((gate) => gate.id === gateId);
+    const nextGate = currentGate ?? activeGates[0];
     const nextGateId = nextGate?.id ?? "";
-    const nextDirection = nextGate?.directionMode ?? "BOTH";
+    const directionIsAllowed = nextGate?.directionMode === "BOTH" || nextGate?.directionMode === direction;
+    const nextDirection = currentGate && directionIsAllowed
+      ? direction
+      : nextGate?.directionMode ?? "BOTH";
 
     setPreviousActiveGateSignature(activeGateSignature);
     setGateId(nextGateId);

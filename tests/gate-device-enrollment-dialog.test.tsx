@@ -43,6 +43,13 @@ const gateB: EnrollmentGateOption = {
   isActive: true,
 };
 
+const gateC: EnrollmentGateOption = {
+  id: "gate-c",
+  label: "Gate C",
+  directionMode: "EXIT",
+  isActive: true,
+};
+
 function selects(renderer: ReactTestRenderer) {
   return renderer.root.findAllByType("select");
 }
@@ -110,7 +117,7 @@ describe("DeviceEnrollmentDialog gate reconciliation", () => {
 
     [gateSelect, directionSelect] = selects(renderer);
     expect(gateSelect.props.value).toBe("gate-a");
-    expect(directionSelect.props.value).toBe("BOTH");
+    expect(directionSelect.props.value).toBe("EXIT");
 
     await act(async () => {
       renderer.update(<DeviceEnrollmentDialog gates={[gateB]} locale="en" />);
@@ -120,5 +127,41 @@ describe("DeviceEnrollmentDialog gate reconciliation", () => {
     expect(gateSelect.props.value).toBe("gate-b");
     expect(directionSelect.props.value).toBe("ENTRY");
     expect(createButton(renderer).props.disabled).toBe(false);
+  });
+
+  it("preserves a valid BOTH-gate direction when unrelated gates change, add, remove, or reorder", async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<DeviceEnrollmentDialog gates={[gateA, gateB]} locale="en" />);
+    });
+
+    let [gateSelect, directionSelect] = selects(renderer);
+    await act(async () => {
+      directionSelect.props.onChange({ target: { value: "ENTRY" } });
+    });
+
+    await act(async () => {
+      renderer.update(
+        <DeviceEnrollmentDialog
+          gates={[gateA, { ...gateB, directionMode: "EXIT" }, gateC]}
+          locale="en"
+        />,
+      );
+    });
+
+    [gateSelect, directionSelect] = selects(renderer);
+    expect(gateSelect.props.value).toBe("gate-a");
+    expect(directionSelect.props.value).toBe("ENTRY");
+
+    await act(async () => {
+      directionSelect.props.onChange({ target: { value: "EXIT" } });
+    });
+    await act(async () => {
+      renderer.update(<DeviceEnrollmentDialog gates={[gateC, gateA]} locale="en" />);
+    });
+
+    [gateSelect, directionSelect] = selects(renderer);
+    expect(gateSelect.props.value).toBe("gate-a");
+    expect(directionSelect.props.value).toBe("EXIT");
   });
 });
