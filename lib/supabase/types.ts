@@ -3993,6 +3993,10 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["online_payment_events"]["Row"];
       };
+      recover_stale_online_payment_events: {
+        Args: { p_stale_after?: string };
+        Returns: number;
+      };
       enqueue_online_payment_event: {
         Args: {
           p_organization_id: string;

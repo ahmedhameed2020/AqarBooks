@@ -1,7 +1,7 @@
 # P10 — Fawry Production Collections Design
 
-**Status:** Approved direction; implementation not started  
-**Date:** 2026-09-24  
+**Status:** Approved direction; implementation not started
+**Date:** 2026-09-24
 **Scope:** Fawry-first production collections, controlled refunds, settlement reconciliation, and pilot release
 
 ## 1. Intent and success criteria

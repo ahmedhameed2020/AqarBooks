@@ -19,6 +19,12 @@ describe("payment event retry automation", () => {
     expect(route).not.toContain("redacted_payload");
   });
 
+  it("recovers abandoned processing leases before claiming retries", () => {
+    expect(route).toContain("recover_stale_online_payment_events");
+    expect(route).toContain('p_stale_after: "10 minutes"');
+    expect(route).toContain("recovery_failed");
+  });
+
   it("uses the shared secret and bounded curl in the scheduler", () => {
     expect(workflow).toContain("secrets.CRON_SECRET");
     expect(workflow).toContain("-m 300");

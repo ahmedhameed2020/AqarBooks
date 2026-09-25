@@ -237,11 +237,9 @@ export async function resolveProviderCredentials(
     publicKey: data.public_key,
     apiKey: data.api_key,
     hmacSecret: data.hmac_secret,
-    // See ProviderCredentials.baseUrl's doc comment (providers/types.ts):
-    // online_payment_transactions has no `environment` column yet, so real
-    // per-environment base-URL differentiation is not implemented -- this
-    // is always the sandbox/staging URL regardless of what `environment`
-    // was requested or what the tenant's settings row says.
+    // Legacy callers remain sandbox-only. Production checkout and webhook
+    // paths use resolveProviderCredentialsBySettings(), which binds the
+    // immutable transaction environment to an explicitly configured URL.
     baseUrl: provider === "FAWRY" ? FAWRY_SANDBOX_BASE_URL : undefined,
   };
 }

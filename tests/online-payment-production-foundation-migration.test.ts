@@ -43,5 +43,12 @@ describe("online payment production foundation migration", () => {
     expect(migration).toMatch(
       /grant execute on function public\.claim_online_payment_events[\s\S]+to service_role/,
     );
+    expect(migration).toContain("create function public.recover_stale_online_payment_events");
+    expect(migration).toMatch(
+      /revoke all on function public\.recover_stale_online_payment_events[\s\S]+from public, anon, authenticated/,
+    );
+    expect(migration).toMatch(
+      /grant execute on function public\.recover_stale_online_payment_events[\s\S]+to service_role/,
+    );
   });
 });

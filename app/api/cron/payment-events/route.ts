@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient();
+  const { data: recovered, error: recoveryError } = await admin.rpc(
+    "recover_stale_online_payment_events",
+    { p_stale_after: "10 minutes" },
+  );
+  if (recoveryError) return NextResponse.json({ error: "recovery_failed" }, { status: 500 });
+
   const { data, error } = await admin.from("online_payment_events")
     .select("id")
     .in("processing_status", ["RECEIVED", "RETRYABLE_ERROR"])
@@ -30,7 +36,7 @@ export async function POST(request: NextRequest) {
     .limit(MAX_BATCH);
   if (error) return NextResponse.json({ error: "claim_failed" }, { status: 500 });
 
-  const counts = { claimed: data?.length ?? 0, processed: 0, idempotent: 0, quarantined: 0, retryable: 0, failed: 0 };
+  const counts = { recovered: recovered ?? 0, claimed: data?.length ?? 0, processed: 0, idempotent: 0, quarantined: 0, retryable: 0, permanent: 0, failed: 0 };
   for (const row of data ?? []) {
     try {
       const result = await processPaymentEvent(row.id);
@@ -38,6 +44,7 @@ export async function POST(request: NextRequest) {
       else if (result.status === "IDEMPOTENT") counts.idempotent += 1;
       else if (result.status === "QUARANTINED") counts.quarantined += 1;
       else if (result.status === "RETRYABLE_ERROR") counts.retryable += 1;
+      else if (result.status === "PERMANENT_ERROR") counts.permanent += 1;
     } catch {
       counts.failed += 1;
     }

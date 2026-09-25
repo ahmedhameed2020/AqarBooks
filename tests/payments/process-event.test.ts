@@ -28,6 +28,7 @@ function harness(overrides: Partial<PaymentEventProcessorDependencies> = {}) {
     transaction_id: "txn-1",
     signature_verified: true,
     processing_status: "PROCESSING",
+    attempt_count: 1,
     redacted_payload: normalized,
   };
   const dependencies: PaymentEventProcessorDependencies = {
@@ -101,6 +102,20 @@ describe("durable payment event processing", () => {
     expect(result).toEqual({ status: "RETRYABLE_ERROR", code: "PAYMENT_POSTING_FAILED" });
     expect(dependencies.complete).toHaveBeenCalledWith(
       "evt-db-1", "RETRYABLE_ERROR", "PAYMENT_POSTING_FAILED", expect.any(String),
+    );
+  });
+
+  it("stops retrying after the bounded attempt limit", async () => {
+    const { event, dependencies } = harness();
+    event.attempt_count = 10;
+
+    await expect(processPaymentEvent("evt-db-1", dependencies)).resolves.toEqual({
+      status: "PERMANENT_ERROR",
+      code: "RETRY_LIMIT_EXHAUSTED",
+    });
+    expect(dependencies.recordPayment).not.toHaveBeenCalled();
+    expect(dependencies.complete).toHaveBeenCalledWith(
+      "evt-db-1", "PERMANENT_ERROR", "RETRY_LIMIT_EXHAUSTED",
     );
   });
 });

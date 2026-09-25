@@ -7,13 +7,14 @@ import {
 
 export type PaymentEventProcessResult =
   | { status: "PROCESSED" | "IDEMPOTENT" | "IGNORED"; code: string }
-  | { status: "QUARANTINED" | "RETRYABLE_ERROR"; code: string };
+  | { status: "QUARANTINED" | "RETRYABLE_ERROR" | "PERMANENT_ERROR"; code: string };
 
 export interface ProcessablePaymentEvent {
   id: string;
   transaction_id: string | null;
   signature_verified: boolean;
   processing_status: string;
+  attempt_count: number;
   redacted_payload: unknown;
 }
 
@@ -34,6 +35,11 @@ export async function processPaymentEvent(
 ): Promise<PaymentEventProcessResult> {
   const event = await dependencies.claim(eventId);
   if (!event) return { status: "IDEMPOTENT", code: "EVENT_ALREADY_CLAIMED_OR_COMPLETE" };
+
+  if (event.attempt_count >= 10) {
+    await dependencies.complete(event.id, "PERMANENT_ERROR", "RETRY_LIMIT_EXHAUSTED");
+    return { status: "PERMANENT_ERROR", code: "RETRY_LIMIT_EXHAUSTED" };
+  }
 
   if (!event.signature_verified) {
     await dependencies.complete(event.id, "QUARANTINED", "INVALID_SIGNATURE");

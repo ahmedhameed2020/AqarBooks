@@ -288,6 +288,34 @@ begin
 end;
 $$;
 
+create function public.recover_stale_online_payment_events(
+  p_stale_after interval default interval '10 minutes'
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_recovered integer;
+begin
+  if p_stale_after < interval '1 minute' then
+    raise exception 'INVALID_PAYMENT_EVENT_LEASE' using errcode = '22023';
+  end if;
+
+  update public.online_payment_events
+  set processing_status = 'RETRYABLE_ERROR',
+      next_attempt_at = now(),
+      last_error_code = 'STALE_PROCESSING_LEASE',
+      updated_at = now()
+  where processing_status = 'PROCESSING'
+    and updated_at <= now() - p_stale_after;
+
+  get diagnostics v_recovered = row_count;
+  return v_recovered;
+end;
+$$;
+
 create function public.mark_online_payment_checkout_created(
   p_transaction_id uuid,
   p_provider_reference text
@@ -457,10 +485,12 @@ revoke all on function public.online_payment_events_append_only() from public, a
 revoke all on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) from public, anon, authenticated;
 revoke all on function public.claim_online_payment_events(integer, uuid) from public, anon, authenticated;
 revoke all on function public.complete_online_payment_event(uuid, text, text, timestamptz) from public, anon, authenticated;
+revoke all on function public.recover_stale_online_payment_events(interval) from public, anon, authenticated;
 revoke all on function public.mark_online_payment_checkout_created(uuid, text) from public, anon, authenticated;
 grant execute on function public.enqueue_online_payment_event(uuid, uuid, uuid, text, text, text, text, text, boolean, jsonb, text) to service_role;
 grant execute on function public.claim_online_payment_events(integer, uuid) to service_role;
 grant execute on function public.complete_online_payment_event(uuid, text, text, timestamptz) to service_role;
+grant execute on function public.recover_stale_online_payment_events(interval) to service_role;
 grant execute on function public.mark_online_payment_checkout_created(uuid, text) to service_role;
 
 revoke all on function public.create_online_payment_checkout_transaction(uuid[], text, text, uuid, text) from public, anon;
