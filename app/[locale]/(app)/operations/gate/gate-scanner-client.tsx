@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Camera, CheckCircle2, Keyboard, ScanQrCode, ShieldAlert, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,12 @@ export interface GateScannerGate {
   name: string;
   directionMode: "ENTRY" | "EXIT" | "BOTH";
   propertyName: string;
+}
+
+export interface GateScannerDevice {
+  id: string;
+  gate: GateScannerGate;
+  allowedDirection: "ENTRY" | "EXIT" | "BOTH";
 }
 
 export interface GateScannerEvent {
@@ -51,28 +57,25 @@ const REASON_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 export function GateScannerClient({
-  gates,
+  device,
   recentEvents,
   locale,
 }: {
-  gates: GateScannerGate[];
+  device: GateScannerDevice | null;
   recentEvents: GateScannerEvent[];
   locale: "ar" | "en";
 }) {
   const isAr = locale === "ar";
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const detectorRef = useRef<InstanceType<NonNullable<typeof window.BarcodeDetector>> | null>(null);
-  const [selectedGateId, setSelectedGateId] = useState(gates[0]?.id ?? "");
-  const [direction, setDirection] = useState<"ENTRY" | "EXIT">("ENTRY");
+  const [deviceCredential, setDeviceCredential] = useState("");
+  const [direction, setDirection] = useState<"ENTRY" | "EXIT">(
+    device?.allowedDirection === "EXIT" ? "EXIT" : "ENTRY",
+  );
   const [manualPayload, setManualPayload] = useState("");
   const [cameraState, setCameraState] = useState<"idle" | "starting" | "active" | "unsupported" | "denied">("idle");
   const [result, setResult] = useState<GateScanResult | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const selectedGate = useMemo(
-    () => gates.find((gate) => gate.id === selectedGateId),
-    [gates, selectedGateId],
-  );
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -115,15 +118,17 @@ export function GateScannerClient({
       window.clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-    // Scanner polling intentionally reads the latest selected gate/direction through submitScan.
+    // Scanner polling intentionally reads the latest bound device and direction through submitScan.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function submitScan(qrPayload: string) {
-    if (!selectedGateId || isPending) return;
+    if (!device || !deviceCredential || isPending) return;
     startTransition(async () => {
       const scanResult = await processVisitorGateScanAction({
-        gateId: selectedGateId,
+        deviceId: device.id,
+        deviceCredential,
+        gateId: device.gate.id,
         qrPayload,
         direction,
         clientScanId: crypto.randomUUID(),
@@ -148,25 +153,29 @@ export function GateScannerClient({
               </p>
             </div>
             <Badge variant="outline" className="w-fit border-emerald-400/50 bg-emerald-400/10 text-emerald-100">
-              {selectedGate?.propertyName ?? (isAr ? "لا توجد بوابة" : "No gate")}
+              {device?.gate.propertyName ?? (isAr ? "الجهاز غير مسجل" : "Device not enrolled")}
             </Badge>
           </div>
 
           <div className="grid gap-4 p-4 lg:grid-cols-[.9fr_1.1fr]">
             <div className="space-y-3">
+              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isAr ? "البوابة المرتبطة" : "Bound gate"}</p>
+                <p className="text-sm font-black text-white">
+                  {device ? `${device.gate.name} · ${device.gate.code}` : (isAr ? "افتح رابط الجهاز المسجل" : "Open this scanner from its enrolled device link")}
+                </p>
+              </div>
+
               <label className="space-y-1 text-xs font-bold text-slate-200">
-                <span>{isAr ? "البوابة" : "Gate"}</span>
-                <select
-                  value={selectedGateId}
-                  onChange={(event) => setSelectedGateId(event.target.value)}
-                  className="h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white"
-                >
-                  {gates.map((gate) => (
-                    <option key={gate.id} value={gate.id} className="text-slate-950">
-                      {gate.name} · {gate.code}
-                    </option>
-                  ))}
-                </select>
+                <span>{isAr ? "بيانات اعتماد الجهاز" : "Device credential"}</span>
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  value={deviceCredential}
+                  onChange={(event) => setDeviceCredential(event.target.value)}
+                  disabled={!device}
+                  className="h-11 rounded-xl border-white/15 bg-white/10 text-white"
+                />
               </label>
 
               <div className="grid grid-cols-2 gap-2">
@@ -176,6 +185,7 @@ export function GateScannerClient({
                     type="button"
                     variant={direction === item ? "secondary" : "outline"}
                     onClick={() => setDirection(item)}
+                    disabled={!device || (device.allowedDirection !== "BOTH" && device.allowedDirection !== item)}
                     className="h-12 rounded-xl"
                   >
                     {item === "ENTRY" ? (isAr ? "دخول" : "Entry") : isAr ? "خروج" : "Exit"}
@@ -195,7 +205,7 @@ export function GateScannerClient({
                     placeholder="AQP1..."
                     className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
                   />
-                  <Button type="button" disabled={!manualPayload || !selectedGateId || isPending} onClick={() => submitScan(manualPayload)} className="h-11 rounded-xl">
+                  <Button type="button" disabled={!manualPayload || !device || !deviceCredential || isPending} onClick={() => submitScan(manualPayload)} className="h-11 rounded-xl">
                     {isAr ? "تحقق" : "Scan"}
                   </Button>
                 </div>

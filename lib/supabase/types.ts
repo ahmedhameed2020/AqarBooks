@@ -3878,6 +3878,8 @@ export type Database = {
       };
       process_visitor_gate_scan: {
         Args: {
+          p_device_id: string;
+          p_device_credential: string;
           p_gate_id: string;
           p_invitation_id: string;
           p_raw_secret: string;

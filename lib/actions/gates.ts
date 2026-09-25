@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { parseGateScanRequest, type GateScanRequest } from "@/lib/gates/scanner-contract";
 import { createClient } from "@/lib/supabase/server";
 
-const directionSchema = z.enum(["ENTRY", "EXIT"]);
 const gateDirectionSchema = z.enum(["ENTRY", "EXIT", "BOTH"]);
 
 const gateInputSchema = z.object({
@@ -22,13 +22,6 @@ const updateGateInputSchema = z.object({
   nameEn: z.string().trim().min(1).max(120),
   directionMode: gateDirectionSchema.default("BOTH"),
   isActive: z.boolean(),
-});
-
-const scanInputSchema = z.object({
-  gateId: z.string().uuid(),
-  qrPayload: z.string().trim().min(20).max(220),
-  direction: directionSchema,
-  clientScanId: z.string().uuid(),
 });
 
 export type GateActionResult =
@@ -66,6 +59,7 @@ function mapGateError(message: string | undefined): string {
   if (message.includes("INVALID_GATE_NAME")) return "invalid_name";
   if (message.includes("INVALID_GATE_DIRECTION")) return "invalid_direction";
   if (message.includes("INVALID_GATE_SCAN_INPUT")) return "invalid_input";
+  if (message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) return "device_not_authorized";
   if (message.includes("ORGANIZATION_INACTIVE")) return "organization_inactive";
   return "failed";
 }
@@ -129,21 +123,27 @@ export async function updateGateAction(
 }
 
 export async function processVisitorGateScanAction(
-  input: z.input<typeof scanInputSchema>,
+  input: GateScanRequest,
 ): Promise<GateScanResult> {
-  const parsed = scanInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  let parsed: GateScanRequest;
+  try {
+    parsed = parseGateScanRequest(input);
+  } catch {
+    return { ok: false, error: "invalid_input" };
+  }
 
-  const payload = parseQrPayload(parsed.data.qrPayload);
+  const payload = parseQrPayload(parsed.qrPayload);
   if (!payload) return { ok: false, error: "invalid_qr_payload" };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("process_visitor_gate_scan", {
-    p_gate_id: parsed.data.gateId,
+    p_device_id: parsed.deviceId,
+    p_device_credential: parsed.deviceCredential,
+    p_gate_id: parsed.gateId,
     p_invitation_id: payload.invitationId,
     p_raw_secret: payload.secret,
-    p_direction: parsed.data.direction,
-    p_client_scan_id: parsed.data.clientScanId,
+    p_direction: parsed.direction,
+    p_client_scan_id: parsed.clientScanId,
   });
 
   const result = data?.[0];
