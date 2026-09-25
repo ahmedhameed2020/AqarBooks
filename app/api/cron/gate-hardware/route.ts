@@ -29,5 +29,5 @@ export async function POST(request: NextRequest) {
       else counts.stale++;
     } catch { counts.failed++; }
   }
-  return NextResponse.json(counts);
+  return NextResponse.json(counts, { status: counts.failed > 0 ? 500 : 200 });
 }
