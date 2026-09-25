@@ -916,6 +916,80 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["gates"]["Row"]>;
         Relationships: [];
       };
+      gate_device_enrollments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          direction: "ENTRY" | "EXIT" | "BOTH";
+          code_hash: string;
+          expires_at: string;
+          redeemed_at: string | null;
+          redeemed_by: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          direction: "ENTRY" | "EXIT" | "BOTH";
+          code_hash: string;
+          expires_at: string;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gate_device_enrollments"]["Row"]>;
+        Relationships: [];
+      };
+      gate_devices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          installation_id_hash: string;
+          credential_hash: string;
+          display_name: string;
+          device_notes: string | null;
+          allowed_direction: "ENTRY" | "EXIT" | "BOTH";
+          status: "ACTIVE" | "SUSPENDED" | "REVOKED";
+          enrolled_at: string;
+          last_seen_at: string | null;
+          enrolled_by: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revocation_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          installation_id_hash: string;
+          credential_hash: string;
+          display_name: string;
+          device_notes?: string | null;
+          allowed_direction: "ENTRY" | "EXIT" | "BOTH";
+          status?: "ACTIVE" | "SUSPENDED" | "REVOKED";
+          enrolled_at?: string;
+          last_seen_at?: string | null;
+          enrolled_by: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revocation_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gate_devices"]["Row"]>;
+        Relationships: [];
+      };
       access_events: {
         Row: {
           id: string;
@@ -3741,6 +3815,38 @@ export type Database = {
       };
       gate_staff_can_view_access_events: {
         Args: { p_organization_id: string };
+        Returns: boolean;
+      };
+      create_gate_device_enrollment: {
+        Args: {
+          p_gate_id: string;
+          p_direction: "ENTRY" | "EXIT" | "BOTH";
+          p_code_hash: string;
+          p_expires_at: string;
+        };
+        Returns: string;
+      };
+      redeem_gate_device_enrollment: {
+        Args: {
+          p_enrollment_id: string;
+          p_code: string;
+          p_installation_id_hash: string;
+          p_credential_hash: string;
+          p_display_name: string;
+        };
+        Returns: Database["public"]["Tables"]["gate_devices"]["Row"];
+      };
+      revoke_gate_device: {
+        Args: { p_device_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      verify_gate_device_binding: {
+        Args: {
+          p_device_id: string;
+          p_credential_hash: string;
+          p_gate_id: string;
+          p_direction: "ENTRY" | "EXIT";
+        };
         Returns: boolean;
       };
       create_gate: {
