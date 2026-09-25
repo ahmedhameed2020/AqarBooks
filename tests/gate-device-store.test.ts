@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearGateDevice,
+  clearGateDeviceBeforeSignOut,
   readGateDevice,
   saveGateDevice,
   type StoredGateDevice,
@@ -137,5 +138,22 @@ describe("gate device storage", () => {
     await clearGateDevice();
 
     expect(await readGateDevice()).toBeNull();
+  });
+
+  it("clears the enrolled device before continuing sign-out", async () => {
+    const device: StoredGateDevice = {
+      deviceId: "0f55a99d-97cc-49be-a0ed-c794998714b3",
+      gateId: "c78eeb37-cf70-4d47-8d3e-1d6bb51d35f5",
+      allowedDirection: "ENTRY",
+      installationId: "a".repeat(43),
+      deviceCredential: "b".repeat(43),
+    };
+    const continueSignOut = vi.fn();
+
+    await saveGateDevice(device);
+    await clearGateDeviceBeforeSignOut(continueSignOut);
+
+    expect(await readGateDevice()).toBeNull();
+    expect(continueSignOut).toHaveBeenCalledTimes(1);
   });
 });

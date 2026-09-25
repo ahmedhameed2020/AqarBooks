@@ -158,7 +158,13 @@ export default async function GateScannerPage({
   return (
     <>
       <GateScannerServiceWorkerRegistration />
-      <GateScannerClient key={device?.id ?? "unenrolled"} device={device} recentEvents={recentEvents} locale={locale as "ar" | "en"} />
+      <GateScannerClient
+        key={device?.id ?? "unenrolled"}
+        requestedDeviceId={requestedDeviceId}
+        device={device}
+        recentEvents={recentEvents}
+        locale={locale as "ar" | "en"}
+      />
     </>
   );
 }

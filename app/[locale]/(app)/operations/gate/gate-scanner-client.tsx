@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Camera, CheckCircle2, Keyboard, ScanQrCode, ShieldAlert, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
 import { processVisitorGateScanAction, type GateScanResult } from "@/lib/actions/gates";
+import { clearGateDevice, readGateDevice, saveGateDevice } from "@/lib/gates/device-store";
 
 declare global {
   interface Window {
@@ -57,18 +60,26 @@ const REASON_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 export function GateScannerClient({
+  requestedDeviceId,
   device,
   recentEvents,
   locale,
 }: {
+  requestedDeviceId: string | null;
   device: GateScannerDevice | null;
   recentEvents: GateScannerEvent[];
   locale: "ar" | "en";
 }) {
   const isAr = locale === "ar";
+  const pathname = usePathname();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const detectorRef = useRef<InstanceType<NonNullable<typeof window.BarcodeDetector>> | null>(null);
   const [deviceCredential, setDeviceCredential] = useState("");
+  const [enrollmentId, setEnrollmentId] = useState("");
+  const [enrollmentCode, setEnrollmentCode] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
   const [direction, setDirection] = useState<"ENTRY" | "EXIT">(
     device?.allowedDirection === "EXIT" ? "EXIT" : "ENTRY",
   );
@@ -76,6 +87,42 @@ export function GateScannerClient({
   const [cameraState, setCameraState] = useState<"idle" | "starting" | "active" | "unsupported" | "denied">("idle");
   const [result, setResult] = useState<GateScanResult | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateDevice() {
+      const storedDevice = await readGateDevice();
+      if (cancelled || !storedDevice) return;
+
+      if (!requestedDeviceId) {
+        router.replace(`${pathname}?deviceId=${encodeURIComponent(storedDevice.deviceId)}`);
+        return;
+      }
+
+      const bindingMatches = device
+        && requestedDeviceId === storedDevice.deviceId
+        && device.id === storedDevice.deviceId
+        && device.gate.id === storedDevice.gateId
+        && device.allowedDirection === storedDevice.allowedDirection;
+
+      if (!bindingMatches) {
+        await clearGateDevice().catch(() => undefined);
+        if (!cancelled) {
+          setDeviceCredential("");
+          router.replace(pathname);
+        }
+        return;
+      }
+
+      setDeviceCredential(storedDevice.deviceCredential);
+    }
+
+    void hydrateDevice();
+    return () => {
+      cancelled = true;
+    };
+  }, [device, pathname, requestedDeviceId, router]);
 
   const pollForQrCode = useEffectEvent(async () => {
     if (!detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || isPending) return;
@@ -137,6 +184,44 @@ export function GateScannerClient({
       });
       setResult(scanResult);
       if (scanResult.ok) setManualPayload("");
+      if (!scanResult.ok && ["device_not_authorized", "unauthenticated"].includes(scanResult.error)) {
+        await clearGateDevice().catch(() => undefined);
+        setDeviceCredential("");
+        router.replace(pathname);
+      }
+    });
+  }
+
+  function enrollDevice() {
+    if (!enrollmentId || !enrollmentCode || !displayName.trim() || isPending) return;
+
+    setEnrollmentError(null);
+    startTransition(async () => {
+      const enrollment = await redeemGateDeviceEnrollmentAction({
+        enrollmentId,
+        code: enrollmentCode,
+        displayName,
+      });
+      if (!enrollment.ok) {
+        setEnrollmentError(enrollment.error);
+        return;
+      }
+
+      try {
+        await saveGateDevice({
+          deviceId: enrollment.deviceId,
+          gateId: enrollment.gateId,
+          allowedDirection: enrollment.allowedDirection,
+          installationId: enrollment.installationId,
+          deviceCredential: enrollment.deviceCredential,
+        });
+      } catch {
+        setEnrollmentError("storage_unavailable");
+        return;
+      }
+
+      setEnrollmentCode("");
+      router.replace(`${pathname}?deviceId=${encodeURIComponent(enrollment.deviceId)}`);
     });
   }
 
@@ -168,17 +253,51 @@ export function GateScannerClient({
                 </p>
               </div>
 
-              <label className="space-y-1 text-xs font-bold text-slate-200">
-                <span>{isAr ? "بيانات اعتماد الجهاز" : "Device credential"}</span>
-                <Input
-                  type="password"
-                  autoComplete="off"
-                  value={deviceCredential}
-                  onChange={(event) => setDeviceCredential(event.target.value)}
-                  disabled={!device}
-                  className="h-11 rounded-xl border-white/15 bg-white/10 text-white"
-                />
-              </label>
+              {!deviceCredential ? (
+                <div className="space-y-2 rounded-xl border border-amber-300/30 bg-amber-300/10 p-3">
+                  <p className="text-xs font-black text-amber-100">
+                    {isAr ? "تسجيل هذا الجهاز" : "Enroll this device"}
+                  </p>
+                  <Input
+                    name="enrollmentId"
+                    autoComplete="off"
+                    value={enrollmentId}
+                    onChange={(event) => setEnrollmentId(event.target.value)}
+                    placeholder={isAr ? "معرّف التسجيل" : "Enrollment ID"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  <Input
+                    name="enrollmentCode"
+                    type="password"
+                    autoComplete="off"
+                    value={enrollmentCode}
+                    onChange={(event) => setEnrollmentCode(event.target.value)}
+                    placeholder={isAr ? "رمز التسجيل" : "Enrollment code"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  <Input
+                    name="displayName"
+                    autoComplete="off"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder={isAr ? "اسم الجهاز" : "Device name"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  {enrollmentError ? (
+                    <p className="text-xs font-bold text-rose-200">
+                      {isAr ? "تعذر تسجيل الجهاز. اطلب رمزاً جديداً." : "Device enrollment failed. Request a new code."}
+                    </p>
+                  ) : null}
+                  <Button
+                    type="button"
+                    disabled={!enrollmentId || !enrollmentCode || !displayName.trim() || isPending}
+                    onClick={enrollDevice}
+                    className="h-10 w-full rounded-xl"
+                  >
+                    {isAr ? "تسجيل الجهاز" : "Enroll device"}
+                  </Button>
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-2 gap-2">
                 {(["ENTRY", "EXIT"] as const).map((item) => (

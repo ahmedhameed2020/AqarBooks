@@ -18,6 +18,7 @@ import {
   Star,
 } from "lucide-react";
 import { LogoMark } from "@/components/marketing/logo-mark";
+import { clearGateDeviceBeforeSignOut } from "@/lib/gates/device-store";
 
 export type SidebarSubItem = {
   href: string;
@@ -293,6 +294,16 @@ export function AppSidebar({
   const isAr = locale === "ar";
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const signOutSubmissionInProgress = useRef(false);
+
+  async function handleSignOutSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (signOutSubmissionInProgress.current) return;
+
+    event.preventDefault();
+    const form = event.currentTarget;
+    signOutSubmissionInProgress.current = true;
+    await clearGateDeviceBeforeSignOut(() => form.requestSubmit());
+  }
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
   const [openSubKeys, setOpenSubKeys] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
@@ -308,6 +319,7 @@ export function AppSidebar({
   useEffect(() => {
     try {
       const storedCollapsed = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate persisted browser preferences after mount
       if (storedCollapsed !== null) setIsCollapsed(storedCollapsed === "true");
 
       const rawGroups = localStorage.getItem(GROUP_STORAGE_KEY);
@@ -377,6 +389,7 @@ export function AppSidebar({
 
   // Auto-close on page navigation
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pathname changes are the external close signal
     setMobileOpen(false);
   }, [pathname]);
 
@@ -765,7 +778,7 @@ export function AppSidebar({
               </Link>
 
               {signOutAction && (
-                <form action={signOutAction} className="shrink-0">
+                <form action={signOutAction} onSubmit={handleSignOutSubmit} className="shrink-0">
                   <button
                     type="submit"
                     title={isAr ? "تسجيل الخروج" : "Sign Out"}
@@ -791,7 +804,7 @@ export function AppSidebar({
             </Link>
 
             {signOutAction && (
-              <form action={signOutAction}>
+              <form action={signOutAction} onSubmit={handleSignOutSubmit}>
                 <button
                   type="submit"
                   title={isAr ? "تسجيل الخروج" : "Sign Out"}

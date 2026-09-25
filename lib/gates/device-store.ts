@@ -111,3 +111,8 @@ export async function clearGateDevice(): Promise<void> {
     database.close();
   }
 }
+
+export async function clearGateDeviceBeforeSignOut(continueSignOut: () => void): Promise<void> {
+  await clearGateDevice().catch(() => undefined);
+  continueSignOut();
+}
