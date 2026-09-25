@@ -132,6 +132,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "complete_unit_handover", "compute_input_tax_split", "compute_service_charge_allocations",
   "convert_to_base", "create_cashbox", "create_fiscal_year", "create_installment_plan",
   "create_journal_entry", "create_member_invitation", "create_organization",
+  "create_online_payment_checkout_transaction",
   "create_maintenance_request",
   "create_purchase_order", "create_purchase_request",
   "create_resort", "create_tax_rule_draft", "create_unit_lease", "creditable_remaining",
