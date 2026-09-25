@@ -65,6 +65,8 @@ function resolveSupabaseCredentials() {
  * functions (which run as owner) or via the service-role client.
  */
 const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
+  "gate_supervision_context", // internal permission/context helper
+  "gate_supervision_append_only", // trigger-only immutable evidence guard
   "post_payment_internal", // wrapped by record_payment
   "post_journal_entry_internal", // wrapped by post_journal_entry
   "create_journal_entry_internal",
@@ -120,6 +122,7 @@ const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
  * migrations 20260820190233-6). 169 entries.
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
+  "create_gate_manual_exception", "approve_gate_manual_exception", "reconcile_visitor_access_state",
   "abort_maintenance_attachment_upload",
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",

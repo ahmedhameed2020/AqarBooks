@@ -990,6 +990,32 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["gate_devices"]["Row"]>;
         Relationships: [];
       };
+      gate_manual_exceptions: {
+        Row: {
+          id: string; organization_id: string; gate_id: string; visitor_invitation_id: string;
+          device_id: string | null; source_event_id: string | null;
+          record_type: "REQUEST" | "APPROVAL"; parent_exception_id: string | null;
+          direction: "ENTRY" | "EXIT"; outcome: "ENTERED" | "EXITED" | "DENIED";
+          category: "POLICY_EXCEPTION" | "EMERGENCY" | "CONNECTIVITY_FAILURE" | "MISSED_SCAN" | "OTHER";
+          reason: string; actor_user_id: string; occurred_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      gate_access_reconciliations: {
+        Row: {
+          id: string; organization_id: string; gate_id: string; visitor_invitation_id: string;
+          category: "MISSED_SCAN" | "STATE_CORRECTION" | "OTHER";
+          reason: string; actor_user_id: string; occurred_at: string;
+          before_is_inside: boolean; after_is_inside: boolean;
+          before_entry_count: number; before_exit_count: number;
+          after_entry_count: number; after_exit_count: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       access_events: {
         Row: {
           id: string;
@@ -999,7 +1025,8 @@ export type Database = {
           visitor_invitation_id: string | null;
           unit_id: string | null;
           direction: "ENTRY" | "EXIT";
-          decision: "ALLOW" | "DENY";
+          decision: "ALLOW" | "DENY" | "RECONCILE";
+          reconciliation_id: string | null;
           reason_code: string;
           client_scan_id: string;
           operator_user_id: string;
@@ -1018,7 +1045,8 @@ export type Database = {
           visitor_invitation_id?: string | null;
           unit_id?: string | null;
           direction: "ENTRY" | "EXIT";
-          decision: "ALLOW" | "DENY";
+          decision: "ALLOW" | "DENY" | "RECONCILE";
+          reconciliation_id?: string | null;
           reason_code: string;
           client_scan_id: string;
           operator_user_id: string;
@@ -3291,6 +3319,15 @@ export type Database = {
       };
     };
     Views: {
+      gate_manual_exception_details: {
+        Row: Omit<Database["public"]["Tables"]["gate_manual_exceptions"]["Row"], "record_type" | "parent_exception_id" | "actor_user_id"> & {
+          operator_user_id: string;
+          approval_id: string | null; supervisor_user_id: string | null;
+          approval_reason: string | null; approved_at: string | null;
+          status: "PENDING" | "APPROVED";
+        };
+        Relationships: [];
+      };
       units_with_financials: {
         Row: {
           id: string;
@@ -3340,6 +3377,26 @@ export type Database = {
       };
     };
     Functions: {
+      create_gate_manual_exception: {
+        Args: {
+          p_gate_id: string; p_invitation_id: string; p_direction: "ENTRY" | "EXIT";
+          p_outcome: "ENTERED" | "EXITED" | "DENIED";
+          p_category: "POLICY_EXCEPTION" | "EMERGENCY" | "CONNECTIVITY_FAILURE" | "MISSED_SCAN" | "OTHER";
+          p_reason: string; p_source_event_id?: string; p_device_id?: string;
+        };
+        Returns: string;
+      };
+      approve_gate_manual_exception: {
+        Args: { p_exception_id: string; p_reason: string };
+        Returns: string;
+      };
+      reconcile_visitor_access_state: {
+        Args: {
+          p_gate_id: string; p_invitation_id: string; p_is_inside: boolean;
+          p_category: "MISSED_SCAN" | "STATE_CORRECTION" | "OTHER"; p_reason: string;
+        };
+        Returns: string;
+      };
       list_projects: {
         Args: { p_organization_id: string };
         Returns: {
