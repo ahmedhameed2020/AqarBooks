@@ -1,0 +1,28 @@
+name: Payment event retries
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: payment-event-retries
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Retry durable payment events
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${CRON_SECRET}"
+          code=$(curl -sS -o response.json -w '%{http_code}' -m 300 \
+            -X POST "https://aqarbooks.com/api/cron/payment-events" \
+            -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Length: 0")
+          cat response.json
+          test "$code" = "200"

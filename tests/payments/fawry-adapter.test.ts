@@ -41,6 +41,7 @@ beforeAll(() => {
 
 function buildFixtureNotification(
   overrides: Partial<{
+    merchantCode: string;
     fawryRefNumber: string;
     merchantRefNumber: string;
     paymentAmount: string;
@@ -51,6 +52,7 @@ function buildFixtureNotification(
   }> = {}
 ) {
   const fields = {
+    merchantCode: TEST_MERCHANT_CODE,
     fawryRefNumber: "9000000123456",
     merchantRefNumber: "22222222-2222-2222-2222-222222222222",
     paymentAmount: "500.00",
@@ -90,6 +92,32 @@ runProviderContractTests("Fawry", fawryAdapter, {
 });
 
 describe("Fawry adapter status mapping", () => {
+  it("normalizes the provider evidence needed for immutable transaction validation", () => {
+    const normalized = fawryAdapter.normalizeWebhookEvent?.(
+      {
+        rawBody: buildFixtureNotification(),
+        headers: {},
+        url: "https://example.test/api/webhooks/fawry",
+      },
+      "SANDBOX",
+    );
+
+    expect(normalized).toEqual(
+      expect.objectContaining({
+        provider: "FAWRY",
+        environment: "SANDBOX",
+        eventIdentifier: "9000000123456",
+        merchantOrderRef: "22222222-2222-2222-2222-222222222222",
+        providerReference: "9000000123456",
+        status: "SUCCESS",
+        providerStatus: "PAID",
+        amount: 500,
+        currency: "EGP",
+        merchantIdentifier: TEST_MERCHANT_CODE,
+      }),
+    );
+  });
+
   it("maps PAID to SUCCESS", () => {
     const parsed = fawryAdapter.parseWebhookPayload({
       rawBody: buildFixtureNotification({ orderStatus: "PAID" }),

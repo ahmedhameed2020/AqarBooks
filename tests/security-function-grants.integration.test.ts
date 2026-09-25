@@ -71,6 +71,11 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "get_payment_provider_credentials", // payment provider secrets
   "append_financial_audit_event", // forging audit entries
   "record_online_payment", // service-role webhook path
+  "enqueue_online_payment_event", // service-role durable webhook intake
+  "claim_online_payment_events", // service-role retry worker claim
+  "complete_online_payment_event", // service-role event state transition
+  "online_payment_events_append_only", // trigger-only immutability guard
+  "mark_online_payment_checkout_created", // service-role checkout finalization
   "run_lease_rent_generation", // service-role sweep
   "promote_scheduled_lease_renewals", // service-role lease activation boundary
   "run_lease_expiry_alerts", // service-role lease-expiry notification sweep
@@ -127,6 +132,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "complete_unit_handover", "compute_input_tax_split", "compute_service_charge_allocations",
   "convert_to_base", "create_cashbox", "create_fiscal_year", "create_installment_plan",
   "create_journal_entry", "create_member_invitation", "create_organization",
+  "create_online_payment_checkout_transaction",
   "create_maintenance_request",
   "create_purchase_order", "create_purchase_request",
   "create_resort", "create_tax_rule_draft", "create_unit_lease", "creditable_remaining",

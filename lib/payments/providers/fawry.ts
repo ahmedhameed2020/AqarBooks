@@ -8,6 +8,8 @@ import type {
   NormalizedWebhookStatus,
   WebhookRequestContext,
   ProviderCredentials,
+  PaymentEnvironment,
+  NormalizedPaymentEvent,
 } from "./types";
 
 function sha256Hex(input: string): string {
@@ -224,6 +226,26 @@ export const fawryAdapter: PaymentProviderAdapter = {
       amountMinor: decimalStringToMinorUnits(body.paymentAmount),
       currency: "EGP",
       webhookEventId: body.fawryRefNumber,
+    };
+  },
+
+  normalizeWebhookEvent(
+    ctx: WebhookRequestContext,
+    environment: PaymentEnvironment,
+  ): NormalizedPaymentEvent {
+    const body = JSON.parse(ctx.rawBody);
+    return {
+      provider: "FAWRY",
+      environment,
+      eventIdentifier: body.fawryRefNumber,
+      merchantOrderRef: body.merchantRefNumber,
+      providerReference: body.fawryRefNumber,
+      status: mapFawryStatus(body.orderStatus),
+      providerStatus: body.orderStatus,
+      amount: decimalStringToMinorUnits(body.paymentAmount) / 100,
+      currency: body.currencyCode ?? "EGP",
+      merchantIdentifier: body.merchantCode,
+      occurredAt: body.paymentTime ?? null,
     };
   },
 

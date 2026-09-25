@@ -23,18 +23,10 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  CreditCard,
   KeyRound,
-  ShieldCheck,
-  Building2,
-  Globe2,
-  Plus,
   RefreshCw,
   Power,
   PowerOff,
-  Sparkles,
-  Lock,
-  Copy,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
@@ -209,6 +201,13 @@ export function UpsertPaymentProviderSettingsForm({
                   <span>{isAr ? "حقيقية (Production)" : "Production / Live"}</span>
                 </button>
               </div>
+              {environment === "PRODUCTION" ? (
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                  {isAr
+                    ? "تحذير: نجاح فحص الاتصال لا يثبت جاهزية الإنتاج. يلزم إدراج الكيان في تجربة الإنتاج ومعاملة محدودة موثقة قبل التفعيل."
+                    : "Warning: a connectivity check does not prove production readiness. Pilot allowlisting and a documented controlled transaction are required before enablement."}
+                </p>
+              ) : null}
             </div>
 
             {/* PROPERTY SCOPE */}
@@ -355,8 +354,8 @@ export function PaymentProviderRowActions({
       const res = await testPaymentProviderConnectionAction(prev, formData);
       if (res.ok) {
         toast.show({
-          title: isAr ? "تم الاتصال بنجاح" : "Connection Verified",
-          description: isAr ? "تم اختبار بيانات الاتصال بنجاح. البوابة جاهزة للتفعيل." : "Connection test passed successfully.",
+          title: isAr ? "تم فحص الاتصال" : "Connectivity checked",
+          description: isAr ? "نجح فحص الاتصال فقط؛ لم يتم اعتماد معاملة إنتاج بعد." : "Connectivity passed; a production transaction has not been verified yet.",
           variant: "success",
         });
       } else {
@@ -371,7 +370,7 @@ export function PaymentProviderRowActions({
     { ok: true }
   );
 
-  const [enableState, enableAction, enablePending] = useActionState<ActionResult, FormData>(
+  const [, enableAction, enablePending] = useActionState<ActionResult, FormData>(
     async (prev, formData) => {
       const res = await enablePaymentProviderAction(prev, formData);
       if (res.ok) {
@@ -386,7 +385,7 @@ export function PaymentProviderRowActions({
     { ok: true }
   );
 
-  const [disableState, disableAction, disablePending] = useActionState<ActionResult, FormData>(
+  const [, disableAction, disablePending] = useActionState<ActionResult, FormData>(
     async (prev, formData) => {
       const res = await disablePaymentProviderAction(prev, formData);
       if (res.ok) {

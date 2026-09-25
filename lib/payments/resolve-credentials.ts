@@ -1,7 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentsEnv } from "./env";
-import type { ProviderId, ProviderCredentials } from "./providers/types";
+import { serverEnv } from "@/lib/env/server";
+import type { PaymentEnvironment, ProviderId, ProviderCredentials } from "./providers/types";
 
 // Re-exported so existing importers of `ProviderCredentials` from this
 // module keep working -- the canonical definition now lives in
@@ -14,6 +15,146 @@ export type { ProviderCredentials } from "./providers/types";
 // TENANT's own configured credentials never depends on the transitional
 // legacy env vars being fully present -- see the baseUrl gap note below.
 const FAWRY_SANDBOX_BASE_URL = "https://atfawry.fawrystaging.com";
+
+export interface ProviderCredentialScope {
+  organizationId: string;
+  propertyId: string | null;
+  provider: ProviderId;
+  environment: PaymentEnvironment;
+}
+
+export interface ResolvedProviderCredentials extends ProviderCredentials {
+  settingsId: string;
+  environment: PaymentEnvironment;
+}
+
+export interface CheckoutSettingCandidate {
+  id: string;
+  property_id: string | null;
+  environment: PaymentEnvironment;
+}
+
+export function chooseCheckoutSetting(
+  candidates: CheckoutSettingCandidate[],
+  propertyId: string,
+  productionAllowed: boolean,
+): CheckoutSettingCandidate | null {
+  const environments: PaymentEnvironment[] = productionAllowed
+    ? ["PRODUCTION", "SANDBOX"]
+    : ["SANDBOX"];
+  return candidates
+    .filter((candidate) => environments.includes(candidate.environment))
+    .filter((candidate) => candidate.property_id === null || candidate.property_id === propertyId)
+    .sort((a, b) => {
+      const environmentRank = environments.indexOf(a.environment) - environments.indexOf(b.environment);
+      if (environmentRank !== 0) return environmentRank;
+      return Number(b.property_id === propertyId) - Number(a.property_id === propertyId);
+    })[0] ?? null;
+}
+
+function assertProductionPilot(scope: ProviderCredentialScope) {
+  if (
+    scope.environment === "PRODUCTION" &&
+    !serverEnv.PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS.includes(scope.organizationId)
+  ) {
+    throw new TenantProviderUnusableError(scope.provider, "PRODUCTION_PILOT_NOT_ALLOWED");
+  }
+}
+
+export async function resolveProviderCredentialsBySettings(
+  settingsId: string,
+  expectedScope: ProviderCredentialScope,
+): Promise<ResolvedProviderCredentials> {
+  assertProductionPilot(expectedScope);
+  const admin = createAdminClient();
+  const { data: setting, error: settingError } = await admin
+    .from("payment_provider_settings")
+    .select("id, organization_id, property_id, provider, environment, status, enabled, verified_at")
+    .eq("id", settingsId)
+    .single();
+
+  if (settingError || !setting) {
+    throw new TenantProviderUnusableError(expectedScope.provider, "SETTINGS_NOT_FOUND");
+  }
+  if (
+    setting.organization_id !== expectedScope.organizationId ||
+    setting.property_id !== expectedScope.propertyId ||
+    setting.provider !== expectedScope.provider ||
+    setting.environment !== expectedScope.environment
+  ) {
+    throw new TenantProviderUnusableError(expectedScope.provider, "SETTINGS_SCOPE_MISMATCH");
+  }
+  if (!setting.enabled || setting.status !== "ENABLED" || !setting.verified_at) {
+    throw new TenantProviderUnusableError(expectedScope.provider, "PROVIDER_NOT_ENABLED_OR_VERIFIED");
+  }
+
+  const { data, error } = await admin.rpc("get_payment_provider_credentials", {
+    p_organization_id: expectedScope.organizationId,
+    p_resort_id: expectedScope.propertyId,
+    p_provider: expectedScope.provider,
+    p_environment: expectedScope.environment,
+  }).single();
+  if (error || !data || data.settings_id !== settingsId) {
+    throw new TenantProviderUnusableError(
+      expectedScope.provider,
+      error?.message ?? "CREDENTIAL_SETTINGS_MISMATCH",
+    );
+  }
+
+  const baseUrl = expectedScope.environment === "PRODUCTION"
+    ? serverEnv.FAWRY_PRODUCTION_BASE_URL
+    : FAWRY_SANDBOX_BASE_URL;
+  if (expectedScope.provider === "FAWRY" && !baseUrl) {
+    throw new TenantProviderUnusableError(expectedScope.provider, "PRODUCTION_BASE_URL_NOT_CONFIGURED");
+  }
+  return {
+    settingsId,
+    environment: expectedScope.environment,
+    merchantIdentifier: data.merchant_identifier,
+    publicKey: data.public_key,
+    apiKey: data.api_key,
+    hmacSecret: data.hmac_secret,
+    baseUrl: expectedScope.provider === "FAWRY" ? baseUrl : undefined,
+  };
+}
+
+export async function selectCheckoutProviderCredentials(
+  organizationId: string,
+  propertyId: string,
+  provider: "FAWRY",
+): Promise<ResolvedProviderCredentials> {
+  const admin = createAdminClient();
+  const productionAllowed = serverEnv.PAYMENTS_PRODUCTION_PILOT_ORGANIZATION_IDS.includes(organizationId);
+  const environments: PaymentEnvironment[] = productionAllowed
+    ? ["PRODUCTION", "SANDBOX"]
+    : ["SANDBOX"];
+
+  const { data, error } = await admin
+    .from("payment_provider_settings")
+    .select("id, property_id, environment")
+    .eq("organization_id", organizationId)
+    .eq("provider", provider)
+    .eq("status", "ENABLED")
+    .eq("enabled", true)
+    .not("verified_at", "is", null)
+    .in("environment", environments)
+    .or(`property_id.eq.${propertyId},property_id.is.null`);
+  if (error) throw new TenantProviderUnusableError(provider, error.message);
+
+  const selected = chooseCheckoutSetting(
+    (data ?? []) as CheckoutSettingCandidate[],
+    propertyId,
+    productionAllowed,
+  );
+  if (!selected) throw new TenantProviderUnusableError(provider, "NO_ENABLED_VERIFIED_SETTING");
+
+  return resolveProviderCredentialsBySettings(selected.id, {
+    organizationId,
+    propertyId: selected.property_id,
+    provider,
+    environment: selected.environment as PaymentEnvironment,
+  });
+}
 
 // Thrown when a tenant HAS a setting row for this scope but it isn't
 // usable (not enabled, org inactive, etc.) -- callers must surface this
@@ -96,11 +237,9 @@ export async function resolveProviderCredentials(
     publicKey: data.public_key,
     apiKey: data.api_key,
     hmacSecret: data.hmac_secret,
-    // See ProviderCredentials.baseUrl's doc comment (providers/types.ts):
-    // online_payment_transactions has no `environment` column yet, so real
-    // per-environment base-URL differentiation is not implemented -- this
-    // is always the sandbox/staging URL regardless of what `environment`
-    // was requested or what the tenant's settings row says.
+    // Legacy callers remain sandbox-only. Production checkout and webhook
+    // paths use resolveProviderCredentialsBySettings(), which binds the
+    // immutable transaction environment to an explicitly configured URL.
     baseUrl: provider === "FAWRY" ? FAWRY_SANDBOX_BASE_URL : undefined,
   };
 }

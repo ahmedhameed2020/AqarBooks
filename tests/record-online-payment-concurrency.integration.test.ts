@@ -184,6 +184,8 @@ describe("record_online_payment concurrent replay", () => {
         client_request_id: `conc-${runSuffix}`,
         provider: "PAYMOB",
         amount: 1000,
+        currency: "EGP",
+        environment: "SANDBOX",
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       })
       .select("id")
