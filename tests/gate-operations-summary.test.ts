@@ -67,7 +67,7 @@ describe("getGateOperationsSummary", () => {
     const summary = await getGateOperationsSummary("org-1", "property-1");
 
     expect(summary).toEqual(expect.objectContaining({
-      devicesOffline: 2,
+      devicesStale: 2,
       visitorsInside: 9,
       unresolvedExceptions: 4,
       deadHardwareCommands: 1,
@@ -78,6 +78,7 @@ describe("getGateOperationsSummary", () => {
       oldestUnresolvedExceptionAgeMinutes: 120,
       oldestHardwareBacklogAgeMinutes: 30,
     }));
+    expect(summary).not.toHaveProperty("devicesOffline");
     expect(JSON.stringify(summary)).not.toMatch(/guest|phone|secret|token/i);
 
     const countQueries = state.calls.filter((call) => call.options?.head);

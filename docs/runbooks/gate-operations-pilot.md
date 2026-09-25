@@ -31,16 +31,16 @@ Never put the Supabase service-role key or `CRON_SECRET` on a scanner device, in
 
 1. Confirm the organization has visitor management enabled and the intended property, gate, direction, and operator roles are correct.
 2. Open **Operations → Gate Management**. Confirm the operational summary loads and the device, long-stay, exception, and hardware badges are visible.
-3. Record only the aggregate preflight values: active/offline device counts, connectivity incidents in 24 hours, visitors inside, long stays, unresolved exceptions and oldest age, hardware backlog and oldest age, and dead hardware count.
-4. Confirm there are no unexplained offline devices, pending exceptions, hardware backlog, or dead commands. Resolve or explicitly accept each item before proceeding.
+3. Record only the aggregate preflight values: active/stale-activity device counts, connectivity incidents in 24 hours, visitors inside, long stays, unresolved exceptions and oldest age, hardware backlog and oldest age, and dead hardware count.
+4. Investigate devices with stale authenticated activity, pending exceptions, hardware backlog, or dead commands. A stale-activity count alone does not prove that a quiet device is offline.
 5. Confirm the notification drain and hardware workflow monitoring described below are green.
 
 ## Device enrollment and camera check
 
 1. From **Gate Management**, create or select an active gate with the correct property and direction. Choose **Enroll device**.
 2. Generate an enrollment, then transfer the enrollment ID and one-time code directly to the intended device. The enrollment expires after 15 minutes and can be redeemed once. Do not retain the code in chat, tickets, photos, or a password manager after redemption.
-3. On **Operations → Gate Scanner**, enter the enrollment ID, code, and a recognizable device display name. Verify the displayed gate, property, and allowed direction before redeeming.
-4. Confirm the device appears as active in Gate Management. The device credential is stored locally on that device; do not extract or copy it.
+3. On **Operations → Gate Scanner**, enter the enrollment ID, code, and a recognizable device display name, then redeem the enrollment.
+4. After redemption, verify the displayed gate, property, and allowed direction. Confirm the device appears as active in Gate Management. The device credential is stored locally on that device; do not extract or copy it.
 5. Serve the scanner over HTTPS. Grant camera access only to the expected AqarBooks origin, select the rear camera, and verify a QR code can be detected. If `BarcodeDetector` or camera access is unavailable, verify the manual payload field works; do not relax browser or operating-system camera security.
 6. Denying or revoking camera permission must leave the scanner in the camera-unavailable/manual-fallback state. It must not produce an access decision by itself.
 
@@ -56,7 +56,7 @@ Use dedicated test invitations and verify each result in both the scanner and **
 | Valid exit after an allowed entry | `ALLOW` / `VALID_EXIT`; occupancy becomes outside once. |
 | Repeat exit without a current entry | `DENY` / `NOT_INSIDE`; occupancy remains outside. |
 | Network removed before submission | `UNVERIFIED — OFFLINE`; no allow decision and no implied opening. |
-| Network restored | The connectivity incident is submitted, the offline badge clears after a successful authenticated scan/heartbeat, and the original offline attempt is not converted into an allow. |
+| Network restored | The connectivity incident is submitted; a successful authenticated incident submission or later scan refreshes device activity. The original offline attempt is not converted into an allow. |
 
 For the offline probe, keep the barrier under human control. Offline mode is evidence of uncertainty, never authorization to admit a visitor.
 
@@ -104,7 +104,7 @@ Monitor counts/ages only: nonterminal backlog (`PENDING`, `FAILED`, `DISPATCHING
 
 | Signal | Dashboard threshold | Required response |
 | --- | --- | --- |
-| Device offline | Active device has never checked in or was last seen more than 5 minutes ago | Move the lane to manual supervision; check power/network and revoke if custody is uncertain. |
+| Device activity stale | Active device has no recorded authenticated activity, or its last authenticated scan/incident submission was more than 5 minutes ago | Check expected lane traffic, device custody, scanner UI, and the separate connectivity-incident signal. Quiet operation can be legitimate; do not infer offline status or move the lane solely from this badge. |
 | Connectivity | Any recorded incident in the last 24 hours | Review the lane and complete the online/offline probe before relying on the scanner. |
 | Long stay | Inside for more than the fixed 12-hour application threshold | Supervisor investigates; do not use for production escalation until the organization-specific threshold exists. |
 | Unresolved exception | Any pending request | Supervisor reviews; escalate if the oldest age exceeds the pilot's agreed response time. |

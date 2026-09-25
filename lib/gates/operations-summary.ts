@@ -3,12 +3,12 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_LONG_STAY_HOURS } from "@/lib/gates/evidence-csv";
 
-export const GATE_DEVICE_OFFLINE_MINUTES = 5;
+export const GATE_DEVICE_ACTIVITY_STALE_MINUTES = 5;
 export const GATE_CONNECTIVITY_LOOKBACK_HOURS = 24;
 
 export type GateOperationsSummary = {
   activeDevices: number;
-  devicesOffline: number;
+  devicesStale: number;
   connectivityIncidents24h: number;
   visitorsInside: number;
   longStays: number;
@@ -76,7 +76,7 @@ export async function getGateOperationsSummary(
 ): Promise<GateOperationsSummary> {
   const admin = createAdminClient() as unknown as SummaryClient;
   const now = new Date();
-  const offlineBefore = new Date(now.getTime() - GATE_DEVICE_OFFLINE_MINUTES * 60_000).toISOString();
+  const activityStaleBefore = new Date(now.getTime() - GATE_DEVICE_ACTIVITY_STALE_MINUTES * 60_000).toISOString();
   const connectivitySince = new Date(now.getTime() - GATE_CONNECTIVITY_LOOKBACK_HOURS * 3_600_000).toISOString();
   const longStayBefore = new Date(now.getTime() - DEFAULT_LONG_STAY_HOURS * 3_600_000).toISOString();
 
@@ -85,11 +85,11 @@ export async function getGateOperationsSummary(
     organizationId,
     propertyId,
   ).eq("status", "ACTIVE");
-  const offlineDevicesQuery = withScope(
+  const staleDevicesQuery = withScope(
     admin.from("gate_devices").select("status", { count: "exact", head: true }),
     organizationId,
     propertyId,
-  ).eq("status", "ACTIVE").or(`last_seen_at.is.null,last_seen_at.lt.${offlineBefore}`);
+  ).eq("status", "ACTIVE").or(`last_seen_at.is.null,last_seen_at.lt.${activityStaleBefore}`);
   const connectivityQuery = withScope(
     admin.from("gate_connectivity_incidents").select("occurred_at,gates!inner()", { count: "exact", head: true }),
     organizationId,
@@ -137,7 +137,7 @@ export async function getGateOperationsSummary(
 
   const results = await Promise.all([
     activeDevicesQuery,
-    offlineDevicesQuery,
+    staleDevicesQuery,
     connectivityQuery,
     visitorsInsideQuery,
     longStaysQuery,
@@ -150,7 +150,7 @@ export async function getGateOperationsSummary(
 
   return {
     activeDevices: countOf(results[0]),
-    devicesOffline: countOf(results[1]),
+    devicesStale: countOf(results[1]),
     connectivityIncidents24h: countOf(results[2]),
     visitorsInside: countOf(results[3]),
     longStays: countOf(results[4]),

@@ -1,4 +1,4 @@
-import { Activity, Clock3, MonitorCheck, ShieldAlert } from "lucide-react";
+import { Activity, Clock3, ScanLine, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DEFAULT_LONG_STAY_HOURS } from "@/lib/gates/evidence-csv";
 import type { GateOperationsSummary } from "@/lib/gates/operations-summary";
@@ -74,8 +74,8 @@ export function GateOperationsSummaryPanel({
   }
 
   const number = new Intl.NumberFormat(isAr ? "ar-QA" : "en-QA");
-  const devicesHealthy = summary.devicesOffline === 0;
-  const devicesOnline = Math.max(0, summary.activeDevices - summary.devicesOffline);
+  const deviceActivityCurrent = summary.devicesStale === 0;
+  const devicesRecentlyActive = Math.max(0, summary.activeDevices - summary.devicesStale);
   const longStaysHealthy = summary.longStays === 0;
   const exceptionsHealthy = summary.unresolvedExceptions === 0;
   const hardwareHealthy = summary.hardwareBacklog === 0 && summary.deadHardwareCommands === 0;
@@ -104,12 +104,14 @@ export function GateOperationsSummaryPanel({
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title={isAr ? "صحة أجهزة المسح" : "Scanner device health"}
-          value={`${number.format(devicesOnline)}/${number.format(summary.activeDevices)}`}
-          detail={isAr ? `${number.format(summary.devicesOffline)} جهاز غير متصل` : `${number.format(summary.devicesOffline)} offline`}
-          status={statusLabel(devicesHealthy, isAr)}
-          tone={devicesHealthy ? "success" : "warning"}
-          icon={<MonitorCheck className="size-4" />}
+          title={isAr ? "حداثة نشاط الأجهزة الموثق" : "Authenticated device activity"}
+          value={`${number.format(devicesRecentlyActive)}/${number.format(summary.activeDevices)}`}
+          detail={isAr
+            ? `${number.format(summary.devicesStale)} بلا نشاط موثق خلال ٥ دقائق؛ لا يثبت انقطاع الاتصال`
+            : `${number.format(summary.devicesStale)} without authenticated activity in 5m; not a connectivity check`}
+          status={deviceActivityCurrent ? (isAr ? "نشاط حديث" : "Activity recent") : (isAr ? "تحقق من النشاط" : "Investigate activity")}
+          tone={deviceActivityCurrent ? "success" : "warning"}
+          icon={<ScanLine className="size-4" />}
         />
         <MetricCard
           title={isAr ? "الإقامات الطويلة" : "Long stays"}
