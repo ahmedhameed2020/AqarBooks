@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createGateAction, updateGateAction } from "@/lib/actions/gates";
+import { GateDevicesPanel, type GateDeviceItem } from "./gate-devices-panel";
 
 export interface GateManagementItem {
   id: string;
@@ -43,11 +44,13 @@ const emptyDraft = (propertyId = ""): DraftGate => ({
 
 export function GatesClient({
   gates,
+  devices,
   properties,
   canManage,
   locale,
 }: {
   gates: GateManagementItem[];
+  devices: GateDeviceItem[];
   properties: GatePropertyOption[];
   canManage: boolean;
   locale: "ar" | "en";
@@ -202,6 +205,18 @@ export function GatesClient({
           </div>
         </section>
       </div>
+
+      <GateDevicesPanel
+        devices={devices}
+        gates={gates.map((gate) => ({
+          id: gate.id,
+          label: `${gate.code} · ${isAr ? gate.nameAr : gate.nameEn}`,
+          directionMode: gate.directionMode,
+          isActive: gate.isActive,
+        }))}
+        canManage={canManage}
+        locale={locale}
+      />
     </div>
   );
 }
