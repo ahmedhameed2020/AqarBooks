@@ -14,5 +14,10 @@ describe("gate supervision migration", () => {
     expect(sql).toContain("RECONCILED_ENTRY");
     expect(sql).toContain("RECONCILED_EXIT");
     expect(sql).not.toMatch(/p_raw_secret|credential_hash|token_hash/);
+    expect(sql).toContain("operations.gates.occupancy.reconcile");
+    expect(sql).not.toContain("operations.gates.reconcile");
+    const manualTable = sql.split("create table public.gate_manual_exceptions (")[1].split(");")[0];
+    expect(manualTable).toContain("visitor_invitation_id uuid,");
+    expect(manualTable).toContain("property_id uuid not null");
   });
 });

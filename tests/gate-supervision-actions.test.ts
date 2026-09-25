@@ -35,6 +35,15 @@ describe("gate supervision actions", () => {
   });
 
   it.each([
+    ["ENTRY", "ENTERED"], ["EXIT", "EXITED"], ["ENTRY", "DENIED"],
+  ] as const)("records unidentified %s/%s evidence with a null invitation", async (direction, outcome) => {
+    const input = { gateId: id, direction, outcome, category: "OTHER" as const, reason: "Unidentified visitor" };
+    expect(await createGateManualExceptionAction(input)).toEqual({ ok: true, id });
+    expect(rpc).toHaveBeenLastCalledWith("create_gate_manual_exception", expect.objectContaining({ p_gate_id: id, p_invitation_id: null, p_direction: direction, p_outcome: outcome }));
+    expect(await createGateManualExceptionAction({ ...input, invitationId: null })).toEqual({ ok: true, id });
+  });
+
+  it.each([
     ["GATE_SUPERVISION_NOT_AUTHORIZED", "forbidden"],
     ["MANUAL_EXCEPTION_SELF_APPROVAL", "self_approval"],
     ["MANUAL_EXCEPTION_ALREADY_APPROVED", "already_approved"],

@@ -41,8 +41,8 @@ describe.sequential("gate supervision runtime RLS", () => {
       insert into public.organization_memberships(organization_id,user_id) values('${org}','${creator}'),('${org}','${approver}'),('${otherOrg}','${outsider}');
       insert into public.roles(id,organization_id,key,name_ar,name_en) values('${creator}','${org}','SUP_CREATE','Create','Create'),('${approver}','${org}','SUP_APPROVE','Approve','Approve'),('${outsider}','${otherOrg}','SUP_OTHER','Other','Other');
       insert into public.role_permissions(role_id,permission_id) select '${creator}',id from public.permissions where key in ('operations.gates.exceptions.create','operations.gates.scan');
-      insert into public.role_permissions(role_id,permission_id) select '${approver}',id from public.permissions where key in ('operations.gates.exceptions.approve','operations.gates.reconcile','operations.access_events.view');
-      insert into public.role_permissions(role_id,permission_id) select '${outsider}',id from public.permissions where key in ('operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.reconcile','operations.access_events.view');
+      insert into public.role_permissions(role_id,permission_id) select '${approver}',id from public.permissions where key in ('operations.gates.exceptions.approve','operations.gates.occupancy.reconcile','operations.access_events.view');
+      insert into public.role_permissions(role_id,permission_id) select '${outsider}',id from public.permissions where key in ('operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.occupancy.reconcile','operations.access_events.view');
       insert into public.user_role_assignments(organization_id,user_id,role_id) values('${org}','${creator}','${creator}'),('${org}','${approver}','${approver}'),('${otherOrg}','${outsider}','${outsider}');
       insert into public.properties(id,organization_id,name,code,timezone,property_type) values('${property}','${org}','Supervision','${property}','Asia/Qatar','building');
       insert into public.units(id,organization_id,property_id,code) values('${unit}','${org}','${property}','TEST');
@@ -61,6 +61,21 @@ describe.sequential("gate supervision runtime RLS", () => {
     expect(() => sql(`select public.create_gate_manual_exception('${gate}','${randomUUID()}','ENTRY','ENTERED','OTHER','Reason')`)).toThrow(/NOT_AUTHENTICATED/);
   });
 
+  it.each([["ENTRY", "ENTERED"], ["EXIT", "EXITED"], ["ENTRY", "DENIED"]])("records and approves unidentified %s/%s evidence scoped by gate", (direction, outcome) => {
+    const statement = `select public.create_gate_manual_exception('${gate}',null,'${direction}','${outcome}','OTHER','Unknown visitor',null,'${device}')`;
+    const request = lastUuid(sql(asUser(creator, statement)));
+    expect(sql(`select organization_id||'|'||property_id||'|'||(visitor_invitation_id is null)||'|'||outcome from public.gate_manual_exceptions where id='${request}'`)).toBe(`${org}|${property}|true|${outcome}`);
+    const before = sql(`select row_to_json(e) from public.gate_manual_exceptions e where id='${request}'`);
+    expect(() => sql(asUser(outsider, statement))).toThrow(/NOT_AUTHORIZED/);
+    expect(() => sql(asUser(outsider, `select public.approve_gate_manual_exception('${request}','Cross tenant')`))).toThrow(/NOT_AUTHORIZED/);
+    expect(sql(asUser(outsider, `select count(*) from public.gate_manual_exception_details where id='${request}'`))).toContain("\n0\n");
+    sql(asUser(approver, `select public.approve_gate_manual_exception('${request}','Reviewed unidentified visitor')`));
+    expect(sql(`select row_to_json(e) from public.gate_manual_exceptions e where id='${request}'`)).toBe(before);
+    expect(sql(asUser(approver, `select status||'|'||property_id||'|'||(visitor_invitation_id is null) from public.gate_manual_exception_details where id='${request}'`))).toContain(`APPROVED|${property}|true`);
+    expect(() => sql(asUser(creator, statement.replace(device, randomUUID())))).toThrow(/NOT_AUTHORIZED/);
+    expect(() => sql(asUser(approver, `select public.reconcile_visitor_access_state('${gate}',null,true,'MISSED_SCAN','Unidentified')`))).toThrow(/INVALID_RECONCILIATION/);
+  });
+
   it("separates creation and approval without mutating the request or occupancy", () => {
     const id = invitation();
     const request = lastUuid(sql(asUser(creator, create(id))));
@@ -76,6 +91,27 @@ describe.sequential("gate supervision runtime RLS", () => {
     sql(`insert into public.role_permissions(role_id,permission_id) select '${creator}',id from public.permissions where key='operations.gates.exceptions.approve'`);
     expect(() => sql(asUser(creator, `select public.approve_gate_manual_exception('${request}','Own request')`))).toThrow(/SELF_APPROVAL/);
     sql(`delete from public.role_permissions where role_id='${creator}' and permission_id=(select id from public.permissions where key='operations.gates.exceptions.approve')`);
+  });
+
+  it("validates unidentified source events and retains linked property checks", () => {
+    const unknown = randomUUID();
+    expect(sql(asUser(creator, scan(unknown, "ENTRY")))).toContain("INVALID_PASS");
+    const unknownEvent = sql(`select id from public.access_events where organization_id='${org}' and visitor_invitation_id is null order by occurred_at desc limit 1`);
+    const unlinked = `select public.create_gate_manual_exception('${gate}',null,'ENTRY','DENIED','OTHER','Unknown at gate','${unknownEvent}','${device}')`;
+    const request = lastUuid(sql(asUser(creator, unlinked)));
+    expect(sql(`select source_event_id from public.gate_manual_exceptions where id='${request}'`)).toBe(unknownEvent);
+    expect(() => sql(asUser(creator, unlinked.replace("'ENTRY'", "'EXIT'")))).toThrow(/NOT_AUTHORIZED/);
+    const id = invitation();
+    expect(sql(asUser(creator, scan(id, "ENTRY")))).toContain("VALID_ENTRY");
+    const knownEvent = sql(`select id from public.access_events where visitor_invitation_id='${id}'`);
+    expect(() => sql(asUser(creator, unlinked.replace(unknownEvent, knownEvent)))).toThrow(/NOT_AUTHORIZED/);
+    expect(() => sql(asUser(creator, create(id).replace(`null,'${device}'`, `'${unknownEvent}','${device}'`)))).toThrow(/NOT_AUTHORIZED/);
+    expect(lastUuid(sql(asUser(creator, create(id).replace(`null,'${device}'`, `'${knownEvent}','${device}'`))))).toBeTruthy();
+    const otherProperty = randomUUID(), otherUnit = randomUUID(), otherInvitation = invitation();
+    sql(`insert into public.properties(id,organization_id,name,code,timezone,property_type) values('${otherProperty}','${org}','Other property','${otherProperty}','Asia/Qatar','building');
+      insert into public.units(id,organization_id,property_id,code) values('${otherUnit}','${org}','${otherProperty}','OTHER');
+      update public.visitor_invitations set property_id='${otherProperty}',unit_id='${otherUnit}' where id='${otherInvitation}'`);
+    expect(() => sql(asUser(creator, create(otherInvitation)))).toThrow(/NOT_AUTHORIZED/);
   });
 
   it("requires reason/category and isolates tenants and evidence mutation", () => {
@@ -163,7 +199,7 @@ describe.sequential("gate supervision runtime RLS", () => {
       pending.child.stdin!.write(`begin; set application_name='${marker}'; select id from public.visitor_invitations where id='${id}' for update;\n`);
       // A reply is emitted only after the preceding FOR UPDATE has completed.
       expect(await queryOwner("select 1")).toBe("1");
-      const peer = run("docker", [...args, `set application_name='peer-${marker}'; ${asUser(secondUser, second)}`]);
+      const peer = run("docker", [...args, `set application_name='peer-${marker}'; ${asUser(secondUser, second)}`], { timeout: 30_000 });
       settled.push(peer.then((value) => ({ value }), (error: unknown) => ({ error })));
       let blocked = false;
       const observationDeadline = Date.now() + 15_000;

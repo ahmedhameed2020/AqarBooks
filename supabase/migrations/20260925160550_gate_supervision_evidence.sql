@@ -3,7 +3,8 @@ create table public.gate_manual_exceptions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id),
   gate_id uuid not null,
-  visitor_invitation_id uuid not null,
+  property_id uuid not null,
+  visitor_invitation_id uuid,
   device_id uuid references public.gate_devices(id),
   source_event_id uuid references public.access_events(id),
   record_type text not null check (record_type in ('REQUEST', 'APPROVAL')),
@@ -15,6 +16,7 @@ create table public.gate_manual_exceptions (
   actor_user_id uuid not null references auth.users(id),
   occurred_at timestamptz not null default clock_timestamp(),
   foreign key (organization_id, gate_id) references public.gates(organization_id, id),
+  foreign key (organization_id, property_id) references public.properties(organization_id, id),
   foreign key (organization_id, visitor_invitation_id) references public.visitor_invitations(organization_id, id),
   check ((record_type = 'REQUEST' and parent_exception_id is null) or (record_type = 'APPROVAL' and parent_exception_id is not null)),
   check (outcome = 'DENIED' or (outcome = 'ENTERED' and direction = 'ENTRY') or (outcome = 'EXITED' and direction = 'EXIT'))
@@ -92,13 +94,15 @@ begin
     or p_reason is null or char_length(btrim(p_reason)) not between 1 and 500 then
     raise exception 'INVALID_MANUAL_EXCEPTION' using errcode = '22023';
   end if;
-  if not exists(select 1 from public.visitor_invitations where id=p_invitation_id and organization_id=v_gate.organization_id and property_id=v_gate.property_id)
+  -- Unknown visitors have no invitation; tenant/property always come from the
+  -- permission-checked gate, never from caller-supplied ownership fields.
+  if (p_invitation_id is not null and not exists(select 1 from public.visitor_invitations where id=p_invitation_id and organization_id=v_gate.organization_id and property_id=v_gate.property_id))
     or (p_device_id is not null and not exists(select 1 from public.gate_devices where id=p_device_id and organization_id=v_gate.organization_id and gate_id=v_gate.id))
-    or (p_source_event_id is not null and not exists(select 1 from public.access_events where id=p_source_event_id and organization_id=v_gate.organization_id and gate_id=v_gate.id and visitor_invitation_id=p_invitation_id and direction=p_direction)) then
+    or (p_source_event_id is not null and not exists(select 1 from public.access_events where id=p_source_event_id and organization_id=v_gate.organization_id and property_id=v_gate.property_id and gate_id=v_gate.id and visitor_invitation_id is not distinct from p_invitation_id and direction=p_direction)) then
     raise exception 'GATE_SUPERVISION_NOT_AUTHORIZED' using errcode = '42501';
   end if;
-  insert into public.gate_manual_exceptions(organization_id,gate_id,visitor_invitation_id,device_id,source_event_id,record_type,direction,outcome,category,reason,actor_user_id)
-  values(v_gate.organization_id,v_gate.id,p_invitation_id,p_device_id,p_source_event_id,'REQUEST',p_direction,p_outcome,p_category,btrim(p_reason),auth.uid()) returning id into v_id;
+  insert into public.gate_manual_exceptions(organization_id,gate_id,property_id,visitor_invitation_id,device_id,source_event_id,record_type,direction,outcome,category,reason,actor_user_id)
+  values(v_gate.organization_id,v_gate.id,v_gate.property_id,p_invitation_id,p_device_id,p_source_event_id,'REQUEST',p_direction,p_outcome,p_category,btrim(p_reason),auth.uid()) returning id into v_id;
   return v_id;
 end;
 $$;
@@ -119,8 +123,8 @@ begin
   if exists(select 1 from public.gate_manual_exceptions where parent_exception_id=p_exception_id) then
     raise exception 'MANUAL_EXCEPTION_ALREADY_APPROVED' using errcode = '22023';
   end if;
-  insert into public.gate_manual_exceptions(organization_id,gate_id,visitor_invitation_id,device_id,source_event_id,record_type,parent_exception_id,direction,outcome,category,reason,actor_user_id)
-  values(v_request.organization_id,v_request.gate_id,v_request.visitor_invitation_id,v_request.device_id,v_request.source_event_id,'APPROVAL',v_request.id,v_request.direction,v_request.outcome,v_request.category,btrim(p_reason),auth.uid()) returning id into v_id;
+  insert into public.gate_manual_exceptions(organization_id,gate_id,property_id,visitor_invitation_id,device_id,source_event_id,record_type,parent_exception_id,direction,outcome,category,reason,actor_user_id)
+  values(v_request.organization_id,v_request.gate_id,v_request.property_id,v_request.visitor_invitation_id,v_request.device_id,v_request.source_event_id,'APPROVAL',v_request.id,v_request.direction,v_request.outcome,v_request.category,btrim(p_reason),auth.uid()) returning id into v_id;
   return v_id;
 end;
 $$;
@@ -145,8 +149,8 @@ declare
   v_gate public.gates; v_invitation public.visitor_invitations; v_state public.visitor_access_state;
   v_id uuid; v_at timestamptz; v_entry integer; v_exit integer;
 begin
-  v_gate := public.gate_supervision_context(p_gate_id, 'operations.gates.reconcile');
-  if p_is_inside is null or p_category is null or p_category not in ('MISSED_SCAN','STATE_CORRECTION','OTHER')
+  v_gate := public.gate_supervision_context(p_gate_id, 'operations.gates.occupancy.reconcile');
+  if p_invitation_id is null or p_is_inside is null or p_category is null or p_category not in ('MISSED_SCAN','STATE_CORRECTION','OTHER')
     or p_reason is null or char_length(btrim(p_reason)) not between 1 and 500 then
     raise exception 'INVALID_RECONCILIATION' using errcode = '22023';
   end if;
@@ -188,14 +192,14 @@ $$;
 insert into public.permissions(key,description) values
   ('operations.gates.exceptions.create','Record gate manual exception evidence'),
   ('operations.gates.exceptions.approve','Approve gate manual exception evidence'),
-  ('operations.gates.reconcile','Reconcile visitor occupancy with immutable evidence') on conflict (key) do nothing;
+  ('operations.gates.occupancy.reconcile','Reconcile visitor occupancy with immutable evidence') on conflict (key) do nothing;
 insert into public.role_template_permissions(role_template_key,permission_key)
 select r,p from unnest(array['TENANT_OWNER','TENANT_ADMIN','GENERAL_MANAGER','PROPERTY_MANAGER']) r
-cross join unnest(array['operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.reconcile']) p on conflict do nothing;
+cross join unnest(array['operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.occupancy.reconcile']) p on conflict do nothing;
 insert into public.role_permissions(role_id,permission_id)
 select r.id,p.id from public.roles r cross join public.permissions p
 where r.key in ('TENANT_OWNER','TENANT_ADMIN','GENERAL_MANAGER','PROPERTY_MANAGER')
-and p.key in ('operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.reconcile') on conflict do nothing;
+and p.key in ('operations.gates.exceptions.create','operations.gates.exceptions.approve','operations.gates.occupancy.reconcile') on conflict do nothing;
 
 alter table public.gate_manual_exceptions enable row level security;
 alter table public.gate_access_reconciliations enable row level security;
@@ -206,11 +210,11 @@ create policy gate_manual_exceptions_read on public.gate_manual_exceptions for s
     public.has_permission(auth.uid(),organization_id,'operations.access_events.view')));
 create policy gate_access_reconciliations_read on public.gate_access_reconciliations for select to authenticated using (
   public.organization_is_active(organization_id) and public.gate_operations_enabled(organization_id) and (
-    public.has_permission(auth.uid(),organization_id,'operations.gates.reconcile') or
+    public.has_permission(auth.uid(),organization_id,'operations.gates.occupancy.reconcile') or
     public.has_permission(auth.uid(),organization_id,'operations.access_events.view')));
 
 create view public.gate_manual_exception_details with (security_invoker=true) as
-select r.id,r.organization_id,r.gate_id,r.visitor_invitation_id,r.device_id,r.source_event_id,r.direction,r.outcome,r.category,r.reason,
+select r.id,r.organization_id,r.gate_id,r.property_id,r.visitor_invitation_id,r.device_id,r.source_event_id,r.direction,r.outcome,r.category,r.reason,
   r.actor_user_id as operator_user_id,r.occurred_at as occurred_at,
   a.id as approval_id,a.actor_user_id as supervisor_user_id,a.reason as approval_reason,a.occurred_at as approved_at,
   case when a.id is null then 'PENDING' else 'APPROVED' end as status

@@ -992,7 +992,7 @@ export type Database = {
       };
       gate_manual_exceptions: {
         Row: {
-          id: string; organization_id: string; gate_id: string; visitor_invitation_id: string;
+          id: string; organization_id: string; gate_id: string; property_id: string; visitor_invitation_id: string | null;
           device_id: string | null; source_event_id: string | null;
           record_type: "REQUEST" | "APPROVAL"; parent_exception_id: string | null;
           direction: "ENTRY" | "EXIT"; outcome: "ENTERED" | "EXITED" | "DENIED";
@@ -3379,7 +3379,7 @@ export type Database = {
     Functions: {
       create_gate_manual_exception: {
         Args: {
-          p_gate_id: string; p_invitation_id: string; p_direction: "ENTRY" | "EXIT";
+          p_gate_id: string; p_invitation_id: string | null; p_direction: "ENTRY" | "EXIT";
           p_outcome: "ENTERED" | "EXITED" | "DENIED";
           p_category: "POLICY_EXCEPTION" | "EMERGENCY" | "CONNECTIVITY_FAILURE" | "MISSED_SCAN" | "OTHER";
           p_reason: string; p_source_event_id?: string; p_device_id?: string;

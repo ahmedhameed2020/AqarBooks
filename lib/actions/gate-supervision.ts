@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 const reason = z.string().trim().min(1).max(500);
 const manualExceptionSchema = z.object({
   gateId: z.string().uuid(),
-  invitationId: z.string().uuid(),
+  invitationId: z.string().uuid().nullish(),
   direction: z.enum(["ENTRY", "EXIT"]),
   outcome: z.enum(["ENTERED", "EXITED", "DENIED"]),
   category: z.enum(["POLICY_EXCEPTION", "EMERGENCY", "CONNECTIVITY_FAILURE", "MISSED_SCAN", "OTHER"]),
@@ -50,7 +50,7 @@ export async function createGateManualExceptionAction(input: z.input<typeof manu
   if (!parsed.success) return { ok: false, error: "invalid_input" };
   const db = await createClient();
   const { data, error } = await db.rpc("create_gate_manual_exception", {
-    p_gate_id: parsed.data.gateId, p_invitation_id: parsed.data.invitationId,
+    p_gate_id: parsed.data.gateId, p_invitation_id: parsed.data.invitationId ?? null,
     p_direction: parsed.data.direction, p_outcome: parsed.data.outcome,
     p_category: parsed.data.category, p_reason: parsed.data.reason,
     p_source_event_id: parsed.data.sourceEventId, p_device_id: parsed.data.deviceId,
