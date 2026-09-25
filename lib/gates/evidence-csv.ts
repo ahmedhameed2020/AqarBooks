@@ -62,6 +62,10 @@ function normalizeDate(value: string | undefined, edge: "start" | "end") {
 
 export function parseEvidenceFilters(input: Record<string, unknown>): EvidenceFilters {
   const parsed = rawEvidenceFilterSchema.parse(input);
+  const offset = (parsed.page - 1) * parsed.pageSize;
+  if (!Number.isSafeInteger(offset) || offset > 2_147_483_647) {
+    throw new Error("Evidence page offset exceeds the database integer range");
+  }
   const from = normalizeDate(parsed.from, "start");
   const to = normalizeDate(parsed.to, "end");
   if (from && to && new Date(from).getTime() > new Date(to).getTime()) {

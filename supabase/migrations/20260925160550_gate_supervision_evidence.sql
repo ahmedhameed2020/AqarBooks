@@ -193,8 +193,10 @@ create function public.list_gate_current_visitors(
   property_id uuid, property_name text, unit_id uuid, unit_code text,
   gate_id uuid, gate_code text, gate_name_ar text, gate_name_en text,
   entered_at timestamptz, valid_until timestamptz,
-  entry_count integer, exit_count integer, total_count bigint
+  entry_count integer, exit_count integer, total_count bigint,
+  count_only boolean
 ) language plpgsql stable security definer set search_path = '' as $$
+declare v_total bigint;
 begin
   if auth.uid() is null or p_organization_id is null
     or not public.organization_is_active(p_organization_id)
@@ -202,11 +204,27 @@ begin
     or not public.has_permission(auth.uid(),p_organization_id,'operations.access_events.view') then
     raise exception 'GATE_EVIDENCE_NOT_AUTHORIZED' using errcode = '42501';
   end if;
-  if p_offset is null or p_offset < 0 or p_offset > 25000
+  if p_offset is null or p_offset < 0
     or p_limit is null or p_limit < 1 or p_limit > 100
     or (p_query is not null and char_length(p_query) > 120) then
     raise exception 'INVALID_GATE_EVIDENCE_FILTERS' using errcode = '22023';
   end if;
+
+  select count(*)::bigint into v_total
+  from public.visitor_access_state s
+  join public.visitor_invitations i
+    on i.id=s.visitor_invitation_id and i.organization_id=s.organization_id
+  join public.properties p
+    on p.id=s.property_id and p.organization_id=s.organization_id
+  join public.units u
+    on u.id=s.unit_id and u.organization_id=s.organization_id
+  left join public.gates g
+    on g.id=s.last_gate_id and g.organization_id=s.organization_id
+  where s.organization_id=p_organization_id
+    and s.is_inside=true
+    and (p_property_id is null or s.property_id=p_property_id)
+    and (p_gate_id is null or s.last_gate_id=p_gate_id)
+    and (p_query is null or btrim(p_query)='' or i.guest_name ilike '%'||btrim(p_query)||'%' or i.invitation_no ilike '%'||btrim(p_query)||'%');
 
   return query
   select
@@ -214,7 +232,7 @@ begin
     s.property_id, p.name, s.unit_id, u.code,
     s.last_gate_id, g.code, g.name_ar, g.name_en,
     s.last_entry_at, i.valid_until, s.entry_count, s.exit_count,
-    count(*) over ()::bigint
+    v_total, false
   from public.visitor_access_state s
   join public.visitor_invitations i
     on i.id=s.visitor_invitation_id and i.organization_id=s.organization_id
@@ -231,6 +249,15 @@ begin
     and (p_query is null or btrim(p_query)='' or i.guest_name ilike '%'||btrim(p_query)||'%' or i.invitation_no ilike '%'||btrim(p_query)||'%')
   order by s.last_entry_at asc nulls last, s.visitor_invitation_id asc
   offset p_offset limit p_limit;
+
+  if not found then
+    return query select
+      null::uuid, null::text, null::text,
+      null::uuid, null::text, null::uuid, null::text,
+      null::uuid, null::text, null::text, null::text,
+      null::timestamptz, null::timestamptz,
+      null::integer, null::integer, v_total, true;
+  end if;
 end;
 $$;
 
@@ -259,8 +286,10 @@ create function public.list_gate_access_evidence(
   unit_id uuid, unit_code text,
   direction text, decision text, reconciliation_id uuid, reason_code text,
   operator_user_id uuid, operator_name text,
-  is_inside_after boolean, occurred_at timestamptz, total_count bigint
+  is_inside_after boolean, occurred_at timestamptz, total_count bigint,
+  count_only boolean
 ) language plpgsql stable security definer set search_path = '' as $$
+declare v_total bigint;
 begin
   if auth.uid() is null or p_organization_id is null
     or not public.organization_is_active(p_organization_id)
@@ -268,7 +297,7 @@ begin
     or not public.has_permission(auth.uid(),p_organization_id,'operations.access_events.view') then
     raise exception 'GATE_EVIDENCE_NOT_AUTHORIZED' using errcode = '42501';
   end if;
-  if p_offset is null or p_offset < 0 or p_offset > 25000
+  if p_offset is null or p_offset < 0
     or p_limit is null or p_limit < 1 or p_limit > 1000
     or (p_decision is not null and p_decision not in ('ALLOW','DENY','RECONCILE'))
     or (p_direction is not null and p_direction not in ('ENTRY','EXIT'))
@@ -282,6 +311,29 @@ begin
     raise exception 'INVALID_GATE_EVIDENCE_FILTERS' using errcode = '22023';
   end if;
 
+  select count(*)::bigint into v_total
+  from public.access_events e
+  join public.properties p
+    on p.id=e.property_id and p.organization_id=e.organization_id
+  join public.gates g
+    on g.id=e.gate_id and g.organization_id=e.organization_id
+  left join public.units u
+    on u.id=e.unit_id and u.organization_id=e.organization_id
+  left join public.profiles pr on pr.id=e.operator_user_id
+  where e.organization_id=p_organization_id
+    and (p_property_id is null or e.property_id=p_property_id)
+    and (p_gate_id is null or e.gate_id=p_gate_id)
+    and (p_decision is null or e.decision=p_decision)
+    and (p_reason is null or btrim(p_reason)='' or e.reason_code ilike '%'||btrim(p_reason)||'%')
+    and (p_direction is null or e.direction=p_direction)
+    and (p_invitation is null or btrim(p_invitation)='' or e.invitation_no ilike '%'||btrim(p_invitation)||'%')
+    and (p_guest is null or btrim(p_guest)='' or e.guest_name ilike '%'||btrim(p_guest)||'%')
+    and (p_operator is null or btrim(p_operator)='' or coalesce(pr.full_name,e.operator_user_id::text) ilike '%'||btrim(p_operator)||'%')
+    and (p_from is null or e.occurred_at>=p_from)
+    and (p_to is null or e.occurred_at<=p_to)
+    and (p_upper_occurred_at is null or e.occurred_at<p_upper_occurred_at or (e.occurred_at=p_upper_occurred_at and e.id<=p_upper_id))
+    and (p_cursor_occurred_at is null or e.occurred_at<p_cursor_occurred_at or (e.occurred_at=p_cursor_occurred_at and e.id<p_cursor_id));
+
   return query
   select
     e.id, e.property_id, p.name,
@@ -290,7 +342,7 @@ begin
     e.unit_id, u.code,
     e.direction, e.decision, e.reconciliation_id, e.reason_code,
     e.operator_user_id, coalesce(pr.full_name,e.operator_user_id::text),
-    e.is_inside_after, e.occurred_at, count(*) over ()::bigint
+    e.is_inside_after, e.occurred_at, v_total, false
   from public.access_events e
   join public.properties p
     on p.id=e.property_id and p.organization_id=e.organization_id
@@ -314,6 +366,17 @@ begin
     and (p_cursor_occurred_at is null or e.occurred_at<p_cursor_occurred_at or (e.occurred_at=p_cursor_occurred_at and e.id<p_cursor_id))
   order by e.occurred_at desc, e.id desc
   offset p_offset limit p_limit;
+
+  if not found then
+    return query select
+      null::uuid, null::uuid, null::text,
+      null::uuid, null::text, null::text, null::text,
+      null::uuid, null::text, null::text,
+      null::uuid, null::text,
+      null::text, null::text, null::uuid, null::text,
+      null::uuid, null::text,
+      null::boolean, null::timestamptz, v_total, true;
+  end if;
 end;
 $$;
 

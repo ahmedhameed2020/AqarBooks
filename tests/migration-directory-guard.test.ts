@@ -141,7 +141,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260925124947_gate_device_trust.sql", bytes: 17340, sha256: "533189d06b73b5d821b1fa2c2c1412706f287fcf91f7407f2b123ce862f36122", provenance: "new_authorized_migration" },
   { file: "20260925140133_gate_scan_device_binding.sql", bytes: 1916, sha256: "7ad16dc2e809e5bc74caffb8bbd4709fedab6da3b9f4297f5289a7a30d4b774d", provenance: "new_authorized_migration" },
   { file: "20260925152255_gate_connectivity_incidents.sql", bytes: 4538, sha256: "cb9a84b9667d9812b419823f3018918d0c9020d70791d0c5634b45dffdcdc6ef", provenance: "new_authorized_migration" },
-  { file: "20260925160550_gate_supervision_evidence.sql", bytes: 25750, sha256: "78d1c3c7915c13f70e25e977dca9f188aa99651ddeb2ccf5cdad48cedec46b5e", provenance: "new_authorized_migration" },
+  { file: "20260925160550_gate_supervision_evidence.sql", bytes: 28713, sha256: "8d89b46f91875e2de25b0c16b5f23a64199c0703be15717b4d07ddc4fe7c605c", provenance: "new_authorized_migration" },
 ] as const;
 
 /**

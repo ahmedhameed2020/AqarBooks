@@ -3403,10 +3403,11 @@ export type Database = {
           p_query?: string | null; p_offset?: number; p_limit?: number;
         };
         Returns: Array<{
-          invitation_id: string; invitation_no: string; guest_name: string;
-          property_id: string; property_name: string; unit_id: string; unit_code: string;
+          invitation_id: string | null; invitation_no: string | null; guest_name: string | null;
+          property_id: string | null; property_name: string | null; unit_id: string | null; unit_code: string | null;
           gate_id: string | null; gate_code: string | null; gate_name_ar: string | null; gate_name_en: string | null;
-          entered_at: string | null; valid_until: string; entry_count: number; exit_count: number; total_count: number;
+          entered_at: string | null; valid_until: string | null; entry_count: number | null; exit_count: number | null;
+          total_count: number; count_only: boolean;
         }>;
       };
       list_gate_access_evidence: {
@@ -3419,13 +3420,13 @@ export type Database = {
           p_upper_occurred_at?: string | null; p_upper_id?: string | null;
         };
         Returns: Array<{
-          id: string; property_id: string; property_name: string;
-          gate_id: string; gate_code: string; gate_name_ar: string; gate_name_en: string;
+          id: string | null; property_id: string | null; property_name: string | null;
+          gate_id: string | null; gate_code: string | null; gate_name_ar: string | null; gate_name_en: string | null;
           visitor_invitation_id: string | null; invitation_no: string | null; guest_name: string | null;
-          unit_id: string | null; unit_code: string | null; direction: "ENTRY" | "EXIT";
-          decision: "ALLOW" | "DENY" | "RECONCILE"; reconciliation_id: string | null; reason_code: string;
-          operator_user_id: string; operator_name: string; is_inside_after: boolean | null;
-          occurred_at: string; total_count: number;
+          unit_id: string | null; unit_code: string | null; direction: "ENTRY" | "EXIT" | null;
+          decision: "ALLOW" | "DENY" | "RECONCILE" | null; reconciliation_id: string | null; reason_code: string | null;
+          operator_user_id: string | null; operator_name: string | null; is_inside_after: boolean | null;
+          occurred_at: string | null; total_count: number; count_only: boolean;
         }>;
       };
       list_projects: {

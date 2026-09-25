@@ -29,6 +29,12 @@ describe("gate evidence query boundaries", () => {
     expect(() => parseEvidenceFilters({ pageSize: "101" })).toThrow();
   });
 
+  it("accepts offsets above the export ceiling but rejects offsets outside the database integer range", () => {
+    expect(parseEvidenceFilters({ page: "502", pageSize: "50" }).page).toBe(502);
+    expect(parseEvidenceFilters({ page: "2147483648", pageSize: "1" }).page).toBe(2_147_483_648);
+    expect(() => parseEvidenceFilters({ page: "2147483649", pageSize: "1" })).toThrow();
+  });
+
   it("rejects malformed dates and inverted ranges", () => {
     expect(() => parseEvidenceFilters({ from: "not-a-date" })).toThrow();
     expect(() => parseEvidenceFilters({ from: "2026-09-25", to: "2026-09-24" })).toThrow();

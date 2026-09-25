@@ -112,12 +112,34 @@ describe.sequential("gate evidence safe projections", () => {
     expect(() => sql(asUser(outsiderId, `select * from public.list_gate_current_visitors('${organizationId}',null,null,null,0,50)`))).toThrow(/GATE_EVIDENCE_NOT_AUTHORIZED/);
   });
 
+  it("accepts occupancy offsets beyond the export ceiling and preserves the exact total on an empty page", () => {
+    const result = jsonResult<Array<{ invitation_id: string | null; total_count: number; count_only: boolean }>>(sql(asUser(supervisorId, `
+      select coalesce(json_agg(row_to_json(x)),'[]'::json) from public.list_gate_current_visitors(
+        p_organization_id=>'${organizationId}', p_offset=>25050, p_limit=>50
+      ) x
+    `)));
+    expect(result).toEqual([{ invitation_id: null, invitation_no: null, guest_name: null, property_id: null, property_name: null,
+      unit_id: null, unit_code: null, gate_id: null, gate_code: null, gate_name_ar: null, gate_name_en: null,
+      entered_at: null, valid_until: null, entry_count: null, exit_count: null, total_count: 1, count_only: true }]);
+  });
+
   it("filters and hydrates operator names for ordinary supervisors without broad profile access", () => {
     expect(sql(asUser(supervisorId, `select count(*) from public.profiles where id='${operatorId}'`))).toContain("\n0\n");
     const result = jsonResult<Array<{ operator_user_id: string; operator_name: string; total_count: number }>>(sql(asUser(supervisorId, evidenceQuery("p_operator=>'Needle',"))));
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ operator_user_id: operatorId, operator_name: "Needle Operator", total_count: 4 });
     expect(() => sql(asUser(outsiderId, evidenceQuery("p_operator=>'Needle',")))).toThrow(/GATE_EVIDENCE_NOT_AUTHORIZED/);
+  });
+
+  it("accepts evidence offsets beyond the export ceiling and preserves the exact total on an empty page", () => {
+    const result = jsonResult<Array<{ id: string | null; total_count: number; count_only: boolean }>>(sql(asUser(supervisorId, `
+      select coalesce(json_agg(row_to_json(x)),'[]'::json) from public.list_gate_access_evidence(
+        p_organization_id=>'${organizationId}', p_from=>'2026-09-25T00:00:00Z', p_to=>'2026-09-26T00:00:00Z',
+        p_offset=>25050, p_limit=>50
+      ) x
+    `)));
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: null, total_count: 4, count_only: true });
   });
 
   it("uses a captured upper bound and keyset cursor when newer evidence arrives", () => {

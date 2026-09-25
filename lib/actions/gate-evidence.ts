@@ -107,11 +107,12 @@ async function fetchEvidencePage(
 ) {
   const { data, error } = await db.rpc("list_gate_access_evidence", evidenceRpcArgs(organizationId, filters, request));
   if (error) return { error: true as const };
-  const rows: AccessEvidenceItem[] = (data ?? []).map((row) => ({
-    id: row.id,
-    propertyId: row.property_id,
-    propertyName: row.property_name,
-    gateId: row.gate_id,
+  const rawRows = data ?? [];
+  const rows: AccessEvidenceItem[] = rawRows.filter((row) => !row.count_only).map((row) => ({
+    id: row.id!,
+    propertyId: row.property_id!,
+    propertyName: row.property_name!,
+    gateId: row.gate_id!,
     gateCode: row.gate_code,
     gateNameAr: row.gate_name_ar,
     gateNameEn: row.gate_name_en,
@@ -121,16 +122,16 @@ async function fetchEvidencePage(
     guestName: row.guest_name,
     unitId: row.unit_id,
     unitCode: row.unit_code,
-    direction: row.direction,
-    decision: row.decision,
+    direction: row.direction!,
+    decision: row.decision!,
     reconciliationId: row.reconciliation_id,
-    reasonCode: row.reason_code,
-    operatorUserId: row.operator_user_id,
-    operatorName: row.operator_name,
+    reasonCode: row.reason_code!,
+    operatorUserId: row.operator_user_id!,
+    operatorName: row.operator_name!,
     isInsideAfter: row.is_inside_after,
-    occurredAt: row.occurred_at,
+    occurredAt: row.occurred_at!,
   }));
-  return { rows, total: Number(data?.[0]?.total_count ?? 0), error: false as const };
+  return { rows, total: Number(rawRows[0]?.total_count ?? 0), error: false as const };
 }
 
 export async function listCurrentVisitors(input: Record<string, unknown> = {}): Promise<
@@ -151,26 +152,27 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
   });
   if (error) return { ok: false, error: "query_failed" };
 
+  const rawRows = data ?? [];
   const now = new Date();
-  const rows: CurrentVisitorItem[] = (data ?? []).map((row) => ({
-    invitationId: row.invitation_id,
-    invitationNo: row.invitation_no,
-    guestName: row.guest_name,
-    propertyId: row.property_id,
-    propertyName: row.property_name,
-    unitId: row.unit_id,
-    unitCode: row.unit_code,
+  const rows: CurrentVisitorItem[] = rawRows.filter((row) => !row.count_only).map((row) => ({
+    invitationId: row.invitation_id!,
+    invitationNo: row.invitation_no!,
+    guestName: row.guest_name!,
+    propertyId: row.property_id!,
+    propertyName: row.property_name!,
+    unitId: row.unit_id!,
+    unitCode: row.unit_code!,
     gateId: row.gate_id,
     gateCode: row.gate_code,
     gateNameAr: row.gate_name_ar,
     gateNameEn: row.gate_name_en,
     enteredAt: row.entered_at,
-    validUntil: row.valid_until,
-    entryCount: row.entry_count,
-    exitCount: row.exit_count,
+    validUntil: row.valid_until!,
+    entryCount: row.entry_count!,
+    exitCount: row.exit_count!,
     ...getOccupancyWarnings({
       enteredAt: row.entered_at,
-      validUntil: row.valid_until,
+      validUntil: row.valid_until!,
       now,
       longStayHours: DEFAULT_LONG_STAY_HOURS,
     }),
@@ -178,7 +180,7 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
   return {
     ok: true,
     rows,
-    total: Number(data?.[0]?.total_count ?? 0),
+    total: Number(rawRows[0]?.total_count ?? 0),
     page: filters.page,
     pageSize: filters.pageSize,
     longStayHours: DEFAULT_LONG_STAY_HOURS,
