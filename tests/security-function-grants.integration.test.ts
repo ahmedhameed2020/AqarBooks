@@ -123,6 +123,7 @@ const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "create_gate_manual_exception", "approve_gate_manual_exception", "reconcile_visitor_access_state",
+  "list_gate_current_visitors", "list_gate_access_evidence",
   "abort_maintenance_attachment_upload",
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",

@@ -3397,6 +3397,37 @@ export type Database = {
         };
         Returns: string;
       };
+      list_gate_current_visitors: {
+        Args: {
+          p_organization_id: string; p_property_id?: string | null; p_gate_id?: string | null;
+          p_query?: string | null; p_offset?: number; p_limit?: number;
+        };
+        Returns: Array<{
+          invitation_id: string; invitation_no: string; guest_name: string;
+          property_id: string; property_name: string; unit_id: string; unit_code: string;
+          gate_id: string | null; gate_code: string | null; gate_name_ar: string | null; gate_name_en: string | null;
+          entered_at: string | null; valid_until: string; entry_count: number; exit_count: number; total_count: number;
+        }>;
+      };
+      list_gate_access_evidence: {
+        Args: {
+          p_organization_id: string; p_property_id?: string | null; p_gate_id?: string | null;
+          p_decision?: "ALLOW" | "DENY" | "RECONCILE" | null; p_reason?: string | null;
+          p_direction?: "ENTRY" | "EXIT" | null; p_invitation?: string | null; p_guest?: string | null;
+          p_operator?: string | null; p_from?: string | null; p_to?: string | null;
+          p_offset?: number; p_limit?: number; p_cursor_occurred_at?: string | null; p_cursor_id?: string | null;
+          p_upper_occurred_at?: string | null; p_upper_id?: string | null;
+        };
+        Returns: Array<{
+          id: string; property_id: string; property_name: string;
+          gate_id: string; gate_code: string; gate_name_ar: string; gate_name_en: string;
+          visitor_invitation_id: string | null; invitation_no: string | null; guest_name: string | null;
+          unit_id: string | null; unit_code: string | null; direction: "ENTRY" | "EXIT";
+          decision: "ALLOW" | "DENY" | "RECONCILE"; reconciliation_id: string | null; reason_code: string;
+          operator_user_id: string; operator_name: string; is_inside_after: boolean | null;
+          occurred_at: string; total_count: number;
+        }>;
+      };
       list_projects: {
         Args: { p_organization_id: string };
         Returns: {

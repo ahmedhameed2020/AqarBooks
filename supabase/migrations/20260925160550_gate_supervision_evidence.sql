@@ -178,6 +178,145 @@ begin
 end;
 $$;
 
+-- Safe evidence projections deliberately bypass the narrower invitation/profile
+-- RLS only after re-proving the caller's exact tenant evidence permission. They
+-- expose no phone, QR, token, device credential, or authentication columns.
+create function public.list_gate_current_visitors(
+  p_organization_id uuid,
+  p_property_id uuid default null,
+  p_gate_id uuid default null,
+  p_query text default null,
+  p_offset integer default 0,
+  p_limit integer default 50
+) returns table (
+  invitation_id uuid, invitation_no text, guest_name text,
+  property_id uuid, property_name text, unit_id uuid, unit_code text,
+  gate_id uuid, gate_code text, gate_name_ar text, gate_name_en text,
+  entered_at timestamptz, valid_until timestamptz,
+  entry_count integer, exit_count integer, total_count bigint
+) language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or p_organization_id is null
+    or not public.organization_is_active(p_organization_id)
+    or not public.gate_operations_enabled(p_organization_id)
+    or not public.has_permission(auth.uid(),p_organization_id,'operations.access_events.view') then
+    raise exception 'GATE_EVIDENCE_NOT_AUTHORIZED' using errcode = '42501';
+  end if;
+  if p_offset is null or p_offset < 0 or p_offset > 25000
+    or p_limit is null or p_limit < 1 or p_limit > 100
+    or (p_query is not null and char_length(p_query) > 120) then
+    raise exception 'INVALID_GATE_EVIDENCE_FILTERS' using errcode = '22023';
+  end if;
+
+  return query
+  select
+    s.visitor_invitation_id, i.invitation_no, i.guest_name,
+    s.property_id, p.name, s.unit_id, u.code,
+    s.last_gate_id, g.code, g.name_ar, g.name_en,
+    s.last_entry_at, i.valid_until, s.entry_count, s.exit_count,
+    count(*) over ()::bigint
+  from public.visitor_access_state s
+  join public.visitor_invitations i
+    on i.id=s.visitor_invitation_id and i.organization_id=s.organization_id
+  join public.properties p
+    on p.id=s.property_id and p.organization_id=s.organization_id
+  join public.units u
+    on u.id=s.unit_id and u.organization_id=s.organization_id
+  left join public.gates g
+    on g.id=s.last_gate_id and g.organization_id=s.organization_id
+  where s.organization_id=p_organization_id
+    and s.is_inside=true
+    and (p_property_id is null or s.property_id=p_property_id)
+    and (p_gate_id is null or s.last_gate_id=p_gate_id)
+    and (p_query is null or btrim(p_query)='' or i.guest_name ilike '%'||btrim(p_query)||'%' or i.invitation_no ilike '%'||btrim(p_query)||'%')
+  order by s.last_entry_at asc nulls last, s.visitor_invitation_id asc
+  offset p_offset limit p_limit;
+end;
+$$;
+
+create function public.list_gate_access_evidence(
+  p_organization_id uuid,
+  p_property_id uuid default null,
+  p_gate_id uuid default null,
+  p_decision text default null,
+  p_reason text default null,
+  p_direction text default null,
+  p_invitation text default null,
+  p_guest text default null,
+  p_operator text default null,
+  p_from timestamptz default null,
+  p_to timestamptz default null,
+  p_offset integer default 0,
+  p_limit integer default 50,
+  p_cursor_occurred_at timestamptz default null,
+  p_cursor_id uuid default null,
+  p_upper_occurred_at timestamptz default null,
+  p_upper_id uuid default null
+) returns table (
+  id uuid, property_id uuid, property_name text,
+  gate_id uuid, gate_code text, gate_name_ar text, gate_name_en text,
+  visitor_invitation_id uuid, invitation_no text, guest_name text,
+  unit_id uuid, unit_code text,
+  direction text, decision text, reconciliation_id uuid, reason_code text,
+  operator_user_id uuid, operator_name text,
+  is_inside_after boolean, occurred_at timestamptz, total_count bigint
+) language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or p_organization_id is null
+    or not public.organization_is_active(p_organization_id)
+    or not public.gate_operations_enabled(p_organization_id)
+    or not public.has_permission(auth.uid(),p_organization_id,'operations.access_events.view') then
+    raise exception 'GATE_EVIDENCE_NOT_AUTHORIZED' using errcode = '42501';
+  end if;
+  if p_offset is null or p_offset < 0 or p_offset > 25000
+    or p_limit is null or p_limit < 1 or p_limit > 1000
+    or (p_decision is not null and p_decision not in ('ALLOW','DENY','RECONCILE'))
+    or (p_direction is not null and p_direction not in ('ENTRY','EXIT'))
+    or (p_reason is not null and char_length(p_reason) > 80)
+    or (p_invitation is not null and char_length(p_invitation) > 80)
+    or (p_guest is not null and char_length(p_guest) > 120)
+    or (p_operator is not null and char_length(p_operator) > 120)
+    or (p_from is not null and p_to is not null and p_from > p_to)
+    or ((p_cursor_occurred_at is null) <> (p_cursor_id is null))
+    or ((p_upper_occurred_at is null) <> (p_upper_id is null)) then
+    raise exception 'INVALID_GATE_EVIDENCE_FILTERS' using errcode = '22023';
+  end if;
+
+  return query
+  select
+    e.id, e.property_id, p.name,
+    e.gate_id, g.code, g.name_ar, g.name_en,
+    e.visitor_invitation_id, e.invitation_no, e.guest_name,
+    e.unit_id, u.code,
+    e.direction, e.decision, e.reconciliation_id, e.reason_code,
+    e.operator_user_id, coalesce(pr.full_name,e.operator_user_id::text),
+    e.is_inside_after, e.occurred_at, count(*) over ()::bigint
+  from public.access_events e
+  join public.properties p
+    on p.id=e.property_id and p.organization_id=e.organization_id
+  join public.gates g
+    on g.id=e.gate_id and g.organization_id=e.organization_id
+  left join public.units u
+    on u.id=e.unit_id and u.organization_id=e.organization_id
+  left join public.profiles pr on pr.id=e.operator_user_id
+  where e.organization_id=p_organization_id
+    and (p_property_id is null or e.property_id=p_property_id)
+    and (p_gate_id is null or e.gate_id=p_gate_id)
+    and (p_decision is null or e.decision=p_decision)
+    and (p_reason is null or btrim(p_reason)='' or e.reason_code ilike '%'||btrim(p_reason)||'%')
+    and (p_direction is null or e.direction=p_direction)
+    and (p_invitation is null or btrim(p_invitation)='' or e.invitation_no ilike '%'||btrim(p_invitation)||'%')
+    and (p_guest is null or btrim(p_guest)='' or e.guest_name ilike '%'||btrim(p_guest)||'%')
+    and (p_operator is null or btrim(p_operator)='' or coalesce(pr.full_name,e.operator_user_id::text) ilike '%'||btrim(p_operator)||'%')
+    and (p_from is null or e.occurred_at>=p_from)
+    and (p_to is null or e.occurred_at<=p_to)
+    and (p_upper_occurred_at is null or e.occurred_at<p_upper_occurred_at or (e.occurred_at=p_upper_occurred_at and e.id<=p_upper_id))
+    and (p_cursor_occurred_at is null or e.occurred_at<p_cursor_occurred_at or (e.occurred_at=p_cursor_occurred_at and e.id<p_cursor_id))
+  order by e.occurred_at desc, e.id desc
+  offset p_offset limit p_limit;
+end;
+$$;
+
 -- A waiting scan must timestamp its evidence after acquiring the invitation lock,
 -- rather than inheriting the transaction's earlier start time and reversing history.
 alter table public.access_events alter column occurred_at set default clock_timestamp();
@@ -228,6 +367,10 @@ revoke all on function public.gate_supervision_context(uuid,text) from public,an
 revoke all on function public.create_gate_manual_exception(uuid,uuid,text,text,text,text,uuid,uuid) from public,anon,authenticated,service_role;
 revoke all on function public.approve_gate_manual_exception(uuid,text) from public,anon,authenticated,service_role;
 revoke all on function public.reconcile_visitor_access_state(uuid,uuid,boolean,text,text) from public,anon,authenticated,service_role;
+revoke all on function public.list_gate_current_visitors(uuid,uuid,uuid,text,integer,integer) from public,anon,authenticated,service_role;
+revoke all on function public.list_gate_access_evidence(uuid,uuid,uuid,text,text,text,text,text,text,timestamptz,timestamptz,integer,integer,timestamptz,uuid,timestamptz,uuid) from public,anon,authenticated,service_role;
 grant execute on function public.create_gate_manual_exception(uuid,uuid,text,text,text,text,uuid,uuid) to authenticated,service_role;
 grant execute on function public.approve_gate_manual_exception(uuid,text) to authenticated,service_role;
 grant execute on function public.reconcile_visitor_access_state(uuid,uuid,boolean,text,text) to authenticated,service_role;
+grant execute on function public.list_gate_current_visitors(uuid,uuid,uuid,text,integer,integer) to authenticated,service_role;
+grant execute on function public.list_gate_access_evidence(uuid,uuid,uuid,text,text,text,text,text,text,timestamptz,timestamptz,integer,integer,timestamptz,uuid,timestamptz,uuid) to authenticated,service_role;

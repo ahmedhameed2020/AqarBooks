@@ -6,12 +6,13 @@ import { hasPermission } from "@/lib/auth/authorize";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildAccessEvidenceCsv,
+  collectEvidenceExportRows,
   DEFAULT_LONG_STAY_HOURS,
-  EVIDENCE_EXPORT_ROW_MAX,
   getOccupancyWarnings,
   parseEvidenceExportFilters,
   parseEvidenceFilters,
   type AccessEvidenceCsvRow,
+  type EvidenceExportPageRequest,
   type EvidenceFilters,
 } from "@/lib/gates/evidence-csv";
 
@@ -53,41 +54,14 @@ export type CurrentVisitorItem = {
   expiredInside: boolean;
 };
 
-type AccessEventRow = {
-  id: string;
-  property_id: string;
-  gate_id: string;
-  visitor_invitation_id: string | null;
-  unit_id: string | null;
-  direction: "ENTRY" | "EXIT";
-  decision: "ALLOW" | "DENY" | "RECONCILE";
-  reconciliation_id: string | null;
-  reason_code: string;
-  operator_user_id: string;
-  guest_name: string | null;
-  invitation_no: string | null;
-  is_inside_after: boolean | null;
-  occurred_at: string;
-};
-
-type AccessStateRow = {
-  visitor_invitation_id: string;
-  property_id: string;
-  unit_id: string;
-  last_entry_at: string | null;
-  last_gate_id: string | null;
-  entry_count: number;
-  exit_count: number;
-};
-
-async function authorize(permission: string): Promise<
-  { ok: true; organizationId: string; db: DbClient } | Failure
-> {
+async function authorize(): Promise<{ ok: true; organizationId: string; db: DbClient } | Failure> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "unauthenticated" };
   const organization = await getPrimaryOrganization(user.id);
   if (!organization) return { ok: false, error: "forbidden" };
-  if (!(await hasPermission(organization.id, permission))) return { ok: false, error: "forbidden" };
+  if (!(await hasPermission(organization.id, "operations.access_events.view"))) {
+    return { ok: false, error: "forbidden" };
+  }
   return { ok: true, organizationId: organization.id, db: await createClient() };
 }
 
@@ -99,15 +73,64 @@ function safeParse(input: Record<string, unknown>, exportMode = false) {
   }
 }
 
-async function matchingInvitationIds(db: DbClient, organizationId: string, filters: EvidenceFilters) {
-  const q = filters.q?.trim();
-  if (!q) return null;
-  const [guest, invitation] = await Promise.all([
-    db.from("visitor_invitations").select("id").eq("organization_id", organizationId).ilike("guest_name", `%${q}%`).limit(1_000),
-    db.from("visitor_invitations").select("id").eq("organization_id", organizationId).ilike("invitation_no", `%${q}%`).limit(1_000),
-  ]);
-  if (guest.error || invitation.error) return undefined;
-  return [...new Set([...(guest.data ?? []), ...(invitation.data ?? [])].map((row) => row.id))];
+function evidenceRpcArgs(
+  organizationId: string,
+  filters: EvidenceFilters,
+  { offset = 0, limit, upperBound, before }: EvidenceExportPageRequest & { offset?: number },
+) {
+  return {
+    p_organization_id: organizationId,
+    p_property_id: filters.property ?? null,
+    p_gate_id: filters.gate ?? null,
+    p_decision: filters.decision ?? null,
+    p_reason: filters.reason ?? null,
+    p_direction: filters.direction ?? null,
+    p_invitation: filters.invitation ?? null,
+    p_guest: filters.guest ?? null,
+    p_operator: filters.operator ?? null,
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_offset: offset,
+    p_limit: limit,
+    p_cursor_occurred_at: before?.occurredAt ?? null,
+    p_cursor_id: before?.id ?? null,
+    p_upper_occurred_at: upperBound?.occurredAt ?? null,
+    p_upper_id: upperBound?.id ?? null,
+  };
+}
+
+async function fetchEvidencePage(
+  db: DbClient,
+  organizationId: string,
+  filters: EvidenceFilters,
+  request: EvidenceExportPageRequest & { offset?: number },
+) {
+  const { data, error } = await db.rpc("list_gate_access_evidence", evidenceRpcArgs(organizationId, filters, request));
+  if (error) return { error: true as const };
+  const rows: AccessEvidenceItem[] = (data ?? []).map((row) => ({
+    id: row.id,
+    propertyId: row.property_id,
+    propertyName: row.property_name,
+    gateId: row.gate_id,
+    gateCode: row.gate_code,
+    gateNameAr: row.gate_name_ar,
+    gateNameEn: row.gate_name_en,
+    gateName: `${row.gate_code} · ${row.gate_name_en}`,
+    invitationId: row.visitor_invitation_id,
+    invitationNo: row.invitation_no,
+    guestName: row.guest_name,
+    unitId: row.unit_id,
+    unitCode: row.unit_code,
+    direction: row.direction,
+    decision: row.decision,
+    reconciliationId: row.reconciliation_id,
+    reasonCode: row.reason_code,
+    operatorUserId: row.operator_user_id,
+    operatorName: row.operator_name,
+    isInsideAfter: row.is_inside_after,
+    occurredAt: row.occurred_at,
+  }));
+  return { rows, total: Number(data?.[0]?.total_count ?? 0), error: false as const };
 }
 
 export async function listCurrentVisitors(input: Record<string, unknown> = {}): Promise<
@@ -115,182 +138,51 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
 > {
   const filters = safeParse(input);
   if (!filters) return { ok: false, error: "invalid_filters" };
-  const auth = await authorize("operations.access_events.view");
+  const auth = await authorize();
   if (!auth.ok) return auth;
 
-  const invitationIds = await matchingInvitationIds(auth.db, auth.organizationId, filters);
-  if (invitationIds === undefined) return { ok: false, error: "query_failed" };
-  if (invitationIds?.length === 0) {
-    return { ok: true, rows: [], total: 0, page: filters.page, pageSize: filters.pageSize, longStayHours: DEFAULT_LONG_STAY_HOURS };
-  }
-
-  const start = (filters.page - 1) * filters.pageSize;
-  let query = auth.db
-    .from("visitor_access_state")
-    .select("visitor_invitation_id, property_id, unit_id, last_entry_at, last_gate_id, entry_count, exit_count", { count: "exact" })
-    .eq("organization_id", auth.organizationId)
-    .eq("is_inside", true);
-  if (filters.property) query = query.eq("property_id", filters.property);
-  if (filters.gate) query = query.eq("last_gate_id", filters.gate);
-  if (invitationIds) query = query.in("visitor_invitation_id", invitationIds);
-  const { data, error, count } = await query
-    .order("last_entry_at", { ascending: true, nullsFirst: false })
-    .range(start, start + filters.pageSize - 1);
+  const { data, error } = await auth.db.rpc("list_gate_current_visitors", {
+    p_organization_id: auth.organizationId,
+    p_property_id: filters.property ?? null,
+    p_gate_id: filters.gate ?? null,
+    p_query: filters.q ?? null,
+    p_offset: (filters.page - 1) * filters.pageSize,
+    p_limit: filters.pageSize,
+  });
   if (error) return { ok: false, error: "query_failed" };
 
-  const states = (data ?? []) as AccessStateRow[];
-  const stateInvitationIds = states.map((row) => row.visitor_invitation_id);
-  const propertyIds = [...new Set(states.map((row) => row.property_id))];
-  const unitIds = [...new Set(states.map((row) => row.unit_id))];
-  const gateIds = [...new Set(states.flatMap((row) => row.last_gate_id ? [row.last_gate_id] : []))];
-  const [invitations, properties, units, gates] = await Promise.all([
-    stateInvitationIds.length
-      ? auth.db.from("visitor_invitations").select("id, invitation_no, guest_name, valid_until").in("id", stateInvitationIds)
-      : Promise.resolve({ data: [], error: null }),
-    propertyIds.length
-      ? auth.db.from("properties").select("id, name").in("id", propertyIds)
-      : Promise.resolve({ data: [], error: null }),
-    unitIds.length
-      ? auth.db.from("units").select("id, code").in("id", unitIds)
-      : Promise.resolve({ data: [], error: null }),
-    gateIds.length
-      ? auth.db.from("gates").select("id, code, name_ar, name_en").in("id", gateIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (invitations.error || properties.error || units.error || gates.error) {
-    return { ok: false, error: "query_failed" };
-  }
-
-  const invitationById = new Map((invitations.data ?? []).map((row) => [row.id, row]));
-  const propertyById = new Map((properties.data ?? []).map((row) => [row.id, row.name]));
-  const unitById = new Map((units.data ?? []).map((row) => [row.id, row.code]));
-  const gateById = new Map((gates.data ?? []).map((row) => [row.id, row]));
   const now = new Date();
-  const rows: CurrentVisitorItem[] = states.flatMap((state) => {
-    const invitation = invitationById.get(state.visitor_invitation_id);
-    if (!invitation) return [];
-    const gate = state.last_gate_id ? gateById.get(state.last_gate_id) : null;
-    const warnings = getOccupancyWarnings({
-      enteredAt: state.last_entry_at,
-      validUntil: invitation.valid_until,
+  const rows: CurrentVisitorItem[] = (data ?? []).map((row) => ({
+    invitationId: row.invitation_id,
+    invitationNo: row.invitation_no,
+    guestName: row.guest_name,
+    propertyId: row.property_id,
+    propertyName: row.property_name,
+    unitId: row.unit_id,
+    unitCode: row.unit_code,
+    gateId: row.gate_id,
+    gateCode: row.gate_code,
+    gateNameAr: row.gate_name_ar,
+    gateNameEn: row.gate_name_en,
+    enteredAt: row.entered_at,
+    validUntil: row.valid_until,
+    entryCount: row.entry_count,
+    exitCount: row.exit_count,
+    ...getOccupancyWarnings({
+      enteredAt: row.entered_at,
+      validUntil: row.valid_until,
       now,
       longStayHours: DEFAULT_LONG_STAY_HOURS,
-    });
-    return [{
-      invitationId: state.visitor_invitation_id,
-      invitationNo: invitation.invitation_no,
-      guestName: invitation.guest_name,
-      propertyId: state.property_id,
-      propertyName: propertyById.get(state.property_id) ?? "—",
-      unitId: state.unit_id,
-      unitCode: unitById.get(state.unit_id) ?? "—",
-      gateId: state.last_gate_id,
-      gateCode: gate?.code ?? null,
-      gateNameAr: gate?.name_ar ?? null,
-      gateNameEn: gate?.name_en ?? null,
-      enteredAt: state.last_entry_at,
-      validUntil: invitation.valid_until,
-      entryCount: state.entry_count,
-      exitCount: state.exit_count,
-      ...warnings,
-    }];
-  });
-
+    }),
+  }));
   return {
     ok: true,
     rows,
-    total: count ?? rows.length,
+    total: Number(data?.[0]?.total_count ?? 0),
     page: filters.page,
     pageSize: filters.pageSize,
     longStayHours: DEFAULT_LONG_STAY_HOURS,
   };
-}
-
-async function operatorIdsForFilter(db: DbClient, operator: string | undefined) {
-  if (!operator) return null;
-  const { data, error } = await db.from("profiles").select("id").ilike("full_name", `%${operator}%`).limit(1_000);
-  if (error) return undefined;
-  return (data ?? []).map((row) => row.id);
-}
-
-async function fetchEvidencePage(
-  db: DbClient,
-  organizationId: string,
-  filters: EvidenceFilters,
-  offset: number,
-  limit: number,
-  includeCount: boolean,
-) {
-  const operatorIds = await operatorIdsForFilter(db, filters.operator);
-  if (operatorIds === undefined) return { error: true as const };
-  if (operatorIds?.length === 0) return { rows: [] as AccessEvidenceItem[], total: 0, error: false as const };
-
-  let query = db
-    .from("access_events")
-    .select(
-      "id, property_id, gate_id, visitor_invitation_id, unit_id, direction, decision, reconciliation_id, reason_code, operator_user_id, guest_name, invitation_no, is_inside_after, occurred_at",
-      includeCount ? { count: "exact" } : undefined,
-    )
-    .eq("organization_id", organizationId);
-  if (filters.property) query = query.eq("property_id", filters.property);
-  if (filters.gate) query = query.eq("gate_id", filters.gate);
-  if (filters.decision) query = query.eq("decision", filters.decision);
-  if (filters.reason) query = query.ilike("reason_code", `%${filters.reason}%`);
-  if (filters.direction) query = query.eq("direction", filters.direction);
-  if (filters.invitation) query = query.ilike("invitation_no", `%${filters.invitation}%`);
-  if (filters.guest) query = query.ilike("guest_name", `%${filters.guest}%`);
-  if (operatorIds) query = query.in("operator_user_id", operatorIds);
-  if (filters.from) query = query.gte("occurred_at", filters.from);
-  if (filters.to) query = query.lte("occurred_at", filters.to);
-
-  const { data, error, count } = await query
-    .order("occurred_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(offset, offset + limit - 1);
-  if (error) return { error: true as const };
-
-  const raw = (data ?? []) as AccessEventRow[];
-  const propertyIds = [...new Set(raw.map((row) => row.property_id))];
-  const gateIds = [...new Set(raw.map((row) => row.gate_id))];
-  const unitIds = [...new Set(raw.flatMap((row) => row.unit_id ? [row.unit_id] : []))];
-  const profileIds = [...new Set(raw.map((row) => row.operator_user_id))];
-  const [properties, gates, units, profiles] = await Promise.all([
-    propertyIds.length ? db.from("properties").select("id, name").in("id", propertyIds) : Promise.resolve({ data: [], error: null }),
-    gateIds.length ? db.from("gates").select("id, code, name_ar, name_en").in("id", gateIds) : Promise.resolve({ data: [], error: null }),
-    unitIds.length ? db.from("units").select("id, code").in("id", unitIds) : Promise.resolve({ data: [], error: null }),
-    profileIds.length ? db.from("profiles").select("id, full_name").in("id", profileIds) : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (properties.error || gates.error || units.error || profiles.error) return { error: true as const };
-
-  const propertyById = new Map((properties.data ?? []).map((row) => [row.id, row.name]));
-  const gateDetailsById = new Map((gates.data ?? []).map((row) => [row.id, row]));
-  const gateById = new Map((gates.data ?? []).map((row) => [row.id, `${row.code} · ${row.name_en}`]));
-  const unitById = new Map((units.data ?? []).map((row) => [row.id, row.code]));
-  const profileById = new Map((profiles.data ?? []).map((row) => [row.id, row.full_name ?? row.id]));
-  const rows: AccessEvidenceItem[] = raw.map((row) => ({
-    id: row.id,
-    propertyId: row.property_id,
-    gateId: row.gate_id,
-    invitationId: row.visitor_invitation_id,
-    unitId: row.unit_id,
-    operatorUserId: row.operator_user_id,
-    reconciliationId: row.reconciliation_id,
-    isInsideAfter: row.is_inside_after,
-    gateCode: gateDetailsById.get(row.gate_id)?.code ?? null,
-    gateNameAr: gateDetailsById.get(row.gate_id)?.name_ar ?? null,
-    gateNameEn: gateDetailsById.get(row.gate_id)?.name_en ?? null,
-    occurredAt: row.occurred_at,
-    propertyName: propertyById.get(row.property_id) ?? "—",
-    gateName: gateById.get(row.gate_id) ?? "—",
-    invitationNo: row.invitation_no,
-    guestName: row.guest_name,
-    unitCode: row.unit_id ? unitById.get(row.unit_id) ?? null : null,
-    decision: row.decision,
-    reasonCode: row.reason_code,
-    direction: row.direction,
-    operatorName: profileById.get(row.operator_user_id) ?? row.operator_user_id,
-  }));
-  return { rows, total: count ?? rows.length, error: false as const };
 }
 
 export async function listAccessEvidence(input: Record<string, unknown> = {}): Promise<
@@ -298,10 +190,12 @@ export async function listAccessEvidence(input: Record<string, unknown> = {}): P
 > {
   const filters = safeParse(input);
   if (!filters) return { ok: false, error: "invalid_filters" };
-  const auth = await authorize("operations.access_events.view");
+  const auth = await authorize();
   if (!auth.ok) return auth;
-  const offset = (filters.page - 1) * filters.pageSize;
-  const result = await fetchEvidencePage(auth.db, auth.organizationId, filters, offset, filters.pageSize, true);
+  const result = await fetchEvidencePage(auth.db, auth.organizationId, filters, {
+    offset: (filters.page - 1) * filters.pageSize,
+    limit: filters.pageSize,
+  });
   if (result.error) return { ok: false, error: "query_failed" };
   return { ok: true, rows: result.rows, total: result.total, page: filters.page, pageSize: filters.pageSize };
 }
@@ -311,28 +205,23 @@ export async function exportAccessEvidenceCsvAction(input: Record<string, unknow
 > {
   const filters = safeParse(input, true);
   if (!filters) return { ok: false, error: "invalid_filters" };
-  const auth = await authorize("operations.access_events.view");
+  const auth = await authorize();
   if (!auth.ok) return auth;
 
-  const rows: AccessEvidenceItem[] = [];
-  const chunkSize = 1_000;
-  while (rows.length < EVIDENCE_EXPORT_ROW_MAX) {
-    const requested = Math.min(chunkSize, EVIDENCE_EXPORT_ROW_MAX - rows.length);
-    const result = await fetchEvidencePage(auth.db, auth.organizationId, filters, rows.length, requested, false);
-    if (result.error) return { ok: false, error: "query_failed" };
-    rows.push(...result.rows);
-    if (result.rows.length < requested) break;
+  try {
+    const result = await collectEvidenceExportRows<AccessEvidenceItem>(async (request) => {
+      const page = await fetchEvidencePage(auth.db, auth.organizationId, filters, request);
+      if (page.error) throw new Error("query_failed");
+      return page.rows;
+    });
+    return {
+      ok: true,
+      csv: buildAccessEvidenceCsv(result.rows),
+      filename: `access-evidence-${filters.from!.slice(0, 10)}-${filters.to!.slice(0, 10)}.csv`,
+      rowCount: result.rows.length,
+      truncated: result.truncated,
+    };
+  } catch {
+    return { ok: false, error: "query_failed" };
   }
-
-  const boundary = rows.length === EVIDENCE_EXPORT_ROW_MAX
-    ? await fetchEvidencePage(auth.db, auth.organizationId, filters, EVIDENCE_EXPORT_ROW_MAX, 1, false)
-    : { rows: [], error: false as const };
-  if (boundary.error) return { ok: false, error: "query_failed" };
-  return {
-    ok: true,
-    csv: buildAccessEvidenceCsv(rows),
-    filename: `access-evidence-${filters.from!.slice(0, 10)}-${filters.to!.slice(0, 10)}.csv`,
-    rowCount: rows.length,
-    truncated: boundary.rows.length > 0,
-  };
 }

@@ -19,5 +19,12 @@ describe("gate supervision migration", () => {
     const manualTable = sql.split("create table public.gate_manual_exceptions (")[1].split(");")[0];
     expect(manualTable).toContain("visitor_invitation_id uuid,");
     expect(manualTable).toContain("property_id uuid not null");
+    expect(sql).toContain("create function public.list_gate_current_visitors");
+    expect(sql).toContain("create function public.list_gate_access_evidence");
+    expect(sql).toMatch(/list_gate_current_visitors[\s\S]*security definer set search_path = ''/i);
+    expect(sql).toMatch(/list_gate_access_evidence[\s\S]*security definer set search_path = ''/i);
+    expect(sql).toMatch(/has_permission\(auth\.uid\(\),p_organization_id,'operations\.access_events\.view'\)/i);
+    expect(sql).toMatch(/revoke all on function public\.list_gate_current_visitors/i);
+    expect(sql).toMatch(/revoke all on function public\.list_gate_access_evidence/i);
   });
 });

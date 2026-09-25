@@ -84,8 +84,13 @@ export function parseEvidenceExportFilters(
     from = defaultFrom.toISOString();
   }
 
-  const span = new Date(to).getTime() - new Date(from).getTime();
-  if (span < 0 || span > ((EVIDENCE_EXPORT_DAY_MAX - 1) * 86_400_000) + 86_399_999) {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const span = toDate.getTime() - fromDate.getTime();
+  const fromUtcDay = Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate());
+  const toUtcDay = Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth(), toDate.getUTCDate());
+  const inclusiveUtcDays = ((toUtcDay - fromUtcDay) / 86_400_000) + 1;
+  if (span < 0 || inclusiveUtcDays > EVIDENCE_EXPORT_DAY_MAX) {
     throw new Error(`Evidence export cannot exceed ${EVIDENCE_EXPORT_DAY_MAX} days`);
   }
 
@@ -120,9 +125,49 @@ const CSV_HEADERS = [
 
 function safeCsvCell(value: string | null) {
   let cell = value ?? "";
-  if (/^[\t\r ]*[=+\-@]/.test(cell)) cell = `'${cell}`;
+  if (/^[\s\p{White_Space}]*[=+\-@]/u.test(cell)) cell = `'${cell}`;
   if (/[",\r\n]/.test(cell)) cell = `"${cell.replaceAll('"', '""')}"`;
   return cell;
+}
+
+export type EvidenceExportKey = { id: string; occurredAt: string };
+export type EvidenceExportPageRequest = {
+  limit: number;
+  upperBound?: EvidenceExportKey;
+  before?: EvidenceExportKey;
+};
+
+export async function collectEvidenceExportRows<Row extends EvidenceExportKey>(
+  fetchPage: (request: EvidenceExportPageRequest) => Promise<Row[]>,
+  { maxRows = EVIDENCE_EXPORT_ROW_MAX, chunkSize = 1_000 }: { maxRows?: number; chunkSize?: number } = {},
+) {
+  if (!Number.isInteger(maxRows) || maxRows < 1 || !Number.isInteger(chunkSize) || chunkSize < 1) {
+    throw new Error("Invalid evidence export bounds");
+  }
+
+  const rows: Row[] = [];
+  let upperBound: EvidenceExportKey | undefined;
+  let before: EvidenceExportKey | undefined;
+  const seen = new Set<string>();
+
+  while (rows.length < maxRows) {
+    const requested = Math.min(chunkSize, maxRows - rows.length);
+    const page = await fetchPage({ limit: requested, upperBound, before });
+    if (!upperBound && page[0]) upperBound = { id: page[0].id, occurredAt: page[0].occurredAt };
+    for (const row of page) {
+      const key = `${row.occurredAt}\u0000${row.id}`;
+      if (seen.has(key)) throw new Error("Evidence keyset returned a duplicate row");
+      seen.add(key);
+      rows.push(row);
+    }
+    if (page.length < requested) return { rows, truncated: false };
+    const last = page.at(-1);
+    if (!last) return { rows, truncated: false };
+    before = { id: last.id, occurredAt: last.occurredAt };
+  }
+
+  const probe = await fetchPage({ limit: 1, upperBound, before });
+  return { rows, truncated: probe.length > 0 };
 }
 
 export function buildAccessEvidenceCsv(rows: AccessEvidenceCsvRow[]) {

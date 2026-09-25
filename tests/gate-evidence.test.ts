@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAccessEvidenceCsv,
+  collectEvidenceExportRows,
   getOccupancyWarnings,
   parseEvidenceExportFilters,
   parseEvidenceFilters,
@@ -36,6 +37,10 @@ describe("gate evidence query boundaries", () => {
   it("limits exports to an inclusive 31-day range", () => {
     expect(parseEvidenceExportFilters({ from: "2026-09-01", to: "2026-10-01" }).from).toBe("2026-09-01T00:00:00.000Z");
     expect(() => parseEvidenceExportFilters({ from: "2026-09-01", to: "2026-10-02" })).toThrow();
+    expect(() => parseEvidenceExportFilters({
+      from: "2026-09-01T12:00:00.000Z",
+      to: "2026-10-02T11:59:59.000Z",
+    })).toThrow();
   });
 });
 
@@ -56,9 +61,48 @@ describe("gate evidence CSV", () => {
     },
   );
 
+  it.each([
+    "\n=2+2",
+    "\u00a0+SUM(A1:A2)",
+    " \t\n\u00a0-4+5",
+    "\r\n\u2003@cmd",
+  ])("neutralizes formulas after Unicode or mixed whitespace: %j", (guestName) => {
+    const csv = buildAccessEvidenceCsv([{ ...event, guestName }]);
+    expect(csv).toContain(`'${guestName}`);
+  });
+
   it("quotes commas, quotes, and line breaks", () => {
     const csv = buildAccessEvidenceCsv([{ ...event, guestName: 'Doe, "Jane"\nGuest' }]);
     expect(csv).toContain('"Doe, ""Jane""\nGuest"');
+  });
+});
+
+describe("gate evidence keyset export", () => {
+  it("captures an upper bound and neither duplicates nor omits original rows when a newer row is inserted", async () => {
+    type Row = { id: string; occurredAt: string };
+    const original: Row[] = [
+      { id: "00000000-0000-4000-8000-000000000004", occurredAt: "2026-09-25T10:00:00.000Z" },
+      { id: "00000000-0000-4000-8000-000000000003", occurredAt: "2026-09-25T09:00:00.000Z" },
+      { id: "00000000-0000-4000-8000-000000000002", occurredAt: "2026-09-25T08:00:00.000Z" },
+    ];
+    let source = [...original];
+    let calls = 0;
+
+    const result = await collectEvidenceExportRows<Row>(async ({ limit, upperBound, before }) => {
+      calls += 1;
+      if (calls === 2) {
+        source = [{ id: "00000000-0000-4000-8000-000000000005", occurredAt: "2026-09-25T11:00:00.000Z" }, ...source];
+      }
+      return source.filter((row) => {
+        const key = `${row.occurredAt}|${row.id}`;
+        return (!upperBound || key <= `${upperBound.occurredAt}|${upperBound.id}`)
+          && (!before || key < `${before.occurredAt}|${before.id}`);
+      }).slice(0, limit);
+    }, { maxRows: 3, chunkSize: 2 });
+
+    expect(result.rows).toEqual(original);
+    expect(result.truncated).toBe(false);
+    expect(calls).toBe(3);
   });
 });
 
