@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
@@ -5,7 +6,22 @@ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
+import { GateScannerServiceWorkerRegistration } from "@/lib/gates/service-worker";
 import { GateScannerClient, type GateScannerDevice, type GateScannerEvent, type GateScannerGate } from "./gate-scanner-client";
+
+export const metadata: Metadata = {
+  title: "Gate Scanner",
+  applicationName: "AqarBooks Gate Scanner",
+  manifest: "/gate-scanner.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Gate Scanner",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
 
 type GateRow = {
   id: string;
@@ -139,5 +155,10 @@ export default async function GateScannerPage({
     occurredAt: event.occurred_at,
   }));
 
-  return <GateScannerClient key={device?.id ?? "unenrolled"} device={device} recentEvents={recentEvents} locale={locale as "ar" | "en"} />;
+  return (
+    <>
+      <GateScannerServiceWorkerRegistration />
+      <GateScannerClient key={device?.id ?? "unenrolled"} device={device} recentEvents={recentEvents} locale={locale as "ar" | "en"} />
+    </>
+  );
 }
