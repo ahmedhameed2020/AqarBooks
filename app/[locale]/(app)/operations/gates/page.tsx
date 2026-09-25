@@ -4,9 +4,11 @@ import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getGateOperationsSummary } from "@/lib/gates/operations-summary";
 import type { Locale } from "@/i18n/routing";
 import { GatesClient, type GateManagementItem, type GatePropertyOption } from "./gates-client";
 import type { GateDeviceItem } from "./gate-devices-panel";
+import { GateOperationsSummaryPanel } from "./operations-summary";
 
 type GateRow = {
   id: string;
@@ -72,6 +74,7 @@ export default async function GatesPage({
     { data: gateRows, error: gateError },
     { data: properties, error: propertiesError },
     { data: deviceRows, error: devicesError },
+    operationsSummary,
   ] = await Promise.all([
     supabase
       .from("gates")
@@ -88,11 +91,13 @@ export default async function GatesPage({
       .select("id, gate_id, property_id, display_name, device_notes, allowed_direction, status, enrolled_at, last_seen_at, revoked_at, revocation_reason")
       .eq("organization_id", organization.id)
       .order("enrolled_at", { ascending: false }),
+    getGateOperationsSummary(organization.id).catch(() => null),
   ]);
 
   if (gateError) console.error("[GatesPage] gates query failed:", gateError.message);
   if (propertiesError) console.error("[GatesPage] properties query failed:", propertiesError.message);
   if (devicesError) console.error("[GatesPage] devices query failed:", devicesError.message);
+  if (!operationsSummary) console.error("[GatesPage] operations summary query failed");
 
   const propertyOptions: GatePropertyOption[] = (properties ?? []).map((property) => ({
     id: property.id,
@@ -126,12 +131,15 @@ export default async function GatesPage({
   }));
 
   return (
-    <GatesClient
-      gates={gates}
-      devices={devices}
-      properties={propertyOptions}
-      canManage={Boolean(canManage)}
-      locale={locale as "ar" | "en"}
-    />
+    <div className="space-y-5">
+      <GateOperationsSummaryPanel summary={operationsSummary} locale={locale as "ar" | "en"} />
+      <GatesClient
+        gates={gates}
+        devices={devices}
+        properties={propertyOptions}
+        canManage={Boolean(canManage)}
+        locale={locale as "ar" | "en"}
+      />
+    </div>
   );
 }
