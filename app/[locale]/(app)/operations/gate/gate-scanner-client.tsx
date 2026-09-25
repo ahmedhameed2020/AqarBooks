@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import { Camera, CheckCircle2, Keyboard, ScanQrCode, ShieldAlert, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,17 @@ export function GateScannerClient({
   const [result, setResult] = useState<GateScanResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const pollForQrCode = useEffectEvent(async () => {
+    if (!detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || isPending) return;
+    try {
+      const detected = await detectorRef.current.detect(videoRef.current);
+      const first = detected[0]?.rawValue;
+      if (first) submitScan(first);
+    } catch {
+      setCameraState("unsupported");
+    }
+  });
+
   useEffect(() => {
     let stream: MediaStream | null = null;
     let stopped = false;
@@ -102,15 +113,8 @@ export function GateScannerClient({
 
     startCamera();
 
-    const timer = window.setInterval(async () => {
-      if (stopped || !detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || isPending) return;
-      try {
-        const detected = await detectorRef.current.detect(videoRef.current);
-        const first = detected[0]?.rawValue;
-        if (first) submitScan(first);
-      } catch {
-        setCameraState("unsupported");
-      }
+    const timer = window.setInterval(() => {
+      if (!stopped) void pollForQrCode();
     }, 1200);
 
     return () => {
@@ -118,8 +122,6 @@ export function GateScannerClient({
       window.clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-    // Scanner polling intentionally reads the latest bound device and direction through submitScan.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function submitScan(qrPayload: string) {
