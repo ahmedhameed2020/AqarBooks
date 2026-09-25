@@ -34,6 +34,13 @@ interface UseGateScannerOptions {
 }
 
 type PendingIncident = Omit<GateConnectivityIncidentInput, "deviceCredential">;
+type PendingIncidentBase = Omit<PendingIncident, "errorCode">;
+
+interface ActiveIncident {
+  requestId: string;
+  incident: PendingIncidentBase;
+  recorded: boolean;
+}
 
 function browserIsOnline() {
   return typeof navigator === "undefined" || navigator.onLine !== false;
@@ -56,6 +63,7 @@ export function useGateScanner({
   const [result, setResult] = useState<GateScanResult | null>(null);
   const stateRef = useRef<ScannerState>(state);
   const inFlightRef = useRef(false);
+  const activeIncidentRef = useRef<ActiveIncident | null>(null);
   const pendingIncidentsRef = useRef<PendingIncident[]>([]);
   const mountedRef = useRef(true);
   const reducedMotionRef = useRef(false);
@@ -87,6 +95,13 @@ export function useGateScanner({
     if (!persisted.ok) pendingIncidentsRef.current.push(incident);
   }, [deviceCredential]);
 
+  const recordActiveIncident = useCallback((requestId: string, errorCode: PendingIncident["errorCode"]) => {
+    const active = activeIncidentRef.current;
+    if (!active || active.requestId !== requestId || active.recorded) return;
+    active.recorded = true;
+    void persistIncident({ ...active.incident, errorCode });
+  }, [persistIncident]);
+
   const flushIncidents = useCallback(async () => {
     if (!deviceCredential || !browserIsOnline() || pendingIncidentsRef.current.length === 0) return;
     const queued = pendingIncidentsRef.current;
@@ -113,6 +128,7 @@ export function useGateScanner({
       if (!online && beforeConnectivity.status === "SUBMITTING" && afterConnectivity !== beforeConnectivity) {
         setResult({ ok: false, error: "unverified_offline" });
         feedback("UNVERIFIED_OFFLINE");
+        recordActiveIncident(beforeConnectivity.requestId, "OFFLINE");
       }
       if (online) void flushIncidents();
     };
@@ -132,7 +148,7 @@ export function useGateScanner({
       browserWindow?.removeEventListener?.("offline", updateConnectivity);
       void wakeLock?.release();
     };
-  }, [feedback, flushIncidents, transition]);
+  }, [feedback, flushIncidents, recordActiveIncident, transition]);
 
   useEffect(() => {
     if (state.status !== "COOLDOWN") return;
@@ -162,13 +178,16 @@ export function useGateScanner({
 
       if (decoded === previousState) return;
 
-      const incident = (errorCode: "OFFLINE" | "NETWORK_ERROR" | "TIMEOUT"): PendingIncident => ({
+      const incidentBase: PendingIncidentBase = {
         deviceId,
         gateId,
         direction,
         clientScanId,
         occurredAt,
         payloadFingerprint: fingerprint,
+      };
+      const incident = (errorCode: PendingIncident["errorCode"]): PendingIncident => ({
+        ...incidentBase,
         errorCode,
       });
 
@@ -180,11 +199,17 @@ export function useGateScanner({
         }
         return;
       }
+      activeIncidentRef.current = {
+        requestId: clientScanId,
+        incident: incidentBase,
+        recorded: false,
+      };
       setResult(null);
 
       let timedOut = false;
       const timeout = globalThis.setTimeout(() => {
         timedOut = true;
+        recordActiveIncident(clientScanId, "TIMEOUT");
         const beforeTimeout = stateRef.current;
         const afterTimeout = transition({
           type: "TIMED_OUT",
@@ -196,7 +221,6 @@ export function useGateScanner({
         if (afterTimeout === beforeTimeout) return;
         if (mountedRef.current) setResult({ ok: false, error: "unverified_offline" });
         feedback("UNVERIFIED_OFFLINE");
-        void persistIncident(incident("TIMEOUT"));
       }, requestTimeoutMs);
 
       try {
@@ -227,6 +251,7 @@ export function useGateScanner({
           setResult(scanResult);
           feedback(scanResult.decision);
         } else if (scanResult.error === "failed") {
+          recordActiveIncident(clientScanId, "NETWORK_ERROR");
           const beforeFailure = stateRef.current;
           const afterFailure = transition({
             type: "FAILED_OFFLINE",
@@ -238,7 +263,6 @@ export function useGateScanner({
           if (afterFailure === beforeFailure) return;
           setResult({ ok: false, error: "unverified_offline" });
           feedback("UNVERIFIED_OFFLINE");
-          void persistIncident(incident("NETWORK_ERROR"));
         } else {
           const beforeAbort = stateRef.current;
           const afterAbort = transition({
@@ -251,6 +275,7 @@ export function useGateScanner({
         }
       } catch {
         if (!timedOut && mountedRef.current) {
+          recordActiveIncident(clientScanId, "NETWORK_ERROR");
           const beforeFailure = stateRef.current;
           const afterFailure = transition({
             type: "FAILED_OFFLINE",
@@ -262,11 +287,11 @@ export function useGateScanner({
           if (afterFailure !== beforeFailure) {
             setResult({ ok: false, error: "unverified_offline" });
             feedback("UNVERIFIED_OFFLINE");
-            void persistIncident(incident("NETWORK_ERROR"));
           }
         }
       } finally {
         globalThis.clearTimeout(timeout);
+        if (activeIncidentRef.current?.requestId === clientScanId) activeIncidentRef.current = null;
       }
     } finally {
       inFlightRef.current = false;
@@ -280,6 +305,7 @@ export function useGateScanner({
     gateId,
     onAuthorizationFailure,
     persistIncident,
+    recordActiveIncident,
     requestTimeoutMs,
     transition,
   ]);

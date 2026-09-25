@@ -32,10 +32,12 @@ const deviceCredential = "d".repeat(43);
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((accept) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((accept, decline) => {
     resolve = accept;
+    reject = decline;
   });
-  return { promise, resolve };
+  return { promise, reject, resolve };
 }
 
 type ScannerHook = ReturnType<typeof useGateScanner>;
@@ -164,6 +166,81 @@ describe("useGateScanner request interleavings", () => {
     expect(scanner.result).toEqual({ ok: false, error: "unverified_offline" });
     expect(emitScannerFeedback).toHaveBeenCalledWith("UNVERIFIED_OFFLINE", expect.anything());
     expect(emitScannerFeedback).not.toHaveBeenCalledWith("ALLOW", expect.anything());
+  });
+
+  it("flushes one safe incident when an offline-invalidated request later rejects", async () => {
+    const response = deferred<never>();
+    processVisitorGateScanAction.mockReturnValue(response.promise);
+
+    let submission!: Promise<void>;
+    await act(async () => {
+      submission = scanner.submitScan("raw-network-payload");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      browserNavigator.onLine = false;
+      browserWindow.dispatchEvent(new Event("offline"));
+      response.reject(new Error("network unavailable"));
+      await submission;
+    });
+    expect(recordGateConnectivityIncidentAction).not.toHaveBeenCalled();
+
+    await act(async () => {
+      browserNavigator.onLine = true;
+      browserWindow.dispatchEvent(new Event("online"));
+      await Promise.resolve();
+    });
+
+    expect(recordGateConnectivityIncidentAction).toHaveBeenCalledTimes(1);
+    const incident = recordGateConnectivityIncidentAction.mock.calls[0]?.[0];
+    expect(incident).toMatchObject({
+      deviceId,
+      gateId,
+      direction: "ENTRY",
+      payloadFingerprint: "a".repeat(64),
+      errorCode: "OFFLINE",
+      deviceCredential,
+    });
+    expect(incident).not.toHaveProperty("qrPayload");
+  });
+
+  it("flushes one safe incident when an offline-invalidated request later times out", async () => {
+    const response = deferred<{ ok: false; error: "failed" }>();
+    processVisitorGateScanAction.mockReturnValue(response.promise);
+    await act(async () => {
+      void scanner.submitScan("raw-timeout-payload");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      browserNavigator.onLine = false;
+      browserWindow.dispatchEvent(new Event("offline"));
+      await vi.advanceTimersByTimeAsync(12_000);
+    });
+    expect(recordGateConnectivityIncidentAction).not.toHaveBeenCalled();
+
+    await act(async () => {
+      browserNavigator.onLine = true;
+      browserWindow.dispatchEvent(new Event("online"));
+      await Promise.resolve();
+    });
+
+    expect(recordGateConnectivityIncidentAction).toHaveBeenCalledTimes(1);
+    const incident = recordGateConnectivityIncidentAction.mock.calls[0]?.[0];
+    expect(incident).toMatchObject({
+      deviceId,
+      gateId,
+      direction: "ENTRY",
+      payloadFingerprint: "a".repeat(64),
+      errorCode: "OFFLINE",
+      deviceCredential,
+    });
+    expect(incident).not.toHaveProperty("qrPayload");
+
+    await act(async () => {
+      response.resolve({ ok: false, error: "failed" });
+      await Promise.resolve();
+    });
+    expect(recordGateConnectivityIncidentAction).toHaveBeenCalledTimes(1);
   });
 
   it("retries successfully after a transient network failure without an online event", async () => {
