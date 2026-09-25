@@ -250,7 +250,7 @@ begin
   order by s.last_entry_at asc nulls last, s.visitor_invitation_id asc
   offset p_offset limit p_limit;
 
-  if not found then
+  if not found and v_total > 0 then
     return query select
       null::uuid, null::text, null::text,
       null::uuid, null::text, null::uuid, null::text,
@@ -367,7 +367,7 @@ begin
   order by e.occurred_at desc, e.id desc
   offset p_offset limit p_limit;
 
-  if not found then
+  if not found and v_total > 0 then
     return query select
       null::uuid, null::uuid, null::text,
       null::uuid, null::text, null::text, null::text,

@@ -25,6 +25,7 @@ describe("gate supervision migration", () => {
     expect(sql).toMatch(/list_gate_access_evidence[\s\S]*security definer set search_path = ''/i);
     expect(sql).toMatch(/has_permission\(auth\.uid\(\),p_organization_id,'operations\.access_events\.view'\)/i);
     expect(sql).toContain("count_only boolean");
+    expect(sql.match(/if not found and v_total > 0 then/g)).toHaveLength(2);
     expect(sql).not.toMatch(/p_offset\s*>\s*25000/i);
     expect(sql).toMatch(/revoke all on function public\.list_gate_current_visitors/i);
     expect(sql).toMatch(/revoke all on function public\.list_gate_access_evidence/i);

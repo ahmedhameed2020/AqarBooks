@@ -123,6 +123,15 @@ describe.sequential("gate evidence safe projections", () => {
       entered_at: null, valid_until: null, entry_count: null, exit_count: null, total_count: 1, count_only: true }]);
   });
 
+  it("returns an empty occupancy result when the filtered total is zero", () => {
+    const result = jsonResult<unknown[]>(sql(asUser(supervisorId, `
+      select coalesce(json_agg(row_to_json(x)),'[]'::json) from public.list_gate_current_visitors(
+        p_organization_id=>'${organizationId}', p_query=>'NO-SUCH-OCCUPANT', p_offset=>0, p_limit=>50
+      ) x
+    `)));
+    expect(result).toEqual([]);
+  });
+
   it("filters and hydrates operator names for ordinary supervisors without broad profile access", () => {
     expect(sql(asUser(supervisorId, `select count(*) from public.profiles where id='${operatorId}'`))).toContain("\n0\n");
     const result = jsonResult<Array<{ operator_user_id: string; operator_name: string; total_count: number }>>(sql(asUser(supervisorId, evidenceQuery("p_operator=>'Needle',"))));
@@ -140,6 +149,16 @@ describe.sequential("gate evidence safe projections", () => {
     `)));
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: null, total_count: 4, count_only: true });
+  });
+
+  it("returns an empty evidence result when the filtered total is zero", () => {
+    const result = jsonResult<unknown[]>(sql(asUser(supervisorId, `
+      select coalesce(json_agg(row_to_json(x)),'[]'::json) from public.list_gate_access_evidence(
+        p_organization_id=>'${organizationId}', p_guest=>'NO-SUCH-GUEST',
+        p_from=>'2026-09-25T00:00:00Z', p_to=>'2026-09-26T00:00:00Z', p_offset=>0, p_limit=>50
+      ) x
+    `)));
+    expect(result).toEqual([]);
   });
 
   it("uses a captured upper bound and keyset cursor when newer evidence arrives", () => {
