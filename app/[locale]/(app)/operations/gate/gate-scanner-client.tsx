@@ -186,11 +186,8 @@ export function GateScannerClient({
 
   async function submitManualScan() {
     const payload = manualPayload;
-    try {
-      await scanner.submitScan(payload);
-    } finally {
-      setManualPayload("");
-    }
+    setManualPayload("");
+    await scanner.submitScan(payload);
   }
 
   function enrollDevice() {

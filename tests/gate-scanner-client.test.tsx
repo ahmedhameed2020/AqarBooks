@@ -31,6 +31,7 @@ const {
   clearGateDevice,
   processVisitorGateScanAction,
   readGateDevice,
+  recordGateConnectivityIncidentAction,
   redeemGateDeviceEnrollmentAction,
   router,
   routerReplace,
@@ -41,6 +42,7 @@ const {
     clearGateDevice: vi.fn(),
     processVisitorGateScanAction: vi.fn(),
     readGateDevice: vi.fn(),
+    recordGateConnectivityIncidentAction: vi.fn(),
     redeemGateDeviceEnrollmentAction: vi.fn(),
     router: { replace },
     routerReplace: replace,
@@ -51,7 +53,7 @@ vi.mock("@/lib/actions/gates", () => ({
   processVisitorGateScanAction,
 }));
 vi.mock("@/lib/actions/gate-connectivity", () => ({
-  recordGateConnectivityIncidentAction: vi.fn(async () => ({ ok: true })),
+  recordGateConnectivityIncidentAction,
 }));
 vi.mock("@/lib/actions/gate-devices", () => ({
   redeemGateDeviceEnrollmentAction,
@@ -130,6 +132,7 @@ describe("GateScannerClient camera polling", () => {
       .mockImplementationOnce(() => firstDecision.promise)
       .mockResolvedValue({ ok: false, error: "test_complete" });
     readGateDevice.mockReset().mockResolvedValue(storedDevice);
+    recordGateConnectivityIncidentAction.mockReset().mockResolvedValue({ ok: true });
     saveGateDevice.mockReset().mockResolvedValue(undefined);
     clearGateDevice.mockReset().mockResolvedValue(undefined);
     redeemGateDeviceEnrollmentAction.mockReset();
@@ -310,5 +313,37 @@ describe("GateScannerClient camera polling", () => {
     expect(clearGateDevice).toHaveBeenCalledTimes(1);
     expect(routerReplace).toHaveBeenCalledWith("/en/operations/gate");
     await act(async () => renderer.unmount());
+  });
+
+  it("clears manual raw input before delayed incident persistence completes", async () => {
+    const incident = deferred<{ ok: true }>();
+    processVisitorGateScanAction.mockReset().mockResolvedValue({ ok: false, error: "failed" });
+    recordGateConnectivityIncidentAction.mockReturnValue(incident.promise);
+
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <GateScannerClient requestedDeviceId={device.id} device={device} recentEvents={[]} locale="en" />,
+        { createNodeMock: (element) => element.type === "video" ? video : null },
+      );
+      await Promise.resolve();
+    });
+    const manualInput = renderer.root.findByProps({ placeholder: "AQP1..." });
+    await act(async () => {
+      manualInput.props.onChange({ target: { value: qrPayload } });
+    });
+    await act(async () => {
+      button(renderer, "Scan").props.onClick();
+      await Promise.resolve();
+    });
+
+    expect(recordGateConnectivityIncidentAction).toHaveBeenCalledTimes(1);
+    expect(renderer.root.findByProps({ placeholder: "AQP1..." }).props.value).toBe("");
+
+    await act(async () => {
+      incident.resolve({ ok: true });
+      await incident.promise;
+      await renderer.unmount();
+    });
   });
 });

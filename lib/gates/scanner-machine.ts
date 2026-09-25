@@ -39,20 +39,22 @@ export type ScannerEvent =
       requestId?: string;
       now: number;
       cooldownMs?: number;
+      online?: boolean;
     }
   | { type: "COOLDOWN_EXPIRED"; now: number }
   | { type: "CONNECTIVITY_CHANGED"; online: boolean };
 
 export const initialScannerState: ScannerState = { status: "READY", online: true };
 
-function offlineCooldown(
+function unverifiedCooldown(
   fingerprint: string,
   now: number,
+  online: boolean,
   cooldownMs = DEFAULT_SCANNER_COOLDOWN_MS,
 ): ScannerState {
   return {
     status: "COOLDOWN",
-    online: false,
+    online,
     fingerprint,
     decision: "UNVERIFIED_OFFLINE",
     cooldownUntil: now + cooldownMs,
@@ -75,9 +77,10 @@ export function reduceScannerState(state: ScannerState, event: ScannerEvent): Sc
     case "DECODED": {
       if (state.status === "SUBMITTING") return state;
       if (state.status === "OFFLINE") {
-        return offlineCooldown(
+        return unverifiedCooldown(
           event.fingerprint,
           event.now ?? Date.now(),
+          false,
           event.cooldownMs,
         );
       }
@@ -89,9 +92,10 @@ export function reduceScannerState(state: ScannerState, event: ScannerEvent): Sc
         return state;
       }
       if (!state.online) {
-        return offlineCooldown(
+        return unverifiedCooldown(
           event.fingerprint,
           event.now ?? Date.now(),
+          false,
           event.cooldownMs,
         );
       }
@@ -116,7 +120,7 @@ export function reduceScannerState(state: ScannerState, event: ScannerEvent): Sc
     case "FAILED_OFFLINE":
     case "TIMED_OUT":
       if (state.status !== "SUBMITTING" || (event.requestId && state.requestId !== event.requestId)) return state;
-      return offlineCooldown(state.fingerprint, event.now, event.cooldownMs);
+      return unverifiedCooldown(state.fingerprint, event.now, event.online ?? state.online, event.cooldownMs);
 
     case "ABORTED":
       if (state.status !== "SUBMITTING" || (event.requestId && state.requestId !== event.requestId)) return state;

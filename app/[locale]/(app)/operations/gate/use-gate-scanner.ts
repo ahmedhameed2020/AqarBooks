@@ -108,7 +108,12 @@ export function useGateScanner({
 
     const updateConnectivity = () => {
       const online = browserIsOnline();
-      transition({ type: "CONNECTIVITY_CHANGED", online });
+      const beforeConnectivity = stateRef.current;
+      const afterConnectivity = transition({ type: "CONNECTIVITY_CHANGED", online });
+      if (!online && beforeConnectivity.status === "SUBMITTING" && afterConnectivity !== beforeConnectivity) {
+        setResult({ ok: false, error: "unverified_offline" });
+        feedback("UNVERIFIED_OFFLINE");
+      }
       if (online) void flushIncidents();
     };
     browserWindow?.addEventListener?.("online", updateConnectivity);
@@ -127,7 +132,7 @@ export function useGateScanner({
       browserWindow?.removeEventListener?.("offline", updateConnectivity);
       void wakeLock?.release();
     };
-  }, [flushIncidents, transition]);
+  }, [feedback, flushIncidents, transition]);
 
   useEffect(() => {
     if (state.status !== "COOLDOWN") return;
@@ -140,91 +145,130 @@ export function useGateScanner({
 
   const submitScan = useCallback(async (qrPayload: string) => {
     if (!deviceId || !deviceCredential || !gateId || inFlightRef.current) return;
-
-    const fingerprint = await fingerprintQrPayload(qrPayload);
-    const clientScanId = crypto.randomUUID();
-    const occurredAt = new Date().toISOString();
-    const previousState = stateRef.current;
-    const decoded = transition({
-      type: "DECODED",
-      fingerprint,
-      requestId: clientScanId,
-      now: Date.now(),
-      cooldownMs,
-    });
-
-    if (decoded === previousState) return;
-
-    const incident = (errorCode: "OFFLINE" | "NETWORK_ERROR" | "TIMEOUT"): PendingIncident => ({
-      deviceId,
-      gateId,
-      direction,
-      clientScanId,
-      occurredAt,
-      payloadFingerprint: fingerprint,
-      errorCode,
-    });
-
-    if (decoded.status !== "SUBMITTING" || decoded.requestId !== clientScanId) {
-      if (decoded.status === "COOLDOWN" && decoded.decision === "UNVERIFIED_OFFLINE") {
-        setResult({ ok: false, error: "unverified_offline" });
-        feedback("UNVERIFIED_OFFLINE");
-        await persistIncident(incident("OFFLINE"));
-      }
-      return;
-    }
-
     inFlightRef.current = true;
-    let timedOut = false;
-    const timeout = globalThis.setTimeout(() => {
-      timedOut = true;
-      transition({ type: "TIMED_OUT", requestId: clientScanId, now: Date.now(), cooldownMs });
-      if (mountedRef.current) setResult({ ok: false, error: "unverified_offline" });
-      feedback("UNVERIFIED_OFFLINE");
-      void persistIncident(incident("TIMEOUT"));
-    }, requestTimeoutMs);
 
     try {
-      const scanResult = await processVisitorGateScanAction({
+      const fingerprint = await fingerprintQrPayload(qrPayload);
+      const clientScanId = crypto.randomUUID();
+      const occurredAt = new Date().toISOString();
+      const previousState = stateRef.current;
+      const decoded = transition({
+        type: "DECODED",
+        fingerprint,
+        requestId: clientScanId,
+        now: Date.now(),
+        cooldownMs,
+      });
+
+      if (decoded === previousState) return;
+
+      const incident = (errorCode: "OFFLINE" | "NETWORK_ERROR" | "TIMEOUT"): PendingIncident => ({
         deviceId,
-        deviceCredential,
         gateId,
-        qrPayload,
         direction,
         clientScanId,
+        occurredAt,
+        payloadFingerprint: fingerprint,
+        errorCode,
       });
-      if (timedOut || !mountedRef.current) return;
 
-      setResult(scanResult);
-      if (scanResult.ok) {
-        transition({
-          type: "RESOLVED",
+      if (decoded.status !== "SUBMITTING" || decoded.requestId !== clientScanId) {
+        if (decoded.status === "COOLDOWN" && decoded.decision === "UNVERIFIED_OFFLINE") {
+          setResult({ ok: false, error: "unverified_offline" });
+          feedback("UNVERIFIED_OFFLINE");
+          void persistIncident(incident("OFFLINE"));
+        }
+        return;
+      }
+      setResult(null);
+
+      let timedOut = false;
+      const timeout = globalThis.setTimeout(() => {
+        timedOut = true;
+        const beforeTimeout = stateRef.current;
+        const afterTimeout = transition({
+          type: "TIMED_OUT",
           requestId: clientScanId,
-          decision: scanResult.decision,
           now: Date.now(),
           cooldownMs,
+          online: browserIsOnline(),
         });
-        feedback(scanResult.decision);
-      } else if (scanResult.error === "failed") {
-        transition({ type: "FAILED_OFFLINE", requestId: clientScanId, now: Date.now(), cooldownMs });
-        setResult({ ok: false, error: "unverified_offline" });
+        if (afterTimeout === beforeTimeout) return;
+        if (mountedRef.current) setResult({ ok: false, error: "unverified_offline" });
         feedback("UNVERIFIED_OFFLINE");
-        await persistIncident(incident("NETWORK_ERROR"));
-      } else {
-        transition({ type: "ABORTED", requestId: clientScanId, now: Date.now(), cooldownMs });
-        if (["device_not_authorized", "unauthenticated"].includes(scanResult.error)) {
+        void persistIncident(incident("TIMEOUT"));
+      }, requestTimeoutMs);
+
+      try {
+        const scanResult = await processVisitorGateScanAction({
+          deviceId,
+          deviceCredential,
+          gateId,
+          qrPayload,
+          direction,
+          clientScanId,
+        });
+
+        if (!scanResult.ok && ["device_not_authorized", "unauthenticated"].includes(scanResult.error)) {
           onAuthorizationFailure?.();
         }
-      }
-    } catch {
-      if (!timedOut && mountedRef.current) {
-        transition({ type: "FAILED_OFFLINE", requestId: clientScanId, now: Date.now(), cooldownMs });
-        setResult({ ok: false, error: "unverified_offline" });
-        feedback("UNVERIFIED_OFFLINE");
-        await persistIncident(incident("NETWORK_ERROR"));
+        if (timedOut || !mountedRef.current) return;
+
+        if (scanResult.ok) {
+          const beforeResolution = stateRef.current;
+          const afterResolution = transition({
+            type: "RESOLVED",
+            requestId: clientScanId,
+            decision: scanResult.decision,
+            now: Date.now(),
+            cooldownMs,
+          });
+          if (afterResolution === beforeResolution) return;
+          setResult(scanResult);
+          feedback(scanResult.decision);
+        } else if (scanResult.error === "failed") {
+          const beforeFailure = stateRef.current;
+          const afterFailure = transition({
+            type: "FAILED_OFFLINE",
+            requestId: clientScanId,
+            now: Date.now(),
+            cooldownMs,
+            online: browserIsOnline(),
+          });
+          if (afterFailure === beforeFailure) return;
+          setResult({ ok: false, error: "unverified_offline" });
+          feedback("UNVERIFIED_OFFLINE");
+          void persistIncident(incident("NETWORK_ERROR"));
+        } else {
+          const beforeAbort = stateRef.current;
+          const afterAbort = transition({
+            type: "ABORTED",
+            requestId: clientScanId,
+            now: Date.now(),
+            cooldownMs,
+          });
+          if (afterAbort !== beforeAbort) setResult(scanResult);
+        }
+      } catch {
+        if (!timedOut && mountedRef.current) {
+          const beforeFailure = stateRef.current;
+          const afterFailure = transition({
+            type: "FAILED_OFFLINE",
+            requestId: clientScanId,
+            now: Date.now(),
+            cooldownMs,
+            online: browserIsOnline(),
+          });
+          if (afterFailure !== beforeFailure) {
+            setResult({ ok: false, error: "unverified_offline" });
+            feedback("UNVERIFIED_OFFLINE");
+            void persistIncident(incident("NETWORK_ERROR"));
+          }
+        }
+      } finally {
+        globalThis.clearTimeout(timeout);
       }
     } finally {
-      globalThis.clearTimeout(timeout);
       inFlightRef.current = false;
     }
   }, [
