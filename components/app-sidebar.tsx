@@ -294,15 +294,23 @@ export function AppSidebar({
   const isAr = locale === "ar";
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const signOutSubmissionInProgress = useRef(false);
+  const signOutPhase = useRef<"idle" | "clearing" | "programmatic" | "submitted">("idle");
 
   async function handleSignOutSubmit(event: React.FormEvent<HTMLFormElement>) {
-    if (signOutSubmissionInProgress.current) return;
+    if (signOutPhase.current === "programmatic") {
+      signOutPhase.current = "submitted";
+      return;
+    }
 
     event.preventDefault();
+    if (signOutPhase.current !== "idle") return;
+
     const form = event.currentTarget;
-    signOutSubmissionInProgress.current = true;
-    await clearGateDeviceBeforeSignOut(() => form.requestSubmit());
+    signOutPhase.current = "clearing";
+    await clearGateDeviceBeforeSignOut(() => {
+      signOutPhase.current = "programmatic";
+      form.requestSubmit();
+    });
   }
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
   const [openSubKeys, setOpenSubKeys] = useState<Set<string>>(new Set());
