@@ -36,6 +36,7 @@ describe.sequential("hardware outbox database", () => {
       insert into public.roles(id,organization_id,key,name_ar,name_en) values('${operator}','${org}','HW_OPERATOR','Scan','Scan');
       insert into public.role_permissions(role_id,permission_id) select '${operator}',id from public.permissions where key in ('operations.gates.scan','operations.gates.occupancy.reconcile');
       insert into public.user_role_assignments(organization_id,user_id,role_id) values('${org}','${operator}','${operator}');
+      insert into public.gate_completion_policy(organization_id,enabled,updated_by) values('${org}',true,'${operator}');
       insert into public.gate_devices(id,organization_id,property_id,gate_id,installation_id_hash,credential_hash,display_name,allowed_direction,enrolled_by)
       values('${device}','${org}','${property}','${gate}',repeat('d',64),encode(extensions.digest('private-device','sha256'),'hex'),'Hardware test','BOTH','${operator}');`);
   });

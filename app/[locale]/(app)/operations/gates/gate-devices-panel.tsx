@@ -37,11 +37,13 @@ export function GateDevicesPanel({
   devices,
   gates,
   canManage,
+  completionEnabled,
   locale,
 }: {
   devices: GateDeviceItem[];
   gates: EnrollmentGateOption[];
   canManage: boolean;
+  completionEnabled: boolean;
   locale: "ar" | "en";
 }) {
   const isAr = locale === "ar";
@@ -80,7 +82,7 @@ export function GateDevicesPanel({
             {isAr ? "الأجهزة الموثوقة وربطها بالبوابات والاتجاهات." : "Trusted devices and their gate and direction bindings."}
           </p>
         </div>
-        {canManage ? <DeviceEnrollmentDialog gates={gates} locale={locale} /> : null}
+        {canManage && completionEnabled ? <DeviceEnrollmentDialog gates={gates} locale={locale} /> : null}
       </div>
 
       {devices.length === 0 ? (

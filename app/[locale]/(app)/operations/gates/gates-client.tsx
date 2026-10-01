@@ -47,12 +47,14 @@ export function GatesClient({
   devices,
   properties,
   canManage,
+  completionEnabled,
   locale,
 }: {
   gates: GateManagementItem[];
   devices: GateDeviceItem[];
   properties: GatePropertyOption[];
   canManage: boolean;
+  completionEnabled: boolean;
   locale: "ar" | "en";
 }) {
   const isAr = locale === "ar";
@@ -215,6 +217,7 @@ export function GatesClient({
           isActive: gate.isActive,
         }))}
         canManage={canManage}
+        completionEnabled={completionEnabled}
         locale={locale}
       />
     </div>

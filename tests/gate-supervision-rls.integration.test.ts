@@ -48,6 +48,7 @@ describe.sequential("gate supervision runtime RLS", () => {
       insert into public.units(id,organization_id,property_id,code) values('${unit}','${org}','${property}','TEST');
       insert into public.members(id,organization_id,full_name,user_id) values('${member}','${org}','Guest host','${creator}');
       insert into public.gates(id,organization_id,property_id,code,name_ar,name_en,created_by) values('${gate}','${org}','${property}','TEST','Gate','Gate','${creator}');
+      insert into public.gate_completion_policy(organization_id,enabled,updated_by) values('${org}',true,'${creator}');
       insert into public.gate_devices(id,organization_id,property_id,gate_id,installation_id_hash,credential_hash,display_name,allowed_direction,enrolled_by)
       values('${device}','${org}','${property}','${gate}',repeat('a',64),encode(extensions.digest('test-device-credential','sha256'),'hex'),'Scanner','BOTH','${creator}');`);
   }, 60_000);

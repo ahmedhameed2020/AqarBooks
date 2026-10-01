@@ -262,6 +262,8 @@ async function createOrgFixture(
   ]);
   expect(ownershipError, `ownership insert failed: ${ownershipError?.message}`).toBeNull();
 
+  const staffManager = await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-manager`);
+  expect((await staffManager.client.rpc("set_gate_completion_policy", { p_organization_id: orgId, p_enabled: true })).error).toBeNull();
   return {
     orgId,
     propertyId: property!.id,
@@ -271,7 +273,7 @@ async function createOrgFixture(
     futureUnitId: futureUnitResult.data!.id,
     memberA,
     memberB,
-    staffManager: await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-manager`),
+    staffManager,
     staffViewer: await createStaffActor(admin, local, orgId, "VIEWER", `${label}-viewer`),
   };
 }

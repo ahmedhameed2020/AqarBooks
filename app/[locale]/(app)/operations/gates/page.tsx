@@ -5,6 +5,7 @@ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getGateOperationsSummary } from "@/lib/gates/operations-summary";
+import { getGateCompletionEnabled } from "@/lib/gates/completion-policy";
 import type { Locale } from "@/i18n/routing";
 import { GatesClient, type GateManagementItem, type GatePropertyOption } from "./gates-client";
 import type { GateDeviceItem } from "./gate-devices-panel";
@@ -71,6 +72,7 @@ export default async function GatesPage({
   }
 
   const adminClient = createAdminClient();
+  const completionEnabled = await getGateCompletionEnabled(supabase, organization.id);
   const [
     { data: gateRows, error: gateError },
     { data: properties, error: propertiesError },
@@ -133,6 +135,7 @@ export default async function GatesPage({
 
   return (
     <div className="space-y-5">
+      {canManage && <Link className="inline-block text-sm underline" href="/operations/gates/completion-policy">{isAr ? "إعداد تشغيل البوابات المتقدم" : "Configure gate completion rollout"}</Link>}
       {canManage && <Link className="inline-block text-sm underline" href="/operations/gates/long-stay-policy">{isAr ? "إعداد سياسة مدة البقاء" : "Configure long-stay policy"}</Link>}
       <GateOperationsSummaryPanel summary={operationsSummary} locale={locale as "ar" | "en"} />
       <GatesClient
@@ -140,6 +143,7 @@ export default async function GatesPage({
         devices={devices}
         properties={propertyOptions}
         canManage={Boolean(canManage)}
+        completionEnabled={completionEnabled}
         locale={locale as "ar" | "en"}
       />
     </div>

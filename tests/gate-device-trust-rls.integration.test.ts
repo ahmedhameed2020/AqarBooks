@@ -196,6 +196,7 @@ async function createOrgFixture(
   expect(propertyError, `property create failed: ${propertyError?.message}`).toBeNull();
 
   const manager = await createStaffActor(admin, apiUrl, anonKey, orgId, "PROPERTY_MANAGER", `${label}-manager`);
+  expect((await manager.client.rpc("set_gate_completion_policy", { p_organization_id: orgId, p_enabled: true })).error).toBeNull();
   const guard = await createGuardActor(admin, apiUrl, anonKey, orgId, `${label}-guard`);
   const viewer = await createStaffActor(admin, apiUrl, anonKey, orgId, "VIEWER", `${label}-viewer`);
   const createGate = (code: string) =>

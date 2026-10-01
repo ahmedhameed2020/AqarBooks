@@ -19,7 +19,7 @@ export function localSupabase() {
   }
   return env;
 }
-export async function createGateFixture() {
+export async function createGateFixture(completionEnabled = true) {
   const env = localSupabase();
   const options = { auth: { persistSession: false, autoRefreshToken: false } };
   const admin = createClient(env.API_URL, env.SERVICE_ROLE_KEY, options);
@@ -45,6 +45,7 @@ export async function createGateFixture() {
     insert into public.units(id,organization_id,property_id,code) values('${unit}','${org}','${property}','R-101');
     insert into public.members(id,organization_id,full_name,user_id) values('${member}','${org}','Release host','${owner.id}');
     insert into public.gates(id,organization_id,property_id,code,name_ar,name_en,created_by) values('${gate}','${org}','${property}','NORTH','البوابة الشمالية','North gate','${manager.id}'),('${otherGate}','${org}','${property}','SOUTH','البوابة الجنوبية','South gate','${manager.id}');
+    insert into public.gate_completion_policy(organization_id,enabled,updated_by) values('${org}',${completionEnabled},'${manager.id}');
     insert into public.gate_hardware_settings(organization_id,enabled) values('${org}',true);
     insert into public.gate_hardware_endpoints(organization_id,gate_id,adapter,is_active) values('${org}','${gate}','NOOP',true);`);
   function invitation(guest = "Release visitor") {
