@@ -28,6 +28,7 @@ describe("completion rollout and non-destructive rollback", () => {
     expect((await f.guard.client.rpc("set_gate_completion_policy", { p_organization_id: f.org, p_enabled: false })).error).not.toBeNull();
     const other = await createGateFixture();
     expect((await f.manager.client.rpc("set_gate_completion_policy", { p_organization_id: other.org, p_enabled: false })).error).not.toBeNull();
+    expect((await f.manager.client.rpc("gate_completion_enabled", { p_organization_id: other.org })).data).toBe(false);
     expect((await f.manager.client.from("gate_completion_policy").select("organization_id").eq("organization_id", other.org)).data).toEqual([]);
     expect((await f.manager.client.rpc("set_gate_completion_policy", { p_organization_id: f.org, p_enabled: false })).error).toBeNull();
     expect(sql(`select (select count(*) from public.gate_devices where organization_id='${f.org}')||'|'||(select count(*) from public.access_events where organization_id='${f.org}')||'|'||(select count(*) from public.gate_hardware_commands where organization_id='${f.org}')`)).toBe(snapshot);
@@ -36,6 +37,8 @@ describe("completion rollout and non-destructive rollback", () => {
     expect((await f.guard.client.rpc("process_visitor_gate_scan", { ...trusted, p_direction: "EXIT", p_client_scan_id: randomUUID() })).error?.message).toContain("GATE_COMPLETION_DISABLED");
     expect((await f.manager.client.rpc("create_gate_device_enrollment", { p_gate_id: f.gate, p_direction: "BOTH", p_code_hash: "a".repeat(64), p_expires_at: new Date(Date.now()+600_000).toISOString() })).error?.message).toContain("GATE_COMPLETION_DISABLED");
     expect((await f.guard.client.rpc("create_gate_manual_exception", { p_gate_id: f.gate, p_invitation_id: visitor.id, p_direction: "ENTRY", p_outcome: "DENIED", p_category: "OTHER", p_reason: "rollback test" })).error?.message).toContain("GATE_COMPLETION_DISABLED");
+    expect((await f.manager.client.rpc("reconcile_visitor_access_state", { p_gate_id: f.gate, p_invitation_id: reconciled.id, p_is_inside: false, p_category: "MISSED_SCAN", p_reason: "blocked after rollback" })).error?.message).toContain("GATE_COMPLETION_DISABLED");
+    expect(sql(`select is_inside from public.visitor_access_state where visitor_invitation_id='${reconciled.id}'`)).toBe("t");
     const exit = { ...legacy, p_direction: "EXIT", p_client_scan_id: randomUUID() };
     expect((await f.owner.client.rpc("process_visitor_gate_scan", exit)).error).not.toBeNull();
     const compatible = await f.guard.client.rpc("process_visitor_gate_scan", exit);
