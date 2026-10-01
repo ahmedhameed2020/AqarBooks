@@ -6,7 +6,7 @@ This runbook covers a supervised pilot of scanner enrollment, online gate decisi
 
 The pilot must not start until all of the following are true:
 
-- A per-organization long-stay threshold and its business owner have been approved. The application currently uses a fixed 12-hour display threshold and has no per-organization setting. This is a pilot blocker, not permission to treat 12 hours as the organization's policy.
+- A per-organization long-stay threshold and its business owner have been approved. In **Gate Management → Configure long-stay policy**, a manager sets 1–168 hours and explicitly opts into alerts. The fallback display threshold is 12 hours; notifications remain disabled until a tenant policy enables them. Confirm notification scheduling and delivery before production activation.
 - `CRON_SECRET` is configured in the application and GitHub Actions secrets, the `Gate notifications` workflow is enabled, and an authenticated production notification-drain probe has succeeded. The checked-in scheduler uses a best-effort five-minute cadence, not a delivery SLA.
 - `CRON_SECRET` is configured in both the application environment and the `Gate hardware commands` GitHub Actions environment, and the scheduled hardware workflow has completed successfully in production.
 - Named operators and supervisors have the minimum required permissions, the evidence-retention owner has approved a retention period, and an incident/on-call channel is staffed for the pilot window.
@@ -106,7 +106,7 @@ Monitor counts/ages only: nonterminal backlog (`PENDING`, `FAILED`, `DISPATCHING
 | --- | --- | --- |
 | Device activity stale | Active device has no recorded authenticated activity, or its last authenticated scan/incident submission was more than 5 minutes ago | Check expected lane traffic, device custody, scanner UI, and the separate connectivity-incident signal. Quiet operation can be legitimate; do not infer offline status or move the lane solely from this badge. |
 | Connectivity | Any recorded incident in the last 24 hours | Review the lane and complete the online/offline probe before relying on the scanner. |
-| Long stay | Inside for more than the fixed 12-hour application threshold | Supervisor investigates; do not use for production escalation until the organization-specific threshold exists. |
+| Long stay | Inside at or beyond the configured organization threshold | Supervisor investigates. Opted-in organizations receive one safe security alert per original allowed-entry visit cycle; reconciled entry states do not fabricate an original entry. |
 | Unresolved exception | Any pending request | Supervisor reviews; escalate if the oldest age exceeds the pilot's agreed response time. |
 | Hardware backlog | Any `PENDING`, `FAILED`, or `DISPATCHING` command | Confirm workflow health; escalate if oldest age exceeds 10 minutes. |
 | Hardware dead letter | Any `DEAD` command | Stop claiming automated-opening readiness and investigate immediately. |

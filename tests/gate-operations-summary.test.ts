@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({ calls: [] as QueryCall[], failTable: null as s
 
 function resultFor(call: QueryCall) {
   if (state.failTable === call.table) return { data: null, count: null, error: { message: "secret database detail" } };
+  if (call.table === "gate_long_stay_policy") return { data: [{ threshold_hours: 24, notifications_enabled: false }], error: null };
 
   if (call.options?.head) {
     if (call.table === "gate_devices") return { data: null, count: call.filters.some(([method]) => method === "or") ? 2 : 6, error: null };
@@ -74,6 +75,7 @@ describe("getGateOperationsSummary", () => {
       activeDevices: 6,
       connectivityIncidents24h: 5,
       longStays: 3,
+      longStayHours: 24,
       hardwareBacklog: 7,
       oldestUnresolvedExceptionAgeMinutes: 120,
       oldestHardwareBacklogAgeMinutes: 30,
@@ -83,12 +85,15 @@ describe("getGateOperationsSummary", () => {
 
     const countQueries = state.calls.filter((call) => call.options?.head);
     expect(countQueries).toHaveLength(8);
+    expect(countQueries.find((call) => call.filters.some(([, column]) => column === "last_entry_at"))?.filters)
+      .toContainEqual(["lte", "last_entry_at", "2026-09-24T12:00:00.000Z"]);
     expect(countQueries.every((call) => call.options?.count === "exact")).toBe(true);
 
     const rowQueries = state.calls.filter((call) => !call.options?.head);
-    expect(rowQueries).toHaveLength(2);
+    expect(rowQueries).toHaveLength(3);
     expect(rowQueries.every((call) => call.limit === 1)).toBe(true);
     expect(rowQueries.map((call) => call.projection)).toEqual([
+      "threshold_hours,notifications_enabled",
       "occurred_at",
       "created_at,gates!inner()",
     ]);
@@ -100,11 +105,11 @@ describe("getGateOperationsSummary", () => {
   it("applies organization and property scope to every aggregate", async () => {
     await getGateOperationsSummary("org-1", "property-1");
 
-    expect(state.calls).toHaveLength(10);
+    expect(state.calls).toHaveLength(11);
     for (const call of state.calls) {
       expect(call.filters).toContainEqual(["eq", "organization_id", "org-1"]);
       const propertyFilter = call.filters.find(([, column]) => column === "property_id" || column === "gates.property_id");
-      expect(propertyFilter?.[2], `${call.table} property scope`).toBe("property-1");
+      if (call.table !== "gate_long_stay_policy") expect(propertyFilter?.[2], `${call.table} property scope`).toBe("property-1");
     }
   });
 

@@ -9,6 +9,7 @@ import type { Locale } from "@/i18n/routing";
 import { GatesClient, type GateManagementItem, type GatePropertyOption } from "./gates-client";
 import type { GateDeviceItem } from "./gate-devices-panel";
 import { GateOperationsSummaryPanel } from "./operations-summary";
+import { Link } from "@/i18n/navigation";
 
 type GateRow = {
   id: string;
@@ -132,6 +133,7 @@ export default async function GatesPage({
 
   return (
     <div className="space-y-5">
+      {canManage && <Link className="inline-block text-sm underline" href="/operations/gates/long-stay-policy">{isAr ? "إعداد سياسة مدة البقاء" : "Configure long-stay policy"}</Link>}
       <GateOperationsSummaryPanel summary={operationsSummary} locale={locale as "ar" | "en"} />
       <GatesClient
         gates={gates}

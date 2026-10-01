@@ -1,12 +1,13 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DEFAULT_LONG_STAY_HOURS } from "@/lib/gates/evidence-csv";
+import { getGateLongStayPolicy } from "@/lib/gates/long-stay-policy";
 
 export const GATE_DEVICE_ACTIVITY_STALE_MINUTES = 5;
 export const GATE_CONNECTIVITY_LOOKBACK_HOURS = 24;
 
 export type GateOperationsSummary = {
+  longStayHours: number;
   activeDevices: number;
   devicesStale: number;
   connectivityIncidents24h: number;
@@ -75,10 +76,11 @@ export async function getGateOperationsSummary(
   propertyId?: string,
 ): Promise<GateOperationsSummary> {
   const admin = createAdminClient() as unknown as SummaryClient;
+  const policy = await getGateLongStayPolicy(admin, organizationId);
   const now = new Date();
   const activityStaleBefore = new Date(now.getTime() - GATE_DEVICE_ACTIVITY_STALE_MINUTES * 60_000).toISOString();
   const connectivitySince = new Date(now.getTime() - GATE_CONNECTIVITY_LOOKBACK_HOURS * 3_600_000).toISOString();
-  const longStayBefore = new Date(now.getTime() - DEFAULT_LONG_STAY_HOURS * 3_600_000).toISOString();
+  const longStayBefore = new Date(now.getTime() - policy.thresholdHours * 3_600_000).toISOString();
 
   const activeDevicesQuery = withScope(
     admin.from("gate_devices").select("status", { count: "exact", head: true }),
@@ -149,6 +151,7 @@ export async function getGateOperationsSummary(
   ]);
 
   return {
+    longStayHours: policy.thresholdHours,
     activeDevices: countOf(results[0]),
     devicesStale: countOf(results[1]),
     connectivityIncidents24h: countOf(results[2]),

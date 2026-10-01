@@ -18,6 +18,18 @@ type OrgEntityType =
 export type Database = {
   public: {
     Tables: {
+      gate_completion_policy: {
+        Row: { organization_id: string; enabled: boolean; updated_by: string; updated_at: string };
+        Insert: { organization_id: string; enabled?: boolean; updated_by: string; updated_at?: string };
+        Update: { enabled?: boolean; updated_by?: string; updated_at?: string };
+        Relationships: [];
+      };
+      gate_long_stay_policy: {
+        Row: { organization_id: string; threshold_hours: number; notifications_enabled: boolean; updated_by: string; updated_at: string };
+        Insert: { organization_id: string; threshold_hours?: number; notifications_enabled?: boolean; updated_by: string; updated_at?: string };
+        Update: { threshold_hours?: number; notifications_enabled?: boolean; updated_by?: string; updated_at?: string };
+        Relationships: [];
+      };
       organizations: {
         Row: {
           id: string;
@@ -3377,6 +3389,13 @@ export type Database = {
       };
     };
     Functions: {
+      gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
+      set_gate_completion_policy: { Args: { p_organization_id: string; p_enabled: boolean }; Returns: undefined };
+      set_gate_long_stay_policy: {
+        Args: { p_organization_id: string; p_threshold_hours: number; p_notifications_enabled: boolean };
+        Returns: undefined;
+      };
+      detect_gate_long_stays: { Args: { p_limit?: number }; Returns: number };
       create_gate_manual_exception: {
         Args: {
           p_gate_id: string; p_invitation_id: string | null; p_direction: "ENTRY" | "EXIT";

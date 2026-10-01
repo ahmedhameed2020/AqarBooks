@@ -65,6 +65,7 @@ function resolveSupabaseCredentials() {
  * functions (which run as owner) or via the service-role client.
  */
 const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
+  "detect_gate_long_stays", // service-only bounded detector
   "gate_supervision_context", // internal permission/context helper
   "gate_supervision_append_only", // trigger-only immutable evidence guard
   "post_payment_internal", // wrapped by record_payment
@@ -124,6 +125,7 @@ const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "create_gate_manual_exception", "approve_gate_manual_exception", "reconcile_visitor_access_state",
   "list_gate_current_visitors", "list_gate_access_evidence",
+  "set_gate_long_stay_policy",
   "abort_maintenance_attachment_upload",
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",

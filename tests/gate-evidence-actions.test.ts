@@ -12,6 +12,7 @@ vi.mock("@/lib/auth/session", () => ({ getCurrentUser }));
 vi.mock("@/lib/auth/org-context", () => ({ getPrimaryOrganization }));
 vi.mock("@/lib/auth/authorize", () => ({ hasPermission }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
+vi.mock("@/lib/gates/long-stay-policy", () => ({ getGateLongStayPolicy: vi.fn(async () => ({ thresholdHours: 12, notificationsEnabled: false })) }));
 
 import { listAccessEvidence, listCurrentVisitors } from "../lib/actions/gate-evidence";
 

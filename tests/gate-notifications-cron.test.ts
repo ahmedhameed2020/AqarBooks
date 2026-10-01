@@ -34,19 +34,26 @@ describe("notification cron boundary", () => {
     const response = await POST(request("bearer cron-secret"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ processed: count });
-    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("process_gate_notifications", { p_limit: 100 });
+    expect(state.rpc).toHaveBeenNthCalledWith(1, "detect_gate_long_stays", { p_limit: 100 });
+    expect(state.rpc).toHaveBeenNthCalledWith(2, "process_gate_notifications", { p_limit: 100 });
   });
   it.each([null, -1, 101, 1.5, "secret-data", { recipient: "private" }])("redacts unexpected SQL return %j", async (data) => {
-    state.rpc.mockResolvedValue({ data, error: null });
+    state.rpc.mockResolvedValueOnce({ data: 0, error: null }).mockResolvedValueOnce({ data, error: null });
     const response = await POST(request("Bearer cron-secret"));
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: "drain_failed" });
   });
   it("redacts database errors", async () => {
-    state.rpc.mockResolvedValue({ data: null, error: { message: "private credential" } });
+    state.rpc.mockResolvedValueOnce({ data: 0, error: null }).mockResolvedValueOnce({ data: null, error: { message: "private credential" } });
     const response = await POST(request("Bearer cron-secret"));
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: "drain_failed" });
+  });
+  it("fails closed before drain when detection fails", async () => {
+    state.rpc.mockResolvedValueOnce({ data: null, error: { message: "private" } });
+    const response = await POST(request("Bearer cron-secret"));
+    expect(await response.json()).toEqual({ error: "detector_failed" });
+    expect(state.rpc).toHaveBeenCalledTimes(1);
   });
   it.each(["rpc", "admin"])("redacts thrown %s failures", async (source) => {
     if (source === "rpc") state.rpc.mockRejectedValue(new Error("private credential"));

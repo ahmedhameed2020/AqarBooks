@@ -1,6 +1,5 @@
 import { Activity, Clock3, ScanLine, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DEFAULT_LONG_STAY_HOURS } from "@/lib/gates/evidence-csv";
 import type { GateOperationsSummary } from "@/lib/gates/operations-summary";
 
 type Tone = "success" | "warning" | "destructive" | "outline";
@@ -116,7 +115,7 @@ export function GateOperationsSummaryPanel({
         <MetricCard
           title={isAr ? "الإقامات الطويلة" : "Long stays"}
           value={number.format(summary.longStays)}
-          detail={isAr ? `حد تجريبي ثابت: ${DEFAULT_LONG_STAY_HOURS} ساعة` : `Fixed pilot threshold: ${DEFAULT_LONG_STAY_HOURS}h`}
+          detail={isAr ? `الحد المخصص: ${summary.longStayHours} ساعة` : `Configured threshold: ${summary.longStayHours}h`}
           status={statusLabel(longStaysHealthy, isAr)}
           tone={longStaysHealthy ? "success" : "warning"}
           icon={<Clock3 className="size-4" />}

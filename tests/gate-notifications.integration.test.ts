@@ -32,6 +32,46 @@ function event(id: string, reason = "VALID_ENTRY") {
 function uuid(output: string) { return output.match(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/g)!.at(-1)!; }
 
 describe.sequential("gate notifications", () => {
+  it("uses explicit tenant policy and original visit entry for bounded idempotent alerts", async () => {
+    expect(() => sql(asUser(operator, `select public.set_gate_long_stay_policy('${org}',1,true)`))).toThrow();
+    expect(() => sql(asUser(outsider, `select public.set_gate_long_stay_policy('${org}',1,true)`))).toThrow();
+    sql(`insert into public.role_permissions(role_id,permission_id) select '${approver}',id from public.permissions where key='operations.gates.manage' on conflict do nothing`);
+    expect(() => sql(asUser(approver, `select public.set_gate_long_stay_policy('${org}',0,true)`))).toThrow();
+    sql(asUser(approver, `select public.set_gate_long_stay_policy('${org}',1,false)`));
+    expect(sql(asUser(outsider, `select count(*) from public.gate_long_stay_policy where organization_id='${org}'`))).toContain("0");
+    expect(() => sql(asUser(operator, `update public.gate_long_stay_policy set notifications_enabled=true where organization_id='${org}'`))).toThrow();
+    expect(() => sql(asUser(operator, `select public.detect_gate_long_stays(100)`))).toThrow();
+    expect(() => sql(`select public.detect_gate_long_stays(101)`)).toThrow();
+    const id = invitation();
+    // Immutable evidence is created with a historical transaction timestamp, as a real old entry.
+    sql(`begin; insert into public.visitor_access_state(visitor_invitation_id,organization_id,property_id,unit_id,is_inside,entry_count,exit_count,last_entry_at,last_gate_id)
+      values('${id}','${org}','${property}','${unit}',true,1,0,now()-interval '2 hours','${gate}');
+      insert into public.access_events(organization_id,property_id,gate_id,visitor_invitation_id,unit_id,direction,decision,reason_code,client_scan_id,operator_user_id,usage_policy,guest_name,invitation_no,is_inside_after,occurred_at)
+      values('${org}','${property}','${gate}','${id}','${unit}','ENTRY','ALLOW','VALID_ENTRY',gen_random_uuid(),'${operator}','MULTI_USE','Display Guest','${id}',true,now()-interval '2 hours'); commit;`);
+    const entry = event(id);
+    sql(`select public.detect_gate_long_stays(100)`);
+    expect(count(entry, "VISITOR_SECURITY_ALERT")).toBe(0);
+    sql(asUser(approver, `select public.set_gate_long_stay_policy('${org}',3,true)`));
+    sql(`select public.detect_gate_long_stays(100)`);
+    expect(count(entry, "VISITOR_SECURITY_ALERT")).toBe(0);
+    sql(asUser(approver, `select public.set_gate_long_stay_policy('${org}',1,true)`));
+    const run = promisify(execFile);
+    await Promise.all([1,2,3].map(() => run("docker", [...args, "set role service_role; select public.detect_gate_long_stays(100); select public.process_gate_notifications(100)"])));
+    expect(count(entry, "VISITOR_SECURITY_ALERT")).toBe(1);
+    const payload = sql(`select row_to_json(n) from public.notifications n where source_id='${entry}' and type='VISITOR_SECURITY_ALERT'`);
+    expect(payload).toContain("LONG_STAY");
+    for (const secret of [guestPhone,rawQr,credential,"private reason"]) expect(payload).not.toContain(secret);
+    // A new reconciliation timestamp cannot reuse the old ALLOW entry as its origin.
+    sql(`update public.visitor_access_state set last_entry_at=now()-interval '3 hours' where visitor_invitation_id='${id}'`);
+    expect(sql(`select public.detect_gate_long_stays(100)`)).toBe("0");
+    expect(count(entry, "VISITOR_SECURITY_ALERT")).toBe(1);
+    sql(`begin; update public.visitor_access_state set entry_count=2,exit_count=1,last_entry_at=now()-interval '90 minutes' where visitor_invitation_id='${id}';
+      insert into public.access_events(organization_id,property_id,gate_id,visitor_invitation_id,unit_id,direction,decision,reason_code,client_scan_id,operator_user_id,usage_policy,guest_name,invitation_no,is_inside_after,occurred_at)
+      values('${org}','${property}','${gate}','${id}','${unit}','ENTRY','ALLOW','VALID_ENTRY',gen_random_uuid(),'${operator}','MULTI_USE','Display Guest','${id}',true,now()-interval '90 minutes'); commit;
+      select public.detect_gate_long_stays(100); select public.process_gate_notifications(100); select public.detect_gate_long_stays(100);`);
+    expect(sql(`select count(*) from public.notifications where action_url='/portal/visitors/${id}' and type='VISITOR_SECURITY_ALERT'`)).toBe("2");
+    sql(asUser(approver, `select public.set_gate_long_stay_policy('${org}',12,false)`));
+  }, 120_000);
   beforeAll(() => {
     sql(`insert into auth.users(id,email) values('${owner}','${owner}@test.local'),('${operator}','${operator}@test.local'),('${approver}','${approver}@test.local'),('${outsider}','${outsider}@test.local');
       insert into public.organizations(id,name,slug,default_currency,status) values('${org}','Notify','${org}','QAR','ACTIVE');

@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   buildAccessEvidenceCsv,
   collectEvidenceExportRows,
-  DEFAULT_LONG_STAY_HOURS,
   getOccupancyWarnings,
   parseEvidenceExportFilters,
   parseEvidenceFilters,
@@ -15,6 +14,7 @@ import {
   type EvidenceExportPageRequest,
   type EvidenceFilters,
 } from "@/lib/gates/evidence-csv";
+import { getGateLongStayPolicy, type PolicyClient } from "@/lib/gates/long-stay-policy";
 
 type DbClient = Awaited<ReturnType<typeof createClient>>;
 type SafeError = "unauthenticated" | "forbidden" | "invalid_filters" | "query_failed";
@@ -154,6 +154,9 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
 
   const rawRows = data ?? [];
   const now = new Date();
+  let longStayHours: number;
+  try { longStayHours = (await getGateLongStayPolicy(auth.db as unknown as PolicyClient, auth.organizationId)).thresholdHours; }
+  catch { return { ok: false, error: "query_failed" }; }
   const rows: CurrentVisitorItem[] = rawRows.filter((row) => !row.count_only).map((row) => ({
     invitationId: row.invitation_id!,
     invitationNo: row.invitation_no!,
@@ -174,7 +177,7 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
       enteredAt: row.entered_at,
       validUntil: row.valid_until!,
       now,
-      longStayHours: DEFAULT_LONG_STAY_HOURS,
+      longStayHours,
     }),
   }));
   return {
@@ -183,7 +186,7 @@ export async function listCurrentVisitors(input: Record<string, unknown> = {}): 
     total: Number(rawRows[0]?.total_count ?? 0),
     page: filters.page,
     pageSize: filters.pageSize,
-    longStayHours: DEFAULT_LONG_STAY_HOURS,
+    longStayHours,
   };
 }
 

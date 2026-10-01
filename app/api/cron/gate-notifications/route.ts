@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const admin = createAdminClient();
+    const detection = await admin.rpc("detect_gate_long_stays", { p_limit: 100 });
+    if (detection.error || typeof detection.data !== "number" || !Number.isInteger(detection.data) || detection.data < 0 || detection.data > 100) {
+      return NextResponse.json({ error: "detector_failed" }, { status: 500 });
+    }
     const { data, error } = await admin.rpc("process_gate_notifications" as never, { p_limit: 100 } as never);
     // The SQL count measures attempted rows, including retryable delivery failures.
     if (error || !Number.isInteger(data) || typeof data !== "number" || data < 0 || data > 100) {

@@ -144,6 +144,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260925160550_gate_supervision_evidence.sql", bytes: 28745, sha256: "62b5c68aaf286ee6c9a2a6b085fc93f95628a3fe414c5099e7fec497e05a8621", provenance: "new_authorized_migration" },
   { file: "20260925182911_gate_notifications.sql", bytes: 10612, sha256: "257502ceae6e3c0c65c65d23d0a40c4325a00aa41349d25ad293c4bcc29384f3", provenance: "new_authorized_migration" },
   { file: "20260925184655_gate_hardware_outbox.sql", bytes: 10256, sha256: "397ab1e0b0a5f757455cd0948f78ddec67659ba58e72b59aa8df32cb68cd1620", provenance: "new_authorized_migration" },
+  { file: "20261001052203_gate_long_stay_policy.sql", bytes: 4124, sha256: "68e6c7c90f773827a4aeacb3ea86ddc72e2ac34122218258b6de44d94e0b68bf", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -401,7 +402,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(20);
+      expect(authorized).toHaveLength(21);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -475,7 +476,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 9. new authorized migrations strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(20);
+      expect(newMigrations).toHaveLength(21);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
