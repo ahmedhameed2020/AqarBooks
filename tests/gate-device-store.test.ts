@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/actions/gate-devices", () => ({ releaseGateDeviceAction: vi.fn(async () => ({ ok: true })) }));
 import {
   clearGateDevice,
   clearGateDeviceBeforeSignOut,
   readGateDevice,
+  readGateInstallationId,
   saveGateDevice,
   type StoredGateDevice,
 } from "@/lib/gates/device-store";
+import { releaseGateDeviceAction } from "@/lib/actions/gate-devices";
 
 type RequestHandlers = {
   result?: unknown;
@@ -141,6 +144,7 @@ describe("gate device storage", () => {
   });
 
   it("clears the enrolled device before continuing sign-out", async () => {
+    vi.mocked(releaseGateDeviceAction).mockRejectedValueOnce(new Error("offline"));
     const device: StoredGateDevice = {
       deviceId: "0f55a99d-97cc-49be-a0ed-c794998714b3",
       gateId: "c78eeb37-cf70-4d47-8d3e-1d6bb51d35f5",
@@ -154,6 +158,7 @@ describe("gate device storage", () => {
     await clearGateDeviceBeforeSignOut(continueSignOut);
 
     expect(await readGateDevice()).toBeNull();
+    expect(await readGateInstallationId()).toBe(device.installationId);
     expect(continueSignOut).toHaveBeenCalledTimes(1);
   });
 });

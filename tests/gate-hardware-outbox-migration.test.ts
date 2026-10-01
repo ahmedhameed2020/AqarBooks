@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { promisify } from "node:util";
 import { beforeAll, describe, expect, it } from "vitest";
 const args = ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c"];
-const sql = (query: string) => execFileSync("docker", [...args, query], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+const sql = (query: string) => execFileSync("docker", [...args, query], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 }).trim();
 const org = randomUUID(), property = randomUUID(), gate = randomUUID(), operator = randomUUID(), endpoint = randomUUID();
 const unit = randomUUID(), member = randomUUID(), device = randomUUID();
 function invitation() {
@@ -56,7 +56,7 @@ describe.sequential("hardware outbox database", () => {
   });
   it("enqueues once for the original allow; DENY and manual evidence cannot enqueue", async () => {
     const id = event(); expect(commandFor(id)).not.toBe("");
-    await Promise.all([1, 2].map(() => promisify(execFile)("docker", [...args, `set role service_role; select public.enqueue_gate_hardware_command('${id}')`])));
+    await Promise.all([1, 2].map(() => promisify(execFile)("docker", [...args, `set role service_role; select public.enqueue_gate_hardware_command('${id}')`], { timeout: 30_000 })));
     expect(sql(`select count(*) from public.gate_hardware_commands where access_event_id='${id}'`)).toBe("1");
     expect(commandFor(event("DENY", "INVALID_PASS"))).toBe("");
     expect(sql(`select public.enqueue_gate_hardware_command('${randomUUID()}')`)).toBe("");
@@ -66,7 +66,7 @@ describe.sequential("hardware outbox database", () => {
   });
   it("concurrent workers cannot claim the same event and stale leases cannot complete", async () => {
     const id = commandFor(event());
-    const responses = await Promise.all([1, 2].map(() => promisify(execFile)("docker", [...args, "select coalesce(json_agg(c),'[]') from public.claim_gate_hardware_commands(50) c"])));
+    const responses = await Promise.all([1, 2].map(() => promisify(execFile)("docker", [...args, "select coalesce(json_agg(c),'[]') from public.claim_gate_hardware_commands(50) c"], { timeout: 30_000 })));
     const jobs = responses.flatMap((response) => JSON.parse(response.stdout)); expect(jobs.filter((job) => job.id === id)).toHaveLength(1);
     const first = jobs.find((job) => job.id === id);
     sql(`update public.gate_hardware_commands set claimed_at=now()-interval '11 minutes' where id='${id}'`);
@@ -78,7 +78,7 @@ describe.sequential("hardware outbox database", () => {
   it("scanner replays, distinct duplicate scans, reconciliation and manual approval never create extra opens", async () => {
     const visitor = invitation(), scanId = randomUUID();
     const scan = (key: string) => asOperator(`select decision from public.process_visitor_gate_scan('${device}','private-device','${gate}','${visitor}','private-qr:${visitor}','ENTRY','${key}')`);
-    await Promise.all([scan(scanId), scan(scanId), scan(randomUUID())].map((query) => promisify(execFile)("docker", [...args, query])));
+    await Promise.all([scan(scanId), scan(scanId), scan(randomUUID())].map((query) => promisify(execFile)("docker", [...args, query], { timeout: 30_000 })));
     expect(sql(`select count(*) from public.gate_hardware_commands c join public.access_events e on e.id=c.access_event_id where e.visitor_invitation_id='${visitor}'`)).toBe("1");
     sql(asOperator(`select public.reconcile_visitor_access_state('${gate}','${visitor}',false,'MISSED_SCAN','private notes')`));
     const reconcile = sql(`select id from public.access_events where visitor_invitation_id='${visitor}' and decision='RECONCILE'`);

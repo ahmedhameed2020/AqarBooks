@@ -77,6 +77,16 @@ for (const mode of ["missing", "denied", "feedback-throws"] as const) {
   });
 }
 
+test("a stationary camera QR remains one decision after multiple cooldown periods", async ({ page }) => {
+  const fixture = await createGateFixture(), visitor = fixture.invitation();
+  await capabilities(page, "camera"); await enrolledScanner(page, fixture);
+  await page.evaluate((payload) => { (window as unknown as ProbeWindow).gateCameraPayload = payload; }, visitor.payload);
+  await expect(resultPanel(page)).toContainText("ALLOW");
+  await expect(resultPanel(page)).toContainText("barrier not confirmed");
+  await page.clock.install(); await page.clock.fastForward(12_000);
+  expect(sql(`select count(*) from public.access_events where visitor_invitation_id='${visitor.id}'`)).toBe("1");
+});
+
 test("offline after load never allows or records access; reconnect persists one safe incident", async ({ page, context }) => {
   const fixture = await createGateFixture(), visitor = fixture.invitation();
   await capabilities(page, "denied");

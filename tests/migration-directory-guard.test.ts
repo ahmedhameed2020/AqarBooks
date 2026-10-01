@@ -146,6 +146,8 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260925184655_gate_hardware_outbox.sql", bytes: 10256, sha256: "397ab1e0b0a5f757455cd0948f78ddec67659ba58e72b59aa8df32cb68cd1620", provenance: "new_authorized_migration" },
   { file: "20261001052203_gate_long_stay_policy.sql", bytes: 4526, sha256: "9b546f551dd0f899b3aa9368bf330877266d594cc4ff279119fcccbc51f5dcde", provenance: "new_authorized_migration" },
   { file: "20261001070000_gate_completion_rollout.sql", bytes: 9058, sha256: "f709e86ec6ec761cd8dfe437591de7ac5a2811fe0ffc8be167e8ac3bc98ea40c", provenance: "new_authorized_migration" },
+  { file: "20261001120000_gate_final_contracts.sql", bytes: 17939, sha256: "0ead460d29d65609c9adfd627b73e4bdd16e9cdd7d71a8aec1f4bd61bf816e9f", provenance: "new_authorized_migration" },
+  { file: "20261001121000_gate_operational_cleanup.sql", bytes: 3187, sha256: "7325541600bf1c3bed6e9e9c13b2c9574c9e697bd1b8ac1349923e867d491ef4", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -403,7 +405,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(22);
+      expect(authorized).toHaveLength(24);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -479,7 +481,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 9. new authorized migrations strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(22);
+      expect(newMigrations).toHaveLength(24);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);

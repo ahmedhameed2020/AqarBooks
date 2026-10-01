@@ -19,6 +19,7 @@ import {
   approveGateManualExceptionAction,
   createGateManualExceptionAction,
   reconcileVisitorAccessStateAction,
+  lookupReconciliationInvitationAction,
 } from "@/lib/actions/gate-supervision";
 
 export type SupervisionGateOption = { id: string; label: string };
@@ -32,6 +33,9 @@ export type PendingExceptionItem = {
   category: string;
   reason: string;
   occurredAt: string;
+  status?: string;
+  approvedAt?: string | null;
+  approvalReason?: string | null;
 };
 
 function resultMessage(error: string | undefined, isAr: boolean) {
@@ -116,8 +120,8 @@ export function ReconcileVisitorDialog({
   gates,
   locale,
 }: {
-  invitationId: string;
-  visitorLabel: string;
+  invitationId?: string;
+  visitorLabel?: string;
   gateId: string | null;
   gates: SupervisionGateOption[];
   locale: "ar" | "en";
@@ -126,6 +130,10 @@ export function ReconcileVisitorDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selectedGateId, setSelectedGateId] = useState(gateId ?? gates[0]?.id ?? "");
+  const [selectedInvitation, setSelectedInvitation] = useState(invitationId ?? "");
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupLabel, setLookupLabel] = useState(visitorLabel ?? "");
+  const [isInside, setIsInside] = useState(!invitationId);
   const [category, setCategory] = useState<"MISSED_SCAN" | "STATE_CORRECTION" | "OTHER">("MISSED_SCAN");
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -134,7 +142,7 @@ export function ReconcileVisitorDialog({
   function submit() {
     setMessage("");
     startTransition(async () => {
-      const response = await reconcileVisitorAccessStateAction({ gateId: selectedGateId, invitationId, isInside: false, category, reason });
+      const response = await reconcileVisitorAccessStateAction({ gateId: selectedGateId, invitationId: selectedInvitation, isInside, category, reason });
       setMessage(resultMessage(response.ok ? undefined : response.error, isAr));
       if (response.ok) router.refresh();
     });
@@ -142,16 +150,19 @@ export function ReconcileVisitorDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-xl text-xs"><UserRoundX className="size-3.5" />{isAr ? "تصحيح خروج" : "Correct exit"}</Button>} />
+      <DialogTrigger render={<Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-xl text-xs"><UserRoundX className="size-3.5" />{invitationId ? (isAr ? "تصحيح خروج" : "Correct exit") : (isAr ? "تصحيح دخول مفقود" : "Correct missing entry")}</Button>} />
       <DialogContent>
-        <DialogHeader><div><DialogTitle>{isAr ? "تسوية حالة الزائر" : "Reconcile visitor state"}</DialogTitle><DialogDescription>{isAr ? `تسجيل خروج مصحح لـ ${visitorLabel} مع أثر تدقيق دائم.` : `Record a corrected exit for ${visitorLabel} with an immutable audit trail.`}</DialogDescription></div></DialogHeader>
+        <DialogHeader><div><DialogTitle>{isAr ? "تسوية حالة الزائر" : "Reconcile visitor state"}</DialogTitle><DialogDescription>{isAr ? "تصحيح حالة الزائر مع أثر تدقيق دائم." : "Correct visitor occupancy with an immutable audit trail."}</DialogDescription></div></DialogHeader>
         <DialogBody className="space-y-4">
-          <label className="block space-y-1 text-xs font-bold"><span>{isAr ? "البوابة" : "Gate"}</span><select value={selectedGateId} onChange={(event) => setSelectedGateId(event.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">{gates.map((gate) => <option key={gate.id} value={gate.id}>{gate.label}</option>)}</select></label>
+          <label className="block space-y-1 text-xs font-bold"><span>{isAr ? "البوابة" : "Gate"}</span><select value={selectedGateId} onChange={(event) => { setSelectedGateId(event.target.value); if (!invitationId) { setSelectedInvitation(""); setLookupLabel(""); } }} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">{gates.map((gate) => <option key={gate.id} value={gate.id}>{gate.label}</option>)}</select></label>
+          {!invitationId ? <div className="space-y-2"><label>{isAr ? "رقم التصريح أو معرّفه" : "Pass number or ID"}<Input value={lookupQuery} onChange={(event) => { setLookupQuery(event.target.value); setSelectedInvitation(""); setLookupLabel(""); }} maxLength={120} /></label><Button disabled={pending || !lookupQuery.trim()} onClick={() => startTransition(async () => { const found = await lookupReconciliationInvitationAction(selectedGateId, lookupQuery); setSelectedInvitation(found[0]?.id ?? ""); setLookupLabel(found[0]?.label ?? ""); setMessage(found.length ? "" : (isAr ? "لم يتم العثور على التصريح" : "Pass not found")); })}>{isAr ? "بحث" : "Look up pass"}</Button></div> : null}
+          <p>{lookupLabel}</p>
+          <label>{isAr ? "الحالة المصححة" : "Corrected state"}<select className="block h-10 w-full rounded border" value={isInside ? "INSIDE" : "OUTSIDE"} onChange={(event) => setIsInside(event.target.value === "INSIDE")}><option value="INSIDE">{isAr ? "بالداخل" : "Inside"}</option><option value="OUTSIDE">{isAr ? "بالخارج" : "Outside"}</option></select></label>
           <label className="block space-y-1 text-xs font-bold"><span>{isAr ? "التصنيف" : "Category"}</span><select value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"><option value="MISSED_SCAN">MISSED_SCAN</option><option value="STATE_CORRECTION">STATE_CORRECTION</option><option value="OTHER">OTHER</option></select></label>
           <label className="block space-y-1 text-xs font-bold"><span>{isAr ? "سبب التصحيح" : "Correction reason"}</span><Input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} className="h-10 rounded-xl" /></label>
           {message ? <p role="status" className="text-xs font-semibold text-slate-500">{message}</p> : null}
         </DialogBody>
-        <DialogFooter><Button type="button" onClick={submit} disabled={pending || !selectedGateId || !reason.trim()}>{pending ? <Loader2 className="size-4 animate-spin" /> : <UserRoundX className="size-4" />}{isAr ? "تأكيد الخروج المصحح" : "Confirm corrected exit"}</Button></DialogFooter>
+        <DialogFooter><Button type="button" onClick={submit} disabled={pending || !selectedInvitation || !selectedGateId || !reason.trim()}>{pending ? <Loader2 className="size-4 animate-spin" /> : <UserRoundX className="size-4" />}{isInside ? (isAr ? "تأكيد الدخول المصحح" : "Confirm corrected entry") : (isAr ? "تأكيد الخروج المصحح" : "Confirm corrected exit")}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

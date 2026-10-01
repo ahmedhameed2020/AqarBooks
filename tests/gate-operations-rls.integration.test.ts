@@ -401,8 +401,8 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
         has_table_privilege('authenticated', 'public.visitor_access_state', 'insert'),
         has_function_privilege('anon', 'public.process_visitor_gate_scan(uuid,uuid,text,text,uuid)', 'execute'),
         has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,uuid,text,text,uuid)', 'execute'),
-        has_function_privilege('anon', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid)', 'execute'),
-        has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid)', 'execute'),
+        has_function_privilege('anon', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid,text)', 'execute'),
+        has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid,text)', 'execute'),
         has_function_privilege('authenticated', 'public.create_gate(uuid,text,text,text,text)', 'execute')
     `);
     expect(privileges).toBe("f|t|f|t|f|f|t|f|f|f|f|t|t");

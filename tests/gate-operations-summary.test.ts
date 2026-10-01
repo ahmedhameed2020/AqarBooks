@@ -49,7 +49,7 @@ function queryFor(table: string) {
 }
 
 vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => ({ from: (table: string) => queryFor(table) }),
+  createAdminClient: () => ({ from: (table: string) => queryFor(table), rpc: vi.fn(async () => ({ data: { sampleSize: 0, validationP50Ms: null, validationP95Ms: null, hardwareRetries: 0, dimensions: [] }, error: null })) }),
 }));
 
 import { getGateOperationsSummary } from "@/lib/gates/operations-summary";

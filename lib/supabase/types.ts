@@ -18,6 +18,14 @@ type OrgEntityType =
 export type Database = {
   public: {
     Tables: {
+      gate_scan_devices: {
+        Row: { organization_id: string; access_event_id: string; device_id: string; validation_ms: number; scanner_version: string };
+        Insert: never; Update: never; Relationships: [];
+      };
+      gate_notification_recovery: {
+        Row: { organization_id: string; source_id: string; type: string; reason_code: string; attempts: number; status: string; next_attempt_at: string };
+        Insert: never; Update: never; Relationships: [];
+      };
       gate_completion_policy: {
         Row: { organization_id: string; enabled: boolean; updated_by: string; updated_at: string };
         Insert: { organization_id: string; enabled?: boolean; updated_by: string; updated_at?: string };
@@ -3390,6 +3398,11 @@ export type Database = {
     };
     Functions: {
       gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
+      release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
+      export_gate_current_visitors: Database["public"]["Functions"]["list_gate_current_visitors"];
+      audit_gate_authentication_failure: { Args: { p_actor: string; p_gate: string }; Returns: undefined };
+      lookup_gate_reconciliation_invitation: { Args: { p_gate: string; p_query: string }; Returns: { id: string; label: string }[] };
+      gate_scan_telemetry: { Args: { p_org: string; p_property?: string | null }; Returns: { sampleSize: number; sampleLimit: number; validationP50Ms: number | null; validationP95Ms: number | null; hardwareRetries: number; dimensions: { gate_id: string; direction: string; reason_code: string; scanner_version: string; count: number }[] } };
       set_gate_completion_policy: { Args: { p_organization_id: string; p_enabled: boolean }; Returns: undefined };
       set_gate_long_stay_policy: {
         Args: { p_organization_id: string; p_threshold_hours: number; p_notifications_enabled: boolean };
@@ -3986,8 +3999,9 @@ export type Database = {
       };
       process_visitor_gate_scan: {
         Args: {
-          p_device_id: string;
-          p_device_credential: string;
+          p_device_id?: string;
+          p_device_credential?: string;
+          p_scanner_version?: string;
           p_gate_id: string;
           p_invitation_id: string;
           p_raw_secret: string;
@@ -4008,6 +4022,7 @@ export type Database = {
           gate_id: string;
           property_id: string;
           occurred_at: string;
+          hardware_status?: "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE";
         }[];
       };
       work_order_staff_can_read: {

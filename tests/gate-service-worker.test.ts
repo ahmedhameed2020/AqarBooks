@@ -21,7 +21,7 @@ async function createWorkerHarness() {
   };
   const fetchMock = vi.fn();
   const workerSelf = {
-    location: { origin: "https://scanner.test" },
+    location: { origin: "https://scanner.test", href: "https://scanner.test/gate-scanner-sw.js?build=test-build" },
     clients: { claim: vi.fn().mockResolvedValue(undefined) },
     skipWaiting: vi.fn().mockResolvedValue(undefined),
     addEventListener(type: string, handler: (event: Record<string, unknown>) => void) {
@@ -140,12 +140,21 @@ describe("gate scanner service worker", () => {
     expect(harness.cacheStorage.open).not.toHaveBeenCalled();
     expect(harness.fetchMock).not.toHaveBeenCalled();
   });
+  it("serves only a static unavailable shell on offline scanner navigation", async () => {
+    const harness = await createWorkerHarness();
+    harness.fetchMock.mockRejectedValue(new Error("offline"));
+    harness.cache.match.mockResolvedValue(new Response("UNVERIFIED_OFFLINE"));
+    const response = await harness.dispatchFetch({ method: "GET", mode: "navigate", url: "https://scanner.test/en/operations/gate" }).responsePromise as Response;
+    expect(await response.text()).toBe("UNVERIFIED_OFFLINE");
+    expect(harness.cache.match).toHaveBeenCalledWith("/gate-scanner-offline.html");
+    expect(harness.cache.put).not.toHaveBeenCalled();
+  });
 
   it("activation removes only obsolete scanner-prefixed caches", async () => {
     const harness = await createWorkerHarness();
     harness.cacheStorage.keys.mockResolvedValue([
       "aqarbooks-gate-scanner-old",
-      "aqarbooks-gate-scanner-2026-09-25-1",
+      "aqarbooks-gate-scanner-test-build",
       "aqarbooks-main-shell-v9",
     ]);
     const lifetimePromises: Promise<unknown>[] = [];
@@ -178,7 +187,7 @@ describe("gate scanner service worker", () => {
     vi.stubGlobal("navigator", { serviceWorker: { register } });
 
     await expect(registerGateScannerServiceWorker()).resolves.toBe(registration);
-    expect(register).toHaveBeenCalledWith("/gate-scanner-sw.js", {
+    expect(register).toHaveBeenCalledWith("/gate-scanner-sw.js?build=development", {
       scope: "/",
       updateViaCache: "none",
     });

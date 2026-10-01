@@ -47,6 +47,7 @@ export function GatesClient({
   devices,
   properties,
   canManage,
+  canManageDevices = false,
   completionEnabled,
   locale,
 }: {
@@ -54,6 +55,7 @@ export function GatesClient({
   devices: GateDeviceItem[];
   properties: GatePropertyOption[];
   canManage: boolean;
+  canManageDevices?: boolean;
   completionEnabled: boolean;
   locale: "ar" | "en";
 }) {
@@ -216,7 +218,7 @@ export function GatesClient({
           directionMode: gate.directionMode,
           isActive: gate.isActive,
         }))}
-        canManage={canManage}
+        canManage={canManageDevices}
         completionEnabled={completionEnabled}
         locale={locale}
       />

@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getGateOperationsSummary } from "@/lib/gates/operations-summary";
@@ -72,6 +73,7 @@ export default async function GatesPage({
   }
 
   const adminClient = createAdminClient();
+  const canManageDevices = await hasPermission(organization.id, "operations.gates.devices.manage");
   const completionEnabled = await getGateCompletionEnabled(supabase, organization.id);
   const [
     { data: gateRows, error: gateError },
@@ -143,6 +145,7 @@ export default async function GatesPage({
         devices={devices}
         properties={propertyOptions}
         canManage={Boolean(canManage)}
+        canManageDevices={canManageDevices}
         completionEnabled={completionEnabled}
         locale={locale as "ar" | "en"}
       />

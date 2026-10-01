@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, Clock3, Search, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CurrentVisitorItem } from "@/lib/actions/gate-evidence";
+import { exportCurrentVisitorsCsvAction } from "@/lib/actions/gate-evidence";
 import {
   ManualExceptionDialog,
   PendingExceptionApprovals,
@@ -64,11 +65,17 @@ export function OccupancyClient({
   const isAr = locale === "ar";
   const router = useRouter();
   const pathname = usePathname();
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [router]);
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [q, setQ] = useState(filters.q ?? "");
   const [property, setProperty] = useState(filters.property ?? "");
   const [gate, setGate] = useState(filters.gate ?? "");
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const [exporting, startExport] = useTransition();
+  const [exportMessage, setExportMessage] = useState("");
   const warningCount = rows.filter((row) => row.longStay || row.expiredInside).length;
 
   const groups = useMemo(() => {
@@ -103,6 +110,15 @@ export function OccupancyClient({
           <p className="text-xs font-medium text-slate-500">{isAr ? `تحذير الإقامة الطويلة بعد ${longStayHours} ساعة.` : `Long-stay warnings begin after ${longStayHours} hours.`}</p>
         </div>
         {canCreateException ? <ManualExceptionDialog gates={gates} invitations={invitations} locale={locale} /> : null}
+        {canReconcile ? <ReconcileVisitorDialog gateId={null} gates={gates} locale={locale} /> : null}
+        <Button disabled={exporting} variant="outline" onClick={() => startExport(async () => {
+          const result = await exportCurrentVisitorsCsvAction({ q, property, gate });
+          if (!result.ok) { setExportMessage(isAr ? "تعذر التصدير" : "Export failed"); return; }
+          const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
+          const link = document.createElement("a"); link.href = url; link.download = result.filename; link.click(); URL.revokeObjectURL(url);
+          setExportMessage(result.truncated ? (isAr ? "تم تصدير أول ٢٥٠٠٠ زائر؛ ضيّق المرشحات." : "Exported first 25,000 visitors; narrow the filters.") : "");
+        })}>{isAr ? "تصدير CSV" : "Export occupancy CSV"}</Button>
+        {exportMessage ? <p role="status">{exportMessage}</p> : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -118,7 +134,8 @@ export function OccupancyClient({
         <Button type="submit" className="h-10 rounded-xl">{isAr ? "تصفية" : "Filter"}</Button>
       </form>
 
-      {canApprove ? <PendingExceptionApprovals items={pendingExceptions} locale={locale} /> : null}
+      {canApprove ? <PendingExceptionApprovals items={pendingExceptions.filter((item) => item.status !== "APPROVED")} locale={locale} /> : null}
+      {canApprove ? <section className="rounded-xl border p-4"><h2 className="font-bold">{isAr ? "سجل الاستثناءات المعتمدة (آخر ١٠٠ طلب)" : "Approved exception evidence (latest 100 requests)"}</h2>{pendingExceptions.filter((item) => item.status === "APPROVED").map((item) => <article key={item.id} className="border-t py-3 text-sm"><p>{item.visitorLabel} · {item.gateLabel} · {item.direction} · {item.outcome}</p><p>{item.reason}</p><p>{item.approvalReason} · {item.approvedAt ? new Date(item.approvedAt).toLocaleString(locale) : ""}</p><p className="text-xs text-muted-foreground">{item.id}</p></article>)}</section> : null}
 
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-border/70 bg-card p-12 text-center"><UsersRound className="mx-auto mb-3 size-8 text-slate-400" /><p className="text-sm font-bold">{isAr ? "لا يوجد زوار مطابقون بالداخل" : "No matching visitors are inside"}</p></div>

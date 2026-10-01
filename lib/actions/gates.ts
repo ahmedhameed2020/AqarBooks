@@ -46,6 +46,7 @@ export type GateScanResult =
       gateId: string;
       propertyId: string;
       occurredAt: string;
+      hardwareStatus?: "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE";
     }
   | { ok: false; error: string };
 
@@ -139,6 +140,7 @@ export async function processVisitorGateScanAction(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("process_visitor_gate_scan", {
     p_device_id: parsed.deviceId,
+    p_scanner_version: "2026-10-01",
     p_device_credential: parsed.deviceCredential,
     p_gate_id: parsed.gateId,
     p_invitation_id: payload.invitationId,
@@ -149,7 +151,17 @@ export async function processVisitorGateScanAction(
 
   const result = data?.[0];
   if (error || !result) {
-    console.error("[processVisitorGateScanAction] failed:", error?.message);
+    if (error?.message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) {
+      try {
+        const { data: actor } = await supabase.auth.getUser();
+        if (actor.user) {
+          const { createAdminClient } = await import("@/lib/supabase/admin");
+          const audit = await createAdminClient().rpc("audit_gate_authentication_failure", { p_actor: actor.user.id, p_gate: parsed.gateId });
+          if (audit.error) console.error("GATE_AUTH_AUDIT_UNAVAILABLE");
+        }
+      } catch { console.error("GATE_AUTH_AUDIT_UNAVAILABLE"); }
+    }
+    console.error("[processVisitorGateScanAction] failed:", mapGateError(error?.message));
     return { ok: false, error: mapGateError(error?.message) };
   }
 
@@ -170,6 +182,7 @@ export async function processVisitorGateScanAction(
     gateId: result.gate_id,
     propertyId: result.property_id,
     occurredAt: result.occurred_at,
+    hardwareStatus: result.hardware_status as "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE",
   };
 }
 

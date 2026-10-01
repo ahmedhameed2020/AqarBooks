@@ -2,6 +2,9 @@ const DATABASE_NAME = "aqarbooks-gate-scanner";
 const DATABASE_VERSION = 1;
 const STORE_NAME = "device-bindings";
 const DEVICE_KEY = "enrolled-device";
+const INSTALLATION_KEY = "anonymous-installation-id";
+const OPAQUE_ID = /^[A-Za-z0-9_-]{43}$/;
+const UUID = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 export type StoredGateDevice = {
   deviceId: string;
@@ -21,6 +24,10 @@ function normalizeGateDevice(value: unknown): StoredGateDevice | null {
     || !["ENTRY", "EXIT", "BOTH"].includes(candidate.allowedDirection ?? "")
     || typeof candidate.installationId !== "string"
     || typeof candidate.deviceCredential !== "string"
+    || !UUID.test(candidate.deviceId)
+    || !UUID.test(candidate.gateId)
+    || !OPAQUE_ID.test(candidate.installationId)
+    || !OPAQUE_ID.test(candidate.deviceCredential)
   ) {
     return null;
   }
@@ -91,7 +98,10 @@ export async function saveGateDevice(device: StoredGateDevice): Promise<void> {
   try {
     const transaction = database.transaction(STORE_NAME, "readwrite");
     const completion = transactionComplete(transaction);
-    await requestResult(transaction.objectStore(STORE_NAME).put(safeDevice, DEVICE_KEY));
+    await Promise.all([
+      requestResult(transaction.objectStore(STORE_NAME).put(safeDevice, DEVICE_KEY)),
+      requestResult(transaction.objectStore(STORE_NAME).put(safeDevice.installationId, INSTALLATION_KEY)),
+    ]);
     await completion;
   } finally {
     database.close();
@@ -112,7 +122,38 @@ export async function clearGateDevice(): Promise<void> {
   }
 }
 
+// This anonymous correlation ID cannot authorize scans. A fresh supervisor
+// enrollment code is still mandatory to replace a credential after sign-out.
+export async function readGateInstallationId(): Promise<string | undefined> {
+  if (typeof indexedDB === "undefined") return undefined;
+  let database: IDBDatabase | null = null;
+  try {
+    database = await openDatabase();
+    const transaction = database.transaction(STORE_NAME, "readonly");
+    const completion = transactionComplete(transaction);
+    const value = await requestResult(transaction.objectStore(STORE_NAME).get(INSTALLATION_KEY));
+    await completion;
+    return typeof value === "string" && OPAQUE_ID.test(value) ? value : undefined;
+  } catch { return undefined; } finally { database?.close(); }
+}
+
 export async function clearGateDeviceBeforeSignOut(continueSignOut: () => void): Promise<void> {
+  const device = await readGateDevice();
+  if (device) {
+    // Migrate older bindings to the anonymous identity record before clearing.
+    await saveGateDevice(device).catch(() => undefined);
+    try {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([(async () => {
+          const { releaseGateDeviceAction } = await import("@/lib/actions/gate-devices");
+          return releaseGateDeviceAction(device.deviceId, device.deviceCredential);
+        })(),
+          new Promise((resolve) => { timeout = setTimeout(resolve, 4000); })]);
+      } finally { if (timeout) clearTimeout(timeout); }
+    } catch { /* Signing out must remain possible during a network outage. */ }
+  }
   await clearGateDevice().catch(() => undefined);
+  try { window.localStorage.removeItem("aqarbooks.gate-scanner.preferences.v1"); } catch { /* Optional browser storage. */ }
   continueSignOut();
 }

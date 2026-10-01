@@ -82,6 +82,7 @@ export function GateOperationsSummaryPanel({
 
   return (
     <section aria-labelledby="gate-readiness-title" className="space-y-3">
+      {summary.telemetry ? <details className="rounded-xl border p-3 text-sm"><summary>{isAr ? "قياسات المسح (آخر ١٠٠٠ قرار خلال ٢٤ ساعة)" : "Scan metrics (latest 1,000 decisions in 24h)"}</summary><p>P50: {summary.telemetry.validationP50Ms ?? "—"} ms · P95: {summary.telemetry.validationP95Ms ?? "—"} ms · {isAr ? "المحاولات الإضافية" : "Hardware retries"}: {summary.telemetry.hardwareRetries}</p><ul>{summary.telemetry.dimensions.map((dimension) => <li key={`${dimension.gate_id}:${dimension.direction}:${dimension.reason_code}:${dimension.scanner_version}`}>{dimension.gate_id} · {dimension.direction} · {dimension.reason_code} · {dimension.scanner_version}: {dimension.count}</li>)}</ul></details> : null}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 id="gate-readiness-title" className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">

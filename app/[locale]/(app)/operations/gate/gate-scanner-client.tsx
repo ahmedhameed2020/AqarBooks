@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
-import { clearGateDevice, readGateDevice, saveGateDevice } from "@/lib/gates/device-store";
+import { clearGateDevice, readGateDevice, readGateInstallationId, saveGateDevice } from "@/lib/gates/device-store";
 import { useGateScanner } from "@/app/[locale]/(app)/operations/gate/use-gate-scanner";
 import { readScannerPreferences, saveScannerPreferences, scannerCapabilities, type ScannerPreferences } from "@/lib/gates/scanner-preferences";
+import { fingerprintQrPayload } from "@/lib/gates/scanner-feedback";
 
 declare global {
   interface Window {
@@ -76,6 +77,12 @@ export function GateScannerClient({
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const detectorRef = useRef<InstanceType<NonNullable<typeof window.BarcodeDetector>> | null>(null);
+  // Presence is independent of the request cooldown. A stationary code must
+  // never submit again merely because time passed or a response arrived.
+  const visiblePayloadRef = useRef<string | null>(null);
+  const detectingRef = useRef(false);
+  const [manualFallback, setManualFallback] = useState(false);
+  const [replacingDevice, setReplacingDevice] = useState(false);
   const [deviceCredential, setDeviceCredential] = useState("");
   const [enrollmentId, setEnrollmentId] = useState("");
   const [enrollmentCode, setEnrollmentCode] = useState("");
@@ -164,13 +171,23 @@ export function GateScannerClient({
   }, [device, pathname, requestedDeviceId, router]);
 
   const pollForQrCode = useEffectEvent(async () => {
-    if (!detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || scanner.isPending) return;
+    if (!deviceCredential || !device || !detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || scanner.isPending || detectingRef.current) return;
+    detectingRef.current = true;
     try {
       const detected = await detectorRef.current.detect(videoRef.current);
       const first = detected[0]?.rawValue;
-      if (first) await scanner.submitScan(first);
+      if (!first) visiblePayloadRef.current = null;
+      else {
+        const fingerprint = await fingerprintQrPayload(first);
+        if (fingerprint !== visiblePayloadRef.current) {
+          visiblePayloadRef.current = fingerprint;
+          await scanner.submitScan(first);
+        }
+      }
     } catch {
       setCameraState("unsupported");
+    } finally {
+      detectingRef.current = false;
     }
   });
 
@@ -188,6 +205,7 @@ export function GateScannerClient({
       try {
         detectorRef.current = new window.BarcodeDetector({ formats: ["qr_code"] });
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if (stopped) { stream.getTracks().forEach((track) => track.stop()); return; }
         if (!videoRef.current) return;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -221,7 +239,9 @@ export function GateScannerClient({
 
     setEnrollmentError(null);
     startTransition(async () => {
+      const previous = await readGateDevice();
       const enrollment = await redeemGateDeviceEnrollmentAction({
+        installationId: previous?.installationId ?? await readGateInstallationId(),
         enrollmentId,
         code: enrollmentCode,
         displayName,
@@ -245,7 +265,10 @@ export function GateScannerClient({
       }
 
       setEnrollmentCode("");
+      setReplacingDevice(false);
+      setDeviceCredential("");
       router.replace(`${pathname}?deviceId=${encodeURIComponent(enrollment.deviceId)}`);
+      if (previous?.deviceId === enrollment.deviceId) router.refresh();
     });
   }
 
@@ -277,13 +300,15 @@ export function GateScannerClient({
                 </p>
               </div>
 
-              {!deviceCredential ? (
+              {deviceCredential ? <Button type="button" variant="outline" onClick={() => setReplacingDevice(!replacingDevice)}>{isAr ? "إعادة تسجيل الجهاز" : "Re-enroll device"}</Button> : null}
+              {!deviceCredential || replacingDevice ? (
                 <div className="space-y-2 rounded-xl border border-amber-300/30 bg-amber-300/10 p-3">
                   <p className="text-xs font-black text-amber-100">
                     {isAr ? "تسجيل هذا الجهاز" : "Enroll this device"}
                   </p>
                   <Input
                     name="enrollmentId"
+                    aria-label={isAr ? "معرّف التسجيل" : "Enrollment ID"}
                     autoComplete="off"
                     value={enrollmentId}
                     onChange={(event) => setEnrollmentId(event.target.value)}
@@ -292,6 +317,7 @@ export function GateScannerClient({
                   />
                   <Input
                     name="enrollmentCode"
+                    aria-label={isAr ? "رمز التسجيل" : "Enrollment code"}
                     type="password"
                     autoComplete="off"
                     value={enrollmentCode}
@@ -301,6 +327,7 @@ export function GateScannerClient({
                   />
                   <Input
                     name="displayName"
+                    aria-label={isAr ? "اسم الجهاز" : "Device name"}
                     autoComplete="off"
                     value={displayName}
                     onChange={(event) => setDisplayName(event.target.value)}
@@ -353,6 +380,8 @@ export function GateScannerClient({
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <Button type="button" variant="outline" aria-expanded={manualFallback} onClick={() => setManualFallback(!manualFallback)}>{isAr ? "إدخال يدوي" : "Manual fallback"}</Button>
+                {manualFallback ? <>
                 <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-200">
                   <Keyboard className="size-4" />
                   {isAr ? "إدخال يدوي" : "Manual fallback"}
@@ -360,6 +389,7 @@ export function GateScannerClient({
                 <div className="flex gap-2">
                   <Input
                     value={manualPayload}
+                    aria-label={isAr ? "رمز تصريح الزائر" : "Visitor pass QR payload"}
                     onChange={(event) => setManualPayload(event.target.value)}
                     placeholder="AQP1..."
                     className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
@@ -368,6 +398,7 @@ export function GateScannerClient({
                     {isAr ? "تحقق" : "Scan"}
                   </Button>
                 </div>
+                </> : null}
               </div>
             </div>
 
@@ -400,6 +431,7 @@ export function GateScannerClient({
                     {result?.ok && result.guestName ? (
                       <p className="mt-1 text-xs">{result.guestName} · {result.invitationNo ?? ""}</p>
                     ) : null}
+                    {resultOk ? <p className="mt-2 text-sm font-bold">{isAr ? "الدخول معتمد — فتح الحاجز غير مؤكد" : "Access approved — barrier not confirmed"}<span className="block text-xs">{result?.ok ? result.hardwareStatus : null}</span></p> : null}
                   </div>
                 </div>
               </div>

@@ -19,6 +19,9 @@ type ExceptionRow = {
   category: string;
   reason: string;
   occurred_at: string;
+  status: string;
+  approved_at: string | null;
+  approval_reason: string | null;
 };
 
 function first(value: string | string[] | undefined) {
@@ -65,14 +68,17 @@ export default async function GateOccupancyPage({
     return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm font-bold text-rose-700">{isAr ? "تعذر تحميل حالة الزوار." : "Could not load visitor occupancy."}</div>;
   }
 
-  const [gateResult, propertyResult, invitationResult, exceptionResult] = await Promise.all([
+  const [gateResult, propertyResult, invitationResult, exceptionResult, approvedExceptionResult] = await Promise.all([
     db.from("gates").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("code"),
     db.from("properties").select("id, name").eq("organization_id", organization.id).order("name"),
     canCreateException || canApprove
       ? db.from("visitor_invitations").select("id, invitation_no, guest_name").eq("organization_id", organization.id).eq("status", "ACTIVE").order("created_at", { ascending: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),
     canApprove
-      ? db.from("gate_manual_exception_details").select("id, gate_id, visitor_invitation_id, direction, outcome, category, reason, occurred_at").eq("organization_id", organization.id).eq("status", "PENDING").order("occurred_at", { ascending: true }).limit(100)
+      ? db.from("gate_manual_exception_details").select("id, gate_id, visitor_invitation_id, direction, outcome, category, reason, occurred_at, status, approved_at, approval_reason").eq("organization_id", organization.id).eq("status", "PENDING").order("occurred_at", { ascending: true }).limit(100)
+      : Promise.resolve({ data: [], error: null }),
+    canApprove
+      ? db.from("gate_manual_exception_details").select("id, gate_id, visitor_invitation_id, direction, outcome, category, reason, occurred_at, status, approved_at, approval_reason").eq("organization_id", organization.id).eq("status", "APPROVED").order("approved_at", { ascending: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -84,7 +90,7 @@ export default async function GateOccupancyPage({
   const invitations = (invitationResult.data ?? []).map((invitation) => ({ id: invitation.id, label: `${invitation.invitation_no} · ${invitation.guest_name}` }));
   const gateById = new Map(gates.map((gate) => [gate.id, gate.label]));
   const invitationById = new Map(invitations.map((invitation) => [invitation.id, invitation.label]));
-  const pendingExceptions: PendingExceptionItem[] = ((exceptionResult.data ?? []) as ExceptionRow[]).map((item) => ({
+  const pendingExceptions: PendingExceptionItem[] = ([...(exceptionResult.data ?? []), ...(approvedExceptionResult.data ?? [])] as ExceptionRow[]).map((item) => ({
     id: item.id,
     visitorLabel: item.visitor_invitation_id
       ? invitationById.get(item.visitor_invitation_id) ?? (isAr ? "زائر معروف" : "Identified visitor")
@@ -95,6 +101,9 @@ export default async function GateOccupancyPage({
     category: item.category,
     reason: item.reason,
     occurredAt: item.occurred_at,
+    status: item.status,
+    approvedAt: item.approved_at,
+    approvalReason: item.approval_reason,
   }));
 
   return (

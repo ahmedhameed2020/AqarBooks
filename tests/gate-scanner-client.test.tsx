@@ -31,6 +31,7 @@ const {
   clearGateDevice,
   processVisitorGateScanAction,
   readGateDevice,
+  readGateInstallationId,
   recordGateConnectivityIncidentAction,
   redeemGateDeviceEnrollmentAction,
   router,
@@ -42,6 +43,7 @@ const {
     clearGateDevice: vi.fn(),
     processVisitorGateScanAction: vi.fn(),
     readGateDevice: vi.fn(),
+    readGateInstallationId: vi.fn(),
     recordGateConnectivityIncidentAction: vi.fn(),
     redeemGateDeviceEnrollmentAction: vi.fn(),
     router: { replace },
@@ -64,6 +66,7 @@ vi.mock("@/lib/gates/scanner-feedback", () => ({
   fingerprintQrPayload: vi.fn(async (payload: string) => payload),
 }));
 vi.mock("@/lib/gates/device-store", () => ({
+  readGateInstallationId,
   clearGateDevice,
   readGateDevice,
   saveGateDevice,
@@ -133,6 +136,7 @@ describe("GateScannerClient camera polling", () => {
       .mockImplementationOnce(() => firstDecision.promise)
       .mockResolvedValue({ ok: false, error: "test_complete" });
     readGateDevice.mockReset().mockResolvedValue(storedDevice);
+    readGateInstallationId.mockReset().mockResolvedValue(undefined);
     recordGateConnectivityIncidentAction.mockReset().mockResolvedValue({ ok: true });
     saveGateDevice.mockReset().mockResolvedValue(undefined);
     clearGateDevice.mockReset().mockResolvedValue(undefined);
@@ -229,8 +233,24 @@ describe("GateScannerClient camera polling", () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it("redeems an enrollment into IndexedDB and navigates with only the device id", async () => {
+  it("never rearms a stationary camera payload after cooldown, but rearms after absence", async () => {
+    processVisitorGateScanAction.mockReset().mockResolvedValue({ ok: true, decision: "ALLOW", reasonCode: "VALID_ENTRY", hardwareStatus: "QUEUED" });
+    let renderer!: ReactTestRenderer;
+    await act(async () => { renderer = create(<GateScannerClient requestedDeviceId={device.id} device={device} recentEvents={[]} locale="en" />, { createNodeMock: (element) => element.type === "video" ? video : null }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(processVisitorGateScanAction).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(renderer.toJSON())).toContain("barrier not confirmed");
+    detect.mockResolvedValue([]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
+    detect.mockResolvedValue([{ rawValue: qrPayload }]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
+    expect(processVisitorGateScanAction).toHaveBeenCalledTimes(2);
+    await act(async () => renderer.unmount());
+  });
+
+  it("uses only the anonymous installation identity after binding cleanup to re-enroll", async () => {
     readGateDevice.mockResolvedValue(null);
+    readGateInstallationId.mockResolvedValue(installationId);
     redeemGateDeviceEnrollmentAction.mockResolvedValue({
       ok: true,
       deviceId: device.id,
@@ -261,6 +281,7 @@ describe("GateScannerClient camera polling", () => {
     });
 
     expect(saveGateDevice).toHaveBeenCalledWith(storedDevice);
+    expect(redeemGateDeviceEnrollmentAction).toHaveBeenCalledWith(expect.objectContaining({ installationId }));
     expect(routerReplace).toHaveBeenCalledWith(`/en/operations/gate?deviceId=${device.id}`);
     expect(JSON.stringify(routerReplace.mock.calls)).not.toContain(deviceCredential);
     await act(async () => renderer.unmount());
@@ -353,6 +374,7 @@ describe("GateScannerClient camera polling", () => {
       );
       await Promise.resolve();
     });
+    await act(async () => button(renderer, "Manual fallback").props.onClick());
     const manualInput = renderer.root.findByProps({ placeholder: "AQP1..." });
     await act(async () => {
       manualInput.props.onChange({ target: { value: qrPayload } });

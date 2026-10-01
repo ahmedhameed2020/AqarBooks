@@ -29,7 +29,7 @@ export function readScannerPreferences(): ScannerPreferences {
   }
 }
 
-// These device-wide accessibility choices may survive sign-out. Never persist scan or identity data.
+// Never persist scan or identity data. Sign-out clears these preferences.
 export function saveScannerPreferences(preferences: ScannerPreferences): void {
   try {
     window.localStorage.setItem(SCANNER_PREFERENCES_KEY, JSON.stringify({

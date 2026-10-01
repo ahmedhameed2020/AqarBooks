@@ -14,7 +14,7 @@ vi.mock("@/lib/auth/authorize", () => ({ hasPermission }));
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/gates/long-stay-policy", () => ({ getGateLongStayPolicy: vi.fn(async () => ({ thresholdHours: 12, notificationsEnabled: false })) }));
 
-import { listAccessEvidence, listCurrentVisitors } from "../lib/actions/gate-evidence";
+import { listAccessEvidence, listCurrentVisitors, exportCurrentVisitorsCsvAction } from "../lib/actions/gate-evidence";
 
 const organizationId = "11e0208c-7238-4522-bda4-536baeba6596";
 
@@ -42,6 +42,15 @@ describe("gate evidence actions", () => {
       p_offset: 25050,
       p_limit: 50,
     }));
+  });
+  it("exports a bounded authorized occupancy snapshot with safe display fields and formula escaping", async () => {
+    rpc.mockResolvedValue({ data: [{ invitation_no: "INV-1", guest_name: "=evil()", property_name: "Home", unit_code: "1", gate_code: "N", entered_at: "2026-10-01", valid_until: "2026-10-02", guest_phone: "private", token_hash: "private", count_only: false }], error: null });
+    const result = await exportCurrentVisitorsCsvAction({});
+    expect(result.ok).toBe(true); if (!result.ok) throw Error("export");
+    expect(result.csv).toContain("'=evil()"); expect(result.csv).not.toContain("private");
+    expect(rpc).toHaveBeenCalledWith("export_gate_current_visitors", expect.objectContaining({ p_organization_id: organizationId, p_limit: 25001 }));
+    hasPermission.mockResolvedValue(false); rpc.mockClear();
+    expect(await exportCurrentVisitorsCsvAction({})).toEqual({ ok: false, error: "forbidden" }); expect(rpc).not.toHaveBeenCalled();
   });
 
   it("returns the evidence total from a count-only empty page and accepts offset 25050", async () => {

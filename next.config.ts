@@ -5,6 +5,7 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_GATE_BUILD: String(Date.now()) },
   async redirects() {
     return [
       {

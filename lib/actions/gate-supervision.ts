@@ -28,6 +28,13 @@ const reconciliationSchema = z.object({
 
 export type GateSupervisionResult = { ok: true; id: string } | { ok: false; error: string };
 
+export async function lookupReconciliationInvitationAction(gateId: string, query: string) {
+  if (!z.string().uuid().safeParse(gateId).success || !query.trim() || query.length > 120) return [];
+  const db = await createClient();
+  const { data, error } = await db.rpc("lookup_gate_reconciliation_invitation", { p_gate: gateId, p_query: query.trim() });
+  return error ? [] : data ?? [];
+}
+
 function result(data: string | null, error: { message: string } | null): GateSupervisionResult {
   if (error || !data) {
     const message = error?.message ?? "";

@@ -10,6 +10,7 @@ import {
   getOccupancyWarnings,
   parseEvidenceExportFilters,
   parseEvidenceFilters,
+  safeCsvCell,
   type AccessEvidenceCsvRow,
   type EvidenceExportPageRequest,
   type EvidenceFilters,
@@ -19,6 +20,24 @@ import { getGateLongStayPolicy, type PolicyClient } from "@/lib/gates/long-stay-
 type DbClient = Awaited<ReturnType<typeof createClient>>;
 type SafeError = "unauthenticated" | "forbidden" | "invalid_filters" | "query_failed";
 type Failure = { ok: false; error: SafeError };
+
+export async function exportCurrentVisitorsCsvAction(input: Record<string, unknown> = {}): Promise<
+  { ok: true; csv: string; filename: string; truncated: boolean } | Failure
+> {
+  const filters = safeParse(input);
+  if (!filters) return { ok: false, error: "invalid_filters" };
+  const auth = await authorize();
+  if (!auth.ok) return auth;
+  const { data, error } = await auth.db.rpc("export_gate_current_visitors", {
+    p_organization_id: auth.organizationId, p_property_id: filters.property ?? null,
+    p_gate_id: filters.gate ?? null, p_query: filters.q ?? null, p_offset: 0, p_limit: 25001,
+  });
+  if (error) return { ok: false, error: "query_failed" };
+  const rows = (data ?? []).filter((row) => !row.count_only);
+  const header = "invitation_no,guest_name,property,unit,gate,entered_at,valid_until";
+  const lines = rows.slice(0, 25000).map((row) => [row.invitation_no, row.guest_name, row.property_name, row.unit_code, row.gate_code, row.entered_at, row.valid_until].map(safeCsvCell).join(","));
+  return { ok: true, csv: "\uFEFF" + [header, ...lines].join("\r\n"), filename: `visitor-occupancy-${new Date().toISOString().slice(0, 10)}.csv`, truncated: rows.length > 25000 };
+}
 
 export type AccessEvidenceItem = AccessEvidenceCsvRow & {
   id: string;

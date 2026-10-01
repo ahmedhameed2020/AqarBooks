@@ -65,6 +65,10 @@ function resolveSupabaseCredentials() {
  * functions (which run as owner) or via the service-role client.
  */
 const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
+  "audit_gate_authentication_failure", // service-only post-failure audit writer
+  "gate_scan_telemetry", // tenant-scoped server aggregate
+  "gate_notification_admitted", "enqueue_gate_notification_impl", "deliver_gate_notification_impl", "process_gate_notifications_impl",
+  "audit_gate_reconciliation", "reject_gate_scan_device_mutation", // trigger-only evidence controls
   "process_visitor_gate_scan_core", // canonical core admitted only via gated wrappers
   "require_gate_completion", // internal locked rollout admission
   "require_gate_scan_actor", // gate authorization before rollout state lookup
@@ -188,6 +192,7 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "create_gate", "gate_operations_enabled", "gate_staff_can_manage", "gate_staff_can_scan",
   "gate_staff_can_view", "gate_staff_can_view_access_events", "process_visitor_gate_scan",
   "update_gate", "create_gate_device_enrollment", "redeem_gate_device_enrollment",
+  "release_gate_device", "lookup_gate_reconciliation_invitation", "export_gate_current_visitors",
   "record_gate_connectivity_incident", "revoke_gate_device", "verify_gate_device_binding",
   "add_work_order_update", "assign_work_order", "cancel_work_order", "complete_work_order",
   "create_work_order", "resume_work_order", "schedule_work_order", "start_work_order",

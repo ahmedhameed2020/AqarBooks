@@ -41,6 +41,7 @@ export async function enrolledScanner(page: Page, fixture: GateFixture) {
   return new URL(page.url()).searchParams.get("deviceId")!;
 }
 export async function manualScan(page: Page, payload: string) {
+  if (!await page.getByPlaceholder("AQP1...").isVisible()) await page.getByRole("button", { name: /Manual fallback|إدخال يدوي/ }).click();
   await page.getByPlaceholder("AQP1...").fill(payload);
   await page.getByRole("button", { name: "Scan", exact: true }).click();
 }

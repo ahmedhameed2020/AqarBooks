@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import { generateDeviceSecret } from "@/lib/gates/device-credentials";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,7 @@ const createEnrollmentSchema = z.object({
 });
 
 const redeemEnrollmentSchema = z.object({
+  installationId: secretSchema.optional(),
   enrollmentId: z.string().uuid(),
   code: secretSchema,
   displayName: z.string().trim().min(1).max(120),
@@ -50,6 +52,13 @@ export type RedeemGateDeviceEnrollmentResult =
 
 export type RevokeGateDeviceResult = { ok: true } | GateDeviceActionFailure;
 
+export async function releaseGateDeviceAction(deviceId: string, credential: string): Promise<RevokeGateDeviceResult> {
+  if (!z.string().uuid().safeParse(deviceId).success || !secretSchema.safeParse(credential).success) return { ok: false, error: "invalid_input" };
+  const db = await createClient();
+  const { error } = await db.rpc("release_gate_device", { p_device_id: deviceId, p_credential: credential });
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}
+
 function mapGateDeviceError(message: string | undefined): string {
   if (!message) return "failed";
   if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
@@ -85,7 +94,7 @@ export async function createGateDeviceEnrollmentAction(
   });
 
   if (error || !data) {
-    console.error("[createGateDeviceEnrollmentAction] failed:", error?.message);
+    console.error("[createGateDeviceEnrollmentAction] failed:", mapGateDeviceError(error?.message));
     return { ok: false, error: mapGateDeviceError(error?.message) };
   }
 
@@ -105,7 +114,9 @@ export async function redeemGateDeviceEnrollmentAction(
   const parsed = redeemEnrollmentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid_input" };
 
-  const installation = generateDeviceSecret();
+  const installation = parsed.data.installationId
+    ? { raw: parsed.data.installationId, sha256: createHash("sha256").update(parsed.data.installationId).digest("hex") }
+    : generateDeviceSecret();
   const credential = generateDeviceSecret();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("redeem_gate_device_enrollment", {
@@ -117,7 +128,7 @@ export async function redeemGateDeviceEnrollmentAction(
   });
 
   if (error || !data) {
-    console.error("[redeemGateDeviceEnrollmentAction] failed:", error?.message);
+    console.error("[redeemGateDeviceEnrollmentAction] failed:", mapGateDeviceError(error?.message));
     return { ok: false, error: mapGateDeviceError(error?.message) };
   }
 
@@ -146,7 +157,7 @@ export async function revokeGateDeviceAction(
   });
 
   if (error) {
-    console.error("[revokeGateDeviceAction] failed:", error.message);
+    console.error("[revokeGateDeviceAction] failed:", mapGateDeviceError(error.message));
     return { ok: false, error: mapGateDeviceError(error.message) };
   }
 

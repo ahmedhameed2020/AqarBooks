@@ -7,6 +7,7 @@ export const GATE_DEVICE_ACTIVITY_STALE_MINUTES = 5;
 export const GATE_CONNECTIVITY_LOOKBACK_HOURS = 24;
 
 export type GateOperationsSummary = {
+  telemetry?: { sampleSize: number; validationP50Ms: number | null; validationP95Ms: number | null; hardwareRetries: number; dimensions: { gate_id: string; direction: string; reason_code: string; scanner_version: string; count: number }[] };
   longStayHours: number;
   activeDevices: number;
   devicesStale: number;
@@ -34,7 +35,7 @@ type SummaryQuery = PromiseLike<QueryResult> & {
   limit(value: number): SummaryQuery;
 };
 
-type SummaryClient = { from(table: string): SummaryQuery };
+type SummaryClient = { from(table: string): SummaryQuery; rpc(name: string, args: Record<string, unknown>): Promise<{ data: GateOperationsSummary["telemetry"]; error: QueryError }> };
 
 function withScope(
   query: SummaryQuery,
@@ -149,8 +150,11 @@ export async function getGateOperationsSummary(
     deadHardwareQuery,
     oldestHardwareQuery,
   ]);
+  const telemetry = await admin.rpc("gate_scan_telemetry", { p_org: organizationId, p_property: propertyId ?? null });
+  if (telemetry.error) throw new Error("gate_operations_summary_failed");
 
   return {
+    telemetry: telemetry.data,
     longStayHours: policy.thresholdHours,
     activeDevices: countOf(results[0]),
     devicesStale: countOf(results[1]),

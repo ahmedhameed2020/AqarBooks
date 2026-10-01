@@ -40,6 +40,8 @@ test("guard exception requires supervisor approval; corrected exit preserves sca
     await supervisor.getByPlaceholder("Approval reason").fill("Supervisor confirmed guard evidence");
     await supervisor.getByRole("button", { name: "Approve", exact: true }).click();
     await expect.poll(() => sql(`select status from public.gate_manual_exception_details where organization_id='${fixture.org}'`)).toBe("APPROVED");
+    await expect(supervisor.getByRole("heading", { name: "Approved exception evidence (latest 100 requests)" })).toBeVisible();
+    await expect(supervisor.getByText(/Supervisor confirmed guard evidence/)).toBeVisible();
     await supervisor.getByRole("button", { name: "Correct exit", exact: true }).click();
     const correction = supervisor.getByRole("dialog");
     await expect(correction).toHaveAccessibleName("Reconcile visitor state");
@@ -51,6 +53,27 @@ test("guard exception requires supervisor approval; corrected exit preserves sca
     expect(sql(`select decision||'|'||reason_code from public.access_events where id='${scan.data[0].event_id}'`)).toBe("ALLOW|VALID_ENTRY");
     expect(sql(`select count(*) from public.gate_hardware_commands where organization_id='${fixture.org}'`)).toBe("1");
   } finally { await supervisorContext.close(); }
+});
+
+test("supervisor looks up a missing entry, reconciles inside, and exports occupancy", async ({ page }) => {
+  const fixture = await createGateFixture(), visitor = fixture.invitation("=MissingEntry");
+  await login(page, fixture.manager); await page.goto("/en/operations/gate/occupancy");
+  await page.getByRole("button", { name: "Correct missing entry" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox", { name: "Gate", exact: true }).selectOption(fixture.gate);
+  await dialog.getByLabel("Pass number or ID").fill(visitor.id);
+  await dialog.getByRole("button", { name: "Look up pass" }).click();
+  await expect(dialog.getByText(`${visitor.id} · ${visitor.guest}`, { exact: true })).toBeVisible();
+  await dialog.getByLabel("Correction reason").fill("Supervisor observed missed entry");
+  await dialog.getByRole("button", { name: "Confirm corrected entry" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Saved");
+  await page.reload();
+  const downloadPending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export occupancy CSV" }).click();
+  const download = await downloadPending;
+  const csv = await readFile((await download.path())!, "utf8");
+  expect(csv).toContain("'=MissingEntry"); expect(csv).not.toContain(visitor.secret);
+  expect(sql(`select is_inside from public.visitor_access_state where visitor_invitation_id='${visitor.id}'`)).toBe("t");
 });
 
 test("ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL", async ({ page }) => {

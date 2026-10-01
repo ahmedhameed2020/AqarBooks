@@ -127,7 +127,7 @@ const CSV_HEADERS = [
   "operator",
 ] as const;
 
-function safeCsvCell(value: string | null) {
+export function safeCsvCell(value: string | null) {
   let cell = value ?? "";
   if (/^[\s\p{White_Space}]*[=+\-@]/u.test(cell)) cell = `'${cell}`;
   if (/[",\r\n]/.test(cell)) cell = `"${cell.replaceAll('"', '""')}"`;
