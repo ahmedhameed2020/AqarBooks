@@ -43,6 +43,12 @@ begin
     select s.organization_id,s.visitor_invitation_id,e.id,e.gate_id,e.occurred_at
     from public.visitor_access_state s
     join public.gate_long_stay_policy p on p.organization_id=s.organization_id
+    -- Enqueue cannot create a job without a linked inviting member. Exclude
+    -- those visits before LIMIT so they cannot monopolize every bounded batch.
+    join public.visitor_invitations i on i.organization_id=s.organization_id
+      and i.id=s.visitor_invitation_id
+    join public.members m on m.organization_id=i.organization_id
+      and m.id=i.invited_by_member_id and m.user_id is not null
     join public.access_events e on e.organization_id=s.organization_id
       and e.visitor_invitation_id=s.visitor_invitation_id and e.occurred_at=s.last_entry_at
       and e.decision='ALLOW' and e.direction='ENTRY' and e.reason_code='VALID_ENTRY'

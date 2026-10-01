@@ -32,6 +32,31 @@ function event(id: string, reason = "VALID_ENTRY") {
 function uuid(output: string) { return output.match(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/g)!.at(-1)!; }
 
 describe.sequential("gate notifications", () => {
+  it("does not let 100 older unlinked recipients starve a later deliverable visit", () => {
+    const unlinkedMember = randomUUID(), later = invitation();
+    sql(`insert into public.members(id,organization_id,full_name) values('${unlinkedMember}','${org}','Unlinked host');
+      insert into public.gate_long_stay_policy(organization_id,threshold_hours,notifications_enabled,updated_by)
+      values('${org}',1,true,'${approver}') on conflict(organization_id) do update set threshold_hours=1,notifications_enabled=true;
+      begin;
+      insert into public.visitor_invitations(id,organization_id,property_id,unit_id,invited_by_member_id,invitation_no,guest_name,valid_from,valid_until,usage_policy,created_by)
+      select gen_random_uuid(),'${org}','${property}','${unit}','${unlinkedMember}','starve-'||n,'Unlinked guest',now()-interval '8 hours',now()+interval '1 hour','MULTI_USE','${owner}' from generate_series(1,100) n;
+      insert into public.visitor_access_state(visitor_invitation_id,organization_id,property_id,unit_id,is_inside,entry_count,exit_count,last_entry_at,last_gate_id)
+      select id,'${org}','${property}','${unit}',true,1,0,now()-interval '6 hours','${gate}' from public.visitor_invitations where invited_by_member_id='${unlinkedMember}';
+      insert into public.access_events(organization_id,property_id,gate_id,visitor_invitation_id,unit_id,direction,decision,reason_code,client_scan_id,operator_user_id,usage_policy,guest_name,invitation_no,is_inside_after,occurred_at)
+      select '${org}','${property}','${gate}',id,'${unit}','ENTRY','ALLOW','VALID_ENTRY',gen_random_uuid(),'${operator}','MULTI_USE',guest_name,invitation_no,true,now()-interval '6 hours' from public.visitor_invitations where invited_by_member_id='${unlinkedMember}';
+      insert into public.visitor_access_state(visitor_invitation_id,organization_id,property_id,unit_id,is_inside,entry_count,exit_count,last_entry_at,last_gate_id)
+      values('${later}','${org}','${property}','${unit}',true,1,0,now()-interval '2 hours','${gate}');
+      insert into public.access_events(organization_id,property_id,gate_id,visitor_invitation_id,unit_id,direction,decision,reason_code,client_scan_id,operator_user_id,usage_policy,guest_name,invitation_no,is_inside_after,occurred_at)
+      values('${org}','${property}','${gate}','${later}','${unit}','ENTRY','ALLOW','VALID_ENTRY',gen_random_uuid(),'${operator}','MULTI_USE','Display Guest','${later}',true,now()-interval '2 hours'); commit;`);
+    try {
+      expect(sql("set role service_role; select public.detect_gate_long_stays(100)").split("\n").at(-1)).toBe("1");
+      expect(count(event(later),"VISITOR_SECURITY_ALERT")).toBe(1);
+      expect(sql(`select count(*) from public.gate_notification_outbox o join public.access_events e on e.id=o.source_id and e.organization_id=o.organization_id
+        join public.visitor_invitations i on i.id=e.visitor_invitation_id and i.organization_id=e.organization_id where i.invited_by_member_id='${unlinkedMember}'`)).toBe("0");
+    } finally {
+      sql(`update public.gate_long_stay_policy set notifications_enabled=false where organization_id='${org}'`);
+    }
+  }, 120_000);
   it("uses explicit tenant policy and original visit entry for bounded idempotent alerts", async () => {
     expect(() => sql(asUser(operator, `select public.set_gate_long_stay_policy('${org}',1,true)`))).toThrow();
     expect(() => sql(asUser(outsider, `select public.set_gate_long_stay_policy('${org}',1,true)`))).toThrow();
@@ -85,6 +110,7 @@ describe.sequential("gate notifications", () => {
       insert into public.units(id,organization_id,property_id,code) values('${unit}','${org}','${property}','A-101');
       insert into public.members(id,organization_id,full_name,user_id) values('${member}','${org}','Host','${owner}');
       insert into public.gates(id,organization_id,property_id,code,name_ar,name_en,created_by) values('${gate}','${org}','${property}','NORTH','البوابة الشمالية','North gate','${operator}');
+      insert into public.gate_completion_policy(organization_id,enabled,updated_by) values('${org}',true,'${operator}');
       insert into public.gate_devices(id,organization_id,property_id,gate_id,installation_id_hash,credential_hash,display_name,allowed_direction,enrolled_by)
       values('${device}','${org}','${property}','${gate}',repeat('b',64),encode(extensions.digest('${credential}','sha256'),'hex'),'Scanner','BOTH','${operator}');`);
   }, 60_000);

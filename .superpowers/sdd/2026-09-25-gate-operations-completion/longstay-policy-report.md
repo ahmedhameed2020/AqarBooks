@@ -34,3 +34,17 @@ Challenge: reconciliation changes occupancy timestamps but is not original entry
 Self-review inspected migration grants/search paths, SQL tenant joins, original-entry correlation, actual route ordering, setting authorization, safe payload use, and actual occupancy revalidation path. No blockers found in this scope. Parent controller performs independent closure review.
 
 No production migration, policy opt-in, notification schedule activation, secrets or deployment performed. Production schedule timing/capacity and organization business approval remain operational prerequisites. Evidence retention remains a separate policy decision.
+
+## Independent-review correction: recipient starvation
+
+Independent review found an IMPORTANT production bug in the original detector: LIMIT selected the oldest visits before the existing enqueue helper rejected inviting members without a linked user. A full batch of such visits remained eligible indefinitely and could starve later deliverable visits across organizations.
+
+Regression first ran against the original live detector: `node node_modules/vitest/vitest.mjs run tests/gate-notifications.integration.test.ts --maxWorkers=1 --testNamePattern='100 older unlinked'` failed exactly `expected '100' to be '1'` (1 failed, 9 skipped). Classified PRODUCTION_BUG, traced to enqueue's same-tenant member lookup and `m.user_id is not null` condition.
+
+Correction adds same-tenant invitation and inviting-member joins, requiring a non-null linked member user before ordering/LIMIT. Existing occupancy lock, threshold, stable original-entry event source and outbox deduplication remain intact. Regression creates 100 older unlinked visits in bulk and one later linked visit; the bounded detector must process only that deliverable visit and produce one alert, with no outbox rows for unlinked visits. Fixture explicitly enables completion policy before device enrollment, and disables long-stay notifications in finally to isolate even failing runs.
+
+Local CREATE OR REPLACE of only the detector was applied after the rollout worker released the database lane. Migration pin updated to 4526 bytes and SHA-256 `9b546f551dd0f899b3aa9368bf330877266d594cc4ff279119fcccbc51f5dcde`.
+
+GREEN: `node node_modules/vitest/vitest.mjs run tests/gate-notifications.integration.test.ts tests/gate-notifications-cron.test.ts tests/gate-long-stay-policy.test.ts tests/gate-operations-summary.test.ts tests/gate-evidence-actions.test.ts tests/migration-directory-guard.test.ts --maxWorkers=1`: 6 files, 115 passed, 0 failed, 0 skipped, 121.98 seconds. This includes the corrected starvation regression and the new rollout migration guard pin. Independent review's IMPORTANT finding is fixed with reproduced failure and passing regression evidence.
+
+Follow-up `node node_modules/eslint/bin/eslint.js tests/gate-notifications.integration.test.ts tests/migration-directory-guard.test.ts` and scoped `git diff --check`: both passed exit 0. The rollout worker's commit owns the shared guard file containing both final migration pins.
