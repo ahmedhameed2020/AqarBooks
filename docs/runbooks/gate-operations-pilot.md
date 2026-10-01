@@ -7,7 +7,7 @@ This runbook covers a supervised pilot of scanner enrollment, online gate decisi
 The pilot must not start until all of the following are true:
 
 - A per-organization long-stay threshold and its business owner have been approved. The application currently uses a fixed 12-hour display threshold and has no per-organization setting. This is a pilot blocker, not permission to treat 12 hours as the organization's policy.
-- A production job exists to invoke `process_gate_notifications(100)` with the Supabase service role every minute. This repository contains the private outbox and service-only function, but no notification scheduler or public cron route.
+- `CRON_SECRET` is configured in the application and GitHub Actions secrets, the `Gate notifications` workflow is enabled, and an authenticated production notification-drain probe has succeeded. The checked-in scheduler uses a best-effort five-minute cadence, not a delivery SLA.
 - `CRON_SECRET` is configured in both the application environment and the `Gate hardware commands` GitHub Actions environment, and the scheduled hardware workflow has completed successfully in production.
 - Named operators and supervisors have the minimum required permissions, the evidence-retention owner has approved a retention period, and an incident/on-call channel is staffed for the pilot window.
 
@@ -77,17 +77,17 @@ For the offline probe, keep the barrier under human control. Offline mode is evi
 
 ## Notifications: production scheduling and monitoring
 
-The notification outbox is private and `process_gate_notifications(limit)` is executable only by the service role. There is intentionally no browser/API scheduler in this repository.
+The notification outbox is private and `process_gate_notifications(limit)` is executable only by the service role. `.github/workflows/gate-notifications.yml` invokes `POST /api/cron/gate-notifications` every five minutes. The route authenticates `Authorization: Bearer <CRON_SECRET>` before creating the admin client and executes exactly one batch of at most 100 due rows. Request bodies and query parameters cannot increase the batch.
 
-Production must provide a server-side job with this exact contract:
+Production scheduling and monitoring contract:
 
-- Run every minute with a concurrency of one per environment.
-- Connect using the production service role from a secret manager and execute `select public.process_gate_notifications(100);`.
-- Use a 30-second execution timeout. Treat a database/transport error as a failed job and alert; do not log the exception body if it may include data.
-- Record only start/end time, success/failure, duration, and the returned processed count. When the result is `100`, run another bounded batch, up to ten batches per scheduled invocation; allow the next minute to continue after that cap.
-- Alert after two consecutive failed invocations or when pending due rows remain after two minutes. Page the on-call operator when any row reaches terminal `FAILED` (five attempts).
+- GitHub starts one invocation every five minutes with workflow concurrency of one. Scheduling can be delayed; the SQL row locks also protect overlapping drains. Each invocation attempts at most 100 due rows; the next invocation continues the backlog. Monitor capacity before increasing pilot volume.
+- Configure the same `CRON_SECRET` in the application and GitHub Actions secret store; retain the service-role credential only in the server environment. Missing route configuration returns 503; invalid authorization returns 401.
+- The workflow uses a 10-second connection timeout, 30-second request timeout, and two-minute job timeout. Transport errors or any non-200 response fail the job. The workflow discards response bodies and prints no secret or raw error data.
+- The successful response contains only `processed`, the integer count of attempted rows, not delivered notifications. The database catches individual delivery failures and schedules bounded retries; unexpected database/transport failures return a redacted 500. A green workflow alone does not prove delivery.
+- Record only start/end time, success/failure, duration, and aggregate counts. Alert after two consecutive failed invocations or when the oldest due row exceeds ten minutes. Page the on-call operator when any row reaches terminal `FAILED` (five attempts). These alerts require an independently configured service-side metrics monitor.
 
-Monitor the private table from a secured service-side metrics job using aggregate queries only: counts by `status`, count of due `PENDING` rows, and age in minutes of the oldest due row. Do not export `recipient_user_id`, `recipient_member_id`, bodies, action URLs, source IDs, dedupe keys, or error text. A scheduler implementation and successful production probe are mandatory deployment evidence; this runbook does not claim one exists.
+Monitor the private table from a secured service-side metrics job using aggregate queries only: counts by `status`, count of due `PENDING` rows, and age in minutes of the oldest due row. Do not export `recipient_user_id`, `recipient_member_id`, bodies, action URLs, source IDs, dedupe keys, or error text. The scheduler implementation is checked in; secret configuration, enabled production scheduling, alert wiring, and a successful production probe remain mandatory deployment evidence.
 
 ## Hardware workflow, NOOP evidence, and dead letters
 

@@ -1,0 +1,28 @@
+name: Gate notifications
+
+on:
+  schedule:
+    # Best-effort five-minute retry cadence; GitHub scheduling is not an SLA.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: gate-notifications
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Drain one bounded notification batch
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${CRON_SECRET}"
+          code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 \
+            -X POST "https://aqarbooks.com/api/cron/gate-notifications" \
+            -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Length: 0")
+          test "$code" = "200"
