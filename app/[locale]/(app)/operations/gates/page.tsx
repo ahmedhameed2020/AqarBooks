@@ -2,9 +2,16 @@ import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getGateOperationsSummary } from "@/lib/gates/operations-summary";
+import { getGateCompletionEnabled } from "@/lib/gates/completion-policy";
 import type { Locale } from "@/i18n/routing";
 import { GatesClient, type GateManagementItem, type GatePropertyOption } from "./gates-client";
+import type { GateDeviceItem } from "./gate-devices-panel";
+import { GateOperationsSummaryPanel } from "./operations-summary";
+import { Link } from "@/i18n/navigation";
 
 type GateRow = {
   id: string;
@@ -14,6 +21,20 @@ type GateRow = {
   direction_mode: GateManagementItem["directionMode"];
   is_active: boolean;
   property_id: string;
+};
+
+type GateDeviceRow = {
+  id: string;
+  gate_id: string;
+  property_id: string;
+  display_name: string;
+  device_notes: string | null;
+  allowed_direction: GateDeviceItem["allowedDirection"];
+  status: GateDeviceItem["status"];
+  enrolled_at: string;
+  last_seen_at: string | null;
+  revoked_at: string | null;
+  revocation_reason: string | null;
 };
 
 export default async function GatesPage({
@@ -51,7 +72,15 @@ export default async function GatesPage({
     );
   }
 
-  const [{ data: gateRows, error: gateError }, { data: properties, error: propertiesError }] = await Promise.all([
+  const adminClient = createAdminClient();
+  const canManageDevices = await hasPermission(organization.id, "operations.gates.devices.manage");
+  const completionEnabled = await getGateCompletionEnabled(supabase, organization.id);
+  const [
+    { data: gateRows, error: gateError },
+    { data: properties, error: propertiesError },
+    { data: deviceRows, error: devicesError },
+    operationsSummary,
+  ] = await Promise.all([
     supabase
       .from("gates")
       .select("id, code, name_ar, name_en, direction_mode, is_active, property_id")
@@ -62,10 +91,18 @@ export default async function GatesPage({
       .select("id, name")
       .eq("organization_id", organization.id)
       .order("name", { ascending: true }),
+    adminClient
+      .from("gate_devices")
+      .select("id, gate_id, property_id, display_name, device_notes, allowed_direction, status, enrolled_at, last_seen_at, revoked_at, revocation_reason")
+      .eq("organization_id", organization.id)
+      .order("enrolled_at", { ascending: false }),
+    getGateOperationsSummary(organization.id).catch(() => null),
   ]);
 
   if (gateError) console.error("[GatesPage] gates query failed:", gateError.message);
   if (propertiesError) console.error("[GatesPage] properties query failed:", propertiesError.message);
+  if (devicesError) console.error("[GatesPage] devices query failed:", devicesError.message);
+  if (!operationsSummary) console.error("[GatesPage] operations summary query failed");
 
   const propertyOptions: GatePropertyOption[] = (properties ?? []).map((property) => ({
     id: property.id,
@@ -83,13 +120,35 @@ export default async function GatesPage({
     propertyId: gate.property_id,
     propertyName: propertyById.get(gate.property_id) ?? "—",
   }));
+  const gateById = new Map(gates.map((gate) => [gate.id, isAr ? gate.nameAr : gate.nameEn]));
+  const devices: GateDeviceItem[] = ((deviceRows ?? []) as GateDeviceRow[]).map((device) => ({
+    id: device.id,
+    displayName: device.display_name,
+    notes: device.device_notes,
+    gateName: gateById.get(device.gate_id) ?? "—",
+    propertyName: propertyById.get(device.property_id) ?? "—",
+    allowedDirection: device.allowed_direction,
+    status: device.status,
+    enrolledAt: device.enrolled_at,
+    lastSeenAt: device.last_seen_at,
+    revokedAt: device.revoked_at,
+    revocationReason: device.revocation_reason,
+  }));
 
   return (
-    <GatesClient
-      gates={gates}
-      properties={propertyOptions}
-      canManage={Boolean(canManage)}
-      locale={locale as "ar" | "en"}
-    />
+    <div className="space-y-5">
+      {canManage && <Link className="inline-block text-sm underline" href="/operations/gates/completion-policy">{isAr ? "إعداد تشغيل البوابات المتقدم" : "Configure gate completion rollout"}</Link>}
+      {canManage && <Link className="inline-block text-sm underline" href="/operations/gates/long-stay-policy">{isAr ? "إعداد سياسة مدة البقاء" : "Configure long-stay policy"}</Link>}
+      <GateOperationsSummaryPanel summary={operationsSummary} locale={locale as "ar" | "en"} />
+      <GatesClient
+        gates={gates}
+        devices={devices}
+        properties={propertyOptions}
+        canManage={Boolean(canManage)}
+        canManageDevices={canManageDevices}
+        completionEnabled={completionEnabled}
+        locale={locale as "ar" | "en"}
+      />
+    </div>
   );
 }

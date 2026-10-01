@@ -65,6 +65,17 @@ function resolveSupabaseCredentials() {
  * functions (which run as owner) or via the service-role client.
  */
 const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
+  "audit_gate_authentication_failure", // service-only post-failure audit writer
+  "gate_scan_telemetry", // tenant-scoped server aggregate
+  "gate_notification_admitted", "enqueue_gate_notification_impl", "deliver_gate_notification_impl", "process_gate_notifications_impl",
+  "audit_gate_reconciliation", "reject_gate_scan_device_mutation", // trigger-only evidence controls
+  "process_visitor_gate_scan_core", // canonical core admitted only via gated wrappers
+  "require_gate_completion", // internal locked rollout admission
+  "require_gate_scan_actor", // gate authorization before rollout state lookup
+  "guard_gate_completion_insert", // trigger-only completion admission
+  "detect_gate_long_stays", // service-only bounded detector
+  "gate_supervision_context", // internal permission/context helper
+  "gate_supervision_append_only", // trigger-only immutable evidence guard
   "post_payment_internal", // wrapped by record_payment
   "post_journal_entry_internal", // wrapped by post_journal_entry
   "create_journal_entry_internal",
@@ -120,6 +131,10 @@ const ANON_EXECUTABLE_ALLOWLIST = new Set<string>([
  * migrations 20260820190233-6). 169 entries.
  */
 const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
+  "create_gate_manual_exception", "approve_gate_manual_exception", "reconcile_visitor_access_state",
+  "list_gate_current_visitors", "list_gate_access_evidence",
+  "set_gate_long_stay_policy",
+  "gate_completion_enabled", "set_gate_completion_policy",
   "abort_maintenance_attachment_upload",
   "accept_member_invitation", "accrue_commission", "activate_unit_lease", "add_organization_member",
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
@@ -176,7 +191,9 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "visitor_invitation_staff_can_read", "visitor_management_enabled",
   "create_gate", "gate_operations_enabled", "gate_staff_can_manage", "gate_staff_can_scan",
   "gate_staff_can_view", "gate_staff_can_view_access_events", "process_visitor_gate_scan",
-  "update_gate",
+  "update_gate", "create_gate_device_enrollment", "redeem_gate_device_enrollment",
+  "release_gate_device", "lookup_gate_reconciliation_invitation", "export_gate_current_visitors",
+  "record_gate_connectivity_incident", "revoke_gate_device", "verify_gate_device_binding",
   "add_work_order_update", "assign_work_order", "cancel_work_order", "complete_work_order",
   "create_work_order", "resume_work_order", "schedule_work_order", "start_work_order",
   "wait_work_order", "work_order_member_can_read",

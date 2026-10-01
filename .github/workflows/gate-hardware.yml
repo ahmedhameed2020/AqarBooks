@@ -1,0 +1,40 @@
+name: Gate hardware commands
+
+on:
+  schedule:
+    # GitHub's minimum schedule is five minutes. Five minute-spaced calls give
+    # best-effort minute cadence; scheduling delays must never be treated as SLA.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: gate-hardware-commands
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Drain bounded hardware command batches
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${CRON_SECRET}"
+          failed=0
+          started=$SECONDS
+          for tick in 0 1 2 3 4; do
+            target=$((started + tick * 60))
+            remaining=$((target - SECONDS))
+            if [ "$remaining" -gt 0 ]; then sleep "$remaining"; fi
+            if ! code=$(curl -sS -o response.json -w '%{http_code}' --connect-timeout 10 --max-time 45 \
+              -X POST "https://aqarbooks.com/api/cron/gate-hardware" \
+              -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Length: 0"); then
+              failed=1
+              continue
+            fi
+            if [ "$code" != "200" ]; then failed=1; fi
+          done
+          exit "$failed"

@@ -1,10 +1,29 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { GateScannerClient, type GateScannerEvent, type GateScannerGate } from "./gate-scanner-client";
+import { GateScannerServiceWorkerRegistration } from "@/lib/gates/service-worker";
+import { getGateCompletionEnabled } from "@/lib/gates/completion-policy";
+import { LegacyGateScannerClient } from "./legacy-scanner-client";
+import { GateScannerClient, type GateScannerDevice, type GateScannerEvent, type GateScannerGate } from "./gate-scanner-client";
+
+export const metadata: Metadata = {
+  title: "Gate Scanner",
+  applicationName: "AqarBooks Gate Scanner",
+  manifest: "/gate-scanner.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Gate Scanner",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
 
 type GateRow = {
   id: string;
@@ -26,12 +45,21 @@ type AccessEventRow = {
   occurred_at: string;
 };
 
+type GateDeviceRow = {
+  id: string;
+  gate_id: string;
+  allowed_direction: GateScannerDevice["allowedDirection"];
+};
+
 export default async function GateScannerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ deviceId?: string | string[] }>;
 }) {
   const { locale } = await params;
+  const query = await searchParams;
   setRequestLocale(locale as Locale);
   const isAr = locale === "ar";
 
@@ -60,7 +88,22 @@ export default async function GateScannerPage({
     );
   }
 
-  const [{ data: gateRows, error: gateError }, { data: eventRows, error: eventError }] = await Promise.all([
+  if (!(await getGateCompletionEnabled(supabase, organization.id))) {
+    const { data: legacyGates, error } = await supabase.from("gates")
+      .select("id,code,name_ar,name_en,direction_mode").eq("organization_id", organization.id).eq("is_active", true).order("code");
+    if (error) throw new Error("gate_scanner_unavailable");
+    return <LegacyGateScannerClient isAr={isAr} gates={(legacyGates ?? []).map((gate) => ({
+      id: gate.id, label: `${gate.code} · ${isAr ? gate.name_ar : gate.name_en}`,
+      directionMode: gate.direction_mode as "ENTRY" | "EXIT" | "BOTH",
+    }))} />;
+  }
+
+  const requestedDeviceId = typeof query.deviceId === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.deviceId)
+    ? query.deviceId
+    : null;
+  const adminClient = createAdminClient();
+  const [{ data: gateRows, error: gateError }, { data: eventRows, error: eventError }, deviceResult] = await Promise.all([
     supabase
       .from("gates")
       .select("id, code, name_ar, name_en, direction_mode, property_id")
@@ -73,10 +116,20 @@ export default async function GateScannerPage({
       .eq("organization_id", organization.id)
       .order("occurred_at", { ascending: false })
       .limit(20),
+    requestedDeviceId
+      ? adminClient
+          .from("gate_devices")
+          .select("id, gate_id, allowed_direction")
+          .eq("id", requestedDeviceId)
+          .eq("organization_id", organization.id)
+          .eq("status", "ACTIVE")
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   if (gateError) console.error("[GateScannerPage] gates query failed:", gateError.message);
   if (eventError) console.error("[GateScannerPage] events query failed:", eventError.message);
+  if (deviceResult.error) console.error("[GateScannerPage] device query failed:", deviceResult.error.message);
 
   const gatesRaw = (gateRows ?? []) as GateRow[];
   const propertyIds = [...new Set(gatesRaw.map((gate) => gate.property_id))];
@@ -93,6 +146,15 @@ export default async function GateScannerPage({
     directionMode: gate.direction_mode,
     propertyName: propertyById.get(gate.property_id) ?? "—",
   }));
+  const deviceRow = deviceResult.data as GateDeviceRow | null;
+  const deviceGate = deviceRow ? gates.find((gate) => gate.id === deviceRow.gate_id) : null;
+  const device: GateScannerDevice | null = deviceRow && deviceGate
+    ? {
+        id: deviceRow.id,
+        gate: deviceGate,
+        allowedDirection: deviceRow.allowed_direction,
+      }
+    : null;
 
   const recentEvents: GateScannerEvent[] = ((eventRows ?? []) as AccessEventRow[]).map((event) => ({
     id: event.id,
@@ -105,5 +167,16 @@ export default async function GateScannerPage({
     occurredAt: event.occurred_at,
   }));
 
-  return <GateScannerClient gates={gates} recentEvents={recentEvents} locale={locale as "ar" | "en"} />;
+  return (
+    <>
+      <GateScannerServiceWorkerRegistration />
+      <GateScannerClient
+        key={device?.id ?? "unenrolled"}
+        requestedDeviceId={requestedDeviceId}
+        device={device}
+        recentEvents={recentEvents}
+        locale={locale as "ar" | "en"}
+      />
+    </>
+  );
 }

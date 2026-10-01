@@ -18,6 +18,26 @@ type OrgEntityType =
 export type Database = {
   public: {
     Tables: {
+      gate_scan_devices: {
+        Row: { organization_id: string; access_event_id: string; device_id: string; validation_ms: number; scanner_version: string };
+        Insert: never; Update: never; Relationships: [];
+      };
+      gate_notification_recovery: {
+        Row: { organization_id: string; source_id: string; type: string; reason_code: string; attempts: number; status: string; next_attempt_at: string };
+        Insert: never; Update: never; Relationships: [];
+      };
+      gate_completion_policy: {
+        Row: { organization_id: string; enabled: boolean; updated_by: string; updated_at: string };
+        Insert: { organization_id: string; enabled?: boolean; updated_by: string; updated_at?: string };
+        Update: { enabled?: boolean; updated_by?: string; updated_at?: string };
+        Relationships: [];
+      };
+      gate_long_stay_policy: {
+        Row: { organization_id: string; threshold_hours: number; notifications_enabled: boolean; updated_by: string; updated_at: string };
+        Insert: { organization_id: string; threshold_hours?: number; notifications_enabled?: boolean; updated_by: string; updated_at?: string };
+        Update: { threshold_hours?: number; notifications_enabled?: boolean; updated_by?: string; updated_at?: string };
+        Relationships: [];
+      };
       organizations: {
         Row: {
           id: string;
@@ -916,6 +936,106 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["gates"]["Row"]>;
         Relationships: [];
       };
+      gate_device_enrollments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          direction: "ENTRY" | "EXIT" | "BOTH";
+          code_hash: string;
+          expires_at: string;
+          redeemed_at: string | null;
+          redeemed_by: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          direction: "ENTRY" | "EXIT" | "BOTH";
+          code_hash: string;
+          expires_at: string;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gate_device_enrollments"]["Row"]>;
+        Relationships: [];
+      };
+      gate_devices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          installation_id_hash: string;
+          credential_hash: string;
+          display_name: string;
+          device_notes: string | null;
+          allowed_direction: "ENTRY" | "EXIT" | "BOTH";
+          status: "ACTIVE" | "SUSPENDED" | "REVOKED";
+          enrolled_at: string;
+          last_seen_at: string | null;
+          enrolled_by: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revocation_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          property_id: string;
+          gate_id: string;
+          installation_id_hash: string;
+          credential_hash: string;
+          display_name: string;
+          device_notes?: string | null;
+          allowed_direction: "ENTRY" | "EXIT" | "BOTH";
+          status?: "ACTIVE" | "SUSPENDED" | "REVOKED";
+          enrolled_at?: string;
+          last_seen_at?: string | null;
+          enrolled_by: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revocation_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gate_devices"]["Row"]>;
+        Relationships: [];
+      };
+      gate_manual_exceptions: {
+        Row: {
+          id: string; organization_id: string; gate_id: string; property_id: string; visitor_invitation_id: string | null;
+          device_id: string | null; source_event_id: string | null;
+          record_type: "REQUEST" | "APPROVAL"; parent_exception_id: string | null;
+          direction: "ENTRY" | "EXIT"; outcome: "ENTERED" | "EXITED" | "DENIED";
+          category: "POLICY_EXCEPTION" | "EMERGENCY" | "CONNECTIVITY_FAILURE" | "MISSED_SCAN" | "OTHER";
+          reason: string; actor_user_id: string; occurred_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      gate_access_reconciliations: {
+        Row: {
+          id: string; organization_id: string; gate_id: string; visitor_invitation_id: string;
+          category: "MISSED_SCAN" | "STATE_CORRECTION" | "OTHER";
+          reason: string; actor_user_id: string; occurred_at: string;
+          before_is_inside: boolean; after_is_inside: boolean;
+          before_entry_count: number; before_exit_count: number;
+          after_entry_count: number; after_exit_count: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       access_events: {
         Row: {
           id: string;
@@ -925,7 +1045,8 @@ export type Database = {
           visitor_invitation_id: string | null;
           unit_id: string | null;
           direction: "ENTRY" | "EXIT";
-          decision: "ALLOW" | "DENY";
+          decision: "ALLOW" | "DENY" | "RECONCILE";
+          reconciliation_id: string | null;
           reason_code: string;
           client_scan_id: string;
           operator_user_id: string;
@@ -944,7 +1065,8 @@ export type Database = {
           visitor_invitation_id?: string | null;
           unit_id?: string | null;
           direction: "ENTRY" | "EXIT";
-          decision: "ALLOW" | "DENY";
+          decision: "ALLOW" | "DENY" | "RECONCILE";
+          reconciliation_id?: string | null;
           reason_code: string;
           client_scan_id: string;
           operator_user_id: string;
@@ -3217,6 +3339,15 @@ export type Database = {
       };
     };
     Views: {
+      gate_manual_exception_details: {
+        Row: Omit<Database["public"]["Tables"]["gate_manual_exceptions"]["Row"], "record_type" | "parent_exception_id" | "actor_user_id"> & {
+          operator_user_id: string;
+          approval_id: string | null; supervisor_user_id: string | null;
+          approval_reason: string | null; approved_at: string | null;
+          status: "PENDING" | "APPROVED";
+        };
+        Relationships: [];
+      };
       units_with_financials: {
         Row: {
           id: string;
@@ -3266,6 +3397,73 @@ export type Database = {
       };
     };
     Functions: {
+      gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
+      release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
+      export_gate_current_visitors: {
+        Args: Database["public"]["Functions"]["list_gate_current_visitors"]["Args"];
+        Returns: { totalCountLowerBound: number; truncated: boolean; rows: { invitation_no: string | null; guest_name: string | null; property_name: string | null; unit_code: string | null; gate_code: string | null; entered_at: string | null; valid_until: string | null }[] };
+      };
+      audit_gate_authentication_failure: { Args: { p_actor: string; p_gate: string }; Returns: undefined };
+      lookup_gate_reconciliation_invitation: { Args: { p_gate: string; p_query: string }; Returns: { id: string; label: string }[] };
+      gate_scan_telemetry: { Args: { p_org: string; p_property?: string | null }; Returns: { sampleSize: number; sampleLimit: number; validationP50Ms: number | null; validationP95Ms: number | null; hardwareRetries: number; dimensions: { gate_id: string; direction: string; reason_code: string; scanner_version: string; count: number }[] } };
+      set_gate_completion_policy: { Args: { p_organization_id: string; p_enabled: boolean }; Returns: undefined };
+      set_gate_long_stay_policy: {
+        Args: { p_organization_id: string; p_threshold_hours: number; p_notifications_enabled: boolean };
+        Returns: undefined;
+      };
+      detect_gate_long_stays: { Args: { p_limit?: number }; Returns: number };
+      create_gate_manual_exception: {
+        Args: {
+          p_gate_id: string; p_invitation_id: string | null; p_direction: "ENTRY" | "EXIT";
+          p_outcome: "ENTERED" | "EXITED" | "DENIED";
+          p_category: "POLICY_EXCEPTION" | "EMERGENCY" | "CONNECTIVITY_FAILURE" | "MISSED_SCAN" | "OTHER";
+          p_reason: string; p_source_event_id?: string; p_device_id?: string;
+        };
+        Returns: string;
+      };
+      approve_gate_manual_exception: {
+        Args: { p_exception_id: string; p_reason: string };
+        Returns: string;
+      };
+      reconcile_visitor_access_state: {
+        Args: {
+          p_gate_id: string; p_invitation_id: string; p_is_inside: boolean;
+          p_category: "MISSED_SCAN" | "STATE_CORRECTION" | "OTHER"; p_reason: string;
+        };
+        Returns: string;
+      };
+      list_gate_current_visitors: {
+        Args: {
+          p_organization_id: string; p_property_id?: string | null; p_gate_id?: string | null;
+          p_query?: string | null; p_offset?: number; p_limit?: number;
+        };
+        Returns: Array<{
+          invitation_id: string | null; invitation_no: string | null; guest_name: string | null;
+          property_id: string | null; property_name: string | null; unit_id: string | null; unit_code: string | null;
+          gate_id: string | null; gate_code: string | null; gate_name_ar: string | null; gate_name_en: string | null;
+          entered_at: string | null; valid_until: string | null; entry_count: number | null; exit_count: number | null;
+          total_count: number; count_only: boolean;
+        }>;
+      };
+      list_gate_access_evidence: {
+        Args: {
+          p_organization_id: string; p_property_id?: string | null; p_gate_id?: string | null;
+          p_decision?: "ALLOW" | "DENY" | "RECONCILE" | null; p_reason?: string | null;
+          p_direction?: "ENTRY" | "EXIT" | null; p_invitation?: string | null; p_guest?: string | null;
+          p_operator?: string | null; p_from?: string | null; p_to?: string | null;
+          p_offset?: number; p_limit?: number; p_cursor_occurred_at?: string | null; p_cursor_id?: string | null;
+          p_upper_occurred_at?: string | null; p_upper_id?: string | null;
+        };
+        Returns: Array<{
+          id: string | null; property_id: string | null; property_name: string | null;
+          gate_id: string | null; gate_code: string | null; gate_name_ar: string | null; gate_name_en: string | null;
+          visitor_invitation_id: string | null; invitation_no: string | null; guest_name: string | null;
+          unit_id: string | null; unit_code: string | null; direction: "ENTRY" | "EXIT" | null;
+          decision: "ALLOW" | "DENY" | "RECONCILE" | null; reconciliation_id: string | null; reason_code: string | null;
+          operator_user_id: string | null; operator_name: string | null; is_inside_after: boolean | null;
+          occurred_at: string | null; total_count: number; count_only: boolean;
+        }>;
+      };
       list_projects: {
         Args: { p_organization_id: string };
         Returns: {
@@ -3743,6 +3941,44 @@ export type Database = {
         Args: { p_organization_id: string };
         Returns: boolean;
       };
+      create_gate_device_enrollment: {
+        Args: {
+          p_gate_id: string;
+          p_direction: "ENTRY" | "EXIT" | "BOTH";
+          p_code_hash: string;
+          p_expires_at: string;
+        };
+        Returns: string;
+      };
+      redeem_gate_device_enrollment: {
+        Args: {
+          p_enrollment_id: string;
+          p_code: string;
+          p_installation_id_hash: string;
+          p_credential_hash: string;
+          p_display_name: string;
+        };
+        Returns: Omit<
+          Database["public"]["Tables"]["gate_devices"]["Row"],
+          "credential_hash" | "installation_id_hash"
+        > & {
+          credential_hash: null;
+          installation_id_hash: null;
+        };
+      };
+      revoke_gate_device: {
+        Args: { p_device_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      verify_gate_device_binding: {
+        Args: {
+          p_device_id: string;
+          p_credential_hash: string;
+          p_gate_id: string;
+          p_direction: "ENTRY" | "EXIT";
+        };
+        Returns: boolean;
+      };
       create_gate: {
         Args: {
           p_property_id: string;
@@ -3766,6 +4002,9 @@ export type Database = {
       };
       process_visitor_gate_scan: {
         Args: {
+          p_device_id?: string;
+          p_device_credential?: string;
+          p_scanner_version?: string;
           p_gate_id: string;
           p_invitation_id: string;
           p_raw_secret: string;
@@ -3786,6 +4025,7 @@ export type Database = {
           gate_id: string;
           property_id: string;
           occurred_at: string;
+          hardware_status?: "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE";
         }[];
       };
       work_order_staff_can_read: {

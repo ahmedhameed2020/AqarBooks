@@ -159,6 +159,12 @@ export default async function AppShellLayout({
               ],
             },
             {
+              href: "/operations/gate/occupancy", permission: "operations.access_events.view",
+              labelAr: "الزوار الموجودون حالياً",
+              labelEn: "Live Visitor Occupancy",
+              icon: <TicketCheck className={ic} />,
+            },
+            {
               href: "/operations/vehicles", permission: "operations.vehicles.view",
               labelAr: "سجل المركبات",
               labelEn: "Vehicle Registry",

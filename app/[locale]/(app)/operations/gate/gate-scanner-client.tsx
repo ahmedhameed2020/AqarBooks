@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Camera, CheckCircle2, Keyboard, ScanQrCode, ShieldAlert, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { processVisitorGateScanAction, type GateScanResult } from "@/lib/actions/gates";
+import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
+import { clearGateDevice, readGateDevice, readGateInstallationId, saveGateDevice } from "@/lib/gates/device-store";
+import { useGateScanner } from "@/app/[locale]/(app)/operations/gate/use-gate-scanner";
+import { readScannerPreferences, saveScannerPreferences, scannerCapabilities, type ScannerPreferences } from "@/lib/gates/scanner-preferences";
+import { fingerprintQrPayload } from "@/lib/gates/scanner-feedback";
 
 declare global {
   interface Window {
@@ -21,6 +26,12 @@ export interface GateScannerGate {
   name: string;
   directionMode: "ENTRY" | "EXIT" | "BOTH";
   propertyName: string;
+}
+
+export interface GateScannerDevice {
+  id: string;
+  gate: GateScannerGate;
+  allowedDirection: "ENTRY" | "EXIT" | "BOTH";
 }
 
 export interface GateScannerEvent {
@@ -51,28 +62,134 @@ const REASON_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 export function GateScannerClient({
-  gates,
+  requestedDeviceId,
+  device,
   recentEvents,
   locale,
 }: {
-  gates: GateScannerGate[];
+  requestedDeviceId: string | null;
+  device: GateScannerDevice | null;
   recentEvents: GateScannerEvent[];
   locale: "ar" | "en";
 }) {
   const isAr = locale === "ar";
+  const pathname = usePathname();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const detectorRef = useRef<InstanceType<NonNullable<typeof window.BarcodeDetector>> | null>(null);
-  const [selectedGateId, setSelectedGateId] = useState(gates[0]?.id ?? "");
-  const [direction, setDirection] = useState<"ENTRY" | "EXIT">("ENTRY");
+  // Presence is independent of the request cooldown. A stationary code must
+  // never submit again merely because time passed or a response arrived.
+  const visiblePayloadRef = useRef<string | null>(null);
+  const detectingRef = useRef(false);
+  const [manualFallback, setManualFallback] = useState(false);
+  const [replacingDevice, setReplacingDevice] = useState(false);
+  const [deviceCredential, setDeviceCredential] = useState("");
+  const [enrollmentId, setEnrollmentId] = useState("");
+  const [enrollmentCode, setEnrollmentCode] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+  const [direction, setDirection] = useState<"ENTRY" | "EXIT">(
+    device?.allowedDirection === "EXIT" ? "EXIT" : "ENTRY",
+  );
   const [manualPayload, setManualPayload] = useState("");
   const [cameraState, setCameraState] = useState<"idle" | "starting" | "active" | "unsupported" | "denied">("idle");
-  const [result, setResult] = useState<GateScanResult | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isEnrollmentPending, startTransition] = useTransition();
+  const [preferences, setPreferences] = useState<ScannerPreferences>({ mutedAudio: true, vibrationDisabled: true, reducedMotion: true });
+  const [capabilities, setCapabilities] = useState({ audio: false, vibration: false, reducedMotion: false });
+  useEffect(() => {
+    let cancelled = false;
+    // Hydrate browser-only preferences after the server-compatible initial render.
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setPreferences(readScannerPreferences());
+      setCapabilities(scannerCapabilities());
+    });
+    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const updateMotion = () => setCapabilities(scannerCapabilities());
+    query?.addEventListener?.("change", updateMotion);
+    return () => {
+      cancelled = true;
+      query?.removeEventListener?.("change", updateMotion);
+    };
+  }, []);
+  function updatePreference(key: keyof ScannerPreferences, checked: boolean) {
+    const next = { ...preferences, [key]: checked };
+    setPreferences(next);
+    saveScannerPreferences(next);
+  }
+  const scanner = useGateScanner({
+    ...preferences,
+    reducedMotion: preferences.reducedMotion || capabilities.reducedMotion,
+    deviceId: device?.id ?? null,
+    deviceCredential,
+    gateId: device?.gate.id ?? null,
+    direction,
+    onAuthorizationFailure: () => {
+      void clearGateDevice().catch(() => undefined).then(() => {
+        setDeviceCredential("");
+        router.replace(pathname);
+      });
+    },
+  });
+  const { result } = scanner;
+  const isPending = isEnrollmentPending || scanner.isPending;
 
-  const selectedGate = useMemo(
-    () => gates.find((gate) => gate.id === selectedGateId),
-    [gates, selectedGateId],
-  );
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateDevice() {
+      const storedDevice = await readGateDevice();
+      if (cancelled || !storedDevice) return;
+
+      if (!requestedDeviceId) {
+        router.replace(`${pathname}?deviceId=${encodeURIComponent(storedDevice.deviceId)}`);
+        return;
+      }
+
+      const bindingMatches = device
+        && requestedDeviceId === storedDevice.deviceId
+        && device.id === storedDevice.deviceId
+        && device.gate.id === storedDevice.gateId
+        && device.allowedDirection === storedDevice.allowedDirection;
+
+      if (!bindingMatches) {
+        await clearGateDevice().catch(() => undefined);
+        if (!cancelled) {
+          setDeviceCredential("");
+          router.replace(pathname);
+        }
+        return;
+      }
+
+      setDeviceCredential(storedDevice.deviceCredential);
+    }
+
+    void hydrateDevice();
+    return () => {
+      cancelled = true;
+    };
+  }, [device, pathname, requestedDeviceId, router]);
+
+  const pollForQrCode = useEffectEvent(async () => {
+    if (!deviceCredential || !device || !detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || scanner.isPending || detectingRef.current) return;
+    detectingRef.current = true;
+    try {
+      const detected = await detectorRef.current.detect(videoRef.current);
+      const first = detected[0]?.rawValue;
+      if (!first) visiblePayloadRef.current = null;
+      else {
+        const fingerprint = await fingerprintQrPayload(first);
+        if (fingerprint !== visiblePayloadRef.current) {
+          visiblePayloadRef.current = fingerprint;
+          await scanner.submitScan(first);
+        }
+      }
+    } catch {
+      setCameraState("unsupported");
+    } finally {
+      detectingRef.current = false;
+    }
+  });
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -88,6 +205,7 @@ export function GateScannerClient({
       try {
         detectorRef.current = new window.BarcodeDetector({ formats: ["qr_code"] });
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if (stopped) { stream.getTracks().forEach((track) => track.stop()); return; }
         if (!videoRef.current) return;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -99,15 +217,8 @@ export function GateScannerClient({
 
     startCamera();
 
-    const timer = window.setInterval(async () => {
-      if (stopped || !detectorRef.current || !videoRef.current || videoRef.current.readyState < 2 || isPending) return;
-      try {
-        const detected = await detectorRef.current.detect(videoRef.current);
-        const first = detected[0]?.rawValue;
-        if (first) submitScan(first);
-      } catch {
-        setCameraState("unsupported");
-      }
+    const timer = window.setInterval(() => {
+      if (!stopped) void pollForQrCode();
     }, 1200);
 
     return () => {
@@ -115,21 +226,49 @@ export function GateScannerClient({
       window.clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-    // Scanner polling intentionally reads the latest selected gate/direction through submitScan.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function submitScan(qrPayload: string) {
-    if (!selectedGateId || isPending) return;
+  async function submitManualScan() {
+    const payload = manualPayload;
+    setManualPayload("");
+    await scanner.submitScan(payload);
+  }
+
+  function enrollDevice() {
+    if (!enrollmentId || !enrollmentCode || !displayName.trim() || isPending) return;
+
+    setEnrollmentError(null);
     startTransition(async () => {
-      const scanResult = await processVisitorGateScanAction({
-        gateId: selectedGateId,
-        qrPayload,
-        direction,
-        clientScanId: crypto.randomUUID(),
+      const previous = await readGateDevice();
+      const enrollment = await redeemGateDeviceEnrollmentAction({
+        installationId: previous?.installationId ?? await readGateInstallationId(),
+        enrollmentId,
+        code: enrollmentCode,
+        displayName,
       });
-      setResult(scanResult);
-      if (scanResult.ok) setManualPayload("");
+      if (!enrollment.ok) {
+        setEnrollmentError(enrollment.error);
+        return;
+      }
+
+      try {
+        await saveGateDevice({
+          deviceId: enrollment.deviceId,
+          gateId: enrollment.gateId,
+          allowedDirection: enrollment.allowedDirection,
+          installationId: enrollment.installationId,
+          deviceCredential: enrollment.deviceCredential,
+        });
+      } catch {
+        setEnrollmentError("storage_unavailable");
+        return;
+      }
+
+      setEnrollmentCode("");
+      setReplacingDevice(false);
+      setDeviceCredential("");
+      router.replace(`${pathname}?deviceId=${encodeURIComponent(enrollment.deviceId)}`);
+      if (previous?.deviceId === enrollment.deviceId) router.refresh();
     });
   }
 
@@ -148,26 +287,82 @@ export function GateScannerClient({
               </p>
             </div>
             <Badge variant="outline" className="w-fit border-emerald-400/50 bg-emerald-400/10 text-emerald-100">
-              {selectedGate?.propertyName ?? (isAr ? "لا توجد بوابة" : "No gate")}
+              {device?.gate.propertyName ?? (isAr ? "الجهاز غير مسجل" : "Device not enrolled")}
             </Badge>
           </div>
 
           <div className="grid gap-4 p-4 lg:grid-cols-[.9fr_1.1fr]">
             <div className="space-y-3">
-              <label className="space-y-1 text-xs font-bold text-slate-200">
-                <span>{isAr ? "البوابة" : "Gate"}</span>
-                <select
-                  value={selectedGateId}
-                  onChange={(event) => setSelectedGateId(event.target.value)}
-                  className="h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white"
-                >
-                  {gates.map((gate) => (
-                    <option key={gate.id} value={gate.id} className="text-slate-950">
-                      {gate.name} · {gate.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isAr ? "البوابة المرتبطة" : "Bound gate"}</p>
+                <p className="text-sm font-black text-white">
+                  {device ? `${device.gate.name} · ${device.gate.code}` : (isAr ? "افتح رابط الجهاز المسجل" : "Open this scanner from its enrolled device link")}
+                </p>
+              </div>
+
+              {deviceCredential ? <Button type="button" variant="outline" onClick={() => setReplacingDevice(!replacingDevice)}>{isAr ? "إعادة تسجيل الجهاز" : "Re-enroll device"}</Button> : null}
+              {!deviceCredential || replacingDevice ? (
+                <div className="space-y-2 rounded-xl border border-amber-300/30 bg-amber-300/10 p-3">
+                  <p className="text-xs font-black text-amber-100">
+                    {isAr ? "تسجيل هذا الجهاز" : "Enroll this device"}
+                  </p>
+                  <Input
+                    name="enrollmentId"
+                    aria-label={isAr ? "معرّف التسجيل" : "Enrollment ID"}
+                    autoComplete="off"
+                    value={enrollmentId}
+                    onChange={(event) => setEnrollmentId(event.target.value)}
+                    placeholder={isAr ? "معرّف التسجيل" : "Enrollment ID"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  <Input
+                    name="enrollmentCode"
+                    aria-label={isAr ? "رمز التسجيل" : "Enrollment code"}
+                    type="password"
+                    autoComplete="off"
+                    value={enrollmentCode}
+                    onChange={(event) => setEnrollmentCode(event.target.value)}
+                    placeholder={isAr ? "رمز التسجيل" : "Enrollment code"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  <Input
+                    name="displayName"
+                    aria-label={isAr ? "اسم الجهاز" : "Device name"}
+                    autoComplete="off"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder={isAr ? "اسم الجهاز" : "Device name"}
+                    className="h-10 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
+                  />
+                  {enrollmentError ? (
+                    <p className="text-xs font-bold text-rose-200">
+                      {isAr ? "تعذر تسجيل الجهاز. اطلب رمزاً جديداً." : "Device enrollment failed. Request a new code."}
+                    </p>
+                  ) : null}
+                  <Button
+                    type="button"
+                    disabled={!enrollmentId || !enrollmentCode || !displayName.trim() || isPending}
+                    onClick={enrollDevice}
+                    className="h-10 w-full rounded-xl"
+                  >
+                    {isAr ? "تسجيل الجهاز" : "Enroll device"}
+                  </Button>
+                </div>
+              ) : null}
+
+              <fieldset className="rounded-xl border border-white/15 p-3">
+                <legend className="px-1 text-xs font-bold">{isAr ? "تفضيلات التنبيه" : "Feedback preferences"}</legend>
+                {([
+                  ["mutedAudio", isAr ? "كتم الصوت" : "Mute audio", !capabilities.audio],
+                  ["vibrationDisabled", isAr ? "إيقاف الاهتزاز" : "Disable vibration", !capabilities.vibration],
+                  ["reducedMotion", isAr ? "تقليل الحركة" : "Reduce motion", capabilities.reducedMotion],
+                ] as const).map(([key, label, disabled]) => (
+                  <label key={key} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+                    <input type="checkbox" name={key} checked={key === "reducedMotion" ? preferences[key] || capabilities.reducedMotion : preferences[key]} disabled={disabled} onChange={(event) => updatePreference(key, event.target.checked)} className="size-5 accent-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" />
+                    <span>{label}{disabled ? <span className="ms-2 text-xs text-slate-300">{key === "reducedMotion" ? (isAr ? "حسب إعداد النظام" : "System setting") : (isAr ? "غير متاح" : "Unavailable")}</span> : null}</span>
+                  </label>
+                ))}
+              </fieldset>
 
               <div className="grid grid-cols-2 gap-2">
                 {(["ENTRY", "EXIT"] as const).map((item) => (
@@ -176,6 +371,7 @@ export function GateScannerClient({
                     type="button"
                     variant={direction === item ? "secondary" : "outline"}
                     onClick={() => setDirection(item)}
+                    disabled={!device || (device.allowedDirection !== "BOTH" && device.allowedDirection !== item)}
                     className="h-12 rounded-xl"
                   >
                     {item === "ENTRY" ? (isAr ? "دخول" : "Entry") : isAr ? "خروج" : "Exit"}
@@ -184,6 +380,8 @@ export function GateScannerClient({
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <Button type="button" variant="outline" aria-expanded={manualFallback} onClick={() => setManualFallback(!manualFallback)}>{isAr ? "إدخال يدوي" : "Manual fallback"}</Button>
+                {manualFallback ? <>
                 <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-200">
                   <Keyboard className="size-4" />
                   {isAr ? "إدخال يدوي" : "Manual fallback"}
@@ -191,14 +389,16 @@ export function GateScannerClient({
                 <div className="flex gap-2">
                   <Input
                     value={manualPayload}
+                    aria-label={isAr ? "رمز تصريح الزائر" : "Visitor pass QR payload"}
                     onChange={(event) => setManualPayload(event.target.value)}
                     placeholder="AQP1..."
                     className="h-11 rounded-xl border-white/15 bg-white/10 text-white placeholder:text-slate-400"
                   />
-                  <Button type="button" disabled={!manualPayload || !selectedGateId || isPending} onClick={() => submitScan(manualPayload)} className="h-11 rounded-xl">
+                  <Button type="button" disabled={!manualPayload || !device || !deviceCredential || isPending} onClick={() => void submitManualScan()} className="h-11 rounded-xl">
                     {isAr ? "تحقق" : "Scan"}
                   </Button>
                 </div>
+                </> : null}
               </div>
             </div>
 
@@ -218,19 +418,20 @@ export function GateScannerClient({
                 </div>
               </div>
 
-              <div className={`rounded-2xl border p-4 ${resultOk ? "border-emerald-300 bg-emerald-50 text-emerald-950" : result?.ok ? "border-rose-300 bg-rose-50 text-rose-950" : "border-white/10 bg-white/5 text-white"}`}>
+              <div aria-live="assertive" className={`rounded-2xl border p-4 ${resultOk ? "border-emerald-300 bg-emerald-50 text-emerald-950" : result?.ok ? "border-rose-300 bg-rose-50 text-rose-950" : result?.error === "unverified_offline" ? "border-amber-300 bg-amber-50 text-amber-950" : "border-white/10 bg-white/5 text-white"}`}>
                 <div className="flex items-center gap-3">
-                  {resultOk ? <CheckCircle2 className="size-10" /> : result?.ok ? <XCircle className="size-10" /> : <ScanQrCode className="size-10" />}
+                  {resultOk ? <CheckCircle2 className="size-10" /> : result?.ok ? <XCircle className="size-10" /> : result?.error === "unverified_offline" ? <ShieldAlert className="size-10" /> : <ScanQrCode className="size-10" />}
                   <div>
                     <p className="text-2xl font-black">
-                      {resultOk ? (isAr ? "مسموح" : "ALLOW") : result?.ok ? (isAr ? "مرفوض" : "DENY") : isAr ? "في انتظار المسح" : "Ready to scan"}
+                      {resultOk ? (isAr ? "مسموح" : "ALLOW") : result?.ok ? (isAr ? "مرفوض" : "DENY") : result?.error === "unverified_offline" ? (isAr ? "غير متحقق — غير متصل" : "UNVERIFIED — OFFLINE") : isAr ? "في انتظار المسح" : "Ready to scan"}
                     </p>
                     <p className="text-sm font-semibold">
-                      {result?.ok ? (resultReason ? (isAr ? resultReason.ar : resultReason.en) : result.reasonCode) : isAr ? "وجه الكود داخل الإطار أو استخدم الإدخال اليدوي." : "Place the QR in frame or use manual input."}
+                      {result?.ok ? (resultReason ? (isAr ? resultReason.ar : resultReason.en) : result.reasonCode) : result?.error === "unverified_offline" ? (isAr ? "لم يصدر قرار دخول. تحقق يدوياً مع المشرف." : "No access decision was issued. Verify manually with a supervisor.") : isAr ? "وجه الكود داخل الإطار أو استخدم الإدخال اليدوي." : "Place the QR in frame or use manual input."}
                     </p>
                     {result?.ok && result.guestName ? (
                       <p className="mt-1 text-xs">{result.guestName} · {result.invitationNo ?? ""}</p>
                     ) : null}
+                    {resultOk ? <p className="mt-2 text-sm font-bold">{isAr ? "الدخول معتمد — فتح الحاجز غير مؤكد" : "Access approved — barrier not confirmed"}<span className="block text-xs">{result?.ok ? result.hardwareStatus : null}</span></p> : null}
                   </div>
                 </div>
               </div>

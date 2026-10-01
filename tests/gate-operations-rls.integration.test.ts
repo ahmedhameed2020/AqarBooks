@@ -6,6 +6,11 @@ import type { Database } from "../lib/supabase/types";
 
 type Client = SupabaseClient<Database>;
 
+type ScannerDevice = {
+  deviceId: string;
+  credential: string;
+};
+
 const TEST_PASSWORD = "Gate_Operations_RLS_Test_P@ssw0rd_2026!";
 
 type LocalSupabaseEnv = {
@@ -257,6 +262,10 @@ async function createOrgFixture(
   ]);
   expect(ownershipError, `ownership insert failed: ${ownershipError?.message}`).toBeNull();
 
+  const staffManager = await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-manager`);
+  const completion = await staffManager.client.rpc("set_gate_completion_policy", { p_organization_id: orgId, p_enabled: true });
+  if (planKey === "PROFESSIONAL") expect(completion.error).toBeNull();
+  else expect(completion.error?.message).toBe("GATE_COMPLETION_NOT_AUTHORIZED");
   return {
     orgId,
     propertyId: property!.id,
@@ -266,7 +275,7 @@ async function createOrgFixture(
     futureUnitId: futureUnitResult.data!.id,
     memberA,
     memberB,
-    staffManager: await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-manager`),
+    staffManager,
     staffViewer: await createStaffActor(admin, local, orgId, "VIEWER", `${label}-viewer`),
   };
 }
@@ -310,8 +319,44 @@ async function createGate(
   });
 }
 
-function scan(client: Client, gateId: string, invitationId: string, secret: string, direction: "ENTRY" | "EXIT", clientScanId = randomUUID()) {
+async function createScannerDevice(
+  client: Client,
+  gateId: string,
+  allowedDirection: "ENTRY" | "EXIT" | "BOTH" = "BOTH",
+): Promise<ScannerDevice> {
+  const code = `enrollment-${randomUUID()}`;
+  const credential = Buffer.from(randomUUID().replaceAll("-", "")).toString("base64url").padEnd(43, "d").slice(0, 43);
+  const enrollment = await client.rpc("create_gate_device_enrollment", {
+    p_gate_id: gateId,
+    p_direction: allowedDirection,
+    p_code_hash: tokenHash(code),
+    p_expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+  });
+  expect(enrollment.error, `scanner enrollment failed: ${enrollment.error?.message}`).toBeNull();
+
+  const redeemed = await client.rpc("redeem_gate_device_enrollment", {
+    p_enrollment_id: enrollment.data!,
+    p_code: code,
+    p_installation_id_hash: tokenHash(`installation-${randomUUID()}`),
+    p_credential_hash: tokenHash(credential),
+    p_display_name: `Gate scanner ${randomUUID().slice(0, 6)}`,
+  });
+  expect(redeemed.error, `scanner redemption failed: ${redeemed.error?.message}`).toBeNull();
+  return { deviceId: redeemed.data!.id, credential };
+}
+
+function scan(
+  client: Client,
+  scanner: ScannerDevice,
+  gateId: string,
+  invitationId: string,
+  secret: string,
+  direction: "ENTRY" | "EXIT",
+  clientScanId = randomUUID(),
+) {
   return client.rpc("process_visitor_gate_scan", {
+    p_device_id: scanner.deviceId,
+    p_device_credential: scanner.credential,
     p_gate_id: gateId,
     p_invitation_id: invitationId,
     p_raw_secret: secret,
@@ -358,9 +403,13 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
         has_table_privilege('authenticated', 'public.visitor_access_state', 'insert'),
         has_function_privilege('anon', 'public.process_visitor_gate_scan(uuid,uuid,text,text,uuid)', 'execute'),
         has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,uuid,text,text,uuid)', 'execute'),
+        has_function_privilege('anon', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid,text)', 'execute'),
+        has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid,text)', 'execute'),
         has_function_privilege('authenticated', 'public.create_gate(uuid,text,text,text,text)', 'execute')
     `);
-    expect(privileges).toBe("f|t|f|t|f|f|t|f|f|t|t");
+    // The legacy wrapper is callable for disabled-only rollout compatibility;
+    // enabled organizations are rejected inside the wrapper, not by its ACL.
+    expect(privileges).toBe("f|t|f|t|f|f|t|f|f|t|f|t|t");
   });
 
   it("lets staff managers create gates while view-only staff cannot mutate them", async () => {
@@ -388,25 +437,33 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
   it("processes valid entry/exit, idempotent retry, and single-use replay denial", async () => {
     const gate = await createGate(orgA.staffManager.client, orgA.propertyId);
     expect(gate.error, `gate create failed: ${gate.error?.message}`).toBeNull();
+    const scanner = await createScannerDevice(orgA.staffManager.client, gate.data!);
     const secret = `single-${randomUUID()}`;
     const invitation = await createInvitation(orgA.memberA.client, orgA.unitAId, secret, { usagePolicy: "SINGLE_USE" });
     expect(invitation.error, `invitation create failed: ${invitation.error?.message}`).toBeNull();
     const clientScanId = randomUUID();
 
-    const entry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY", clientScanId);
+    const entry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY", clientScanId);
     expect(entry.error, `entry scan failed: ${entry.error?.message}`).toBeNull();
     expect(entry.data![0]).toMatchObject({ decision: "ALLOW", reason_code: "VALID_ENTRY", invitation_id: invitation.data });
+    const { data: seenDevice, error: seenDeviceError } = await admin
+      .from("gate_devices")
+      .select("last_seen_at")
+      .eq("id", scanner.deviceId)
+      .single();
+    expect(seenDeviceError).toBeNull();
+    expect(seenDevice!.last_seen_at).not.toBeNull();
 
-    const retry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY", clientScanId);
+    const retry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY", clientScanId);
     expect(retry.error, `idempotent retry failed: ${retry.error?.message}`).toBeNull();
     expect(retry.data![0].event_id).toBe(entry.data![0].event_id);
     expect(retry.data![0].reason_code).toBe("VALID_ENTRY");
 
-    const replay = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const replay = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expect(replay.error, `single-use replay errored: ${replay.error?.message}`).toBeNull();
     expect(replay.data![0]).toMatchObject({ decision: "DENY", reason_code: "PASS_ALREADY_USED" });
 
-    const exit = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "EXIT");
+    const exit = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "EXIT");
     expect(exit.error, `exit scan failed: ${exit.error?.message}`).toBeNull();
     expect(exit.data![0]).toMatchObject({ decision: "ALLOW", reason_code: "VALID_EXIT", is_inside: false });
   });
@@ -414,35 +471,37 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
   it("allows multi-use cycles but rejects already-inside and not-inside transitions", async () => {
     const gate = await createGate(orgA.staffManager.client, orgA.propertyId);
     expect(gate.error, `gate create failed: ${gate.error?.message}`).toBeNull();
+    const scanner = await createScannerDevice(orgA.staffManager.client, gate.data!);
     const secret = `multi-${randomUUID()}`;
     const invitation = await createInvitation(orgA.memberA.client, orgA.unitAId, secret, { usagePolicy: "MULTI_USE" });
     expect(invitation.error, `multi invitation create failed: ${invitation.error?.message}`).toBeNull();
 
-    const entry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const entry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expect(entry.data![0]).toMatchObject({ decision: "ALLOW", reason_code: "VALID_ENTRY" });
 
-    const duplicateEntry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const duplicateEntry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expect(duplicateEntry.data![0]).toMatchObject({ decision: "DENY", reason_code: "ALREADY_INSIDE" });
 
-    const exit = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "EXIT");
+    const exit = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "EXIT");
     expect(exit.data![0]).toMatchObject({ decision: "ALLOW", reason_code: "VALID_EXIT" });
 
-    const duplicateExit = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "EXIT");
+    const duplicateExit = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "EXIT");
     expect(duplicateExit.data![0]).toMatchObject({ decision: "DENY", reason_code: "NOT_INSIDE" });
 
-    const reentry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const reentry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expect(reentry.data![0]).toMatchObject({ decision: "ALLOW", reason_code: "VALID_ENTRY" });
   });
 
   it("keeps single-use consumption race-safe under concurrent scans", async () => {
     const gate = await createGate(orgA.staffManager.client, orgA.propertyId);
     expect(gate.error, `gate create failed: ${gate.error?.message}`).toBeNull();
+    const scanner = await createScannerDevice(orgA.staffManager.client, gate.data!);
     const secret = `race-${randomUUID()}`;
     const invitation = await createInvitation(orgA.memberA.client, orgA.unitAId, secret, { usagePolicy: "SINGLE_USE" });
     expect(invitation.error, `race invitation create failed: ${invitation.error?.message}`).toBeNull();
 
     const results = await Promise.all(
-      Array.from({ length: 8 }, () => scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY")),
+      Array.from({ length: 8 }, () => scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY")),
     );
     for (const result of results) {
       expect(result.error, `concurrent scan errored: ${result.error?.message}`).toBeNull();
@@ -457,40 +516,70 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
     );
   });
 
-  it("denies invalid, revoked, future, expired, wrong-property, inactive-gate, and wrong-direction scans", async () => {
+  it("rejects untrusted device bindings before creating access evidence or state", async () => {
+    const gate = await createGate(orgA.staffManager.client, orgA.propertyId);
+    const otherGate = await createGate(orgA.staffManager.client, orgA.propertyId);
+    const crossTenantGate = await createGate(orgB.staffManager.client, orgB.propertyId);
+    expect(gate.error).toBeNull();
+    expect(otherGate.error).toBeNull();
+    expect(crossTenantGate.error).toBeNull();
+    const entryScanner = await createScannerDevice(orgA.staffManager.client, gate.data!, "ENTRY");
+    const crossTenantScanner = await createScannerDevice(orgB.staffManager.client, crossTenantGate.data!);
+    const secret = `binding-${randomUUID()}`;
+    const invitation = await createInvitation(orgA.memberA.client, orgA.unitAId, secret);
+    expect(invitation.error).toBeNull();
+
+    const attempts = [
+      scan(orgA.staffManager.client, entryScanner, otherGate.data!, invitation.data!, secret, "ENTRY"),
+      scan(orgA.staffManager.client, entryScanner, gate.data!, invitation.data!, secret, "EXIT"),
+      scan(orgA.staffManager.client, { ...entryScanner, credential: "w".repeat(43) }, gate.data!, invitation.data!, secret, "ENTRY"),
+      scan(orgA.staffManager.client, crossTenantScanner, crossTenantGate.data!, invitation.data!, secret, "ENTRY"),
+    ];
+    const rejected = await Promise.all(attempts);
+    rejected.forEach((result) => expectSecurityRejection(result.error, "invalid device binding must fail closed"));
+    const { data: rejectedDevice, error: rejectedDeviceError } = await admin
+      .from("gate_devices")
+      .select("last_seen_at")
+      .eq("id", entryScanner.deviceId)
+      .single();
+    expect(rejectedDeviceError).toBeNull();
+    expect(rejectedDevice!.last_seen_at).toBeNull();
+
+    const revoke = await orgA.staffManager.client.rpc("revoke_gate_device", {
+      p_device_id: entryScanner.deviceId,
+      p_reason: "Runtime revoked-device boundary test",
+    });
+    expect(revoke.error, `device revoke failed: ${revoke.error?.message}`).toBeNull();
+    const revoked = await scan(orgA.staffManager.client, entryScanner, gate.data!, invitation.data!, secret, "ENTRY");
+    expectSecurityRejection(revoked.error, "revoked device must fail closed");
+
+    const [{ count: eventCount, error: eventCountError }, { count: stateCount, error: stateCountError }] = await Promise.all([
+      admin.from("access_events").select("id", { count: "exact", head: true }).eq("visitor_invitation_id", invitation.data!),
+      admin.from("visitor_access_state").select("visitor_invitation_id", { count: "exact", head: true }).eq("visitor_invitation_id", invitation.data!),
+    ]);
+    expect(eventCountError).toBeNull();
+    expect(stateCountError).toBeNull();
+    expect(eventCount).toBe(0);
+    expect(stateCount).toBe(0);
+  });
+
+  it("preserves canonical pass decisions after successful device authentication", async () => {
     const bothGate = await createGate(orgA.staffManager.client, orgA.propertyId);
     const otherPropertyGate = await createGate(orgA.staffManager.client, orgA.otherPropertyId);
-    const exitOnlyGate = await createGate(orgA.staffManager.client, orgA.propertyId, "EXIT");
     expect(bothGate.error).toBeNull();
     expect(otherPropertyGate.error).toBeNull();
-    expect(exitOnlyGate.error).toBeNull();
+    const bothScanner = await createScannerDevice(orgA.staffManager.client, bothGate.data!);
+    const otherPropertyScanner = await createScannerDevice(orgA.staffManager.client, otherPropertyGate.data!);
 
     const validSecret = `valid-${randomUUID()}`;
     const validInvitation = await createInvitation(orgA.memberA.client, orgA.unitAId, validSecret);
     expect(validInvitation.error).toBeNull();
 
-    const invalid = await scan(orgA.staffManager.client, bothGate.data!, validInvitation.data!, "wrong-secret", "ENTRY");
+    const invalid = await scan(orgA.staffManager.client, bothScanner, bothGate.data!, validInvitation.data!, "wrong-secret", "ENTRY");
     expect(invalid.data![0]).toMatchObject({ decision: "DENY", reason_code: "INVALID_PASS", invitation_id: null });
 
-    const wrongProperty = await scan(orgA.staffManager.client, otherPropertyGate.data!, validInvitation.data!, validSecret, "ENTRY");
+    const wrongProperty = await scan(orgA.staffManager.client, otherPropertyScanner, otherPropertyGate.data!, validInvitation.data!, validSecret, "ENTRY");
     expect(wrongProperty.data![0]).toMatchObject({ decision: "DENY", reason_code: "PROPERTY_MISMATCH" });
-
-    const wrongDirection = await scan(orgA.staffManager.client, exitOnlyGate.data!, validInvitation.data!, validSecret, "ENTRY");
-    expect(wrongDirection.data![0]).toMatchObject({ decision: "DENY", reason_code: "DIRECTION_NOT_ALLOWED" });
-
-    const inactiveGate = await createGate(orgA.staffManager.client, orgA.propertyId);
-    expect(inactiveGate.error).toBeNull();
-    const deactivate = await orgA.staffManager.client.rpc("update_gate", {
-      p_gate_id: inactiveGate.data!,
-      p_code: `IN-${randomUUID().slice(0, 8)}`,
-      p_name_ar: "بوابة متوقفة",
-      p_name_en: "Inactive Gate",
-      p_direction_mode: "BOTH",
-      p_is_active: false,
-    });
-    expect(deactivate.error, `deactivate failed: ${deactivate.error?.message}`).toBeNull();
-    const inactive = await scan(orgA.staffManager.client, inactiveGate.data!, validInvitation.data!, validSecret, "ENTRY");
-    expect(inactive.data![0]).toMatchObject({ decision: "DENY", reason_code: "GATE_INACTIVE" });
 
     const futureSecret = `future-${randomUUID()}`;
     const future = await createInvitation(orgA.memberA.client, orgA.unitAId, futureSecret, {
@@ -498,38 +587,39 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
       validUntil: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     });
     expect(future.error).toBeNull();
-    const futureScan = await scan(orgA.staffManager.client, bothGate.data!, future.data!, futureSecret, "ENTRY");
+    const futureScan = await scan(orgA.staffManager.client, bothScanner, bothGate.data!, future.data!, futureSecret, "ENTRY");
     expect(futureScan.data![0]).toMatchObject({ decision: "DENY", reason_code: "NOT_YET_VALID" });
 
     const expiredSecret = `expired-${randomUUID()}`;
     const expired = await createInvitation(orgA.memberA.client, orgA.unitAId, expiredSecret);
     expect(expired.error).toBeNull();
     await admin.from("visitor_invitations").update({ valid_until: new Date(Date.now() - 60_000).toISOString() }).eq("id", expired.data!);
-    const expiredScan = await scan(orgA.staffManager.client, bothGate.data!, expired.data!, expiredSecret, "ENTRY");
+    const expiredScan = await scan(orgA.staffManager.client, bothScanner, bothGate.data!, expired.data!, expiredSecret, "ENTRY");
     expect(expiredScan.data![0]).toMatchObject({ decision: "DENY", reason_code: "EXPIRED" });
 
     const revokedSecret = `revoked-${randomUUID()}`;
     const revoked = await createInvitation(orgA.memberA.client, orgA.unitAId, revokedSecret);
     expect(revoked.error).toBeNull();
     await orgA.memberA.client.rpc("revoke_visitor_invitation", { p_invitation_id: revoked.data! });
-    const revokedScan = await scan(orgA.staffManager.client, bothGate.data!, revoked.data!, revokedSecret, "ENTRY");
+    const revokedScan = await scan(orgA.staffManager.client, bothScanner, bothGate.data!, revoked.data!, revokedSecret, "ENTRY");
     expect(revokedScan.data![0]).toMatchObject({ decision: "DENY", reason_code: "REVOKED" });
   });
 
   it("enforces scan authorization, event immutability, visibility, and zero accounting impact", async () => {
     const gate = await createGate(orgA.staffManager.client, orgA.propertyId);
     expect(gate.error).toBeNull();
+    const scanner = await createScannerDevice(orgA.staffManager.client, gate.data!);
     const secret = `scope-${randomUUID()}`;
     const invitation = await createInvitation(orgA.memberA.client, orgA.unitAId, secret);
     expect(invitation.error).toBeNull();
 
-    const viewerScan = await scan(orgA.staffViewer.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const viewerScan = await scan(orgA.staffViewer.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expectSecurityRejection(viewerScan.error, "view-only staff cannot scan");
 
-    const crossTenantScan = await scan(orgB.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const crossTenantScan = await scan(orgB.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expectSecurityRejection(crossTenantScan.error, "cross-tenant staff cannot scan another tenant gate");
 
-    const entry = await scan(orgA.staffManager.client, gate.data!, invitation.data!, secret, "ENTRY");
+    const entry = await scan(orgA.staffManager.client, scanner, gate.data!, invitation.data!, secret, "ENTRY");
     expect(entry.error).toBeNull();
     const eventId = entry.data![0].event_id;
 
@@ -598,8 +688,43 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
       organization_id: disabledOrg.orgId,
       token_hash: tokenHash(disabledSecret),
     });
-    const disabledScan = await scan(disabledOrg.staffManager.client, disabledGate.data!.id, disabledInvitation.data!.id, disabledSecret, "ENTRY");
-    expect(disabledScan.data![0]).toMatchObject({ decision: "DENY", reason_code: "FEATURE_DISABLED" });
+    const disabledCredential = "x".repeat(43);
+    const { data: disabledDevice, error: disabledDeviceError } = await admin
+      .from("gate_devices")
+      .insert({
+        organization_id: disabledOrg.orgId,
+        property_id: disabledOrg.propertyId,
+        gate_id: disabledGate.data!.id,
+        installation_id_hash: tokenHash(`disabled-installation-${randomUUID()}`),
+        credential_hash: tokenHash(disabledCredential),
+        display_name: "Disabled-plan scanner",
+        allowed_direction: "BOTH",
+        status: "ACTIVE",
+        enrolled_by: disabledOrg.staffManager.userId,
+      })
+      .select("id")
+      .single();
+    expect(disabledDeviceError?.message, "disabled plan cannot enroll a device").toBe("GATE_COMPLETION_DISABLED");
+    expect(disabledDevice).toBeNull();
+    const disabledScan = await scan(
+      disabledOrg.staffManager.client,
+      { deviceId: randomUUID(), credential: disabledCredential },
+      disabledGate.data!.id,
+      disabledInvitation.data!.id,
+      disabledSecret,
+      "ENTRY",
+    );
+    expect(disabledScan.error?.message, "disabled feature rejects device authentication").toBe("GATE_COMPLETION_DISABLED");
+    const disabledLegacyScan = await disabledOrg.staffManager.client.rpc("process_visitor_gate_scan", {
+      p_gate_id: disabledGate.data!.id, p_invitation_id: disabledInvitation.data!.id,
+      p_raw_secret: disabledSecret, p_direction: "ENTRY", p_client_scan_id: randomUUID(),
+    });
+    expect(disabledLegacyScan.error).toBeNull();
+    expect(disabledLegacyScan.data?.[0], "legacy compatibility does not bypass plan entitlement").toMatchObject({
+      decision: "DENY", reason_code: "FEATURE_DISABLED",
+    });
+    expect(runLocalDbQuery(`select count(*) from public.access_events where organization_id='${disabledOrg.orgId}' and decision='ALLOW'`)).toBe("0");
+    expect(runLocalDbQuery(`select count(*) from public.visitor_access_state where organization_id='${disabledOrg.orgId}' and is_inside`)).toBe("0");
 
     const accountingCounts = runLocalDbQuery(`
       select

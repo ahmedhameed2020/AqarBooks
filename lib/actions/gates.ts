@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { parseGateScanRequest, type GateScanRequest } from "@/lib/gates/scanner-contract";
 import { createClient } from "@/lib/supabase/server";
 
-const directionSchema = z.enum(["ENTRY", "EXIT"]);
 const gateDirectionSchema = z.enum(["ENTRY", "EXIT", "BOTH"]);
 
 const gateInputSchema = z.object({
@@ -22,13 +22,6 @@ const updateGateInputSchema = z.object({
   nameEn: z.string().trim().min(1).max(120),
   directionMode: gateDirectionSchema.default("BOTH"),
   isActive: z.boolean(),
-});
-
-const scanInputSchema = z.object({
-  gateId: z.string().uuid(),
-  qrPayload: z.string().trim().min(20).max(220),
-  direction: directionSchema,
-  clientScanId: z.string().uuid(),
 });
 
 export type GateActionResult =
@@ -53,6 +46,7 @@ export type GateScanResult =
       gateId: string;
       propertyId: string;
       occurredAt: string;
+      hardwareStatus?: "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE";
     }
   | { ok: false; error: string };
 
@@ -60,6 +54,8 @@ function mapGateError(message: string | undefined): string {
   if (!message) return "failed";
   if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
   if (message.includes("NOT_ENTITLED")) return "not_entitled";
+  if (message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) return "device_not_authorized";
+  if (message.includes("GATE_TRUSTED_DEVICE_REQUIRED")) return "trusted_device_required";
   if (message.includes("NOT_AUTHORIZED")) return "forbidden";
   if (message.includes("NOT_FOUND")) return "not_found";
   if (message.includes("INVALID_GATE_CODE")) return "invalid_code";
@@ -129,26 +125,43 @@ export async function updateGateAction(
 }
 
 export async function processVisitorGateScanAction(
-  input: z.input<typeof scanInputSchema>,
+  input: GateScanRequest,
 ): Promise<GateScanResult> {
-  const parsed = scanInputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  let parsed: GateScanRequest;
+  try {
+    parsed = parseGateScanRequest(input);
+  } catch {
+    return { ok: false, error: "invalid_input" };
+  }
 
-  const payload = parseQrPayload(parsed.data.qrPayload);
+  const payload = parseQrPayload(parsed.qrPayload);
   if (!payload) return { ok: false, error: "invalid_qr_payload" };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("process_visitor_gate_scan", {
-    p_gate_id: parsed.data.gateId,
+    p_device_id: parsed.deviceId,
+    p_scanner_version: "2026-10-01",
+    p_device_credential: parsed.deviceCredential,
+    p_gate_id: parsed.gateId,
     p_invitation_id: payload.invitationId,
     p_raw_secret: payload.secret,
-    p_direction: parsed.data.direction,
-    p_client_scan_id: parsed.data.clientScanId,
+    p_direction: parsed.direction,
+    p_client_scan_id: parsed.clientScanId,
   });
 
   const result = data?.[0];
   if (error || !result) {
-    console.error("[processVisitorGateScanAction] failed:", error?.message);
+    if (error?.message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) {
+      try {
+        const { data: actor } = await supabase.auth.getUser();
+        if (actor.user) {
+          const { createAdminClient } = await import("@/lib/supabase/admin");
+          const audit = await createAdminClient().rpc("audit_gate_authentication_failure", { p_actor: actor.user.id, p_gate: parsed.gateId });
+          if (audit.error) console.error("GATE_AUTH_AUDIT_UNAVAILABLE");
+        }
+      } catch { console.error("GATE_AUTH_AUDIT_UNAVAILABLE"); }
+    }
+    console.error("[processVisitorGateScanAction] failed:", mapGateError(error?.message));
     return { ok: false, error: mapGateError(error?.message) };
   }
 
@@ -169,5 +182,33 @@ export async function processVisitorGateScanAction(
     gateId: result.gate_id,
     propertyId: result.property_id,
     occurredAt: result.occurred_at,
+    hardwareStatus: result.hardware_status as "NOT_CONFIGURED" | "QUEUED" | "NOT_ELIGIBLE",
   };
+}
+
+// Migration compatibility path. The database admits it only while completion is
+// disabled and enforces the same authenticated tenant/operator scan permission.
+export async function processLegacyVisitorGateScanAction(input: {
+  gateId: string; direction: "ENTRY" | "EXIT"; clientScanId: string; qrPayload: string;
+}): Promise<GateScanResult> {
+  const parsed = z.object({ gateId: z.string().uuid(), direction: z.enum(["ENTRY", "EXIT"]),
+    clientScanId: z.string().uuid(), qrPayload: z.string().max(4096),
+  }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  const payload = parseQrPayload(parsed.data.qrPayload);
+  if (!payload || parsed.data.qrPayload.split(".").length !== 3) return { ok: false, error: "invalid_qr_payload" };
+  const db = await createClient();
+  const { data, error } = await db.rpc("process_visitor_gate_scan", {
+    p_gate_id: parsed.data.gateId, p_invitation_id: payload.invitationId, p_raw_secret: payload.secret,
+    p_direction: parsed.data.direction, p_client_scan_id: parsed.data.clientScanId,
+  });
+  const result = data?.[0];
+  if (error || !result) return { ok: false, error: mapGateError(error?.message) };
+  revalidatePath("/[locale]/operations/gate", "page");
+  revalidatePath("/[locale]/operations/access-events", "page");
+  return { ok: true, decision: result.decision as GateScanDecision, reasonCode: result.reason_code,
+    eventId: result.event_id, guestName: result.guest_name, invitationNo: result.invitation_no,
+    unitId: result.unit_id, invitationId: result.invitation_id, usagePolicy: result.usage_policy,
+    validUntil: result.valid_until, isInside: result.is_inside, gateId: result.gate_id,
+    propertyId: result.property_id, occurredAt: result.occurred_at };
 }

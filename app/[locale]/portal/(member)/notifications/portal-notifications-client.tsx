@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Bell, CheckCheck, Circle } from "lucide-react";
+import { Bell, CheckCheck, Circle, DoorOpen, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,12 @@ export interface PortalNotificationItem {
 }
 
 type Filter = "ALL" | "UNREAD" | "HIGH";
+
+const gateNotificationLabels = {
+  VISITOR_ENTERED: { ar: "دخول زائر", en: "Visitor entry", icon: DoorOpen },
+  VISITOR_SECURITY_ALERT: { ar: "تنبيه أمني", en: "Security alert", icon: ShieldAlert },
+  VISITOR_MANUAL_EXCEPTION: { ar: "استثناء معتمد", en: "Approved exception", icon: ShieldCheck },
+};
 
 export function PortalNotificationsClient({
   notifications,
@@ -111,6 +117,7 @@ export function PortalNotificationsClient({
           {visible.map((notification) => {
             const title = isAr ? notification.titleAr : notification.titleEn;
             const body = isAr ? notification.bodyAr : notification.bodyEn;
+            const gateLabel = gateNotificationLabels[notification.type as keyof typeof gateNotificationLabels];
             return (
               <article
                 key={notification.id}
@@ -123,6 +130,7 @@ export function PortalNotificationsClient({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
+                      {gateLabel ? <Badge variant="outline" className="gap-1"><gateLabel.icon className="size-3" aria-hidden="true" />{isAr ? gateLabel.ar : gateLabel.en}</Badge> : null}
                       {!notification.isRead ? <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700">{isAr ? "جديد" : "New"}</Badge> : null}
                       {notification.priority === "HIGH" ? <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700">{isAr ? "مهم" : "High"}</Badge> : null}
                       <span className="text-[11px] font-semibold text-slate-400">{formatPortalDate(notification.createdAt, locale)}</span>
