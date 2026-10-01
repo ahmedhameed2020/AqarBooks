@@ -44,11 +44,12 @@ describe("gate evidence actions", () => {
     }));
   });
   it("exports a bounded authorized occupancy snapshot with safe display fields and formula escaping", async () => {
-    rpc.mockResolvedValue({ data: [{ invitation_no: "INV-1", guest_name: "=evil()", property_name: "Home", unit_code: "1", gate_code: "N", entered_at: "2026-10-01", valid_until: "2026-10-02", guest_phone: "private", token_hash: "private", count_only: false }], error: null });
+    rpc.mockResolvedValue({ data: { totalCount: 25001, truncated: true, rows: [{ invitation_no: "INV-1", guest_name: "=evil()", property_name: "Home", unit_code: "1", gate_code: "N", entered_at: "2026-10-01", valid_until: "2026-10-02", guest_phone: "private", token_hash: "private" }] }, error: null });
     const result = await exportCurrentVisitorsCsvAction({});
     expect(result.ok).toBe(true); if (!result.ok) throw Error("export");
     expect(result.csv).toContain("'=evil()"); expect(result.csv).not.toContain("private");
-    expect(rpc).toHaveBeenCalledWith("export_gate_current_visitors", expect.objectContaining({ p_organization_id: organizationId, p_limit: 25001 }));
+    expect(result.truncated).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("export_gate_current_visitors", expect.objectContaining({ p_organization_id: organizationId, p_limit: 5000 }));
     hasPermission.mockResolvedValue(false); rpc.mockClear();
     expect(await exportCurrentVisitorsCsvAction({})).toEqual({ ok: false, error: "forbidden" }); expect(rpc).not.toHaveBeenCalled();
   });

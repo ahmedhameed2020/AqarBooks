@@ -46,6 +46,10 @@ describe.sequential("final gate cross-contract regressions",()=>{
     const metrics=JSON.parse(sql(`select public.gate_scan_telemetry('${f.org}')`));
     expect(metrics.sampleSize).toBeGreaterThan(0); expect(metrics.validationP95Ms).toBeGreaterThanOrEqual(0);
     expect(metrics.dimensions[0].scanner_version).toBe("2026-10-01");
+    sql(`update public.gate_hardware_commands set status='DEAD',result_code='NOT_CONFIGURED' where access_event_id='${original.data[0].event_id}'`);
+    const terminalReplay = await scan(d,v,key);
+    expect(terminalReplay.error).toBeNull();
+    expect(terminalReplay.data[0].hardware_status).toBe("NOT_ELIGIBLE");
   });
   it("actual enrollment action rotates the same installation and sign-out release invalidates the current credential",async()=>{
     actionDb.client=f.guard.client;

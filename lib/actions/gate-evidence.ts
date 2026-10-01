@@ -30,13 +30,13 @@ export async function exportCurrentVisitorsCsvAction(input: Record<string, unkno
   if (!auth.ok) return auth;
   const { data, error } = await auth.db.rpc("export_gate_current_visitors", {
     p_organization_id: auth.organizationId, p_property_id: filters.property ?? null,
-    p_gate_id: filters.gate ?? null, p_query: filters.q ?? null, p_offset: 0, p_limit: 25001,
+    p_gate_id: filters.gate ?? null, p_query: filters.q ?? null, p_offset: 0, p_limit: 5000,
   });
-  if (error) return { ok: false, error: "query_failed" };
-  const rows = (data ?? []).filter((row) => !row.count_only);
+  if (error || !data || !Array.isArray(data.rows)) return { ok: false, error: "query_failed" };
+  const rows = data.rows;
   const header = "invitation_no,guest_name,property,unit,gate,entered_at,valid_until";
-  const lines = rows.slice(0, 25000).map((row) => [row.invitation_no, row.guest_name, row.property_name, row.unit_code, row.gate_code, row.entered_at, row.valid_until].map(safeCsvCell).join(","));
-  return { ok: true, csv: "\uFEFF" + [header, ...lines].join("\r\n"), filename: `visitor-occupancy-${new Date().toISOString().slice(0, 10)}.csv`, truncated: rows.length > 25000 };
+  const lines = rows.slice(0, 5000).map((row) => [row.invitation_no, row.guest_name, row.property_name, row.unit_code, row.gate_code, row.entered_at, row.valid_until].map(safeCsvCell).join(","));
+  return { ok: true, csv: "\uFEFF" + [header, ...lines].join("\r\n"), filename: `visitor-occupancy-${new Date().toISOString().slice(0, 10)}.csv`, truncated: data.truncated };
 }
 
 export type AccessEvidenceItem = AccessEvidenceCsvRow & {

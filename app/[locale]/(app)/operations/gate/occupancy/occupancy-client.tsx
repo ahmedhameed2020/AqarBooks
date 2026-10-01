@@ -116,7 +116,7 @@ export function OccupancyClient({
           if (!result.ok) { setExportMessage(isAr ? "تعذر التصدير" : "Export failed"); return; }
           const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
           const link = document.createElement("a"); link.href = url; link.download = result.filename; link.click(); URL.revokeObjectURL(url);
-          setExportMessage(result.truncated ? (isAr ? "تم تصدير أول ٢٥٠٠٠ زائر؛ ضيّق المرشحات." : "Exported first 25,000 visitors; narrow the filters.") : "");
+          setExportMessage(result.truncated ? (isAr ? "تم تصدير أول ٥٠٠٠ زائر؛ ضيّق المرشحات." : "Exported first 5,000 visitors; narrow the filters.") : "");
         })}>{isAr ? "تصدير CSV" : "Export occupancy CSV"}</Button>
         {exportMessage ? <p role="status">{exportMessage}</p> : null}
       </div>

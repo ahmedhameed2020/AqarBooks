@@ -3399,7 +3399,10 @@ export type Database = {
     Functions: {
       gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
       release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
-      export_gate_current_visitors: Database["public"]["Functions"]["list_gate_current_visitors"];
+      export_gate_current_visitors: {
+        Args: Database["public"]["Functions"]["list_gate_current_visitors"]["Args"];
+        Returns: { totalCountLowerBound: number; truncated: boolean; rows: { invitation_no: string | null; guest_name: string | null; property_name: string | null; unit_code: string | null; gate_code: string | null; entered_at: string | null; valid_until: string | null }[] };
+      };
       audit_gate_authentication_failure: { Args: { p_actor: string; p_gate: string }; Returns: undefined };
       lookup_gate_reconciliation_invitation: { Args: { p_gate: string; p_query: string }; Returns: { id: string; label: string }[] };
       gate_scan_telemetry: { Args: { p_org: string; p_property?: string | null }; Returns: { sampleSize: number; sampleLimit: number; validationP50Ms: number | null; validationP95Ms: number | null; hardwareRetries: number; dimensions: { gate_id: string; direction: string; reason_code: string; scanner_version: string; count: number }[] } };
