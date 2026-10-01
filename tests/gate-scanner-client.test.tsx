@@ -74,6 +74,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { GateScannerClient, type GateScannerDevice } from "@/app/[locale]/(app)/operations/gate/gate-scanner-client";
+import { emitScannerFeedback } from "@/lib/gates/scanner-feedback";
 
 const qrPayload = `AQP1.37ef8d07-f5d1-40c7-aa60-82c5cd6526e8.${"q".repeat(43)}`;
 const deviceCredential = "d".repeat(43);
@@ -151,6 +152,30 @@ describe("GateScannerClient camera polling", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it.each(["en", "ar"] as const)("exposes labeled native toggles and applies their persisted settings (%s)", async (locale) => {
+    const setItem = vi.fn();
+    Object.assign(window, { AudioContext: class {}, localStorage: { getItem: () => null, setItem } });
+    Object.assign(navigator, { vibrate: vi.fn() });
+    processVisitorGateScanAction.mockReset().mockResolvedValue({ ok: false, error: "failed" });
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<GateScannerClient requestedDeviceId={device.id} device={device} recentEvents={[]} locale={locale} />, { createNodeMock: (element) => element.type === "video" ? video : null });
+    });
+    expect(renderer.root.findByType("legend").children).toContain(locale === "ar" ? "تفضيلات التنبيه" : "Feedback preferences");
+    for (const name of ["mutedAudio", "vibrationDisabled", "reducedMotion"]) {
+      const toggle = renderer.root.findByProps({ name });
+      expect(toggle.type).toBe("input");
+      expect(toggle.props.type).toBe("checkbox");
+      expect(toggle.parent?.type).toBe("label");
+      expect(toggle.props.disabled).toBe(false);
+      await act(async () => toggle.props.onChange({ target: { checked: true } }));
+    }
+    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
+    expect(emitScannerFeedback).toHaveBeenLastCalledWith("UNVERIFIED_OFFLINE", { mutedAudio: true, vibrationDisabled: true, reducedMotion: true });
+    expect(JSON.parse(setItem.mock.calls.at(-1)![1])).toEqual({ mutedAudio: true, vibrationDisabled: true, reducedMotion: true });
+    await act(async () => renderer.unmount());
   });
 
   it("submits detected codes with current credentials and direction, and pauses while pending", async () => {

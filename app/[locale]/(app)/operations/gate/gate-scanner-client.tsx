@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
 import { clearGateDevice, readGateDevice, saveGateDevice } from "@/lib/gates/device-store";
 import { useGateScanner } from "@/app/[locale]/(app)/operations/gate/use-gate-scanner";
+import { readScannerPreferences, saveScannerPreferences, scannerCapabilities, type ScannerPreferences } from "@/lib/gates/scanner-preferences";
 
 declare global {
   interface Window {
@@ -86,7 +87,32 @@ export function GateScannerClient({
   const [manualPayload, setManualPayload] = useState("");
   const [cameraState, setCameraState] = useState<"idle" | "starting" | "active" | "unsupported" | "denied">("idle");
   const [isEnrollmentPending, startTransition] = useTransition();
+  const [preferences, setPreferences] = useState<ScannerPreferences>({ mutedAudio: true, vibrationDisabled: true, reducedMotion: true });
+  const [capabilities, setCapabilities] = useState({ audio: false, vibration: false, reducedMotion: false });
+  useEffect(() => {
+    let cancelled = false;
+    // Hydrate browser-only preferences after the server-compatible initial render.
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setPreferences(readScannerPreferences());
+      setCapabilities(scannerCapabilities());
+    });
+    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const updateMotion = () => setCapabilities(scannerCapabilities());
+    query?.addEventListener?.("change", updateMotion);
+    return () => {
+      cancelled = true;
+      query?.removeEventListener?.("change", updateMotion);
+    };
+  }, []);
+  function updatePreference(key: keyof ScannerPreferences, checked: boolean) {
+    const next = { ...preferences, [key]: checked };
+    setPreferences(next);
+    saveScannerPreferences(next);
+  }
   const scanner = useGateScanner({
+    ...preferences,
+    reducedMotion: preferences.reducedMotion || capabilities.reducedMotion,
     deviceId: device?.id ?? null,
     deviceCredential,
     gateId: device?.gate.id ?? null,
@@ -296,6 +322,20 @@ export function GateScannerClient({
                   </Button>
                 </div>
               ) : null}
+
+              <fieldset className="rounded-xl border border-white/15 p-3">
+                <legend className="px-1 text-xs font-bold">{isAr ? "تفضيلات التنبيه" : "Feedback preferences"}</legend>
+                {([
+                  ["mutedAudio", isAr ? "كتم الصوت" : "Mute audio", !capabilities.audio],
+                  ["vibrationDisabled", isAr ? "إيقاف الاهتزاز" : "Disable vibration", !capabilities.vibration],
+                  ["reducedMotion", isAr ? "تقليل الحركة" : "Reduce motion", capabilities.reducedMotion],
+                ] as const).map(([key, label, disabled]) => (
+                  <label key={key} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+                    <input type="checkbox" name={key} checked={key === "reducedMotion" ? preferences[key] || capabilities.reducedMotion : preferences[key]} disabled={disabled} onChange={(event) => updatePreference(key, event.target.checked)} className="size-5 accent-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" />
+                    <span>{label}{disabled ? <span className="ms-2 text-xs text-slate-300">{key === "reducedMotion" ? (isAr ? "حسب إعداد النظام" : "System setting") : (isAr ? "غير متاح" : "Unavailable")}</span> : null}</span>
+                  </label>
+                ))}
+              </fieldset>
 
               <div className="grid grid-cols-2 gap-2">
                 {(["ENTRY", "EXIT"] as const).map((item) => (

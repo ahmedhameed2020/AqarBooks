@@ -28,6 +28,7 @@ interface UseGateScannerOptions {
   direction: "ENTRY" | "EXIT";
   mutedAudio?: boolean;
   vibrationDisabled?: boolean;
+  reducedMotion?: boolean;
   cooldownMs?: number;
   requestTimeoutMs?: number;
   onAuthorizationFailure?: () => void;
@@ -53,6 +54,7 @@ export function useGateScanner({
   direction,
   mutedAudio = false,
   vibrationDisabled = false,
+  reducedMotion = false,
   cooldownMs = DEFAULT_SCANNER_COOLDOWN_MS,
   requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
   onAuthorizationFailure,
@@ -67,6 +69,10 @@ export function useGateScanner({
   const pendingIncidentsRef = useRef<PendingIncident[]>([]);
   const mountedRef = useRef(true);
   const reducedMotionRef = useRef(false);
+  const preferencesRef = useRef({ mutedAudio, vibrationDisabled, reducedMotion });
+  useEffect(() => {
+    preferencesRef.current = { mutedAudio, vibrationDisabled, reducedMotion };
+  }, [mutedAudio, vibrationDisabled, reducedMotion]);
 
   const transition = useCallback((event: ScannerEvent) => {
     const next = reduceScannerState(stateRef.current, event);
@@ -77,11 +83,10 @@ export function useGateScanner({
 
   const feedback = useCallback((decision: "ALLOW" | "DENY" | "UNVERIFIED_OFFLINE") => {
     emitScannerFeedback(decision, {
-      mutedAudio,
-      reducedMotion: reducedMotionRef.current,
-      vibrationDisabled,
+      ...preferencesRef.current,
+      reducedMotion: reducedMotionRef.current || preferencesRef.current.reducedMotion,
     });
-  }, [mutedAudio, vibrationDisabled]);
+  }, []);
 
   const persistIncident = useCallback(async (incident: PendingIncident) => {
     if (!deviceCredential || !browserIsOnline()) {

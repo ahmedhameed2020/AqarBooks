@@ -45,13 +45,22 @@ let scanner!: ScannerHook;
 
 function HookHarness({
   onAuthorizationFailure,
+  mutedAudio = false,
+  vibrationDisabled = false,
+  reducedMotion = false,
   requestTimeoutMs = 12_000,
 }: {
   onAuthorizationFailure?: () => void;
+  mutedAudio?: boolean;
+  vibrationDisabled?: boolean;
+  reducedMotion?: boolean;
   requestTimeoutMs?: number;
 }) {
   const currentScanner = useGateScanner({
     deviceId,
+    mutedAudio,
+    vibrationDisabled,
+    reducedMotion,
     deviceCredential,
     gateId,
     direction: "ENTRY",
@@ -112,6 +121,22 @@ describe("useGateScanner request interleavings", () => {
     await act(async () => renderer.unmount());
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it("uses preferences changed while a scan is pending for its eventual feedback", async () => {
+    const response = deferred<{ ok: false; error: string }>();
+    processVisitorGateScanAction.mockReturnValue(response.promise);
+    let submission!: Promise<void>;
+    await act(async () => {
+      submission = scanner.submitScan("preference-payload");
+      await Promise.resolve();
+    });
+    await act(async () => renderer.update(<HookHarness mutedAudio vibrationDisabled reducedMotion />));
+    await act(async () => {
+      response.resolve({ ok: false, error: "failed" });
+      await submission;
+    });
+    expect(emitScannerFeedback).toHaveBeenLastCalledWith("UNVERIFIED_OFFLINE", { mutedAudio: true, vibrationDisabled: true, reducedMotion: true });
   });
 
   it("suppresses a late ALLOW after connectivity invalidates the active request", async () => {
