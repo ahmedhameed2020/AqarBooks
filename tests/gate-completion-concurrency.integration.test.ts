@@ -25,7 +25,7 @@ describe("gate completion concurrent authenticated scanners", () => {
     const event = [...ids][0];
     expect(sql(`select count(*) from public.access_events where visitor_invitation_id='${visitor.id}'`)).toBe("1");
     expect(sql(`select count(*) from public.gate_hardware_commands where access_event_id='${event}'`)).toBe("1");
-    expect(sql(`select count(*) from public.notifications where source_id='${event}' and user_id='${fixture.owner.id}' and type='VISITOR_ENTERED'`)).toBe("1");
+    expect(sql(`select count(*) from public.notifications where source_id='${event}' and recipient_user_id='${fixture.owner.id}' and type='VISITOR_ENTERED'`)).toBe("1");
     expect(sql(`select entry_count||'|'||exit_count||'|'||is_inside from public.visitor_access_state where visitor_invitation_id='${visitor.id}'`)).toBe("1|0|true");
   }, 60_000);
 });

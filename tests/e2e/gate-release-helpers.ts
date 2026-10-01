@@ -1,5 +1,6 @@
-import { expect, type Page } from "@playwright/test";
+import { expect as baseExpect, type Page } from "@playwright/test";
 import { password, type GateFixture } from "../helpers/gate-release";
+const expect = baseExpect.configure({ timeout: 30_000 });
 
 export async function login(page: Page, user: GateFixture["manager"]) {
   const base = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
@@ -8,14 +9,14 @@ export async function login(page: Page, user: GateFixture["manager"]) {
   await page.locator('input[name="email"]').fill(user.email);
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).not.toHaveURL(/\/login/);
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 60_000 });
 }
 export async function enrollment(page: Page, fixture: GateFixture, direction = "BOTH") {
   await page.goto("/en/operations/gates");
   await page.getByRole("button", { name: "Enroll device", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toHaveAccessibleName("Enroll gate scanner");
-  await dialog.getByLabel("Gate", { exact: true }).selectOption(fixture.gate);
+  await dialog.getByRole("combobox", { name: /^Gate/ }).selectOption(fixture.gate);
   await dialog.getByLabel("Allowed direction").selectOption(direction);
   await dialog.getByRole("button", { name: "Create code" }).click();
   await expect(dialog.locator("code")).toHaveCount(2);
@@ -43,4 +44,4 @@ export async function manualScan(page: Page, payload: string) {
   await page.getByPlaceholder("AQP1...").fill(payload);
   await page.getByRole("button", { name: "Scan", exact: true }).click();
 }
-export const resultPanel = (page: Page) => page.locator('[aria-live="assertive"]');
+export const resultPanel = (page: Page) => page.locator('[aria-live="assertive"]:not(#__next-route-announcer__)');

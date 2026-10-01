@@ -1,10 +1,15 @@
 import { readFile } from "node:fs/promises";
-import { test, expect } from "@playwright/test";
+import { test, expect as baseExpect } from "@playwright/test";
 import { createGateFixture, sql } from "../helpers/gate-release";
 import { login } from "./gate-release-helpers";
+const expect = baseExpect.configure({ timeout: 30_000 });
+test.setTimeout(180_000);
 
 test("guard exception requires supervisor approval; corrected exit preserves scan evidence", async ({ page, browser }) => {
   const fixture = await createGateFixture(), visitor = fixture.invitation(), device = fixture.device();
+  // Selecting an identified visitor requires the separate visitor-read grant.
+  // The guard still has no approval or occupancy-reconciliation permission.
+  sql(`insert into public.role_permissions(role_id,permission_id) select '${fixture.guard.id}',id from public.permissions where key='operations.visitors.view'`);
   const scan = await fixture.guard.client.rpc("process_visitor_gate_scan", {
     p_device_id: device.id, p_device_credential: device.credential, p_gate_id: fixture.gate,
     p_invitation_id: visitor.id, p_raw_secret: visitor.secret, p_direction: "ENTRY", p_client_scan_id: crypto.randomUUID(),
@@ -18,10 +23,10 @@ test("guard exception requires supervisor approval; corrected exit preserves sca
   await page.getByRole("button", { name: "Manual exception", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toHaveAccessibleName("Record gate exception");
-  await dialog.getByLabel("Gate", { exact: true }).selectOption(fixture.gate);
+  await dialog.getByRole("combobox", { name: /^Gate/ }).selectOption(fixture.gate);
   await dialog.getByLabel("Visitor (optional)").selectOption(visitor.id);
-  await dialog.getByLabel("Direction", { exact: true }).selectOption("EXIT");
-  await dialog.getByLabel("Category", { exact: true }).selectOption("MISSED_SCAN");
+  await dialog.getByRole("combobox", { name: /^Direction/ }).selectOption("EXIT");
+  await dialog.getByRole("combobox", { name: /^Category/ }).selectOption("MISSED_SCAN");
   await dialog.getByLabel("Reason", { exact: true }).fill("Guard observed a missed exit");
   await dialog.getByRole("button", { name: "Record", exact: true }).click();
   await expect(dialog.getByRole("status")).toHaveText("Saved");

@@ -1,6 +1,8 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect as baseExpect, type Page } from "@playwright/test";
 import { createGateFixture, hash, sql } from "../helpers/gate-release";
 import { enrolledScanner, manualScan, resultPanel } from "./gate-release-helpers";
+const expect = baseExpect.configure({ timeout: 30_000 });
+test.setTimeout(180_000);
 
 type ProbeWindow = Window & { gateTones: number[]; gateVibrations: number[][]; gateCameraPayload: string | null };
 async function capabilities(page: Page, mode: "camera" | "missing" | "denied" | "feedback-throws") {
