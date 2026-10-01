@@ -145,7 +145,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20260925182911_gate_notifications.sql", bytes: 10612, sha256: "257502ceae6e3c0c65c65d23d0a40c4325a00aa41349d25ad293c4bcc29384f3", provenance: "new_authorized_migration" },
   { file: "20260925184655_gate_hardware_outbox.sql", bytes: 10256, sha256: "397ab1e0b0a5f757455cd0948f78ddec67659ba58e72b59aa8df32cb68cd1620", provenance: "new_authorized_migration" },
   { file: "20261001052203_gate_long_stay_policy.sql", bytes: 4526, sha256: "9b546f551dd0f899b3aa9368bf330877266d594cc4ff279119fcccbc51f5dcde", provenance: "new_authorized_migration" },
-  { file: "20261001070000_gate_completion_rollout.sql", bytes: 8358, sha256: "61cf106384424f6496a2acf41fa3942a50e6e47165b537b9fbe6a69688a982bc", provenance: "new_authorized_migration" },
+  { file: "20261001070000_gate_completion_rollout.sql", bytes: 9058, sha256: "f709e86ec6ec761cd8dfe437591de7ac5a2811fe0ffc8be167e8ac3bc98ea40c", provenance: "new_authorized_migration" },
 ] as const;
 
 /**

@@ -67,6 +67,7 @@ function resolveSupabaseCredentials() {
 const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "process_visitor_gate_scan_core", // canonical core admitted only via gated wrappers
   "require_gate_completion", // internal locked rollout admission
+  "require_gate_scan_actor", // gate authorization before rollout state lookup
   "guard_gate_completion_insert", // trigger-only completion admission
   "detect_gate_long_stays", // service-only bounded detector
   "gate_supervision_context", // internal permission/context helper

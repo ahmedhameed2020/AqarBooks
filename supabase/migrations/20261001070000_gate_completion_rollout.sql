@@ -77,6 +77,20 @@ create trigger completion_guard before insert on public.gate_connectivity_incide
 for each row execute function public.guard_gate_completion_insert();
 
 -- Separate private canonical scan logic from the two admitted public paths.
+create function public.require_gate_scan_actor(p_gate_id uuid) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare v_organization_id uuid;
+begin
+  if auth.uid() is null then raise exception 'NOT_AUTHENTICATED' using errcode='42501'; end if;
+  select organization_id into v_organization_id from public.gates where id=p_gate_id;
+  if v_organization_id is null or not public.gate_staff_can_scan(v_organization_id) then
+    raise exception 'GATE_SCAN_NOT_AUTHORIZED' using errcode='42501';
+  end if;
+  return v_organization_id;
+end;
+$$;
+revoke all on function public.require_gate_scan_actor(uuid) from public,anon,authenticated,service_role;
+
 do $$
 declare v_definition text;
 begin
@@ -86,7 +100,7 @@ begin
   if position(E'begin\n' in v_definition)=0 then raise exception 'TRUSTED_SCAN_DEFINITION_CHANGED'; end if;
   v_definition := replace(v_definition,'public.process_visitor_gate_scan(' || E'\n      p_gate_id', 'public.process_visitor_gate_scan_core(' || E'\n      p_gate_id');
   if position('public.process_visitor_gate_scan_core(' in v_definition)=0 then raise exception 'TRUSTED_SCAN_CORE_CALL_CHANGED'; end if;
-  execute replace(v_definition,E'begin\n',E'begin\n  perform public.require_gate_completion((select organization_id from public.gates where id=p_gate_id));\n');
+  execute replace(v_definition,E'begin\n',E'begin\n  perform public.require_gate_completion(public.require_gate_scan_actor(p_gate_id));\n');
 end;
 $$;
 revoke all on function public.process_visitor_gate_scan_core(uuid,uuid,text,text,uuid) from public,anon,authenticated,service_role;
@@ -99,6 +113,7 @@ create or replace function public.process_visitor_gate_scan(
 language plpgsql security definer set search_path='' as $$
 declare v_enabled boolean;
 begin
+  perform public.require_gate_scan_actor(p_gate_id);
   -- Lock the same policy row as enabling, fencing legacy admissions at rollout.
   perform pg_catalog.pg_advisory_xact_lock_shared(pg_catalog.hashtextextended('gate-completion:'||(select organization_id::text from public.gates where id=p_gate_id),0));
   select p.enabled into v_enabled from public.gate_completion_policy p

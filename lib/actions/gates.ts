@@ -54,6 +54,7 @@ function mapGateError(message: string | undefined): string {
   if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
   if (message.includes("NOT_ENTITLED")) return "not_entitled";
   if (message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) return "device_not_authorized";
+  if (message.includes("GATE_TRUSTED_DEVICE_REQUIRED")) return "trusted_device_required";
   if (message.includes("NOT_AUTHORIZED")) return "forbidden";
   if (message.includes("NOT_FOUND")) return "not_found";
   if (message.includes("INVALID_GATE_CODE")) return "invalid_code";
@@ -170,4 +171,31 @@ export async function processVisitorGateScanAction(
     propertyId: result.property_id,
     occurredAt: result.occurred_at,
   };
+}
+
+// Migration compatibility path. The database admits it only while completion is
+// disabled and enforces the same authenticated tenant/operator scan permission.
+export async function processLegacyVisitorGateScanAction(input: {
+  gateId: string; direction: "ENTRY" | "EXIT"; clientScanId: string; qrPayload: string;
+}): Promise<GateScanResult> {
+  const parsed = z.object({ gateId: z.string().uuid(), direction: z.enum(["ENTRY", "EXIT"]),
+    clientScanId: z.string().uuid(), qrPayload: z.string().max(4096),
+  }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+  const payload = parseQrPayload(parsed.data.qrPayload);
+  if (!payload || parsed.data.qrPayload.split(".").length !== 3) return { ok: false, error: "invalid_qr_payload" };
+  const db = await createClient();
+  const { data, error } = await db.rpc("process_visitor_gate_scan", {
+    p_gate_id: parsed.data.gateId, p_invitation_id: payload.invitationId, p_raw_secret: payload.secret,
+    p_direction: parsed.data.direction, p_client_scan_id: parsed.data.clientScanId,
+  });
+  const result = data?.[0];
+  if (error || !result) return { ok: false, error: mapGateError(error?.message) };
+  revalidatePath("/[locale]/operations/gate", "page");
+  revalidatePath("/[locale]/operations/access-events", "page");
+  return { ok: true, decision: result.decision as GateScanDecision, reasonCode: result.reason_code,
+    eventId: result.event_id, guestName: result.guest_name, invitationNo: result.invitation_no,
+    unitId: result.unit_id, invitationId: result.invitation_id, usagePolicy: result.usage_policy,
+    validUntil: result.valid_until, isInside: result.is_inside, gateId: result.gate_id,
+    propertyId: result.property_id, occurredAt: result.occurred_at };
 }

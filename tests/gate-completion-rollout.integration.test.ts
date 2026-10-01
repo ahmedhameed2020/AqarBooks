@@ -27,10 +27,15 @@ describe("completion rollout and non-destructive rollback", () => {
     const snapshot = sql(`select (select count(*) from public.gate_devices where organization_id='${f.org}')||'|'||(select count(*) from public.access_events where organization_id='${f.org}')||'|'||(select count(*) from public.gate_hardware_commands where organization_id='${f.org}')`);
     expect((await f.guard.client.rpc("set_gate_completion_policy", { p_organization_id: f.org, p_enabled: false })).error).not.toBeNull();
     const other = await createGateFixture();
+    const outsiderScan = { ...legacy, p_gate_id: other.gate };
+    expect((await f.guard.client.rpc("process_visitor_gate_scan", outsiderScan)).error?.message).toContain("GATE_SCAN_NOT_AUTHORIZED");
+    expect((await f.guard.client.rpc("process_visitor_gate_scan", { ...trusted, p_gate_id: other.gate })).error?.message).toContain("GATE_SCAN_NOT_AUTHORIZED");
     expect((await f.manager.client.rpc("set_gate_completion_policy", { p_organization_id: other.org, p_enabled: false })).error).not.toBeNull();
     expect((await f.manager.client.rpc("gate_completion_enabled", { p_organization_id: other.org })).data).toBe(false);
     expect((await f.manager.client.from("gate_completion_policy").select("organization_id").eq("organization_id", other.org)).data).toEqual([]);
     expect((await f.manager.client.rpc("set_gate_completion_policy", { p_organization_id: f.org, p_enabled: false })).error).toBeNull();
+    expect((await other.guard.client.rpc("process_visitor_gate_scan", legacy)).error?.message).toContain("GATE_SCAN_NOT_AUTHORIZED");
+    expect((await other.guard.client.rpc("process_visitor_gate_scan", trusted)).error?.message).toContain("GATE_SCAN_NOT_AUTHORIZED");
     expect(sql(`select (select count(*) from public.gate_devices where organization_id='${f.org}')||'|'||(select count(*) from public.access_events where organization_id='${f.org}')||'|'||(select count(*) from public.gate_hardware_commands where organization_id='${f.org}')`)).toBe(snapshot);
     expect(sql(`select (select count(*) from public.gate_manual_exceptions where organization_id='${f.org}')||'|'||(select count(*) from public.gate_access_reconciliations where organization_id='${f.org}')`)).toBe(retainedSupervision);
     expect(sql(`select public.gate_hardware_event_eligible('${originalEvent}',endpoint_id) from public.gate_hardware_commands where access_event_id='${originalEvent}'`)).toBe("f");

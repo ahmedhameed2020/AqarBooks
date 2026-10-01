@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { GateScannerServiceWorkerRegistration } from "@/lib/gates/service-worker";
 import { getGateCompletionEnabled } from "@/lib/gates/completion-policy";
+import { LegacyGateScannerClient } from "./legacy-scanner-client";
 import { GateScannerClient, type GateScannerDevice, type GateScannerEvent, type GateScannerGate } from "./gate-scanner-client";
 
 export const metadata: Metadata = {
@@ -88,10 +89,13 @@ export default async function GateScannerPage({
   }
 
   if (!(await getGateCompletionEnabled(supabase, organization.id))) {
-    return <div className="rounded-2xl border bg-card p-6">
-      <h1 className="text-lg font-bold">{isAr ? "ماسح الأجهزة متوقف" : "Trusted device scanner is paused"}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{isAr ? "يمكن لمسؤول البوابات تفعيل التشغيل المتقدم من إعدادات البوابات. تبقى إدارة الزوار والسجلات متاحة." : "A gate manager can enable completion in gate settings. Visitor management and evidence remain available."}</p>
-    </div>;
+    const { data: legacyGates, error } = await supabase.from("gates")
+      .select("id,code,name_ar,name_en,direction_mode").eq("organization_id", organization.id).eq("is_active", true).order("code");
+    if (error) throw new Error("gate_scanner_unavailable");
+    return <LegacyGateScannerClient isAr={isAr} gates={(legacyGates ?? []).map((gate) => ({
+      id: gate.id, label: `${gate.code} · ${isAr ? gate.name_ar : gate.name_en}`,
+      directionMode: gate.direction_mode as "ENTRY" | "EXIT" | "BOTH",
+    }))} />;
   }
 
   const requestedDeviceId = typeof query.deviceId === "string"
