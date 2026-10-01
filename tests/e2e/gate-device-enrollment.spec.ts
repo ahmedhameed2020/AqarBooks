@@ -72,3 +72,16 @@ test("enrollment fields have accessible names and keyboard access", async ({ pag
   await page.keyboard.press("Tab");
   await expect(page.locator('input[name="enrollmentCode"]')).toBeFocused();
 });
+
+test("occupancy navigation is available to guards only with ledger permission", async ({ page }) => {
+  const fixture = await createGateFixture();
+  await login(page, fixture.guard);
+  const link = page.getByRole("link", { name: "Live Visitor Occupancy", exact: true });
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page).toHaveURL(/\/operations\/gate\/occupancy$/);
+  await expect(page.getByRole("heading", { name: "Live visitor occupancy", exact: true })).toBeVisible();
+  sql(`delete from public.role_permissions where role_id='${fixture.guard.id}' and permission_id in (select id from public.permissions where key='operations.access_events.view')`);
+  await page.goto("/en/dashboard");
+  await expect(link).toHaveCount(0);
+});

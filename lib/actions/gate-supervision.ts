@@ -41,7 +41,7 @@ function result(data: string | null, error: { message: string } | null): GateSup
   }
   revalidatePath("/[locale]/operations/gates", "page");
   revalidatePath("/[locale]/operations/access-events", "page");
-  revalidatePath("/[locale]/operations/occupancy", "page");
+  revalidatePath("/[locale]/operations/gate/occupancy", "page");
   return { ok: true, id: data };
 }
 

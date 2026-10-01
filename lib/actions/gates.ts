@@ -53,13 +53,13 @@ function mapGateError(message: string | undefined): string {
   if (!message) return "failed";
   if (message.includes("NOT_AUTHENTICATED")) return "unauthenticated";
   if (message.includes("NOT_ENTITLED")) return "not_entitled";
+  if (message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) return "device_not_authorized";
   if (message.includes("NOT_AUTHORIZED")) return "forbidden";
   if (message.includes("NOT_FOUND")) return "not_found";
   if (message.includes("INVALID_GATE_CODE")) return "invalid_code";
   if (message.includes("INVALID_GATE_NAME")) return "invalid_name";
   if (message.includes("INVALID_GATE_DIRECTION")) return "invalid_direction";
   if (message.includes("INVALID_GATE_SCAN_INPUT")) return "invalid_input";
-  if (message.includes("DEVICE_BINDING_NOT_AUTHORIZED")) return "device_not_authorized";
   if (message.includes("ORGANIZATION_INACTIVE")) return "organization_inactive";
   return "failed";
 }

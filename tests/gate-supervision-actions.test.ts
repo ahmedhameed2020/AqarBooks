@@ -31,7 +31,9 @@ describe("gate supervision actions", () => {
     expect(rpc).toHaveBeenCalledWith("create_gate_manual_exception", expect.objectContaining({ p_reason: "Recorded by guard", p_outcome: "ENTERED", p_invitation_id: id }));
     expect(await approveGateManualExceptionAction({ exceptionId: id, reason: "Reviewed" })).toEqual({ ok: true, id });
     expect(await reconcileVisitorAccessStateAction({ gateId: id, invitationId: id, isInside: false, category: "MISSED_SCAN", reason: "Observed exit" })).toEqual({ ok: true, id });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/operations/occupancy", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/operations/gate/occupancy", "page");
+    expect(revalidatePath.mock.calls.filter(([path]) => path === "/[locale]/operations/gate/occupancy")).toHaveLength(3);
+    expect(revalidatePath).not.toHaveBeenCalledWith("/[locale]/operations/occupancy", "page");
   });
 
   it.each([
