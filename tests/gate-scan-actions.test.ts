@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { rpc, revalidatePath } = vi.hoisted(() => ({ rpc: vi.fn(), revalidatePath: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ rpc })) }));
+const { rpc, getUser, auditRpc, revalidatePath } = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), auditRpc: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ rpc, auth: { getUser } })) }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ rpc: auditRpc })) }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 import { processVisitorGateScanAction, processLegacyVisitorGateScanAction } from "@/lib/actions/gates";
 
@@ -12,7 +13,10 @@ const input = {
 };
 
 describe("gate scan action error boundary", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getUser.mockResolvedValue({ data: { user: null } });
+  });
 
   it.each([
     ["DEVICE_BINDING_NOT_AUTHORIZED", "device_not_authorized"],
@@ -24,6 +28,22 @@ describe("gate scan action error boundary", () => {
       p_device_id: id, p_gate_id: id, p_device_credential: input.deviceCredential,
     }));
     expect(revalidatePath).not.toHaveBeenCalled();
+    expect(auditRpc).not.toHaveBeenCalled();
+  });
+
+  it("uses only the verified actor and gate for separate audit, keeping rejection and logs redacted", async () => {
+    const actorId = "77c94272-38d6-4387-bf85-76a837b6e7a3";
+    rpc.mockResolvedValue({ data: null, error: { message: "DEVICE_BINDING_NOT_AUTHORIZED" } });
+    getUser.mockResolvedValue({ data: { user: { id: actorId } } });
+    auditRpc.mockResolvedValue({ error: { message: input.qrPayload } });
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      expect(await processVisitorGateScanAction(input)).toEqual({ ok: false, error: "device_not_authorized" });
+      expect(auditRpc).toHaveBeenCalledExactlyOnceWith("audit_gate_authentication_failure", { p_actor: actorId, p_gate: input.gateId });
+      expect(JSON.stringify(log.mock.calls)).not.toContain(input.qrPayload);
+      expect(JSON.stringify(log.mock.calls)).not.toContain(input.deviceCredential);
+      expect(revalidatePath).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
   });
 });
 

@@ -38,7 +38,12 @@ describe("gate operations migration guard", () => {
     );
     expect(accessEventsDefinition).not.toMatch(/secret|token|hash/i);
     expect(migration).not.toMatch(/safe_change_summary[^;]*(raw_secret|token_hash|p_raw_secret)/is);
-    expect(actions).not.toContain("createAdminClient");
+    // The separately committed authentication audit is the sole privileged call;
+    // pass validation and state transitions must retain the user's RPC client.
+    const privilegedCalls = [...actions.matchAll(/createAdminClient\(\)\.rpc\("([^"]+)"/g)].map((match) => match[1]);
+    expect(privilegedCalls).toEqual(["audit_gate_authentication_failure"]);
+    expect(actions).toContain('supabase.rpc("process_visitor_gate_scan"');
+    expect(actions).not.toMatch(/\.from\("(?:access_events|visitor_access_state)"\)/);
   });
 
   it("enforces direction, pass states, property scoping, and current visitor feature entitlement", () => {

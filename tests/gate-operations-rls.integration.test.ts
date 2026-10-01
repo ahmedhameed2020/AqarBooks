@@ -263,7 +263,9 @@ async function createOrgFixture(
   expect(ownershipError, `ownership insert failed: ${ownershipError?.message}`).toBeNull();
 
   const staffManager = await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-manager`);
-  expect((await staffManager.client.rpc("set_gate_completion_policy", { p_organization_id: orgId, p_enabled: true })).error).toBeNull();
+  const completion = await staffManager.client.rpc("set_gate_completion_policy", { p_organization_id: orgId, p_enabled: true });
+  if (planKey === "PROFESSIONAL") expect(completion.error).toBeNull();
+  else expect(completion.error?.message).toBe("GATE_COMPLETION_NOT_AUTHORIZED");
   return {
     orgId,
     propertyId: property!.id,
@@ -405,7 +407,9 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
         has_function_privilege('authenticated', 'public.process_visitor_gate_scan(uuid,text,uuid,uuid,text,text,uuid,text)', 'execute'),
         has_function_privilege('authenticated', 'public.create_gate(uuid,text,text,text,text)', 'execute')
     `);
-    expect(privileges).toBe("f|t|f|t|f|f|t|f|f|f|f|t|t");
+    // The legacy wrapper is callable for disabled-only rollout compatibility;
+    // enabled organizations are rejected inside the wrapper, not by its ACL.
+    expect(privileges).toBe("f|t|f|t|f|f|t|f|f|t|f|t|t");
   });
 
   it("lets staff managers create gates while view-only staff cannot mutate them", async () => {
@@ -700,16 +704,27 @@ describe.sequential("gate operations runtime Supabase/PostgreSQL RLS gate", () =
       })
       .select("id")
       .single();
-    expect(disabledDeviceError).toBeNull();
+    expect(disabledDeviceError?.message, "disabled plan cannot enroll a device").toBe("GATE_COMPLETION_DISABLED");
+    expect(disabledDevice).toBeNull();
     const disabledScan = await scan(
       disabledOrg.staffManager.client,
-      { deviceId: disabledDevice!.id, credential: disabledCredential },
+      { deviceId: randomUUID(), credential: disabledCredential },
       disabledGate.data!.id,
       disabledInvitation.data!.id,
       disabledSecret,
       "ENTRY",
     );
-    expectSecurityRejection(disabledScan.error, "disabled feature rejects device authentication");
+    expect(disabledScan.error?.message, "disabled feature rejects device authentication").toBe("GATE_COMPLETION_DISABLED");
+    const disabledLegacyScan = await disabledOrg.staffManager.client.rpc("process_visitor_gate_scan", {
+      p_gate_id: disabledGate.data!.id, p_invitation_id: disabledInvitation.data!.id,
+      p_raw_secret: disabledSecret, p_direction: "ENTRY", p_client_scan_id: randomUUID(),
+    });
+    expect(disabledLegacyScan.error).toBeNull();
+    expect(disabledLegacyScan.data?.[0], "legacy compatibility does not bypass plan entitlement").toMatchObject({
+      decision: "DENY", reason_code: "FEATURE_DISABLED",
+    });
+    expect(runLocalDbQuery(`select count(*) from public.access_events where organization_id='${disabledOrg.orgId}' and decision='ALLOW'`)).toBe("0");
+    expect(runLocalDbQuery(`select count(*) from public.visitor_access_state where organization_id='${disabledOrg.orgId}' and is_inside`)).toBe("0");
 
     const accountingCounts = runLocalDbQuery(`
       select
