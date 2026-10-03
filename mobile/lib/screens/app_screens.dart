@@ -120,10 +120,10 @@ class _LoginState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final t = AppLabels(Localizations.localeOf(context));
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background ambient luxury glow
+          // Background ambient soft luxury glow
           Positioned(
             top: -120,
             right: t.ar ? -120 : null,
@@ -135,8 +135,8 @@ class _LoginState extends ConsumerState<LoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFFC5A880).withAlpha(35),
-                    const Color(0xFF1E3A8A).withAlpha(20),
+                    appPurpleLight.withAlpha(120),
+                    const Color(0xFFF1F5F9).withAlpha(50),
                     Colors.transparent,
                   ],
                 ),
@@ -154,7 +154,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF1E3A8A).withAlpha(40),
+                    const Color(0xFFE2E8F0).withAlpha(100),
                     Colors.transparent,
                   ],
                 ),
@@ -168,19 +168,19 @@ class _LoginState extends ConsumerState<LoginScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 440),
                   child: Container(
-                    padding: const EdgeInsets.all(32),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF131B2E).withAlpha(220),
-                      borderRadius: BorderRadius.circular(28),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
                       border: Border.all(
-                        color: Colors.white.withAlpha(25),
+                        color: appCardBorder,
                         width: 1.2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(120),
-                          blurRadius: 40,
-                          offset: const Offset(0, 20),
+                          color: const Color(0xFF0F172A).withAlpha(15),
+                          blurRadius: 36,
+                          offset: const Offset(0, 14),
                         ),
                       ],
                     ),
@@ -191,38 +191,32 @@ class _LoginState extends ConsumerState<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              width: 58,
-                              height: 58,
+                              width: 64,
+                              height: 64,
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFFC5A880),
-                                    Color(0xFF9E8158),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(18),
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: appCardBorder),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFC5A880).withAlpha(80),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
+                                    color: const Color(0xFF07425D).withAlpha(18),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.apartment_rounded,
-                                color: Colors.white,
-                                size: 30,
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                fit: BoxFit.contain,
                               ),
                             ),
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(15),
+                                color: appSurface,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: Colors.white.withAlpha(25),
+                                  color: appCardBorder,
                                 ),
                               ),
                               child: TextButton.icon(
@@ -235,17 +229,17 @@ class _LoginState extends ConsumerState<LoginScreen> {
                                           : const Locale('ar');
                                 },
                                 style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFDFCCA8),
+                                  foregroundColor: appNavy,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
                                     vertical: 8,
                                   ),
                                 ),
-                                icon: const Icon(Icons.language_rounded, size: 18),
+                                icon: const Icon(Icons.language_rounded, size: 18, color: appPurple),
                                 label: Text(
                                   t.ar ? 'English' : 'العربية',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -253,7 +247,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
                         Row(
                           children: [
                             Container(
@@ -262,32 +256,29 @@ class _LoginState extends ConsumerState<LoginScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFC5A880).withAlpha(30),
+                                color: appPurpleLight,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFFC5A880).withAlpha(80),
-                                ),
                               ),
                               child: Text(
-                                t.ar ? 'بوابة العقارات الفاخرة' : 'PREMIUM PROPTECH',
+                                t.ar ? 'عقار بوكس مصر' : 'AQARBOOKS EGYPT',
                                 style: const TextStyle(
-                                  color: Color(0xFFDFCCA8),
+                                  color: appPurple,
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         Text(
                           t.welcome,
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
+                                color: appNavy,
+                                letterSpacing: -0.6,
                               ),
                         ),
                         const SizedBox(height: 6),
@@ -295,44 +286,45 @@ class _LoginState extends ConsumerState<LoginScreen> {
                           t.signInSubtitle,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: const Color(0xFF94A3B8),
+                                color: const Color(0xFF64748B),
                                 fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 28),
                         Text(
                           t.email,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFCBD5E1),
+                            fontWeight: FontWeight.w700,
+                            color: appNavy,
                             fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: email,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: appInk, fontWeight: FontWeight.w600),
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: const Color(0xFF0B132B).withAlpha(180),
+                            fillColor: const Color(0xFFF8FAFC),
                             hintText: 'name@example.com',
-                            hintStyle: const TextStyle(color: Color(0xFF64748B)),
+                            hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                             prefixIcon: const Icon(
                               Icons.mail_outline_rounded,
-                              color: Color(0xFF94A3B8),
+                              color: Color(0xFF64748B),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(
-                                color: Colors.white.withAlpha(20),
+                              borderSide: const BorderSide(
+                                color: appCardBorder,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: const BorderSide(
-                                color: Color(0xFFC5A880),
-                                width: 1.5,
+                                color: appNavy,
+                                width: 1.8,
                               ),
                             ),
                           ),
@@ -341,8 +333,8 @@ class _LoginState extends ConsumerState<LoginScreen> {
                         Text(
                           t.password,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFCBD5E1),
+                            fontWeight: FontWeight.w700,
+                            color: appNavy,
                             fontSize: 13,
                           ),
                         ),
@@ -350,26 +342,26 @@ class _LoginState extends ConsumerState<LoginScreen> {
                         TextField(
                           controller: password,
                           obscureText: true,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: appInk, fontWeight: FontWeight.w600),
                           onSubmitted: (_) => submit(),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: const Color(0xFF0B132B).withAlpha(180),
+                            fillColor: const Color(0xFFF8FAFC),
                             prefixIcon: const Icon(
                               Icons.lock_outline_rounded,
-                              color: Color(0xFF94A3B8),
+                              color: Color(0xFF64748B),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(
-                                color: Colors.white.withAlpha(20),
+                              borderSide: const BorderSide(
+                                color: appCardBorder,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: const BorderSide(
-                                color: Color(0xFFC5A880),
-                                width: 1.5,
+                                color: appNavy,
+                                width: 1.8,
                               ),
                             ),
                           ),
@@ -381,7 +373,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
                               children: [
                                 const Icon(
                                   Icons.error_outline_rounded,
-                                  color: Color(0xFFF87171),
+                                  color: Color(0xFFDC2626),
                                   size: 16,
                                 ),
                                 const SizedBox(width: 6),
@@ -389,29 +381,30 @@ class _LoginState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     error!,
                                     style: const TextStyle(
-                                      color: Color(0xFFF87171),
+                                      color: Color(0xFFDC2626),
                                       fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 24),
                         Container(
                           width: double.infinity,
                           height: 54,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [
-                                Color(0xFFC5A880),
-                                Color(0xFF9E8158),
+                                Color(0xFF07425D),
+                                Color(0xFF042434),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFC5A880).withAlpha(70),
+                                color: const Color(0xFF07425D).withAlpha(70),
                                 blurRadius: 18,
                                 offset: const Offset(0, 6),
                               ),
@@ -451,11 +444,11 @@ class _LoginState extends ConsumerState<LoginScreen> {
                           child: TextButton(
                             onPressed: busy ? null : reset,
                             style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFFDFCCA8),
+                              foregroundColor: appPurple,
                             ),
                             child: Text(
                               t.resetPassword,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
