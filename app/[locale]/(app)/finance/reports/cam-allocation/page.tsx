@@ -58,6 +58,14 @@ export default async function CamAllocationPage({
     );
   }
 
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+      <h1 className="text-lg font-bold">{isAr ? "توزيع CAM" : "CAM Allocation Report"}</h1>
+      <p className="mt-2 text-sm text-slate-500">{isAr ? "قريبًا / غير متاح في هذا الإصدار." : "Coming soon / Not available in this version."}</p>
+    </div>
+  );
+
+  /* Real CAM billing/allocation data is not available; fabricated exports are disabled.
   const supabase = await createClient();
 
   // 1. Fetch Units with area and ownership
@@ -124,4 +132,5 @@ export default async function CamAllocationPage({
       locale={locale}
     />
   );
+  */
 }

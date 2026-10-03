@@ -16,6 +16,7 @@ import {
   Layers,
   DollarSign,
   Landmark,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,8 @@ import {
 import { getCurrencyLabel } from "@/lib/currency";
 import { RecordPaymentDialog, type Option, type DueOption } from "./payments-dialog";
 import { generatePaymentReceiptPdf } from "@/lib/reports/payment-receipt-pdf";
+import { voidPaymentAction } from "@/lib/actions/receivables";
+import { useToast } from "@/components/ui/toast";
 
 export type PaymentItem = {
   id: string;
@@ -38,7 +41,7 @@ export type PaymentItem = {
   unallocated_amount?: number;
   method: string;
   payment_date: string;
-  status: "DRAFT" | "POSTED" | "CANCELLED" | string;
+  status: "POSTED" | "REVERSED" | string;
   member_name?: string;
   reference?: string | null;
   memo?: string | null;
@@ -61,6 +64,7 @@ export function PaymentsClient({
   resortId,
   resortName,
   canRecordPayment = false,
+  canVoidPayment = false,
   currency = "EGP",
   locale,
   preselectedUnitId,
@@ -75,16 +79,18 @@ export function PaymentsClient({
   resortId: string;
   resortName?: string;
   canRecordPayment?: boolean;
+  canVoidPayment?: boolean;
   currency?: string;
   locale: string;
   preselectedUnitId?: string;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
+  const toast = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "POSTED" | "DRAFT">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "POSTED" | "REVERSED">("ALL");
 
   const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
 
@@ -93,7 +99,7 @@ export function PaymentsClient({
     return payments.filter((p) => {
       // Status filter
       if (statusFilter === "POSTED" && p.status !== "POSTED") return false;
-      if (statusFilter === "DRAFT" && p.status !== "DRAFT") return false;
+      if (statusFilter === "REVERSED" && p.status !== "REVERSED") return false;
 
       // Method filter
       if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
@@ -127,9 +133,29 @@ export function PaymentsClient({
         memo: payment.reference || payment.memo || null,
         createdByName: null,
         allocations: payment.allocations || [],
+        status: payment.status,
       },
       locale
     );
+  };
+
+  const handleVoid = async (payment: PaymentItem) => {
+    if (!canVoidPayment || payment.status !== "POSTED") return;
+    const confirmed = window.confirm(
+      isAr
+        ? `سيتم عكس القيد المحاسبي لسند القبض #${payment.receipt_number} وإعادة فتح الاستحقاقات المرتبطة. هل تريد المتابعة؟`
+        : `This reverses the journal entry for receipt #${payment.receipt_number} and reopens its dues. Continue?`,
+    );
+    if (!confirmed) return;
+    const reason = window.prompt(isAr ? "أدخل سبب العكس الإلزامي:" : "Enter the required reversal reason:");
+    if (!reason?.trim()) return;
+    const result = await voidPaymentAction({ organizationId, paymentId: payment.id, reason });
+    if (!result.ok) {
+      toast.add({ type: "error", title: isAr ? "تعذر عكس الدفعة" : "Payment reversal failed", description: result.error });
+      return;
+    }
+    toast.add({ type: "success", title: isAr ? "تم عكس الدفعة" : "Payment reversed" });
+    window.location.reload();
   };
 
   const getMethodBadge = (m: string) => {
@@ -140,8 +166,6 @@ export function PaymentsClient({
         return <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">{isAr ? "تحويل بنكي" : "Transfer"}</Badge>;
       case "CHEQUE":
         return <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">{isAr ? "شيك" : "Cheque"}</Badge>;
-      case "POS":
-        return <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-[10px]">{isAr ? "نقاط بيع" : "POS"}</Badge>;
       default:
         return <Badge variant="outline" className="text-[10px] font-mono">{m}</Badge>;
     }
@@ -172,7 +196,7 @@ export function PaymentsClient({
               [
                 { key: "ALL", labelAr: "الكل", labelEn: "All" },
                 { key: "POSTED", labelAr: "مرحل ومعتمد", labelEn: "Posted" },
-                { key: "DRAFT", labelAr: "مسودات", labelEn: "Drafts" },
+                { key: "REVERSED", labelAr: "معكوسة", labelEn: "Reversed" },
               ] as const
             ).map((tab) => (
               <button
@@ -190,7 +214,7 @@ export function PaymentsClient({
           </div>
 
           {/* Payment Method Filter */}
-          <Select value={methodFilter} onValueChange={(val) => setMethodFilter(val ?? "ALL")} items={[{ value: "ALL", label: isAr ? "كل الطرق" : "All Methods" }, { value: "CASH", label: isAr ? "نقدي" : "Cash" }, { value: "BANK_TRANSFER", label: isAr ? "تحويل بنكي" : "Bank Transfer" }, { value: "CHEQUE", label: isAr ? "شيك" : "Cheque" }, { value: "POS", label: isAr ? "نقاط بيع POS" : "POS" }, { value: "ONLINE", label: isAr ? "دفع إلكتروني" : "Online" }]}>
+          <Select value={methodFilter} onValueChange={(val) => setMethodFilter(val ?? "ALL")} items={[{ value: "ALL", label: isAr ? "كل الطرق" : "All Methods" }, { value: "CASH", label: isAr ? "نقدي" : "Cash" }, { value: "BANK_TRANSFER", label: isAr ? "تحويل بنكي" : "Bank Transfer" }, { value: "CHEQUE", label: isAr ? "شيك" : "Cheque" }, { value: "ONLINE", label: isAr ? "دفع إلكتروني" : "Online" }]}>
             <SelectTrigger className="w-36 text-xs h-9">
               <SelectValue placeholder={isAr ? "طريقة السداد" : "Method"} />
             </SelectTrigger>
@@ -199,7 +223,6 @@ export function PaymentsClient({
               <SelectItem value="CASH">{isAr ? "نقدي" : "Cash"}</SelectItem>
               <SelectItem value="BANK_TRANSFER">{isAr ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
               <SelectItem value="CHEQUE">{isAr ? "شيك" : "Cheque"}</SelectItem>
-              <SelectItem value="POS">{isAr ? "نقاط بيع POS" : "POS"}</SelectItem>
               <SelectItem value="ONLINE">{isAr ? "دفع إلكتروني" : "Online"}</SelectItem>
             </SelectContent>
           </Select>
@@ -238,6 +261,7 @@ export function PaymentsClient({
               {filteredPayments.length ? (
                 filteredPayments.map((payment) => {
                   const isPosted = payment.status === "POSTED";
+                  const isReversed = payment.status === "REVERSED";
 
                   return (
                     <tr
@@ -271,17 +295,31 @@ export function PaymentsClient({
                       <td className="p-3.5 text-center">
                         <Badge
                           className={`text-[10px] font-bold ${
-                            isPosted
-                              ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
-                              : "bg-slate-100 text-slate-700"
+                            isReversed
+                              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300"
+                              : isPosted
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-slate-100 text-slate-700"
                           }`}
                         >
-                          {isPosted ? (isAr ? "✓ مرحل ومعتمد" : "Posted") : (isAr ? "مسودة" : "Draft")}
+                          {isReversed ? (isAr ? "معكوسة" : "Reversed") : isPosted ? (isAr ? "✓ مرحل ومعتمد" : "Posted") : (isAr ? "غير معروف" : payment.status)}
                         </Badge>
                       </td>
 
                       <td className="p-3.5 text-end">
                         <div className="flex items-center justify-end gap-1.5">
+                          {canVoidPayment && isPosted && (
+                            <Button
+                              onClick={() => handleVoid(payment)}
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-xs font-bold gap-1 text-red-700 border-red-200 hover:bg-red-50"
+                              title={isAr ? "عكس الدفعة مع سبب إلزامي" : "Reverse payment with required reason"}
+                            >
+                              <AlertTriangle className="size-3.5" />
+                              <span>{isAr ? "عكس" : "Reverse"}</span>
+                            </Button>
+                          )}
                           <Button
                             onClick={() => handlePrintReceipt(payment)}
                             size="sm"

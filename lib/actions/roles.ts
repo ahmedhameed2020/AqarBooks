@@ -167,30 +167,16 @@ export async function updateRolePermissionsAction(
     return { ok: false, error: scopeCheck.error };
   }
 
-  // NOTE (DB-01 / Atomicity Risk):
-  // Deleting existing grants and inserting new grants is currently performed as two separate operations.
-  // Full transactional atomicity is pending DB-01 migration/RPC reconciliation.
-  // Delete existing grants
-  const { error: delErr } = await adminClient
-    .from("role_permissions")
-    .delete()
-    .eq("role_id", roleId);
+  // The database function performs delete + insert in one transaction. Calling it
+  // through the service client is intentional: all user/tenant/ceiling checks
+  // above run with the signed-in user's identity before this narrow DB operation.
+  const { error: replaceErr } = await adminClient.rpc("replace_role_permissions_atomic", {
+    p_organization_id: organizationId,
+    p_role_id: roleId,
+    p_permission_ids: permissionIds,
+  });
 
-  if (delErr) return { ok: false, error: delErr.message };
-
-  // Insert new grants if any
-  if (permissionIds.length > 0) {
-    const rows = permissionIds.map((pId) => ({
-      role_id: roleId,
-      permission_id: pId,
-    }));
-
-    const { error: insErr } = await adminClient
-      .from("role_permissions")
-      .insert(rows);
-
-    if (insErr) return { ok: false, error: insErr.message };
-  }
+  if (replaceErr) return { ok: false, error: replaceErr.message };
 
   // Write audit trail
   await logAuditTrail(adminClient, {

@@ -2768,7 +2768,8 @@ export type Database = {
           reversed_at: string | null;
           reversed_by: string | null;
           reversal_reason: string | null;
-        };
+
+                   };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -3110,7 +3111,8 @@ export type Database = {
           reversed_at: string | null;
           reversed_by: string | null;
           reversal_reason: string | null;
-          created_at: string;
+
+                     created_at: string;
         };
         Insert: never;
         Update: never;
@@ -3133,7 +3135,8 @@ export type Database = {
           reversed_at: string | null;
           reversed_by: string | null;
           reversal_reason: string | null;
-          created_by: string | null;
+
+                     created_by: string | null;
           created_at: string;
         };
         Insert: never;
@@ -4827,6 +4830,31 @@ export type Database = {
           total_debit: number;
           total_credit: number;
           balance: number;
+        }[];
+      };
+      void_payment: {
+        Args: {
+          p_organization_id: string;
+          p_payment_id: string;
+          p_reason: string;
+          p_ip_address?: string | null;
+          p_user_agent?: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      replace_role_permissions_atomic: {
+        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[] };
+        Returns: undefined;
+      };
+      verify_financial_audit_chain: {
+        Args: { p_organization_id: string };
+        Returns: {
+          log_id: string;
+          action: string;
+          occurred_at: string;
+          stored_hash: string;
+          calculated_hash: string;
+          is_valid: boolean;
         }[];
       };
       issue_dues: {

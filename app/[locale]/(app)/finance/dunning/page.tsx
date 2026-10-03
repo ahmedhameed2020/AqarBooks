@@ -60,7 +60,7 @@ export default async function DunningPage({
   }
 
   const supabase = await createClient();
-  const [{ data: policiesRaw }, { data: candidatesRaw }, { data: noticesRaw }] = await Promise.all([
+  const [{ data: policiesRaw, error: policiesError }, { data: candidatesRaw, error: candidatesError }, { data: noticesRaw, error: noticesError }] = await Promise.all([
     supabase
       .from("dunning_policies")
       .select("stage, name_ar, name_en, days_overdue, minimum_amount, is_active")
@@ -69,6 +69,10 @@ export default async function DunningPage({
     supabase.rpc("list_dunning_candidates", { p_organization_id: organization.id }),
     supabase.rpc("list_dunning_notices", { p_organization_id: organization.id }),
   ]);
+
+  if (policiesError || candidatesError || noticesError) {
+    return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{isAr ? "تعذر تحميل بيانات التحصيل؛ لم يتم تحويل الخطأ إلى حالة فارغة." : "Collections data could not be loaded; the query error was not treated as empty data."}</div>;
+  }
 
   const candidates = (candidatesRaw ?? []) as unknown as Candidate[];
   const notices = (noticesRaw ?? []) as unknown as NoticeRow[];

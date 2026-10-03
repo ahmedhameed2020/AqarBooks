@@ -614,7 +614,7 @@ export function DunningClient({
                       </td>
 
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600">
-                        {x.raised_at.slice(0, 10)}
+                        {x.raised_on.slice(0, 10)}
                       </td>
 
                       <td className="px-4 py-3 text-xs text-slate-600 font-mono">

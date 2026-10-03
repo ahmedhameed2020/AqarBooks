@@ -62,17 +62,21 @@ export default async function LeaseExpirationsPage({
   const supabase = await createClient();
 
   // Fetch all active/draft leases with unit and member info
-  const { data: leasesData } = await supabase
+  const { data: leasesData, error: leasesError } = await supabase
     .from("unit_leases")
-    .select("id, unit_id, tenant_member_id, starts_on, ends_on, rent_amount, rent_frequency, status, units(code, unit_type, resorts(name)), members(name, phone, email)")
+    .select("id, unit_id, tenant_member_id, starts_on, ends_on, rent_amount, rent_frequency, status, units(code, unit_type, resorts(name)), members(id, full_name, phone_number, email)")
     .eq("organization_id", organization.id)
     .order("ends_on", { ascending: true });
 
-  const now = Date.now();
+  if (leasesError) {
+    return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{isAr ? "تعذر تحميل بيانات انتهاء العقود." : "Lease expiration data could not be loaded."}</div>;
+  }
+
+  const now = new Date().getTime();
 
   const rows: ExpiringLeaseRow[] = (leasesData || []).map((l) => {
     const unit = l.units as unknown as { code?: string; unit_type?: string; resorts?: { name?: string } | null } | null;
-    const member = l.members as unknown as { name?: string; phone?: string; email?: string } | null;
+    const member = l.members as unknown as { full_name?: string; phone_number?: string; email?: string } | null;
 
     const endsOn = l.ends_on ? new Date(l.ends_on).getTime() : now + 180 * 24 * 60 * 60 * 1000;
     const daysRemaining = Math.floor((endsOn - now) / (1000 * 60 * 60 * 24));
@@ -86,8 +90,8 @@ export default async function LeaseExpirationsPage({
       unitCode: unit?.code || "—",
       unitType: unit?.unit_type || "APARTMENT",
       resortName: unit?.resorts?.name || (isAr ? "المنتجع الرئيسي" : "Main Resort"),
-      tenantName: member?.name || (isAr ? "مستأجر مسجل" : "Registered Tenant"),
-      tenantPhone: member?.phone || "",
+      tenantName: member?.full_name || (isAr ? "مستأجر مسجل" : "Registered Tenant"),
+      tenantPhone: member?.phone_number || "",
       tenantEmail: member?.email || "",
       startDate: l.starts_on || "2025-01-01",
       endDate: l.ends_on || "2026-12-31",

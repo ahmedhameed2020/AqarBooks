@@ -66,20 +66,24 @@ export default async function OwnerStatementPage({
   const supabase = await createClient();
 
   // 1. Fetch owners (members with ownerships)
-  const { data: ownershipsData } = await supabase
+  const { data: ownershipsData, error: ownershipsError } = await supabase
     .from("unit_ownerships")
-    .select("member_id, unit_id, members(id, full_name, phone_number, email), units(id, code, property_id, resorts(id, name))")
+    .select("member_id, unit_id, members(id, full_name, phone, email), units(id, code, property_id, resorts(id, name))")
     .eq("organization_id", organization.id);
 
   // 2. Fetch dues and payments to calculate financials
-  const { data: duesData } = await supabase
+  const { data: duesData, error: duesError } = await supabase
     .from("dues")
     .select("id, unit_id, amount, status, due_date, due_types(name_ar, name_en)")
     .eq("organization_id", organization.id);
 
+  if (ownershipsError || duesError) {
+    return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{isAr ? "تعذر تحميل بيانات كشف المالك." : "Owner statement data could not be loaded."}</div>;
+  }
+
   // dues carry no paid_amount; collection is the sum of allocations from
   // posted payments.
-  const [{ data: dueAllocations }, { data: postedPayments }] = await Promise.all([
+  const [{ data: dueAllocations, error: allocationsError }, { data: postedPayments, error: paymentsError }] = await Promise.all([
     supabase
       .from("payment_allocations")
       .select("due_id, amount, payment_id")
@@ -90,6 +94,10 @@ export default async function OwnerStatementPage({
       .eq("organization_id", organization.id)
       .eq("status", "POSTED"),
   ]);
+
+  if (allocationsError || paymentsError) {
+    return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{isAr ? "تعذر تحميل تخصيصات الدفعات لكشف المالك." : "Owner payment allocation data could not be loaded."}</div>;
+  }
 
   const postedPaymentIds = new Set((postedPayments ?? []).map((p) => p.id));
   const paidByDue = new Map<string, number>();
@@ -103,7 +111,7 @@ export default async function OwnerStatementPage({
   const unitStatements: OwnerUnitStatement[] = [];
 
   ownershipsData?.forEach((o) => {
-    const mem = o.members as unknown as { id: string; full_name: string; phone_number?: string; email?: string } | null;
+    const mem = o.members as unknown as { id: string; full_name: string; phone?: string; email?: string } | null;
     const unit = o.units as unknown as { id: string; code: string; property_id: string; resorts?: { id: string; name: string } } | null;
 
     if (!mem?.id || !unit?.id) return;
@@ -112,7 +120,7 @@ export default async function OwnerStatementPage({
       ownersMap.set(mem.id, {
         id: mem.id,
         name: mem.full_name,
-        phone: mem.phone_number || "",
+        phone: mem.phone || "",
         email: mem.email || "",
         unitsCount: 0,
       });

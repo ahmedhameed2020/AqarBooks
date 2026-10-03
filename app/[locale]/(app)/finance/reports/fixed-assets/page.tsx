@@ -58,6 +58,14 @@ export default async function FixedAssetsPage({
     );
   }
 
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+      <h1 className="text-lg font-bold">{isAr ? "سجل الأصول الثابتة" : "Fixed Assets Report"}</h1>
+      <p className="mt-2 text-sm text-slate-500">{isAr ? "قريبًا / غير متاح في هذا الإصدار." : "Coming soon / Not available in this version."}</p>
+    </div>
+  );
+
+  /* No real fixed-asset register binding is available; fabricated exports are disabled.
   const supabase = await createClient();
 
   // 1. Fetch Asset accounts from Chart of Accounts
@@ -105,4 +113,5 @@ export default async function FixedAssetsPage({
       locale={locale}
     />
   );
+  */
 }
