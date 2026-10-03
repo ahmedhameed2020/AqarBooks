@@ -58,6 +58,14 @@ export default async function CapexOpexPage({
     );
   }
 
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+      <h1 className="text-lg font-bold">{isAr ? "تقرير CAPEX / OPEX" : "CAPEX / OPEX Report"}</h1>
+      <p className="mt-2 text-sm text-slate-500">{isAr ? "قريبًا / غير متاح في هذا الإصدار." : "Coming soon / Not available in this version."}</p>
+    </div>
+  );
+
+  /* Real work-order/accounting binding is not available; never export fabricated values.
   const supabase = await createClient();
 
   // 1. Fetch Resorts
@@ -100,4 +108,5 @@ export default async function CapexOpexPage({
       locale={locale}
     />
   );
+  */
 }

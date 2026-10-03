@@ -29,6 +29,7 @@ interface PaymentReceiptData {
   memo: string | null;
   createdByName: string | null;
   allocations: PaymentReceiptAllocation[];
+  status?: "POSTED" | "REVERSED" | string;
 }
 
 export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: string): Window | null {
@@ -46,6 +47,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
     memo,
     createdByName,
     allocations,
+    status = "POSTED",
   } = data;
 
   const dateLabel = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
@@ -275,7 +277,8 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
     <div class="meta-info">
       <div>${isAr ? "تاريخ الطباعة:" : "Printed:"} <strong>${dateLabel}</strong></div>
       <div>${isAr ? "رقم الإيصال:" : "Receipt No:"} <strong>${safeReceiptNo || "—"}</strong></div>
-      <div>${isAr ? "AqarBooks — بوابة الملاك والمقبوضات" : "AqarBooks Owner Portal"}</div>
+      <div><strong>${status === "REVERSED" ? (isAr ? "معكوسة" : "REVERSED") : (isAr ? "مرحل" : "POSTED")}</strong></div>
+       <div>${isAr ? "AqarBooks — بوابة الملاك والمقبوضات" : "AqarBooks Owner Portal"}</div>
     </div>
   </div>
 

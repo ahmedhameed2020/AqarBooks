@@ -602,7 +602,7 @@ export function PeriodsClient({
               <Label className="text-xs font-bold">{isAr ? "الحالة الجديدة المستهدفة" : "Target Status"}</Label>
               <select
                 value={targetStatus}
-                onChange={(e) => setTargetStatus(e.target.value as any)}
+                onChange={(e) => setTargetStatus(e.target.value as FiscalPeriodItem["status"])}
                 className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
               >
                 <option value="OPEN">{isAr ? "مفتوحة للقيود (OPEN)" : "Open"}</option>
@@ -725,7 +725,7 @@ export function PeriodsClient({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setClosingStep((s) => (s - 1) as any)}
+                  onClick={() => setClosingStep((s) => (s - 1) as 1 | 2 | 3)}
                   className="text-xs font-bold h-9"
                 >
                   {isAr ? "السابق" : "Back"}
@@ -743,7 +743,7 @@ export function PeriodsClient({
 
               {closingStep < 3 ? (
                 <Button
-                  onClick={() => setClosingStep((s) => (s + 1) as any)}
+                  onClick={() => setClosingStep((s) => (s + 1) as 1 | 2 | 3)}
                   size="sm"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-5"
                 >
@@ -753,18 +753,16 @@ export function PeriodsClient({
                 <Button
                   onClick={() => {
                     toast({
-                      type: "success",
-                      title: isAr ? "تم إتمام إقفال السنة وترحيل الأرصدة الافتتاحية" : "Year Closed & Balances Rolled Over",
-                      description: isAr
-                        ? `تم توثيق إقفال سنة «${closingYear?.name}» وترحيل أرصدتها بنجاح.`
-                        : `Fiscal year ${closingYear?.name} successfully closed.`,
+                      type: "info",
+                      title: isAr ? "إقفال السنة غير متاح في نسخة MVP" : "Year-end closing unavailable in MVP",
+                      description: isAr ? "هذا المعالج للعرض فقط؛ لم يتم تنفيذ محرك الإقفال أو ترحيل الأرصدة." : "This wizard is display-only; no closing engine or opening-balance rollover has been executed.",
                     });
-                    setClosingYear(null);
                   }}
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-5"
+                  variant="outline"
+                  className="text-amber-700 border-amber-300 text-xs font-bold h-9 px-5"
                 >
-                  {isAr ? "اعتماد الإقفال وترحيل الأرصدة" : "Complete Closing"}
+                  {isAr ? "غير متاح في MVP" : "Unavailable in MVP"}
                 </Button>
               )}
             </DialogFooter>

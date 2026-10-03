@@ -127,7 +127,7 @@ const recordPaymentSchema = z.object({
   memberId: z.string().uuid().optional(),
   unitId: z.string().uuid().optional(),
   amount: z.coerce.number().positive(),
-  method: z.enum(["CASH", "BANK_TRANSFER", "CHEQUE", "POS", "ONLINE", "OTHER"]),
+  method: z.enum(["CASH", "CHEQUE", "ONLINE"]),
   paymentDate: z.string().min(1),
   depositAccountId: z.string().uuid(),
   fiscalPeriodId: z.string().uuid(),
@@ -184,6 +184,39 @@ export async function recordPaymentAction(
   revalidatePath("/[locale]/finance/payments", "page");
   revalidatePath("/[locale]/finance/dues", "page");
   return { ok: true };
+}
+
+const voidPaymentSchema = z.object({
+  organizationId: z.string().uuid(),
+  paymentId: z.string().uuid(),
+  reason: z.string().trim().min(1).max(1000),
+});
+
+export async function voidPaymentAction(input: {
+  organizationId: string;
+  paymentId: string;
+  reason: string;
+}): Promise<ActionResult<{ reversalJournalEntryId?: string }>> {
+  const parsed = voidPaymentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("void_payment", {
+    p_organization_id: parsed.data.organizationId,
+    p_payment_id: parsed.data.paymentId,
+    p_reason: parsed.data.reason,
+    p_ip_address: null,
+    p_user_agent: null,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/[locale]/finance/payments", "page");
+  revalidatePath("/[locale]/finance/dues", "page");
+  revalidatePath("/[locale]/property", "page");
+  return {
+    ok: true,
+    data: { reversalJournalEntryId: (data as { reversal_journal_entry_id?: string } | null)?.reversal_journal_entry_id },
+  };
 }
 
 const issueCreditNoteSchema = z.object({

@@ -65,30 +65,34 @@ export default async function RentRollPage({
   const supabase = await createClient();
 
   // 1. Fetch units with property/resort
-  const { data: unitsData } = await supabase
+  const { data: unitsData, error: unitsError } = await supabase
     .from("units")
     .select("id, code, unit_type, property_id, resorts(id, name)")
     .eq("organization_id", organization.id)
     .order("code", { ascending: true });
 
   // 2. Fetch active leases with tenant details
-  const { data: leasesData } = await supabase
+  const { data: leasesData, error: leasesError } = await supabase
     .from("unit_leases")
-    .select("id, unit_id, tenant_member_id, status, starts_on, ends_on, rent_amount, rent_frequency, security_deposit_amount, members(id, full_name, phone_number)")
+    .select("id, unit_id, tenant_member_id, status, starts_on, ends_on, rent_amount, rent_frequency, security_deposit_amount, members(id, full_name, phone)")
     .eq("organization_id", organization.id);
 
   // 3. Fetch unit ownerships
-  const { data: ownershipsData } = await supabase
+  const { data: ownershipsData, error: ownershipsError } = await supabase
     .from("unit_ownerships")
-    .select("unit_id, member_id, members(id, full_name, phone_number)")
+    .select("unit_id, member_id, members(id, full_name, phone)")
     .eq("organization_id", organization.id);
 
   // 4. Fetch distinct resorts for filtering
-  const { data: resortsData } = await supabase
+  const { data: resortsData, error: resortsError } = await supabase
     .from("resorts")
     .select("id, name")
     .eq("organization_id", organization.id)
     .order("name", { ascending: true });
+
+  if (unitsError || leasesError || ownershipsError || resortsError) {
+    return <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{isAr ? "تعذر تحميل بيانات جدول الإيجارات." : "Rent roll data could not be loaded."}</div>;
+  }
 
   // Transform data into normalized rows
   const ownershipMap = new Map<string, string>();
@@ -113,7 +117,7 @@ export default async function RentRollPage({
   const rows: RentRollUnitRow[] = (unitsData || []).map((u) => {
     const resort = u.resorts as unknown as { id: string; name: string } | null;
     const lease = leaseMap.get(u.id);
-    const tenant = lease?.members as unknown as { full_name?: string; phone_number?: string } | null;
+    const tenant = lease?.members as unknown as { full_name?: string; phone?: string } | null;
 
     let occupancyStatus: "OCCUPIED" | "VACANT" | "EXPIRING_SOON" | "DRAFT_LEASE" = "VACANT";
     if (lease?.status === "ACTIVE") {
@@ -150,7 +154,7 @@ export default async function RentRollPage({
       resortName: resort?.name || "الكيان الرئيسي",
       ownerName: ownershipMap.get(u.id) || "—",
       tenantName: tenant?.full_name || "—",
-      tenantPhone: tenant?.phone_number || "",
+      tenantPhone: tenant?.phone || "",
       leaseId: lease?.id || null,
       leaseStatus: lease?.status || "NONE",
       occupancyStatus,

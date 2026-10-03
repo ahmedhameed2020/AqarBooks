@@ -34,7 +34,7 @@ export type NoticeRow = {
   stage: number;
   stage_name_ar: string | null;
   stage_name_en: string | null;
-  raised_at: string;
+  raised_on: string;
   days_overdue: number;
   outstanding_amount: number;
   status: string;
@@ -87,7 +87,10 @@ export function PolicyForm({
   );
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
+
+  useEffect(() => {
+    if (pending) submitted.current = true;
+  }, [pending]);
 
   useEffect(() => {
     if (submitted.current && !pending && state.ok && onOpenChange) {
@@ -362,7 +365,10 @@ export function NoticeActions({
   );
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
+
+  useEffect(() => {
+    if (pending) submitted.current = true;
+  }, [pending]);
 
   useEffect(() => {
     if (submitted.current && !pending && state.ok && state.id) {
@@ -377,7 +383,7 @@ export function NoticeActions({
         organizationName: "AqarBooks",
         stageName: (isAr ? notice.stage_name_ar : notice.stage_name_en) || `Stage ${notice.stage}`,
         stageNumber: notice.stage,
-        raisedOn: notice.raised_at.slice(0, 10),
+        raisedOn: notice.raised_on.slice(0, 10),
         memberName: notice.member_name || "",
         unitCode: notice.unit_code,
         dueDescription: notice.due_description,
@@ -438,24 +444,26 @@ export function NoticeActions({
                   </Label>
                   <select
                     id="del-channel"
-                    name="deliveryChannel"
+                    name="channel"
                     required
                     className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-800 focus:border-blue-600 focus:outline-none"
                   >
-                    <option value="EMAIL">{isAr ? "بريد إلكتروني (Email)" : "Email"}</option>
-                    <option value="WHATSAPP">{isAr ? "واتساب (WhatsApp)" : "WhatsApp"}</option>
-                    <option value="SMS">{isAr ? "رسالة نصية (SMS)" : "SMS"}</option>
-                    <option value="REGISTERED_MAIL">{isAr ? "بريد مسجل / تسليم يدوي" : "Registered Mail"}</option>
+                    <option value="PRINTED">{isAr ? "مطبوع" : "Printed"}</option>
+                     <option value="EMAIL_EXTERNAL">{isAr ? "بريد إلكتروني (Email)" : "Email"}</option>
+                    <option value="WHATSAPP_EXTERNAL">{isAr ? "واتساب (WhatsApp)" : "WhatsApp"}</option>
+                    <option value="PHONE">{isAr ? "هاتف" : "Phone"}</option>
+                    <option value="HAND_DELIVERED">{isAr ? "تسليم يدوي" : "Hand delivered"}</option>
+                     <option value="POST">{isAr ? "بريد" : "Post"}</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="del-notes" className="text-xs font-bold text-slate-700">
+                  <Label htmlFor="del-reference" className="text-xs font-bold text-slate-700">
                     {isAr ? "ملاحظات التسليم" : "Delivery Notes"}
                   </Label>
                   <Input
-                    id="del-notes"
-                    name="deliveryNotes"
+                    id="del-reference"
+                    name="reference"
                     placeholder={isAr ? "تم الإرسال واستلام التأكيد" : "Sent and confirmed"}
                     className="text-sm rounded-xl"
                   />

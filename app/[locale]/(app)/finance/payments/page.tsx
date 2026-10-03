@@ -65,7 +65,10 @@ export default async function PaymentsPage({
   // same six role templates, so today the two are behaviourally identical --
   // but gating the button on the key the RPC does not check would silently
   // become wrong the moment those grants diverge. Match the enforcement point.
-  const canRecordPayment = await hasPermission(organization.id, "receivables.payments.create");
+  const [canRecordPayment, canVoidPayment] = await Promise.all([
+    hasPermission(organization.id, "receivables.payments.create"),
+    hasPermission(organization.id, "finance.payments.void"),
+  ]);
 
   const supabase = await createClient();
   const { data: resort } = await supabase
@@ -177,7 +180,7 @@ export default async function PaymentsPage({
   const totalCollections = postedPaymentsList.reduce((sum, p) => sum + p.amount, 0);
 
   const cashCollections = postedPaymentsList
-    .filter((p) => p.method === "CASH" || p.method === "POS")
+    .filter((p) => p.method === "CASH")
     .reduce((sum, p) => sum + p.amount, 0);
 
   const bankCollections = postedPaymentsList
@@ -232,9 +235,9 @@ export default async function PaymentsPage({
           tone="positive"
         />
 
-        {/* 2. Cash & POS Collections */}
+        {/* 2. Cash Collections */}
         <KpiCard
-          label={isAr ? "مقبوضات نقدية ونقاط بيع" : "Cash & POS Receipts"}
+          label={isAr ? "مقبوضات نقدية" : "Cash Receipts"}
           value={
             <>
               {cashCollections.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
@@ -243,8 +246,8 @@ export default async function PaymentsPage({
           }
           hint={
             isAr
-              ? "سيولة محصلة بالخزينة ونقاط البيع"
-              : "Drawer cash and POS settlements"
+              ? "سيولة محصلة نقدًا بالخزينة"
+              : "Cash receipts recorded in the drawer"
           }
           icon={<CreditCard className="size-5" />}
           tone="info"
@@ -296,6 +299,7 @@ export default async function PaymentsPage({
           resortId={resort.id}
           resortName={resort.name}
           canRecordPayment={canRecordPayment}
+           canVoidPayment={canVoidPayment}
           currency={currency}
           locale={locale}
           preselectedUnitId={preselectedUnitId}

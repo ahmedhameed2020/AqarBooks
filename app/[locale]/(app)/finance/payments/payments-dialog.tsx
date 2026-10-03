@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import {
@@ -45,9 +45,7 @@ export type DueOption = { id: string; unitId: string; label: string; remaining: 
 
 const PAYMENT_METHODS = [
   { value: "CASH", labelAr: "نقدي (Cash)", labelEn: "Cash" },
-  { value: "BANK_TRANSFER", labelAr: "تحويل بنكي (Transfer)", labelEn: "Bank Transfer" },
   { value: "CHEQUE", labelAr: "شيك بنكي (Cheque)", labelEn: "Cheque" },
-  { value: "POS", labelAr: "نقاط بيع / شبكة (POS)", labelEn: "POS" },
   { value: "ONLINE", labelAr: "دفع إلكتروني (Online)", labelEn: "Online" },
 ] as const;
 
@@ -92,13 +90,9 @@ export function RecordPaymentDialog({
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [reference, setReference] = useState("");
 
-  // Sync default due and amount when dues change
-  useEffect(() => {
-    if (dues.length > 0 && !selectedDueId) {
-      setSelectedDueId(dues[0].id);
-      setAmount(dues[0].remaining.toString());
-    }
-  }, [dues, selectedDueId]);
+  // The parent supplies the first due as the initial state; avoid a render-time
+  // state synchronization effect that can cascade when the list refreshes.
+
 
   const handleDueChange = (dueId: string) => {
     setSelectedDueId(dueId);
