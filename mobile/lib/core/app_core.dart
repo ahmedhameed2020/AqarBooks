@@ -15,6 +15,26 @@ class AppConfig {
       !anonKey.contains('YOUR_');
 }
 
+const paymentPortalHost = 'app.aqarbooks.com';
+
+Uri duesPortalUri(Locale locale) {
+  final language = locale.languageCode == 'ar' ? 'ar' : 'en';
+  return Uri(
+    scheme: 'https',
+    host: paymentPortalHost,
+    path: '/$language/portal/dues',
+  );
+}
+
+bool isAllowedDuesPortalUri(Uri uri) =>
+    uri.scheme == 'https' &&
+    uri.host == paymentPortalHost &&
+    (uri.port == 0 || uri.port == 443) &&
+    uri.userInfo.isEmpty &&
+    uri.query.isEmpty &&
+    uri.fragment.isEmpty &&
+    (uri.path == '/ar/portal/dues' || uri.path == '/en/portal/dues');
+
 final localeProvider = StateProvider<Locale>((ref) => const Locale('ar'));
 
 final supabaseProvider = Provider<SupabaseClient?>((ref) {
@@ -34,6 +54,23 @@ class AppLabels {
   String get password => ar ? 'كلمة المرور' : 'Password';
   String get signIn => ar ? 'تسجيل الدخول' : 'Sign in';
   String get resetPassword => ar ? 'نسيت كلمة المرور؟' : 'Forgot password?';
+  String get emailAndPasswordRequired => ar
+      ? 'أدخل البريد الإلكتروني وكلمة المرور.'
+      : 'Enter your email and password.';
+  String get signInFailed => ar
+      ? 'تعذر تسجيل الدخول. تحقق من بياناتك وحاول مرة أخرى.'
+      : 'Sign in failed. Check your credentials and try again.';
+  String get emailRequired =>
+      ar ? 'أدخل بريدك الإلكتروني أولاً.' : 'Enter your email first.';
+  String get resetRequested => ar
+      ? 'تم طلب رسالة إعادة تعيين كلمة المرور.'
+      : 'Password reset email requested.';
+  String get resetFailed =>
+      ar ? 'تعذر طلب رسالة إعادة التعيين.' : 'Could not request a reset email.';
+  String get configMessage => ar
+      ? 'أضف SUPABASE_URL وSUPABASE_ANON_KEY عبر --dart-define قبل الاتصال.'
+      : 'Configure SUPABASE_URL and SUPABASE_ANON_KEY with --dart-define before connecting this app.';
+  String get loading => ar ? 'جارٍ التحميل…' : 'Loading…';
   String get signOut => ar ? 'تسجيل الخروج' : 'Sign out';
   String get retry => ar ? 'إعادة المحاولة' : 'Retry';
   String get unavailable =>
@@ -42,6 +79,14 @@ class AppLabels {
   String get dashboard => ar ? 'الرئيسية' : 'Home';
   String get maintenance => ar ? 'الصيانة' : 'Maintenance';
   String get payments => ar ? 'المدفوعات' : 'Payments';
+  String get openDuesInBrowser =>
+      ar ? 'فتح المستحقات في المتصفح' : 'View dues in browser';
+  String get duesBrowserHint => ar
+      ? 'سيتم فتح بوابة الويب لإتمام السداد. قد تحتاج إلى تسجيل الدخول مرة أخرى في المتصفح.'
+      : 'The web portal will open for payment. You may need to sign in again in your browser.';
+  String get browserOpenFailed => ar
+      ? 'تعذر فتح بوابة المستحقات. حاول مرة أخرى.'
+      : 'Could not open the dues portal. Please try again.';
   String get profile => ar ? 'حسابي' : 'Profile';
   String get dues => ar ? 'المستحقات' : 'Dues';
   String get units => ar ? 'الوحدات' : 'Units';

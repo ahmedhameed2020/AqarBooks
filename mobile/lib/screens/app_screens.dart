@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
 import '../data/repository.dart';
@@ -8,43 +9,56 @@ import 'feature_screens.dart';
 class ConfigScreen extends StatelessWidget {
   const ConfigScreen({super.key});
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock_outline, size: 48, color: appBlue),
-            const SizedBox(height: 18),
-            Text(
-              'AqarBooks Mobile',
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Configure SUPABASE_URL and SUPABASE_ANON_KEY with --dart-define before connecting this app.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 18),
-            const SelectableText(
-              'flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_ANON_KEY=your_publishable_key',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.blueGrey),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final t = AppLabels(Localizations.localeOf(context));
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, size: 48, color: appBlue),
+              const SizedBox(height: 18),
+              Text(
+                'AqarBooks Mobile',
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              Text(t.configMessage, textAlign: TextAlign.center),
+              const SizedBox(height: 18),
+              const SelectableText(
+                'flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_ANON_KEY=your_publishable_key',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({super.key});
   @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) {
+    final t = AppLabels(Localizations.localeOf(context));
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(t.loading),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -59,8 +73,9 @@ class _LoginState extends ConsumerState<LoginScreen> {
   bool busy = false;
   String? error;
   Future<void> submit() async {
+    final t = AppLabels(Localizations.localeOf(context));
     if (email.text.trim().isEmpty || password.text.isEmpty) {
-      setState(() => error = 'Enter your email and password.');
+      setState(() => error = t.emailAndPasswordRequired);
       return;
     }
     setState(() {
@@ -71,28 +86,26 @@ class _LoginState extends ConsumerState<LoginScreen> {
       await ref.read(repositoryProvider).signIn(email.text, password.text);
       ref.invalidate(sessionProvider);
     } catch (_) {
-      setState(
-        () => error = 'Sign in failed. Check your credentials and try again.',
-      );
+      setState(() => error = t.signInFailed);
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
   Future<void> reset() async {
+    final t = AppLabels(Localizations.localeOf(context));
     if (email.text.trim().isEmpty) {
-      setState(() => error = 'Enter your email first.');
+      setState(() => error = t.emailRequired);
       return;
     }
     try {
       await ref.read(repositoryProvider).resetPassword(email.text);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset email requested.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t.resetRequested)));
       }
     } catch (_) {
-      setState(() => error = 'Could not request a reset email.');
+      setState(() => error = t.resetFailed);
     }
   }
 
@@ -207,7 +220,9 @@ class _LoginState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Your session is managed by Supabase Auth. No service credentials are stored in this app.',
+                    t.ar
+                        ? 'تتم إدارة جلستك بواسطة Supabase Auth. لا تُخزَّن بيانات اعتماد الخدمة في هذا التطبيق.'
+                        : 'Your session is managed by Supabase Auth. No service credentials are stored in this app.',
                     style: Theme.of(context).textTheme.bodySmall
                         ?.copyWith(color: Colors.blueGrey),
                   ),
@@ -447,17 +462,25 @@ class _ShellState extends ConsumerState<AppShell> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => index = safeIndex);
       });
-    return Scaffold(
-      body: SafeArea(
-        child: IndexedStack(index: safeIndex, children: tabs),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: safeIndex,
-        onDestinationSelected: (v) => setState(() => index = v),
-        destinations: [
-          for (var i = 0; i < labels.length; i++)
-            NavigationDestination(icon: Icon(icons[i]), label: labels[i]),
-        ],
+    return PopScope<void>(
+      canPop: safeIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && safeIndex != 0 && mounted) {
+          setState(() => index = 0);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: IndexedStack(index: safeIndex, children: tabs),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: safeIndex,
+          onDestinationSelected: (v) => setState(() => index = v),
+          destinations: [
+            for (var i = 0; i < labels.length; i++)
+              NavigationDestination(icon: Icon(icons[i]), label: labels[i]),
+          ],
+        ),
       ),
     );
   }
@@ -881,27 +904,64 @@ final duesProvider = FutureProvider.autoDispose<List<DueItem>>(
   (ref) => ref.watch(repositoryProvider).dues(),
 );
 
+Future<void> _openDuesPortal(BuildContext context) async {
+  final t = AppLabels(Localizations.localeOf(context));
+  final uri = duesPortalUri(Localizations.localeOf(context));
+  try {
+    if (!isAllowedDuesPortalUri(uri) ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw StateError('Dues portal could not be opened');
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.browserOpenFailed)));
+    }
+  }
+}
+
 class DuesScreen extends ConsumerWidget {
   const DuesScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _AsyncList<DueItem>(
-    title: AppLabels(Localizations.localeOf(context)).dues,
-    provider: duesProvider,
-    icon: Icons.account_balance_wallet_outlined,
-    empty: AppLabels(Localizations.localeOf(context)).noData,
-    item: (d) => ListTile(
-      leading: const CircleAvatar(child: Icon(Icons.schedule_outlined)),
-      title: Text(
-        d.description,
-        style: const TextStyle(fontWeight: FontWeight.w800),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLabels(Localizations.localeOf(context));
+    return _AsyncList<DueItem>(
+      title: t.dues,
+      provider: duesProvider,
+      icon: Icons.account_balance_wallet_outlined,
+      empty: t.noData,
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(t.duesBrowserHint),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => _openDuesPortal(context),
+              icon: const Icon(Icons.open_in_browser_outlined),
+              label: Text(t.openDuesInBrowser),
+            ),
+          ],
+        ),
       ),
-      subtitle: Text('${d.unitCode ?? '—'} · ${d.dueDate}'),
-      trailing: Text(
-        '${d.outstanding.toStringAsFixed(2)} EGP',
-        style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.red),
+      item: (d) => ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.schedule_outlined)),
+        title: Text(
+          d.description,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text('${d.unitCode ?? '—'} · ${d.dueDate}'),
+        trailing: Text(
+          '${d.outstanding.toStringAsFixed(2)} EGP',
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Colors.red,
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 final unitsProvider = FutureProvider.autoDispose<List<UnitItem>>(
@@ -973,40 +1033,50 @@ class _AsyncList<T> extends ConsumerWidget {
   final IconData icon;
   final AutoDisposeFutureProvider<List<T>> provider;
   final Widget Function(T) item;
+  final Widget? header;
   const _AsyncList({
     required this.title,
     required this.provider,
     required this.item,
     required this.icon,
     required this.empty,
+    this.header,
   });
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(provider);
+    final content = data.when(
+      data: (items) => items.isEmpty
+          ? EmptyState(title: empty, icon: icon)
+          : RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(provider);
+              },
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                separatorBuilder: (_, index) => const SizedBox(height: 8),
+                itemBuilder: (_, i) => Card(child: item(items[i])),
+              ),
+            ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => AppError(
+        message: 'Could not load this list.',
+        onRetry: () => ref.invalidate(provider),
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
-      body: data.when(
-        data: (items) => items.isEmpty
-            ? EmptyState(title: empty, icon: icon)
-            : RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(provider);
-                },
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: items.length,
-                  separatorBuilder: (_, index) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => Card(child: item(items[i])),
-                ),
-              ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => AppError(
-          message: 'Could not load this list.',
-          onRetry: () => ref.invalidate(provider),
-        ),
-      ),
+      body: header == null
+          ? content
+          : Column(
+              children: [
+                header!,
+                Expanded(child: content),
+              ],
+            ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/app_core.dart';
 import '../data/repository.dart';
@@ -136,7 +137,7 @@ Future<void> _createVisitor(BuildContext context, WidgetRef ref) async {
   final name = await _ask(context, tr(context, 'اسم الزائر', 'Guest name'));
   if (name == null || name.trim().isEmpty) return;
   try {
-    await ref
+    final result = await ref
         .read(repositoryProvider)
         .createVisitor(
           unitId: units.first.id,
@@ -149,6 +150,13 @@ Future<void> _createVisitor(BuildContext context, WidgetRef ref) async {
           usage: 'SINGLE_USE',
         );
     ref.invalidate(visitorsProvider);
+    if (context.mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) =>
+            VisitorPassDialog(payload: result.qrPayload, guestName: name),
+      );
+    }
   } catch (_) {
     if (context.mounted)
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,6 +166,59 @@ Future<void> _createVisitor(BuildContext context, WidgetRef ref) async {
           ),
         ),
       );
+  }
+}
+
+class VisitorPassDialog extends StatelessWidget {
+  final String payload;
+  final String guestName;
+  const VisitorPassDialog({
+    super.key,
+    required this.payload,
+    required this.guestName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return AlertDialog(
+      title: Text(ar ? 'تصريح الزائر جاهز' : 'Visitor pass ready'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              guestName,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              key: const ValueKey('visitor-pass-qr'),
+              width: 220,
+              height: 220,
+              child: QrImageView(
+                data: payload,
+                version: QrVersions.auto,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ar
+                  ? 'اعرض رمز QR الآن فقط. هذا التصريح للاستخدام مرة واحدة ولن يظهر مرة أخرى بعد إغلاق هذه النافذة.'
+                  : 'Show this QR code now. This is a one-time pass and will not be shown again after closing this dialog.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(ar ? 'تم' : 'Done'),
+        ),
+      ],
+    );
   }
 }
 

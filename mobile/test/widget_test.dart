@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqarbooks_mobile/core/app_core.dart';
 import 'package:aqarbooks_mobile/data/repository.dart';
 import 'package:aqarbooks_mobile/screens/app_screens.dart';
+import 'package:aqarbooks_mobile/screens/feature_screens.dart';
 
 Widget _testApp(Widget child) => ProviderScope(child: MaterialApp(home: child));
 
@@ -89,6 +90,57 @@ void main() {
     expect(const AppLabels(Locale('en')).dues, 'Dues');
   });
 
+  test('dues portal URI is fixed to the allowlisted host and locale path', () {
+    final arabic = duesPortalUri(const Locale('ar'));
+    final english = duesPortalUri(const Locale('en'));
+
+    expect(arabic.toString(), 'https://app.aqarbooks.com/ar/portal/dues');
+    expect(english.toString(), 'https://app.aqarbooks.com/en/portal/dues');
+    expect(isAllowedDuesPortalUri(arabic), isTrue);
+    expect(
+      isAllowedDuesPortalUri(Uri.parse('https://evil.example/en/portal/dues')),
+      isFalse,
+    );
+    expect(
+      isAllowedDuesPortalUri(
+        Uri.parse('https://app.aqarbooks.com/en/portal/dues?due_id=secret'),
+      ),
+      isFalse,
+    );
+  });
+
+  testWidgets('dues screen renders browser payment handoff without network', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [duesProvider.overrideWith((ref) async => const [])],
+        child: const MaterialApp(locale: Locale('en'), home: DuesScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('View dues in browser'), findsOneWidget);
+    expect(find.textContaining('sign in again'), findsOneWidget);
+  });
+
+  testWidgets('new visitor pass is presented as a one-time QR view', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _testApp(
+        const VisitorPassDialog(
+          payload: 'AQP1.invitation.secret',
+          guestName: 'Guest',
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('visitor-pass-qr')), findsOneWidget);
+    expect(find.textContaining('one-time'), findsOneWidget);
+    expect(find.textContaining('AQP1.invitation.secret'), findsNothing);
+  });
+
   testWidgets('resident shell exposes resident tabs and More routes', (
     tester,
   ) async {
@@ -114,6 +166,28 @@ void main() {
     expect(find.text('Documents'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
+  });
+
+  testWidgets('Android back from a secondary shell tab returns home', (
+    tester,
+  ) async {
+    final session = AppSession(
+      user: User.fromJson({
+        'id': 'resident',
+        'aud': 'authenticated',
+        'role': 'authenticated',
+        'created_at': '2026-01-01T00:00:00Z',
+      })!,
+      capabilities: const {'portal.maintenance.read'},
+    );
+    await tester.pumpWidget(_testApp(AppShell(session: session)));
+    await tester.tap(find.byIcon(Icons.more_horiz).last);
+    await tester.pump();
+
+    expect(find.text('Documents'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.text('Units'), findsWidgets);
   });
 
   testWidgets('staff and manager shells hide resident-only routes', (

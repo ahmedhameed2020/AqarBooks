@@ -46,6 +46,7 @@ class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLabels(Localizations.localeOf(context));
     if (!AppConfig.isReady) return const ConfigScreen();
     final auth = ref.watch(authStateProvider);
     return auth.when(
@@ -55,12 +56,19 @@ class AuthGate extends ConsumerWidget {
           data: (value) =>
               value == null ? const LoginScreen() : AppShell(session: value),
           loading: () => const LoadingScreen(),
-          error: (e, _) =>
-              AppError(message: 'Could not load your session safely.'),
+          error: (e, _) => AppError(
+            message: t.ar
+                ? 'تعذر تحميل جلستك بأمان.'
+                : 'Could not load your session safely.',
+          ),
         );
       },
       loading: () => const LoadingScreen(),
-      error: (e, _) => AppError(message: 'Authentication service unavailable.'),
+      error: (e, _) => AppError(
+        message: t.ar
+            ? 'خدمة المصادقة غير متاحة حالياً.'
+            : 'Authentication service unavailable.',
+      ),
     );
   }
 }
