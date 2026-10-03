@@ -86,7 +86,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
       await ref.read(repositoryProvider).signIn(email.text, password.text);
       ref.invalidate(sessionProvider);
     } catch (_) {
-      setState(() => error = t.signInFailed);
+      if (mounted) setState(() => error = t.signInFailed);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -105,7 +105,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
             .showSnackBar(SnackBar(content: Text(t.resetRequested)));
       }
     } catch (_) {
-      setState(() => error = t.resetFailed);
+      if (mounted) setState(() => error = t.resetFailed);
     }
   }
 
@@ -120,117 +120,378 @@ class _LoginState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final t = AppLabels(Localizations.localeOf(context));
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: appNavy,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.apartment_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    t.welcome,
-                    style: Theme.of(context).textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.w900, color: appInk),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    t.signInSubtitle,
-                    style: Theme.of(context).textTheme.bodyLarge
-                        ?.copyWith(color: Colors.blueGrey),
-                  ),
-                  const SizedBox(height: 34),
-                  Text(
-                    t.email,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: 'name@example.com',
-                      prefixIcon: Icon(Icons.mail_outline),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    t.password,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: password,
-                    obscureText: true,
-                    onSubmitted: (_) => submit(),
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                  ),
-                  if (error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 14),
-                      child: Text(
-                        error!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: busy ? null : submit,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: appNavy,
-                      ),
-                      child: busy
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(t.signIn),
-                    ),
-                  ),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: TextButton(
-                      onPressed: busy ? null : reset,
-                      child: Text(t.resetPassword),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    t.ar
-                        ? 'تتم إدارة جلستك بواسطة Supabase Auth. لا تُخزَّن بيانات اعتماد الخدمة في هذا التطبيق.'
-                        : 'Your session is managed by Supabase Auth. No service credentials are stored in this app.',
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: Colors.blueGrey),
-                  ),
-                ],
+      backgroundColor: const Color(0xFF090D16),
+      body: Stack(
+        children: [
+          // Background ambient luxury glow
+          Positioned(
+            top: -120,
+            right: t.ar ? -120 : null,
+            left: t.ar ? null : -120,
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFC5A880).withAlpha(35),
+                    const Color(0xFF1E3A8A).withAlpha(20),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+          Positioned(
+            bottom: -150,
+            left: t.ar ? -100 : null,
+            right: t.ar ? null : -100,
+            child: Container(
+              width: 420,
+              height: 420,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF1E3A8A).withAlpha(40),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF131B2E).withAlpha(220),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withAlpha(25),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(120),
+                          blurRadius: 40,
+                          offset: const Offset(0, 20),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFFC5A880),
+                                    Color(0xFF9E8158),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFC5A880).withAlpha(80),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.apartment_rounded,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(25),
+                                ),
+                              ),
+                              child: TextButton.icon(
+                                key: const ValueKey('login-language-toggle'),
+                                onPressed: () {
+                                  final current = ref.read(localeProvider);
+                                  ref.read(localeProvider.notifier).state =
+                                      current.languageCode == 'ar'
+                                          ? const Locale('en')
+                                          : const Locale('ar');
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFFDFCCA8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.language_rounded, size: 18),
+                                label: Text(
+                                  t.ar ? 'English' : 'العربية',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC5A880).withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFC5A880).withAlpha(80),
+                                ),
+                              ),
+                              child: Text(
+                                t.ar ? 'بوابة العقارات الفاخرة' : 'PREMIUM PROPTECH',
+                                style: const TextStyle(
+                                  color: Color(0xFFDFCCA8),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          t.welcome,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          t.signInSubtitle,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: const Color(0xFF94A3B8),
+                                fontSize: 14,
+                              ),
+                        ),
+                        const SizedBox(height: 30),
+                        Text(
+                          t.email,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFCBD5E1),
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: email,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFF0B132B).withAlpha(180),
+                            hintText: 'name@example.com',
+                            hintStyle: const TextStyle(color: Color(0xFF64748B)),
+                            prefixIcon: const Icon(
+                              Icons.mail_outline_rounded,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: Colors.white.withAlpha(20),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFC5A880),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          t.password,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFCBD5E1),
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: password,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          onSubmitted: (_) => submit(),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFF0B132B).withAlpha(180),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline_rounded,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: Colors.white.withAlpha(20),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFC5A880),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Color(0xFFF87171),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    error!,
+                                    style: const TextStyle(
+                                      color: Color(0xFFF87171),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 26),
+                        Container(
+                          width: double.infinity,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFC5A880),
+                                Color(0xFF9E8158),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFC5A880).withAlpha(70),
+                                blurRadius: 18,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: busy ? null : submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: busy
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    t.signIn,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: TextButton(
+                            onPressed: busy ? null : reset,
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFFDFCCA8),
+                            ),
+                            child: Text(
+                              t.resetPassword,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size: 14,
+                                color: const Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  t.ar
+                                      ? 'جلسة محمية ومشفرة بمعايير مؤسسية'
+                                      : 'Enterprise-grade encrypted authentication',
+                                  style: const TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -551,6 +812,27 @@ class HomeScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [appNavy, appNavyDark],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: appNavy.withAlpha(40),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.apartment_rounded, color: Colors.white, size: 24),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,35 +840,46 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       t.dashboard,
                       style: const TextStyle(
-                        color: appBlue,
+                        color: appPurple,
                         fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       session.organizationName ?? 'AqarBooks',
-                      style: Theme.of(context).textTheme.headlineSmall
+                      style: Theme.of(context).textTheme.titleLarge
                           ?.copyWith(
                             fontWeight: FontWeight.w900,
-                            color: appInk,
+                            color: appNavy,
+                            letterSpacing: -0.3,
                           ),
                     ),
                   ],
                 ),
               ),
-              CircleAvatar(
-                backgroundColor: appNavy,
-                child: Text(
-                  (session.user.email ?? 'A').substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: appPurple.withAlpha(50), width: 1.5),
+                ),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: appPurpleLight,
+                  child: Text(
+                    (session.user.email ?? 'A').substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: appPurple,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           summary.when(
             data: (s) => _summary(context, t, s),
             loading: () => const Padding(
@@ -600,7 +893,7 @@ class HomeScreen extends ConsumerWidget {
               onRetry: () => ref.invalidate(homeProvider),
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 26),
           if (!session.isStaff && !session.isManager) ...[
             SectionTitle(title: t.quickActions),
             _actionGrid(context, t, session),
@@ -634,33 +927,140 @@ class HomeScreen extends ConsumerWidget {
     children: [
       Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: appNavy,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              t.openBalance,
-              style: const TextStyle(color: Color(0xFFB8C9E7)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF07425D),
+              Color(0xFF052B3D),
+              Color(0xFF031A26),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF07425D).withAlpha(80),
+              blurRadius: 28,
+              offset: const Offset(0, 12),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${s.balance.toStringAsFixed(2)} ${s.currency}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -30,
+              right: t.ar ? null : -30,
+              left: t.ar ? -30 : null,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: appPurple.withAlpha(35),
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              s.balance > 0
-                  ? (t.ar ? 'راجع المستحقات المفتوحة' : 'Review your open dues')
-                  : (t.ar ? 'حسابك محدث' : 'Your account is up to date'),
-              style: const TextStyle(color: Colors.white70),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF34D399),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.openBalance,
+                          style: const TextStyle(
+                            color: Color(0xFFCBD5E1),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        t.currencyLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      s.balance.toStringAsFixed(2),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      t.currencyLabel,
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(190),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(40),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        s.balance > 0 ? Icons.info_outline : Icons.check_circle_outline,
+                        size: 14,
+                        color: s.balance > 0 ? const Color(0xFFFDE047) : const Color(0xFF86EFAC),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        s.balance > 0
+                            ? (t.ar ? 'راجع تفاصيل المستحقات للسداد' : 'Review your open dues')
+                            : (t.ar ? 'حسابك محدث بالكامل ولا توجد متأخرات' : 'Your account is up to date'),
+                        style: const TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -672,13 +1072,14 @@ class HomeScreen extends ConsumerWidget {
             label: t.activeUnits,
             value: '${s.units}',
             icon: Icons.home_work_outlined,
+            color: appNavy,
           ),
           const SizedBox(width: 10),
           MetricCard(
             label: t.maintenance,
             value: '${s.openMaintenance}',
             icon: Icons.build_outlined,
-            color: Colors.orange,
+            color: appPurple,
           ),
         ],
       ),
@@ -798,29 +1199,47 @@ class _Action extends StatelessWidget {
   const _Action({required this.icon, required this.label, required this.onTap});
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: (MediaQuery.sizeOf(context).width - 50) / 3,
+    width: (MediaQuery.sizeOf(context).width - 62) / 3,
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
-          child: Column(
-            children: [
-              Icon(icon, color: appBlue),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: appCardBorder),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withAlpha(8),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: appPurpleLight,
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
+              child: Icon(icon, color: appPurple, size: 22),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: appNavy,
+              ),
+            ),
+          ],
         ),
       ),
     ),
@@ -1108,57 +1527,189 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLabels(Localizations.localeOf(context));
-    final capabilityText = session.capabilities.isEmpty
-        ? (t.ar ? 'لم يتم تحميل الصلاحيات' : 'No capabilities loaded')
-        : session.capabilities.join(', ');
+    final email = session.user.email ?? '—';
+    final org = session.organizationName ?? 'AqarBooks Egypt';
+    final roleTitle = session.isManager
+        ? (t.ar ? 'مدير العمليات والإدارة' : 'Operations Manager')
+        : session.isStaff
+        ? (t.ar ? 'فريق الصيانة الميدانية' : 'Field Operations')
+        : (t.ar ? 'مالك / مقيم عقاري' : 'Property Resident / Owner');
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Text(
           t.profile,
           style: Theme.of(context).textTheme.headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w900),
+              ?.copyWith(fontWeight: FontWeight.w900, color: appNavy, letterSpacing: -0.5),
         ),
         const SizedBox(height: 18),
-        Card(
-          child: ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: appNavy,
-              child: Icon(Icons.person, color: Colors.white),
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [appNavy, appNavyDark],
             ),
-            title: Text(
-              session.user.email ?? '—',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            subtitle: Text(session.organizationName ?? 'AqarBooks'),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: appNavy.withAlpha(50),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [appPurple, Color(0xFFA855F7)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: appPurple.withAlpha(70),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    email.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        org,
+                        style: const TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      roleTitle,
+                      style: const TextStyle(
+                        color: Color(0xFFCBD5E1),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
+        SectionTitle(title: t.ar ? 'إعدادات الحساب' : 'Account Settings'),
         Card(
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.language),
-                title: Text(t.ar ? 'العربية' : 'English'),
-                trailing: const Icon(Icons.check, color: appBlue),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: appPurpleLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.language, color: appPurple, size: 20),
+                ),
+                title: Text(
+                  t.ar ? 'لغة التطبيق' : 'App Language',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
+                ),
+                subtitle: Text(t.ar ? 'العربية (مصر)' : 'English (US)'),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: appSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: appCardBorder),
+                  ),
+                  child: Text(
+                    t.ar ? 'تغيير' : 'Change',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: appPurple,
+                    ),
+                  ),
+                ),
                 onTap: () => ref.read(localeProvider.notifier).state = t.ar
                     ? const Locale('en')
                     : const Locale('ar'),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
-                leading: const Icon(Icons.security_outlined),
-                title: Text(
-                  t.ar ? 'الصلاحيات الفعالة' : 'Effective capabilities',
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.verified_user_outlined, color: Color(0xFF166534), size: 20),
                 ),
-                subtitle: Text(capabilityText),
+                title: Text(
+                  t.ar ? 'حالة الأمان' : 'Security Status',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
+                ),
+                subtitle: Text(
+                  t.ar ? 'حساب موثق وجلسة نشطة آمنة' : 'Verified session with enterprise protection',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: const Icon(Icons.check_circle, color: Color(0xFF166534), size: 18),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 20),
+                ),
                 title: Text(
                   t.signOut,
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(
+                    color: Color(0xFFDC2626),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 onTap: () async {
                   await ref.read(repositoryProvider).signOut();

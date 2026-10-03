@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -28,9 +28,9 @@ class AqarBooksApp extends ConsumerWidget {
     locale: ref.watch(localeProvider),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: const [
-      DefaultMaterialLocalizations.delegate,
-      DefaultWidgetsLocalizations.delegate,
-      DefaultCupertinoLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
     ],
     builder: (context, child) => Directionality(
       textDirection: ref.watch(localeProvider).languageCode == 'ar'

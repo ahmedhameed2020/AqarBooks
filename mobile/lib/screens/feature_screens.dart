@@ -699,73 +699,195 @@ class ManagerOverviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLabels(Localizations.localeOf(context));
     return Scaffold(
-      appBar: AppBar(title: Text(t.managerOverview)),
+      appBar: AppBar(
+        title: Text(
+          t.managerOverview,
+          style: const TextStyle(fontWeight: FontWeight.w900, color: appNavy),
+        ),
+      ),
       body: ref
           .watch(managerProvider)
           .when(
             data: (s) => ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                SectionTitle(title: t.ar ? 'نظرة مالية' : 'Financial Snapshot'),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF07425D), Color(0xFF042434)],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: appNavy.withAlpha(50),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.ar ? 'إجمالي التحصيلات المحققة' : 'Total Collections',
+                            style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                s.collections.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                t.currencyLabel,
+                                style: const TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: appPurple.withAlpha(50),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.payments_rounded, color: Colors.white, size: 26),
+                      ),
+                    ],
+                  ),
+                ),
+                SectionTitle(title: t.ar ? 'المستحقات والمتأخرات' : 'Dues & Delinquency'),
                 Row(
                   children: [
                     MetricCard(
-                      label: t.ar ? 'المستحقات' : 'Open dues',
+                      label: t.ar ? 'المستحقات المفتوحة' : 'Open dues',
                       value: '${s.openDues}',
                       icon: Icons.account_balance_wallet_outlined,
+                      color: appNavy,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     MetricCard(
                       label: t.ar ? 'المتأخرات' : 'Overdue',
                       value: '${s.overdueDues}',
                       icon: Icons.warning_amber_outlined,
+                      color: const Color(0xFFDC2626),
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                SectionTitle(title: t.ar ? 'الصيانة والعمليات' : 'Maintenance & Operations'),
                 Row(
                   children: [
                     MetricCard(
                       label: t.maintenance,
                       value: '${s.openMaintenance}',
                       icon: Icons.build_outlined,
+                      color: appPurple,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     MetricCard(
                       label: t.workOrders,
                       value: '${s.openWorkOrders}',
                       icon: Icons.handyman_outlined,
+                      color: const Color(0xFF2563EB),
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                SectionTitle(title: t.ar ? 'الإشغال والأمان' : 'Occupancy & Security'),
                 Row(
                   children: [
                     MetricCard(
                       label: t.ar ? 'إشغال الوحدات' : 'Occupancy',
                       value: '${s.occupiedUnits}/${s.totalUnits}',
                       icon: Icons.home_work_outlined,
+                      color: const Color(0xFF0D9488),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     MetricCard(
                       label: t.ar ? 'تصاريح الزوار' : 'Active visitors',
                       value: '${s.activeVisitors}',
                       icon: Icons.people_outline,
+                      color: const Color(0xFFD97706),
                     ),
                   ],
                 ),
-                ListTile(
-                  title: Text(t.ar ? 'إجمالي التحصيلات' : 'Collections'),
-                  trailing: Text(s.collections.toStringAsFixed(2)),
-                ),
-                ListTile(
-                  title: Text(
-                    t.ar
-                        ? 'نشاط البوابة غير متاح للموبايل'
-                        : 'Gate activity unavailable to mobile client',
+                const SizedBox(height: 16),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: appPurpleLight,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.notifications_none_rounded, color: appPurple),
+                        ),
+                        title: Text(
+                          t.ar ? 'تنبيهات غير مقروءة' : 'Unread alerts',
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: appPurpleLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${s.unreadAlerts}',
+                            style: const TextStyle(
+                              color: appPurple,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.lock_outline, color: Color(0xFF64748B)),
+                        ),
+                        title: Text(
+                          t.ar
+                              ? 'نشاط البوابة المباشر'
+                              : 'Live gate activity',
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
+                        ),
+                        subtitle: Text(
+                          t.ar
+                              ? 'مخصص لوحدات البوابات والأجهزة الميدانية'
+                              : 'Dedicated to gate units and perimeter devices',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF94A3B8)),
+                      ),
+                    ],
                   ),
-                  trailing: const Icon(Icons.lock_outline, size: 18),
-                ),
-                ListTile(
-                  title: Text(t.ar ? 'تنبيهات غير مقروءة' : 'Unread alerts'),
-                  trailing: Text('${s.unreadAlerts}'),
                 ),
               ],
             ),

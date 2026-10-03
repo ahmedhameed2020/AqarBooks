@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const appNavy = Color(0xFF0B1F3A);
-const appBlue = Color(0xFF1769E0);
-const appInk = Color(0xFF17243A);
+// AqarBooks Mobile — Egypt Luxury V3 Palette
+// Deep Teal / Navy primary with Royal Purple accent, Soft Cloud background, and White premium cards
+const appNavy = Color(0xFF07425D); // Deep Teal / Navy
+const appNavyDark = Color(0xFF042434);
+const appBlue = Color(0xFF1B60B9); // Petrol Blue
+const appPurple = Color(0xFF7E1898); // Royal Purple Accent
+const appPurpleLight = Color(0xFFF3E8FF); // Soft Purple Tint
+const appPurpleMuted = Color(0xFF9333EA);
+const appGold = Color(0xFFC5A880);
+const appInk = Color(0xFF0F172A); // High-contrast readable ink
+const appSurface = Color(0xFFF4F6F9); // Soft cloud background
+const appCardBorder = Color(0xFFE2E8F0); // Subtle elegant card border
 
 class AppConfig {
   static const url = String.fromEnvironment('SUPABASE_URL');
@@ -49,7 +58,7 @@ class AppLabels {
   String get appName => 'AqarBooks';
   String get welcome => ar ? 'أهلاً بك في عقار بوكس' : 'Welcome to AqarBooks';
   String get signInSubtitle =>
-      ar ? 'إدارة عقارك، من مكان واحد.' : 'Your property, in one calm place.';
+      ar ? 'إدارة عقارك في مصر، من مكان واحد.' : 'Your property in Egypt, in one calm place.';
   String get email => ar ? 'البريد الإلكتروني' : 'Email address';
   String get password => ar ? 'كلمة المرور' : 'Password';
   String get signIn => ar ? 'تسجيل الدخول' : 'Sign in';
@@ -100,44 +109,46 @@ class AppLabels {
   String get openBalance => ar ? 'الرصيد المستحق' : 'Open balance';
   String get activeUnits => ar ? 'الوحدات النشطة' : 'Active units';
   String get recentActivity => ar ? 'آخر النشاطات' : 'Recent activity';
+  String get currencyLabel => ar ? 'ج.م' : 'EGP';
 }
 
 ThemeData buildTheme() {
   final scheme =
       ColorScheme.fromSeed(
-        seedColor: appBlue,
+        seedColor: appNavy,
         brightness: Brightness.light,
       ).copyWith(
-        primary: appBlue,
+        primary: appNavy,
+        secondary: appPurple,
         onPrimary: Colors.white,
-        surface: const Color(0xFFF7F9FC),
+        surface: appSurface,
       );
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: scheme.surface,
-    fontFamily: 'Arial',
+    scaffoldBackgroundColor: appSurface,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
+      centerTitle: false,
       foregroundColor: appInk,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: appCardBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE1E7F0)),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: appCardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: appBlue, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: appNavy, width: 1.6),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     ),
     cardTheme: CardThemeData(
       color: Colors.white,
@@ -145,8 +156,33 @@ ThemeData buildTheme() {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFE8ECF2)),
+        side: const BorderSide(color: appCardBorder, width: 1),
       ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      elevation: 4,
+      indicatorColor: appPurpleLight,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const IconThemeData(color: appPurple);
+        }
+        return const IconThemeData(color: Color(0xFF64748B));
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: appPurple,
+          );
+        }
+        return const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF64748B),
+        );
+      }),
     ),
   );
 }
@@ -213,13 +249,22 @@ class SectionTitle extends StatelessWidget {
   const SectionTitle({super.key, required this.title, this.trailing});
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.only(bottom: 14, top: 4),
     child: Row(
       children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: appPurple,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w800, color: appInk),
+              ?.copyWith(fontWeight: FontWeight.w900, color: appNavy, letterSpacing: -0.2),
         ),
         const Spacer(),
         if (trailing != null) ...[trailing!],
@@ -237,37 +282,49 @@ class MetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    this.color = appBlue,
+    this.color = appNavy,
   });
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Card(
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: appCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withAlpha(8),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withAlpha(22),
-                borderRadius: BorderRadius.circular(10),
+                color: color.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 18, color: color),
+              child: Icon(icon, size: 20, color: color),
             ),
             const SizedBox(height: 14),
             Text(
               value,
               style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w800, color: appInk),
+                  ?.copyWith(fontWeight: FontWeight.w900, color: appNavy, letterSpacing: -0.3),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: Colors.blueGrey),
+                  ?.copyWith(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
             ),
           ],
         ),
