@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "figma-preview-gallery",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "web-server",
+        "-t",
+        "lib/preview_main.dart",
+        "--web-port",
+        "5317"
+      ],
+      "port": 5317
+    }
+  ]
+}

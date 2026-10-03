@@ -15,7 +15,16 @@ Future<void> main() async {
       publishableKey: AppConfig.anonKey,
     );
   }
-  runApp(const ProviderScope(child: AqarBooksApp()));
+  // Arabic-first, and the chosen language persists between launches.
+  final savedLocale = await loadSavedLocale();
+  runApp(
+    ProviderScope(
+      overrides: [
+        localeProvider.overrideWith((ref) => savedLocale),
+      ],
+      child: const AqarBooksApp(),
+    ),
+  );
 }
 
 class AqarBooksApp extends ConsumerWidget {
@@ -56,18 +65,26 @@ class AuthGate extends ConsumerWidget {
           data: (value) =>
               value == null ? const LoginScreen() : AppShell(session: value),
           loading: () => const LoadingScreen(),
-          error: (e, _) => AppError(
-            message: t.ar
-                ? 'تعذر تحميل جلستك بأمان.'
-                : 'Could not load your session safely.',
+          // Failing to load capabilities never silently falls back to the
+          // resident shell (UX blueprint §2): show a retryable error.
+          error: (e, _) => Scaffold(
+            body: AppError(
+              message: t.ar
+                  ? 'تعذر تحميل حسابك — أعد المحاولة'
+                  : 'Could not load your account — try again',
+              onRetry: () => ref.invalidate(sessionProvider),
+            ),
           ),
         );
       },
       loading: () => const LoadingScreen(),
-      error: (e, _) => AppError(
-        message: t.ar
-            ? 'خدمة المصادقة غير متاحة حالياً.'
-            : 'Authentication service unavailable.',
+      error: (e, _) => Scaffold(
+        body: AppError(
+          message: t.ar
+              ? 'خدمة المصادقة غير متاحة حاليًا'
+              : 'Authentication service unavailable',
+          onRetry: () => ref.invalidate(authStateProvider),
+        ),
       ),
     );
   }

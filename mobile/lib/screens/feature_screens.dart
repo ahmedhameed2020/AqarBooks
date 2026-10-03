@@ -4,21 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/app_core.dart';
+import '../core/formatting.dart';
 import '../data/repository.dart';
+import '../widgets/aqar_icons.dart';
+import '../widgets/ui_kit.dart';
+import 'resident_screens.dart'
+    show maintenanceStatusLabel, priorityLabel;
 
 String tr(BuildContext c, String ar, String en) =>
     AppLabels(Localizations.localeOf(c)).ar ? ar : en;
+
 final featureUnitsProvider = FutureProvider.autoDispose<List<UnitItem>>(
   (ref) => ref.watch(repositoryProvider).units(),
 );
 final featureMaintenanceProvider =
     FutureProvider.autoDispose<List<MaintenanceItem>>(
-      (ref) => ref.watch(repositoryProvider).maintenance(),
-    );
-final featureWorkOrdersProvider =
-    FutureProvider.autoDispose<List<WorkOrderItem>>(
-      (ref) => ref.watch(repositoryProvider).workOrders(),
-    );
+  (ref) => ref.watch(repositoryProvider).maintenance(),
+);
 final visitorsProvider = FutureProvider.autoDispose<List<VisitorItem>>(
   (ref) => ref.watch(repositoryProvider).visitors(),
 );
@@ -27,147 +29,358 @@ final vehiclesProvider = FutureProvider.autoDispose<List<VehicleItem>>(
 );
 final notificationsProvider =
     FutureProvider.autoDispose<List<NotificationItem>>(
-      (ref) => ref.watch(repositoryProvider).notifications(),
-    );
-final managerProvider = FutureProvider.autoDispose<ManagerSummary>(
-  (ref) => ref.watch(repositoryProvider).managerSummary(),
+  (ref) => ref.watch(repositoryProvider).notifications(),
 );
 
-class VisitorsScreen extends ConsumerWidget {
-  const VisitorsScreen({super.key});
+// ───────────────────────── Notifications ─────────────────────────
+
+class NotificationsScreen extends ConsumerWidget {
+  final bool embedded;
+  const NotificationsScreen({super.key, this.embedded = false});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(t.visitors)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createVisitor(context, ref),
-        icon: const Icon(Icons.add),
-        label: Text(t.ar ? 'دعوة زائر' : 'Invite guest'),
-      ),
-      body: ref
-          .watch(visitorsProvider)
-          .when(
-            data: (items) => items.isEmpty
-                ? EmptyState(title: t.noData)
-                : ListView.builder(
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
+    final list = ref.watch(notificationsProvider).when(
+          data: (items) => items.isEmpty
+              ? EmptyState(
+                  title: t.ar ? 'لا جديد' : 'Nothing new',
+                  icon: Icons.notifications_none,
+                )
+              : RefreshIndicator(
+                  onRefresh: () async =>
+                      ref.invalidate(notificationsProvider),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(20),
                     itemCount: items.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (_, i) => Card(
-                      child: ListTile(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => VisitorDetailScreen(item: items[i]),
-                          ),
-                        ),
-                        leading: const Icon(Icons.person_outline),
-                        title: Text(items[i].guestName),
-                        subtitle: Text(
-                          '${items[i].number} · ${items[i].unitCode}',
-                        ),
-                        trailing: items[i].status == 'ACTIVE'
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.block,
-                                  color: Colors.red,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (c, i) {
+                      final n = items[i];
+                      return ListRowCard(
+                        icon: AqarIconType.bell,
+                        iconFg: n.isRead ? appGrey : appNavy,
+                        iconBg: n.isRead
+                            ? const Color(0xFFEEF1F5)
+                            : appNavyBg,
+                        title: t.ar ? n.titleAr : n.titleEn,
+                        subtitle: relativeFrom(n.createdAt, locale),
+                        trailing: n.isRead
+                            ? null
+                            : Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: appPurple,
+                                  shape: BoxShape.circle,
                                 ),
-                                onPressed: () async {
+                              ),
+                        onTap: n.isRead
+                            ? null
+                            : () async {
+                                try {
                                   await ref
                                       .read(repositoryProvider)
-                                      .revokeVisitor(items[i].id);
-                                  ref.invalidate(visitorsProvider);
-                                },
-                              )
-                            : Text(items[i].status),
-                      ),
-                    ),
+                                      .markNotification(n.id);
+                                  ref.invalidate(notificationsProvider);
+                                } catch (e) {
+                                  if (c.mounted) {
+                                    showFeedback(
+                                        c, friendlyError(e, locale));
+                                  }
+                                }
+                              },
+                      );
+                    },
                   ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر تحميل الزوار' : 'Could not load visitors',
-              onRetry: () => ref.invalidate(visitorsProvider),
-            ),
+                ),
+          loading: () => const SkeletonList(),
+          error: (e, _) => AppError(
+            message: friendlyError(e, locale),
+            onRetry: () => ref.invalidate(notificationsProvider),
           ),
-    );
-  }
-}
-
-class VisitorDetailScreen extends ConsumerWidget {
-  final VisitorItem item;
-  const VisitorDetailScreen({super.key, required this.item});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(t.ar ? 'تفاصيل الزائر' : 'Visitor details')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+        );
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
         children: [
-          Text(
-            item.guestName,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          Text('${item.number} · ${item.unitCode}'),
-          const SizedBox(height: 16),
-          Text('${t.ar ? 'من' : 'From'}: ${item.validFrom}'),
-          Text('${t.ar ? 'إلى' : 'Until'}: ${item.validUntil}'),
-          Text('${t.ar ? 'الحالة' : 'Status'}: ${item.status}'),
-          if (item.phone != null)
-            Text('${t.ar ? 'الهاتف' : 'Phone'}: ${item.phone}'),
-          if (item.note != null) Text(item.note!),
-          if (item.status == 'ACTIVE')
-            FilledButton(
-              onPressed: () async {
-                await ref.read(repositoryProvider).revokeVisitor(item.id);
-                ref.invalidate(visitorsProvider);
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Text(t.ar ? 'إلغاء التصريح' : 'Revoke pass'),
+          Expanded(
+            child: Text(
+              t.notifications,
+              style: const TextStyle(
+                  fontSize: 19, fontWeight: FontWeight.w700, color: appInk),
             ),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await ref.read(repositoryProvider).markAllNotifications();
+                ref.invalidate(notificationsProvider);
+              } catch (_) {}
+            },
+            child: Text(
+              t.ar ? 'تمييز الكل كمقروء' : 'Mark all read',
+              style: const TextStyle(fontSize: 12, color: appNavy),
+            ),
+          ),
         ],
       ),
     );
+    final column = Column(
+      children: [
+        if (embedded) header else ScreenHeader(title: t.notifications),
+        Expanded(child: list),
+      ],
+    );
+    return embedded ? column : Scaffold(body: SafeArea(child: column));
   }
 }
 
-Future<void> _createVisitor(BuildContext context, WidgetRef ref) async {
-  final units = await ref.read(featureUnitsProvider.future);
-  if (!context.mounted || units.isEmpty) return;
-  final name = await _ask(context, tr(context, 'اسم الزائر', 'Guest name'));
-  if (name == null || name.trim().isEmpty) return;
-  try {
-    final result = await ref
-        .read(repositoryProvider)
-        .createVisitor(
-          unitId: units.first.id,
-          guestName: name,
-          from: DateTime.now().toUtc().toIso8601String(),
-          until: DateTime.now()
-              .add(const Duration(hours: 8))
-              .toUtc()
-              .toIso8601String(),
-          usage: 'SINGLE_USE',
-        );
-    ref.invalidate(visitorsProvider);
-    if (context.mounted) {
-      await showDialog<void>(
-        context: context,
-        builder: (_) =>
-            VisitorPassDialog(payload: result.qrPayload, guestName: name),
-      );
+// ───────────────────────── Vehicles ─────────────────────────
+
+class VehiclesScreen extends ConsumerWidget {
+  const VehiclesScreen({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            ScreenHeader(title: t.vehicles),
+            Expanded(
+              child: ref.watch(vehiclesProvider).when(
+                    data: (items) => items.isEmpty
+                        ? EmptyState(
+                            title: t.ar
+                                ? 'لا توجد مركبات مسجلة'
+                                : 'No vehicles registered',
+                            icon: Icons.directions_car_outlined,
+                            ctaLabel: t.ar ? 'إضافة مركبة' : 'Add vehicle',
+                            onCta: () => _create(context, ref),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () async =>
+                                ref.invalidate(vehiclesProvider),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(20),
+                              itemCount: items.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (_, i) {
+                                final v = items[i];
+                                return ListRowCard(
+                                  icon: AqarIconType.gate,
+                                  title: v.plateNumber,
+                                  subtitle: [
+                                    if (v.make != null) v.make,
+                                    if (v.model != null) v.model,
+                                    if (v.color != null) v.color,
+                                    v.unitCode,
+                                  ].whereType<String>().join(' · '),
+                                  trailing: v.active
+                                      ? TextButton(
+                                          onPressed: () async {
+                                            final ok =
+                                                await confirmDestructive(
+                                              context,
+                                              title: t.ar
+                                                  ? 'إيقاف المركبة؟'
+                                                  : 'Deactivate vehicle?',
+                                              message: t.ar
+                                                  ? 'لن تتمكن اللوحة ${v.plateNumber} من الدخول بعد الإيقاف.'
+                                                  : 'Plate ${v.plateNumber} will no longer be allowed in.',
+                                              confirmLabel: t.ar
+                                                  ? 'إيقاف'
+                                                  : 'Deactivate',
+                                            );
+                                            if (!ok) return;
+                                            try {
+                                              await ref
+                                                  .read(repositoryProvider)
+                                                  .deactivateVehicle(v.id);
+                                              ref.invalidate(
+                                                  vehiclesProvider);
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                showFeedback(context,
+                                                    friendlyError(e, locale));
+                                              }
+                                            }
+                                          },
+                                          child: Text(
+                                            t.ar ? 'إيقاف' : 'Deactivate',
+                                            style: const TextStyle(
+                                              color: appDanger,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        )
+                                      : StatusChip(
+                                          t.ar ? 'موقوفة' : 'Inactive',
+                                          fg: appGrey,
+                                          bg: const Color(0xFFEEF1F5),
+                                        ),
+                                );
+                              },
+                            ),
+                          ),
+                    loading: () => const SkeletonList(),
+                    error: (e, _) => AppError(
+                      message: friendlyError(e, locale),
+                      onRetry: () => ref.invalidate(vehiclesProvider),
+                    ),
+                  ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: appNavy,
+        foregroundColor: Colors.white,
+        onPressed: () => _create(context, ref),
+        icon: const Icon(Icons.add),
+        label: Text(t.ar ? 'إضافة مركبة' : 'Add vehicle'),
+      ),
+    );
+  }
+
+  /// Full single-screen form (plate / make / model / color) — replaces the
+  /// old one-field dialog with hidden defaults.
+  Future<void> _create(BuildContext context, WidgetRef ref) async {
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
+    final units = await ref.read(featureUnitsProvider.future);
+    if (!context.mounted) return;
+    if (units.isEmpty) {
+      showFeedback(
+          context,
+          t.ar
+              ? 'لا توجد وحدة مرتبطة بحسابك'
+              : 'No unit is linked to your account');
+      return;
     }
-  } catch (_) {
-    if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            tr(context, 'تعذر إنشاء التصريح', 'Could not create pass'),
+    final plate = TextEditingController();
+    final make = TextEditingController();
+    final model = TextEditingController();
+    final color = TextEditingController();
+    String unitId = units.first.id;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheet) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 14, 20, 20 + MediaQuery.viewInsetsOf(sheet).bottom),
+        child: StatefulBuilder(
+          builder: (sheet, setSheet) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: appCardBorder,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                t.ar ? 'إضافة مركبة' : 'Add vehicle',
+                style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: plate,
+                decoration: InputDecoration(
+                    hintText: t.ar ? 'رقم اللوحة' : 'Plate number'),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: make,
+                      decoration: InputDecoration(
+                          hintText: t.ar ? 'الماركة' : 'Make'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: model,
+                      decoration: InputDecoration(
+                          hintText: t.ar ? 'الموديل' : 'Model'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: color,
+                decoration:
+                    InputDecoration(hintText: t.ar ? 'اللون' : 'Color'),
+              ),
+              if (units.length > 1) ...[
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: appCardBorder),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: unitId,
+                      isExpanded: true,
+                      items: [
+                        for (final u in units)
+                          DropdownMenuItem(
+                              value: u.id, child: Text(u.code)),
+                      ],
+                      onChanged: (v) =>
+                          setSheet(() => unitId = v ?? unitId),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              AqarButton(
+                t.ar ? 'إضافة المركبة' : 'Add vehicle',
+                onPressed: () => Navigator.pop(sheet, true),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    if (plate.text.trim().isEmpty) return;
+    try {
+      await ref.read(repositoryProvider).createVehicle(
+            unitId: unitId,
+            plateNumber: plate.text.trim(),
+            country: 'EG',
+            make: make.text.trim().isEmpty ? null : make.text.trim(),
+            model: model.text.trim().isEmpty ? null : model.text.trim(),
+            color: color.text.trim().isEmpty ? null : color.text.trim(),
+          );
+      ref.invalidate(vehiclesProvider);
+    } catch (e) {
+      if (context.mounted) showFeedback(context, friendlyError(e, locale));
+    }
   }
 }
+
+// ───────────────────────── Legacy one-time pass dialog ─────────────────────
 
 class VisitorPassDialog extends StatelessWidget {
   final String payload;
@@ -177,20 +390,19 @@ class VisitorPassDialog extends StatelessWidget {
     required this.payload,
     required this.guestName,
   });
-
   @override
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(ar ? 'تصريح الزائر جاهز' : 'Visitor pass ready'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              guestName,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+            Text(guestName,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             SizedBox(
               key: const ValueKey('visitor-pass-qr'),
@@ -205,8 +417,8 @@ class VisitorPassDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               ar
-                  ? 'اعرض رمز QR الآن فقط. هذا التصريح للاستخدام مرة واحدة ولن يظهر مرة أخرى بعد إغلاق هذه النافذة.'
-                  : 'Show this QR code now. This is a one-time pass and will not be shown again after closing this dialog.',
+                  ? 'احفظ أو شارك التصريح الآن — لا يمكن استرجاعه لاحقًا.'
+                  : 'Save or share this one-time pass now — it cannot be retrieved later.',
               textAlign: TextAlign.center,
             ),
           ],
@@ -214,6 +426,7 @@ class VisitorPassDialog extends StatelessWidget {
       ),
       actions: [
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: appNavy),
           onPressed: () => Navigator.pop(context),
           child: Text(ar ? 'تم' : 'Done'),
         ),
@@ -222,304 +435,268 @@ class VisitorPassDialog extends StatelessWidget {
   }
 }
 
-Future<String?> _ask(BuildContext context, String label) async {
-  final c = TextEditingController();
-  return showDialog<String>(
-    context: context,
-    builder: (d) => AlertDialog(
-      title: Text(label),
-      content: TextField(controller: c, autofocus: true),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(d),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(d, c.text),
-          child: const Text('Save'),
-        ),
-      ],
-    ),
-  );
-}
+// ───────────────────────── Maintenance detail ─────────────────────────
 
-class VehiclesScreen extends ConsumerWidget {
-  const VehiclesScreen({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(t.vehicles)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createVehicle(context, ref),
-        icon: const Icon(Icons.add),
-        label: Text(t.ar ? 'إضافة مركبة' : 'Add vehicle'),
-      ),
-      body: ref
-          .watch(vehiclesProvider)
-          .when(
-            data: (items) => items.isEmpty
-                ? EmptyState(title: t.noData)
-                : ListView.builder(
-                    itemCount: items.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (_, i) => Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.directions_car_outlined),
-                        title: Text(
-                          '${items[i].country} · ${items[i].plateNumber}',
-                        ),
-                        subtitle: Text(items[i].unitCode),
-                        trailing: items[i].active
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.block,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () async {
-                                  await ref
-                                      .read(repositoryProvider)
-                                      .deactivateVehicle(items[i].id);
-                                  ref.invalidate(vehiclesProvider);
-                                },
-                              )
-                            : const Icon(Icons.block, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر تحميل المركبات' : 'Could not load vehicles',
-              onRetry: () => ref.invalidate(vehiclesProvider),
-            ),
-          ),
-    );
-  }
-}
-
-Future<void> _createVehicle(BuildContext context, WidgetRef ref) async {
-  final units = await ref.read(featureUnitsProvider.future);
-  if (!context.mounted || units.isEmpty) return;
-  final plate = await _ask(context, tr(context, 'رقم اللوحة', 'Plate number'));
-  if (plate == null || plate.trim().isEmpty) return;
-  try {
-    await ref
-        .read(repositoryProvider)
-        .createVehicle(
-          unitId: units.first.id,
-          plateNumber: plate,
-          country: 'EG',
-        );
-    ref.invalidate(vehiclesProvider);
-  } catch (_) {
-    if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr(context, 'تعذر الحفظ', 'Could not save'))),
-      );
-  }
-}
-
-class NotificationsScreen extends ConsumerWidget {
-  const NotificationsScreen({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.notifications),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await ref.read(repositoryProvider).markAllNotifications();
-              ref.invalidate(notificationsProvider);
-            },
-            icon: const Icon(Icons.done_all),
-          ),
-        ],
-      ),
-      body: ref
-          .watch(notificationsProvider)
-          .when(
-            data: (items) => items.isEmpty
-                ? EmptyState(title: t.noData)
-                : ListView.builder(
-                    itemCount: items.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (c, i) => Card(
-                      child: ListTile(
-                        onTap: items[i].isRead
-                            ? null
-                            : () async {
-                                await ref
-                                    .read(repositoryProvider)
-                                    .markNotification(items[i].id);
-                                ref.invalidate(notificationsProvider);
-                              },
-                        leading: Icon(
-                          Icons.notifications_none,
-                          color: items[i].isRead ? Colors.grey : appBlue,
-                        ),
-                        title: Text(t.ar ? items[i].titleAr : items[i].titleEn),
-                        subtitle: Text(
-                          t.ar ? items[i].bodyAr : items[i].bodyEn,
-                        ),
-                      ),
-                    ),
-                  ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر التحميل' : 'Could not load',
-              onRetry: () => ref.invalidate(notificationsProvider),
-            ),
-          ),
-    );
-  }
-}
-
-class MaintenanceHubScreen extends ConsumerWidget {
-  final AppSession session;
-  const MaintenanceHubScreen({super.key, required this.session});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(t.maintenance)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createMaintenance(context, ref),
-        icon: const Icon(Icons.add),
-        label: Text(t.ar ? 'طلب جديد' : 'New request'),
-      ),
-      body: ref
-          .watch(featureMaintenanceProvider)
-          .when(
-            data: (items) => items.isEmpty
-                ? EmptyState(title: t.noData)
-                : ListView.builder(
-                    itemCount: items.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (_, i) => Card(
-                      child: ListTile(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                MaintenanceDetailScreen(id: items[i].id),
-                          ),
-                        ),
-                        title: Text(items[i].title),
-                        subtitle: Text(
-                          '${items[i].requestNo} · ${items[i].unitCode}',
-                        ),
-                        trailing: Text(items[i].status),
-                      ),
-                    ),
-                  ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر التحميل' : 'Could not load',
-              onRetry: () => ref.invalidate(featureMaintenanceProvider),
-            ),
-          ),
-    );
-  }
-}
-
-Future<void> _createMaintenance(BuildContext context, WidgetRef ref) async {
-  final units = await ref.read(featureUnitsProvider.future);
-  final cats = await ref.read(repositoryProvider).maintenanceCategories();
-  if (!context.mounted || units.isEmpty || cats.isEmpty) return;
-  final title = await _ask(
-    context,
-    tr(context, 'عنوان الطلب', 'Request title'),
-  );
-  if (title == null || title.trim().isEmpty) return;
-  final desc = await _ask(context, tr(context, 'وصف الطلب', 'Description'));
-  if (desc == null) return;
-  try {
-    final id = await ref
-        .read(repositoryProvider)
-        .createMaintenance(
-          unitId: units.first.id,
-          categoryId: cats.first['id'] as String,
-          title: title,
-          description: desc,
-          priority: 'NORMAL',
-        );
-    ref.invalidate(featureMaintenanceProvider);
-    if (context.mounted)
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => MaintenanceDetailScreen(id: id)),
-      );
-  } catch (_) {
-    if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            tr(context, 'تعذر إنشاء الطلب', 'Could not create request'),
-          ),
-        ),
-      );
-  }
-}
-
-final maintenanceDetailProvider = FutureProvider.family
-    .autoDispose<MaintenanceDetail, String>(
-      (ref, id) => ref.watch(repositoryProvider).maintenanceDetail(id),
-    );
+final maintenanceDetailProvider =
+    FutureProvider.family.autoDispose<MaintenanceDetail, String>(
+  (ref, id) => ref.watch(repositoryProvider).maintenanceDetail(id),
+);
 
 class MaintenanceDetailScreen extends ConsumerWidget {
   final String id;
   const MaintenanceDetailScreen({super.key, required this.id});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.ar ? 'تفاصيل الصيانة' : 'Maintenance detail'),
+      body: SafeArea(
+        child: ref.watch(maintenanceDetailProvider(id)).when(
+              data: (d) {
+                final cancellable =
+                    {'SUBMITTED', 'TRIAGED'}.contains(d.request.status);
+                return Column(
+                  children: [
+                    ScreenHeader(
+                        title: t.ar ? 'تفاصيل الطلب' : 'Request details'),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                        children: [
+                          AqarCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        d.request.title,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: appInk,
+                                        ),
+                                      ),
+                                    ),
+                                    StatusChip(
+                                      maintenanceStatusLabel(
+                                          d.request.status, t.ar),
+                                      fg: appBlue,
+                                      bg: appPetrolBg,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${localizedDigits(d.request.requestNo, locale)} · ${d.request.unitCode} · ${priorityLabel(d.request.priority, t.ar)}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: appGrey),
+                                ),
+                                if (d.description.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    d.description,
+                                    style: const TextStyle(
+                                        fontSize: 12.5,
+                                        color: appGrey,
+                                        height: 1.6),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          AqarCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.ar ? 'السجل الزمني' : 'Timeline',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: appInk,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                if (d.updates.isEmpty)
+                                  Text(
+                                    t.ar
+                                        ? 'لا تحديثات بعد — حدّث بالسحب لمتابعة الحالة'
+                                        : 'No updates yet — pull to refresh for status',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: appGrey),
+                                  )
+                                else
+                                  for (final u in d.updates)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 5),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            margin: const EdgeInsets.only(
+                                                top: 5),
+                                            decoration: const BoxDecoration(
+                                              color: appBlue,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  maintenanceStatusLabel(
+                                                      '${u['resulting_status'] ?? ''}',
+                                                      t.ar),
+                                                  style: const TextStyle(
+                                                    fontSize: 12.5,
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                  ),
+                                                ),
+                                                if ((u['note'] ?? '')
+                                                    .toString()
+                                                    .isNotEmpty)
+                                                  Text(
+                                                    '${u['note']}',
+                                                    style: const TextStyle(
+                                                        fontSize: 11.5,
+                                                        color: appGrey),
+                                                  ),
+                                                Text(
+                                                  formatDate(
+                                                      u['created_at']
+                                                          as String?,
+                                                      locale),
+                                                  style: const TextStyle(
+                                                      fontSize: 10.5,
+                                                      color: appGrey),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                              ],
+                            ),
+                          ),
+                          if (d.attachments.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            AqarCard(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.ar ? 'المرفقات' : 'Attachments',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: appInk,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  for (final a in d.attachments)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4),
+                                      child: Row(
+                                        children: [
+                                          const AqarIcon(
+                                              AqarIconType.document,
+                                              size: 16,
+                                              color: appGrey),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${a['original_file_name'] ?? ''}',
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 12.5),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 18),
+                          AqarButton(
+                            t.ar ? 'إضافة صور' : 'Add photos',
+                            secondary: true,
+                            onPressed: () => _upload(context, ref, id),
+                          ),
+                          if (cancellable) ...[
+                            const SizedBox(height: 10),
+                            AqarButton(
+                              t.ar ? 'إلغاء الطلب' : 'Cancel request',
+                              danger: true,
+                              onPressed: () async {
+                                final ok = await confirmDestructive(
+                                  context,
+                                  title: t.ar
+                                      ? 'إلغاء طلب الصيانة؟'
+                                      : 'Cancel this request?',
+                                  message: t.ar
+                                      ? 'سيتوقف التعامل مع هذا الطلب نهائيًا.'
+                                      : 'This request will be closed permanently.',
+                                  confirmLabel:
+                                      t.ar ? 'إلغاء الطلب' : 'Cancel it',
+                                );
+                                if (!ok || !context.mounted) return;
+                                try {
+                                  await ref
+                                      .read(repositoryProvider)
+                                      .cancelMaintenance(id, null);
+                                  ref.invalidate(
+                                      maintenanceDetailProvider(id));
+                                  ref.invalidate(
+                                      featureMaintenanceProvider);
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    showFeedback(context,
+                                        friendlyError(e, locale));
+                                  }
+                                }
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const SkeletonList(),
+              error: (e, _) => AppError(
+                message: friendlyError(e, locale),
+                onRetry: () => ref.invalidate(maintenanceDetailProvider(id)),
+              ),
+            ),
       ),
-      body: ref
-          .watch(maintenanceDetailProvider(id))
-          .when(
-            data: (d) => ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  d.request.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                Text('${d.request.requestNo} · ${d.request.status}'),
-                Text(d.description),
-                SectionTitle(title: t.ar ? 'السجل الزمني' : 'Timeline'),
-                for (final u in d.updates)
-                  ListTile(
-                    title: Text(u['resulting_status'] ?? ''),
-                    subtitle: Text(u['note'] ?? ''),
-                  ),
-                SectionTitle(title: t.ar ? 'المرفقات' : 'Attachments'),
-                for (final a in d.attachments)
-                  ListTile(
-                    leading: const Icon(Icons.attach_file),
-                    title: Text(a['original_file_name'] ?? ''),
-                  ),
-                FilledButton.icon(
-                  onPressed: () => _upload(context, ref, id),
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(t.ar ? 'رفع دليل' : 'Upload evidence'),
-                ),
-              ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر التحميل' : 'Could not load',
-              onRetry: () => ref.invalidate(maintenanceDetailProvider(id)),
-            ),
-          ),
     );
   }
 }
 
 Future<void> _upload(BuildContext context, WidgetRef ref, String id) async {
+  final locale = Localizations.localeOf(context);
   final files = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
@@ -530,373 +707,21 @@ Future<void> _upload(BuildContext context, WidgetRef ref, String id) async {
   final mime = f.extension == 'pdf'
       ? 'application/pdf'
       : f.extension == 'png'
-      ? 'image/png'
-      : 'image/jpeg';
+          ? 'image/png'
+          : f.extension == 'webp'
+              ? 'image/webp'
+              : 'image/jpeg';
   try {
-    await ref
-        .read(repositoryProvider)
-        .uploadMaintenanceAttachment(
+    await ref.read(repositoryProvider).uploadMaintenanceAttachment(
           requestId: id,
           fileName: f.name,
           mimeType: mime,
           bytes: bytes,
         );
     ref.invalidate(maintenanceDetailProvider(id));
-  } catch (_) {
-    if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr(context, 'فشل الرفع', 'Upload failed'))),
-      );
-  }
-}
-
-final workOrderDetailProvider = FutureProvider.family
-    .autoDispose<WorkOrderDetail, String>(
-      (ref, id) => ref.watch(repositoryProvider).workOrderDetail(id),
-    );
-
-class WorkOrderDetailScreen extends ConsumerWidget {
-  final String id;
-  const WorkOrderDetailScreen({super.key, required this.id});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(title: Text(t.ar ? 'أمر العمل' : 'Work order')),
-      body: ref
-          .watch(workOrderDetailProvider(id))
-          .when(
-            data: (d) {
-              final session = ref.watch(sessionProvider).valueOrNull;
-              final canManage = canUseWorkOrderAction(session, 'manage');
-              final canComplete = canUseWorkOrderAction(session, 'complete');
-              final canEvidence = canUseWorkOrderAction(session, 'evidence');
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Text(
-                    d.workOrder.title,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  Text('${d.workOrder.number} · ${d.workOrder.status}'),
-                  Wrap(
-                    children: [
-                      if (canManage &&
-                          (d.workOrder.status == 'ASSIGNED' ||
-                              d.workOrder.status == 'SCHEDULED'))
-                        _transition(
-                          context,
-                          ref,
-                          d,
-                          'start_work_order',
-                          'Start',
-                        ),
-                      if (canManage && d.workOrder.status == 'IN_PROGRESS')
-                        _transition(context, ref, d, 'wait_work_order', 'Wait'),
-                      if (canManage && d.workOrder.status == 'WAITING')
-                        _transition(
-                          context,
-                          ref,
-                          d,
-                          'resume_work_order',
-                          'Resume',
-                        ),
-                      if (canManage &&
-                          ![
-                            'COMPLETED',
-                            'CANCELLED',
-                          ].contains(d.workOrder.status))
-                        _transition(
-                          context,
-                          ref,
-                          d,
-                          'cancel_work_order',
-                          'Cancel',
-                        ),
-                      if (canComplete && d.workOrder.status == 'IN_PROGRESS')
-                        FilledButton(
-                          onPressed: () async {
-                            await ref
-                                .read(repositoryProvider)
-                                .completeWorkOrder(
-                                  id,
-                                  'Completed from mobile',
-                                  null,
-                                  null,
-                                );
-                            ref.invalidate(workOrderDetailProvider(id));
-                          },
-                          child: Text(t.ar ? 'إكمال' : 'Complete'),
-                        ),
-                    ],
-                  ),
-                  if (canManage)
-                    TextField(
-                      onSubmitted: (v) async {
-                        if (v.trim().isNotEmpty) {
-                          await ref
-                              .read(repositoryProvider)
-                              .addWorkOrderNote(id, v);
-                          ref.invalidate(workOrderDetailProvider(id));
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: t.ar ? 'ملاحظة' : 'Note',
-                      ),
-                    ),
-                  SectionTitle(title: t.ar ? 'السجل' : 'Timeline'),
-                  SectionTitle(title: t.ar ? 'الأدلة' : 'Evidence'),
-                  for (final a in d.attachments)
-                    ListTile(
-                      leading: const Icon(Icons.attach_file),
-                      title: Text(a['original_file_name'] ?? ''),
-                    ),
-                  if (canEvidence)
-                    FilledButton.icon(
-                      onPressed: () => _upload(context, ref, d.requestId),
-                      icon: const Icon(Icons.upload_file),
-                      label: Text(
-                        t.ar ? 'رفع صورة أو ملف' : 'Upload photo or file',
-                      ),
-                    ),
-                  for (final u in d.updates)
-                    ListTile(
-                      title: Text(u['resulting_status'] ?? ''),
-                      subtitle: Text(u['note'] ?? ''),
-                    ),
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر التحميل' : 'Could not load',
-              onRetry: () => ref.invalidate(workOrderDetailProvider(id)),
-            ),
-          ),
-    );
-  }
-}
-
-Widget _transition(
-  BuildContext c,
-  WidgetRef ref,
-  WorkOrderDetail d,
-  String rpc,
-  String label,
-) => FilledButton(
-  onPressed: () async {
-    await ref
-        .read(repositoryProvider)
-        .workOrderTransition(rpc, d.workOrder.id, 'Mobile action');
-    ref.invalidate(workOrderDetailProvider(d.workOrder.id));
-  },
-  child: Text(label),
-);
-
-class ManagerOverviewScreen extends ConsumerWidget {
-  const ManagerOverviewScreen({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          t.managerOverview,
-          style: const TextStyle(fontWeight: FontWeight.w900, color: appNavy),
-        ),
-      ),
-      body: ref
-          .watch(managerProvider)
-          .when(
-            data: (s) => ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                SectionTitle(title: t.ar ? 'نظرة مالية' : 'Financial Snapshot'),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF07425D), Color(0xFF042434)],
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: appNavy.withAlpha(50),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t.ar ? 'إجمالي التحصيلات المحققة' : 'Total Collections',
-                            style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Text(
-                                s.collections.toStringAsFixed(2),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                t.currencyLabel,
-                                style: const TextStyle(
-                                  color: Color(0xFF94A3B8),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: appPurple.withAlpha(50),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.payments_rounded, color: Colors.white, size: 26),
-                      ),
-                    ],
-                  ),
-                ),
-                SectionTitle(title: t.ar ? 'المستحقات والمتأخرات' : 'Dues & Delinquency'),
-                Row(
-                  children: [
-                    MetricCard(
-                      label: t.ar ? 'المستحقات المفتوحة' : 'Open dues',
-                      value: '${s.openDues}',
-                      icon: Icons.account_balance_wallet_outlined,
-                      color: appNavy,
-                    ),
-                    const SizedBox(width: 12),
-                    MetricCard(
-                      label: t.ar ? 'المتأخرات' : 'Overdue',
-                      value: '${s.overdueDues}',
-                      icon: Icons.warning_amber_outlined,
-                      color: const Color(0xFFDC2626),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SectionTitle(title: t.ar ? 'الصيانة والعمليات' : 'Maintenance & Operations'),
-                Row(
-                  children: [
-                    MetricCard(
-                      label: t.maintenance,
-                      value: '${s.openMaintenance}',
-                      icon: Icons.build_outlined,
-                      color: appPurple,
-                    ),
-                    const SizedBox(width: 12),
-                    MetricCard(
-                      label: t.workOrders,
-                      value: '${s.openWorkOrders}',
-                      icon: Icons.handyman_outlined,
-                      color: const Color(0xFF2563EB),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SectionTitle(title: t.ar ? 'الإشغال والأمان' : 'Occupancy & Security'),
-                Row(
-                  children: [
-                    MetricCard(
-                      label: t.ar ? 'إشغال الوحدات' : 'Occupancy',
-                      value: '${s.occupiedUnits}/${s.totalUnits}',
-                      icon: Icons.home_work_outlined,
-                      color: const Color(0xFF0D9488),
-                    ),
-                    const SizedBox(width: 12),
-                    MetricCard(
-                      label: t.ar ? 'تصاريح الزوار' : 'Active visitors',
-                      value: '${s.activeVisitors}',
-                      icon: Icons.people_outline,
-                      color: const Color(0xFFD97706),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: appPurpleLight,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.notifications_none_rounded, color: appPurple),
-                        ),
-                        title: Text(
-                          t.ar ? 'تنبيهات غير مقروءة' : 'Unread alerts',
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: appPurpleLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${s.unreadAlerts}',
-                            style: const TextStyle(
-                              color: appPurple,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.lock_outline, color: Color(0xFF64748B)),
-                        ),
-                        title: Text(
-                          t.ar
-                              ? 'نشاط البوابة المباشر'
-                              : 'Live gate activity',
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: appNavy),
-                        ),
-                        subtitle: Text(
-                          t.ar
-                              ? 'مخصص لوحدات البوابات والأجهزة الميدانية'
-                              : 'Dedicated to gate units and perimeter devices',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF94A3B8)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => AppError(
-              message: t.ar ? 'تعذر التحميل' : 'Could not load',
-              onRetry: () => ref.invalidate(managerProvider),
-            ),
-          ),
-    );
+  } catch (e) {
+    if (context.mounted) {
+      showFeedback(context, friendlyError(e, locale));
+    }
   }
 }

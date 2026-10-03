@@ -13,10 +13,12 @@ double outstandingAmount(double amount, double paid) =>
 
 bool canUseWorkOrderAction(AppSession? session, String action) {
   if (session == null) return false;
+  // Capability keys mirror the DB permission catalog exactly; the previous
+  // 'maintenance.attachments.manage' key does not exist in the backend.
   const capabilities = <String, String>{
     'manage': 'operations.work_orders.manage',
     'complete': 'operations.work_orders.complete',
-    'evidence': 'maintenance.attachments.manage',
+    'evidence': 'operations.maintenance.manage',
   };
   final capability = capabilities[action];
   return capability != null && session.can(capability);
@@ -25,12 +27,16 @@ bool canUseWorkOrderAction(AppSession? session, String action) {
 bool isHistoryWorkOrderStatus(String status) =>
     status == 'COMPLETED' || status == 'CANCELLED';
 
+/// Mirrors the DB transition matrix literally: cancel is only possible from
+/// DRAFT/ASSIGNED/SCHEDULED — never from IN_PROGRESS or WAITING (the server
+/// rejects it, so the UI must not offer it).
 bool canTransitionWorkOrder(String current, String next) {
   const transitions = <String, Set<String>>{
-    'ASSIGNED': {'IN_PROGRESS', 'CANCELLED'},
+    'DRAFT': {'ASSIGNED', 'CANCELLED'},
+    'ASSIGNED': {'IN_PROGRESS', 'SCHEDULED', 'CANCELLED'},
     'SCHEDULED': {'IN_PROGRESS', 'CANCELLED'},
-    'IN_PROGRESS': {'WAITING', 'COMPLETED', 'CANCELLED'},
-    'WAITING': {'IN_PROGRESS', 'CANCELLED'},
+    'IN_PROGRESS': {'WAITING', 'COMPLETED'},
+    'WAITING': {'IN_PROGRESS'},
   };
   return transitions[current]?.contains(next) ?? false;
 }
@@ -50,7 +56,26 @@ class AppSession {
       capabilities.contains('*') || capabilities.contains(key);
   bool get isStaff => can('operations.work_orders.view');
   bool get isManager =>
-      can('finance.reports.read') || can('tenant.roles.manage');
+      can('operations.maintenance.manage') ||
+      can('operations.work_orders.assign') ||
+      can('operations.visitors.manage');
+  Persona get persona => resolvePersona(this);
+}
+
+/// The five approved mobile personas (UX blueprint §1), resolved strictly by
+/// permission keys — never by role names. Precedence when a user holds
+/// several: manager → collector → technician → gate → resident.
+enum Persona { manager, collector, technician, gate, resident }
+
+Persona resolvePersona(AppSession session) {
+  if (session.isManager) return Persona.manager;
+  if (session.can('receivables.payments.create')) return Persona.collector;
+  if (session.can('operations.work_orders.view') ||
+      session.can('operations.work_orders.complete')) {
+    return Persona.technician;
+  }
+  if (session.can('operations.gates.scan')) return Persona.gate;
+  return Persona.resident;
 }
 
 class HomeSummary {
@@ -86,6 +111,7 @@ class DueItem {
   final double amount, paid, outstanding;
   final String dueDate;
   final String? unitCode;
+  final String? memberId;
   const DueItem({
     required this.id,
     required this.description,
@@ -94,6 +120,74 @@ class DueItem {
     required this.outstanding,
     required this.dueDate,
     this.unitCode,
+    this.memberId,
+  });
+}
+
+class FawryCheckout {
+  final String transactionId;
+  final double amount;
+  final String reference;
+  const FawryCheckout({
+    required this.transactionId,
+    required this.amount,
+    required this.reference,
+  });
+}
+
+class CashierSessionInfo {
+  final String id, cashboxId, openedAt;
+  final String? propertyId;
+  final double openingBalance;
+  const CashierSessionInfo({
+    required this.id,
+    required this.cashboxId,
+    required this.openedAt,
+    this.propertyId,
+    required this.openingBalance,
+  });
+}
+
+class CollectTarget {
+  final String? unitId, memberId, subtitle;
+  final String title;
+  final double balance;
+  const CollectTarget({
+    this.unitId,
+    this.memberId,
+    required this.title,
+    this.subtitle,
+    required this.balance,
+  });
+}
+
+enum AttentionKind { overdue, cheque, slaBreach, leaseEnding, gateException }
+
+class AttentionItem {
+  final AttentionKind kind;
+  final String title;
+  final double? amount;
+  final String? date;
+  final String? refId;
+  const AttentionItem({
+    required this.kind,
+    required this.title,
+    this.amount,
+    this.date,
+    this.refId,
+  });
+}
+
+class ManagerAttention {
+  final List<AttentionItem> items;
+  final double todayCollections, totalOverdue;
+  final int openMaintenance, visitorsInside;
+  const ManagerAttention({
+    this.items = const [],
+    this.todayCollections = 0,
+    this.totalOverdue = 0,
+    this.openMaintenance = 0,
+    this.visitorsInside = 0,
   });
 }
 
@@ -448,13 +542,26 @@ class AqarRepository {
     }).toList();
   }
 
+  /// Member ids of the signed-in user (`payments.member_id` references
+  /// `members.id`, not `auth.uid()` — filtering by the auth id returned an
+  /// empty list, a known mismatch fixed per the UX blueprint §8.17).
+  Future<List<String>> myMemberIds() async {
+    final rows = await db
+        .from('members')
+        .select('id')
+        .eq('user_id', db.auth.currentUser!.id);
+    return rows.map((r) => r['id'] as String).toList();
+  }
+
   Future<List<PaymentItem>> payments() async {
+    final memberIds = await myMemberIds();
+    if (memberIds.isEmpty) return const [];
     final rows = await db
         .from('payments')
         .select(
           'id, amount, payment_date, method, receipt_no, receipt_number, memo, unit_id',
         )
-        .eq('member_id', db.auth.currentUser!.id)
+        .inFilter('member_id', memberIds)
         .order('payment_date', ascending: false);
     return rows
         .map(
@@ -879,13 +986,17 @@ class AqarRepository {
     );
   }
 
-  Future<void> addWorkOrderNote(String id, String note) async {
+  Future<void> addWorkOrderNote(
+    String id,
+    String note, {
+    String visibility = 'STAFF_ONLY',
+  }) async {
     await db.rpc(
       'add_work_order_update',
       params: {
         'p_work_order_id': id,
         'p_note': note,
-        'p_visibility': 'STAFF_ONLY',
+        'p_visibility': visibility,
       },
     );
   }
@@ -983,6 +1094,15 @@ class AqarRepository {
     final titles = {
       for (final r in reqs) r['id'] as String: r['title'] as String,
     };
+    // Resolve real unit codes — the previous build surfaced raw unit UUIDs
+    // in technician task cards (UX blueprint §5 fix).
+    final unitIds = rows.map((r) => r['unit_id'] as String).toSet().toList();
+    final unitRows = unitIds.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await db.from('units').select('id, code').inFilter('id', unitIds);
+    final codes = {
+      for (final r in unitRows) r['id'] as String: r['code'] as String,
+    };
     return rows
         .map(
           (r) => WorkOrderItem(
@@ -990,11 +1110,553 @@ class AqarRepository {
             number: r['work_order_no'] ?? '—',
             title: titles[r['maintenance_request_id']] ?? 'Work order',
             status: r['status'] ?? '—',
-            unitCode: r['unit_id'] ?? '—',
+            unitCode: codes[r['unit_id']] ?? '—',
             dueAt: r['sla_due_at'] as String?,
           ),
         )
         .toList();
+  }
+
+  // ───────────────────────── Fawry (online payment) ─────────────────────────
+
+  /// Active Fawry provider settings for the organization, or null when the
+  /// org is outside the pilot — the UI must then hide online payment
+  /// entirely and show the "pay at the office/collector" card instead.
+  Future<Map<String, dynamic>?> fawrySettings() async {
+    final rows = await db
+        .from('payment_provider_settings')
+        .select('id, provider, environment, enabled, status')
+        .eq('provider', 'FAWRY')
+        .eq('enabled', true)
+        .limit(1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<FawryCheckout> createFawryCheckout({
+    required List<String> dueIds,
+    required Map<String, dynamic> settings,
+    required String clientRequestId,
+  }) async {
+    final data = await db.rpc(
+      'create_online_payment_checkout_transaction',
+      params: {
+        'p_due_ids': dueIds,
+        'p_provider': 'FAWRY',
+        'p_environment': settings['environment'],
+        'p_provider_settings_id': settings['id'],
+        'p_client_request_id': clientRequestId,
+      },
+    );
+    final row = (data as List).first as Map;
+    return FawryCheckout(
+      transactionId: row['transaction_id'] as String,
+      amount: double.tryParse('${row['amount'] ?? 0}') ?? 0,
+      reference: row['provider_reference'] as String? ?? '—',
+    );
+  }
+
+  // ───────────────────────── Collector / cashier ─────────────────────────
+
+  Future<List<Map<String, dynamic>>> cashboxes() async {
+    final rows = await db
+        .from('cashboxes')
+        .select('id, name, property_id, gl_account_id')
+        .eq('is_active', true)
+        .order('name');
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<CashierSessionInfo?> activeCashierSession() async {
+    final rows = await db
+        .from('cashier_sessions')
+        .select(
+          'id, cashbox_id, opening_balance, status, opened_at, property_id',
+        )
+        .eq('opened_by', db.auth.currentUser!.id)
+        .eq('status', 'OPEN')
+        .order('opened_at', ascending: false)
+        .limit(1);
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    return CashierSessionInfo(
+      id: r['id'] as String,
+      cashboxId: r['cashbox_id'] as String,
+      propertyId: r['property_id'] as String?,
+      openingBalance: double.tryParse('${r['opening_balance'] ?? 0}') ?? 0,
+      openedAt: r['opened_at'] as String? ?? '',
+    );
+  }
+
+  Future<String> openCashierSession({
+    required String organizationId,
+    required String propertyId,
+    required String cashboxId,
+    required double openingBalance,
+  }) async {
+    final data = await db.rpc(
+      'open_cashier_session',
+      params: {
+        'p_organization_id': organizationId,
+        'p_resort_id': propertyId,
+        'p_cashbox_id': cashboxId,
+        'p_opening_balance': openingBalance,
+      },
+    );
+    return data as String;
+  }
+
+  Future<void> closeCashierSession(String sessionId, double actual) async {
+    await db.rpc(
+      'close_cashier_session',
+      params: {
+        'p_session_id': sessionId,
+        'p_actual_closing_balance': actual,
+      },
+    );
+  }
+
+  /// Payments recorded today by the signed-in collector.
+  Future<List<PaymentItem>> myCollectionsToday() async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final rows = await db
+        .from('payments')
+        .select(
+          'id, amount, payment_date, method, receipt_no, receipt_number, unit_id, status, created_by',
+        )
+        .eq('created_by', db.auth.currentUser!.id)
+        .eq('payment_date', today)
+        .neq('status', 'REVERSED')
+        .order('created_at', ascending: false);
+    return rows
+        .map(
+          (r) => PaymentItem(
+            id: r['id'],
+            receipt: r['receipt_no'] ??
+                (r['receipt_number'] == null
+                    ? '—'
+                    : 'REC-${r['receipt_number']}'),
+            date: r['payment_date'] ?? '',
+            method: r['method'] ?? '—',
+            amount: double.tryParse('${r['amount'] ?? 0}') ?? 0,
+          ),
+        )
+        .toList();
+  }
+
+  /// Unit/member search for the collection flow (code, name or phone).
+  Future<List<CollectTarget>> searchCollectTargets(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return const [];
+    final unitRows = await db
+        .from('units_with_financials')
+        .select('id, code, balance')
+        .ilike('code', '%$q%')
+        .limit(10);
+    final memberRows = await db
+        .from('members_with_financials')
+        .select('member_id, full_name, phone, total_balance')
+        .or('full_name.ilike.%$q%,phone.ilike.%$q%')
+        .limit(10);
+    return [
+      for (final r in unitRows)
+        CollectTarget(
+          unitId: r['id'] as String,
+          title: r['code'] as String? ?? '—',
+          subtitle: null,
+          balance: double.tryParse('${r['balance'] ?? 0}') ?? 0,
+        ),
+      for (final r in memberRows)
+        CollectTarget(
+          memberId: r['member_id'] as String?,
+          title: r['full_name'] as String? ?? '—',
+          subtitle: r['phone'] as String?,
+          balance: double.tryParse('${r['total_balance'] ?? 0}') ?? 0,
+        ),
+    ];
+  }
+
+  /// Open dues on one unit with their outstanding amounts (oldest first).
+  Future<List<DueItem>> unitOpenDues(String unitId) async {
+    final rows = await db
+        .from('dues')
+        .select('id, amount, due_date, description, member_id, unit_id')
+        .eq('unit_id', unitId)
+        .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
+        .order('due_date');
+    final ids = rows.map((r) => r['id'] as String).toList();
+    final paid = <String, double>{};
+    if (ids.isNotEmpty) {
+      final allocations = await db
+          .from('payment_allocations')
+          .select('due_id, amount, reversed_at')
+          .inFilter('due_id', ids);
+      for (final row in allocations) {
+        if (row['reversed_at'] == null) {
+          paid[row['due_id']] = (paid[row['due_id']] ?? 0) +
+              (double.tryParse('${row['amount']}') ?? 0);
+        }
+      }
+    }
+    return rows.map((r) {
+      final amount = double.tryParse('${r['amount']}') ?? 0;
+      final p = paid[r['id']] ?? 0;
+      return DueItem(
+        id: r['id'],
+        description: r['description'] ?? 'Periodic due',
+        amount: amount,
+        paid: p,
+        outstanding: outstandingAmount(amount, p),
+        dueDate: r['due_date'] ?? '',
+        memberId: r['member_id'] as String?,
+      );
+    }).where((d) => d.outstanding > 0).toList();
+  }
+
+  /// Records a collection through `record_payment` with an idempotency key
+  /// (safe retries on weak networks) and the open cashier session if any.
+  /// Resolves the deposit account from the session cashbox and the open
+  /// fiscal period server-side data; no backend objects are modified.
+  Future<void> recordCollection({
+    required String unitId,
+    required String memberId,
+    required double amount,
+    required String method,
+    required Map<String, double> allocations,
+    required String idempotencyKey,
+    CashierSessionInfo? session,
+  }) async {
+    final unit = await db
+        .from('units')
+        .select('organization_id, property_id')
+        .eq('id', unitId)
+        .maybeSingle();
+    if (unit == null) throw const AppRepositoryException('not_found');
+    final orgId = unit['organization_id'] as String;
+    String? depositAccountId;
+    if (session != null) {
+      final box = await db
+          .from('cashboxes')
+          .select('gl_account_id')
+          .eq('id', session.cashboxId)
+          .maybeSingle();
+      depositAccountId = box?['gl_account_id'] as String?;
+    }
+    if (depositAccountId == null) {
+      for (final box in await cashboxes()) {
+        final gl = box['gl_account_id'] as String?;
+        if (gl != null) {
+          depositAccountId = gl;
+          break;
+        }
+      }
+    }
+    if (depositAccountId == null) {
+      throw const AppRepositoryException('no_deposit_account');
+    }
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final period = await db
+        .from('fiscal_periods')
+        .select('id')
+        .eq('organization_id', orgId)
+        .eq('status', 'OPEN')
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .maybeSingle();
+    if (period == null) throw const AppRepositoryException('no_open_period');
+    await db.rpc(
+      'record_payment',
+      params: {
+        'p_organization_id': orgId,
+        'p_resort_id': unit['property_id'],
+        'p_member_id': memberId,
+        'p_unit_id': unitId,
+        'p_amount': amount,
+        'p_method': method,
+        'p_payment_date': today,
+        'p_deposit_account_id': depositAccountId,
+        'p_fiscal_period_id': period['id'],
+        'p_allocations': [
+          for (final entry in allocations.entries)
+            {'due_id': entry.key, 'amount': entry.value},
+        ],
+        'p_idempotency_key': idempotencyKey,
+        'p_cashier_session_id': session?.id,
+      },
+    );
+  }
+
+  // ───────────────────────── Manager (attention + stats) ─────────────────
+
+  Future<ManagerAttention> managerAttention(String? organizationId) async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final items = <AttentionItem>[];
+    double totalOverdue = 0;
+    // Overdue = due_date < today with outstanding balance; the stored
+    // OVERDUE status is not maintained by any job (blueprint §0.7).
+    try {
+      final overdue = await db
+          .from('dues')
+          .select('id, amount, due_date, description, units(code)')
+          .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
+          .lt('due_date', today)
+          .order('amount', ascending: false)
+          .limit(5);
+      for (final r in overdue) {
+        final amount = double.tryParse('${r['amount'] ?? 0}') ?? 0;
+        totalOverdue += amount;
+        final unit = r['units'] is Map ? (r['units'] as Map)['code'] : null;
+        items.add(AttentionItem(
+          kind: AttentionKind.overdue,
+          title: unit == null ? '${r['description'] ?? ''}' : '$unit',
+          amount: amount,
+          date: r['due_date'] as String?,
+        ));
+      }
+    } catch (_) {}
+    try {
+      final cheques = await db
+          .from('cheques')
+          .select('id, amount, status, due_date')
+          .inFilter('status', ['RECEIVED', 'DEPOSITED'])
+          .order('due_date')
+          .limit(3);
+      for (final r in cheques) {
+        items.add(AttentionItem(
+          kind: AttentionKind.cheque,
+          title: r['status'] == 'DEPOSITED' ? 'DEPOSITED' : 'RECEIVED',
+          amount: double.tryParse('${r['amount'] ?? 0}') ?? 0,
+          date: r['due_date'] as String?,
+        ));
+      }
+    } catch (_) {}
+    try {
+      final breached = await db
+          .from('work_orders')
+          .select('id, work_order_no, sla_due_at, status')
+          .not('status', 'in', '(COMPLETED,CANCELLED)')
+          .lt('sla_due_at', DateTime.now().toUtc().toIso8601String())
+          .limit(3);
+      for (final r in breached) {
+        items.add(AttentionItem(
+          kind: AttentionKind.slaBreach,
+          title: '${r['work_order_no'] ?? ''}',
+          date: r['sla_due_at'] as String?,
+          refId: r['id'] as String?,
+        ));
+      }
+    } catch (_) {}
+    try {
+      final horizon = DateTime.now()
+          .add(const Duration(days: 60))
+          .toIso8601String()
+          .substring(0, 10);
+      final leases = await db
+          .from('unit_leases')
+          .select('id, ends_on, units(code)')
+          .eq('status', 'ACTIVE')
+          .gte('ends_on', today)
+          .lte('ends_on', horizon)
+          .order('ends_on')
+          .limit(3);
+      for (final r in leases) {
+        final unit = r['units'] is Map ? (r['units'] as Map)['code'] : null;
+        items.add(AttentionItem(
+          kind: AttentionKind.leaseEnding,
+          title: '${unit ?? '—'}',
+          date: r['ends_on'] as String?,
+        ));
+      }
+    } catch (_) {}
+    try {
+      final exceptions = await db
+          .from('gate_manual_exceptions')
+          .select('id, created_at, status')
+          .eq('status', 'PENDING')
+          .order('created_at', ascending: false)
+          .limit(3);
+      for (final r in exceptions) {
+        items.add(AttentionItem(
+          kind: AttentionKind.gateException,
+          title: '',
+          date: r['created_at'] as String?,
+        ));
+      }
+    } catch (_) {}
+
+    double todayCollections = 0;
+    try {
+      final payments = await db
+          .from('payments')
+          .select('amount, status')
+          .eq('payment_date', today)
+          .neq('status', 'REVERSED');
+      todayCollections = payments.fold<double>(
+        0,
+        (s, r) => s + (double.tryParse('${r['amount'] ?? 0}') ?? 0),
+      );
+    } catch (_) {}
+    int openMaintenance = 0;
+    try {
+      final requests = await db
+          .from('maintenance_requests')
+          .select('id')
+          .not('status', 'in', '(COMPLETED,CLOSED,CANCELLED)');
+      openMaintenance = requests.length;
+    } catch (_) {}
+    int visitorsInside = 0;
+    if (organizationId != null) {
+      try {
+        final inside = await db.rpc(
+          'list_gate_current_visitors',
+          params: {'p_organization_id': organizationId},
+        );
+        visitorsInside = (inside as List).length;
+      } catch (_) {}
+    }
+    return ManagerAttention(
+      items: items,
+      todayCollections: todayCollections,
+      totalOverdue: totalOverdue,
+      openMaintenance: openMaintenance,
+      visitorsInside: visitorsInside,
+    );
+  }
+
+  /// TRIAGED requests waiting for a work order + staff to assign to.
+  Future<List<MaintenanceItem>> assignQueue() async {
+    final rows = await db
+        .from('maintenance_requests')
+        .select('id, request_no, title, status, priority, submitted_at, unit_id')
+        .inFilter('status', ['TRIAGED', 'SUBMITTED'])
+        .order('priority')
+        .order('submitted_at');
+    final ids = rows.map((r) => r['unit_id'] as String).toSet().toList();
+    final unitRows = ids.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await db.from('units').select('id, code').inFilter('id', ids);
+    final map = {
+      for (final r in unitRows) r['id'] as String: r['code'] as String,
+    };
+    return rows
+        .map(
+          (r) => MaintenanceItem(
+            id: r['id'],
+            requestNo: r['request_no'] ?? '—',
+            title: r['title'] ?? '—',
+            status: r['status'] ?? '—',
+            priority: r['priority'] ?? '—',
+            submittedAt: r['submitted_at'] ?? '',
+            unitCode: map[r['unit_id']] ?? '—',
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> assignWorkOrder({
+    required String workOrderId,
+    String? assignedUserId,
+    String? supplierId,
+    String? note,
+  }) async {
+    await db.rpc(
+      'assign_work_order',
+      params: {
+        'p_work_order_id': workOrderId,
+        'p_assigned_user_id': assignedUserId,
+        'p_supplier_id': supplierId,
+        'p_note': note,
+        'p_visibility': 'STAFF_ONLY',
+      },
+    );
+  }
+
+  Future<void> scheduleWorkOrder({
+    required String workOrderId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    await db.rpc(
+      'schedule_work_order',
+      params: {
+        'p_work_order_id': workOrderId,
+        'p_scheduled_start_at': start.toUtc().toIso8601String(),
+        'p_scheduled_end_at': end.toUtc().toIso8601String(),
+      },
+    );
+  }
+
+  // ───────────────────────── Gate operator ─────────────────────────
+
+  Future<List<Map<String, dynamic>>> gates() async {
+    final rows = await db
+        .from('gates')
+        .select('id, code, name_ar, name_en, direction_mode, is_active')
+        .eq('is_active', true)
+        .order('code');
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<void> redeemGateEnrollment({
+    required String enrollmentId,
+    required String code,
+    required String installationIdHash,
+    required String credentialHash,
+    required String displayName,
+  }) async {
+    await db.rpc(
+      'redeem_gate_device_enrollment',
+      params: {
+        'p_enrollment_id': enrollmentId,
+        'p_code': code,
+        'p_installation_id_hash': installationIdHash,
+        'p_credential_hash': credentialHash,
+        'p_display_name': displayName,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> processGateScan({
+    required String gateId,
+    required String invitationId,
+    required String rawSecret,
+    required String direction,
+    required String clientScanId,
+  }) async {
+    final data = await db.rpc(
+      'process_visitor_gate_scan',
+      params: {
+        'p_gate_id': gateId,
+        'p_invitation_id': invitationId,
+        'p_raw_secret': rawSecret,
+        'p_direction': direction,
+        'p_client_scan_id': clientScanId,
+      },
+    );
+    final rows = data as List;
+    return rows.isEmpty
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(rows.first as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> gateCurrentVisitors(
+    String organizationId,
+  ) async {
+    final data = await db.rpc(
+      'list_gate_current_visitors',
+      params: {'p_organization_id': organizationId},
+    );
+    return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  Future<List<Map<String, dynamic>>> todayAccessEvents() async {
+    final start = DateTime.now().toIso8601String().substring(0, 10);
+    final rows = await db
+        .from('access_events')
+        .select('id, direction, decision, reason_code, occurred_at')
+        .gte('occurred_at', start)
+        .order('occurred_at', ascending: false)
+        .limit(50);
+    return List<Map<String, dynamic>>.from(rows);
   }
 }
 
