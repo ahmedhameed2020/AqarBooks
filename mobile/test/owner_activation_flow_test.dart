@@ -910,6 +910,17 @@ void main() {
       expect(find.byKey(const ValueKey('activation-state-used')), findsOneWidget);
     });
 
+    for (final reason in ['already_linked', 'identity_in_use']) {
+      testWidgets('$reason is a clear contact-the-office message, never a silent retry',
+          (tester) async {
+        final (env, api) = await open(tester, valid);
+        api.outcomes.add(ActivationOutcome(ok: false, reason: reason));
+        await fill(tester);
+        expect(find.textContaining('could not be linked'), findsOneWidget);
+        expect(env.repo.signIns, isEmpty);
+      });
+    }
+
     testWidgets('weak_password from the server', (tester) async {
       final (env, api) = await open(tester, valid);
       api.outcomes.add(const ActivationOutcome(ok: false, reason: 'weak_password'));

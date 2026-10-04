@@ -6,7 +6,6 @@ import {
   Check,
   Copy,
   KeyRound,
-  Link2,
   Loader2,
   LogOut,
   Mail,
@@ -213,6 +212,16 @@ export function OwnerPortalAccessCard({ memberId, memberName, locale }: Props) {
             v={state.temp_expired ? (isAr ? "منتهية" : "Expired") : `${isAr ? "حتى" : "until"} ${fmt(state.temp_password_expires_at, isAr)}`}
           />
         )}
+        {state.email_verification && (
+          <Row
+            k={isAr ? "تأكيد البريد" : "Email verification"}
+            v={
+              state.email_verification === "verified"
+                ? isAr ? "مؤكَّد" : "Verified"
+                : isAr ? "بانتظار تأكيد البريد" : "Pending email verification"
+            }
+          />
+        )}
         {state.pending_activation_expires_at && (
           <Row k={isAr ? "رابط التفعيل" : "Activation link"} v={`${isAr ? "حتى" : "until"} ${fmt(state.pending_activation_expires_at, isAr)}`} />
         )}
@@ -239,7 +248,7 @@ export function OwnerPortalAccessCard({ memberId, memberName, locale }: Props) {
       {error && <Notice tone="danger">{error}</Notice>}
       {notice && <Notice tone="success">{notice}</Notice>}
 
-      {link && <LinkResult link={link} isAr={isAr} />}
+      {link && <EmailResult result={link} isAr={isAr} onFallback={issueTemp} busy={pending} />}
       {temp && <TempResult temp={temp} isAr={isAr} />}
 
       <div className="flex flex-wrap gap-2">
@@ -262,9 +271,9 @@ export function OwnerPortalAccessCard({ memberId, memberName, locale }: Props) {
               <RefreshCw className="size-3.5" />
               {isAr ? "إعادة إرسال الدعوة" : "Resend invitation"}
             </Button>
-            <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={pending || !canIssue} onClick={issueLink}>
-              <Link2 className="size-3.5" />
-              {isAr ? "نسخ رابط التفعيل" : "Copy activation link"}
+            <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={pending || !canIssue} onClick={issueTemp}>
+              <KeyRound className="size-3.5" />
+              {isAr ? "بدلًا من ذلك: بيانات دخول مؤقتة" : "Instead: temporary credentials"}
             </Button>
             <Button
               type="button"
@@ -382,24 +391,45 @@ function Notice({ tone, children }: { tone: "info" | "warning" | "danger" | "suc
   );
 }
 
-function LinkResult({ link, isAr }: { link: ActivationIssued; isAr: boolean }) {
-  // Never claim an email went out unless the provider accepted it.
-  const sent = link.emailStatus === "sent";
+function EmailResult({
+  result,
+  isAr,
+  onFallback,
+  busy,
+}: {
+  result: ActivationIssued;
+  isAr: boolean;
+  onFallback: () => void;
+  busy: boolean;
+}) {
+  // Never claim an email went out unless the provider accepted it, and never
+  // show a link: it exists only inside that email, so staff cannot activate on
+  // the owner's behalf.
+  const sent = result.emailStatus === "sent";
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3" data-testid="activation-result" data-email-status={link.emailStatus}>
+    <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3" data-testid="activation-result" data-email-status={result.emailStatus}>
       <Notice tone={sent ? "success" : "warning"}>
         {sent
-          ? isAr ? `تم إنشاء رابط التفعيل وإرساله إلى ${link.email}.` : `The activation link was created and emailed to ${link.email}.`
-          : isAr ? "تم إنشاء رابط التفعيل — لم يتم إرسال البريد." : "The activation link was created — the email was not sent."}
+          ? isAr
+            ? `أُرسلت رسالة التفعيل إلى ${result.email}. يكتمل التفعيل عندما يؤكد المالك بريده بفتح الرابط الوارد فيها.`
+            : `The activation email was sent to ${result.email}. Activation completes when the owner proves the address by opening the link in it.`
+          : isAr
+            ? "لم يتم إرسال البريد. الحالة: بانتظار تأكيد البريد (PENDING_EMAIL_VERIFICATION) — لا يوجد رابط تفعيل."
+            : "The email was not sent. Status: PENDING_EMAIL_VERIFICATION — there is no activation link."}
       </Notice>
-      <p dir="ltr" className="break-all rounded-lg bg-background p-2 font-mono text-[11px]">{link.activationUrl}</p>
-      <div className="flex flex-wrap gap-2">
-        <CopyButton value={link.activationUrl} label={isAr ? "نسخ الرابط" : "Copy link"} isAr={isAr} />
-        <CopyButton value={link.whatsappText} label={isAr ? "نسخ رسالة واتساب" : "Copy WhatsApp message"} isAr={isAr} />
-      </div>
-      <p className="text-[11px] text-muted-foreground">
-        {isAr ? "يظهر الرابط هنا الآن فقط ولا يمكن استرجاعه. للحصول على رابط آخر أصدر رابطًا جديدًا (يُبطل السابق)." : "The link is shown now only and cannot be retrieved later. Issue a new one for another copy (it cancels this one)."}
-      </p>
+      {!sent && (
+        <div className="space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            {isAr
+              ? "لا يمكن لأحد تأكيد هذا البريد نيابة عن المالك. لتمكينه الآن استخدم رقم عميل وكلمة مرور مؤقتة، أو أعد المحاولة عند توفر الإرسال."
+              : "Nobody can confirm this address on the owner's behalf. To give access now, use a client number and temporary password, or retry when email sending is available."}
+          </p>
+          <Button type="button" size="sm" className="gap-1.5" disabled={busy} onClick={onFallback}>
+            <KeyRound className="size-3.5" />
+            {isAr ? "إصدار بيانات دخول مؤقتة" : "Issue temporary credentials"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

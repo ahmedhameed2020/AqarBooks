@@ -914,6 +914,11 @@ class _ActivationState extends ConsumerState<ActivationScreen> {
         _fail(ar
             ? 'هذا الرابط مخصص لبريد إلكتروني مختلف عن حسابك. $_contactAdminAr'
             : 'This link was issued for a different email than your account. Please contact the project management.');
+      case 'already_linked':
+      case 'identity_in_use':
+        _fail(ar
+            ? 'تعذّر ربط هذا الحساب بالبريد الإلكتروني. $_contactAdminAr'
+            : 'This account could not be linked to that email. Please contact the project management.');
       case 'invalid_token':
         setState(() {
           _terminal = 'not_found';

@@ -63,6 +63,14 @@ const M_REVOKE = id(28);
 const M_SUSPEND = id(29);
 const M_LOGOUT = id(30);
 const M_LEGACY = id(31);
+const M_UNVER = id(32);
+const M_DUP_A = id(33);
+const M_DUP_B = id(34);
+const M_EDIT = id(35);
+const M_UNSENT = id(36);
+const M_DELIVER = id(37);
+const M_ORGID = id(38);
+const M_FALLBACK = id(39);
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const authz = (uid: string): Who => ({ role: "authenticated", uid });
@@ -75,10 +83,10 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
         ('${ORG_A}', 'Org A', 'org-a-portal', 'ACTIVE'), ('${ORG_B}', 'Org B', 'org-b-portal', 'ACTIVE');
       select public.clone_tenant_role_templates('${ORG_A}');
       select public.clone_tenant_role_templates('${ORG_B}');
-      insert into auth.users (id, email, encrypted_password) values
-        ('${STAFF_A}', 'staff-a@example.com', 'hash-a'),
-        ('${STAFF_B}', 'staff-b@example.com', 'hash-b'),
-        ('${STAFF_NONE}', 'staff-none@example.com', 'hash-n');
+      insert into auth.users (id, email, encrypted_password, email_confirmed_at) values
+        ('${STAFF_A}', 'staff-a@example.com', 'hash-a', now()),
+        ('${STAFF_B}', 'staff-b@example.com', 'hash-b', now()),
+        ('${STAFF_NONE}', 'staff-none@example.com', 'hash-n', now());
       insert into public.organization_memberships (organization_id, user_id, status) values
         ('${ORG_A}', '${STAFF_A}', 'active'), ('${ORG_B}', '${STAFF_B}', 'active'), ('${ORG_A}', '${STAFF_NONE}', 'active');
       insert into public.user_role_assignments (user_id, role_id, organization_id)
@@ -88,7 +96,7 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       insert into public.properties (id, organization_id, name, code) values
         ('${id(41)}', '${ORG_A}', 'Prop A', 'PA'), ('${id(42)}', '${ORG_B}', 'Prop B', 'PB');
       insert into public.units (id, organization_id, property_id, code)
-        select ('00000000-0000-4000-8000-0000000001' || lpad(n::text, 2, '0'))::uuid, '${ORG_A}', '${id(41)}', 'A-' || n from generate_series(1, 9) n;
+        select ('00000000-0000-4000-8000-0000000001' || lpad(n::text, 2, '0'))::uuid, '${ORG_A}', '${id(41)}', 'A-' || n from generate_series(1, 17) n;
       insert into public.units (id, organization_id, property_id, code) values ('${id(150)}', '${ORG_B}', '${id(42)}', 'B-1');
       insert into public.members (id, organization_id, full_name, email, phone) values
         ('${M_OWNER}', '${ORG_A}', 'Owner One', 'owner1@example.com', '01001234567'),
@@ -101,7 +109,15 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
         ('${M_REVOKE}', '${ORG_A}', 'Revoke Owner', 'revoke@example.com', null),
         ('${M_SUSPEND}', '${ORG_A}', 'Suspend Owner', 'suspend@example.com', null),
         ('${M_LOGOUT}', '${ORG_A}', 'Logout Owner', 'logout@example.com', null),
-        ('${M_LEGACY}', '${ORG_A}', 'Legacy Owner', 'legacy@example.com', null);
+        ('${M_LEGACY}', '${ORG_A}', 'Legacy Owner', 'legacy@example.com', null),
+        ('${M_UNVER}', '${ORG_A}', 'Unverified Owner', 'unver@example.com', null),
+        ('${M_DUP_A}', '${ORG_A}', 'Dup A', 'dup@example.com', null),
+        ('${M_DUP_B}', '${ORG_A}', 'Dup B', 'dup@example.com', null),
+        ('${M_EDIT}', '${ORG_A}', 'Edit Owner', 'edit-before@example.com', null),
+        ('${M_UNSENT}', '${ORG_A}', 'Unsent Owner', 'unsent@example.com', null),
+        ('${M_DELIVER}', '${ORG_A}', 'Deliver Owner', 'deliver@example.com', null),
+        ('${M_ORGID}', '${ORG_A}', 'Org Identity Owner', 'orgid@example.com', null),
+        ('${M_FALLBACK}', '${ORG_A}', 'Fallback Owner', 'fallback@example.com', null);
       insert into public.unit_ownerships (organization_id, unit_id, member_id, start_date, end_date) values
         ('${ORG_A}', '${id(101)}', '${M_OWNER}', '2020-01-01', null),
         ('${ORG_A}', '${id(102)}', '${M_NO_EMAIL}', '2020-01-01', null),
@@ -112,23 +128,47 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
         ('${ORG_A}', '${id(106)}', '${M_REVOKE}', '2020-01-01', null),
         ('${ORG_A}', '${id(107)}', '${M_SUSPEND}', '2020-01-01', null),
         ('${ORG_A}', '${id(108)}', '${M_LOGOUT}', '2020-01-01', null),
-        ('${ORG_A}', '${id(109)}', '${M_LEGACY}', '2020-01-01', null);
+        ('${ORG_A}', '${id(109)}', '${M_LEGACY}', '2020-01-01', null),
+        ('${ORG_A}', '${id(110)}', '${M_UNVER}', '2020-01-01', null),
+        ('${ORG_A}', '${id(111)}', '${M_DUP_A}', '2020-01-01', null),
+        ('${ORG_A}', '${id(112)}', '${M_DUP_B}', '2020-01-01', null),
+        ('${ORG_A}', '${id(113)}', '${M_EDIT}', '2020-01-01', null),
+        ('${ORG_A}', '${id(114)}', '${M_UNSENT}', '2020-01-01', null),
+        ('${ORG_A}', '${id(115)}', '${M_DELIVER}', '2020-01-01', null),
+        ('${ORG_A}', '${id(116)}', '${M_ORGID}', '2020-01-01', null),
+        ('${ORG_A}', '${id(117)}', '${M_FALLBACK}', '2020-01-01', null);
     `);
-  });
+  }, 120_000);
 
   afterAll(() => {
     run(`drop database if exists ${TEST_DB} with (force)`, {}, "postgres");
-  });
+  }, 60_000);
 
-  const makeAuthUser = (uid: string, email: string, hash = "hash-initial") =>
-    run(`insert into auth.users (id, email, encrypted_password) values ('${uid}', '${email}', '${hash}') on conflict (id) do nothing;`);
+  const makeAuthUser = (uid: string, email: string, hash = "hash-initial", confirmed = false) =>
+    run(
+      `insert into auth.users (id, email, encrypted_password, email_confirmed_at) values ('${uid}', '${email}', '${hash}', ${
+        confirmed ? "now()" : "null"
+      }) on conflict (id) do nothing;`,
+    );
   const actions = (memberId: string) =>
     run(`select coalesce(string_agg(action, ',' order by created_at, action), '') from public.platform_audit_logs where entity_id = '${memberId}' and action like 'member_portal.%'`);
-  const issue = (member: string, who = authz(STAFF_A)) =>
+  const SERVICE: Who = { role: "service_role" };
+  const request = (member: string, who = authz(STAFF_A)) =>
+    json<Record<string, unknown>>(`select to_jsonb(t) from public.request_member_activation('${member}') t;`, who);
+  const mint = (member: string, actor = STAFF_A) =>
     json<{ raw_token: string; token_id: string; member_email: string }>(
-      `select to_jsonb(t) from public.issue_member_activation('${member}') t;`,
-      who,
+      `select to_jsonb(t) from public.mint_member_activation_token('${member}', '${actor}') t;`,
+      SERVICE,
     );
+  const markDelivery = (tokenId: string, status: string, detail = "null") =>
+    run(`select public.mark_member_activation_delivery('${tokenId}', '${status}', ${detail})`, SERVICE);
+  // What the server does: authorize as staff, mint on the server, mail, record.
+  const issue = (member: string, who = authz(STAFF_A)) => {
+    request(member, who);
+    const t = mint(member, who.uid);
+    markDelivery(t.token_id, "sent");
+    return t;
+  };
   const inspect = (token: string) =>
     json<{ state: string }>(`select public.inspect_member_activation('${token}');`, { role: "service_role" });
   const complete = (token: string, uid: string, origin = "provisioned") =>
@@ -139,13 +179,13 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
 
   describe("eligibility", () => {
     it("requires an active ownership", () => {
-      expect(failure(`select * from public.issue_member_activation('${M_NO_UNIT}');`, authz(STAFF_A))).toContain("NO_ACTIVE_OWNERSHIP");
-      expect(failure(`select * from public.issue_member_activation('${M_ENDED}');`, authz(STAFF_A))).toContain("NO_ACTIVE_OWNERSHIP");
+      expect(failure(`select * from public.request_member_activation('${M_NO_UNIT}');`, authz(STAFF_A))).toContain("NO_ACTIVE_OWNERSHIP");
+      expect(failure(`select * from public.request_member_activation('${M_ENDED}');`, authz(STAFF_A))).toContain("NO_ACTIVE_OWNERSHIP");
       expect(failure(`select * from public.begin_member_temp_access('${M_NO_UNIT}');`, authz(STAFF_A))).toContain("NO_ACTIVE_OWNERSHIP");
     });
 
     it("requires a plausible email for the link flow, not for client-id access", () => {
-      expect(failure(`select * from public.issue_member_activation('${M_NO_EMAIL}');`, authz(STAFF_A))).toContain("MEMBER_EMAIL_REQUIRED");
+      expect(failure(`select * from public.request_member_activation('${M_NO_EMAIL}');`, authz(STAFF_A))).toContain("MEMBER_EMAIL_REQUIRED");
       const begin = json<{ client_id: string }>(`select to_jsonb(t) from public.begin_member_temp_access('${M_NO_EMAIL}') t;`, authz(STAFF_A));
       expect(begin.client_id).toMatch(/^MB-\d{5,}$/);
     });
@@ -190,7 +230,7 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       expect(inspect(t.raw_token).state).toBe("used");
       const s = json<any>(`select public.get_member_portal_access('${M_OWNER}');`, authz(STAFF_A));
       expect(s).toMatchObject({ status: "active", login_method: "email", must_change_password: false });
-      expect(failure(`select * from public.issue_member_activation('${M_OWNER}');`, authz(STAFF_A))).toContain("ALREADY_ACTIVE");
+      expect(failure(`select * from public.request_member_activation('${M_OWNER}');`, authz(STAFF_A))).toContain("ALREADY_ACTIVE");
     });
 
     it("can be revoked, and a new link revokes the old one", () => {
@@ -211,15 +251,125 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
     });
   });
 
+  describe("email ownership proof", () => {
+    it("staff request returns who and where, never a token", () => {
+      const r = request(M_UNSENT);
+      expect(Object.keys(r).sort()).toEqual(["member_email", "member_name", "organization_id"]);
+      expect(JSON.stringify(r)).not.toMatch(/token/i);
+      expect(json<any>(`select public.get_member_portal_access('${M_UNSENT}')`, authz(STAFF_A))).toMatchObject({
+        status: "pending",
+        email_verification: "pending_email_verification",
+      });
+      expect(run(`select count(*) from public.member_activation_tokens where member_id = '${M_UNSENT}'`)).toBe("0");
+    });
+
+    it("a token that was never delivered proves nothing and cannot be used", () => {
+      const t = mint(M_UNSENT);
+      expect(inspect(t.raw_token).state).toBe("revoked");
+      // ... and it is not presented to staff as an outstanding link either.
+      expect(json<any>(`select public.get_member_portal_access('${M_UNSENT}')`, authz(STAFF_A)).pending_activation_expires_at).toBeNull();
+      makeAuthUser(id(90), "unsent@example.com");
+      expect(complete(t.raw_token, id(90))).toEqual({ ok: false, reason: "revoked" });
+      expect(run(`select user_id is null from public.members where id = '${M_UNSENT}'`)).toBe("t");
+    });
+
+    it("an email that could not be sent revokes its token and leaves the address unverified", () => {
+      const before = run(`select count(*) from auth.users where lower(email) = 'unsent@example.com'`);
+      const t = mint(M_UNSENT);
+      markDelivery(t.token_id, "failed", "'Resend 422'");
+      expect(inspect(t.raw_token).state).toBe("revoked");
+      expect(run(`select revoked_at is not null from public.member_activation_tokens where id = '${t.token_id}'`)).toBe("t");
+      // Not even a later "sent" mark brings a revoked token back.
+      markDelivery(t.token_id, "sent");
+      expect(inspect(t.raw_token).state).toBe("revoked");
+      expect(json<any>(`select public.get_member_portal_access('${M_UNSENT}')`, authz(STAFF_A)).email_verification).toBe("pending_email_verification");
+      // Nothing in this flow creates or confirms an identity for the address.
+      expect(run(`select count(*) from auth.users where lower(email) = 'unsent@example.com'`)).toBe(before);
+    });
+
+    it("minting is refused unless the staff request opened a pending email activation", () => {
+      expect(failure(`select * from public.mint_member_activation_token('${M_NO_EMAIL}', '${STAFF_A}')`, SERVICE)).toContain("ACTIVATION_NOT_ALLOWED");
+      expect(failure(`select * from public.mint_member_activation_token('${M_NO_UNIT}', '${STAFF_A}')`, SERVICE)).toContain("ACTIVATION_NOT_ALLOWED");
+    });
+
+    it("a token is bound to the address it was delivered to", () => {
+      const t = issue(M_EDIT);
+      expect(inspect(t.raw_token)).toMatchObject({ state: "valid", email: "edit-before@example.com" });
+      // Staff cannot redirect a delivered link to an address of their choosing.
+      run(`update public.members set email = 'attacker@example.com' where id = '${M_EDIT}'`);
+      expect(inspect(t.raw_token).state).toBe("revoked");
+      makeAuthUser(id(91), "attacker@example.com");
+      expect(complete(t.raw_token, id(91))).toEqual({ ok: false, reason: "revoked" });
+      makeAuthUser(id(92), "edit-before@example.com");
+      expect(complete(t.raw_token, id(92))).toEqual({ ok: false, reason: "revoked" });
+      run(`update public.members set email = 'edit-before@example.com' where id = '${M_EDIT}'`);
+    });
+
+    it("cross-member takeover is denied: one identity can never serve two members", () => {
+      const a = issue(M_DUP_A);
+      makeAuthUser(id(93), "dup@example.com");
+      expect(complete(a.raw_token, id(93))).toMatchObject({ ok: true });
+      // A second member that happens to share the address cannot claim the same identity.
+      const b = issue(M_DUP_B);
+      expect(complete(b.raw_token, id(93))).toEqual({ ok: false, reason: "already_linked" });
+      expect(run(`select user_id is null from public.members where id = '${M_DUP_B}'`)).toBe("t");
+      // And a token for one member never works for another member's address.
+      const c = issue(M_EDIT);
+      makeAuthUser(id(94), "dup2@example.com");
+      expect(complete(c.raw_token, id(94))).toEqual({ ok: false, reason: "email_mismatch" });
+    });
+
+    it("an existing VERIFIED identity is linked, never duplicated, and an unverified one is never linked", () => {
+      // verified: staff-a (fixture) -- covered in the shared-identity suite; here the negative case.
+      const t = issue(M_UNVER);
+      makeAuthUser(id(95), "unver@example.com", "attacker-password-hash", false);
+      expect(inspect(t.raw_token)).toMatchObject({ state: "valid", existing_account: false, existing_unverified: true });
+      // The owner's data must not go to whoever registered the address first.
+      expect(complete(t.raw_token, id(95), "linked_existing")).toEqual({ ok: false, reason: "identity_unverified" });
+      expect(run(`select user_id is null from public.members where id = '${M_UNVER}'`)).toBe("t");
+      // The mailbox holder (the token was delivered there) may take the identity over; still one identity.
+      expect(complete(t.raw_token, id(95), "provisioned")).toMatchObject({ ok: true });
+      expect(run(`select count(*) from auth.users where lower(email) = 'unver@example.com'`)).toBe("1");
+    });
+
+    it("an unverified identity that belongs to an organization is never taken over", () => {
+      const t = issue(M_ORGID);
+      makeAuthUser(id(96), "orgid@example.com", "h", false);
+      run(`insert into public.organization_memberships (organization_id, user_id, status) values ('${ORG_A}', '${id(96)}', 'invited')`);
+      expect(inspect(t.raw_token)).toMatchObject({ existing_unverified: true, existing_in_use: true });
+      expect(complete(t.raw_token, id(96), "provisioned")).toEqual({ ok: false, reason: "identity_in_use" });
+    });
+
+    it("an activation delivered by email completes, marks the address verified and is audited", () => {
+      const t = issue(M_DELIVER);
+      expect(json<any>(`select public.get_member_portal_access('${M_DELIVER}')`, authz(STAFF_A)).email_verification).toBe("pending_email_verification");
+      expect(inspect(t.raw_token)).toMatchObject({ state: "valid", email: "deliver@example.com", existing_account: false, existing_unverified: false });
+      // The server creates the identity only now, after the delivered token is presented.
+      expect(run(`select count(*) from auth.users where lower(email) = 'deliver@example.com'`)).toBe("0");
+      makeAuthUser(id(97), "deliver@example.com", "hash", true);
+      expect(complete(t.raw_token, id(97))).toMatchObject({ ok: true });
+      expect(json<any>(`select public.get_member_portal_access('${M_DELIVER}')`, authz(STAFF_A))).toMatchObject({
+        status: "active",
+        email_verification: "verified",
+        login_method: "email",
+      });
+      expect(actions(M_DELIVER)).toBe(
+        "member_portal.activation_created,member_portal.invitation_sent,member_portal.activation_completed",
+      );
+      expect(run(`select safe_change_summary->>'email_proof' from public.platform_audit_logs where entity_id = '${M_DELIVER}' and action = 'member_portal.activation_completed'`)).toBe("delivered_link");
+      expect(complete(t.raw_token, id(97))).toEqual({ ok: false, reason: "used" });
+    });
+  });
+
   describe("cross-tenant and permission denial", () => {
     it("staff of another organization cannot read or act on the member", () => {
       for (const sql of [
         `select public.get_member_portal_access('${M_SUSPEND}')`,
-        `select * from public.issue_member_activation('${M_SUSPEND}')`,
+        `select * from public.request_member_activation('${M_SUSPEND}')`,
         `select * from public.begin_member_temp_access('${M_SUSPEND}')`,
         `select * from public.suspend_member_portal('${M_SUSPEND}')`,
         `select * from public.reactivate_member_portal('${M_SUSPEND}')`,
-        `select public.revoke_member_portal_sessions('${M_SUSPEND}')`,
+        `select * from public.begin_member_signout('${M_SUSPEND}')`,
         `select public.revoke_member_activation('${M_SUSPEND}')`,
       ]) {
         expect(failure(sql, authz(STAFF_B)), sql).toContain("FORBIDDEN_PORTAL_ACCESS");
@@ -231,15 +381,18 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
     });
 
     it("staff without the permission are refused; anon and signed-out are refused", () => {
-      expect(failure(`select * from public.issue_member_activation('${M_SUSPEND}')`, authz(STAFF_NONE))).toContain("FORBIDDEN_PORTAL_ACCESS");
-      expect(failure(`select * from public.issue_member_activation('${M_SUSPEND}')`, { role: "anon" })).toContain("permission denied");
-      expect(failure(`select * from public.issue_member_activation('${M_SUSPEND}')`, { role: "authenticated" })).toContain("FORBIDDEN_PORTAL_ACCESS");
+      expect(failure(`select * from public.request_member_activation('${M_SUSPEND}')`, authz(STAFF_NONE))).toContain("FORBIDDEN_PORTAL_ACCESS");
+      expect(failure(`select * from public.request_member_activation('${M_SUSPEND}')`, { role: "anon" })).toContain("permission denied");
+      expect(failure(`select * from public.request_member_activation('${M_SUSPEND}')`, { role: "authenticated" })).toContain("FORBIDDEN_PORTAL_ACCESS");
     });
 
-    it("another tenant cannot record delivery on a token or complete it", () => {
-      const t = issue(M_SUSPEND);
-      expect(failure(`select public.record_activation_delivery('${t.token_id}', 'sent')`, authz(STAFF_B))).toContain("FORBIDDEN_PORTAL_ACCESS");
-      expect(failure(`select public.record_activation_delivery('${id(998)}', 'sent')`, authz(STAFF_B))).toContain("FORBIDDEN_PORTAL_ACCESS");
+    it("staff can neither mint a token nor mark one delivered, whatever their permissions", () => {
+      request(M_SUSPEND);
+      for (const staff of [STAFF_A, STAFF_B]) {
+        expect(failure(`select * from public.mint_member_activation_token('${M_SUSPEND}', '${staff}')`, authz(staff))).toContain("permission denied");
+        expect(failure(`select public.mark_member_activation_delivery('${id(998)}', 'sent')`, authz(staff))).toContain("permission denied");
+      }
+      expect(failure(`select * from public.mint_member_activation_token('${M_SUSPEND}', '${STAFF_A}')`, { role: "anon" })).toContain("permission denied");
       run(`select public.revoke_member_activation('${M_SUSPEND}')`, authz(STAFF_A));
     });
 
@@ -247,6 +400,7 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       expect(failure(`select * from public.member_portal_access`, authz(STAFF_A))).toContain("permission denied");
       expect(failure(`select * from public.member_activation_tokens`, authz(STAFF_A))).toContain("permission denied");
       expect(failure(`select public.inspect_member_activation('x')`, authz(STAFF_A))).toContain("permission denied");
+      expect(failure(`select public.log_member_portal_event('${M_OWNER}', 'member_portal.sessions_revoked', '${STAFF_A}')`, authz(STAFF_A))).toContain("permission denied");
       expect(failure(`select public.complete_member_activation('x', '${STAFF_A}', 'provisioned')`, authz(STAFF_A))).toContain("permission denied");
       expect(failure(`select public.portal_find_auth_user('a@b.c')`, authz(STAFF_A))).toContain("permission denied");
     });
@@ -256,10 +410,11 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
         select string_agg(p.proname, ',' order by p.proname)
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
-          and p.proname in ('get_member_portal_access','issue_member_activation','record_activation_delivery','revoke_member_activation',
-                            'begin_member_temp_access','finish_member_temp_access','suspend_member_portal','reactivate_member_portal',
-                            'revoke_member_portal_sessions','inspect_member_activation','complete_member_activation',
-                            'portal_find_auth_user','my_portal_access','complete_portal_first_login')
+          and p.proname in ('get_member_portal_access','request_member_activation','mint_member_activation_token',
+                            'mark_member_activation_delivery','revoke_member_activation','begin_member_temp_access',
+                            'finish_member_temp_access','suspend_member_portal','reactivate_member_portal',
+                            'begin_member_signout','log_member_portal_event','inspect_member_activation',
+                            'complete_member_activation','portal_find_auth_user','my_portal_access','complete_portal_first_login')
           and has_function_privilege('anon', p.oid, 'execute');
       `);
       expect(out).toBe("");
@@ -342,11 +497,27 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       expect(actions(M_NO_EMAIL)).toContain("member_portal.temp_access_regenerated");
     });
 
-    it("email-based and shared identities cannot be given temporary credentials", () => {
-      const t = issue(M_SUSPEND);
-      expect(failure(`select * from public.begin_member_temp_access('${M_SUSPEND}')`, authz(STAFF_A))).toContain("EMAIL_ACCOUNT");
-      run(`select public.revoke_member_activation('${M_SUSPEND}')`, authz(STAFF_A));
-      expect(t.raw_token).toBeTruthy();
+    it("an ACTIVE email account is never converted to client-id access", () => {
+      expect(failure(`select * from public.begin_member_temp_access('${M_OWNER}')`, authz(STAFF_A))).toContain("EMAIL_ACCOUNT");
+    });
+
+    it("a pending email activation that could not be emailed falls back to a client number", () => {
+      request(M_FALLBACK);
+      const t = mint(M_FALLBACK);
+      markDelivery(t.token_id, "failed", "'Resend 500'");
+      expect(json<any>(`select public.get_member_portal_access('${M_FALLBACK}')`, authz(STAFF_A)).email_verification).toBe("pending_email_verification");
+      const begin = json<{ client_id: string; alias_email: string }>(
+        `select to_jsonb(t) from public.begin_member_temp_access('${M_FALLBACK}') t;`,
+        authz(STAFF_A),
+      );
+      expect(begin.client_id).toMatch(/^MB-\d{5,}$/);
+      expect(json<any>(`select to_jsonb(a) from public.member_portal_access a where member_id = '${M_FALLBACK}'`)).toMatchObject({
+        login_method: "client_id",
+        client_id: begin.client_id,
+      });
+      // The email path is closed: its token is dead and cannot be revived.
+      expect(inspect(t.raw_token).state).toBe("revoked");
+      expect(failure(`select * from public.request_member_activation('${M_FALLBACK}')`, authz(STAFF_A))).toContain("CLIENT_ID_ACCOUNT");
     });
   });
 
@@ -410,12 +581,24 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       expect(json<any>(`select public.complete_portal_first_login('01001112223')`, authz(uid))).toEqual({ ok: false, reason: "SUSPENDED" });
     });
 
-    it("signs the owner out of every device", () => {
-      run(`insert into auth.sessions (user_id) values ('${uid}'), ('${uid}'); insert into auth.sessions (user_id) values ('${STAFF_B}');`);
-      expect(run(`select public.revoke_member_portal_sessions('${M_LOGOUT}')`, authz(STAFF_A))).toBe("2");
-      expect(run(`select count(*) from auth.sessions where user_id = '${uid}'`)).toBe("0");
-      expect(run(`select count(*) from auth.sessions where user_id = '${STAFF_B}'`)).toBe("1");
+    it("authorizes sign-out for the identity but never writes to managed Auth tables", () => {
+      run(`insert into auth.sessions (user_id) values ('${uid}'), ('${uid}');`);
+      const r = json<{ auth_user_id: string; is_banned: boolean }>(
+        `select to_jsonb(t) from public.begin_member_signout('${M_LOGOUT}') t;`,
+        authz(STAFF_A),
+      );
+      expect(r).toEqual({ auth_user_id: uid, is_banned: true });
+      // Ending sessions is the Auth Admin API's job; SQL leaves auth.sessions alone.
+      expect(run(`select count(*) from auth.sessions where user_id = '${uid}'`)).toBe("2");
+      expect(failure(`select * from public.begin_member_signout('${M_NO_UNIT}')`, authz(STAFF_A))).toContain("NOT_PROVISIONED");
+      expect(failure(`select * from public.begin_member_signout('${M_LOGOUT}')`, authz(STAFF_B))).toContain("FORBIDDEN_PORTAL_ACCESS");
+    });
+
+    it("records the outcome the server observed, through a closed list of events", () => {
+      run(`select public.log_member_portal_event('${M_LOGOUT}', 'member_portal.sessions_revoked', '${STAFF_A}', '{"method":"admin_global_signout"}')`, SERVICE);
       expect(actions(M_LOGOUT)).toContain("member_portal.sessions_revoked");
+      expect(run(`select actor_id from public.platform_audit_logs where entity_id = '${M_LOGOUT}' and action = 'member_portal.sessions_revoked'`)).toBe(STAFF_A);
+      expect(failure(`select public.log_member_portal_event('${M_LOGOUT}', 'member_portal.suspended', '${STAFF_A}')`, SERVICE)).toContain("INVALID_PORTAL_EVENT");
     });
 
     it("reactivates without creating a new member, and asks for an unban", () => {
@@ -434,7 +617,7 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
       const t = issue(M_SUSPEND);
       run(`select * from public.suspend_member_portal('${M_SUSPEND}')`, authz(STAFF_A));
       expect(inspect(t.raw_token).state).toBe("revoked");
-      expect(failure(`select * from public.issue_member_activation('${M_SUSPEND}')`, authz(STAFF_A))).toContain("PORTAL_SUSPENDED");
+      expect(failure(`select * from public.request_member_activation('${M_SUSPEND}')`, authz(STAFF_A))).toContain("PORTAL_SUSPENDED");
       run(`select * from public.reactivate_member_portal('${M_SUSPEND}')`, authz(STAFF_A));
       expect(json<any>(`select public.get_member_portal_access('${M_SUSPEND}')`, authz(STAFF_A)).status).toBe("pending");
     });
@@ -452,10 +635,10 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
   describe("audit trail", () => {
     it("records each lifecycle step without secrets", () => {
       const t = issue(M_REVOKE);
-      run(`select public.record_activation_delivery('${t.token_id}', 'failed', 'smtp timeout')`, authz(STAFF_A));
-      run(`select public.record_activation_delivery('${t.token_id}', 'sent')`, authz(STAFF_A));
-      expect(run(`select delivery_status from public.member_activation_tokens where id = '${t.token_id}'`)).toBe("sent");
       expect(actions(M_REVOKE)).toContain("member_portal.invitation_sent");
+      markDelivery(t.token_id, "failed", "'smtp timeout'");
+      expect(run(`select delivery_status from public.member_activation_tokens where id = '${t.token_id}'`)).toBe("failed");
+      expect(actions(M_REVOKE)).toContain("member_portal.invitation_failed");
 
       expect(actions(M_OWNER)).toContain("member_portal.activation_created");
       expect(actions(M_OWNER)).toContain("member_portal.activation_completed");

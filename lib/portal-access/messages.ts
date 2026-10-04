@@ -45,14 +45,6 @@ export function temporaryAccessWhatsApp(input: {
       ].join("\n");
 }
 
-export function activationLinkWhatsApp(input: { lang: Lang; name: string; url: string; expiresAt: string }): string {
-  const { lang, name, url, expiresAt } = input;
-  const expiry = formatExpiry(expiresAt, lang);
-  return lang === "ar"
-    ? `مرحبًا ${name}، فعّل حسابك في بوابة الملاك على AqarBooks من هذا الرابط:\n${url}\n\nالرابط يعمل مرة واحدة وينتهي ${expiry}.`
-    : `Hello ${name}, activate your AqarBooks owner portal account here:\n${url}\n\nThe link works once and expires ${expiry}.`;
-}
-
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 

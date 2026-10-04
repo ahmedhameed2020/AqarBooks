@@ -181,6 +181,7 @@ const base: PortalAccessState = {
   pending_activation_expires_at: null,
   activation_link_expired: false,
   last_delivery_status: null,
+  email_verification: null,
   shared_identity: false,
   legacy_linked: false,
   can_manage: true,
@@ -236,47 +237,69 @@ describe("owner portal access card", () => {
     expect(buttonByText(noEmail, "إصدار بيانات دخول مؤقتة")[0].props.disabled).toBe(false);
   });
 
-  it("says the email was NOT sent when it was not, and still offers the link to copy", async () => {
+  it("offers no activation link and no copy-link action anywhere: the link exists only inside the email", async () => {
+    const r = await renderCard({ status: "pending", login_method: "email", email_verification: "pending_email_verification", pending_activation_expires_at: "2026-10-07T10:00:00Z" });
+    const t = all(r);
+    expect(t).not.toContain("نسخ رابط التفعيل");
+    expect(t).not.toContain("/activate/");
+    expect(buttonByText(r, "إعادة إرسال الدعوة")).toHaveLength(1);
+    expect(t).toContain("بانتظار تأكيد البريد");
+  });
+
+  it("says the email was NOT sent when it was not, stays pending verification, and offers the client-ID fallback", async () => {
     actions.issueActivationAction.mockResolvedValue({
       ok: true,
-      activationUrl: "https://aqarbooks.com/activate/TOKEN",
-      expiresAt: "2026-10-07T10:00:00Z",
       email: "owner@example.com",
       emailStatus: "not_sent",
-      whatsappText: "msg",
+      pendingEmailVerification: true,
     });
     const r = await renderCard({});
     await act(async () => buttonByText(r, "تفعيل بوابة المالك")[0].props.onClick());
     await flush();
     const result = r.root.findByProps({ "data-testid": "activation-result" });
     expect(result.props["data-email-status"]).toBe("not_sent");
-    expect(textOf(result)).toContain("تم إنشاء رابط التفعيل — لم يتم إرسال البريد");
-    expect(textOf(result)).toContain("https://aqarbooks.com/activate/TOKEN");
-    expect(textOf(result)).not.toContain("وإرساله إلى");
-    expect(buttonByText(r, "نسخ الرابط").length).toBeGreaterThan(0);
+    const text = textOf(result);
+    expect(text).toContain("لم يتم إرسال البريد");
+    expect(text).toContain("PENDING_EMAIL_VERIFICATION");
+    expect(text).toContain("لا يمكن لأحد تأكيد هذا البريد نيابة عن المالك");
+    expect(text).not.toContain("أُرسلت رسالة التفعيل");
+    // No link, no copy action, no admin "confirm" action -- only the fallback.
+    expect(text).not.toMatch(/https?:\/\//);
+    expect(buttonByText(r, "نسخ")).toHaveLength(0);
+    expect(buttonByText(r, "تأكيد البريد")).toHaveLength(0);
+    // The fallback issues temporary credentials.
+    actions.issueTemporaryAccessAction.mockResolvedValue({
+      ok: true,
+      clientId: "MB-10482",
+      temporaryPassword: "Ab3k-Xy7m-Qp9z",
+      expiresAt: "2026-10-07T10:00:00Z",
+      regenerated: false,
+      whatsappText: "wa",
+    });
+    const fallback = result.findAll((n) => n.type === "button" && textOf(n).includes("إصدار بيانات دخول مؤقتة"));
+    await act(async () => fallback[0].props.onClick());
+    await flush();
+    expect(actions.issueTemporaryAccessAction).toHaveBeenCalledWith("m1", "ar");
+    expect(textOf(r.root.findByProps({ "data-testid": "temp-client-id" }))).toBe("MB-10482");
   });
 
   it("says it was emailed only when the provider accepted it; a provider failure is not success", async () => {
-    const issued = {
-      ok: true,
-      activationUrl: "https://aqarbooks.com/activate/TOKEN",
-      expiresAt: "2026-10-07T10:00:00Z",
-      email: "owner@example.com",
-      whatsappText: "msg",
-    };
-    actions.issueActivationAction.mockResolvedValue({ ...issued, emailStatus: "sent" });
+    actions.issueActivationAction.mockResolvedValue({ ok: true, email: "owner@example.com", emailStatus: "sent", pendingEmailVerification: false });
     let r = await renderCard({});
     await act(async () => buttonByText(r, "تفعيل بوابة المالك")[0].props.onClick());
     await flush();
-    expect(textOf(r.root.findByProps({ "data-testid": "activation-result" }))).toContain("وإرساله إلى owner@example.com");
+    const sent = textOf(r.root.findByProps({ "data-testid": "activation-result" }));
+    expect(sent).toContain("أُرسلت رسالة التفعيل إلى owner@example.com");
+    expect(sent).toContain("يؤكد المالك بريده");
+    expect(sent).not.toMatch(/https?:\/\//);
 
-    actions.issueActivationAction.mockResolvedValue({ ...issued, emailStatus: "failed" });
+    actions.issueActivationAction.mockResolvedValue({ ok: true, email: "owner@example.com", emailStatus: "failed", pendingEmailVerification: true });
     r = await renderCard({});
     await act(async () => buttonByText(r, "تفعيل بوابة المالك")[0].props.onClick());
     await flush();
-    const text = textOf(r.root.findByProps({ "data-testid": "activation-result" }));
-    expect(text).toContain("لم يتم إرسال البريد");
-    expect(text).not.toContain("وإرساله إلى");
+    const failed = textOf(r.root.findByProps({ "data-testid": "activation-result" }));
+    expect(failed).toContain("لم يتم إرسال البريد");
+    expect(failed).not.toContain("أُرسلت رسالة التفعيل");
   });
 
   it("shows the client id and temporary password once, with copy actions and expiry", async () => {
@@ -355,6 +378,7 @@ describe("owner portal access card", () => {
     const r = await renderCard({ status: "pending", login_method: "email", pending_activation_expires_at: "2026-10-07T10:00:00Z" }, "en");
     expect(textOf(r.root.findByProps({ "data-testid": "portal-status" }))).toBe("Awaiting activation");
     expect(buttonByText(r, "Resend invitation")).toHaveLength(1);
-    expect(buttonByText(r, "Copy activation link")).toHaveLength(1);
+    expect(buttonByText(r, "Copy activation link")).toHaveLength(0);
+    expect(buttonByText(r, "Instead: temporary credentials")).toHaveLength(1);
   });
 });

@@ -44,6 +44,7 @@ export type PortalAccessState = {
   pending_activation_expires_at: string | null;
   activation_link_expired: boolean;
   last_delivery_status: "not_sent" | "sent" | "failed" | null;
+  email_verification: "verified" | "pending_email_verification" | null;
   shared_identity: boolean;
   legacy_linked: boolean;
   can_manage: boolean;

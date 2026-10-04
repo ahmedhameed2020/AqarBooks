@@ -23,7 +23,21 @@
 --    below, each of which checks has_permission(auth.uid(), <member's org>, ..)
 --    itself. A member of organization A therefore cannot act on organization B.
 --  * Raw activation tokens are never stored -- only their sha256. A token is
---    returned exactly once, by the function that mints it.
+--    returned exactly once, to the SERVER, by a service-role-only function, and
+--    it is delivered to the owner by email only. No staff-callable function
+--    ever returns a token, and staff never see one: a link that staff could
+--    hold would let them complete an activation, and therefore claim the
+--    owner's email address, on the owner's behalf.
+--  * An email address becomes a verified Auth identity only when a token that
+--    was DELIVERED to that very address (delivery_status = 'sent', recorded by
+--    the server, and bound to the email it was sent to) is presented. If the
+--    email cannot be sent, the email path stays pending_email_verification;
+--    nothing here can mark an address verified administratively.
+--  * An email that already has a verified Auth identity is never duplicated:
+--    the activation links the existing identity, and only after that identity
+--    proves itself by signing in.
+--  * Sessions are ended through the Auth Admin API (see lib/portal-access),
+--    never by writing to managed auth tables from SQL.
 --  * Temporary passwords never reach this database. finish_member_temp_access
 --    stores only a sha256 *fingerprint* of the Auth password hash, so that
 --    complete_portal_first_login can prove the password really changed.
@@ -102,6 +116,10 @@ create table public.member_activation_tokens (
   organization_id uuid not null references public.organizations (id) on delete cascade,
   member_id uuid not null references public.members (id) on delete cascade,
   token_hash text not null unique,
+  -- The address the token was minted for. Completion requires it to still be
+  -- the member's email AND the email of the identity being activated, so a
+  -- token can never be redirected to a different address or a different member.
+  email text not null,
   expires_at timestamptz not null,
   used_at timestamptz,
   revoked_at timestamptz,
@@ -127,16 +145,17 @@ create or replace function public._member_portal_log(
   p_organization_id uuid,
   p_member_id uuid,
   p_action text,
-  p_summary jsonb default '{}'::jsonb
+  p_summary jsonb default '{}'::jsonb,
+  p_actor uuid default null
 ) returns void
 language sql
 security definer
 set search_path to 'public'
 as $$
   insert into public.platform_audit_logs (actor_id, organization_id, action, entity_type, entity_id, safe_change_summary)
-  values (auth.uid(), p_organization_id, p_action, 'member', p_member_id, coalesce(p_summary, '{}'::jsonb));
+  values (coalesce(p_actor, auth.uid()), p_organization_id, p_action, 'member', p_member_id, coalesce(p_summary, '{}'::jsonb));
 $$;
-revoke all on function public._member_portal_log(uuid, uuid, text, jsonb) from public, anon, authenticated;
+revoke all on function public._member_portal_log(uuid, uuid, text, jsonb, uuid) from public, anon, authenticated;
 
 create or replace function public._member_active_unit_count(p_member_id uuid)
 returns integer
@@ -230,9 +249,11 @@ begin
   -- its own.
 
   select * into v_access from public.member_portal_access where member_id = p_member_id;
+  -- Only a link that was really emailed counts: a token that was minted but
+  -- never delivered is unusable and must not be shown as an outstanding link.
   select * into v_token
   from public.member_activation_tokens
-  where member_id = p_member_id and used_at is null and revoked_at is null
+  where member_id = p_member_id and used_at is null and revoked_at is null and delivery_status = 'sent'
   order by created_at desc
   limit 1;
 
@@ -277,6 +298,12 @@ begin
     'pending_activation_expires_at', case when v_token.expires_at > now() then v_token.expires_at else null end,
     'activation_link_expired', v_token.id is not null and v_token.expires_at <= now(),
     'last_delivery_status', v_token.delivery_status,
+    -- The email path is not complete until the owner proves the address: a
+    -- pending email activation is, by definition, pending_email_verification.
+    'email_verification', case
+      when v_status = 'active' and coalesce(v_access.login_method, 'email') = 'email' then 'verified'
+      when v_status = 'pending' and coalesce(v_access.login_method, 'email') = 'email' then 'pending_email_verification'
+      else null end,
     'shared_identity', v_shared,
     'legacy_linked', v_access.id is null and v_member.user_id is not null,
     'can_manage', public.has_permission(auth.uid(), v_member.organization_id, 'members.portal.manage')
@@ -285,8 +312,13 @@ end;
 $$;
 
 -- 6. Staff: email activation ----------------------------------------------------
-create or replace function public.issue_member_activation(p_member_id uuid, p_valid_hours integer default 72)
-returns table(token_id uuid, raw_token text, expires_at timestamptz, member_email text, member_name text, organization_id uuid)
+-- Three steps, on purpose, and the token only ever exists on the server:
+--   request_member_activation  (staff, permission-checked)  -> may we, and for whom?
+--   mint_member_activation_token (service role only)        -> the token, to the server
+--   mark_member_activation_delivery (service role only)     -> was it really emailed?
+-- The server mails the link and returns nothing but the outcome to staff.
+create or replace function public.request_member_activation(p_member_id uuid)
+returns table(member_email text, member_name text, organization_id uuid)
 language plpgsql
 security definer
 set search_path to 'public', 'extensions'
@@ -294,10 +326,6 @@ as $$
 declare
   v_member public.members;
   v_access public.member_portal_access;
-  v_raw text;
-  v_token_id uuid;
-  v_expires timestamptz;
-  v_hours integer := least(greatest(coalesce(p_valid_hours, 72), 1), 168);
 begin
   v_member := public._member_portal_authorize(p_member_id, 'members.portal.invite');
 
@@ -326,7 +354,48 @@ begin
     raise exception 'ALREADY_ACTIVE: المالك مُفعّل بالفعل' using errcode = '22023';
   end if;
 
-  -- A new link replaces any earlier one immediately.
+  -- Whatever happens next, an earlier link must stop working now.
+  update public.member_activation_tokens
+  set revoked_at = now()
+  where member_id = p_member_id and used_at is null and revoked_at is null;
+
+  insert into public.member_portal_access (organization_id, member_id, status, login_method, created_by)
+  values (v_member.organization_id, p_member_id, 'pending', 'email', auth.uid())
+  on conflict (member_id) do update set status = 'pending', updated_at = now();
+
+  return query select btrim(v_member.email), v_member.full_name, v_member.organization_id;
+end;
+$$;
+
+create or replace function public.mint_member_activation_token(p_member_id uuid, p_actor uuid, p_valid_hours integer default 72)
+returns table(token_id uuid, raw_token text, expires_at timestamptz, member_email text, member_name text, organization_id uuid)
+language plpgsql
+security definer
+set search_path to 'public', 'extensions'
+as $$
+declare
+  v_member public.members;
+  v_access public.member_portal_access;
+  v_raw text;
+  v_token_id uuid;
+  v_expires timestamptz;
+  v_hours integer := least(greatest(coalesce(p_valid_hours, 72), 1), 168);
+begin
+  select * into v_member from public.members where id = p_member_id;
+  select * into v_access from public.member_portal_access where member_id = p_member_id for update;
+  -- Everything request_member_activation checked is re-checked here: the
+  -- address may have been edited, or access suspended, in between.
+  if v_member.id is null
+     or v_access.id is null
+     or v_access.status <> 'pending'
+     or v_access.login_method <> 'email'
+     or v_member.user_id is not null
+     or not public._is_plausible_email(v_member.email)
+     or not public.organization_is_active(v_member.organization_id)
+     or public._member_active_unit_count(p_member_id) = 0 then
+    raise exception 'ACTIVATION_NOT_ALLOWED' using errcode = '22023';
+  end if;
+
   update public.member_activation_tokens
   set revoked_at = now()
   where member_id = p_member_id and used_at is null and revoked_at is null;
@@ -334,22 +403,22 @@ begin
   v_raw := translate(encode(gen_random_bytes(32), 'base64'), '+/=' || chr(10), '-_');
   v_expires := now() + make_interval(hours => v_hours);
 
-  insert into public.member_activation_tokens (organization_id, member_id, token_hash, expires_at, created_by)
-  values (v_member.organization_id, p_member_id, encode(digest(v_raw, 'sha256'), 'hex'), v_expires, auth.uid())
+  insert into public.member_activation_tokens (organization_id, member_id, token_hash, email, expires_at, created_by)
+  values (v_member.organization_id, p_member_id, encode(digest(v_raw, 'sha256'), 'hex'),
+          lower(btrim(v_member.email)), v_expires, p_actor)
   returning id into v_token_id;
 
-  insert into public.member_portal_access (organization_id, member_id, status, login_method, created_by)
-  values (v_member.organization_id, p_member_id, 'pending', 'email', auth.uid())
-  on conflict (member_id) do update set status = 'pending', updated_at = now();
-
   perform public._member_portal_log(v_member.organization_id, p_member_id, 'member_portal.activation_created',
-    jsonb_build_object('token_id', v_token_id, 'method', 'email', 'valid_hours', v_hours));
+    jsonb_build_object('token_id', v_token_id, 'method', 'email', 'valid_hours', v_hours), p_actor);
 
   return query select v_token_id, v_raw, v_expires, btrim(v_member.email), v_member.full_name, v_member.organization_id;
 end;
 $$;
 
-create or replace function public.record_activation_delivery(p_token_id uuid, p_status text, p_detail text default null)
+-- Only 'sent' makes a token usable. A token whose email was not accepted by the
+-- trusted channel is revoked on the spot: it must not exist as a live credential
+-- that someone could be handed some other way.
+create or replace function public.mark_member_activation_delivery(p_token_id uuid, p_status text, p_detail text default null)
 returns void
 language plpgsql
 security definer
@@ -357,29 +426,28 @@ set search_path to 'public'
 as $$
 declare
   v_token public.member_activation_tokens;
-  v_member public.members;
 begin
   if p_status not in ('sent', 'failed', 'not_sent') then
     raise exception 'INVALID_DELIVERY_STATUS' using errcode = '22023';
   end if;
-  select * into v_token from public.member_activation_tokens where id = p_token_id;
+  select * into v_token from public.member_activation_tokens where id = p_token_id for update;
   if v_token.id is null then
-    raise exception 'FORBIDDEN_PORTAL_ACCESS: لا تملك صلاحية إدارة وصول هذا المالك' using errcode = '42501';
+    raise exception 'TOKEN_NOT_FOUND' using errcode = '22023';
   end if;
-  v_member := public._member_portal_authorize(v_token.member_id, 'members.portal.invite');
 
   update public.member_activation_tokens
   set delivery_status = p_status,
       delivery_detail = left(p_detail, 200),
-      delivered_at = case when p_status = 'sent' then now() else delivered_at end
+      delivered_at = case when p_status = 'sent' then now() else delivered_at end,
+      revoked_at = case when p_status = 'sent' then revoked_at else coalesce(revoked_at, now()) end
   where id = p_token_id;
 
   if p_status = 'sent' then
-    perform public._member_portal_log(v_member.organization_id, v_member.id, 'member_portal.invitation_sent',
-      jsonb_build_object('token_id', p_token_id, 'channel', 'email'));
+    perform public._member_portal_log(v_token.organization_id, v_token.member_id, 'member_portal.invitation_sent',
+      jsonb_build_object('token_id', p_token_id, 'channel', 'email'), v_token.created_by);
   elsif p_status = 'failed' then
-    perform public._member_portal_log(v_member.organization_id, v_member.id, 'member_portal.invitation_failed',
-      jsonb_build_object('token_id', p_token_id, 'channel', 'email'));
+    perform public._member_portal_log(v_token.organization_id, v_token.member_id, 'member_portal.invitation_failed',
+      jsonb_build_object('token_id', p_token_id, 'channel', 'email'), v_token.created_by);
   end if;
 end;
 $$;
@@ -448,9 +516,21 @@ begin
       raise exception 'PORTAL_SUSPENDED: الوصول موقوف — أعد التفعيل أولًا' using errcode = '22023';
     end if;
     if v_access.login_method <> 'client_id' then
-      raise exception 'EMAIL_ACCOUNT: هذا الحساب يعمل بالبريد الإلكتروني — لا تُصدر بيانات مؤقتة له' using errcode = '22023';
+      -- The fallback for an email activation that never completed (typically
+      -- because the email could not be sent): nobody has signed in yet, so the
+      -- pending email path can be replaced by a client number. An email account
+      -- that is already active is not converted.
+      if v_access.status <> 'pending' or v_member.user_id is not null then
+        raise exception 'EMAIL_ACCOUNT: هذا الحساب يعمل بالبريد الإلكتروني — لا تُصدر بيانات مؤقتة له' using errcode = '22023';
+      end if;
+      v_client_id := 'MB-' || nextval('public.member_client_id_seq');
+      update public.member_portal_access
+      set login_method = 'client_id', client_id = v_client_id, auth_user_id = null, auth_origin = null, updated_at = now()
+      where id = v_access.id
+      returning * into v_access;
+    else
+      v_client_id := v_access.client_id;
     end if;
-    v_client_id := v_access.client_id;
   end if;
 
   -- A pending email link must not survive next to a temporary password.
@@ -610,13 +690,14 @@ begin
 end;
 $$;
 
--- Deletes the owner's Auth sessions (refresh tokens go with them). Access
--- tokens already issued stay valid until they expire (the project's JWT
--- lifetime); current_member_id() is what closes that window for portal data
--- when the reason is a suspension.
-create or replace function public.revoke_member_portal_sessions(p_member_id uuid)
-returns integer
+-- Ending sessions is the Auth Admin API's job (lib/portal-access: mint a
+-- one-off session for the identity, then admin.signOut(jwt, 'global')), not
+-- ours: this function only decides whether the caller may, and for whom. The
+-- outcome is then recorded by log_member_portal_event.
+create or replace function public.begin_member_signout(p_member_id uuid)
+returns table(auth_user_id uuid, is_banned boolean)
 language plpgsql
+stable
 security definer
 set search_path to 'public'
 as $$
@@ -624,7 +705,6 @@ declare
   v_member public.members;
   v_access public.member_portal_access;
   v_uid uuid;
-  v_count integer;
 begin
   v_member := public._member_portal_authorize(p_member_id, 'members.portal.manage');
   select * into v_access from public.member_portal_access where member_id = p_member_id;
@@ -632,13 +712,29 @@ begin
   if v_uid is null then
     raise exception 'NOT_PROVISIONED: لا يوجد حساب لتسجيل خروجه' using errcode = '22023';
   end if;
+  return query select v_uid, coalesce(v_access.status = 'suspended', false);
+end;
+$$;
 
-  delete from auth.sessions where user_id = v_uid;
-  get diagnostics v_count = row_count;
-
-  perform public._member_portal_log(v_member.organization_id, p_member_id, 'member_portal.sessions_revoked',
-    jsonb_build_object('sessions', v_count));
-  return v_count;
+-- Service role only: records an outcome the server observed. The action list is
+-- closed so this cannot be used to write arbitrary audit entries.
+create or replace function public.log_member_portal_event(p_member_id uuid, p_action text, p_actor uuid, p_summary jsonb default '{}'::jsonb)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_member public.members;
+begin
+  if p_action not in ('member_portal.sessions_revoked', 'member_portal.sessions_revoke_failed') then
+    raise exception 'INVALID_PORTAL_EVENT' using errcode = '22023';
+  end if;
+  select * into v_member from public.members where id = p_member_id;
+  if v_member.id is null then
+    raise exception 'MEMBER_NOT_FOUND' using errcode = '22023';
+  end if;
+  perform public._member_portal_log(v_member.organization_id, p_member_id, p_action, p_summary, p_actor);
 end;
 $$;
 
@@ -670,6 +766,7 @@ declare
   v_org_name text;
   v_state text;
   v_access public.member_portal_access;
+  v_identity record;
 begin
   if p_token is null or length(p_token) < 20 or length(p_token) > 128 then
     return jsonb_build_object('state', 'not_found');
@@ -683,20 +780,37 @@ begin
 
   select * into v_member from public.members where id = v_token.member_id;
   select * into v_access from public.member_portal_access where member_id = v_token.member_id;
-  if v_state = 'valid' and v_access.id is not null and v_access.status = 'suspended' then
-    v_state := 'revoked';
+  if v_state = 'valid' then
+    -- A token that was never delivered, or whose address is no longer the
+    -- member's, proves nothing about the mailbox: treat it as cancelled.
+    if v_token.delivery_status <> 'sent'
+       or lower(btrim(coalesce(v_member.email, ''))) <> v_token.email
+       or (v_access.id is not null and v_access.status = 'suspended') then
+      v_state := 'revoked';
+    end if;
   end if;
   if v_state <> 'valid' then
     return jsonb_build_object('state', v_state);
   end if;
 
   select name into v_org_name from public.organizations where id = v_token.organization_id;
+  select u.id, (u.email_confirmed_at is not null) as confirmed into v_identity
+  from auth.users u where lower(u.email) = v_token.email limit 1;
+
   return jsonb_build_object(
     'state', 'valid',
     'member_name', v_member.full_name,
     'organization_name', v_org_name,
-    'email', lower(btrim(v_member.email)),
-    'existing_account', exists (select 1 from auth.users u where lower(u.email) = lower(btrim(v_member.email))),
+    'email', v_token.email,
+    -- Only a VERIFIED identity is linked (after it signs in). An unverified one
+    -- is not trusted: the mailbox holder who presents this token replaces it.
+    'existing_account', coalesce(v_identity.confirmed, false),
+    'existing_unverified', v_identity.id is not null and not coalesce(v_identity.confirmed, false),
+    -- An unverified identity that already belongs to an organization (an invited
+    -- colleague) is never taken over; the server checks this BEFORE it touches it.
+    'existing_in_use', v_identity.id is not null and exists (
+      select 1 from public.organization_memberships om where om.user_id = v_identity.id
+    ),
     'expires_at', v_token.expires_at
   );
 end;
@@ -714,6 +828,7 @@ declare
   v_access public.member_portal_access;
   v_state text;
   v_auth_email text;
+  v_auth_confirmed timestamptz;
 begin
   if p_origin not in ('provisioned', 'linked_existing') then
     return jsonb_build_object('ok', false, 'reason', 'invalid_origin');
@@ -731,10 +846,17 @@ begin
   if v_state <> 'valid' then
     return jsonb_build_object('ok', false, 'reason', case v_state when 'not_found' then 'invalid_token' else v_state end);
   end if;
+  -- Proof of the mailbox: the token must have been delivered by email.
+  if v_token.delivery_status <> 'sent' then
+    return jsonb_build_object('ok', false, 'reason', 'revoked');
+  end if;
 
   select * into v_member from public.members where id = v_token.member_id for update;
   if v_member.id is null or v_member.organization_id <> v_token.organization_id then
     return jsonb_build_object('ok', false, 'reason', 'invalid_token');
+  end if;
+  if lower(btrim(coalesce(v_member.email, ''))) <> v_token.email then
+    return jsonb_build_object('ok', false, 'reason', 'revoked');
   end if;
   if not public.organization_is_active(v_member.organization_id) then
     return jsonb_build_object('ok', false, 'reason', 'org_inactive');
@@ -745,11 +867,26 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'revoked');
   end if;
 
-  select email into v_auth_email from auth.users where id = p_auth_user_id;
-  if v_auth_email is null or lower(v_auth_email) <> lower(btrim(coalesce(v_member.email, ''))) then
+  select email, email_confirmed_at into v_auth_email, v_auth_confirmed from auth.users where id = p_auth_user_id;
+  if v_auth_email is null or lower(v_auth_email) <> v_token.email then
     return jsonb_build_object('ok', false, 'reason', 'email_mismatch');
   end if;
+
+  -- An existing identity may be linked only if its address was verified; an
+  -- unverified one would hand the owner's data to whoever registered it first.
+  if p_origin = 'linked_existing' and v_auth_confirmed is null then
+    return jsonb_build_object('ok', false, 'reason', 'identity_unverified');
+  end if;
+  -- An identity we call "provisioned" must be one that belongs to nobody else.
+  if p_origin = 'provisioned'
+     and exists (select 1 from public.organization_memberships om where om.user_id = p_auth_user_id) then
+    return jsonb_build_object('ok', false, 'reason', 'identity_in_use');
+  end if;
   if v_member.user_id is not null and v_member.user_id <> p_auth_user_id then
+    return jsonb_build_object('ok', false, 'reason', 'already_linked');
+  end if;
+  -- One identity, one member: current_member_id() assumes it.
+  if exists (select 1 from public.members m where m.user_id = p_auth_user_id and m.id <> v_member.id) then
     return jsonb_build_object('ok', false, 'reason', 'already_linked');
   end if;
 
@@ -765,7 +902,8 @@ begin
         updated_at = now();
 
   perform public._member_portal_log(v_member.organization_id, v_member.id, 'member_portal.activation_completed',
-    jsonb_build_object('token_id', v_token.id, 'method', 'email', 'identity', p_origin));
+    jsonb_build_object('token_id', v_token.id, 'method', 'email', 'identity', p_origin, 'email_proof', 'delivered_link'),
+    v_token.created_by);
   return jsonb_build_object('ok', true, 'member_id', v_member.id);
 end;
 $$;
@@ -900,14 +1038,13 @@ declare
 begin
   foreach fn in array array[
     'public.get_member_portal_access(uuid)',
-    'public.issue_member_activation(uuid, integer)',
-    'public.record_activation_delivery(uuid, text, text)',
+    'public.request_member_activation(uuid)',
     'public.revoke_member_activation(uuid)',
     'public.begin_member_temp_access(uuid)',
     'public.finish_member_temp_access(uuid, uuid, integer)',
     'public.suspend_member_portal(uuid, text)',
     'public.reactivate_member_portal(uuid)',
-    'public.revoke_member_portal_sessions(uuid)',
+    'public.begin_member_signout(uuid)',
     'public.my_portal_access()',
     'public.complete_portal_first_login(text)'
   ] loop
@@ -916,6 +1053,9 @@ begin
   end loop;
 
   foreach fn in array array[
+    'public.mint_member_activation_token(uuid, uuid, integer)',
+    'public.mark_member_activation_delivery(uuid, text, text)',
+    'public.log_member_portal_event(uuid, text, uuid, jsonb)',
     'public.inspect_member_activation(text)',
     'public.complete_member_activation(text, uuid, text)',
     'public.portal_find_auth_user(text)'

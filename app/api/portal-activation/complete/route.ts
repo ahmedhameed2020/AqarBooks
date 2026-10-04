@@ -13,6 +13,8 @@ const STATUS: Record<string, number> = {
   weak_password: 422,
   needs_signin: 401,
   email_mismatch: 403,
+  already_linked: 409,
+  identity_in_use: 409,
   server_error: 500,
 };
 

@@ -16,7 +16,8 @@ const root = resolve(import.meta.dirname, "..", "..");
 const port = process.env.LOCAL_PG_PORT ?? "54329";
 const bin = process.env.PG_BIN ?? "";
 const psqlPath = bin ? join(bin, "psql") : "psql";
-const db = "aqar_local";
+const db = process.env.LOCAL_PG_DB ?? "aqar_local";
+const skip = new Set((process.env.SKIP_MIGRATIONS ?? "").split(",").filter(Boolean));
 
 function psql(args, { database = db, quiet = true } = {}) {
   return execFileSync(
@@ -45,7 +46,7 @@ applyFile("supabase stubs", join(root, "scripts/local-db/00_supabase_stubs.sql")
 
 const scratch = mkdtempSync(join(tmpdir(), "aqar-replay-"));
 const migrationsDir = join(root, "supabase/migrations");
-for (const name of readdirSync(migrationsDir).filter((n) => n.endsWith(".sql")).sort()) {
+for (const name of readdirSync(migrationsDir).filter((n) => n.endsWith(".sql") && !skip.has(n)).sort()) {
   let sql = readFileSync(join(migrationsDir, name), "utf8");
   // supabase_vault only exists on Supabase; the stub schema `vault` stands in.
   sql = sql.replace(/^CREATE EXTENSION IF NOT EXISTS "supabase_vault".*$/gm, "-- (supabase_vault stubbed)");

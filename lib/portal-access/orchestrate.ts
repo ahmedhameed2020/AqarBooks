@@ -8,7 +8,7 @@
 // permission-checked RPC has succeeded for that member.
 
 import { clientIdToAlias, generateTempPassword, isAcceptablePassword, buildActivationUrl } from "./identity";
-import { activationEmail, activationLinkWhatsApp, temporaryAccessWhatsApp, type Lang } from "./messages";
+import { activationEmail, temporaryAccessWhatsApp, type Lang } from "./messages";
 
 type RpcResult = { data: unknown; error: { message: string } | null };
 export type Rpc = (fn: string, args?: Record<string, unknown>) => Promise<RpcResult>;
@@ -22,13 +22,22 @@ export interface AuthAdmin {
   }): Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>;
   updateUserById(
     id: string,
-    attrs: { password?: string; ban_duration?: string },
+    attrs: { password?: string; ban_duration?: string; email_confirm?: boolean },
   ): Promise<{ error: { message: string } | null }>;
   deleteUser(id: string): Promise<{ error: { message: string } | null }>;
   getUser(jwt: string): Promise<{ data: { user: { id: string; email?: string | null } | null }; error: { message: string } | null }>;
+  /**
+   * Ends every session of an identity through the Auth Admin API (never by
+   * writing to managed auth tables). Supabase only offers sign-out by a user's
+   * own JWT, so the implementation mints a one-off session for the identity
+   * and signs it out with the global scope. See lib/portal-access/server.ts.
+   */
+  revokeAllSessions(userId: string): Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 export interface Deps {
+  /** The signed-in staff member; recorded as the actor on server-side audit entries. */
+  actorId: string;
   /** RPC as the signed-in staff member (their JWT: permission checks see them). */
   rpc: Rpc;
   /** RPC as the service role, for the few functions granted to nobody else. */
@@ -54,64 +63,69 @@ const first = <T>(data: unknown): T | null => (Array.isArray(data) ? ((data[0] a
 
 export type ActivationIssued = {
   ok: true;
-  activationUrl: string;
-  expiresAt: string;
   email: string;
-  /** What actually happened to the email. Never "sent" unless the provider accepted it. */
+  /**
+   * What actually happened to the email. "sent" only when the provider accepted
+   * it. Anything else leaves the email path PENDING_EMAIL_VERIFICATION and the
+   * link does not exist: it is never handed to staff to deliver some other way.
+   */
   emailStatus: "sent" | "not_sent" | "failed";
-  whatsappText: string;
+  pendingEmailVerification: boolean;
 };
 
+/**
+ * The activation link proves ownership of the mailbox ONLY because it travels
+ * by email and nowhere else. So: staff are authorized by the database; the
+ * token is minted on the server and mailed; staff get back the outcome and
+ * nothing that could be used to activate. If the email cannot be sent the token
+ * is revoked and the owner stays pending_email_verification (staff are pointed
+ * to the client-ID fallback).
+ */
 export async function issueActivation(deps: Deps, memberId: string, lang: Lang): Promise<ActivationIssued | Failure> {
-  const issued = await deps.rpc("issue_member_activation", { p_member_id: memberId });
-  if (issued.error) return { ok: false, error: errorCode(issued.error.message) };
-  const row = first<{
-    token_id: string;
-    raw_token: string;
-    expires_at: string;
-    member_email: string;
-    member_name: string;
-    organization_id: string;
-  }>(issued.data);
-  if (!row) return { ok: false, error: "UNKNOWN" };
+  void lang;
+  const requested = await deps.rpc("request_member_activation", { p_member_id: memberId });
+  if (requested.error) return { ok: false, error: errorCode(requested.error.message) };
+  const req = first<{ member_email: string; member_name: string; organization_id: string }>(requested.data);
+  if (!req) return { ok: false, error: "UNKNOWN" };
 
-  const activationUrl = buildActivationUrl(deps.siteUrl, row.raw_token);
-  let emailStatus: ActivationIssued["emailStatus"] = "not_sent";
-  let detail: string | undefined;
-
-  if (deps.email.configured) {
-    const mail = activationEmail({
-      name: row.member_name,
-      organizationName: null,
-      url: activationUrl,
-      expiresAt: row.expires_at,
-    });
-    const sent = await deps.email.send(row.member_email, mail.subject, mail.html, mail.text);
-    if (sent.ok) emailStatus = "sent";
-    else {
-      emailStatus = "failed";
-      detail = sent.error;
-    }
-  } else {
-    detail = "email provider not configured";
-  }
-
-  // Recording the outcome is part of the audit trail; a failure to record must
-  // not turn a delivered email into an error shown to staff.
-  await deps.rpc("record_activation_delivery", {
-    p_token_id: row.token_id,
-    p_status: emailStatus,
-    p_detail: detail ?? null,
+  const pending = (emailStatus: ActivationIssued["emailStatus"]): ActivationIssued => ({
+    ok: true,
+    email: req.member_email,
+    emailStatus,
+    pendingEmailVerification: emailStatus !== "sent",
   });
 
-  return {
-    ok: true,
-    activationUrl,
+  // No outbound email, no token: nothing is minted that could be misused.
+  if (!deps.email.configured) return pending("not_sent");
+
+  const minted = await deps.adminRpc("mint_member_activation_token", {
+    p_member_id: memberId,
+    p_actor: deps.actorId,
+    p_valid_hours: 72,
+  });
+  if (minted.error) return { ok: false, error: errorCode(minted.error.message) };
+  const row = first<{ token_id: string; raw_token: string; expires_at: string; member_email: string; member_name: string }>(minted.data);
+  if (!row) return { ok: false, error: "UNKNOWN" };
+
+  const mail = activationEmail({
+    name: row.member_name,
+    organizationName: null,
+    url: buildActivationUrl(deps.siteUrl, row.raw_token),
     expiresAt: row.expires_at,
-    email: row.member_email,
-    emailStatus,
-    whatsappText: activationLinkWhatsApp({ lang, name: row.member_name, url: activationUrl, expiresAt: row.expires_at }),
-  };
+  });
+  const sent = await deps.email.send(row.member_email, mail.subject, mail.html, mail.text);
+  const status: ActivationIssued["emailStatus"] = sent.ok ? "sent" : "failed";
+
+  // Recording "sent" is what makes the token usable; "failed" revokes it.
+  const marked = await deps.adminRpc("mark_member_activation_delivery", {
+    p_token_id: row.token_id,
+    p_status: status,
+    p_detail: sent.ok ? null : sent.error,
+  });
+  // If we cannot record the delivery the token stays unusable (still
+  // 'not_sent'), so report the email as not usable rather than as success.
+  if (marked.error) return pending("failed");
+  return pending(status);
 }
 
 // --------------------------------------------------------- client id + password
@@ -213,7 +227,7 @@ export async function issueTemporaryAccess(
 
 const BAN_FOREVER = "876000h";
 
-export type Lifecycle = { ok: true; warnings: string[]; sessionsRevoked?: number } | Failure;
+export type Lifecycle = { ok: true; warnings: string[] } | Failure;
 
 export async function suspendPortal(deps: Deps, memberId: string, reason: string | null): Promise<Lifecycle> {
   const res = await deps.rpc("suspend_member_portal", { p_member_id: memberId, p_reason: reason });
@@ -222,19 +236,32 @@ export async function suspendPortal(deps: Deps, memberId: string, reason: string
   const warnings: string[] = [];
 
   // The database suspension above is authoritative (current_member_id() is now
-  // NULL for this owner). Banning and signing out are belts on top of it, so a
-  // failure there is reported, not fatal.
+  // NULL for this owner). Ending sessions and banning are belts on top of it, so
+  // a failure there is reported, not fatal.
+  //
+  // They apply ONLY to an identity that exists for the owner alone. A staff
+  // member who is also an owner shares one Auth identity: banning it, or ending
+  // its sessions, would lock the employee out of their job. For them the owner
+  // side is closed by RLS and the work side is left exactly as it was.
   if (row?.auth_user_id && row.should_ban) {
+    // Sessions first: a banned identity can no longer mint the one-off session
+    // the Admin API needs to end the others.
+    const out = await deps.auth.revokeAllSessions(row.auth_user_id);
+    if (!out.ok) warnings.push("sessions_not_revoked");
+    await logSessionOutcome(deps, memberId, out.ok);
     const banned = await deps.auth.updateUserById(row.auth_user_id, { ban_duration: BAN_FOREVER });
     if (banned.error) warnings.push("ban_failed");
   }
-  let sessionsRevoked: number | undefined;
-  if (row?.auth_user_id) {
-    const out = await deps.rpc("revoke_member_portal_sessions", { p_member_id: memberId });
-    if (out.error) warnings.push("sessions_not_revoked");
-    else sessionsRevoked = Number(out.data ?? 0);
-  }
-  return { ok: true, warnings, sessionsRevoked };
+  return { ok: true, warnings };
+}
+
+async function logSessionOutcome(deps: Deps, memberId: string, ok: boolean) {
+  await deps.adminRpc("log_member_portal_event", {
+    p_member_id: memberId,
+    p_action: ok ? "member_portal.sessions_revoked" : "member_portal.sessions_revoke_failed",
+    p_actor: deps.actorId,
+    p_summary: { method: "admin_global_signout" },
+  });
 }
 
 export async function reactivatePortal(deps: Deps, memberId: string): Promise<Lifecycle> {
@@ -250,9 +277,19 @@ export async function reactivatePortal(deps: Deps, memberId: string): Promise<Li
 }
 
 export async function signOutEverywhere(deps: Deps, memberId: string): Promise<Lifecycle> {
-  const res = await deps.rpc("revoke_member_portal_sessions", { p_member_id: memberId });
+  const res = await deps.rpc("begin_member_signout", { p_member_id: memberId });
   if (res.error) return { ok: false, error: errorCode(res.error.message) };
-  return { ok: true, warnings: [], sessionsRevoked: Number(res.data ?? 0) };
+  const row = first<{ auth_user_id: string; is_banned: boolean }>(res.data);
+  if (!row) return { ok: false, error: "UNKNOWN" };
+
+  // A suspended owner whose identity is banned cannot refresh any session, so
+  // there is nothing left to end; their last access token simply runs out.
+  if (row.is_banned) return { ok: true, warnings: ["already_blocked"] };
+
+  const out = await deps.auth.revokeAllSessions(row.auth_user_id);
+  await logSessionOutcome(deps, memberId, out.ok);
+  if (!out.ok) return { ok: false, error: "SESSION_REVOKE_FAILED" };
+  return { ok: true, warnings: [] };
 }
 
 // ------------------------------------------------------- owner opens the link
@@ -264,7 +301,12 @@ export type InspectResult =
       memberName: string;
       organizationName: string | null;
       email: string;
+      /** The address already has a VERIFIED identity: it must sign in to be linked. */
       existingAccount: boolean;
+      /** An unverified identity holds the address; the mailbox holder replaces it. */
+      existingUnverified: boolean;
+      /** The unverified identity belongs to an organization: it must never be taken over. */
+      existingInUse: boolean;
       expiresAt: string;
     };
 
@@ -279,13 +321,28 @@ export async function inspectActivation(deps: Pick<Deps, "adminRpc">, token: str
     organizationName: (d.organization_name as string | null) ?? null,
     email: String(d.email ?? ""),
     existingAccount: d.existing_account === true,
+    existingUnverified: d.existing_unverified === true,
+    existingInUse: d.existing_in_use === true,
     expiresAt: String(d.expires_at ?? ""),
   };
 }
 
 export type CompleteResult =
   | { ok: true; email: string }
-  | { ok: false; reason: "invalid_token" | "expired" | "used" | "revoked" | "weak_password" | "needs_signin" | "email_mismatch" | "server_error" };
+  | {
+      ok: false;
+      reason:
+        | "invalid_token"
+        | "expired"
+        | "used"
+        | "revoked"
+        | "weak_password"
+        | "needs_signin"
+        | "email_mismatch"
+        | "already_linked"
+        | "identity_in_use"
+        | "server_error";
+    };
 
 export async function completeActivation(
   deps: Pick<Deps, "adminRpc" | "auth">,
@@ -303,7 +360,7 @@ export async function completeActivation(
     const d = done.data as { ok?: boolean; reason?: string } | null;
     if (done.error || !d) return { ok: false, reason: "server_error" };
     if (d.ok) return { ok: true, email: info.email };
-    const known = ["invalid_token", "expired", "used", "revoked", "email_mismatch"] as const;
+    const known = ["invalid_token", "expired", "used", "revoked", "email_mismatch", "already_linked", "identity_in_use"] as const;
     return { ok: false, reason: (known as readonly string[]).includes(d.reason ?? "") ? (d.reason as (typeof known)[number]) : "server_error" };
   };
 
@@ -320,6 +377,23 @@ export async function completeActivation(
   }
 
   if (!input.password || !isAcceptablePassword(input.password)) return { ok: false, reason: "weak_password" };
+
+  // An UNVERIFIED identity already holds this address (someone registered it
+  // without ever proving the mailbox). The token was delivered to the mailbox,
+  // so its holder is the rightful owner of the address: take the identity over
+  // (new password, now verified) instead of creating a duplicate or trusting
+  // whoever registered it first.
+  if (info.existingUnverified) {
+    if (info.existingInUse) return { ok: false, reason: "identity_in_use" };
+    const found = await deps.adminRpc("portal_find_auth_user", { p_email: info.email });
+    const existingId = typeof found.data === "string" ? found.data : null;
+    if (!existingId) return { ok: false, reason: "server_error" };
+    const claimed = await deps.auth.updateUserById(existingId, { password: input.password, email_confirm: true });
+    if (claimed.error) return { ok: false, reason: "server_error" };
+    // Whoever registered the address first may hold sessions: end them (best effort).
+    await deps.auth.revokeAllSessions(existingId);
+    return (await finish(existingId, "provisioned")) ?? { ok: false, reason: "server_error" };
+  }
 
   const created = await deps.auth.createUser({
     email: info.email,

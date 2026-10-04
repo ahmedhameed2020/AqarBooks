@@ -51,6 +51,8 @@ describe("POST /api/portal-activation/inspect", () => {
       organizationName: "Org",
       email: "o@example.com",
       existingAccount: false,
+      existingUnverified: false,
+      existingInUse: false,
       expiresAt: "2026-10-07T10:00:00Z",
     });
   });
