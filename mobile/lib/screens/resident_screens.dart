@@ -1,18 +1,21 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
 import '../core/formatting.dart';
 import '../core/plural.dart';
 import '../data/repository.dart';
+import '../data/visitor_pass_store.dart';
+
+export '../data/visitor_pass_store.dart' show SavedPass, savedPassesProvider;
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';
+import '../core/portal_mode.dart';
+import 'collector_screens.dart' show openReceipt;
 import 'feature_screens.dart';
 
 final homeProvider = FutureProvider.autoDispose<HomeSummary>(
@@ -37,64 +40,6 @@ final fawrySettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>?>(
   },
 );
 
-/// Visitor passes are shown once by the server; the app stores them locally
-/// on this device so the pass can be re-opened (blueprint §2 / Figma 06).
-class SavedPass {
-  final String id, guestName, validUntil, payload, unitCode;
-  const SavedPass({
-    required this.id,
-    required this.guestName,
-    required this.validUntil,
-    required this.payload,
-    required this.unitCode,
-  });
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'guestName': guestName,
-        'validUntil': validUntil,
-        'payload': payload,
-        'unitCode': unitCode,
-      };
-  static SavedPass fromJson(Map<String, dynamic> m) => SavedPass(
-        id: m['id'] ?? '',
-        guestName: m['guestName'] ?? '',
-        validUntil: m['validUntil'] ?? '',
-        payload: m['payload'] ?? '',
-        unitCode: m['unitCode'] ?? '',
-      );
-}
-
-const _passPrefKey = 'saved_visitor_passes';
-
-Future<List<SavedPass>> loadSavedPasses() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_passPrefKey);
-    if (raw == null) return const [];
-    final list = jsonDecode(raw) as List;
-    return [
-      for (final item in list) SavedPass.fromJson(Map<String, dynamic>.from(item))
-    ];
-  } catch (_) {
-    return const [];
-  }
-}
-
-Future<void> saveVisitorPass(SavedPass pass) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final existing = await loadSavedPasses();
-    final updated = [pass, ...existing.where((p) => p.id != pass.id)];
-    await prefs.setString(
-      _passPrefKey,
-      jsonEncode([for (final p in updated.take(20)) p.toJson()]),
-    );
-  } catch (_) {}
-}
-
-final savedPassesProvider =
-    FutureProvider.autoDispose<List<SavedPass>>((ref) => loadSavedPasses());
-
 // ───────────────────────── 02 · Resident home ─────────────────────────
 
 class ResidentHomeScreen extends ConsumerWidget {
@@ -111,6 +56,14 @@ class ResidentHomeScreen extends ConsumerWidget {
     final passes = ref.watch(savedPassesProvider);
     final notifications = ref.watch(notificationsProvider);
     final userName = session.user.email?.split('@').first ?? '';
+    final unitList = units.valueOrNull ?? const <UnitItem>[];
+    final selectedId = ref.watch(selectedUnitProvider);
+    final focus = unitList.isEmpty
+        ? null
+        : unitList.firstWhere(
+            (u) => u.id == selectedId,
+            orElse: () => unitList.first,
+          );
     return Column(
       children: [
         HomeHeader(
@@ -128,6 +81,7 @@ class ResidentHomeScreen extends ConsumerWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
+              await ref.read(repositoryProvider).memberPortal(force: true);
               ref.invalidate(unitsProvider);
               ref.invalidate(duesProvider);
               ref.invalidate(paymentsProvider);
@@ -139,7 +93,7 @@ class ResidentHomeScreen extends ConsumerWidget {
               children: [
                 // 1 — unit + balance
                 units.when(
-                  data: (items) => _unitCard(context, t, locale, items),
+                  data: (items) => _unitCard(context, ref, t, locale, items, focus),
                   loading: () => const SkeletonList(rows: 1, rowHeight: 120),
                   error: (e, _) => AppError(
                     message: t.ar
@@ -153,8 +107,13 @@ class ResidentHomeScreen extends ConsumerWidget {
                 dues.maybeWhen(
                   data: (items) {
                     if (items.isEmpty) return const SizedBox.shrink();
-                    final open =
-                        items.where((d) => d.outstanding > 0).toList();
+                    final open = items
+                        .where((d) =>
+                            d.outstanding > 0 &&
+                            (focus == null ||
+                                d.unitCode == null ||
+                                d.unitCode == focus.code))
+                        .toList();
                     if (open.isEmpty) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -165,30 +124,40 @@ class ResidentHomeScreen extends ConsumerWidget {
                 ),
                 // 3 — last payment
                 payments.maybeWhen(
-                  data: (items) => items.isEmpty
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: ListRowCard(
-                            icon: AqarIconType.wallet,
-                            title: t.ar
-                                ? 'آخر دفعة — ${formatMoney(items.first.amount, locale)}'
-                                : 'Last payment — ${formatMoney(items.first.amount, locale)}',
-                            subtitle:
-                                '${t.ar ? 'إيصال' : 'Receipt'} ${localizedDigits(items.first.receipt, locale)} · ${formatDate(items.first.date, locale)}',
-                          ),
-                        ),
+                  data: (all) {
+                    final items = all
+                        .where((p) =>
+                            focus == null ||
+                            p.unitId == null ||
+                            p.unitId == focus.id)
+                        .toList();
+                    if (items.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ListRowCard(
+                        icon: AqarIconType.wallet,
+                        title: t.ar
+                            ? 'آخر دفعة — ${formatMoney(items.first.amount, locale)}'
+                            : 'Last payment — ${formatMoney(items.first.amount, locale)}',
+                        subtitle:
+                            '${t.ar ? 'إيصال' : 'Receipt'} ${localizedDigits(items.first.receipt, locale)} · ${formatDate(items.first.date, locale)}',
+                        onTap: () => openReceipt(context, items.first),
+                      ),
+                    );
+                  },
                   orElse: () => const SizedBox.shrink(),
                 ),
                 // 4 — active maintenance request
                 maintenance.maybeWhen(
                   data: (items) {
                     final active = items
-                        .where((m) => !{
+                        .where((m) =>
+                            !{
                               'COMPLETED',
                               'CLOSED',
                               'CANCELLED',
-                            }.contains(m.status))
+                            }.contains(m.status) &&
+                            (focus == null || m.unitCode == focus.code))
                         .toList();
                     if (active.isEmpty) return const SizedBox.shrink();
                     final m = active.first;
@@ -309,11 +278,60 @@ class ResidentHomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _unitCard(
+  Future<void> _pickUnit(
     BuildContext context,
+    WidgetRef ref,
     AppLabels t,
     Locale locale,
     List<UnitItem> items,
+    UnitItem current,
+  ) async {
+    final picked = await showModalBottomSheet<UnitItem>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                t.ar ? 'اختر الوحدة' : 'Choose a unit',
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700, color: appInk),
+              ),
+            ),
+            for (final u in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ListRowCard(
+                  icon: AqarIconType.building,
+                  title: ltr(u.code),
+                  subtitle: formatMoney(u.balance, locale),
+                  trailing: u.id == current.id
+                      ? const AqarIcon(AqarIconType.check,
+                          size: 18, color: appSuccess)
+                      : null,
+                  onTap: () => Navigator.pop(sheet, u),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      ref.read(selectedUnitProvider.notifier).state = picked.id;
+    }
+  }
+
+  Widget _unitCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLabels t,
+    Locale locale,
+    List<UnitItem> items,
+    UnitItem? focus,
   ) {
     if (items.isEmpty) {
       return AqarCard(
@@ -325,9 +343,8 @@ class ResidentHomeScreen extends ConsumerWidget {
         ),
       );
     }
-    final unit = items.first;
-    final balance =
-        items.fold<double>(0, (sum, item) => sum + item.balance);
+    final unit = focus ?? items.first;
+    final balance = unit.balance;
     final overdue = balance > 0;
     return AqarCard(
       child: Column(
@@ -342,7 +359,7 @@ class ResidentHomeScreen extends ConsumerWidget {
                         style:
                             const TextStyle(fontSize: 11, color: appGrey)),
                     Text(
-                      unit.code,
+                      ltr(unit.code),
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -353,26 +370,31 @@ class ResidentHomeScreen extends ConsumerWidget {
                 ),
               ),
               if (items.length > 1)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: appSurface,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      const AqarIcon(AqarIconType.swap, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        t.ar ? 'تبديل الوحدة' : 'Switch unit',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: appNavy,
+                InkWell(
+                  key: const Key('unit-switcher'),
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => _pickUnit(context, ref, t, locale, items, unit),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: appSurface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const AqarIcon(AqarIconType.swap, size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          t.ar ? 'تبديل الوحدة' : 'Switch unit',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: appNavy,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -553,7 +575,13 @@ class UnitsScreen extends ConsumerWidget {
                         final u = items[i];
                         return ListRowCard(
                           icon: AqarIconType.building,
-                          title: u.code,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UnitDetailScreen(unit: u),
+                            ),
+                          ),
+                          title: ltr(u.code),
                           subtitle:
                               '${unitTypeLabel(u.type, t.ar)}${u.leaseStatus != null ? ' · ${leaseStatusLabel(u.leaseStatus!, t.ar)}' : ''}',
                           trailing: Text(
@@ -579,6 +607,123 @@ class UnitsScreen extends ConsumerWidget {
     );
   }
 }
+
+/// One linked unit: relationship, status, lease and financial summary.
+/// Shows business facts only — never internal identifiers.
+class UnitDetailScreen extends ConsumerWidget {
+  final UnitItem unit;
+  const UnitDetailScreen({super.key, required this.unit});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
+    final owned = ref.watch(
+      _ownedIdsProvider.select((a) => a.valueOrNull?.contains(unit.id)),
+    );
+    final dues = ref.watch(duesProvider).valueOrNull ?? const <DueItem>[];
+    final open = dues
+        .where((d) => d.unitCode == unit.code && d.outstanding > 0)
+        .toList();
+    final overdueCount = open
+        .where((d) => (parseServerDate(d.dueDate)?.isBefore(DateTime.now()) ?? false))
+        .length;
+    return Scaffold(
+      appBar: AppBar(title: Text('${t.ar ? 'وحدة' : 'Unit'} ${ltr(unit.code)}')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            AqarCard(
+              child: Column(
+                children: [
+                  KeyValueRow(t.ar ? 'نوع الوحدة' : 'Unit type',
+                      unitTypeLabel(unit.type, t.ar)),
+                  KeyValueRow(
+                    t.ar ? 'علاقتك بالوحدة' : 'Your relationship',
+                    owned == null
+                        ? '—'
+                        : owned
+                            ? (t.ar ? 'مالك' : 'Owner')
+                            : (t.ar ? 'مستأجر' : 'Tenant'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            AqarCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.ar ? 'الملخص المالي' : 'Financial summary',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: appInk)),
+                  const SizedBox(height: 8),
+                  KeyValueRow(
+                    t.ar ? 'الرصيد المستحق' : 'Outstanding balance',
+                    formatMoney(unit.balance, locale),
+                    valueColor: unit.balance > 0 ? appDanger : appSuccess,
+                    valueSize: 15,
+                  ),
+                  KeyValueRow(
+                    t.ar ? 'استحقاقات مفتوحة' : 'Open dues',
+                    countText(open.length, locale,
+                        ar: dueNoun, enOne: 'due', enOther: 'dues'),
+                  ),
+                  if (overdueCount > 0)
+                    KeyValueRow(
+                      t.ar ? 'منها متأخرة' : 'Of which overdue',
+                      '$overdueCount',
+                      valueColor: appDanger,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            AqarCard(
+              child: unit.leaseStatus == null
+                  ? Text(
+                      t.ar
+                          ? 'لا يوجد عقد إيجار مسجّل على هذه الوحدة'
+                          : 'No lease is recorded on this unit',
+                      style: const TextStyle(fontSize: 12.5, color: appGrey),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t.ar ? 'عقد الإيجار' : 'Lease',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: appInk)),
+                        const SizedBox(height: 8),
+                        KeyValueRow(t.ar ? 'الحالة' : 'Status',
+                            leaseStatusLabel(unit.leaseStatus!, t.ar)),
+                        if (unit.leaseStartsOn != null)
+                          KeyValueRow(
+                              t.ar ? 'بداية العقد' : 'Starts',
+                              formatDate(unit.leaseStartsOn!, locale,
+                                  relative: false)),
+                        if (unit.leaseEndsOn != null)
+                          KeyValueRow(
+                              t.ar ? 'نهاية العقد' : 'Ends',
+                              formatDate(unit.leaseEndsOn!, locale,
+                                  relative: false)),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final _ownedIdsProvider = FutureProvider.autoDispose<Set<String>>(
+  (ref) async =>
+      (await ref.watch(repositoryProvider).memberPortal()).ownedUnitIds,
+);
 
 // ───────────────────────── 03 · Payments (عليّ / دفعت) ─────────────────────────
 
@@ -837,6 +982,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
                     iconFg: appSuccess,
                     iconBg: appSuccessBg,
                     title: formatMoney(p.amount, locale),
+                    onTap: () => openReceipt(context, p),
                     subtitle:
                         '${t.ar ? 'إيصال' : 'Receipt'} ${localizedDigits(p.receipt, locale)} · ${formatDate(p.date, locale)}',
                     trailing: StatusChip(
@@ -1198,6 +1344,7 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
   String? unitId;
   String? categoryId;
   final description = TextEditingController();
+  final attachments = <PickedFile>[];
   bool busy = false;
 
   @override
@@ -1206,10 +1353,39 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
     super.dispose();
   }
 
+  Future<void> addFiles() async {
+    final t = AppLabels(Localizations.localeOf(context));
+    try {
+      final picked = await ref.read(attachmentPickerProvider)();
+      if (!mounted) return;
+      final tooBig = picked.where((f) => f.bytes.length > maxAttachmentBytes);
+      setState(() {
+        for (final f in picked) {
+          if (f.bytes.length <= maxAttachmentBytes && attachments.length < 5) {
+            attachments.add(f);
+          }
+        }
+      });
+      if (tooBig.isNotEmpty || attachments.length >= 5) {
+        showFeedback(
+          context,
+          t.ar
+              ? 'الحد الأقصى ٥ ملفات، وحجم كل ملف حتى ١٠ م.ب'
+              : 'Up to 5 files, each up to 10 MB',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        showFeedback(context,
+            t.ar ? 'تعذر اختيار الملف' : 'Could not pick the file');
+      }
+    }
+  }
+
   Future<void> submit() async {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final units = ref.read(unitsProvider).valueOrNull ?? const <UnitItem>[];
+    final units = ref.read(featureUnitsProvider).valueOrNull ?? const <UnitItem>[];
     final cats =
         ref.read(maintenanceCategoriesProvider).valueOrNull ?? const [];
     final unit = unitId ?? (units.isNotEmpty ? units.first.id : null);
@@ -1239,13 +1415,35 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
             priority: 'NORMAL',
           );
       ref.invalidate(featureMaintenanceProvider);
+      // The request exists once created; a failed upload must not undo it.
+      var failed = 0;
+      for (final f in attachments) {
+        try {
+          await ref.read(repositoryProvider).uploadMaintenanceAttachment(
+                requestId: id,
+                fileName: f.name,
+                mimeType: f.mime,
+                bytes: f.bytes,
+              );
+        } catch (_) {
+          failed++;
+        }
+      }
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MaintenanceDetailScreen(id: id)),
         );
-        showFeedback(context,
-            t.ar ? 'تم إرسال طلب الصيانة' : 'Maintenance request submitted');
+        showFeedback(
+          context,
+          failed == 0
+              ? (t.ar
+                  ? 'تم إرسال طلب الصيانة'
+                  : 'Maintenance request submitted')
+              : (t.ar
+                  ? 'تم إرسال الطلب، لكن تعذر رفع $failed ملف — أرفقه من صفحة الطلب'
+                  : 'Request sent, but $failed file(s) failed to upload — attach them from the request page'),
+        );
       }
     } catch (e) {
       if (mounted) showFeedback(context, friendlyError(e, locale));
@@ -1258,7 +1456,7 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final units = ref.watch(unitsProvider);
+    final units = ref.watch(featureUnitsProvider);
     final cats = ref.watch(maintenanceCategoriesProvider);
     return Scaffold(
       body: SafeArea(
@@ -1319,8 +1517,27 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _label(t.ar ? 'صور (اختياري)' : 'Photos (optional)'),
-                  _UploadHint(t: t),
+                  _label(t.ar ? 'صور أو ملفات (اختياري)' : 'Photos or files (optional)'),
+                  _UploadHint(t: t, onTap: addFiles),
+                  for (var i = 0; i < attachments.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: ListRowCard(
+                        key: Key('attachment-$i'),
+                        icon: attachments[i].mime == 'application/pdf'
+                            ? AqarIconType.document
+                            : AqarIconType.camera,
+                        title: attachments[i].name,
+                        subtitle:
+                            '${(attachments[i].bytes.length / 1024).ceil()} KB',
+                        trailing: IconButton(
+                          tooltip: t.ar ? 'إزالة' : 'Remove',
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () =>
+                              setState(() => attachments.removeAt(i)),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 22),
                   AqarButton(
                     t.ar ? 'إرسال الطلب' : 'Submit request',
@@ -1389,9 +1606,14 @@ class _NewMaintenanceState extends ConsumerState<NewMaintenanceRequestScreen> {
 
 class _UploadHint extends StatelessWidget {
   final AppLabels t;
-  const _UploadHint({required this.t});
+  final VoidCallback onTap;
+  const _UploadHint({required this.t, required this.onTap});
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => InkWell(
+        key: const Key('add-attachments'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 22),
         decoration: BoxDecoration(
@@ -1404,7 +1626,7 @@ class _UploadHint extends StatelessWidget {
             const AqarIcon(AqarIconType.camera, size: 26),
             const SizedBox(height: 8),
             Text(
-              t.ar ? 'إضافة صور المشكلة' : 'Add photos of the issue',
+              t.ar ? 'إضافة صور أو ملفات' : 'Add photos or files',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -1414,13 +1636,13 @@ class _UploadHint extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               t.ar
-                  ? 'JPEG · PNG · WebP · PDF — حتى ١٠ م.ب (بعد الإرسال)'
-                  : 'JPEG · PNG · WebP · PDF — up to 10 MB (after submit)',
+                  ? 'JPEG · PNG · WebP · PDF — حتى ١٠ م.ب، ٥ ملفات كحد أقصى'
+                  : 'JPEG · PNG · WebP · PDF — up to 10 MB, 5 files max',
               style: const TextStyle(fontSize: 11, color: appGrey),
             ),
           ],
         ),
-      );
+      ));
 }
 
 // ───────────────────────── Visitors + 06 pass screen ─────────────────────────
@@ -1556,7 +1778,7 @@ class _NewVisitorState extends ConsumerState<NewVisitorScreen> {
   Future<void> submit() async {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final units = ref.read(unitsProvider).valueOrNull ?? const <UnitItem>[];
+    final units = ref.read(featureUnitsProvider).valueOrNull ?? const <UnitItem>[];
     final unit = unitId ?? (units.isNotEmpty ? units.first.id : null);
     if (unit == null || name.text.trim().isEmpty) {
       showFeedback(context,
@@ -1607,7 +1829,7 @@ class _NewVisitorState extends ConsumerState<NewVisitorScreen> {
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final units = ref.watch(unitsProvider).valueOrNull ?? const <UnitItem>[];
+    final units = ref.watch(featureUnitsProvider).valueOrNull ?? const <UnitItem>[];
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -1712,13 +1934,16 @@ class _VisitorPassState extends ConsumerState<VisitorPassScreen> {
   late bool saved = widget.alreadySaved;
 
   Future<void> _save() async {
-    await saveVisitorPass(SavedPass(
-      id: widget.invitationId,
-      guestName: widget.guestName,
-      validUntil: widget.validUntil,
-      payload: widget.payload,
-      unitCode: widget.unitCode,
-    ));
+    await ref.read(visitorPassStoreProvider).save(
+          ref.read(supabaseProvider)?.auth.currentUser?.id ?? '',
+          SavedPass(
+            id: widget.invitationId,
+            guestName: widget.guestName,
+            validUntil: widget.validUntil,
+            payload: widget.payload,
+            unitCode: widget.unitCode,
+          ),
+        );
     ref.invalidate(savedPassesProvider);
     if (mounted) setState(() => saved = true);
   }
@@ -1800,7 +2025,7 @@ class _VisitorPassState extends ConsumerState<VisitorPassScreen> {
                         Expanded(
                           child: Text(
                             t.ar
-                                ? 'احفظ أو شارك التصريح الآن — لا يمكن استرجاعه لاحقًا'
+                                ? 'احفظ التصريح الآن — لا يمكن استرجاعه لاحقًا من الخادم'
                                 : 'Save or share this pass now — it cannot be retrieved later',
                             style: const TextStyle(
                               color: appAmber,

@@ -32,6 +32,7 @@ class AqarBooksApp extends ConsumerWidget {
     title: 'AqarBooks',
     debugShowCheckedModeBanner: false,
     theme: buildTheme(),
+    scrollBehavior: const AqarScrollBehavior(),
     locale: ref.watch(localeProvider),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: const [

@@ -26,9 +26,9 @@
         "lib/main.dart",
         "--dart-define-from-file=.dart_defines.local.json",
         "--web-port",
-        "5318"
+        "5390"
       ],
-      "port": 5318
+      "port": 5390
     }
   ]
 }

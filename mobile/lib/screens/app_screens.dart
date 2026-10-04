@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthChangeEvent, AuthState;
 
 import '../core/app_core.dart';
+import '../core/contact.dart';
+import '../core/portal_mode.dart';
 import '../core/shell_nav.dart';
 import '../data/gate_device_store.dart';
 import '../data/repository.dart';
@@ -344,11 +346,21 @@ class _ShellState extends ConsumerState<AppShell> {
   /// not fire every tab's queries (and a gate phone does not spin up unused
   /// screens) the moment the app opens.
   final _visited = <int>{0};
+  Persona? _shown;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLabels(Localizations.localeOf(context));
-    final persona = widget.session.persona;
+    final persona = effectivePersona(
+      widget.session,
+      ownerMode: ref.watch(portalModeProvider),
+    );
+    if (_shown != persona) {
+      _shown = persona;
+      _visited
+        ..clear()
+        ..add(0);
+    }
 
     // Gate operator must enroll the device before anything else.
     if (persona == Persona.gate) {
@@ -521,15 +533,40 @@ class MoreHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLabels(Localizations.localeOf(context));
-    final persona = session.persona;
+    final ownerMode = ref.watch(portalModeProvider);
+    final persona = effectivePersona(session, ownerMode: ownerMode);
     final resident = persona == Persona.resident;
     final rows = <Widget>[
+      // A staff user who also owns units enters their personal portal here.
+      if (session.canSwitchToPortal && !ownerMode)
+        _row(context, AqarIconType.user,
+            t.ar ? 'حسابي كمالك / عضو' : 'My account as owner / member', () {
+          ref.read(shellTabProvider.notifier).state = 0;
+          ref.read(portalModeProvider.notifier).state = true;
+        }),
+      if (session.canSwitchToPortal && ownerMode)
+        _row(context, AqarIconType.swap,
+            t.ar ? 'العودة إلى وضع العمل' : 'Back to work mode', () {
+          ref.read(shellTabProvider.notifier).state = 0;
+          ref.read(portalModeProvider.notifier).state = false;
+        }),
       // Resident-only destinations (owner-backed features).
       if (resident) ...[
         _row(context, AqarIconType.people, t.visitors,
             () => _push(context, const VisitorsScreen())),
         _row(context, AqarIconType.gate, t.vehicles,
             () => _push(context, const VehiclesScreen())),
+        _row(
+          context,
+          AqarIconType.document,
+          t.ar ? 'المستندات — غير متاح حاليًا' : 'Documents — not available yet',
+          () => showFeedback(
+            context,
+            t.ar
+                ? 'المستندات غير متاحة حاليًا في التطبيق. تواصل مع الدعم لطلب نسخة.'
+                : 'Documents are not available in the app yet. Contact support for a copy.',
+          ),
+        ),
       ],
       // Notifications never duplicates a tab (blueprint rule).
       if (persona != Persona.technician)
@@ -549,6 +586,23 @@ class MoreHubScreen extends ConsumerWidget {
                 ? 'القيود والتقارير والإعدادات تُدار من AqarBooks على الويب'
                 : 'Journals, reports and settings are managed in AqarBooks on the web',
           ),
+        ),
+      if (resident)
+        _row(
+          context,
+          AqarIconType.chat,
+          t.ar ? 'الدعم' : 'Support',
+          () async {
+            final ok = await ref.read(externalOpenerProvider)(supportUri());
+            if (!ok && context.mounted) {
+              showFeedback(
+                context,
+                t.ar
+                    ? 'تعذر فتح البريد — راسلنا على $supportEmail'
+                    : 'Could not open email — write to $supportEmail',
+              );
+            }
+          },
         ),
       _signOutRow(context, ref, t),
     ];
@@ -701,7 +755,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLabels(Localizations.localeOf(context));
     final email = session.user.email ?? '—';
-    final personaTitle = switch (session.persona) {
+    final personaTitle = switch (
+        effectivePersona(session, ownerMode: ref.watch(portalModeProvider))) {
       Persona.manager => t.ar ? 'مدير التشغيل' : 'Operations manager',
       Persona.collector =>
         session.can('cashier.sessions.open')

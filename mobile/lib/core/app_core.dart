@@ -86,6 +86,15 @@ Future<void> persistLocale(Locale locale) async {
   } catch (_) {}
 }
 
+/// Lists always accept a pull, even when they are shorter than the screen —
+/// otherwise pull-to-refresh silently does nothing on a short list.
+class AqarScrollBehavior extends MaterialScrollBehavior {
+  const AqarScrollBehavior();
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      AlwaysScrollableScrollPhysics(parent: super.getScrollPhysics(context));
+}
+
 final supabaseProvider = Provider<SupabaseClient?>((ref) {
   if (!AppConfig.isReady) return null;
   return Supabase.instance.client;

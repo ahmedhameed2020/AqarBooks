@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,15 +16,16 @@ import 'resident_screens.dart'
 String tr(BuildContext c, String ar, String en) =>
     AppLabels(Localizations.localeOf(c)).ar ? ar : en;
 
+/// Units the member may act on (owner-only features).
 final featureUnitsProvider = FutureProvider.autoDispose<List<UnitItem>>(
-  (ref) => ref.watch(repositoryProvider).units(),
+  (ref) => ref.watch(repositoryProvider).authorizedUnits(),
 );
 final featureMaintenanceProvider =
     FutureProvider.autoDispose<List<MaintenanceItem>>(
   (ref) => ref.watch(repositoryProvider).maintenance(),
 );
 final visitorsProvider = FutureProvider.autoDispose<List<VisitorItem>>(
-  (ref) => ref.watch(repositoryProvider).visitors(),
+  (ref) => ref.watch(repositoryProvider).myVisitors(),
 );
 final vehiclesProvider = FutureProvider.autoDispose<List<VehicleItem>>(
   (ref) => ref.watch(repositoryProvider).vehicles(),
@@ -42,15 +45,24 @@ class NotificationsScreen extends ConsumerWidget {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
     final list = ref.watch(notificationsProvider).when(
-          data: (items) => items.isEmpty
-              ? EmptyState(
-                  title: t.ar ? 'لا جديد' : 'Nothing new',
-                  icon: Icons.notifications_none,
-                )
-              : RefreshIndicator(
-                  onRefresh: () async =>
-                      ref.invalidate(notificationsProvider),
-                  child: ListView.separated(
+          data: (items) => RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(notificationsProvider);
+                    try {
+                      await ref.read(notificationsProvider.future);
+                    } catch (_) {}
+                  },
+                  child: items.isEmpty
+                      ? ListView(children: [
+                          SizedBox(
+                            height: 360,
+                            child: EmptyState(
+                              title: t.ar ? 'لا جديد' : 'Nothing new',
+                              icon: Icons.notifications_none,
+                            ),
+                          ),
+                        ])
+                      : ListView.separated(
                     padding: const EdgeInsets.all(20),
                     itemCount: items.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -417,7 +429,7 @@ class VisitorPassDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               ar
-                  ? 'احفظ أو شارك التصريح الآن — لا يمكن استرجاعه لاحقًا.'
+                  ? 'احفظ التصريح الآن — لا يمكن استرجاعه لاحقًا من الخادم.'
                   : 'Save or share this one-time pass now — it cannot be retrieved later.',
               textAlign: TextAlign.center,
             ),
@@ -695,28 +707,56 @@ class MaintenanceDetailScreen extends ConsumerWidget {
   }
 }
 
-Future<void> _upload(BuildContext context, WidgetRef ref, String id) async {
-  final locale = Localizations.localeOf(context);
+/// A file chosen to attach to a maintenance request.
+class PickedFile {
+  final String name, mime;
+  final Uint8List bytes;
+  const PickedFile(this.name, this.mime, this.bytes);
+}
+
+const maxAttachmentBytes = 10 * 1024 * 1024;
+
+/// Opens the system picker for images / PDF. Overridable in tests.
+final attachmentPickerProvider =
+    Provider<Future<List<PickedFile>> Function()>((ref) => pickAttachments);
+
+Future<List<PickedFile>> pickAttachments() async {
   final files = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
   );
+  return [
+    for (final f in files)
+      PickedFile(
+        f.name,
+        switch (f.extension?.toLowerCase()) {
+          'pdf' => 'application/pdf',
+          'png' => 'image/png',
+          'webp' => 'image/webp',
+          _ => 'image/jpeg',
+        },
+        await f.readAsBytes(),
+      ),
+  ];
+}
+
+Future<void> _upload(BuildContext context, WidgetRef ref, String id) async {
+  final locale = Localizations.localeOf(context);
+  final files = await ref.read(attachmentPickerProvider)();
   if (files.isEmpty) return;
   final f = files.first;
-  final bytes = await f.readAsBytes();
-  final mime = f.extension == 'pdf'
-      ? 'application/pdf'
-      : f.extension == 'png'
-          ? 'image/png'
-          : f.extension == 'webp'
-              ? 'image/webp'
-              : 'image/jpeg';
+  if (f.bytes.length > maxAttachmentBytes) {
+    if (context.mounted) {
+      showFeedback(context, tr(context, 'الملف أكبر من ١٠ م.ب', 'File is larger than 10 MB'));
+    }
+    return;
+  }
   try {
     await ref.read(repositoryProvider).uploadMaintenanceAttachment(
           requestId: id,
           fileName: f.name,
-          mimeType: mime,
-          bytes: bytes,
+          mimeType: f.mime,
+          bytes: f.bytes,
         );
     ref.invalidate(maintenanceDetailProvider(id));
   } catch (e) {

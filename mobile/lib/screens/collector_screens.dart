@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
+import '../core/contact.dart';
 import '../core/formatting.dart';
 import '../core/plural.dart';
 import '../data/repository.dart';
@@ -136,6 +136,7 @@ class CollectorTodayScreen extends ConsumerWidget {
                                 title: formatMoney(p.amount, locale),
                                 subtitle:
                                     '${t.ar ? 'إيصال' : 'Receipt'} ${localizedDigits(p.receipt, locale)} · ${paymentMethodLabel(p.method, t.ar)}',
+                                onTap: () => openReceipt(context, p),
                               ),
                               const SizedBox(height: 10),
                             ],
@@ -756,6 +757,11 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
             session: session,
           );
       ref.invalidate(myCollectionsTodayProvider);
+      String? receipt;
+      try {
+        final fresh = await ref.read(myCollectionsTodayProvider.future);
+        if (fresh.isNotEmpty) receipt = fresh.first.receipt;
+      } catch (_) {}
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -764,6 +770,7 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
               amount: total,
               method: method,
               unitCode: widget.unitCode,
+              receipt: receipt,
             ),
           ),
         );
@@ -1085,19 +1092,19 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
 class ReceiptSuccessScreen extends ConsumerWidget {
   final double amount;
   final String method, unitCode;
+  final String? receipt;
   const ReceiptSuccessScreen({
     super.key,
     required this.amount,
     required this.method,
     required this.unitCode,
+    this.receipt,
   });
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final latest =
-        ref.watch(myCollectionsTodayProvider).valueOrNull ?? const [];
-    final receiptNo = latest.isNotEmpty ? latest.first.receipt : '—';
+    final receiptNo = receipt ?? '—';
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -1177,27 +1184,13 @@ class ReceiptSuccessScreen extends ConsumerWidget {
               const Spacer(),
               AqarButton(
                 t.ar ? 'مشاركة الإيصال' : 'Share receipt',
-                onPressed: () async {
-                  final text = Uri.encodeComponent(
-                    t.ar
-                        ? 'إيصال تحصيل ${localizedDigits(receiptNo, locale)}\nالوحدة: $unitCode\nالمبلغ: ${formatMoney(amount, locale)}'
-                        : 'Receipt $receiptNo\nUnit: $unitCode\nAmount: ${formatMoney(amount, locale)}',
-                  );
-                  try {
-                    await launchUrl(
-                      Uri.parse('https://wa.me/?text=$text'),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  } catch (_) {
-                    if (context.mounted) {
-                      showFeedback(
-                          context,
-                          t.ar
-                              ? 'تعذر فتح المشاركة'
-                              : 'Could not open sharing');
-                    }
-                  }
-                },
+                onPressed: () => shareReceipt(
+                  context,
+                  ref,
+                  receipt: receiptNo,
+                  unitCode: unitCode,
+                  amount: amount,
+                ),
               ),
               const SizedBox(height: 10),
               AqarButton(
@@ -1215,6 +1208,114 @@ class ReceiptSuccessScreen extends ConsumerWidget {
     );
   }
 }
+
+/// Shares a receipt summary through WhatsApp (the share target collectors use).
+Future<void> shareReceipt(
+  BuildContext context,
+  WidgetRef ref, {
+  required String receipt,
+  required String unitCode,
+  required double amount,
+}) async {
+  final locale = Localizations.localeOf(context);
+  final t = AppLabels(locale);
+  final body = t.ar
+      ? 'إيصال تحصيل ${localizedDigits(receipt, locale)}\nالوحدة: $unitCode\nالمبلغ: ${formatMoney(amount, locale)}'
+      : 'Receipt $receipt\nUnit: $unitCode\nAmount: ${formatMoney(amount, locale)}';
+  final ok = await ref.read(externalOpenerProvider)(
+    Uri.https('wa.me', '/', {'text': body}),
+  );
+  if (!ok && context.mounted) {
+    showFeedback(context, t.ar ? 'تعذر فتح المشاركة' : 'Could not open sharing');
+  }
+}
+
+final _receiptUnitProvider =
+    FutureProvider.autoDispose.family<String?, String>((ref, unitId) async {
+  try {
+    return await ref.watch(repositoryProvider).unitCodeById(unitId);
+  } catch (_) {
+    return null;
+  }
+});
+
+// ───────────────────────── Receipt detail ─────────────────────────
+
+/// A past receipt, reopened from the Today or Receipts lists so it can be
+/// checked or re-shared with the owner.
+class ReceiptDetailScreen extends ConsumerWidget {
+  final PaymentItem payment;
+  const ReceiptDetailScreen({super.key, required this.payment});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = Localizations.localeOf(context);
+    final t = AppLabels(locale);
+    final unitCode = payment.unitCode ??
+        (payment.unitId == null
+            ? null
+            : ref.watch(_receiptUnitProvider(payment.unitId!)).valueOrNull);
+    return Scaffold(
+      appBar: AppBar(title: Text(t.ar ? 'تفاصيل الإيصال' : 'Receipt details')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              AqarCard(
+                gold: true,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(t.ar ? 'إيصال رقم' : 'Receipt number',
+                        style: const TextStyle(fontSize: 12, color: appGrey)),
+                    Text(
+                      localizedDigits(payment.receipt, locale),
+                      style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: appNavy),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Divider(height: 1),
+                    ),
+                    KeyValueRow(
+                      t.ar ? 'المبلغ' : 'Amount',
+                      formatMoney(payment.amount, locale),
+                      valueColor: appNavy,
+                      valueSize: 15,
+                    ),
+                    KeyValueRow(t.ar ? 'طريقة الدفع' : 'Method',
+                        paymentMethodLabel(payment.method, t.ar)),
+                    KeyValueRow(t.ar ? 'الوحدة' : 'Unit', unitCode ?? '—'),
+                    KeyValueRow(t.ar ? 'التاريخ' : 'Date',
+                        formatDate(payment.date, locale)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              AqarButton(
+                t.ar ? 'إعادة مشاركة الإيصال' : 'Share receipt again',
+                onPressed: () => shareReceipt(
+                  context,
+                  ref,
+                  receipt: payment.receipt,
+                  unitCode: unitCode ?? '—',
+                  amount: payment.amount,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void openReceipt(BuildContext context, PaymentItem p) => Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ReceiptDetailScreen(payment: p)),
+    );
 
 // ───────────────────────── Receipts tab ─────────────────────────
 
@@ -1263,6 +1364,7 @@ class ReceiptsScreen extends ConsumerWidget {
                           title: formatMoney(p.amount, locale),
                           subtitle:
                               '${t.ar ? 'إيصال' : 'Receipt'} ${localizedDigits(p.receipt, locale)} · ${paymentMethodLabel(p.method, t.ar)}',
+                          onTap: () => openReceipt(context, p),
                         );
                       },
                     ),

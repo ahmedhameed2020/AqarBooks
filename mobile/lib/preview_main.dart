@@ -150,7 +150,10 @@ class PreviewRepository extends AqarRepository {
       ];
 
   @override
-  Future<List<VisitorItem>> visitors() async => [
+  Future<List<VisitorItem>> myVisitors() => visitors();
+
+  @override
+  Future<List<VisitorItem>> visitors({List<String>? unitIds}) async => [
         VisitorItem(
           id: 'v1',
           number: 'INV-204',

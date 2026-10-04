@@ -39,6 +39,11 @@ Uri? whatsappUri(String? raw, {String? message}) {
   });
 }
 
+/// Support contact already published on the AqarBooks website.
+const supportEmail = 'support@aqarbooks.com';
+
+Uri supportUri() => Uri(scheme: 'mailto', path: supportEmail);
+
 /// How external links (tel:, WhatsApp) are opened; overridable in tests.
 final externalOpenerProvider =
     Provider<Future<bool> Function(Uri?)>((ref) => openExternal);

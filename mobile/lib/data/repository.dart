@@ -10,6 +10,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_core.dart';
 import '../core/plural.dart';
 import 'gate_device_store.dart';
+import 'member_portal.dart';
+
+export 'member_portal.dart';
 
 double outstandingAmount(double amount, double paid) =>
     (amount - paid).clamp(0, double.infinity);
@@ -53,13 +56,22 @@ class AppSession {
   /// could be read — the header then shows the company alone.
   final List<String> propertyNames;
   final Set<String> capabilities;
+
+  /// True when the user is a linked member who owns at least one unit — the
+  /// only condition (besides staff permissions) that unlocks the owner portal.
+  /// Never derived from role names.
+  final bool isPortalMember;
   const AppSession({
     required this.user,
     this.organizationId,
     this.organizationName,
     this.propertyNames = const [],
     this.capabilities = const {},
+    this.isPortalMember = false,
   });
+
+  /// A staff user who is also an owner can switch into their personal portal.
+  bool get canSwitchToPortal => isPortalMember && persona != Persona.resident;
 
   /// "Company · Project" for headers: the single project's name, or a count
   /// when the user spans several. Falls back to the brand when the company
@@ -246,6 +258,7 @@ class PaymentItem {
   final String id, receipt, date, method;
   final double amount;
   final String? unitCode;
+  final String? unitId;
   const PaymentItem({
     required this.id,
     required this.receipt,
@@ -253,6 +266,7 @@ class PaymentItem {
     required this.method,
     required this.amount,
     this.unitCode,
+    this.unitId,
   });
 }
 
@@ -389,6 +403,12 @@ class ManagerSummary {
   });
 }
 
+class _PortalMemo {
+  String? userId;
+  DateTime? at;
+  Future<MemberPortal>? value;
+}
+
 final repositoryProvider = Provider<AqarRepository>(
   (ref) => AqarRepository(ref.watch(supabaseProvider)),
 );
@@ -426,10 +446,73 @@ class AqarRepository {
   }
 
   Future<void> signOut() async {
+    _portalMemo[this] = null;
     await db.auth.signOut();
   }
 
   Future<AppSession?> loadSession() async {
+    final base = await _loadBaseSession();
+    if (base == null) return null;
+    var member = false;
+    try {
+      member = (await memberPortal(force: true)).eligible;
+    } catch (_) {}
+    if (!member) return base;
+    return AppSession(
+      user: base.user,
+      organizationId: base.organizationId,
+      organizationName: base.organizationName,
+      propertyNames: base.propertyNames,
+      capabilities: base.capabilities,
+      isPortalMember: true,
+    );
+  }
+
+  static final _portalMemo = Expando<_PortalMemo>();
+
+  /// The signed-in user's member/unit relationships. Memoised for a short
+  /// time per user so one screen refresh does not repeat three queries per
+  /// list; [force] bypasses the memo.
+  Future<MemberPortal> memberPortal({bool force = false}) {
+    final uid = db.auth.currentUser?.id;
+    if (uid == null) return Future.value(MemberPortal.none);
+    final memo = _portalMemo[this] ??= _PortalMemo();
+    final fresh = memo.userId == uid &&
+        memo.at != null &&
+        DateTime.now().difference(memo.at!) < const Duration(seconds: 30);
+    if (!force && fresh && memo.value != null) return memo.value!;
+    memo.userId = uid;
+    memo.at = DateTime.now();
+    final future = _fetchMemberPortal(uid);
+    memo.value = future;
+    future.catchError((_) {
+      memo.value = null;
+      return MemberPortal.none;
+    });
+    return future;
+  }
+
+  Future<MemberPortal> _fetchMemberPortal(String uid) async {
+    final members = await db.from('members').select('id').eq('user_id', uid);
+    if (members.isEmpty) return MemberPortal.none;
+    final ids = members.map((r) => r['id'] as String).toList();
+    final ownerships = await db
+        .from('unit_ownerships')
+        .select('unit_id, member_id, start_date, end_date')
+        .inFilter('member_id', ids);
+    final leases = await db
+        .from('unit_leases')
+        .select('unit_id, tenant_member_id, status')
+        .inFilter('tenant_member_id', ids);
+    return MemberPortal.fromRows(
+      members: List<Map<String, dynamic>>.from(members),
+      ownerships: List<Map<String, dynamic>>.from(ownerships),
+      leases: List<Map<String, dynamic>>.from(leases),
+      today: DateTime.now(),
+    );
+  }
+
+  Future<AppSession?> _loadBaseSession() async {
     final user = db.auth.currentUser;
     if (user == null) return null;
     try {
@@ -553,10 +636,14 @@ class AqarRepository {
         .select('total_balance, units_count')
         .eq('user_id', db.auth.currentUser!.id)
         .maybeSingle();
-    final requests = await db
-        .from('maintenance_requests')
-        .select('id')
-        .not('status', 'in', '(COMPLETED,CLOSED,CANCELLED)');
+    final owned = (await memberPortal()).ownedUnitIds.toList();
+    final requests = owned.isEmpty
+        ? const <Map<String, dynamic>>[]
+        : await db
+              .from('maintenance_requests')
+              .select('id')
+              .inFilter('unit_id', owned)
+              .not('status', 'in', '(COMPLETED,CLOSED,CANCELLED)');
     return HomeSummary(
       balance: double.tryParse('${summary?['total_balance'] ?? 0}') ?? 0,
       units: int.tryParse('${summary?['units_count'] ?? 0}') ?? 0,
@@ -564,10 +651,15 @@ class AqarRepository {
     );
   }
 
+  /// Units the member can read: owned plus rented. Staff reading through the
+  /// owner portal still see only their own units, never the organization's.
   Future<List<UnitItem>> units() async {
+    final scope = (await memberPortal()).readableUnitIds.toList();
+    if (scope.isEmpty) return const [];
     final rows = await db
         .from('units_with_financials')
         .select('id, code, balance, unit_type')
+        .inFilter('id', scope)
         .order('code');
     final ids = rows.map((r) => r['id'] as String).toList();
     final leases = ids.isEmpty
@@ -597,11 +689,14 @@ class AqarRepository {
   }
 
   Future<List<DueItem>> dues() async {
+    final scope = (await memberPortal()).readableUnitIds.toList();
+    if (scope.isEmpty) return const [];
     final rows = await db
         .from('dues')
         .select(
           'id, amount, issue_date, due_date, description, status, units(code)',
         )
+        .inFilter('unit_id', scope)
         .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
         .order('due_date');
     final ids = rows.map((r) => r['id'] as String).toList();
@@ -668,6 +763,7 @@ class AqarRepository {
             date: r['payment_date'] ?? '',
             method: r['method'] ?? '—',
             amount: double.tryParse('${r['amount'] ?? 0}') ?? 0,
+            unitId: r['unit_id'] as String?,
           ),
         )
         .toList();
@@ -683,11 +779,14 @@ class AqarRepository {
   }
 
   Future<List<MaintenanceItem>> maintenance() async {
+    final scope = (await memberPortal()).ownedUnitIds.toList();
+    if (scope.isEmpty) return const [];
     final rows = await db
         .from('maintenance_requests')
         .select(
           'id, request_no, title, status, priority, submitted_at, unit_id',
         )
+        .inFilter('unit_id', scope)
         .order('created_at', ascending: false);
     final ids = rows.map((r) => r['unit_id'] as String).toSet().toList();
     final unitRows = ids.isEmpty
@@ -711,14 +810,30 @@ class AqarRepository {
         .toList();
   }
 
-  Future<List<UnitItem>> authorizedUnits() => units();
-  Future<List<VisitorItem>> visitors() async {
-    final rows = await db
-        .from('visitor_invitations')
-        .select(
+  /// Units on which the member may create requests, invitations and
+  /// vehicles: ownership only (a lessee is not authorised by the backend).
+  Future<List<UnitItem>> authorizedUnits() async {
+    final owned = (await memberPortal()).ownedUnitIds;
+    return [
+      for (final u in await units())
+        if (owned.contains(u.id)) u,
+    ];
+  }
+
+  /// The member's own invitations (owned units only).
+  Future<List<VisitorItem>> myVisitors() async {
+    final scope = (await memberPortal()).ownedUnitIds.toList();
+    if (scope.isEmpty) return const [];
+    return visitors(unitIds: scope);
+  }
+
+  /// All visible invitations (gate staff); [unitIds] narrows to given units.
+  Future<List<VisitorItem>> visitors({List<String>? unitIds}) async {
+    var query = db.from('visitor_invitations').select(
           'id, invitation_no, guest_name, guest_phone, guest_note, valid_from, valid_until, usage_policy, status, unit_id',
-        )
-        .order('created_at', ascending: false);
+        );
+    if (unitIds != null) query = query.inFilter('unit_id', unitIds);
+    final rows = await query.order('created_at', ascending: false);
     final ids = rows.map((r) => r['unit_id'] as String).toSet().toList();
     final units = ids.isEmpty
         ? <Map<String, dynamic>>[]
@@ -778,11 +893,14 @@ class AqarRepository {
   }
 
   Future<List<VehicleItem>> vehicles() async {
+    final scope = (await memberPortal()).ownedUnitIds.toList();
+    if (scope.isEmpty) return const [];
     final rows = await db
         .from('vehicles')
         .select(
           'id, plate_number, plate_country, make, model, color, notes, is_active, unit_id',
         )
+        .inFilter('unit_id', scope)
         .order('created_at', ascending: false);
     final ids = rows.map((r) => r['unit_id'] as String).toSet().toList();
     final us = ids.isEmpty
@@ -1331,6 +1449,7 @@ class AqarRepository {
             date: r['payment_date'] ?? '',
             method: r['method'] ?? '—',
             amount: double.tryParse('${r['amount'] ?? 0}') ?? 0,
+            unitId: r['unit_id'] as String?,
           ),
         )
         .toList();
