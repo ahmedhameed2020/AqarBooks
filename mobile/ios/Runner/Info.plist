@@ -57,6 +57,10 @@
 	<string>AqarBooks uses the camera to scan visitor QR passes at the gate and when you choose to attach maintenance evidence.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AqarBooks uses selected photos when you choose to attach maintenance evidence.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>AqarBooks uses Face ID to unlock the app when you turn on biometric unlock.</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>AqarBooks sends alerts about dues, visitors, and maintenance updates.</string>
 	<key>CFBundleURLTypes</key>

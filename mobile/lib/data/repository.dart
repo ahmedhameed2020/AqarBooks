@@ -11,6 +11,7 @@ import '../core/app_core.dart';
 import '../core/plural.dart';
 import 'gate_device_store.dart';
 import 'member_portal.dart';
+import 'portal_access.dart';
 
 export 'member_portal.dart';
 
@@ -69,6 +70,17 @@ class AppSession {
     this.capabilities = const {},
     this.isPortalMember = false,
   });
+
+  /// Same session without owner-portal membership (portal suspended for a
+  /// staff identity): no owner entry, no switch.
+  AppSession withoutPortalMembership() => AppSession(
+        user: user,
+        organizationId: organizationId,
+        organizationName: organizationName,
+        propertyNames: propertyNames,
+        capabilities: capabilities,
+        isPortalMember: false,
+      );
 
   /// A staff user who is also an owner can switch into their personal portal.
   bool get canSwitchToPortal => isPortalMember && persona != Persona.resident;
@@ -437,9 +449,29 @@ class AqarRepository {
     return value;
   }
 
+  /// [email] is the address Supabase Auth knows: the user's real e-mail, or
+  /// the hidden alias of a Client ID (see `authEmailForIdentifier`).
   Future<void> signIn(String email, String password) async {
     await db.auth.signInWithPassword(email: email.trim(), password: password);
   }
+
+  String? get currentUserId => client?.auth.currentUser?.id;
+  String? get accessToken => client?.auth.currentSession?.accessToken;
+
+  /// `my_portal_access()`: callable while suspended / password change pending.
+  Future<PortalAccess> portalAccess() async =>
+      PortalAccess.fromJson(await db.rpc('my_portal_access'));
+
+  /// Step 1 of first login: the server verifies afterwards that it changed.
+  Future<void> changePassword(String password) async {
+    await db.auth.updateUser(UserAttributes(password: password));
+  }
+
+  /// Step 2 of first login: always after [changePassword].
+  Future<FirstLoginResult> completeFirstLogin(String phone) async =>
+      FirstLoginResult.fromJson(
+        await db.rpc('complete_portal_first_login', params: {'p_phone': phone}),
+      );
 
   Future<void> resetPassword(String email) async {
     await db.auth.resetPasswordForEmail(email.trim());

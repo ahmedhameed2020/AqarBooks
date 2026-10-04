@@ -6,12 +6,16 @@ import 'package:supabase_flutter/supabase_flutter.dart'
 
 import '../core/app_core.dart';
 import '../core/contact.dart';
+import '../core/owner_auth.dart';
 import '../core/portal_mode.dart';
 import '../core/shell_nav.dart';
+import '../data/biometric_lock.dart';
 import '../data/gate_device_store.dart';
+import '../data/portal_access.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';
+import 'activation_screens.dart';
 import 'collector_screens.dart';
 import 'feature_screens.dart';
 import 'gate_screens.dart';
@@ -119,11 +123,21 @@ class _LoginState extends ConsumerState<LoginScreen> {
       error = null;
     });
     try {
-      await ref.read(repositoryProvider).signIn(email.text, password.text);
+      // The Client ID -> hidden alias mapping happens here; the alias itself
+      // is never displayed, logged or put in an error message.
+      await ref
+          .read(repositoryProvider)
+          .signIn(authEmailForIdentifier(email.text), password.text);
       TextInput.finishAutofillContext();
+      trustCurrentUser(ref);
       ref.invalidate(sessionProvider);
-    } catch (_) {
-      if (mounted) setState(() => error = t.signInFailed);
+      ref.invalidate(portalAccessProvider);
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = isBannedAuthError(e)
+            ? suspendedMessage(t.ar)
+            : t.signInFailed);
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -133,6 +147,11 @@ class _LoginState extends ConsumerState<LoginScreen> {
     final t = AppLabels(Localizations.localeOf(context));
     if (email.text.trim().isEmpty) {
       setState(() => error = t.emailRequired);
+      return;
+    }
+    if (isClientIdentifier(email.text)) {
+      // Client ID accounts have no e-mail to send to: nothing is requested.
+      setState(() => error = clientIdResetMessage(t.ar));
       return;
     }
     try {
@@ -229,15 +248,15 @@ class _LoginState extends ConsumerState<LoginScreen> {
                               TextField(
                                 controller: email,
                                 keyboardType: TextInputType.emailAddress,
+                                textCapitalization: TextCapitalization.none,
                                 textInputAction: TextInputAction.next,
                                 autocorrect: false,
                                 enableSuggestions: false,
                                 autofillHints: const [
                                   AutofillHints.username,
-                                  AutofillHints.email,
                                 ],
                                 decoration: InputDecoration(
-                                  hintText: t.email,
+                                  hintText: t.emailOrClientId,
                                   suffixIcon: const Padding(
                                     padding: EdgeInsets.all(12),
                                     child: AqarIcon(AqarIconType.mail,
@@ -729,6 +748,7 @@ class MoreHubScreen extends ConsumerWidget {
 /// session before it calls the server, so a failed network call must not leave
 /// the UI signed in; [AuthRouteGuard] then closes any pushed pages.
 Future<void> confirmAndSignOut(BuildContext context, WidgetRef ref) async {
+  final container = ProviderScope.containerOf(context);
   final t = AppLabels(Localizations.localeOf(context));
   final confirmed = await confirmDestructive(
     context,
@@ -738,11 +758,8 @@ Future<void> confirmAndSignOut(BuildContext context, WidgetRef ref) async {
         : 'Sign out of this device?',
     confirmLabel: t.signOut,
   );
-  if (!confirmed) return;
-  try {
-    await ref.read(repositoryProvider).signOut();
-  } catch (_) {}
-  ref.invalidate(sessionProvider);
+  if (!confirmed || !context.mounted) return;
+  await performSignOut(container);
 }
 
 // ───────────────────────── Profile ─────────────────────────
@@ -754,7 +771,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLabels(Localizations.localeOf(context));
-    final email = session.user.email ?? '—';
+    final email = displayLoginName(session.user.email);
     final personaTitle = switch (
         effectivePersona(session, ownerMode: ref.watch(portalModeProvider))) {
       Persona.manager => t.ar ? 'مدير التشغيل' : 'Operations manager',
@@ -846,6 +863,7 @@ class ProfileScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 10),
+        BiometricLockRow(userId: session.user.id),
         AqarCard(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           onTap: () => confirmAndSignOut(context, ref),
@@ -879,5 +897,89 @@ class ProfileScreen extends ConsumerWidget {
             ),
           )
         : body;
+  }
+}
+
+/// Profile row: "Unlock with biometrics". Hidden unless the device supports
+/// it; enabling requires one successful biometric check.
+class BiometricLockRow extends ConsumerStatefulWidget {
+  final String userId;
+  const BiometricLockRow({super.key, required this.userId});
+  @override
+  ConsumerState<BiometricLockRow> createState() => _BiometricLockRowState();
+}
+
+class _BiometricLockRowState extends ConsumerState<BiometricLockRow> {
+  bool? _enabled;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref
+        .read(biometricFlagStoreProvider)
+        .isEnabled(widget.userId)
+        .then((v) {
+      if (mounted) setState(() => _enabled = v);
+    }, onError: (_) {});
+  }
+
+  Future<void> _toggle(bool want) async {
+    if (_busy) return;
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final store = ref.read(biometricFlagStoreProvider);
+    final auth = ref.read(biometricAuthenticatorProvider);
+    setState(() => _busy = true);
+    try {
+      if (want) {
+        final ok = await auth.authenticate(
+          ar ? 'تفعيل الفتح بالبصمة' : 'Enable biometric unlock',
+        );
+        if (!ok) return;
+        await store.setEnabled(widget.userId, true);
+        if (!mounted) return;
+        // Enabling happens inside an unlocked session: do not lock now.
+        final set = ref.read(unlockedUsersProvider);
+        ref.read(unlockedUsersProvider.notifier).state = {
+          ...set,
+          widget.userId,
+        };
+      } else {
+        await store.setEnabled(widget.userId, false);
+      }
+      if (mounted) setState(() => _enabled = want);
+    } catch (_) {
+      if (mounted) {
+        showFeedback(
+          context,
+          ar ? 'لم يكتمل الإجراء — أعد المحاولة' : 'Action did not complete — try again',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final supported = ref.watch(biometricSupportedProvider).valueOrNull ?? false;
+    if (!supported || _enabled == null) return const SizedBox.shrink();
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ListRowCard(
+        icon: AqarIconType.user,
+        title: ar ? 'فتح التطبيق بالبصمة' : 'Unlock with biometrics',
+        subtitle: ar
+            ? 'اطلب البصمة عند فتح التطبيق'
+            : 'Ask for biometrics when the app opens',
+        trailing: Switch(
+          key: const ValueKey('biometric-toggle'),
+          value: _enabled!,
+          onChanged: _busy ? null : _toggle,
+        ),
+        onTap: _busy ? null : () => _toggle(!_enabled!),
+      ),
+    );
   }
 }

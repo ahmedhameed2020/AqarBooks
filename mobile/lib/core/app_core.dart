@@ -137,6 +137,8 @@ class AppLabels {
   // in Arabic and English UI alike.
   String get appName => 'AqarBooks';
   String get email => ar ? 'البريد الإلكتروني' : 'Email address';
+  String get emailOrClientId =>
+      ar ? 'البريد الإلكتروني أو رقم العميل' : 'Email or Client ID';
   String get password => ar ? 'كلمة المرور' : 'Password';
   String get signIn => ar ? 'تسجيل الدخول' : 'Sign in';
   String get resetPassword => ar ? 'نسيت كلمة المرور؟' : 'Forgot password?';

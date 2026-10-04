@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_core.dart';
+import '../core/owner_auth.dart';
 import '../core/formatting.dart';
 import '../core/plural.dart';
 import '../data/repository.dart';
@@ -44,7 +45,7 @@ class TechnicianTodayScreen extends ConsumerWidget {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
     final orders = ref.watch(workOrdersProvider);
-    final userName = session.user.email?.split('@').first ?? '';
+    final userName = userGreetingName(session.user.email);
     return Column(
       children: [
         orders.maybeWhen(

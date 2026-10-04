@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_core.dart';
+import '../core/owner_auth.dart';
 import '../core/contact.dart';
 import '../core/formatting.dart';
 import '../core/plural.dart';
@@ -36,7 +37,7 @@ class CollectorTodayScreen extends ConsumerWidget {
     final t = AppLabels(locale);
     final collections = ref.watch(myCollectionsTodayProvider);
     final cashierCapable = session.can('cashier.sessions.open');
-    final userName = session.user.email?.split('@').first ?? '';
+    final userName = userGreetingName(session.user.email);
     return Column(
       children: [
         HomeHeader(

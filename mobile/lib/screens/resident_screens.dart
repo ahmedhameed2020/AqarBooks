@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
+import '../core/owner_auth.dart';
 import '../core/formatting.dart';
 import '../core/plural.dart';
 import '../data/repository.dart';
@@ -55,7 +56,7 @@ class ResidentHomeScreen extends ConsumerWidget {
     final maintenance = ref.watch(featureMaintenanceProvider);
     final passes = ref.watch(savedPassesProvider);
     final notifications = ref.watch(notificationsProvider);
-    final userName = session.user.email?.split('@').first ?? '';
+    final userName = userGreetingName(session.user.email);
     final unitList = units.valueOrNull ?? const <UnitItem>[];
     final selectedId = ref.watch(selectedUnitProvider);
     final focus = unitList.isEmpty
