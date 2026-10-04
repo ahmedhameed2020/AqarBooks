@@ -59,6 +59,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // `i/` and `auth/callback` excluded alongside `api`:
   // - `i/`: short invite/reminder redirect links (app/i/[slug]/route.ts)
+  // - `activate/`: owner activation links (app/activate/[token]); locale-free so
+  //   the URL can be an App Link / Universal Link
   // - `auth/callback`: Supabase PKCE and token hash exchange
-  matcher: ["/((?!api|i/|auth/callback|_next|_vercel|.*\\..*).*)"],
+  matcher: ["/((?!api|i/|activate/|auth/callback|_next|_vercel|.*\\..*).*)"],
 };

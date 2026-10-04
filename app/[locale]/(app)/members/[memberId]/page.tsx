@@ -42,7 +42,7 @@ import { UnitBalanceBadge } from "../../property/unit-balance-badge";
 import { DuesTable } from "../../property/dues-table";
 import { PaymentsTable } from "../../property/payments-table";
 import { SendReminderDialog } from "../send-reminder-dialog";
-import { InviteToPortalDialog } from "./invite-to-portal-dialog";
+import { OwnerPortalAccessCard } from "./owner-portal-access-card";
 import { MemberStatementButton } from "./member-statement-button";
 import { LinkUnitDialog, type UnitOption } from "./link-unit-dialog";
 import { OpeningBalanceDialog } from "./opening-balance-dialog";
@@ -342,15 +342,14 @@ export default async function MemberDetailPage({
                 </Button>
               }
             />
-
-            <InviteToPortalDialog
-              memberId={member.id}
-              memberName={member.full_name}
-              locale={locale}
-            />
           </div>
         </div>
       </section>
+
+      {/* Owner portal access: status, how the owner signs in, and the staff
+          actions (activate, temporary credentials, suspend, sign out). Every
+          action is permission-checked and tenant-scoped in the database. */}
+      <OwnerPortalAccessCard memberId={member.id} memberName={member.full_name} locale={locale} />
 
       {/* Working area beside a dossier that never scrolls out of context --
           the answer to "whose money am I looking at" stays on screen while the

@@ -150,6 +150,7 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20261001121000_gate_operational_cleanup.sql", bytes: 3187, sha256: "7325541600bf1c3bed6e9e9c13b2c9574c9e697bd1b8ac1349923e867d491ef4", provenance: "new_authorized_migration" },
   { file: "20261001122000_gate_export_snapshot_contract.sql", bytes: 4190, sha256: "9d6232ee0980f8d47c1e311208337c330cf5f40fda4005218c35210ea028bdf7", provenance: "new_authorized_migration" },
   { file: "20261001123000_final_hardening_sprint.sql", bytes: 14237, sha256: "219396927bd82f97a9e00c1090be0706c6dd17c2cd5a639229c6983800a5436d", provenance: "new_authorized_migration" },
+  { file: "20261004120000_owner_portal_access.sql", bytes: 39987, sha256: "662e01a1e88c919d3362a1a03e3f6381d2d3c691bd6d683ef5d2f33513a3e940", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -407,7 +408,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(26);
+      expect(authorized).toHaveLength(27);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -483,7 +484,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 9. new authorized migrations strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(26);
+      expect(newMigrations).toHaveLength(27);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);
