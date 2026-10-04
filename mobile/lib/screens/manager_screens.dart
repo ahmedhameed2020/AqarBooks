@@ -38,7 +38,7 @@ class ManagerHomeScreen extends ConsumerWidget {
       children: [
         HomeHeader(
           title: t.ar ? 'مرحبًا، $userName' : 'Welcome, $userName',
-          subtitle: session.organizationName ?? 'AqarBooks',
+          subtitle: session.contextLabel(locale),
           onBell: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const NotificationsScreen()),

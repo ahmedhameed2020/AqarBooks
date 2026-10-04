@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui' show Locale;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/app_core.dart';
+import '../core/formatting.dart';
 import 'gate_device_store.dart';
 
 double outstandingAmount(double amount, double paid) =>
@@ -46,13 +48,36 @@ class AppSession {
   final User user;
   final String? organizationId;
   final String? organizationName;
+
+  /// Names of the projects (properties) this user works in. Empty when none
+  /// could be read — the header then shows the company alone.
+  final List<String> propertyNames;
   final Set<String> capabilities;
   const AppSession({
     required this.user,
     this.organizationId,
     this.organizationName,
+    this.propertyNames = const [],
     this.capabilities = const {},
   });
+
+  /// "Company · Project" for headers: the single project's name, or a count
+  /// when the user spans several. Falls back to the brand when the company
+  /// name is unavailable.
+  String contextLabel(Locale locale) {
+    final company = (organizationName?.trim().isNotEmpty ?? false)
+        ? organizationName!.trim()
+        : 'AqarBooks';
+    if (propertyNames.isEmpty) return company;
+    final ar = locale.languageCode == 'ar';
+    final project = propertyNames.length == 1
+        ? propertyNames.first
+        : (ar
+            ? '${formatNumber(propertyNames.length, locale)} مشاريع'
+            : '${propertyNames.length} projects');
+    return '$company · $project';
+  }
+
   bool can(String key) =>
       capabilities.contains('*') || capabilities.contains(key);
   bool get isStaff => can('operations.work_orders.view');
@@ -394,6 +419,7 @@ class AqarRepository {
           .select('name')
           .eq('id', orgId)
           .maybeSingle();
+      final properties = await _propertyNames(orgId, user.id);
       final assignments = await db
           .from('user_role_assignments')
           .select('role_id')
@@ -405,6 +431,7 @@ class AqarRepository {
           user: user,
           organizationId: orgId,
           organizationName: org?['name'] as String?,
+          propertyNames: properties,
         );
       }
       final roles = await db
@@ -424,6 +451,7 @@ class AqarRepository {
           user: user,
           organizationId: orgId,
           organizationName: org?['name'] as String?,
+          propertyNames: properties,
         );
       }
       final grants = await db
@@ -438,6 +466,7 @@ class AqarRepository {
           user: user,
           organizationId: orgId,
           organizationName: org?['name'] as String?,
+          propertyNames: properties,
         );
       }
       final permissions = await db
@@ -448,10 +477,44 @@ class AqarRepository {
         user: user,
         organizationId: orgId,
         organizationName: org?['name'] as String?,
+        propertyNames: properties,
         capabilities: permissions.map((r) => r['key'] as String).toSet(),
       );
     } on PostgrestException {
       return AppSession(user: user);
+    }
+  }
+
+  /// Projects the user is attached to: their explicit project memberships,
+  /// or — for org-wide staff with none — every project of the organization
+  /// (readable by any org member). Never throws: a failure here must not
+  /// affect sign-in or permission resolution.
+  Future<List<String>> _propertyNames(String orgId, String userId) async {
+    try {
+      final links = await db
+          .from('resort_memberships')
+          .select('property_id')
+          .eq('organization_id', orgId)
+          .eq('user_id', userId);
+      final ids = links.map((r) => r['property_id'] as String).toList();
+      final rows = ids.isEmpty
+          ? await db
+                .from('properties')
+                .select('name')
+                .eq('organization_id', orgId)
+                .order('name')
+          : await db
+                .from('properties')
+                .select('name')
+                .inFilter('id', ids)
+                .order('name');
+      return [
+        for (final r in rows)
+          if (((r['name'] as String?)?.trim() ?? '').isNotEmpty)
+            (r['name'] as String).trim(),
+      ];
+    } catch (_) {
+      return const [];
     }
   }
 

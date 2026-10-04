@@ -617,7 +617,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${session.organizationName ?? 'AqarBooks'} · $personaTitle',
+                      '${session.contextLabel(Localizations.localeOf(context))} · $personaTitle',
                       style: const TextStyle(fontSize: 12, color: appGrey),
                     ),
                   ],

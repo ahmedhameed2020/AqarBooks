@@ -14,6 +14,21 @@
         "5317"
       ],
       "port": 5317
+    },
+    {
+      "name": "aqarbooks-real-app",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "web-server",
+        "-t",
+        "lib/main.dart",
+        "--dart-define-from-file=.dart_defines.local.json",
+        "--web-port",
+        "5318"
+      ],
+      "port": 5318
     }
   ]
 }

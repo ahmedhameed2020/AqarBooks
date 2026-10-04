@@ -95,6 +95,36 @@ void main() {
     );
   });
 
+  test('header context shows company and project, with safe fallbacks', () {
+    final user = _user('u');
+    const ar = Locale('ar'), en = Locale('en');
+    expect(AppSession(user: user).contextLabel(ar), 'AqarBooks');
+    expect(
+      AppSession(user: user, organizationName: 'MA').contextLabel(ar),
+      'MA',
+    );
+    expect(
+      AppSession(
+        user: user,
+        organizationName: ' MA ',
+        propertyNames: const ['Palm Compound'],
+      ).contextLabel(en),
+      'MA · Palm Compound',
+    );
+    final multi = AppSession(
+      user: user,
+      organizationName: 'MA',
+      propertyNames: const ['A', 'B', 'C'],
+    );
+    expect(multi.contextLabel(ar), 'MA · ٣ مشاريع');
+    expect(multi.contextLabel(en), 'MA · 3 projects');
+    // A blank company name never renders an empty header.
+    expect(
+      AppSession(user: user, organizationName: '  ').contextLabel(en),
+      'AqarBooks',
+    );
+  });
+
   test('outstanding dues never become negative after over-allocation', () {
     expect(outstandingAmount(100, 40), 60);
     expect(outstandingAmount(100, 120), 0);

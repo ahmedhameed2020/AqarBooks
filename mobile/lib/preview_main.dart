@@ -28,6 +28,7 @@ AppSession _session(String name, Set<String> caps) => AppSession(
       user: _mockUser(name),
       organizationId: 'org-1',
       organizationName: 'مجموعة النخيل العقارية',
+      propertyNames: const ['كمبوند النخيل'],
       capabilities: caps,
     );
 

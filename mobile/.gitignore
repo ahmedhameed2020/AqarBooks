@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+.dart_defines.local.json
