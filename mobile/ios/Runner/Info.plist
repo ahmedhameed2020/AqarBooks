@@ -54,7 +54,7 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
-	<string>AqarBooks uses the camera when you choose to attach maintenance evidence.</string>
+	<string>AqarBooks uses the camera to scan visitor QR passes at the gate and when you choose to attach maintenance evidence.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AqarBooks uses selected photos when you choose to attach maintenance evidence.</string>
 	<key>NSUserNotificationsUsageDescription</key>

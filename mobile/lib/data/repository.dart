@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/app_core.dart';
+import 'gate_device_store.dart';
 
 double outstandingAmount(double amount, double paid) =>
     (amount - paid).clamp(0, double.infinity);
@@ -1596,14 +1597,15 @@ class AqarRepository {
     return List<Map<String, dynamic>>.from(rows);
   }
 
-  Future<void> redeemGateEnrollment({
+  /// Returns the enrolled `gate_devices` row (id, gate_id, allowed_direction…).
+  Future<Map<String, dynamic>> redeemGateEnrollment({
     required String enrollmentId,
     required String code,
     required String installationIdHash,
     required String credentialHash,
     required String displayName,
   }) async {
-    await db.rpc(
+    final data = await db.rpc(
       'redeem_gate_device_enrollment',
       params: {
         'p_enrollment_id': enrollmentId,
@@ -1613,10 +1615,17 @@ class AqarRepository {
         'p_display_name': displayName,
       },
     );
+    final row = data is List ? data.first : data;
+    return Map<String, dynamic>.from(row as Map);
   }
 
+  /// Trusted-device scan: the backend verifies the device id + raw credential
+  /// against the enrolled hash, the device's bound gate and allowed direction.
+  /// [direction] is the DB vocabulary (`ENTRY` / `EXIT`). `p_scanner_version`
+  /// is intentionally omitted (recorded as `unknown`) — the `2026-10-01` value
+  /// identifies the web scanner build and must not be claimed by mobile.
   Future<Map<String, dynamic>> processGateScan({
-    required String gateId,
+    required GateDevice device,
     required String invitationId,
     required String rawSecret,
     required String direction,
@@ -1625,7 +1634,9 @@ class AqarRepository {
     final data = await db.rpc(
       'process_visitor_gate_scan',
       params: {
-        'p_gate_id': gateId,
+        'p_device_id': device.deviceId,
+        'p_device_credential': device.credential,
+        'p_gate_id': device.gateId,
         'p_invitation_id': invitationId,
         'p_raw_secret': rawSecret,
         'p_direction': direction,

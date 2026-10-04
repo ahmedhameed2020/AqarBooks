@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_core.dart';
+import '../data/gate_device_store.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';

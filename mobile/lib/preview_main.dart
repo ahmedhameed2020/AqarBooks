@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show User;
 
 import 'core/app_core.dart';
+import 'data/gate_device_store.dart';
 import 'data/repository.dart';
 import 'screens/app_screens.dart';
 import 'widgets/aqar_icons.dart';
+import 'widgets/gate_scanner_view.dart';
 import 'widgets/ui_kit.dart';
 
 void main() => runApp(const PreviewGalleryApp());
@@ -53,6 +55,22 @@ final gateSession = _session('gate1', {
 
 String _iso(DateTime d) => d.toIso8601String();
 final _now = DateTime.now();
+
+class _PreviewDeviceStore implements GateDeviceStore {
+  GateDevice? _device = const GateDevice(
+    deviceId: '11111111-1111-4111-8111-111111111111',
+    gateId: 'g1',
+    allowedDirection: 'BOTH',
+    displayName: 'Preview gate',
+    credential: 'preview-credential-preview-credential-0000',
+  );
+  @override
+  Future<GateDevice?> read() async => _device;
+  @override
+  Future<void> save(GateDevice device) async => _device = device;
+  @override
+  Future<void> clear() async => _device = null;
+}
 
 class PreviewRepository extends AqarRepository {
   const PreviewRepository() : super(null);
@@ -413,13 +431,13 @@ class PreviewRepository extends AqarRepository {
   @override
   Future<List<Map<String, dynamic>>> todayAccessEvents() async => [
         {
-          'direction': 'IN',
+          'direction': 'ENTRY',
           'decision': 'ALLOW',
           'reason_code': null,
           'occurred_at': _iso(_now.subtract(const Duration(minutes: 40))),
         },
         {
-          'direction': 'IN',
+          'direction': 'ENTRY',
           'decision': 'DENY',
           'reason_code': 'EXPIRED',
           'occurred_at': _iso(_now.subtract(const Duration(hours: 2))),
@@ -440,7 +458,8 @@ List<Override> _overrides(AppSession session) => [
               unitCode: 'A-12',
             ),
           ]),
-      gateEnrolledProvider.overrideWith((ref) async => true),
+      gateDeviceStoreProvider.overrideWithValue(_PreviewDeviceStore()),
+      gateCameraEnabledProvider.overrideWithValue(false),
     ];
 
 class PreviewGalleryApp extends StatelessWidget {
@@ -562,13 +581,30 @@ class PreviewGalleryApp extends StatelessWidget {
             )
       ),
       (
+        '15ب المسح — الكاميرا مرفوضة',
+        gateSession,
+        () => Container(
+              color: gateDark,
+              child: Padding(
+                padding: const EdgeInsets.all(30),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: ScannerIssuePanel(
+                    issue: ScannerIssue.permissionDenied,
+                    onRetry: () {},
+                  ),
+                ),
+              ),
+            )
+      ),
+      (
         '16 نتيجة خضراء',
         gateSession,
         () => const GateResultScreen(
               decision: 'ALLOW',
               guestName: 'محمد سامي',
               unitCode: 'A-12',
-              direction: 'IN',
+              direction: 'ENTRY',
               gateName: 'بوابة ١',
               canCreateException: true,
             )

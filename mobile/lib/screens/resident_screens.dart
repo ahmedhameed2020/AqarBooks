@@ -1924,15 +1924,17 @@ String leaseStatusLabel(String status, bool ar) => switch (status) {
 
 String gateReasonLabel(String? code, bool ar) => switch (code) {
       'EXPIRED' => ar ? 'التصريح منتهي الصلاحية' : 'Pass expired',
-      'ALREADY_USED' => ar ? 'التصريح مستخدم من قبل' : 'Pass already used',
+      'PASS_ALREADY_USED' =>
+        ar ? 'التصريح مستخدم من قبل' : 'Pass already used',
       'REVOKED' => ar ? 'التصريح ملغي' : 'Pass revoked',
-      'INVALID_SECRET' || 'INVALID' => ar ? 'تصريح غير صحيح' : 'Invalid pass',
+      'INVALID_PASS' => ar ? 'تصريح غير صحيح' : 'Invalid pass',
       'NOT_YET_VALID' => ar ? 'خارج وقت الصلاحية' : 'Not yet valid',
       'GATE_INACTIVE' => ar ? 'البوابة غير نشطة' : 'Gate inactive',
       'DIRECTION_NOT_ALLOWED' =>
         ar ? 'اتجاه غير مسموح لهذه البوابة' : 'Direction not allowed',
+      'PROPERTY_MISMATCH' =>
+        ar ? 'التصريح لا يخص هذا المشروع' : 'Pass is for another property',
       'ALREADY_INSIDE' => ar ? 'الزائر بالداخل بالفعل' : 'Already inside',
       'NOT_INSIDE' => ar ? 'لا يوجد دخول مسجل للزائر' : 'No entry on record',
-      null => ar ? 'غير مسموح' : 'Not allowed',
       _ => ar ? 'غير مسموح' : 'Not allowed',
     };

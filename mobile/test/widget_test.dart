@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqarbooks_mobile/core/app_core.dart';
 import 'package:aqarbooks_mobile/core/formatting.dart';
+import 'package:aqarbooks_mobile/data/gate_device_store.dart';
 import 'package:aqarbooks_mobile/data/repository.dart';
 import 'package:aqarbooks_mobile/screens/app_screens.dart';
 import 'package:aqarbooks_mobile/screens/feature_screens.dart';
@@ -18,6 +19,18 @@ User _user(String id) => User.fromJson({
   'email': '$id@example.com',
   'created_at': '2026-01-01T00:00:00Z',
 })!;
+
+
+class _MemoryGateStore implements GateDeviceStore {
+  GateDevice? device;
+  _MemoryGateStore([this.device]);
+  @override
+  Future<GateDevice?> read() async => device;
+  @override
+  Future<void> save(GateDevice d) async => device = d;
+  @override
+  Future<void> clear() async => device = null;
+}
 
 void main() {
   setUpAll(() {
@@ -246,9 +259,46 @@ void main() {
       user: _user('gate'),
       capabilities: const {'operations.gates.scan'},
     );
-    await tester.pumpWidget(_testApp(AppShell(session: session)));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          gateDeviceStoreProvider.overrideWithValue(_MemoryGateStore()),
+          gateCameraEnabledProvider.overrideWithValue(false),
+        ],
+        child: MaterialApp(home: AppShell(session: session)),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Activate gate device'), findsOneWidget);
     expect(find.text('Scan'), findsNothing);
+  });
+
+  testWidgets('an enrolled gate device gets the scanner navigation', (
+    tester,
+  ) async {
+    final session = AppSession(
+      user: _user('gate'),
+      capabilities: const {'operations.gates.scan'},
+    );
+    final device = GateDevice(
+      deviceId: '11111111-1111-4111-8111-111111111111',
+      gateId: '22222222-2222-4222-8222-222222222222',
+      allowedDirection: 'BOTH',
+      displayName: 'Main gate phone',
+      credential: 'device-credential-device-credential-0123456789',
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          gateDeviceStoreProvider.overrideWithValue(_MemoryGateStore(device)),
+          gateCameraEnabledProvider.overrideWithValue(false),
+        ],
+        child: MaterialApp(home: AppShell(session: session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Activate gate device'), findsNothing);
+    expect(find.text('Scan'), findsWidgets);
+    expect(find.text('Trusted device ✓'), findsOneWidget);
   });
 }

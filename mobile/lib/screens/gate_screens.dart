@@ -1,31 +1,21 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_core.dart';
 import '../core/formatting.dart';
+import '../data/gate_device_store.dart';
+import '../data/gate_scan_logic.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
+import '../widgets/gate_scanner_view.dart';
 import '../widgets/ui_kit.dart';
 import 'resident_screens.dart' show gateReasonLabel, visitorStatusLabel;
-
-const _gateCredentialKey = 'gate_device_credential';
-
-Future<bool> gateDeviceEnrolled() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_gateCredentialKey) != null;
-  } catch (_) {
-    return false;
-  }
-}
-
-final gateEnrolledProvider =
-    FutureProvider.autoDispose<bool>((ref) => gateDeviceEnrolled());
 
 final gatesProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -36,7 +26,48 @@ final gatesProvider =
   }
 });
 
+/// Builds the per-screen duplicate-scan coordinator. Overridable so tests can
+/// drive time deterministically.
+final scanCoordinatorFactoryProvider =
+    Provider<ScanCoordinator Function()>((ref) => ScanCoordinator.new);
+
+/// Live camera scanning only on phones; web/desktop/tests fall back to the
+/// idle placeholder with manual entry.
+final gateCameraEnabledProvider = Provider<bool>(
+  (ref) =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS),
+);
+
+/// Operator-safe copy for gate failures. Device-trust failures get the
+/// blueprint's wording; nothing raw from the backend ever reaches the UI.
+String gateErrorMessage(Object error, Locale locale) {
+  final ar = locale.languageCode == 'ar';
+  final text = error.toString();
+  if (text.contains('DEVICE_BINDING_NOT_AUTHORIZED') ||
+      text.contains('GATE_TRUSTED_DEVICE_REQUIRED')) {
+    return ar
+        ? 'هذا الجهاز غير مفعّل — راجع الإدارة'
+        : 'This device is not activated — contact the office';
+  }
+  return friendlyError(error, locale);
+}
+
 // ───────────────────────── 14 · Device activation ─────────────────────────
+
+final _enrollmentSecret = RegExp(r'^[A-Za-z0-9_-]{43}$');
+final _enrollmentUuid = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
+String _randomSecret() {
+  final random = Random.secure();
+  // 32 random bytes, base64url without padding (43 chars) — the same shape
+  // the web console uses for device secrets.
+  return base64UrlEncode(List<int>.generate(32, (_) => random.nextInt(256)))
+      .replaceAll('=', '');
+}
 
 class GateActivationScreen extends ConsumerStatefulWidget {
   const GateActivationScreen({super.key});
@@ -46,62 +77,85 @@ class GateActivationScreen extends ConsumerStatefulWidget {
 
 class _GateActivationState extends ConsumerState<GateActivationScreen> {
   final code = TextEditingController();
-  final focus = FocusNode();
+  final enrollmentId = TextEditingController();
   bool busy = false;
 
   @override
   void dispose() {
     code.dispose();
-    focus.dispose();
+    enrollmentId.dispose();
     super.dispose();
+  }
+
+  String _activationError(Object e, AppLabels t) {
+    final text = e.toString();
+    if (text.contains('ENROLLMENT_EXPIRED')) {
+      return t.ar
+          ? 'انتهت صلاحية الكود — اطلب كودًا جديدًا من الإدارة'
+          : 'The code expired — ask the office for a new one';
+    }
+    if (text.contains('ENROLLMENT_ALREADY_REDEEMED')) {
+      return t.ar
+          ? 'هذا الكود استُخدم من قبل — اطلب كودًا جديدًا'
+          : 'This code was already used — ask for a new one';
+    }
+    return t.ar
+        ? 'تعذر تفعيل الجهاز — تحقق من الكود والمعرّف (صالحان ١٥ دقيقة فقط)'
+        : 'Could not activate — check the code and ID (valid for 15 minutes)';
   }
 
   Future<void> _activate() async {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final raw = code.text.trim();
-    // Enrollment token: "<enrollment_id>-<6 digit code>" or just the code
-    // when the id arrives via link; both are issued by the web console.
-    final parts = raw.split(RegExp(r'[\s\-]+'));
-    final digits = parts.last;
-    final enrollmentId = parts.length > 1
-        ? parts.sublist(0, parts.length - 1).join('-')
-        : '';
-    if (digits.length < 6 || enrollmentId.isEmpty) {
+    final id = enrollmentId.text.trim();
+    final secret = code.text.trim();
+    if (!_enrollmentUuid.hasMatch(id) || !_enrollmentSecret.hasMatch(secret)) {
       showFeedback(
           context,
           t.ar
-              ? 'أدخل كود التفعيل كاملًا كما استلمته من الإدارة'
-              : 'Enter the full activation code exactly as issued');
+              ? 'أدخل كود التفعيل ومعرّف التسجيل كما استلمتهما من الإدارة'
+              : 'Enter the activation code and enrollment ID exactly as issued');
       return;
     }
     setState(() => busy = true);
     try {
-      final random = Random.secure();
-      final installationId =
-          base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)));
-      final credential =
-          base64UrlEncode(List<int>.generate(32, (_) => random.nextInt(256)));
-      await ref.read(repositoryProvider).redeemGateEnrollment(
-            enrollmentId: enrollmentId,
-            code: digits,
+      final installationId = _randomSecret();
+      final credential = _randomSecret();
+      final row = await ref.read(repositoryProvider).redeemGateEnrollment(
+            enrollmentId: id,
+            code: secret,
             installationIdHash:
                 sha256.convert(utf8.encode(installationId)).toString(),
             credentialHash:
                 sha256.convert(utf8.encode(credential)).toString(),
             displayName: 'AqarBooks Mobile Gate',
           );
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_gateCredentialKey, credential);
+      final device = GateDevice.tryParse({
+        'deviceId': row['id'],
+        'gateId': row['gate_id'],
+        'allowedDirection': row['allowed_direction'],
+        'displayName': row['display_name'] ?? 'AqarBooks Mobile Gate',
+        'credential': credential,
+      });
+      if (device == null) {
+        throw const AppRepositoryException('device_row_invalid');
+      }
+      try {
+        await ref.read(gateDeviceStoreProvider).save(device);
+      } catch (_) {
+        if (mounted) {
+          showFeedback(
+              context,
+              t.ar
+                  ? 'تم التفعيل لكن تعذر حفظ بيانات الجهاز — اطلب من الإدارة إلغاء الجهاز وإصدار كود جديد'
+                  : 'Activated, but this phone could not store the device credential — ask the office to revoke it and issue a new code');
+        }
+        return;
+      }
+      ref.invalidate(gateDeviceProvider);
       ref.invalidate(gateEnrolledProvider);
     } catch (e) {
-      if (mounted) {
-        showFeedback(
-            context,
-            t.ar
-                ? 'تعذر تفعيل الجهاز — تحقق من الكود (صالح ١٥ دقيقة فقط)'
-                : 'Could not activate — check the code (valid for 15 minutes)');
-      }
+      if (mounted) showFeedback(context, _activationError(e, t));
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -111,7 +165,6 @@ class _GateActivationState extends ConsumerState<GateActivationScreen> {
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final typed = code.text.replaceAll(RegExp(r'\D'), '');
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -137,56 +190,13 @@ class _GateActivationState extends ConsumerState<GateActivationScreen> {
                 const SizedBox(height: 10),
                 Text(
                   t.ar
-                      ? 'أدخل كود التفعيل الصادر من مدير التشغيل.\nالكود صالح لمدة ١٥ دقيقة فقط.'
-                      : 'Enter the activation code issued by your manager.\nThe code is valid for 15 minutes only.',
+                      ? 'أدخل كود التفعيل ومعرّف التسجيل الصادرين من مدير التشغيل.'
+                      : 'Enter the activation code and enrollment ID issued by your manager.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 13, color: appGrey, height: 1.6),
                 ),
-                const SizedBox(height: 20),
-                // Visual 6-box code (tap to type)
-                GestureDetector(
-                  onTap: () => focus.requestFocus(),
-                  child: Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 5; i >= 0; i--) ...[
-                          Container(
-                            width: 44,
-                            height: 56,
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: i < typed.length
-                                    ? appNavy
-                                    : appCardBorder,
-                                width: i < typed.length ? 1.4 : 1,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                i < typed.length
-                                    ? localizedDigits(typed[i], locale)
-                                    : '',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: appNavy,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -195,8 +205,8 @@ class _GateActivationState extends ConsumerState<GateActivationScreen> {
                     const SizedBox(width: 6),
                     Text(
                       t.ar
-                          ? 'الكود صالح لمدة ١٥ دقيقة من إصداره'
-                          : 'Code valid for 15 minutes after issue',
+                          ? 'صالح لمدة ١٥ دقيقة من إصداره'
+                          : 'Valid for 15 minutes after issue',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -205,16 +215,26 @@ class _GateActivationState extends ConsumerState<GateActivationScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 TextField(
+                  key: const ValueKey('gate-enrollment-code'),
                   controller: code,
-                  focusNode: focus,
-                  onChanged: (_) => setState(() {}),
                   textDirection: TextDirection.ltr,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   decoration: InputDecoration(
-                    hintText: t.ar
-                        ? 'كود التفعيل الكامل (المعرف-الأرقام)'
-                        : 'Full activation code (id-digits)',
+                    hintText: t.ar ? 'كود التفعيل' : 'Activation code',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const ValueKey('gate-enrollment-id'),
+                  controller: enrollmentId,
+                  textDirection: TextDirection.ltr,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: InputDecoration(
+                    hintText: t.ar ? 'معرّف التسجيل' : 'Enrollment ID',
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -250,79 +270,107 @@ class GateScanScreen extends ConsumerStatefulWidget {
 }
 
 class _GateScanState extends ConsumerState<GateScanScreen> {
-  String direction = 'IN';
-  String? gateId;
-  final manual = TextEditingController();
+  String? _direction;
+  final _manual = TextEditingController();
+  late final ScanCoordinator _coordinator;
+
+  @override
+  void initState() {
+    super.initState();
+    // Created eagerly: `ref` cannot be read for the first time in dispose().
+    _coordinator = ref.read(scanCoordinatorFactoryProvider)();
+  }
 
   @override
   void dispose() {
-    manual.dispose();
+    _manual.dispose();
+    _coordinator.reset();
     super.dispose();
   }
 
-  Future<void> _processPayload(String payload) async {
-    final locale = Localizations.localeOf(context);
-    final t = AppLabels(locale);
-    final gates = ref.read(gatesProvider).valueOrNull ?? const [];
-    final gate = gateId ?? (gates.isNotEmpty ? gates.first['id'] as String : null);
-    if (gate == null) {
-      showFeedback(
-          context,
-          t.ar
-              ? 'لا توجد بوابة نشطة مهيأة — راجع الإدارة'
-              : 'No active gate configured — contact the office');
-      return;
-    }
-    // Pass payload format: AQP1.<invitation_id>.<secret>
-    final parts = payload.trim().split('.');
-    if (parts.length < 3 || parts.first != 'AQP1') {
-      _showResult(decision: 'DENY', reason: 'INVALID');
-      return;
-    }
+  String _directionFor(GateDevice device) =>
+      device.directions.contains(_direction)
+          ? _direction!
+          : device.directions.first;
+
+  /// Single entry point for camera detections and manual entry. The lock is
+  /// taken synchronously (before any await) so simultaneous detections cannot
+  /// both start a scan.
+  Future<void> _handlePayload(String raw, GateDevice device) async {
+    final direction = _directionFor(device);
+    final ticket = _coordinator.tryBegin(raw, direction);
+    if (ticket == null) return;
+    var delivered = false;
     try {
+      // Trust is re-verified at the moment of use, not just at render time:
+      // a cleared/unreadable store must stop scanning immediately.
+      final trusted = await ref.read(gateDeviceStoreProvider).read();
+      if (trusted == null) {
+        ref.invalidate(gateDeviceProvider);
+        ref.invalidate(gateEnrolledProvider);
+        return;
+      }
+      final pass = parsePassPayload(raw);
+      if (pass == null) {
+        delivered = true;
+        await _showResult(
+          device: trusted,
+          direction: direction,
+          decision: 'DENY',
+          reason: 'INVALID_PASS',
+        );
+        return;
+      }
       final result = await ref.read(repositoryProvider).processGateScan(
-            gateId: gate,
-            invitationId: parts[1],
-            rawSecret: parts.sublist(2).join('.'),
+            device: trusted,
+            invitationId: pass.invitationId,
+            rawSecret: pass.secret,
             direction: direction,
-            clientScanId: _uuidV4(),
+            clientScanId: ticket.clientScanId,
           );
-      _showResult(
+      delivered = true;
+      await _showResult(
+        device: trusted,
+        direction: direction,
         decision: '${result['decision'] ?? 'DENY'}',
         reason: result['reason_code'] as String?,
         guestName: result['guest_name'] as String?,
         unitCode: result['unit_code'] as String?,
       );
     } catch (e) {
-      if (mounted) showFeedback(context, friendlyError(e, locale));
+      if (mounted) {
+        showFeedback(
+            context, gateErrorMessage(e, Localizations.localeOf(context)));
+      }
+    } finally {
+      _coordinator.complete(ticket, delivered: delivered);
     }
   }
 
-  String _uuidV4() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int start, int end) => bytes
-        .sublist(start, end)
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
-    return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
+  void _submitManual(GateDevice device) {
+    final value = _manual.text;
+    if (value.trim().isEmpty) return;
+    // Never leave a pass secret sitting in the field after submit.
+    _manual.clear();
+    unawaited(_handlePayload(value, device));
   }
 
-  void _showResult({
+  Future<void> _showResult({
+    required GateDevice device,
+    required String direction,
     required String decision,
     String? reason,
     String? guestName,
     String? unitCode,
-  }) {
+  }) async {
+    if (!mounted) return;
     final gates = ref.read(gatesProvider).valueOrNull ?? const [];
     final t = AppLabels(Localizations.localeOf(context));
     final gateName = gates
-        .where((g) => g['id'] == (gateId ?? (gates.isNotEmpty ? gates.first['id'] : null)))
+        .where((g) => g['id'] == device.gateId)
         .map((g) => t.ar ? '${g['name_ar']}' : '${g['name_en']}')
         .join();
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => GateResultScreen(
@@ -331,7 +379,7 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
           guestName: guestName,
           unitCode: unitCode,
           direction: direction,
-          gateName: gateName,
+          gateName: gateName.isEmpty ? device.displayName : gateName,
           canCreateException:
               widget.session.can('operations.gates.exceptions.create'),
         ),
@@ -341,175 +389,204 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    final t = AppLabels(locale);
-    final gates = ref.watch(gatesProvider).valueOrNull ?? const [];
-    final currentGate = gates.isEmpty
-        ? null
-        : gates.firstWhere(
-            (g) => g['id'] == gateId,
-            orElse: () => gates.first,
-          );
+    final t = AppLabels(Localizations.localeOf(context));
+    final deviceAsync = ref.watch(gateDeviceProvider);
     return Container(
       color: gateDark,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currentGate == null
-                            ? (t.ar ? 'بوابة' : 'Gate')
-                            : (t.ar
-                                ? '${currentGate['name_ar']}'
-                                : '${currentGate['name_en']}'),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        t.ar ? 'جهاز موثوق ✓' : 'Trusted device ✓',
-                        style:
-                            const TextStyle(fontSize: 10.5, color: gateMuted),
-                      ),
-                    ],
-                  ),
-                ),
-                // Direction segmented (دخول/خروج)
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: gatePanel,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      _dirChip('IN', t.ar ? 'دخول' : 'In'),
-                      const SizedBox(width: 4),
-                      _dirChip('OUT', t.ar ? 'خروج' : 'Out'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: Column(
-                children: [
-                  const SizedBox(height: 6),
-                  // Camera viewport — gold corner brackets, scan line.
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: gatePanel,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: gatePanelBorder),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                                painter: _CornerBracketsPainter()),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const AqarIcon(AqarIconType.qr,
-                                  size: 72, color: Color(0xFF1B5775)),
-                              const SizedBox(height: 22),
-                              Text(
-                                t.ar
-                                    ? 'وجّه الكاميرا نحو رمز التصريح'
-                                    : 'Point the camera at the pass QR',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: gateMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Positioned(
-                            top: 0,
-                            bottom: 0,
-                            child: Center(
-                              child: Container(
-                                width: 240,
-                                height: 2.5,
-                                decoration: BoxDecoration(
-                                  color: appGold.withAlpha(230),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Manual fallback: paste/type the pass or search text.
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: gatePanel,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: gatePanelBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        const AqarIcon(AqarIconType.search,
-                            size: 18, color: gateMuted),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: manual,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 13),
-                            decoration: InputDecoration(
-                              hintText: t.ar
-                                  ? 'بحث يدوي بالاسم أو كود التصريح'
-                                  : 'Manual search — name or pass code',
-                              hintStyle: const TextStyle(
-                                  color: gateMuted, fontSize: 13),
-                              filled: false,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                            ),
-                            onSubmitted: (v) {
-                              if (v.trim().isNotEmpty) _processPayload(v);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: deviceAsync.when(
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: appGold)),
+        // An unreadable store means "not trusted", never "scan anyway".
+        error: (_, __) => _notTrusted(t),
+        data: (device) => device == null ? _notTrusted(t) : _scanBody(t, device),
       ),
     );
   }
 
-  Widget _dirChip(String value, String label) {
-    final selected = direction == value;
+  /// Defence in depth: the shell already routes un-enrolled devices to the
+  /// activation screen; this keeps the scanner itself closed too.
+  Widget _notTrusted(AppLabels t) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AqarIcon(AqarIconType.gate, size: 48, color: appGold),
+              const SizedBox(height: 14),
+              Text(
+                t.ar ? 'هذا الجهاز غير مفعّل' : 'This device is not activated',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t.ar
+                    ? 'لا يمكن المسح قبل تفعيل الجهاز — راجع الإدارة.'
+                    : 'Scanning is disabled until this device is activated — contact the office.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: gateMuted, fontSize: 13, height: 1.6),
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: appGold, width: 1.2),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 22, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  ref.invalidate(gateDeviceProvider);
+                  ref.invalidate(gateEnrolledProvider);
+                },
+                child: Text(
+                  t.ar ? 'تفعيل الجهاز' : 'Activate device',
+                  style: const TextStyle(
+                    color: appGold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _scanBody(AppLabels t, GateDevice device) {
+    final gates = ref.watch(gatesProvider).valueOrNull ?? const [];
+    final gate = gates.where((g) => g['id'] == device.gateId).toList();
+    final gateTitle = gate.isEmpty
+        ? device.displayName
+        : (t.ar ? '${gate.first['name_ar']}' : '${gate.first['name_en']}');
+    final direction = _directionFor(device);
+    // The camera runs only while this tab is the visible one and nothing is
+    // pushed over it (e.g. the result screen); the view also pauses itself
+    // when the app leaves the foreground.
+    final active = TickerMode.valuesOf(context).enabled &&
+        (ModalRoute.of(context)?.isCurrent ?? true);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      gateTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      t.ar ? 'جهاز موثوق ✓' : 'Trusted device ✓',
+                      style:
+                          const TextStyle(fontSize: 10.5, color: gateMuted),
+                    ),
+                  ],
+                ),
+              ),
+              // Only the directions this trusted device is bound to.
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: gatePanel,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    for (final value in device.directions) ...[
+                      _dirChip(
+                        value,
+                        value == 'ENTRY'
+                            ? (t.ar ? 'دخول' : 'In')
+                            : (t.ar ? 'خروج' : 'Out'),
+                        selected: value == direction,
+                      ),
+                      if (value != device.directions.last)
+                        const SizedBox(width: 4),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Column(
+              children: [
+                const SizedBox(height: 6),
+                Expanded(
+                  child: GateScannerView(
+                    active: active,
+                    cameraEnabled: ref.watch(gateCameraEnabledProvider),
+                    onPayload: (raw) => _handlePayload(raw, device),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Manual fallback: paste/type the pass payload.
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: gatePanel,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: gatePanelBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      const AqarIcon(AqarIconType.search,
+                          size: 18, color: gateMuted),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('gate-manual-entry'),
+                          controller: _manual,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: t.ar
+                                ? 'بحث يدوي بالاسم أو كود التصريح'
+                                : 'Manual search — name or pass code',
+                            hintStyle: const TextStyle(
+                                color: gateMuted, fontSize: 13),
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _submitManual(device),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _dirChip(String value, String label, {required bool selected}) {
     return GestureDetector(
-      onTap: () => setState(() => direction = value),
+      onTap: () => setState(() => _direction = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
@@ -527,35 +604,6 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
       ),
     );
   }
-}
-
-class _CornerBracketsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = appGold
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..strokeCap = StrokeCap.round;
-    const inset = 20.0, len = 34.0, radius = 12.0;
-    final w = size.width, h = size.height;
-    Path corner(double sx, double sy, double dx, double dy) {
-      // L-bracket with a rounded elbow at (sx, sy) extending dx, dy.
-      return Path()
-        ..moveTo(sx + dx * len, sy)
-        ..lineTo(sx + dx * radius, sy)
-        ..quadraticBezierTo(sx, sy, sx, sy + dy * radius)
-        ..lineTo(sx, sy + dy * len);
-    }
-
-    canvas.drawPath(corner(inset, inset, 1, 1), paint);
-    canvas.drawPath(corner(w - inset, inset, -1, 1), paint);
-    canvas.drawPath(corner(w - inset, h - inset, -1, -1), paint);
-    canvas.drawPath(corner(inset, h - inset, 1, -1), paint);
-  }
-
-  @override
-  bool shouldRepaint(_CornerBracketsPainter oldDelegate) => false;
 }
 
 // ───────────────────────── 16 · Scan result ─────────────────────────
@@ -580,8 +628,9 @@ class GateResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context);
     final t = AppLabels(locale);
-    final allow = decision == 'ALLOW';
-    final attention = !allow && decision != 'DENY';
+    final outcome = classifyScanResult(decision, reasonCode);
+    final allow = outcome == GateOutcome.allow;
+    final attention = outcome == GateOutcome.attention;
     final bg = allow
         ? gateAllow
         : attention
@@ -667,7 +716,7 @@ class GateResultScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${direction == 'IN' ? (t.ar ? 'دخول' : 'In') : (t.ar ? 'خروج' : 'Out')}'
+                  '${direction == 'ENTRY' ? (t.ar ? 'دخول' : 'In') : (t.ar ? 'خروج' : 'Out')}'
                   '${gateName != null && gateName!.isNotEmpty ? ' — $gateName' : ''}'
                   ' · ${formatTime(DateTime.now().toIso8601String(), locale)}',
                   style: TextStyle(
@@ -873,7 +922,7 @@ class GateEventsScreen extends ConsumerWidget {
                           final e = items[i];
                           final allow = e['decision'] == 'ALLOW';
                           return _darkRow(
-                            title: e['direction'] == 'IN'
+                            title: e['direction'] == 'ENTRY'
                                 ? (t.ar ? 'دخول' : 'Entry')
                                 : (t.ar ? 'خروج' : 'Exit'),
                             subtitle: formatTime(

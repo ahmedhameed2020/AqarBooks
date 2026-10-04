@@ -48,6 +48,7 @@ enum AqarIconType {
   phone,
   share,
   copy,
+  flash,
 }
 
 class AqarIcon extends StatelessWidget {
@@ -362,6 +363,15 @@ class _AqarIconPainter extends CustomPainter {
         circle(17, 18.5, 2.4);
         line(8.2, 11, 14.8, 6.6);
         line(8.2, 13, 14.8, 17.4);
+      case AqarIconType.flash:
+        poly(const [
+          Offset(13, 3),
+          Offset(5.5, 13),
+          Offset(11, 13),
+          Offset(10.5, 21),
+          Offset(18.5, 10.5),
+          Offset(13, 10.5),
+        ], close: true);
       case AqarIconType.copy:
         rrect(8, 8, 12, 12, 2);
         poly(const [
