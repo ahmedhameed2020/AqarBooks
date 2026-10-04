@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthChangeEvent, AuthState;
 
 import '../core/app_core.dart';
+import '../core/shell_nav.dart';
 import '../data/gate_device_store.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
@@ -116,6 +118,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
     });
     try {
       await ref.read(repositoryProvider).signIn(email.text, password.text);
+      TextInput.finishAutofillContext();
       ref.invalidate(sessionProvider);
     } catch (_) {
       if (mounted) setState(() => error = t.signInFailed);
@@ -219,11 +222,18 @@ class _LoginState extends ConsumerState<LoginScreen> {
                         AqarCard(
                           gold: true,
                           padding: const EdgeInsets.all(20),
-                          child: Column(
+                          child: AutofillGroup(child: Column(
                             children: [
                               TextField(
                                 controller: email,
                                 keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                autofillHints: const [
+                                  AutofillHints.username,
+                                  AutofillHints.email,
+                                ],
                                 decoration: InputDecoration(
                                   hintText: t.email,
                                   suffixIcon: const Padding(
@@ -237,16 +247,28 @@ class _LoginState extends ConsumerState<LoginScreen> {
                               TextField(
                                 controller: password,
                                 obscureText: obscure,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [AutofillHints.password],
                                 onSubmitted: (_) => submit(),
                                 decoration: InputDecoration(
                                   hintText: t.password,
-                                  suffixIcon: InkWell(
-                                    onTap: () =>
-                                        setState(() => obscure = !obscure),
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(12),
-                                      child: AqarIcon(AqarIconType.eye,
-                                          size: 20),
+                                  suffixIcon: Semantics(
+                                    button: true,
+                                    label: obscure
+                                        ? (t.ar ? 'إظهار كلمة المرور' : 'Show password')
+                                        : (t.ar ? 'إخفاء كلمة المرور' : 'Hide password'),
+                                    child: InkWell(
+                                      onTap: () =>
+                                          setState(() => obscure = !obscure),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: AqarIcon(
+                                          obscure
+                                              ? AqarIconType.eye
+                                              : AqarIconType.eyeOff,
+                                          size: 20,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -293,7 +315,7 @@ class _LoginState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
                             ],
-                          ),
+                          )),
                         ),
                       ],
                     ),
@@ -318,7 +340,10 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _ShellState extends ConsumerState<AppShell> {
-  int index = 0;
+  /// Tabs the user has opened. Others are not built yet, so a manager does
+  /// not fire every tab's queries (and a gate phone does not spin up unused
+  /// screens) the moment the app opens.
+  final _visited = <int>{0};
 
   @override
   Widget build(BuildContext context) {
@@ -431,29 +456,56 @@ class _ShellState extends ConsumerState<AppShell> {
           null,
         ),
     };
+    final index = ref.watch(shellTabProvider);
     final safeIndex = index < tabs.length ? index : 0;
+    _visited.add(safeIndex);
     return PopScope<void>(
       canPop: safeIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && safeIndex != 0 && mounted) {
-          setState(() => index = 0);
+          ref.read(shellTabProvider.notifier).state = 0;
         }
       },
-      child: Scaffold(
-        backgroundColor: dark ? gateDark : appSurface,
-        body: SafeArea(child: IndexedStack(index: safeIndex, children: tabs)),
-        bottomNavigationBar: AqarBottomNav(
-          items: items,
-          index: safeIndex,
-          dark: dark,
-          centerIndex: centerIndex,
-          onTap: (v) {
-            if (centerIndex == v) {
-              startCollectFlow(context);
-              return;
-            }
-            setState(() => index = v);
-          },
+      // Status-bar icons must contrast with the screen behind them: light
+      // icons on the dark gate theme, dark icons everywhere else.
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: dark
+            ? SystemUiOverlayStyle.light.copyWith(
+                statusBarColor: Colors.transparent,
+                systemNavigationBarColor: gatePanel,
+                systemNavigationBarIconBrightness: Brightness.light,
+              )
+            : SystemUiOverlayStyle.dark.copyWith(
+                statusBarColor: Colors.transparent,
+                systemNavigationBarColor: Colors.white,
+                systemNavigationBarIconBrightness: Brightness.dark,
+              ),
+        child: Scaffold(
+          backgroundColor: dark ? gateDark : appSurface,
+          body: SafeArea(
+            child: IndexedStack(
+              index: safeIndex,
+              children: [
+                for (var i = 0; i < tabs.length; i++)
+                  _visited.contains(i) ? tabs[i] : const SizedBox.shrink(),
+              ],
+            ),
+          ),
+          bottomNavigationBar: AqarBottomNav(
+            items: items,
+            index: safeIndex,
+            dark: dark,
+            centerIndex: centerIndex,
+            onTap: (v) {
+              if (centerIndex == v) {
+                HapticFeedback.selectionClick();
+                startCollectFlow(context);
+                return;
+              }
+              if (v != safeIndex) HapticFeedback.selectionClick();
+              ref.read(shellTabProvider.notifier).state = v;
+            },
+          ),
         ),
       ),
     );
@@ -498,6 +550,7 @@ class MoreHubScreen extends ConsumerWidget {
                 : 'Journals, reports and settings are managed in AqarBooks on the web',
           ),
         ),
+      _signOutRow(context, ref, t),
     ];
     final content = ListView(
       padding: const EdgeInsets.all(20),
@@ -519,6 +572,60 @@ class MoreHubScreen extends ConsumerWidget {
 
   void _push(BuildContext context, Widget screen) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+
+  Widget _signOutRow(BuildContext context, WidgetRef ref, AppLabels t) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 10),
+        child: dark
+            ? InkWell(
+                onTap: () => confirmAndSignOut(context, ref),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 13),
+                  decoration: BoxDecoration(
+                    color: gatePanel,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: gatePanelBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      const AqarIcon(AqarIconType.logout,
+                          size: 20, color: Color(0xFFF59E9E)),
+                      const SizedBox(width: 10),
+                      Text(
+                        t.signOut,
+                        style: const TextStyle(
+                          color: Color(0xFFF59E9E),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : AqarCard(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                onTap: () => confirmAndSignOut(context, ref),
+                child: Row(
+                  children: [
+                    const IconBadge(AqarIconType.logout,
+                        fg: appDanger, bg: appDangerBg),
+                    const SizedBox(width: 10),
+                    Text(
+                      t.signOut,
+                      style: const TextStyle(
+                        color: appDanger,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      );
 
   Widget _row(
     BuildContext context,
@@ -562,6 +669,26 @@ class MoreHubScreen extends ConsumerWidget {
               )
             : ListRowCard(icon: icon, title: label, onTap: onTap),
       );
+}
+
+/// Confirms, signs out, and refreshes the session. The SDK drops the local
+/// session before it calls the server, so a failed network call must not leave
+/// the UI signed in; [AuthRouteGuard] then closes any pushed pages.
+Future<void> confirmAndSignOut(BuildContext context, WidgetRef ref) async {
+  final t = AppLabels(Localizations.localeOf(context));
+  final confirmed = await confirmDestructive(
+    context,
+    title: t.signOut,
+    message: t.ar
+        ? 'هل تريد تسجيل الخروج من هذا الجهاز؟'
+        : 'Sign out of this device?',
+    confirmLabel: t.signOut,
+  );
+  if (!confirmed) return;
+  try {
+    await ref.read(repositoryProvider).signOut();
+  } catch (_) {}
+  ref.invalidate(sessionProvider);
 }
 
 // ───────────────────────── Profile ─────────────────────────
@@ -666,24 +793,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         AqarCard(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          onTap: () async {
-            final confirmed = await confirmDestructive(
-              context,
-              title: t.signOut,
-              message: t.ar
-                  ? 'هل تريد تسجيل الخروج من هذا الجهاز؟'
-                  : 'Sign out of this device?',
-              confirmLabel: t.signOut,
-            );
-            if (!confirmed) return;
-            try {
-              await ref.read(repositoryProvider).signOut();
-            } catch (_) {
-              // The SDK drops the local session before it calls the server,
-              // so a failed network call must not leave the UI signed in.
-            }
-            ref.invalidate(sessionProvider);
-          },
+          onTap: () => confirmAndSignOut(context, ref),
           child: Row(
             children: [
               const IconBadge(AqarIconType.logout,

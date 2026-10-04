@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
 import '../core/formatting.dart';
+import '../core/plural.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';
@@ -115,6 +116,10 @@ class ResidentHomeScreen extends ConsumerWidget {
         HomeHeader(
           title: t.ar ? 'مرحبًا، $userName' : 'Welcome, $userName',
           subtitle: session.contextLabel(locale),
+          unread: notifications.maybeWhen(
+            data: (items) => items.any((n) => !n.isRead),
+            orElse: () => false,
+          ),
           onBell: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const NotificationsScreen()),
@@ -565,7 +570,7 @@ class UnitsScreen extends ConsumerWidget {
                   ),
             loading: () => const SkeletonList(),
             error: (e, _) => AppError(
-              message: friendlyError(e, locale),
+              message: friendlyError(e, locale, loading: true),
               onRetry: () => ref.invalidate(unitsProvider),
             ),
           ),
@@ -708,7 +713,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
       },
       loading: () => const SkeletonList(),
       error: (e, _) => AppError(
-        message: friendlyError(e, locale),
+        message: friendlyError(e, locale, loading: true),
         onRetry: () => ref.invalidate(duesProvider),
       ),
     );
@@ -766,14 +771,16 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
             children: [
               isLate
                   ? StatusChip(
-                      t.ar ? 'متأخر ${formatNumber(late, locale)} يومًا' : 'Overdue ${late}d',
+                      t.ar
+                          ? 'متأخر ${countText(late, locale, ar: dayNoun, enOne: 'day', enOther: 'days')}'
+                          : 'Overdue ${countText(late, locale, ar: dayNoun, enOne: 'day', enOther: 'days')}',
                       fg: appDanger,
                       bg: appDangerBg,
                     )
                   : StatusChip(
                       t.ar
-                          ? 'مستحق خلال ${formatNumber(-late, locale)} يومًا'
-                          : 'Due in ${-late}d',
+                          ? 'مستحق خلال ${countText(-late, locale, ar: dayNoun, enOne: 'day', enOther: 'days')}'
+                          : 'Due in ${countText(-late, locale, ar: dayNoun, enOne: 'day', enOther: 'days')}',
                       fg: appNavy,
                       bg: appNavyBg,
                     ),
@@ -843,7 +850,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
             ),
       loading: () => const SkeletonList(),
       error: (e, _) => AppError(
-        message: friendlyError(e, locale),
+        message: friendlyError(e, locale, loading: true),
         onRetry: () => ref.invalidate(paymentsProvider),
       ),
     );
@@ -918,7 +925,7 @@ class _FawryCodeState extends ConsumerState<FawryCodeScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return AppError(
-                      message: friendlyError(snapshot.error!, locale),
+                      message: friendlyError(snapshot.error!, locale, loading: true),
                       onRetry: () => setState(() {}),
                     );
                   }
@@ -1146,7 +1153,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                           iconBg: appPetrolBg,
                           title: m.title,
                           subtitle:
-                              '${localizedDigits(m.requestNo, locale)} · ${m.unitCode}',
+                              '${ltr(m.requestNo)} · ${ltr(m.unitCode)}',
                           trailing: StatusChip(
                             maintenanceStatusLabel(m.status, t.ar),
                             fg: appBlue,
@@ -1165,7 +1172,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                   ),
             loading: () => const SkeletonList(),
             error: (e, _) => AppError(
-              message: friendlyError(e, locale),
+              message: friendlyError(e, locale, loading: true),
               onRetry: () => ref.invalidate(featureMaintenanceProvider),
             ),
           ),
@@ -1454,7 +1461,7 @@ class VisitorsScreen extends ConsumerWidget {
                           ),
                     loading: () => const SkeletonList(),
                     error: (e, _) => AppError(
-                      message: friendlyError(e, locale),
+                      message: friendlyError(e, locale, loading: true),
                       onRetry: () => ref.invalidate(visitorsProvider),
                     ),
                   ),

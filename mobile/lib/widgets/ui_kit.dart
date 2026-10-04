@@ -437,12 +437,16 @@ class HomeHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? action;
   final VoidCallback? onBell;
+
+  /// Shows a dot on the bell when there are unread notifications.
+  final bool unread;
   const HomeHeader({
     super.key,
     required this.title,
     this.subtitle,
     this.action,
     this.onBell,
+    this.unread = false,
   });
   @override
   Widget build(BuildContext context) => Padding(
@@ -476,17 +480,43 @@ class HomeHeader extends StatelessWidget {
             if (action != null)
               action!
             else if (onBell != null)
-              InkWell(
-                onTap: onBell,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: appCardBorder),
+              Semantics(
+                button: true,
+                label: Localizations.localeOf(context).languageCode == 'ar'
+                    ? (unread ? 'الإشعارات — لديك جديد' : 'الإشعارات')
+                    : (unread ? 'Notifications — new' : 'Notifications'),
+                child: InkWell(
+                  onTap: onBell,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: appCardBorder),
+                        ),
+                        child: const AqarIcon(AqarIconType.bell, size: 20),
+                      ),
+                      if (unread)
+                        PositionedDirectional(
+                          top: 6,
+                          end: 6,
+                          child: Container(
+                            key: const ValueKey('bell-unread-dot'),
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                              color: appDanger,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  child: const AqarIcon(AqarIconType.bell, size: 20),
                 ),
               ),
           ],
@@ -530,52 +560,80 @@ class ScreenHeader extends StatelessWidget {
       );
 }
 
-/// Content-shaped loading skeleton (blueprint: no bare spinners mid-screen).
-class SkeletonList extends StatelessWidget {
+/// Content-shaped loading skeleton with a gentle pulse. The pulse runs for a
+/// bounded time and then rests, so a slow screen never animates forever.
+class SkeletonList extends StatefulWidget {
   final int rows;
   final double rowHeight;
   const SkeletonList({super.key, this.rows = 4, this.rowHeight = 72});
   @override
-  Widget build(BuildContext context) => ListView.separated(
-        padding: const EdgeInsets.all(20),
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: rows,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (_, __) => Container(
-          height: rowHeight,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: appCardBorder),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: appSurface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+  State<SkeletonList> createState() => _SkeletonListState();
+}
+
+class _SkeletonListState extends State<SkeletonList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true, count: 8);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _pulse,
+        builder: (context, _) {
+          final block = Color.lerp(
+            const Color(0xFFEDF1F6),
+            const Color(0xFFDDE4EC),
+            Curves.easeInOut.transform(_pulse.value),
+          )!;
+          return ListView.separated(
+            padding: const EdgeInsets.all(20),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: widget.rows,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, __) => Container(
+              height: widget.rowHeight,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: appCardBorder),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(height: 9, width: 140, color: appSurface),
-                    const SizedBox(height: 6),
-                    Container(height: 7, width: 90, color: appSurface),
-                  ],
-                ),
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: block,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 9, width: 140, color: block),
+                        const SizedBox(height: 6),
+                        Container(height: 7, width: 90, color: block),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
 }
 

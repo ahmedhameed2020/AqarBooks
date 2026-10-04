@@ -46,6 +46,7 @@ class _FakeRepo extends AqarRepository {
   final calls = <Map<String, dynamic>>[];
   Completer<Map<String, dynamic>>? hold;
   Object? failWith;
+  String? unitCodeLookup;
   Map<String, dynamic> response = {
     'decision': 'ALLOW',
     'reason_code': 'VALID_ENTRY',
@@ -57,6 +58,9 @@ class _FakeRepo extends AqarRepository {
   Future<List<Map<String, dynamic>>> gates() async => [
         {'id': _gateId, 'name_ar': 'بوابة ١', 'name_en': 'Gate 1'},
       ];
+
+  @override
+  Future<String?> unitCodeById(String unitId) async => unitCodeLookup;
 
   @override
   Future<Map<String, dynamic>> processGateScan({
@@ -101,6 +105,7 @@ Future<void> _pumpScan(
   required _FakeStore store,
   required _FakeRepo repo,
   Locale locale = const Locale('en'),
+  Duration? autoReturn,
 }) async {
   _testNow = DateTime(2026, 10, 4, 12);
   await tester.pumpWidget(
@@ -109,6 +114,7 @@ Future<void> _pumpScan(
         gateDeviceStoreProvider.overrideWithValue(store),
         repositoryProvider.overrideWithValue(repo),
         gateCameraEnabledProvider.overrideWithValue(false),
+        gateResultAutoReturnProvider.overrideWithValue(autoReturn),
         scanCoordinatorFactoryProvider
             .overrideWithValue(() => ScanCoordinator(clock: () => _testNow)),
       ],
@@ -484,6 +490,63 @@ void main() {
           findsOneWidget);
       expect(find.textContaining('DEVICE_BINDING'), findsNothing);
       expect(find.text('Entry allowed'), findsNothing);
+    });
+  });
+
+  group('GateScanScreen — result screen behaviour', () {
+    testWidgets('an ALLOW returns to the scanner by itself with a countdown',
+        (tester) async {
+      final repo = _FakeRepo();
+      await _pumpScan(
+        tester,
+        store: _FakeStore(_device()),
+        repo: repo,
+        autoReturn: const Duration(seconds: 1),
+      );
+      await _submitManual(tester, _payload);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('Entry allowed'), findsOneWidget);
+      expect(find.byKey(const ValueKey('gate-autoreturn-bar')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.text('Entry allowed'), findsNothing);
+      expect(find.byKey(const ValueKey('gate-manual-entry')), findsOneWidget);
+    });
+
+    testWidgets('a DENY never auto-dismisses (the operator must read it)',
+        (tester) async {
+      final repo = _FakeRepo()
+        ..response = {'decision': 'DENY', 'reason_code': 'EXPIRED'};
+      await _pumpScan(
+        tester,
+        store: _FakeStore(_device()),
+        repo: repo,
+        autoReturn: const Duration(seconds: 1),
+      );
+      await _submitManual(tester, _payload);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Denied'), findsOneWidget);
+      expect(find.byKey(const ValueKey('gate-autoreturn-bar')), findsNothing);
+    });
+
+    testWidgets(
+        'the unit is resolved from unit_id and the pass validity is shown',
+        (tester) async {
+      final repo = _FakeRepo()
+        ..unitCodeLookup = 'B-07'
+        ..response = {
+          'decision': 'ALLOW',
+          'reason_code': 'VALID_ENTRY',
+          'guest_name': 'Mohamed Samy',
+          'unit_id': '33333333-3333-4333-8333-333333333333',
+          'valid_until': '2026-10-15T20:00:00Z',
+        };
+      await _pumpScan(tester, store: _FakeStore(_device()), repo: repo);
+      await _submitManual(tester, _payload);
+      await tester.pumpAndSettle();
+      expect(find.text('Unit B-07'), findsOneWidget);
+      expect(find.textContaining('Pass valid until'), findsOneWidget);
     });
   });
 

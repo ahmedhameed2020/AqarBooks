@@ -49,6 +49,9 @@ enum AqarIconType {
   share,
   copy,
   flash,
+  chat,
+  chevronUp,
+  eyeOff,
 }
 
 class AqarIcon extends StatelessWidget {
@@ -64,11 +67,21 @@ class AqarIcon extends StatelessWidget {
     this.strokeWidth = 1.7,
   });
 
+  /// Icons that point along the reading direction (drawn for RTL) are
+  /// mirrored under LTR so "forward" and "back" are right in English too.
+  static const _directional = {AqarIconType.chevron, AqarIconType.back};
+
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        size: Size.square(size),
-        painter: _AqarIconPainter(type, color, strokeWidth),
-      );
+  Widget build(BuildContext context) {
+    final icon = CustomPaint(
+      size: Size.square(size),
+      painter: _AqarIconPainter(type, color, strokeWidth),
+    );
+    final ltr = Directionality.maybeOf(context) == TextDirection.ltr;
+    return ltr && _directional.contains(type)
+        ? Transform.scale(scaleX: -1, child: icon)
+        : icon;
+  }
 }
 
 class _AqarIconPainter extends CustomPainter {
@@ -372,6 +385,22 @@ class _AqarIconPainter extends CustomPainter {
           Offset(18.5, 10.5),
           Offset(13, 10.5),
         ], close: true);
+      case AqarIconType.chat:
+        rrect(4, 4, 16, 12, 3);
+        poly(const [Offset(8.5, 16), Offset(8.5, 20.5), Offset(13, 16)]);
+        line(8, 8.5, 16, 8.5);
+        line(8, 11.5, 13, 11.5);
+      case AqarIconType.chevronUp:
+        poly(const [Offset(6, 15), Offset(12, 9), Offset(18, 15)]);
+      case AqarIconType.eyeOff:
+        final hidden = p()
+          ..moveTo(2.5, 12)
+          ..cubicTo(6, 5.5, 18, 5.5, 21.5, 12)
+          ..cubicTo(18, 18.5, 6, 18.5, 2.5, 12)
+          ..close();
+        canvas.drawPath(hidden, stroke);
+        circle(12, 12, 3);
+        line(4, 20, 20, 4);
       case AqarIconType.copy:
         rrect(8, 8, 12, 12, 2);
         poly(const [

@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_core.dart';
@@ -30,6 +31,11 @@ final gatesProvider =
 /// drive time deterministically.
 final scanCoordinatorFactoryProvider =
     Provider<ScanCoordinator Function()>((ref) => ScanCoordinator.new);
+
+/// How long an ALLOW result stays up before returning to the scanner by
+/// itself (a visible countdown, and Done still works). Null disables it.
+final gateResultAutoReturnProvider =
+    Provider<Duration?>((ref) => const Duration(seconds: 3));
 
 /// Live camera scanning only on phones; web/desktop/tests fall back to the
 /// idle placeholder with manual entry.
@@ -329,13 +335,23 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
             clientScanId: ticket.clientScanId,
           );
       delivered = true;
+      final unitId = result['unit_id'] as String?;
+      String? unitCode = result['unit_code'] as String?;
+      if (unitCode == null && unitId != null) {
+        try {
+          unitCode = await ref.read(repositoryProvider).unitCodeById(unitId);
+        } catch (_) {
+          // Not readable by this operator: the result simply omits the unit.
+        }
+      }
       await _showResult(
         device: trusted,
         direction: direction,
         decision: '${result['decision'] ?? 'DENY'}',
         reason: result['reason_code'] as String?,
         guestName: result['guest_name'] as String?,
-        unitCode: result['unit_code'] as String?,
+        unitCode: unitCode,
+        validUntil: result['valid_until'] as String?,
       );
     } catch (e) {
       if (mounted) {
@@ -362,6 +378,7 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
     String? reason,
     String? guestName,
     String? unitCode,
+    String? validUntil,
   }) async {
     if (!mounted) return;
     final gates = ref.read(gatesProvider).valueOrNull ?? const [];
@@ -378,6 +395,8 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
           reasonCode: reason,
           guestName: guestName,
           unitCode: unitCode,
+          validUntil: validUntil,
+          autoReturn: ref.read(gateResultAutoReturnProvider),
           direction: direction,
           gateName: gateName.isEmpty ? device.displayName : gateName,
           canCreateException:
@@ -608,11 +627,14 @@ class _GateScanState extends ConsumerState<GateScanScreen> {
 
 // ───────────────────────── 16 · Scan result ─────────────────────────
 
-class GateResultScreen extends StatelessWidget {
+class GateResultScreen extends StatefulWidget {
   final String decision;
-  final String? reasonCode, guestName, unitCode, gateName;
+  final String? reasonCode, guestName, unitCode, gateName, validUntil;
   final String direction;
   final bool canCreateException;
+
+  /// ALLOW results return to the scanner by themselves after this long.
+  final Duration? autoReturn;
   const GateResultScreen({
     super.key,
     required this.decision,
@@ -620,9 +642,52 @@ class GateResultScreen extends StatelessWidget {
     this.guestName,
     this.unitCode,
     this.gateName,
+    this.validUntil,
     required this.direction,
     this.canCreateException = false,
+    this.autoReturn,
   });
+  @override
+  State<GateResultScreen> createState() => _GateResultState();
+}
+
+class _GateResultState extends State<GateResultScreen> {
+  String get decision => widget.decision;
+  String? get reasonCode => widget.reasonCode;
+  String? get guestName => widget.guestName;
+  String? get unitCode => widget.unitCode;
+  String? get gateName => widget.gateName;
+  String get direction => widget.direction;
+  bool get canCreateException => widget.canCreateException;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // The operator is usually looking at the visitor, not the phone: a distinct
+    // physical pulse per outcome (soft = allow, sharp twice = deny).
+    switch (classifyScanResult(widget.decision, widget.reasonCode)) {
+      case GateOutcome.allow:
+        HapticFeedback.mediumImpact();
+        final after = widget.autoReturn;
+        if (after != null) {
+          _timer = Timer(after, () {
+            if (mounted) Navigator.of(context).maybePop();
+          });
+        }
+      case GateOutcome.attention:
+        HapticFeedback.vibrate();
+      case GateOutcome.deny:
+        HapticFeedback.heavyImpact();
+        _timer = Timer(const Duration(milliseconds: 160), HapticFeedback.heavyImpact);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -697,6 +762,15 @@ class GateResultScreen extends StatelessWidget {
                         fontSize: 14, color: Colors.white.withAlpha(217)),
                   ),
                 ),
+              if (allow && widget.validUntil != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '${t.ar ? 'التصريح ساري حتى' : 'Pass valid until'} ${formatDate(widget.validUntil, locale)}',
+                    style: TextStyle(
+                        fontSize: 14, color: Colors.white.withAlpha(217)),
+                  ),
+                ),
               if (!allow)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
@@ -755,6 +829,23 @@ class GateResultScreen extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (allow && widget.autoReturn != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: TweenAnimationBuilder<double>(
+                    key: const ValueKey('gate-autoreturn-bar'),
+                    tween: Tween(begin: 1, end: 0),
+                    duration: widget.autoReturn!,
+                    builder: (_, value, __) => LinearProgressIndicator(
+                      value: value,
+                      minHeight: 3,
+                      backgroundColor: Colors.white24,
+                      color: Colors.white,
                     ),
                   ),
                 ),

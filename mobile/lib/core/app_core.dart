@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -92,7 +93,7 @@ final supabaseProvider = Provider<SupabaseClient?>((ref) {
 
 /// Unified user-facing error copy (blueprint: never surface raw Supabase
 /// errors, permission strings, RPC names, or UUIDs).
-String friendlyError(Object error, Locale locale) {
+String friendlyError(Object error, Locale locale, {bool loading = false}) {
   final ar = locale.languageCode == 'ar';
   final text = error.toString();
   if (text.contains('42501') || text.contains('FORBIDDEN')) {
@@ -110,8 +111,14 @@ String friendlyError(Object error, Locale locale) {
         ? 'انتهت الجلسة — سجّل الدخول مرة أخرى'
         : 'Session expired — sign in again';
   }
+  if (loading) return loadErrorMessage(locale);
   return ar ? 'لم يكتمل الإجراء — أعد المحاولة' : 'Action did not complete — try again';
 }
+
+/// Copy for a list/detail that failed to load (never reads as "empty").
+String loadErrorMessage(Locale locale) => locale.languageCode == 'ar'
+    ? 'تعذر التحميل — أعد المحاولة'
+    : 'Could not load — try again';
 
 class AppLabels {
   final Locale locale;
@@ -197,6 +204,14 @@ ThemeData buildTheme() {
       );
   final base = ThemeData(useMaterial3: true, colorScheme: scheme);
   return base.copyWith(
+    // Native-feeling transitions: iOS slide (mirrors in RTL automatically),
+    // Android fade-forward instead of the abrupt default.
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     scaffoldBackgroundColor: appSurface,
     textTheme: _plexTextTheme(base.textTheme),
     appBarTheme: const AppBarTheme(
@@ -290,8 +305,16 @@ class EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 38, color: appGrey.withAlpha(140)),
-        const SizedBox(height: 12),
+        Container(
+          width: 72,
+          height: 72,
+          decoration: const BoxDecoration(
+            color: appNavyBg,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 32, color: appNavy.withAlpha(190)),
+        ),
+        const SizedBox(height: 14),
         Text(
           title,
           textAlign: TextAlign.center,

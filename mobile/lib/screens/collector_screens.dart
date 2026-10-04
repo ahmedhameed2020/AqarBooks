@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_core.dart';
 import '../core/formatting.dart';
+import '../core/plural.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';
@@ -81,9 +84,10 @@ class CollectorTodayScreen extends ConsumerWidget {
                                 ),
                               ),
                               StatusChip(
-                                t.ar
-                                    ? '${formatNumber(items.length, locale)} عملية'
-                                    : '${items.length} payments',
+                                countText(items.length, locale,
+                                    ar: operationNoun,
+                                    enOne: 'payment',
+                                    enOther: 'payments'),
                                 fg: Colors.white,
                                 bg: const Color(0xFF1B5775),
                               ),
@@ -105,7 +109,7 @@ class CollectorTodayScreen extends ConsumerWidget {
                   loading: () =>
                       const SkeletonList(rows: 1, rowHeight: 100),
                   error: (e, _) => AppError(
-                    message: friendlyError(e, locale),
+                    message: friendlyError(e, locale, loading: true),
                     onRetry: () =>
                         ref.invalidate(myCollectionsTodayProvider),
                   ),
@@ -467,26 +471,51 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
   final query = TextEditingController();
   List<CollectTarget> results = const [];
   bool busy = false;
+  bool failed = false;
+  Timer? _debounce;
+  String _latest = '';
+
+  /// Typing is debounced so a query is not sent per keystroke, and only the
+  /// answer to the latest text is applied (slow earlier replies are dropped).
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () => _search(value));
+  }
 
   Future<void> _search(String value) async {
-    if (value.trim().length < 2) {
-      setState(() => results = const []);
+    final mine = value.trim();
+    _latest = mine;
+    if (mine.length < 2) {
+      setState(() {
+        results = const [];
+        busy = false;
+        failed = false;
+      });
       return;
     }
-    setState(() => busy = true);
+    setState(() {
+      busy = true;
+      failed = false;
+    });
     try {
       final found =
-          await ref.read(repositoryProvider).searchCollectTargets(value);
-      if (mounted) setState(() => results = found);
+          await ref.read(repositoryProvider).searchCollectTargets(mine);
+      if (mounted && mine == _latest) setState(() => results = found);
     } catch (_) {
-      if (mounted) setState(() => results = const []);
+      if (mounted && mine == _latest) {
+        setState(() {
+          results = const [];
+          failed = true;
+        });
+      }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted && mine == _latest) setState(() => busy = false);
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     query.dispose();
     super.dispose();
   }
@@ -516,7 +545,7 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: TextField(
             controller: query,
-            onChanged: _search,
+            onChanged: _onChanged,
             decoration: InputDecoration(
               hintText: t.ar
                   ? 'كود الوحدة · الاسم · الهاتف'
@@ -531,7 +560,12 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
         Expanded(
           child: busy
               ? const SkeletonList(rows: 3)
-              : results.isEmpty
+              : failed
+                  ? AppError(
+                      message: loadErrorMessage(locale),
+                      onRetry: () => _search(query.text),
+                    )
+                  : results.isEmpty
                   ? EmptyState(
                       title: query.text.trim().length < 2
                           ? (t.ar
@@ -549,11 +583,9 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
                       itemBuilder: (_, i) {
                         final r = results[i];
                         return ListRowCard(
-                          icon: r.unitId != null
-                              ? AqarIconType.building
-                              : AqarIconType.user,
-                          title: r.title,
-                          subtitle: r.subtitle,
+                          icon: AqarIconType.building,
+                          title: r.unitCode,
+                          subtitle: r.ownerName,
                           trailing: Text(
                             formatMoney(r.balance, locale),
                             style: TextStyle(
@@ -563,18 +595,18 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
                                   r.balance > 0 ? appDanger : appSuccess,
                             ),
                           ),
-                          onTap: r.unitId == null
-                              ? null
-                              : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CollectStepScreen(
-                                        unitId: r.unitId!,
-                                        unitCode: r.title,
-                                        balance: r.balance,
-                                      ),
-                                    ),
-                                  ),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CollectStepScreen(
+                                unitId: r.unitId,
+                                unitCode: r.unitCode,
+                                balance: r.balance,
+                                memberId: r.memberId,
+                                ownerName: r.ownerName,
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -590,11 +622,17 @@ class _CollectSearchState extends ConsumerState<CollectSearchScreen> {
 class CollectStepScreen extends ConsumerStatefulWidget {
   final String unitId, unitCode;
   final double balance;
+
+  /// The unit's current owner — the payer recorded on the payment. Null when
+  /// the unit has no registered owner, in which case collecting is blocked.
+  final String? memberId, ownerName;
   const CollectStepScreen({
     super.key,
     required this.unitId,
     required this.unitCode,
     required this.balance,
+    this.memberId,
+    this.ownerName,
   });
   @override
   ConsumerState<CollectStepScreen> createState() => _CollectStepState();
@@ -605,6 +643,7 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
   final selected = <String>{};
   String method = 'CASH';
   bool loading = true;
+  bool loadFailed = false;
   bool busy = false;
   late final String idempotencyKey =
       'col-${widget.unitId}-${DateTime.now().millisecondsSinceEpoch}';
@@ -616,6 +655,10 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
   }
 
   Future<void> _load() async {
+    setState(() {
+      loading = true;
+      loadFailed = false;
+    });
     try {
       final items =
           await ref.read(repositoryProvider).unitOpenDues(widget.unitId);
@@ -631,7 +674,13 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => loading = false);
+      // A failed load must not read as "no open dues" (a false all-clear).
+      if (mounted) {
+        setState(() {
+          loading = false;
+          loadFailed = true;
+        });
+      }
     }
   }
 
@@ -644,9 +693,13 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
     final t = AppLabels(locale);
     final picked = dues.where((d) => selected.contains(d.id)).toList();
     if (picked.isEmpty) return;
-    final memberId = picked.first.memberId;
+    final memberId = widget.memberId;
     if (memberId == null) {
-      showFeedback(context, friendlyError('not_found', locale));
+      showFeedback(
+          context,
+          t.ar
+              ? 'لا يوجد مالك مسجّل لهذه الوحدة — لا يمكن تسجيل تحصيل'
+              : 'This unit has no registered owner — a collection cannot be recorded');
       return;
     }
     // Single review step before recording (Figma flow step 5).
@@ -754,7 +807,7 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
                                       CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      widget.unitCode,
+                                      widget.ownerName ?? widget.unitCode,
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
@@ -762,7 +815,9 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
                                       ),
                                     ),
                                     Text(
-                                      t.ar ? 'وحدة' : 'Unit',
+                                      widget.ownerName != null
+                                          ? '${t.ar ? 'وحدة' : 'Unit'} ${widget.unitCode}'
+                                          : (t.ar ? 'وحدة' : 'Unit'),
                                       style: const TextStyle(
                                           fontSize: 12, color: appGrey),
                                     ),
@@ -806,7 +861,28 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        if (dues.isEmpty)
+                        if (loadFailed)
+                          AppError(
+                            message: loadErrorMessage(locale),
+                            onRetry: _load,
+                          )
+                        else if (widget.memberId == null)
+                          AqarCard(
+                            color: appAmberBg,
+                            borderColor: appAmberBg,
+                            child: Text(
+                              t.ar
+                                  ? 'لا يوجد مالك مسجّل لهذه الوحدة — سجّل المالك من الويب أولًا ثم أعد المحاولة.'
+                                  : 'This unit has no registered owner — add the owner on the web first, then try again.',
+                              style: const TextStyle(
+                                color: appAmber,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                                height: 1.6,
+                              ),
+                            ),
+                          )
+                        else if (dues.isEmpty)
                           EmptyState(
                             title: t.ar
                                 ? 'لا توجد مستحقات على هذه الوحدة ✓'
@@ -897,7 +973,9 @@ class _CollectStepState extends ConsumerState<CollectStepScreen> {
                             t.ar ? 'متابعة للتأكيد' : 'Continue to confirm',
                             busy: busy,
                             onPressed:
-                                selected.isEmpty ? null : _confirm,
+                                (selected.isEmpty || widget.memberId == null)
+                                ? null
+                                : _confirm,
                           ),
                         ],
                       ],
@@ -1191,7 +1269,7 @@ class ReceiptsScreen extends ConsumerWidget {
                   ),
             loading: () => const SkeletonList(),
             error: (e, _) => AppError(
-              message: friendlyError(e, locale),
+              message: friendlyError(e, locale, loading: true),
               onRetry: () => ref.invalidate(myCollectionsTodayProvider),
             ),
           ),

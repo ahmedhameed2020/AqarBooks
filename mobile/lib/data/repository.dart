@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/app_core.dart';
-import '../core/formatting.dart';
+import '../core/plural.dart';
 import 'gate_device_store.dart';
 
 double outstandingAmount(double amount, double paid) =>
@@ -69,12 +69,10 @@ class AppSession {
         ? organizationName!.trim()
         : 'AqarBooks';
     if (propertyNames.isEmpty) return company;
-    final ar = locale.languageCode == 'ar';
     final project = propertyNames.length == 1
         ? propertyNames.first
-        : (ar
-            ? '${formatNumber(propertyNames.length, locale)} مشاريع'
-            : '${propertyNames.length} projects');
+        : countText(propertyNames.length, locale,
+            ar: projectNoun, enOne: 'project', enOther: 'projects');
     return '$company · $project';
   }
 
@@ -174,16 +172,37 @@ class CashierSessionInfo {
   });
 }
 
+/// A unit the collector can take a payment on, with its current owner (the
+/// payer recorded on the payment).
 class CollectTarget {
-  final String? unitId, memberId, subtitle;
-  final String title;
+  final String unitId, unitCode;
+  final String? memberId, ownerName, ownerPhone;
   final double balance;
   const CollectTarget({
-    this.unitId,
+    required this.unitId,
+    required this.unitCode,
     this.memberId,
-    required this.title,
-    this.subtitle,
+    this.ownerName,
+    this.ownerPhone,
     required this.balance,
+  });
+}
+
+/// One overdue due with what is still owed after payment allocations.
+class OverdueItem {
+  final String dueId, unitId, unitCode, description, dueDate;
+  final String? ownerId, ownerName, ownerPhone;
+  final double outstanding;
+  const OverdueItem({
+    required this.dueId,
+    required this.unitId,
+    required this.unitCode,
+    required this.description,
+    required this.dueDate,
+    required this.outstanding,
+    this.ownerId,
+    this.ownerName,
+    this.ownerPhone,
   });
 }
 
@@ -207,13 +226,19 @@ class AttentionItem {
 class ManagerAttention {
   final List<AttentionItem> items;
   final double todayCollections, totalOverdue;
-  final int openMaintenance, visitorsInside;
+  final int openMaintenance, visitorsInside, overdueUnitCount;
+
+  /// True when the overdue list could not be loaded: the total is then
+  /// unknown, never a reassuring zero.
+  final bool overdueFailed;
   const ManagerAttention({
     this.items = const [],
     this.todayCollections = 0,
     this.totalOverdue = 0,
     this.openMaintenance = 0,
     this.visitorsInside = 0,
+    this.overdueUnitCount = 0,
+    this.overdueFailed = false,
   });
 }
 
@@ -1311,43 +1336,113 @@ class AqarRepository {
         .toList();
   }
 
-  /// Unit/member search for the collection flow (code, name or phone).
+  /// Code of a unit by id (used where an RPC returns only `unit_id`). Null
+  /// when the caller cannot read it.
+  Future<String?> unitCodeById(String unitId) async {
+    final row =
+        await db.from('units').select('code').eq('id', unitId).maybeSingle();
+    return row?['code'] as String?;
+  }
+
+  /// Unit search for the collection flow by unit code, owner name or owner
+  /// phone. Results are always units: that is what a payment is recorded on.
   Future<List<CollectTarget>> searchCollectTargets(String query) async {
-    final q = query.trim();
-    if (q.isEmpty) return const [];
-    final unitRows = await db
+    // Characters that would break PostgREST's or-filter syntax are dropped.
+    final q = query.replaceAll(RegExp(r'[,()%*\\]'), ' ').trim();
+    if (q.length < 2) return const [];
+    final rows = await db
         .from('units_with_financials')
-        .select('id, code, balance')
-        .ilike('code', '%$q%')
-        .limit(10);
-    final memberRows = await db
-        .from('members_with_financials')
-        .select('member_id, full_name, phone, total_balance')
-        .or('full_name.ilike.%$q%,phone.ilike.%$q%')
-        .limit(10);
+        .select('id, code, balance, owner_id, owner_name, owner_phone')
+        .isFilter('archived_at', null)
+        .or('code.ilike.%$q%,owner_name.ilike.%$q%,owner_phone.ilike.%$q%')
+        .order('code')
+        .limit(20);
     return [
-      for (final r in unitRows)
+      for (final r in rows)
         CollectTarget(
           unitId: r['id'] as String,
-          title: r['code'] as String? ?? '—',
-          subtitle: null,
+          unitCode: r['code'] as String? ?? '—',
+          memberId: r['owner_id'] as String?,
+          ownerName: r['owner_name'] as String?,
+          ownerPhone: r['owner_phone'] as String?,
           balance: double.tryParse('${r['balance'] ?? 0}') ?? 0,
         ),
-      for (final r in memberRows)
-        CollectTarget(
-          memberId: r['member_id'] as String?,
-          title: r['full_name'] as String? ?? '—',
-          subtitle: r['phone'] as String?,
-          balance: double.tryParse('${r['total_balance'] ?? 0}') ?? 0,
-        ),
     ];
+  }
+
+  static Iterable<List<T>> _chunks<T>(List<T> items, int size) sync* {
+    for (var i = 0; i < items.length; i += size) {
+      yield items.sublist(i, i + size > items.length ? items.length : i + size);
+    }
+  }
+
+  /// Every overdue due (`due_date < today` with a balance left — the stored
+  /// OVERDUE status is not maintained by any job, blueprint §0.7), net of
+  /// payment allocations, with the unit's current owner for follow-up.
+  /// Capped at [limit] oldest dues; ids are queried in small chunks to keep
+  /// request URLs short.
+  Future<List<OverdueItem>> overdueDues({int limit = 1000}) async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final rows = await db
+        .from('dues')
+        .select('id, amount, due_date, description, unit_id, units(code)')
+        .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
+        .lt('due_date', today)
+        .order('due_date')
+        .limit(limit);
+    if (rows.isEmpty) return const [];
+    final paid = <String, double>{};
+    final dueIds = rows.map((r) => r['id'] as String).toList();
+    for (final chunk in _chunks(dueIds, 80)) {
+      final allocations = await db
+          .from('payment_allocations')
+          .select('due_id, amount, reversed_at')
+          .inFilter('due_id', chunk);
+      for (final row in allocations) {
+        if (row['reversed_at'] == null) {
+          paid[row['due_id']] = (paid[row['due_id']] ?? 0) +
+              (double.tryParse('${row['amount']}') ?? 0);
+        }
+      }
+    }
+    final owners = <String, Map<String, dynamic>>{};
+    final unitIds = rows.map((r) => r['unit_id'] as String).toSet().toList();
+    for (final chunk in _chunks(unitIds, 80)) {
+      final units = await db
+          .from('units_with_financials')
+          .select('id, owner_id, owner_name, owner_phone')
+          .inFilter('id', chunk);
+      for (final u in units) {
+        owners[u['id'] as String] = Map<String, dynamic>.from(u);
+      }
+    }
+    final result = <OverdueItem>[];
+    for (final r in rows) {
+      final amount = double.tryParse('${r['amount']}') ?? 0;
+      final outstanding = outstandingAmount(amount, paid[r['id']] ?? 0);
+      if (outstanding <= 0) continue;
+      final owner = owners[r['unit_id']];
+      final unit = r['units'];
+      result.add(OverdueItem(
+        dueId: r['id'] as String,
+        unitId: r['unit_id'] as String,
+        unitCode: unit is Map ? '${unit['code']}' : '—',
+        description: r['description'] as String? ?? '',
+        dueDate: r['due_date'] as String? ?? '',
+        outstanding: outstanding,
+        ownerId: owner?['owner_id'] as String?,
+        ownerName: owner?['owner_name'] as String?,
+        ownerPhone: owner?['owner_phone'] as String?,
+      ));
+    }
+    return result;
   }
 
   /// Open dues on one unit with their outstanding amounts (oldest first).
   Future<List<DueItem>> unitOpenDues(String unitId) async {
     final rows = await db
         .from('dues')
-        .select('id, amount, due_date, description, member_id, unit_id')
+        .select('id, amount, due_date, description, unit_id')
         .eq('unit_id', unitId)
         .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
         .order('due_date');
@@ -1375,7 +1470,6 @@ class AqarRepository {
         paid: p,
         outstanding: outstandingAmount(amount, p),
         dueDate: r['due_date'] ?? '',
-        memberId: r['member_id'] as String?,
       );
     }).where((d) => d.outstanding > 0).toList();
   }
@@ -1455,32 +1549,28 @@ class AqarRepository {
 
   // ───────────────────────── Manager (attention + stats) ─────────────────
 
-  Future<ManagerAttention> managerAttention(String? organizationId) async {
+  Future<ManagerAttention> managerAttention(
+    String? organizationId, {
+    List<OverdueItem> overdue = const [],
+    bool overdueFailed = false,
+  }) async {
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final items = <AttentionItem>[];
-    double totalOverdue = 0;
-    // Overdue = due_date < today with outstanding balance; the stored
-    // OVERDUE status is not maintained by any job (blueprint §0.7).
-    try {
-      final overdue = await db
-          .from('dues')
-          .select('id, amount, due_date, description, units(code)')
-          .inFilter('status', ['ISSUED', 'PARTIALLY_PAID', 'OVERDUE'])
-          .lt('due_date', today)
-          .order('amount', ascending: false)
-          .limit(5);
-      for (final r in overdue) {
-        final amount = double.tryParse('${r['amount'] ?? 0}') ?? 0;
-        totalOverdue += amount;
-        final unit = r['units'] is Map ? (r['units'] as Map)['code'] : null;
-        items.add(AttentionItem(
-          kind: AttentionKind.overdue,
-          title: unit == null ? '${r['description'] ?? ''}' : '$unit',
-          amount: amount,
-          date: r['due_date'] as String?,
-        ));
-      }
-    } catch (_) {}
+    // True total across every overdue due (net of allocations); the list
+    // shows only the largest few.
+    final totalOverdue =
+        overdue.fold<double>(0, (sum, d) => sum + d.outstanding);
+    final largest = [...overdue]
+      ..sort((a, b) => b.outstanding.compareTo(a.outstanding));
+    for (final d in largest.take(5)) {
+      items.add(AttentionItem(
+        kind: AttentionKind.overdue,
+        title: d.unitCode,
+        amount: d.outstanding,
+        date: d.dueDate,
+        refId: d.unitId,
+      ));
+    }
     try {
       final cheques = await db
           .from('cheques')
@@ -1536,18 +1626,32 @@ class AqarRepository {
       }
     } catch (_) {}
     try {
-      final exceptions = await db
+      // Exceptions are REQUEST/APPROVAL record pairs; pending = a REQUEST
+      // with no APPROVAL pointing at it.
+      final requests = await db
           .from('gate_manual_exceptions')
-          .select('id, created_at, status')
-          .eq('status', 'PENDING')
-          .order('created_at', ascending: false)
-          .limit(3);
-      for (final r in exceptions) {
-        items.add(AttentionItem(
-          kind: AttentionKind.gateException,
-          title: '',
-          date: r['created_at'] as String?,
-        ));
+          .select('id, occurred_at')
+          .eq('record_type', 'REQUEST')
+          .order('occurred_at', ascending: false)
+          .limit(20);
+      if (requests.isNotEmpty) {
+        final ids = requests.map((r) => r['id'] as String).toList();
+        final approvals = await db
+            .from('gate_manual_exceptions')
+            .select('parent_exception_id')
+            .eq('record_type', 'APPROVAL')
+            .inFilter('parent_exception_id', ids);
+        final approved = {
+          for (final a in approvals) a['parent_exception_id'] as String,
+        };
+        final pending = requests.where((r) => !approved.contains(r['id']));
+        for (final r in pending.take(3)) {
+          items.add(AttentionItem(
+            kind: AttentionKind.gateException,
+            title: '',
+            date: r['occurred_at'] as String?,
+          ));
+        }
       }
     } catch (_) {}
 
@@ -1578,7 +1682,11 @@ class AqarRepository {
           'list_gate_current_visitors',
           params: {'p_organization_id': organizationId},
         );
-        visitorsInside = (inside as List).length;
+        final list = inside as List;
+        visitorsInside = list.isEmpty
+            ? 0
+            : (int.tryParse('${(list.first as Map)['total_count']}') ??
+                list.length);
       } catch (_) {}
     }
     return ManagerAttention(
@@ -1587,6 +1695,8 @@ class AqarRepository {
       totalOverdue: totalOverdue,
       openMaintenance: openMaintenance,
       visitorsInside: visitorsInside,
+      overdueUnitCount: overdue.map((d) => d.unitId).toSet().length,
+      overdueFailed: overdueFailed,
     );
   }
 

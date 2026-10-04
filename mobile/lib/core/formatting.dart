@@ -53,6 +53,11 @@ String formatMoney(num value, Locale locale) {
   return '${formatNumber(value, locale)} ${ar ? 'ج.م' : 'EGP'}';
 }
 
+/// Wraps an identifier (unit code, `WO-124`, `MR-118`) in a left-to-right
+/// isolate so it keeps its own order and never drags neighbouring Arabic
+/// words or digits into it when placed inside RTL text.
+String ltr(String value) => '\u2066$value\u2069';
+
 String localizedDigits(String value, Locale locale) =>
     locale.languageCode == 'ar' ? _toArabicDigits(value) : value;
 

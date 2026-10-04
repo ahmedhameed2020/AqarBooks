@@ -39,12 +39,25 @@ class AqarBooksApp extends ConsumerWidget {
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
     ],
-    builder: (context, child) => Directionality(
-      textDirection: ref.watch(localeProvider).languageCode == 'ar'
-          ? TextDirection.rtl
-          : TextDirection.ltr,
-      child: child ?? const SizedBox.shrink(),
-    ),
+    builder: (context, child) {
+      final media = MediaQuery.of(context);
+      return MediaQuery(
+        // Large system fonts are honoured up to 130%; beyond that the fixed
+        // financial layouts (amounts, bottom bar) would start to clip.
+        data: media.copyWith(
+          textScaler: media.textScaler.clamp(
+            minScaleFactor: 0.9,
+            maxScaleFactor: 1.3,
+          ),
+        ),
+        child: Directionality(
+          textDirection: ref.watch(localeProvider).languageCode == 'ar'
+              ? TextDirection.rtl
+              : TextDirection.ltr,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      );
+    },
     home: const AuthGate(),
   );
 }

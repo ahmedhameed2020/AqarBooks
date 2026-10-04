@@ -266,43 +266,112 @@ class PreviewRepository extends AqarRepository {
       ];
 
   @override
-  Future<ManagerAttention> managerAttention(String? organizationId) async =>
-      ManagerAttention(
-        todayCollections: 45200,
-        totalOverdue: 320500,
-        openMaintenance: 14,
-        visitorsInside: 6,
-        items: [
+  Future<List<OverdueItem>> overdueDues({int limit = 1000}) async => [
+        OverdueItem(
+          dueId: 'o1',
+          unitId: 'u-b07',
+          unitCode: 'B-07',
+          description: 'قسط صيانة يوليو',
+          dueDate: _iso(_now.subtract(const Duration(days: 75))),
+          outstanding: 24000,
+          ownerId: 'm-b07',
+          ownerName: 'محمد عبد الرحمن',
+          ownerPhone: '010 0123 4567',
+        ),
+        OverdueItem(
+          dueId: 'o2',
+          unitId: 'u-b07',
+          unitCode: 'B-07',
+          description: 'قسط صيانة أغسطس',
+          dueDate: _iso(_now.subtract(const Duration(days: 45))),
+          outstanding: 24000,
+          ownerId: 'm-b07',
+          ownerName: 'محمد عبد الرحمن',
+          ownerPhone: '010 0123 4567',
+        ),
+        OverdueItem(
+          dueId: 'o3',
+          unitId: 'u-a03',
+          unitCode: 'A-03',
+          description: 'قسط صيانة سبتمبر',
+          dueDate: _iso(_now.subtract(const Duration(days: 18))),
+          outstanding: 3250,
+          ownerId: 'm-a03',
+          ownerName: 'هالة مصطفى',
+          ownerPhone: '+20 111 222 3344',
+        ),
+        OverdueItem(
+          dueId: 'o4',
+          unitId: 'u-c11',
+          unitCode: 'C-11',
+          description: 'قسط صيانة يونيو',
+          dueDate: _iso(_now.subtract(const Duration(days: 120))),
+          outstanding: 61250,
+          ownerId: 'm-c11',
+          ownerName: 'شريف حسن',
+        ),
+        OverdueItem(
+          dueId: 'o5',
+          unitId: 'u-d02',
+          unitCode: 'D-02',
+          description: 'قسط صيانة سبتمبر',
+          dueDate: _iso(_now.subtract(const Duration(days: 12))),
+          outstanding: 8000,
+          ownerId: 'm-d02',
+          ownerName: 'ياسمين كمال',
+          ownerPhone: '01551234567',
+        ),
+      ];
+
+  @override
+  Future<ManagerAttention> managerAttention(
+    String? organizationId, {
+    List<OverdueItem> overdue = const [],
+    bool overdueFailed = false,
+  }) async {
+    final largest = [...overdue]
+      ..sort((a, b) => b.outstanding.compareTo(a.outstanding));
+    return ManagerAttention(
+      todayCollections: 45200,
+      totalOverdue: overdue.fold<double>(0, (s, d) => s + d.outstanding),
+      overdueUnitCount: overdue.map((d) => d.unitId).toSet().length,
+      overdueFailed: overdueFailed,
+      openMaintenance: 14,
+      visitorsInside: 6,
+      items: [
+        for (final d in largest.take(2))
           AttentionItem(
             kind: AttentionKind.overdue,
-            title: 'B-07',
-            amount: 48000,
-            date: _iso(_now.subtract(const Duration(days: 45))),
+            title: d.unitCode,
+            amount: d.outstanding,
+            date: d.dueDate,
+            refId: d.unitId,
           ),
-          AttentionItem(
-            kind: AttentionKind.slaBreach,
-            title: 'WO-124',
-            date: _iso(_now.subtract(const Duration(hours: 6))),
-            refId: 'wo1',
-          ),
-          AttentionItem(
-            kind: AttentionKind.cheque,
-            title: 'DEPOSITED',
-            amount: 25000,
-            date: _iso(_now.subtract(const Duration(days: 5))),
-          ),
-          AttentionItem(
-            kind: AttentionKind.leaseEnding,
-            title: 'C-02',
-            date: _iso(_now.add(const Duration(days: 28))),
-          ),
-          AttentionItem(
-            kind: AttentionKind.gateException,
-            title: '',
-            date: _iso(_now.subtract(const Duration(minutes: 20))),
-          ),
-        ],
-      );
+        AttentionItem(
+          kind: AttentionKind.slaBreach,
+          title: 'WO-124',
+          date: _iso(_now.subtract(const Duration(hours: 6))),
+          refId: 'wo1',
+        ),
+        AttentionItem(
+          kind: AttentionKind.cheque,
+          title: 'DEPOSITED',
+          amount: 25000,
+          date: _iso(_now.subtract(const Duration(days: 5))),
+        ),
+        AttentionItem(
+          kind: AttentionKind.leaseEnding,
+          title: 'C-02',
+          date: _iso(_now.add(const Duration(days: 28))),
+        ),
+        AttentionItem(
+          kind: AttentionKind.gateException,
+          title: '',
+          date: _iso(_now.subtract(const Duration(minutes: 20))),
+        ),
+      ],
+    );
+  }
 
   @override
   Future<List<MaintenanceItem>> assignQueue() async => [
@@ -523,6 +592,11 @@ class PreviewGalleryApp extends StatelessWidget {
               0,
               ManagerHomeScreen(session: managerSession),
             )
+      ),
+      (
+        '07ب التحصيلات — مدير',
+        managerSession,
+        () => _shellTab(managerSession, 1, const ManagerCollectionsScreen())
       ),
       (
         '08 الصيانة — إسناد',

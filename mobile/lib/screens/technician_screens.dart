@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_core.dart';
 import '../core/formatting.dart';
+import '../core/plural.dart';
 import '../data/repository.dart';
 import '../widgets/aqar_icons.dart';
 import '../widgets/ui_kit.dart';
@@ -57,8 +58,10 @@ class TechnicianTodayScreen extends ConsumerWidget {
                   '$userName · ${t.ar ? 'فني صيانة' : 'Technician'}',
               action: StatusChip(
                 t.ar
-                    ? '${formatNumber(remaining, locale)} مهام متبقية'
-                    : '$remaining tasks left',
+                    ? (remaining == 2
+                        ? 'مهمتان متبقيتان'
+                        : '${countText(remaining, locale, ar: taskNoun, enOne: 'task', enOther: 'tasks')} متبقية')
+                    : '$remaining ${remaining == 1 ? 'task' : 'tasks'} left',
                 fg: appNavy,
                 bg: appNavyBg,
                 fontSize: 12,
@@ -114,7 +117,7 @@ class TechnicianTodayScreen extends ConsumerWidget {
             },
             loading: () => const SkeletonList(),
             error: (e, _) => AppError(
-              message: friendlyError(e, locale),
+              message: friendlyError(e, locale, loading: true),
               onRetry: () => ref.invalidate(workOrdersProvider),
             ),
           ),
@@ -263,7 +266,7 @@ class TechnicianTasksScreen extends ConsumerWidget {
                       iconBg: appPetrolBg,
                       title: w.title,
                       subtitle:
-                          '${localizedDigits(w.number, locale)} · ${t.ar ? 'وحدة' : 'Unit'} ${w.unitCode}',
+                          '${ltr(w.number)} · ${t.ar ? 'وحدة' : 'Unit'} ${ltr(w.unitCode)}',
                       trailing: StatusChip(
                         workOrderStatusLabel(w.status, t.ar),
                         fg: w.status == 'COMPLETED' ? appSuccess : appBlue,
@@ -284,7 +287,7 @@ class TechnicianTasksScreen extends ConsumerWidget {
             },
             loading: () => const SkeletonList(),
             error: (e, _) => AppError(
-              message: friendlyError(e, locale),
+              message: friendlyError(e, locale, loading: true),
               onRetry: () => ref.invalidate(provider),
             ),
           ),
@@ -322,7 +325,7 @@ class WorkOrderDetailScreen extends ConsumerWidget {
                   children: [
                     ScreenHeader(
                       title:
-                          '${t.ar ? 'أمر شغل' : 'Work order'} ${localizedDigits(d.workOrder.number, locale)}',
+                          '${t.ar ? 'أمر شغل' : 'Work order'} ${ltr(d.workOrder.number)}',
                     ),
                     Expanded(
                       child: ListView(
@@ -550,7 +553,7 @@ class WorkOrderDetailScreen extends ConsumerWidget {
               },
               loading: () => const SkeletonList(),
               error: (e, _) => AppError(
-                message: friendlyError(e, locale),
+                message: friendlyError(e, locale, loading: true),
                 onRetry: () => ref.invalidate(workOrderDetailProvider(id)),
               ),
             ),

@@ -95,7 +95,7 @@ class NotificationsScreen extends ConsumerWidget {
                 ),
           loading: () => const SkeletonList(),
           error: (e, _) => AppError(
-            message: friendlyError(e, locale),
+            message: friendlyError(e, locale, loading: true),
             onRetry: () => ref.invalidate(notificationsProvider),
           ),
         );
@@ -228,7 +228,7 @@ class VehiclesScreen extends ConsumerWidget {
                           ),
                     loading: () => const SkeletonList(),
                     error: (e, _) => AppError(
-                      message: friendlyError(e, locale),
+                      message: friendlyError(e, locale, loading: true),
                       onRetry: () => ref.invalidate(vehiclesProvider),
                     ),
                   ),
@@ -489,7 +489,7 @@ class MaintenanceDetailScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${localizedDigits(d.request.requestNo, locale)} · ${d.request.unitCode} · ${priorityLabel(d.request.priority, t.ar)}',
+                                  '${ltr(d.request.requestNo)} · ${ltr(d.request.unitCode)} · ${priorityLabel(d.request.priority, t.ar)}',
                                   style: const TextStyle(
                                       fontSize: 12, color: appGrey),
                                 ),
@@ -686,7 +686,7 @@ class MaintenanceDetailScreen extends ConsumerWidget {
               },
               loading: () => const SkeletonList(),
               error: (e, _) => AppError(
-                message: friendlyError(e, locale),
+                message: friendlyError(e, locale, loading: true),
                 onRetry: () => ref.invalidate(maintenanceDetailProvider(id)),
               ),
             ),
