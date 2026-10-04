@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthChangeEvent, AuthState;
 
 import '../core/app_core.dart';
 import '../data/gate_device_store.dart';
@@ -18,6 +20,23 @@ export 'gate_screens.dart';
 export 'manager_screens.dart';
 export 'resident_screens.dart';
 export 'technician_screens.dart';
+
+/// Closes every pushed page the moment the user is signed out — manual
+/// sign-out, expired session or a remote revoke — so a stale screen (e.g. the
+/// Profile page opened from More) can never stay on top of the login screen.
+class AuthRouteGuard extends ConsumerWidget {
+  final Widget child;
+  const AuthRouteGuard({super.key, required this.child});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AsyncValue<AuthState>>(authStateProvider, (previous, next) {
+      if (next.valueOrNull?.event == AuthChangeEvent.signedOut) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
+    return child;
+  }
+}
 
 /// Polite, end-user-safe configuration screen (the previous build printed
 /// CLI commands to end users — removed per UX blueprint §8.13).
@@ -657,7 +676,12 @@ class ProfileScreen extends ConsumerWidget {
               confirmLabel: t.signOut,
             );
             if (!confirmed) return;
-            await ref.read(repositoryProvider).signOut();
+            try {
+              await ref.read(repositoryProvider).signOut();
+            } catch (_) {
+              // The SDK drops the local session before it calls the server,
+              // so a failed network call must not leave the UI signed in.
+            }
             ref.invalidate(sessionProvider);
           },
           child: Row(

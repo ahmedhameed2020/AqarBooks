@@ -19,9 +19,7 @@ Future<void> main() async {
   final savedLocale = await loadSavedLocale();
   runApp(
     ProviderScope(
-      overrides: [
-        localeProvider.overrideWith((ref) => savedLocale),
-      ],
+      overrides: [localeProvider.overrideWith((ref) => savedLocale)],
       child: const AqarBooksApp(),
     ),
   );
@@ -58,32 +56,34 @@ class AuthGate extends ConsumerWidget {
     final t = AppLabels(Localizations.localeOf(context));
     if (!AppConfig.isReady) return const ConfigScreen();
     final auth = ref.watch(authStateProvider);
-    return auth.when(
-      data: (_) {
-        final session = ref.watch(sessionProvider);
-        return session.when(
-          data: (value) =>
-              value == null ? const LoginScreen() : AppShell(session: value),
-          loading: () => const LoadingScreen(),
-          // Failing to load capabilities never silently falls back to the
-          // resident shell (UX blueprint §2): show a retryable error.
-          error: (e, _) => Scaffold(
-            body: AppError(
-              message: t.ar
-                  ? 'تعذر تحميل حسابك — أعد المحاولة'
-                  : 'Could not load your account — try again',
-              onRetry: () => ref.invalidate(sessionProvider),
+    return AuthRouteGuard(
+      child: auth.when(
+        data: (_) {
+          final session = ref.watch(sessionProvider);
+          return session.when(
+            data: (value) =>
+                value == null ? const LoginScreen() : AppShell(session: value),
+            loading: () => const LoadingScreen(),
+            // Failing to load capabilities never silently falls back to the
+            // resident shell (UX blueprint §2): show a retryable error.
+            error: (e, _) => Scaffold(
+              body: AppError(
+                message: t.ar
+                    ? 'تعذر تحميل حسابك — أعد المحاولة'
+                    : 'Could not load your account — try again',
+                onRetry: () => ref.invalidate(sessionProvider),
+              ),
             ),
+          );
+        },
+        loading: () => const LoadingScreen(),
+        error: (e, _) => Scaffold(
+          body: AppError(
+            message: t.ar
+                ? 'خدمة المصادقة غير متاحة حاليًا'
+                : 'Authentication service unavailable',
+            onRetry: () => ref.invalidate(authStateProvider),
           ),
-        );
-      },
-      loading: () => const LoadingScreen(),
-      error: (e, _) => Scaffold(
-        body: AppError(
-          message: t.ar
-              ? 'خدمة المصادقة غير متاحة حاليًا'
-              : 'Authentication service unavailable',
-          onRetry: () => ref.invalidate(authStateProvider),
         ),
       ),
     );

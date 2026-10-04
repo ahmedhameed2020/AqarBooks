@@ -373,9 +373,13 @@ final authStateProvider = StreamProvider<AuthState>((ref) async* {
   yield AuthState(AuthChangeEvent.initialSession, client.auth.currentSession);
   yield* client.auth.onAuthStateChange;
 });
-final sessionProvider = FutureProvider.autoDispose<AppSession?>(
-  (ref) async => ref.watch(repositoryProvider).loadSession(),
-);
+/// Recomputed whenever the signed-in user changes (sign-in, sign-out, session
+/// expiry, remote revoke). Keyed on the user id only, so hourly token
+/// refreshes do not reload the session and reset the UI.
+final sessionProvider = FutureProvider.autoDispose<AppSession?>((ref) async {
+  ref.watch(authStateProvider.select((a) => a.valueOrNull?.session?.user.id));
+  return ref.watch(repositoryProvider).loadSession();
+});
 
 class AqarRepository {
   final SupabaseClient? client;
