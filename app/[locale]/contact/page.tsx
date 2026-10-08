@@ -3,7 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { MarketingNav } from "../marketing-nav";
 import { ContactForm } from "./contact-form";
-import { Mail, Phone, MapPin, Building2, ShieldCheck } from "lucide-react";
+import { Mail, MapPin, Building2, ShieldCheck } from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -75,18 +75,13 @@ export default async function ContactPage({
                       <Mail className="size-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">{isAr ? "البريد الإلكتروني العام" : "General Email"}</span>
-                      <p className="font-mono font-bold text-slate-900">support@aqarbooks.com</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-[#07425d]">
-                      <Phone className="size-4" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">{isAr ? "الهاتف وخدمة المبيعات" : "Sales & Enterprise Line"}</span>
-                      <p className="font-mono font-bold text-slate-900">+20 100 000 0000</p>
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{isAr ? "البريد الإلكتروني العام" : "General Email"}</span>
+                      <a
+                        href="mailto:support@aqarbooks.com"
+                        className="inline-block rounded-sm font-mono font-bold text-slate-900 transition-colors hover:text-[#07425d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#07425d]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FAFAFA]"
+                      >
+                        support@aqarbooks.com
+                      </a>
                     </div>
                   </div>
 
