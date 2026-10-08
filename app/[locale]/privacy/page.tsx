@@ -35,8 +35,8 @@ function arabicSections(): LegalSection[] {
           <ul>
             <li>
               <strong>حسابك:</strong> في تطبيق الهاتف يصدر الحساب من مؤسستك، ولا يوجد تسجيل عام
-              للمستخدمين؛ ونستخدم البريد الإلكتروني ومعرّف المستخدم لتسجيل الدخول وربطك بمؤسستك
-              ووحداتك. أما في الويب فنستخدم بيانات الحساب الموضحة أدناه.
+              للمستخدمين؛ ونستخدم البريد الإلكتروني ورقم الهاتف ومعرّف المستخدم والاسم لتسجيل
+              الدخول وربطك بمؤسستك ووحداتك. أما في الويب فنستخدم بيانات الحساب الموضحة أدناه.
             </li>
             <li>
               <strong>بيانات المؤسسة ودفاترك:</strong> ما تُدخله أنت أو مؤسستك داخل المنصة عن
@@ -53,31 +53,39 @@ function arabicSections(): LegalSection[] {
       body: (
         <ul>
           <li>
-            <strong>بيانات الحساب والدخول:</strong> الاسم، والبريد الإلكتروني، ومعرّف المستخدم،
-            واسم المنشأة، والدولة والعملة، ووقت الدخول، وعنوان بروتوكول الإنترنت (IP)، ونوع
-            المتصفح، لأغراض الدخول والأمان وسجل التدقيق.
+            <strong>بيانات الحساب والدخول:</strong> الاسم، والبريد الإلكتروني، ورقم الهاتف، ومعرّف
+            المستخدم، واسم المنشأة، والدولة والعملة، ووقت الدخول، وعنوان بروتوكول الإنترنت (IP)،
+            ونوع المتصفح، لأغراض الدخول والأمان وسجل التدقيق.
           </li>
           <li>
             <strong>بيانات الوحدات المالية:</strong> المستحقات والمدفوعات والإيصالات الخاصة
             بوحداتك، لعرضها ومتابعتها.
           </li>
           <li>
-            <strong>المحتوى الذي تنشئه:</strong> طلبات الصيانة ووصفها وصورها الاختيارية، وأسماء
-            الزوار وأرقام هواتفهم وتصاريح المرور المولّدة لهم ورموز QR الخاصة بها، وبيانات المركبات
-            التي تسجلها.
+            <strong>المحتوى الذي تنشئه:</strong> طلبات الصيانة بعناوينها وأوصافها وتحديثاتها، ومرفقاتها
+            الاختيارية بصيغ JPG أو JPEG أو PNG أو WEBP أو PDF؛ وأسماء الزوار وأرقام هواتفهم وملاحظاتهم
+            وتصاريح المرور المولّدة لهم ورموز QR الخاصة بها؛ وبيانات المركبات التي تسجلها، بما في ذلك
+            رقم اللوحة والدولة والمنطقة والصانع والطراز واللون والسنة والملاحظات.
           </li>
           <li>
             <strong>السجلات التشغيلية:</strong> عمليات التحصيل، وتحديثات أوامر الصيانة، وقرارات
-            السماح أو الرفض عند البوابة ووقتها، بما في ذلك سجلات الإجراءات اللازمة للأمن والتدقيق.
+            السماح أو الرفض عند البوابة ووقتها، ومعرّفات جهاز البوابة والتثبيت ومعرّف المسح الخاص
+            بالعميل، بما في ذلك سجلات الإجراءات اللازمة للأمن والتدقيق.
           </li>
           <li>
             <strong>الكاميرا:</strong> تُستخدم فقط لمسح رموز تصاريح الزوار، وعند اختيارك التقاط
             صور لإثبات حالة الصيانة، ولا تعمل للتصوير في الخلفية.
           </li>
           <li>
-            <strong>بيانات الدفع:</strong> تتم المدفوعات الإلكترونية في التطبيق عبر كود مرجعي
-            يُسدّد لدى منافذ <strong>Fawry</strong>. ولا يجمع التطبيق أرقام البطاقات أو البيانات
-            البنكية.
+            <strong>بيانات الدفع:</strong> عند بدء دفعة يطلبها المستخدم، نرسل إلى <strong>Fawry</strong>
+            البريد الإلكتروني ورقم الهاتف والمبلغ وبيانات العملية والمرجع لمعالجة الدفع. ولا يجمع
+            AqarBooks أرقام البطاقات أو بيانات الحسابات البنكية.
+          </li>
+          <li>
+            <strong>التخزين المحلي الآمن:</strong> تُخزّن تصاريح الزوار المحفوظة وبيانات اعتماد
+            أجهزة البوابة وتفضيل فتح التطبيق بالمقاييس الحيوية في التخزين الآمن على الجهاز.
+            ويجري التحقق بالمقاييس الحيوية بواسطة نظام تشغيل الجهاز وحده؛ لا يستلم AqarBooks
+            قوالب المقاييس الحيوية ولا يخزنها.
           </li>
           <li>
             <strong>اطّلاع فريق AqarBooks:</strong> لا يطّلع فريق AqarBooks على دفاترك أو على
@@ -100,11 +108,13 @@ function arabicSections(): LegalSection[] {
             <li>
               إرسال الرسائل التشغيلية (تأكيد البريد، واستعادة كلمة المرور، وإشعارات الفواتير).
             </li>
-            <li>تحسين الخدمة بناءً على أنماط استخدام مجمّعة ومجهولة الهوية.</li>
+            <li>لا نستخدم التطبيق للتحليلات أو التتبع السلوكي أو الإعلانات؛ نستخدم البيانات فقط لتشغيل الوظائف المطلوبة وتأمينها.</li>
           </ul>
           <p>
-            <strong>لا نجمع موقعك الجغرافي أو جهات اتصالك، ولا نعرض إعلانات، ولا نبيع بياناتك</strong>.
-            ولا نشاركها مع أطراف أخرى غير المذكورين أدناه.
+            <strong>لا نجمع موقعك الجغرافي أو جهات اتصالك، ولا نعرض إعلانات، ولا نستخدم تحليلات
+            أو تتبعًا، ولا نبيع بياناتك</strong>. ولا تعمل الكاميرا لالتقاط الصور في الخلفية، ولا
+            نشارك البيانات مع أطراف أخرى غير مزوّدي الخدمة المذكورين أدناه عند الحاجة لتشغيل الوظائف
+            التي طلبتها.
           </p>
         </>
       ),
@@ -145,7 +155,9 @@ function arabicSections(): LegalSection[] {
               المرور).
             </li>
             <li>
-              <strong>مزوّدو خدمات الدفع:</strong> معالجة الاشتراكات والمدفوعات الإلكترونية.
+              <strong>Fawry:</strong> عند بدء دفعة يطلبها المستخدم، تستلم Fawry البريد الإلكتروني ورقم
+              الهاتف والمبلغ وبيانات العملية والمرجع لمعالجة الدفع. لا نرسل إليها بيانات البطاقة أو
+              الحساب البنكي، ولا تُستخدم هذه البيانات للتسويق.
             </li>
           </ul>
           <p>
@@ -267,8 +279,9 @@ function englishSections(): LegalSection[] {
           <ul>
             <li>
               <strong>Your account:</strong> for the mobile app, your organisation issues your
-              account and there is no public sign-up. We use your email address and user ID to sign
-              you in and link you to your organisation and units. Web account data is described below.
+              account and there is no public sign-up. We use your email address, phone number, user
+              ID, and name to sign you in and link you to your organisation and units. Web account
+              data is described below.
             </li>
             <li>
               <strong>Organisation and ledger data:</strong> data you or your organisation enter
@@ -285,31 +298,39 @@ function englishSections(): LegalSection[] {
       body: (
         <ul>
           <li>
-            <strong>Account and sign-in data:</strong> name, email, user ID, organisation name,
-            country, currency, sign-in timestamp, IP address, and browser type, for sign-in,
-            security, and audit purposes.
+            <strong>Account and sign-in data:</strong> name, email, phone number, user ID,
+            organisation name, country, currency, sign-in timestamp, IP address, and browser type,
+            for sign-in, security, and audit purposes.
           </li>
           <li>
             <strong>Unit financial data:</strong> dues, payments, and receipts for your units, so
             you can view and track them.
           </li>
           <li>
-            <strong>Content you create:</strong> maintenance requests and descriptions with
-            optional photos, visitor names and phone numbers and the passes issued to them, including
-            their QR codes, and vehicle details you register.
+            <strong>Content you create:</strong> maintenance requests with titles, descriptions, and
+            updates, plus optional JPG, JPEG, PNG, WEBP, or PDF attachments; visitor names, phone
+            numbers, notes, and the passes issued to them, including their QR codes; and vehicle
+            details including plate number, country, region, make, model, colour, year, and notes.
           </li>
           <li>
-            <strong>Operational records:</strong> collections, work-order updates, and gate access
-            decisions (allow or deny) and their times, including action logs needed for security and
-            audit.
+            <strong>Operational records:</strong> collections, work-order updates, gate access
+            decisions (allow or deny) and their times, plus gate device, installation, and client scan
+            identifiers, including action logs needed for security and audit.
           </li>
           <li>
             <strong>Camera:</strong> used only to scan visitor pass codes and, when you choose, to
             capture maintenance evidence photos; it is not used for background capture.
           </li>
           <li>
-            <strong>Payment data:</strong> in-app payment uses a reference code settled at Fawry
-            outlets. The app does not collect card numbers or bank details.
+            <strong>Payment data:</strong> when you initiate a requested payment, we send your email,
+            phone number, amount, and transaction and reference data to <strong>Fawry</strong> to
+            process it. AqarBooks does not collect card numbers or bank-account credentials.
+          </li>
+          <li>
+            <strong>Secure on-device storage:</strong> saved visitor passes, gate credentials, and
+            the biometric-unlock preference are kept in secure storage on the device. Biometric
+            verification is performed by the device operating system; AqarBooks does not receive or
+            store biometric templates.
           </li>
           <li>
             <strong>AqarBooks team access:</strong> our team does not inspect your ledgers or the
@@ -334,11 +355,12 @@ function englishSections(): LegalSection[] {
             <li>
               To send operational email (email confirmation, password reset, billing notices).
             </li>
-            <li>To improve the service using aggregated, anonymised usage patterns.</li>
+            <li>We do not use the mobile app for analytics, behavioural tracking, or advertising; data is used only to operate and secure requested functions.</li>
           </ul>
           <p>
-            <strong>We do not collect location or contacts, show ads, or sell your data</strong>.
-            We do not share it with anyone beyond the processors listed below.
+            <strong>We do not collect location or contacts, show ads, use analytics or tracking, or
+            sell your data</strong>. The camera is not used for background capture. We share data only
+            with the service providers listed below when needed to operate functions you request.
           </p>
         </>
       ),
@@ -381,7 +403,9 @@ function englishSections(): LegalSection[] {
               reset).
             </li>
             <li>
-              <strong>Payment providers:</strong> processing subscriptions and online payments.
+              <strong>Fawry:</strong> when you initiate a requested payment, Fawry receives your email,
+              phone number, amount, and transaction and reference data to process it. We do not send
+              card or bank-account credentials, and this information is not used for marketing.
             </li>
           </ul>
           <p>

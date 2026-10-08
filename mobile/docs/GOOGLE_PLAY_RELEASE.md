@@ -17,6 +17,7 @@
 | Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` نطاق بلا DNS وقد **حُذف فلتر App Link العام غير المستخدم** من الـManifest (2026-10-08)، فلم يعد هناك حاجب DNS — والمتبقي الوحيد بصمة Play App Signing |
 | الصلاحيات | ✅ **محسومة ومنفَّذة (2026-10-06):** حُذفت `READ_MEDIA_IMAGES` (الاختيار عبر system picker/Photo Picker بلا صلاحية) و`POST_NOTIFICATIONS` (لا push في V1). المتبقي: INTERNET وCAMERA وUSE_BIOMETRIC فقط |
 | سياسة الخصوصية | ✅ **منشورة (2026-10-08):** https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (‏200)، و`https://aqarbooks.com/privacy` يعيد 307 إلى `/ar/privacy` (الأساس المنشور من [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md)). 🟡 المتبقي: لصق الرابط في الـConsole |
+| **جهة التواصل وحالة البريد** | 🔴 **حاجز إصدار:** جهة التواصل المنشورة هي `support@aqarbooks.com`، لكن فحص DNS MX حيًا بتاريخ **2026-10-08** لم يُرجع أي سجل MX. يجب إنشاء صندوق بريد/توجيه بريد يعمل أو اعتماد عنوان بديل موثّق قبل الإرسال إلى Play. لا تغيّر العنوان دون موافقة المالك. |
 | **Play App Signing** | 🟡 **معلَّق:** بصمة SHA-256 الخاصة بـPlay App Signing لا تظهر إلا بعد أول رفع في الـConsole، ويجب إضافتها إلى `assetlinks.json` **بجانب** بصمة upload (القسم 6) |
 | مهام Play Console اليدوية | 🔴 **كلها معلَّقة:** رفع الـAAB على Internal testing، Data safety، Content rating، حساب المراجع في App access، إضافة المختبرين، وتنفيذ بوابات الإصدار على جهاز حقيقي. لا تُعلَم أي منها كمكتملة قبل وجود دليل من الـConsole |
 
@@ -97,7 +98,23 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 >
 > يتطلب التطبيق حسابًا صادرًا من إدارة الكمبوند أو المؤسسة المشتركة في AqarBooks.
 
-**الوصف الكامل (إنجليزي):** ترجمة مباشرة للنص أعلاه (متوفر عند الطلب).
+**الوصف الكامل (إنجليزي، ≤4,000 حرف):**
+
+AqarBooks is a property-community management app for compounds and residential communities in Egypt — built for owners, residents, and operations teams.
+
+**For owners and residents:**
+• Track your unit balance and dues at a glance
+• Start a Fawry payment with a reference code from the app
+• Submit maintenance requests with photos or documents and follow each update
+• Issue QR visitor passes and share them through WhatsApp
+
+**For operations teams:**
+• Collector: search quickly, record collections in fewer steps, and issue receipts
+• Maintenance technician: see today’s priority tasks and document completed work
+• Gate security: scan visitor passes and verify access instantly — approved or denied clearly
+• Manager: see what needs attention — overdue balances, cheques, and critical maintenance in one view
+
+The app requires an account issued by your compound or organisation using AqarBooks.
 
 > ملاحظة السطر الأخير مهمة: تطبيق يتطلب حسابًا مُدارًا قد يطلب فريق مراجعة Play **بيانات دخول تجريبية** — جهّز حساب `qa.owner` من [DEVICE_TEST_PLAN.md](DEVICE_TEST_PLAN.md) وضعه في App access بالـConsole.
 
@@ -131,20 +148,33 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 
 **الخلاصة:** لم يبقَ أي حاجب DNS. `assetlinks.json` مطلوب لفلتر واحد فقط هو **App Link التنشيط** (`aqarbooks.com/activate`)، والمتبقي الوحيد عليه إضافة بصمة **Play App Signing** بعد أول رفع.
 
-## 7. استمارة Data safety (الإجابات الجاهزة — لم تُدخل في الـConsole بعد)
+## 7. استمارة Data safety (مصفوفة محافظة جاهزة للمراجعة — لم تُدخل في الـConsole بعد)
 
-| سؤال | الإجابة |
-|---|---|
-| هل يجمع التطبيق بيانات؟ | نعم |
-| Personal info → Email + User IDs | يُجمع، مرتبط بالمستخدم، **لا يُشارك**، الغرض: App functionality (تسجيل الدخول وإدارة الحساب)، الجمع إلزامي |
-| Financial info → Purchase history | يُجمع (مستحقات ومدفوعات الوحدة)، لا يُشارك، الغرض: App functionality |
-| Photos | تُجمع (مرفقات الصيانة)، لا تُشارك، الغرض: App functionality، اختيارية |
-| Messages / Location / Contacts / Health… | لا يُجمع |
-| هل البيانات مشفّرة أثناء النقل؟ | نعم (HTTPS/TLS إلى Supabase) |
-| هل يستطيع المستخدم طلب حذف بياناته؟ | نعم — عبر إدارة المؤسسة/قناة الدعم (يجب أن تذكره سياسة الخصوصية) |
-| مشاركة مع أطراف ثالثة | لا — المعالجة لدى مزوّد الاستضافة (Supabase) كـprocessor ضمن تشغيل الخدمة |
+هذه المصفوفة مبنية على فئات Google Play الحالية وعلى مصادر التطبيق، لكنها ليست إجابة نهائية قبل مراجعة واجهة Console وعقود مزوّدي الخدمة. رابط المساعدة الرسمي: https://support.google.com/googleplay/android-developer/answer/10787469?hl=en
 
-> ملاحظة اتساق: بيانات الدفع عبر فوري تتم عند منافذ فوري وليست داخل التطبيق (التطبيق يعرض كودًا مرجعيًا فقط) — لا تُعلن «بيانات بطاقات».
+| فئة Google Play / نوع البيانات | الحالة | مشاركة مزوّد الخدمة | مرتبط بالمستخدم؟ | مطلوب أم اختياري؟ | الغرض في Play Console |
+|---|---|---|---|---|---|
+| Personal info — Name | يُجمع | Supabase لتشغيل الحساب؛ لا يُرسل الاسم إلى Fawry في تدفق الدفع الموثّق هنا | نعم | مطلوب للحساب؛ اسم الزائر اختياري حسب الوظيفة | App functionality; Account management |
+| Personal info — Email | يُجمع | يُرسل إلى Fawry عند بدء دفعة مطلوبة؛ Supabase/Resend قد يعالجه لتشغيل الخدمة، وفق الاستثناء التعاقدي | نعم | مطلوب للحساب | App functionality; Account management |
+| Personal info — User IDs | يُجمع | Supabase لتشغيل الحساب وربط البيانات | نعم | مطلوب | App functionality; Account management; Fraud prevention, security, and compliance |
+| Personal info — Phone | يُجمع | يُرسل إلى Fawry عند بدء دفعة مطلوبة؛ Supabase لتسجيل الدخول، وفق الاستثناء التعاقدي | نعم | مطلوب لإكمال first login؛ هاتف الزائر اختياري | App functionality; Account management |
+| Personal info — Other info (visitor/vehicle details) | يُجمع | Supabase للمشاركة داخل المؤسسة وتشغيل الزوار والمركبات | نعم | اختياري بحسب الوظيفة | App functionality; Fraud prevention, security, and compliance |
+| Financial info — Purchase history | يُجمع | Supabase لتشغيل المستحقات والمدفوعات؛ Fawry لمعالجة الدفعة المطلوبة | نعم | مطلوب عند استخدام الدفع | App functionality; Account management; Fraud prevention, security, and compliance |
+| Financial info — Other financial info (amount, transaction/reference data) | يُجمع عند الدفع | Fawry receives email, phone, amount, and transaction/reference data to process a user-requested payment | نعم | اختياري؛ فقط عند بدء دفعة | App functionality; Fraud prevention, security, and compliance |
+| Photos | تُجمع عند اختيار المستخدم | Supabase/التخزين لتشغيل مرفقات الصيانة، وفق الاستثناء التعاقدي | نعم | اختياري | App functionality |
+| Files and docs — PDF | يُجمع عند اختيار المستخدم | Supabase/التخزين لتشغيل مرفقات الصيانة، وفق الاستثناء التعاقدي | نعم | اختياري | App functionality |
+| App activity — Other user-generated content (maintenance, visitor, vehicle, and work-order notes) | يُجمع | Supabase لتشغيل الخدمة داخل المؤسسة | نعم | اختياري بحسب الوظيفة | App functionality; Account management |
+| Device or other IDs — gate installation/device/client scan identifiers | تُجمع | Supabase لتوثيق جهاز البوابة ومنع إعادة التشغيل أو التكرار، وفق الاستثناء التعاقدي | نعم | مطلوب لوظيفة البوابة فقط | App functionality; Fraud prevention, security, and compliance |
+| Location | لا يُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
+| Contacts | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
+| Health and fitness | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
+| Ads, analytics, and crash data | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
+
+**مشاركة Fawry والتحقق التعاقدي:** عند بدء دفعة يطلبها المستخدم، تستلم Fawry البريد الإلكتروني ورقم الهاتف والمبلغ وبيانات العملية والمرجع لمعالجة الدفع. لا يجمع AqarBooks بيانات البطاقة أو الحساب البنكي. لا تختَر «لا تتم مشاركة البيانات» في Play Console إلا إذا كان استثناء مزوّد الخدمة مستوفيًا فعلًا بموجب العقود وDPA الحالية؛ يجب فحص ذلك مع العقود وDPA لدى Supabase وFawry قبل الإرسال.
+
+- التشفير أثناء النقل: نعم، HTTPS/TLS.
+- طلب حذف البيانات: نعم، عبر إدارة المؤسسة أو `support@aqarbooks.com` ضمن حدود الالتزامات المطبقة.
+- هذا المحتوى مُعدّ، لكن إجابات Console والمشاركة التعاقدية ما زالت معلّقة.
 
 ## 8. Content rating (الاستبيان جاهز — لم يُرسل بعد)
 
@@ -172,12 +202,13 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 - [x] سياسة الخصوصية منشورة: https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (و`/privacy` → 307 → `/ar/privacy`) ✅ منفَّذ
 - [x] أيقونة المتجر 512×512 + Feature graphic 1024×500 في `mobile/store-assets/` ✅ منفَّذة ومُتحقَّقة (`PASS: 2/2 assets valid`)
 - [x] `assetlinks.json` على `aqarbooks.com` يُرجع `package_name: com.aqarbooks.app` ✅ منفَّذ (ببصمة upload فقط)
+- [ ] **حاجز البريد قبل Play:** `support@aqarbooks.com` هو العنوان المنشور، لكن فحص MX حيًا بتاريخ 2026-10-08 لم يُرجع سجل MX؛ إنشاء توجيه/صندوق يعمل أو اعتماد عنوان بديل موثّق مطلوب قبل الإرسال، دون تغيير العنوان بلا موافقة المالك
 - [ ] **رفع الـAAB على Play Console (Internal testing)** — لم يُنفَّذ بعد. لا تُعلَم أي مهمة يدوية في الـConsole كمكتملة قبل وجود دليل منها
 - [ ] إضافة **بصمة Play App Signing** إلى `assetlinks.json` بجانب بصمة upload بعد أول رفع (قسم 6)
 - [x] حسم **`app.aqarbooks.com`** ✅ منفَّذ (2026-10-08): حُذف فلتر App Link العام غير المستخدم من الـManifest، ولم يبقَ أي حاجب DNS — `assetlinks.json` مطلوب لفلتر التنشيط وحده (قسم 6)
 - [ ] لقطات شاشة من جهاز حقيقي (2–8 لقطات، 1080×2400) + استكمال بيانات المتجر (قسم 4)
 - [ ] لصق رابط سياسة الخصوصية في حقل الـConsole
 - [ ] حساب المراجع التجريبي (`qa.owner`) في App access (قسم 4)
-- [ ] Data safety (قسم 7) + Content rating (قسم 8)
+- [ ] Data safety (قسم 7): المحتوى مُعدّ، لكن إدخال Console والتحقق التعاقدي مع مزوّدي الخدمة ما زالا معلّقين + Content rating (قسم 8)
 - [ ] إضافة المختبرين (Internal ثم Closed) — قسم 9
 - [ ] تنفيذ كل بوابات [DEVICE_TEST_PLAN.md](DEVICE_TEST_PLAN.md) على نسخة مثبتة **من Play** — لم يُنفَّذ بعد
