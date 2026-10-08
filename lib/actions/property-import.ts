@@ -77,7 +77,7 @@ export async function importPropertyCsvAction(
     for (const building of buildings ?? []) {
       if (building.code) buildingsByCode.set(building.code.trim().toLowerCase(), building.id);
     }
-    for (const zone of (zones as any[]) ?? []) {
+    for (const zone of ((zones ?? []) as unknown as Array<{ code: string | null; id: string }>)) {
       if (zone.code) zonesByCode.set(zone.code.trim().toLowerCase(), zone.id);
     }
     for (const member of members ?? []) {
@@ -117,8 +117,8 @@ export async function importPropertyCsvAction(
   }
 
   const rows = kind === "members"
-    ? buildMembersImportRows(preview.rows as any)
-    : buildUnitsImportRows(preview.rows as any);
+    ? buildMembersImportRows(preview.rows as unknown as ImportPreviewRow<MemberImportRow>[])
+    : buildUnitsImportRows(preview.rows as unknown as ImportPreviewRow<UnitImportRow>[]);
   if (rows.length === 0) {
     return { ok: false, error: "no_valid_rows" };
   }
@@ -127,7 +127,11 @@ export async function importPropertyCsvAction(
     return { ok: false, error: "missing_resort" };
   }
 
-  const { data, error } = await (supabase.rpc as any)("import_property_csv", {
+  const importRpc = supabase.rpc as unknown as (
+    functionName: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await importRpc("import_property_csv", {
     p_organization_id: organization.id,
     p_resort_id: kind === "units" ? resortId : null,
     p_import_kind: kind,

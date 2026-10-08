@@ -158,7 +158,7 @@ export default async function EInvoicePage({
 
   // Map Decisions
   const taxDecisions: TaxDecisionItem[] = (decisionsRaw ?? []).map((td) => {
-    const snap = (td.tax_decision_snapshot as any) || {};
+    const snap = (td.tax_decision_snapshot as Record<string, unknown> | null) || {};
     const dueInfo = dueUnitMap.get(td.source_id);
     const base = td.taxable_base !== null ? Number(td.taxable_base) : (dueInfo?.amount ?? 0);
     const rate = Number(snap.vat_rate ?? 0);

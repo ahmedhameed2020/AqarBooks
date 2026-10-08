@@ -1,10 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import type { GroundingFact } from "./registry";
 
+type DynamicQuery = {
+  select: (columns: string) => DynamicQuery;
+  eq: (column: string, value: unknown) => DynamicQuery;
+  in: (column: string, values: unknown[]) => DynamicQuery;
+  like: (column: string, value: string) => DynamicQuery;
+  then: PromiseLike<{ data: Record<string, unknown>[] | null }> ["then"];
+};
+
+type DynamicDatabase = { from: (table: string) => DynamicQuery };
+
 export type ToolExecutionResult = {
   success: boolean;
   toolName: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   groundingFacts: GroundingFact[];
   error?: string;
 };
@@ -16,21 +26,22 @@ export type ToolExecutionResult = {
 export async function executeFinancialTool(
   tenantId: string,
   toolName: string,
-  args: Record<string, any>
+  args: Record<string, unknown>
 ): Promise<ToolExecutionResult> {
   const nowIso = new Date().toISOString();
   const groundingFacts: GroundingFact[] = [];
 
   try {
     const supabase = await createClient();
+    const db = supabase as unknown as DynamicDatabase;
     switch (toolName) {
       case "get_collection_rate": {
         const [{ data: dues }, { data: payments }] = await Promise.all([
-          (supabase as any)
+          db
             .from("dues")
             .select("id, amount, status, due_date, unit_id")
             .eq("organization_id", tenantId),
-          (supabase as any)
+          db
             .from("payments")
             .select("id, amount, status")
             .eq("organization_id", tenantId)
@@ -93,11 +104,11 @@ export async function executeFinancialTool(
 
       case "get_receivables_summary": {
         const [{ data: dues }, { data: payments }] = await Promise.all([
-          (supabase as any)
+          db
             .from("dues")
             .select("id, amount, status")
             .eq("organization_id", tenantId),
-          (supabase as any)
+          db
             .from("payments")
             .select("id, amount")
             .eq("organization_id", tenantId)
@@ -106,7 +117,7 @@ export async function executeFinancialTool(
 
         const allDues = (dues || []) as { amount: number; status: string }[];
         const totalBilled = allDues.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-        const totalPaid = (payments || []).reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+        const totalPaid = ((payments || []) as { amount: number }[]).reduce((s: number, p: { amount: number }) => s + (Number(p.amount) || 0), 0);
         const outstanding = totalBilled - totalPaid;
         const overdue = allDues
           .filter((d) => d.status === "UNPAID" || d.status === "OVERDUE" || d.status === "PARTIAL")
@@ -132,12 +143,12 @@ export async function executeFinancialTool(
       }
 
       case "get_cash_position": {
-        const { data: accounts } = await (supabase as any)
+        const { data: accounts } = await db
           .from("bank_accounts")
           .select("id, account_name, account_number")
           .eq("organization_id", tenantId);
 
-        const { data: glAccounts } = await (supabase as any)
+        const { data: glAccounts } = await db
           .from("chart_of_accounts")
           .select("id, code, name_ar, current_balance")
           .eq("organization_id", tenantId)
@@ -145,7 +156,7 @@ export async function executeFinancialTool(
           .like("code", "11%");
 
         const bankList = (accounts || []) as { id: string; account_name: string; account_number: string }[];
-        const totalCash = (glAccounts || []).reduce((s: number, a: any) => s + (Number(a.current_balance) || 0), 0);
+        const totalCash = ((glAccounts || []) as { current_balance: number }[]).reduce((s: number, a: { current_balance: number }) => s + (Number(a.current_balance) || 0), 0);
 
         groundingFacts.push({
           factId: `fact-cash-pos-${Date.now()}`,
@@ -172,13 +183,13 @@ export async function executeFinancialTool(
       }
 
       case "get_supplier_aging": {
-        const { data: invoices } = await (supabase as any)
+        const { data: invoices } = await db
           .from("expenses")
           .select("amount, expense_date, supplier_id")
           .eq("organization_id", tenantId);
 
         const unpaid = invoices || [];
-        const totalPayable = unpaid.reduce((s: number, inv: any) => s + (Number(inv.amount) || 0), 0);
+        const totalPayable = (unpaid as { amount: number }[]).reduce((s: number, inv: { amount: number }) => s + (Number(inv.amount) || 0), 0);
 
         groundingFacts.push({
           factId: `fact-ap-aging-${Date.now()}`,
@@ -202,13 +213,13 @@ export async function executeFinancialTool(
       case "get_financial_kpi_snapshot": {
         // Combined executive snapshot
         const [{ data: dues }, { data: payments }, { data: bankAccounts }] = await Promise.all([
-          (supabase as any).from("dues").select("amount").eq("organization_id", tenantId),
-          (supabase as any).from("payments").select("amount").eq("organization_id", tenantId).eq("status", "POSTED"),
-          (supabase as any).from("bank_accounts").select("id").eq("organization_id", tenantId),
+          db.from("dues").select("amount").eq("organization_id", tenantId),
+          db.from("payments").select("amount").eq("organization_id", tenantId).eq("status", "POSTED"),
+          db.from("bank_accounts").select("id").eq("organization_id", tenantId),
         ]);
 
-        const billed = (dues || []).reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
-        const collected = (payments || []).reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+        const billed = ((dues || []) as { amount: number }[]).reduce((s: number, d: { amount: number }) => s + (Number(d.amount) || 0), 0);
+        const collected = ((payments || []) as { amount: number }[]).reduce((s: number, p: { amount: number }) => s + (Number(p.amount) || 0), 0);
         const collectionRate = billed > 0 ? Number(((collected / billed) * 100).toFixed(1)) : 100;
 
         groundingFacts.push({

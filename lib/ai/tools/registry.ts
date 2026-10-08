@@ -12,7 +12,7 @@ export type GroundingFact = {
   factId: string;
   toolName: string;
   metricName: string;
-  value: number | string | Record<string, any>;
+  value: number | string | Record<string, unknown>;
   formattedValue: string;
   currency?: string;
   period?: { from?: string; to?: string; name?: string };

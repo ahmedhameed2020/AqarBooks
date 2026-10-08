@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "@/i18n/navigation";
 import {
   CreditCard,
@@ -60,6 +60,13 @@ export function PdcClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    // Read the clock after mount so render remains pure.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(Date.now());
+  }, []);
 
   // Filtering
   const filteredRows = useMemo(() => {
@@ -87,7 +94,6 @@ export function PdcClient({
     const incomingCheques = initialRows.filter((r) => r.type === "INCOMING");
     const outgoingCheques = initialRows.filter((r) => r.type === "OUTGOING");
 
-    const now = Date.now();
     const thirtyDaysAhead = now + 30 * 86400000;
 
     const dueIn30Days = initialRows.filter((r) => {
@@ -110,7 +116,7 @@ export function PdcClient({
       bouncedAmount: bouncedCheques.reduce((s, r) => s + r.amount, 0),
       bouncedCount: bouncedCheques.length,
     };
-  }, [initialRows]);
+  }, [initialRows, now]);
 
   // PDF Export
   const handleExportPdf = () => {

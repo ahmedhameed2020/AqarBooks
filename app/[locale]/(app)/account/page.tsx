@@ -4,7 +4,7 @@ import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
-import { AccountClient } from "./account-client";
+import { AccountClient, type AccountUserMetadata } from "./account-client";
 
 export async function generateMetadata({
   params,
@@ -73,7 +73,7 @@ export default async function AccountPage({
         email: user!.email ?? "",
         created_at: user!.created_at,
         last_sign_in_at: user!.last_sign_in_at,
-        user_metadata: (user!.user_metadata as Record<string, any>) ?? {},
+        user_metadata: (user!.user_metadata as AccountUserMetadata) ?? {},
       }}
       profile={profile}
       organizationName={organization?.name || (isAr ? "المنشأة الرئيسية" : "Main Organization")}

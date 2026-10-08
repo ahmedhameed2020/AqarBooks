@@ -128,7 +128,7 @@ describe("record_payment_provider_verification STALE_VERIFICATION race fix (real
     // write below.
     const { data: afterChange } = await staffClient
       .rpc("list_payment_provider_settings", { p_organization_id: orgId })
-      .then((r) => ({ data: (r.data ?? []).find((row: any) => row.id === settingsId) }));
+      .then((r) => ({ data: (r.data ?? []).find((row: Record<string, unknown>) => row.id === settingsId) }));
     expect(afterChange?.status).toBe("DRAFT");
 
     // --- "A's probe succeeds" (the network call for secret A completed
@@ -145,7 +145,7 @@ describe("record_payment_provider_verification STALE_VERIFICATION race fix (real
     // --- Final state: NOT verified, still DRAFT (secret B's own state,
     // completely untouched by A's stale write attempt). ---
     const { data: rowsAfterStale } = await staffClient.rpc("list_payment_provider_settings", { p_organization_id: orgId });
-    const rowAfterStale = (rowsAfterStale ?? []).find((r: any) => r.id === settingsId);
+    const rowAfterStale = (rowsAfterStale ?? []).find((r: Record<string, unknown>) => r.id === settingsId);
     expect(rowAfterStale?.status).toBe("DRAFT");
     expect(rowAfterStale?.enabled).toBe(false);
 
@@ -171,7 +171,7 @@ describe("record_payment_provider_verification STALE_VERIFICATION race fix (real
     expect(verifyBErr, verifyBErr?.message).toBeNull();
 
     const { data: rowsAfterB } = await staffClient.rpc("list_payment_provider_settings", { p_organization_id: orgId });
-    const rowAfterB = (rowsAfterB ?? []).find((r: any) => r.id === settingsId);
+    const rowAfterB = (rowsAfterB ?? []).find((r: Record<string, unknown>) => r.id === settingsId);
     expect(rowAfterB?.status).toBe("VERIFIED");
 
     // --- Enable now succeeds, on B's genuinely verified credentials. ---
@@ -179,7 +179,7 @@ describe("record_payment_provider_verification STALE_VERIFICATION race fix (real
     expect(enableAfterErr, enableAfterErr?.message).toBeNull();
 
     const { data: rowsFinal } = await staffClient.rpc("list_payment_provider_settings", { p_organization_id: orgId });
-    const rowFinal = (rowsFinal ?? []).find((r: any) => r.id === settingsId);
+    const rowFinal = (rowsFinal ?? []).find((r: Record<string, unknown>) => r.id === settingsId);
     expect(rowFinal?.status).toBe("ENABLED");
     expect(rowFinal?.enabled).toBe(true);
   });
@@ -208,7 +208,7 @@ describe("record_payment_provider_verification STALE_VERIFICATION race fix (real
     expect(verifyErr, verifyErr?.message).toBeNull();
 
     const { data: rows } = await staffClient.rpc("list_payment_provider_settings", { p_organization_id: orgId });
-    const row = (rows ?? []).find((r: any) => r.id === settingsId);
+    const row = (rows ?? []).find((r: Record<string, unknown>) => r.id === settingsId);
     expect(row?.status).toBe("VERIFIED");
   });
 });

@@ -91,7 +91,7 @@ export function CashFlowClient({
 
   // PDF Export
   const handleExportPdf = () => {
-    const formattedRows: Record<string, any>[] = [];
+    const formattedRows: Record<string, unknown>[] = [];
 
     // Opening cash
     formattedRows.push({
@@ -164,7 +164,7 @@ export function CashFlowClient({
       description: isAr ? "يتم تجهيز ملف الإكسل" : "Preparing workbook",
     });
 
-    const exportRows: Record<string, any>[] = [];
+    const exportRows: Record<string, unknown>[] = [];
     exportRows.push({
       __isGroup: true,
       code: "—",

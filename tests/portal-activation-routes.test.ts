@@ -138,7 +138,7 @@ describe("app link association files", () => {
     vi.stubEnv("ANDROID_APP_SHA256_FINGERPRINTS", `${fp}, not-a-fingerprint`);
     const body = await (await GET()).json();
     expect(body).toHaveLength(1);
-    expect(body[0].target).toMatchObject({ namespace: "android_app", package_name: "com.aqarbooks.aqarbooks_mobile", sha256_cert_fingerprints: [fp] });
+    expect(body[0].target).toMatchObject({ namespace: "android_app", package_name: "com.aqarbooks.app", sha256_cert_fingerprints: [fp] });
     vi.unstubAllEnvs();
   });
 

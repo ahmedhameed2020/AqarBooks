@@ -60,9 +60,8 @@ export function CreateAccountForm({
   });
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
-
   useEffect(() => {
+    if (pending) submitted.current = true;
     if (submitted.current && !pending && state.ok) {
       setOpen(false);
       submitted.current = false;

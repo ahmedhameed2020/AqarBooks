@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- legacy browser fixture intentionally suppresses external provider typing noise
 // @ts-nocheck
 /**
  * Task 4 (Payment Provider Settings UI) exit gate: drives the real settings

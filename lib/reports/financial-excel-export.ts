@@ -21,8 +21,8 @@ export interface ExcelExportData {
   currency?: string;
   dateRangeLabel?: string;
   columns: ExcelColumnConfig[];
-  rows: Record<string, any>[];
-  totalRow?: Record<string, any>;
+  rows: Record<string, unknown>[];
+  totalRow?: Record<string, unknown>;
   summaries?: { label: string; value: string | number }[];
   /** Alias for `summaries` used by the report clients. */
   summaryCards?: { label: string; value: string | number }[];

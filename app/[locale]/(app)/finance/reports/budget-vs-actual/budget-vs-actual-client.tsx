@@ -83,7 +83,7 @@ export function BudgetVsActualClient({
 
   // PDF Export
   const handleExportPdf = () => {
-    const formattedRows: Record<string, any>[] = [];
+    const formattedRows: Record<string, unknown>[] = [];
 
     // Revenues
     formattedRows.push({
@@ -169,7 +169,7 @@ export function BudgetVsActualClient({
       description: isAr ? "يتم تجهيز ملف الإكسل" : "Preparing workbook",
     });
 
-    const exportRows: Record<string, any>[] = [];
+    const exportRows: Record<string, unknown>[] = [];
     exportRows.push({
       __isGroup: true,
       code: "",

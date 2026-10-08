@@ -110,13 +110,13 @@ function startMockFawryChargeServer(port: number): Promise<http.Server> {
         res.writeHead(500, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "mock provider outage" }));
         return;
       }
-      let parsed: any = {};
+      let parsed: Record<string, unknown> = {};
       try {
-        parsed = JSON.parse(body);
+        parsed = JSON.parse(body) as Record<string, unknown>;
       } catch {
         // ignore malformed body, still respond
       }
-      const merchantRefNum = parsed.merchantRefNum ?? "unknown";
+      const merchantRefNum = typeof parsed.merchantRefNum === "string" ? parsed.merchantRefNum : "unknown";
       res.writeHead(200, { "Content-Type": "application/json" }).end(
         JSON.stringify({
           // Real Fawry domain -- see Step 1 doc comment above for why this

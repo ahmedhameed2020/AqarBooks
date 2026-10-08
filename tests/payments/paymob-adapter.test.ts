@@ -285,7 +285,7 @@ describe("Paymob adapter redaction", () => {
   it("strips source_data.pan from the redacted payload", () => {
     const { rawBody, url } = validFixture;
     const redacted = paymobAdapter.redactProviderPayload({ rawBody, headers: {}, url });
-    const obj = (redacted as any).obj;
+    const obj = (redacted as { obj: { source_data: Record<string, unknown> } }).obj;
     expect(obj.source_data.pan).toBeUndefined();
     // Stronger than checking the value is falsy: confirms `pan` is actually
     // deleted (not merely set to `undefined`), so it isn't an own,

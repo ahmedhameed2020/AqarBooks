@@ -68,9 +68,9 @@ export function useToast() {
       description?: React.ReactNode;
       type?: "success" | "error" | "info" | "warning" | "default";
       variant?: "success" | "error" | "default";
-      actionProps?: any;
+      actionProps?: React.ComponentProps<typeof ToastPrimitive.Action>;
     }) => {
-      const resolvedType =
+      const resolvedType: "success" | "error" | "info" | "warning" | "default" =
         options.type ??
         (options.variant === "error"
           ? "error"
@@ -78,11 +78,19 @@ export function useToast() {
           ? "success"
           : "default");
 
+      const actionProps = options.actionProps;
+      const { style, className, ...actionWithoutStyle } = actionProps ?? {};
       return manager.add({
         title: options.title,
         description: options.description,
-        type: resolvedType as any,
-        actionProps: options.actionProps,
+        type: resolvedType,
+        actionProps: actionProps
+          ? {
+              ...actionWithoutStyle,
+              ...(typeof style !== "function" ? { style } : {}),
+              ...(typeof className !== "function" ? { className } : {}),
+            }
+          : undefined,
       });
     },
     [manager]

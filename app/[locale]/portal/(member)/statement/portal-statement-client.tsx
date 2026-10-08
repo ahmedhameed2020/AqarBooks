@@ -74,11 +74,13 @@ export function PortalStatementClient({
   );
 
   const withBalance = useMemo(() => {
+    const result: Array<PortalStatementMovement & { balanceAfter: number }> = [];
     let running = openingBalance;
-    return inPeriod.map((m) => {
-      running += m.kind === "CHARGE" ? m.amount : -m.amount;
-      return { ...m, balanceAfter: running };
-    });
+    for (const movement of inPeriod) {
+      running += movement.kind === "CHARGE" ? movement.amount : -movement.amount;
+      result.push({ ...movement, balanceAfter: running });
+    }
+    return result;
   }, [inPeriod, openingBalance]);
 
   const visible = useMemo(() => {

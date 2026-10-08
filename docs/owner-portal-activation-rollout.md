@@ -58,7 +58,7 @@ Dashboard ← Advisors ← Security (أو `get_advisors`). التنبيهات ا
 | `RESEND_API_KEY`, `RESEND_FROM` | مفتاح Resend وعنوان المرسِل المعتمد (بدونهما: «لم يتم إرسال البريد» + بديل رقم العميل) |
 | `NEXT_PUBLIC_SITE_URL` | `https://aqarbooks.com` (يُبنى منه رابط التفعيل) |
 | `ANDROID_APP_SHA256_FINGERPRINTS` | بصمات SHA-256 لشهادات التوقيع (upload + Play signing) مفصولة بفواصل |
-| `ANDROID_APP_ID` | اختياري (`com.aqarbooks.aqarbooks_mobile`) |
+| `ANDROID_APP_ID` | اختياري (`com.aqarbooks.app`) |
 | `IOS_TEAM_ID`, `IOS_BUNDLE_ID` | عند دعم iOS (الحالي: `com.aqarbooks.aqarbooksMobile`) |
 بعد النشر:
 ```bash

@@ -95,9 +95,8 @@ export function RegisterAssetForm({
   const accumList = deprAccounts || accumulatedAccounts || [];
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
-
   useEffect(() => {
+    if (pending) submitted.current = true;
     if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
       submitted.current = false;
@@ -468,9 +467,8 @@ export function DisposeAssetForm({
   const today = new Date().toISOString().slice(0, 10);
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
-
   useEffect(() => {
+    if (pending) submitted.current = true;
     if (submitted.current && !pending && state.ok && onOpenChange) {
       onOpenChange(false);
       submitted.current = false;

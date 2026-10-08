@@ -33,8 +33,8 @@ export type HumanCorrectionDelta = {
   userId: string;
   featureKey: "OCR" | "JOURNAL_COPILOT" | "BANK_RECON" | "ASK_AQARBOOKS";
   action: HumanCorrectionAction;
-  aiProposed: any;
-  humanAccepted: any;
+  aiProposed: unknown;
+  humanAccepted: unknown;
   differenceSummary?: string;
   fieldCountTotal?: number;
   fieldCountCorrected?: number;
@@ -46,8 +46,9 @@ export type HumanCorrectionDelta = {
 export async function recordAiAuditLog(entry: AiAuditEntry): Promise<void> {
   try {
     const supabase = await createClient();
+    const db = supabase as unknown as { from: (table: string) => { insert: (payload: Record<string, unknown>) => Promise<unknown> } };
     // Non-blocking write to audit log if table exists, fails silently without breaking workflow
-    await (supabase as any).from("ai_audit_logs").insert({
+    await db.from("ai_audit_logs").insert({
       organization_id: entry.organizationId,
       user_id: entry.userId,
       task_type: entry.taskType,
@@ -71,7 +72,8 @@ export async function recordAiAuditLog(entry: AiAuditEntry): Promise<void> {
 export async function recordHumanCorrectionDelta(delta: HumanCorrectionDelta): Promise<void> {
   try {
     const supabase = await createClient();
-    await (supabase as any).from("ai_human_corrections").insert({
+    const db = supabase as unknown as { from: (table: string) => { insert: (payload: Record<string, unknown>) => Promise<unknown> } };
+    await db.from("ai_human_corrections").insert({
       organization_id: delta.organizationId,
       user_id: delta.userId,
       feature_key: delta.featureKey,

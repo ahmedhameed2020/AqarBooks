@@ -172,7 +172,7 @@ export function UnitsFilters({
             </div>
 
             {/* Building Filter */}
-            <Select value={building || undefined} onValueChange={(v) => pushParams({ building: (v === ALL ? undefined : v) as any, page: undefined })}>
+            <Select value={building || undefined} onValueChange={(v) => pushParams({ building: (v === ALL ? undefined : v || undefined), page: undefined })}>
               <SelectTrigger className="w-36 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
                   <Building2 className="size-3 text-slate-500 shrink-0" />
@@ -190,7 +190,7 @@ export function UnitsFilters({
             </Select>
 
             {/* Zone Filter */}
-            <Select value={zone || undefined} onValueChange={(v) => pushParams({ zone: (v === ALL ? undefined : v) as any, page: undefined })}>
+            <Select value={zone || undefined} onValueChange={(v) => pushParams({ zone: (v === ALL ? undefined : v || undefined), page: undefined })}>
               <SelectTrigger className="w-36 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="size-3 text-slate-500 shrink-0" />
@@ -208,7 +208,7 @@ export function UnitsFilters({
             </Select>
 
             {/* Unit Type Filter */}
-            <Select value={type || undefined} onValueChange={(v) => pushParams({ type: (v === ALL ? undefined : v) as any, page: undefined })}>
+            <Select value={type || undefined} onValueChange={(v) => pushParams({ type: (v === ALL ? undefined : v || undefined), page: undefined })}>
               <SelectTrigger className="w-32 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center gap-1.5 truncate">
                   <Home className="size-3 text-slate-500 shrink-0" />
@@ -226,7 +226,7 @@ export function UnitsFilters({
             </Select>
 
             {/* Occupancy Status Filter */}
-            <Select value={occupancy || undefined} onValueChange={(v) => pushParams({ occupancy: (v === ALL ? undefined : v) as any, page: undefined })}>
+            <Select value={occupancy || undefined} onValueChange={(v) => pushParams({ occupancy: (v === ALL ? undefined : v || undefined), page: undefined })}>
               <SelectTrigger className="w-32 h-9 text-xs rounded-xl border-slate-300 bg-white font-medium dark:border-slate-700 dark:bg-slate-800">
                 <SelectValue placeholder={isAr ? "الإشغال" : "Occupancy"} />
               </SelectTrigger>

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- legacy integration fixture intentionally suppresses generated database typing noise
 // @ts-nocheck
 /**
  * Durable rate limiting for public demo entry.

@@ -57,7 +57,7 @@ sign in with its own password and is linked — no second identity is created.
 `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` are generated
 from environment variables and are empty until set:
 `ANDROID_APP_SHA256_FINGERPRINTS` (comma-separated, debug/upload/Play keys),
-`ANDROID_APP_ID` (default `com.aqarbooks.aqarbooks_mobile`), `IOS_TEAM_ID`,
+`ANDROID_APP_ID` (default `com.aqarbooks.app`), `IOS_TEAM_ID`,
 `IOS_BUNDLE_ID` (default `com.aqarbooks.aqarbooksMobile`). Without them links open in the
 browser, where the web activation page works on its own. See
 `mobile/docs/OWNER_ACTIVATION_LINKS.md`.

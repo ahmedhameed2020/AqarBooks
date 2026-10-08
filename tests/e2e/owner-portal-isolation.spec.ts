@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- legacy browser fixture intentionally suppresses external fixture typing noise
 // @ts-nocheck
 /**
  * Task 15 (Owner Portal Phase 2 exit gate): RLS isolation proven in

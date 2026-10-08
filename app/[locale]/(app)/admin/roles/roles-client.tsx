@@ -30,6 +30,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +70,7 @@ const MODULE_DEFINITIONS: Record<
   {
     nameAr: string;
     nameEn: string;
-    icon: any;
+    icon: LucideIcon;
     color: string;
     bg: string;
   }

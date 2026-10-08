@@ -56,7 +56,15 @@ export async function getOwnPaymentReceiptAction(
     console.error("[getOwnPaymentReceiptAction] allocations query failed:", allocErr.message);
   }
 
-  const allocations: PaymentReceiptAllocation[] = (allocRows ?? []).map((a: any) => ({
+  const allocationRows = (allocRows ?? []) as unknown as Array<{
+    amount: number;
+    dues: {
+      units: { code: string | null } | null;
+      due_types: { name_ar: string | null; name_en: string | null } | null;
+      due_date: string | null;
+    } | null;
+  }>;
+  const allocations: PaymentReceiptAllocation[] = allocationRows.map((a) => ({
     unitCode: a.dues?.units?.code ?? "",
     description: (locale === "ar" ? a.dues?.due_types?.name_ar : a.dues?.due_types?.name_en) ?? "",
     dueDate: a.dues?.due_date ?? "",

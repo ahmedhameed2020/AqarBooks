@@ -74,7 +74,7 @@ describe("upsert_payment_provider_settings reverify-on-merchant-change (real Sup
 
   async function rowFor(settingsId: string) {
     const { data: rows } = await staffClient.rpc("list_payment_provider_settings", { p_organization_id: orgId });
-    return (rows ?? []).find((r: any) => r.id === settingsId);
+    return (rows ?? []).find((r: Record<string, unknown>) => r.id === settingsId);
   }
 
   it("changing merchant_identifier alone (no secret change) on an ENABLED row resets it to DRAFT/disabled and requires a fresh verify", async () => {

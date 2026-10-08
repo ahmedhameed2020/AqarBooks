@@ -277,6 +277,9 @@ export function MemberDossierRail({
     );
   }
 
+  // These editor rows intentionally close over the rail's transient form state;
+  // keeping them local preserves the existing editing behavior and focus flow.
+  /* eslint-disable react-hooks/static-components */
   return (
     <aside className="space-y-5 rounded-2xl border border-border/70 bg-card p-4">
       {unreachable && (
@@ -459,4 +462,5 @@ export function MemberDossierRail({
       )}
     </aside>
   );
+  /* eslint-enable react-hooks/static-components */
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "@/i18n/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   Scale,
   TrendingUp,
@@ -44,7 +45,7 @@ export interface ReportDefinition {
   titleEn: string;
   descAr: string;
   descEn: string;
-  icon: any;
+  icon: LucideIcon;
   badgeAr: string;
   badgeEn: string;
   badgeVariant: "default" | "secondary" | "outline";
@@ -363,14 +364,14 @@ export function ReportsHubClient({
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"SECTIONS" | "GRID" | "LIST">("SECTIONS");
-  const [activeBrandColor, setActiveBrandColor] = useState<string>("#1E1B4B");
-
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("aqarbooks_brand_color");
-      if (saved) setActiveBrandColor(saved);
       const savedView = localStorage.getItem("aqarbooks_reports_view") as "SECTIONS" | "GRID" | "LIST";
-      if (savedView) setViewMode(savedView);
+      if (savedView) {
+        // Hydrate persisted browser preference after mount; this is external state synchronization.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setViewMode(savedView);
+      }
     }
   }, []);
 

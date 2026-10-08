@@ -215,7 +215,7 @@ Propose a balanced double-entry journal with debits and credits.
   // 4. Deterministic Financial Verification & Fallback Construction
   let proposedLines: JournalLineProposal[] = [];
   let justification = "";
-  let confidence: JournalConfidenceBreakdown = {
+  const confidence: JournalConfidenceBreakdown = {
     supplierMatch: vendorName ? 95 : 75,
     expenseAccount: matchedPolicy ? 98 : 88,
     vatTreatment: 96,

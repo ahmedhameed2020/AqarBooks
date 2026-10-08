@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Disposable validator is intentionally CommonJS so Node can execute it directly. */
 const { resolve, join } = require('node:path');
 const { readFileSync } = require('node:fs');
 const { PGlite } = require('@electric-sql/pglite');

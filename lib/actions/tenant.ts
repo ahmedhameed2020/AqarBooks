@@ -61,7 +61,7 @@ export async function updateOrganizationProfile(
   const supabase = await createClient();
   
   // Normalize jurisdiction to strictly supported DB values ('EG', 'SA')
-  let rawJur = parsed.data.taxJurisdiction || "EG";
+  const rawJur = parsed.data.taxJurisdiction || "EG";
   let jur: "EG" | "SA" = "EG";
   if (rawJur === "SA" || rawJur === "SA_ZATCA") {
     jur = "SA";

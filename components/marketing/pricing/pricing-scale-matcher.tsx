@@ -180,7 +180,11 @@ export function PricingScaleMatcher({ locale }: PricingScaleMatcherProps) {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setComplexity(opt.id as any)}
+                    onClick={() => {
+                      if (opt.id === "simple" || opt.id === "moderate" || opt.id === "complex") {
+                        setComplexity(opt.id);
+                      }
+                    }}
                     className={`cursor-pointer w-full text-left rtl:text-right p-3 rounded-xl border text-xs sm:text-[13px] font-semibold transition-all flex items-center justify-between ${
                       complexity === opt.id
                         ? "border-[#07425d] bg-[#07425d]/10 text-[#07425d] shadow-2xs font-bold"

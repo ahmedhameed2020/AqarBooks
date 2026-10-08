@@ -291,7 +291,7 @@ describe("Fawry adapter createCheckout", () => {
   });
 
   it("sends a signature matching buildChargeRequestSignature's expected output for known inputs", async () => {
-    let capturedBody: any = null;
+    let capturedBody: Record<string, unknown> | null = null;
     const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
       capturedBody = JSON.parse(init.body as string);
       return {

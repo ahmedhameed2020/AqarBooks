@@ -27,8 +27,8 @@ export interface FinancialStatementPdfData {
   currencyLabel: string;
   dateRangeLabel: string;
   columns: ReportPdfColumn[];
-  rows: Record<string, any>[];
-  totalRow?: Record<string, any>;
+  rows: Record<string, unknown>[];
+  totalRow?: Record<string, unknown>;
   summaries?: ReportPdfSummaryItem[];
   /** Alias for `summaries` used by the report clients. */
   summaryCards?: ReportPdfSummaryItem[];

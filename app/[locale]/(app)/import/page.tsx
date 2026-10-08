@@ -89,7 +89,7 @@ export default async function ImportPage({
         resorts={resorts ?? []}
         resortId={selectedResortId ?? undefined}
         buildings={buildingsResult.data ?? []}
-        zones={(zonesResult.data as any) ?? []}
+        zones={zonesResult.data ?? []}
         members={membersResult.data ?? []}
       />
     </main>

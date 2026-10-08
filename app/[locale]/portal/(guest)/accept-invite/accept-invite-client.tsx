@@ -79,23 +79,25 @@ export function AcceptInviteClient({
 }) {
   const isAr = locale === "ar";
   const router = useRouter();
-  const [step, setStep] = useState<Step>("establishing_session");
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>(() =>
+    invitationId && token ? "establishing_session" : "error",
+  );
+  const [error, setError] = useState<string | null>(() =>
+    invitationId && token ? null : isAr ? "رابط الدعوة غير صالح." : "Invalid invitation link.",
+  );
   const [code, setCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!invitationId || !token) {
-      setError(isAr ? "رابط الدعوة غير صالح." : "Invalid invitation link.");
-      setStep("error");
-      return;
-    }
+    if (!invitationId || !token) return;
 
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const accessToken = hash.get("access_token");
     const refreshToken = hash.get("refresh_token");
 
     if (!accessToken || !refreshToken) {
+      // Report malformed external auth links after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(
         isAr
           ? "تعذر تأكيد الجلسة. افتح الرابط من رسالة واتساب أو البريد مباشرة."

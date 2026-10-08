@@ -241,10 +241,10 @@ export function ImportWizard({
           row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
             let val = cell.value;
             if (val && typeof val === "object" && "result" in val) {
-              val = (val as any).result;
+              val = (val as { result: ExcelJS.CellValue }).result;
             }
             if (val && typeof val === "object" && "text" in val) {
-              val = (val as any).text;
+              val = (val as { text: ExcelJS.CellValue }).text;
             }
             values[colNumber - 1] = val !== null && val !== undefined ? String(val).trim() : "";
           });
@@ -810,6 +810,7 @@ export function ImportWizard({
               <TableBody>
                 {displayedRows.map((row, index) => {
                   const isValid = row.errors.length === 0;
+                  const parsed = row.parsed as Partial<MemberImportRow & UnitImportRow> | undefined;
                   return (
                     <TableRow
                       key={index}
@@ -842,19 +843,19 @@ export function ImportWizard({
                       {kind === "units" ? (
                         <>
                           <TableCell className="font-mono text-xs font-black text-slate-900 dark:text-white">
-                            {row.parsed?.code || row.raw.code || "—"}
+                            {parsed?.code || row.raw.code || "—"}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-[10px] font-bold">
-                              {row.parsed?.unit_type || row.raw.unit_type || "APARTMENT"}
+                              {parsed?.unit_type || row.raw.unit_type || "APARTMENT"}
                             </Badge>
                           </TableCell>
                           <TableCell className="font-mono text-xs">
-                            {row.parsed?.area ? `${row.parsed.area} م²` : "—"}
+                            {parsed?.area ? `${parsed?.area} م²` : "—"}
                           </TableCell>
                           <TableCell>
                             <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                              {row.parsed?.owner_full_name || row.raw.owner_full_name || "—"}
+                              {parsed?.owner_full_name || row.raw.owner_full_name || "—"}
                             </span>
                             {row.ownerHint === "existing_owner" && (
                               <span className="text-[10px] text-emerald-600 font-bold">
@@ -868,23 +869,23 @@ export function ImportWizard({
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-slate-500">
-                            {row.parsed?.owner_phone || row.raw.owner_phone || "—"}
+                            {parsed?.owner_phone || row.raw.owner_phone || "—"}
                           </TableCell>
                         </>
                       ) : (
                         <>
                           <TableCell className="font-bold text-xs text-slate-900 dark:text-white">
-                            {row.parsed?.full_name || row.raw.full_name || "—"}
+                            {parsed?.full_name || row.raw.full_name || "—"}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-slate-500">
-                            {row.parsed?.phone || row.raw.phone || "—"}
+                            {parsed?.phone || row.raw.phone || "—"}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-slate-500">
-                            {row.parsed?.email || row.raw.email || "—"}
+                            {parsed?.email || row.raw.email || "—"}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-[10px]">
-                              {row.parsed?.is_company ? (isAr ? "شركة" : "Company") : (isAr ? "فرد" : "Individual")}
+                              {parsed?.is_company ? (isAr ? "شركة" : "Company") : (isAr ? "فرد" : "Individual")}
                             </Badge>
                           </TableCell>
                         </>

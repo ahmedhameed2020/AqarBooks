@@ -32,7 +32,7 @@ let mockRolePermissions: Array<{ role_id?: string; permission_id: string; permis
 let mockPermissions: Array<{ id: string; key: string }> = [];
 let mockRoleTemplatePerms: Array<{ role_template_key?: string; permission_key: string }> = [];
 let mockOtherOwners: Array<{ user_id: string; status?: string }> = [];
-let mockAuditLogs: Array<any> = [];
+let mockAuditLogs: Array<Record<string, unknown>> = [];
 
 // Track auth admin and compensation calls
 let mockAuthAdminUsers: Array<{ id: string; email: string }> = [];
@@ -46,10 +46,14 @@ let mockPermissionsSelectError: { message: string } | null = null;
 let mockPermissionsTargetOnly = false;
 let mockMembershipSelectError: { message: string } | null = null;
 let mockRoleAssignmentDeleteError: { message: string } | null = null;
-let mockRoleAssignmentInsertCalls: any[] = [];
-let mockMembershipDeleteCalls: any[] = [];
+let mockRoleAssignmentInsertCalls: unknown[] = [];
+let mockMembershipDeleteCalls: unknown[] = [];
 let mockOwnerCheckRolesError: { message: string } | null = null;
 let mockOwnerCheckTargetAssignmentError: { message: string } | null = null;
+// Admin-client RPC fixture: records calls so tests can assert the atomic
+// role-permission replacement, and lets tests force an error response.
+let mockAdminRpcCalls: Array<{ fnName: string; args: Record<string, unknown> }> = [];
+let mockAdminRpcError: { message: string } | null = null;
 
 // Mock dependencies
 vi.mock("@/lib/auth/session", () => ({
@@ -79,7 +83,7 @@ vi.mock("@/lib/supabase/server", () => ({
         data: { user: mockCurrentUser },
       })),
     },
-    rpc: vi.fn(async (fnName: string, args: any) => {
+    rpc: vi.fn(async (fnName: string, args: unknown) => {
       if (fnName === "add_organization_member") {
         if (args.p_role_key === "FAIL_DB") {
           return { error: { message: "db_error" } };
@@ -94,7 +98,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(() => ({
     from: (table: string) => {
-      const queryBuilder: any = {
+      const queryBuilder: unknown = {
         _table: table,
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -114,7 +118,7 @@ vi.mock("@/lib/supabase/admin", () => ({
       if (table === "organization_memberships") {
         queryBuilder.maybeSingle.mockImplementation(() => Promise.resolve({ data: mockMembership, error: null }));
         queryBuilder.select.mockImplementation(() => {
-          const chain: any = {
+          const chain: unknown = {
             eq: vi.fn().mockImplementation((col1: string, val1: string) => ({
               eq: vi.fn().mockImplementation((col2: string, val2: string) => {
                 const requestedUserId = col1 === "user_id" ? val1 : col2 === "user_id" ? val2 : null;
@@ -161,25 +165,25 @@ vi.mock("@/lib/supabase/admin", () => ({
 
       if (table === "user_role_assignments") {
         queryBuilder.select.mockImplementation(() => {
-          const chain: any = {
+          const chain: unknown = {
             eq: vi.fn().mockImplementation(() => ({
               eq: vi.fn().mockImplementation(() => ({
-                in: vi.fn().mockImplementation((col: string, vals: any[]) => {
+                in: vi.fn().mockImplementation((col: string, vals: unknown[]) => {
                   if (col === "role_id") {
                     if (mockOwnerCheckTargetAssignmentError) {
                       return {
                         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: mockOwnerCheckTargetAssignmentError }),
-                        then: (resolve: any) => resolve({ data: null, error: mockOwnerCheckTargetAssignmentError }),
+                        then: (resolve: unknown) => resolve({ data: null, error: mockOwnerCheckTargetAssignmentError }),
                       };
                     }
                     return {
                       maybeSingle: vi.fn().mockResolvedValue({ data: { id: "assign-1" }, error: null }),
-                      then: (resolve: any) => resolve({ data: mockOtherOwners.map((o) => ({ user_id: o.user_id })), error: null }),
+                      then: (resolve: unknown) => resolve({ data: mockOtherOwners.map((o) => ({ user_id: o.user_id })), error: null }),
                     };
                   }
                   return {
                     maybeSingle: vi.fn().mockResolvedValue({ data: { id: "assign-1" }, error: null }),
-                    then: (resolve: any) => resolve({ data: mockAssignments, error: null }),
+                    then: (resolve: unknown) => resolve({ data: mockAssignments, error: null }),
                   };
                 }),
 
@@ -190,9 +194,9 @@ vi.mock("@/lib/supabase/admin", () => ({
                   });
                   return Promise.resolve({ data: hasOwner ? { id: "assign-1" } : null, error: null });
                 }),
-                then: (resolve: any) => resolve({ data: mockAssignments, error: null }),
+                then: (resolve: unknown) => resolve({ data: mockAssignments, error: null }),
               })),
-              in: vi.fn().mockImplementation((col: string, vals: any[]) => {
+              in: vi.fn().mockImplementation((col: string, vals: unknown[]) => {
                 if (col === "role_id") {
                   if (mockOwnerCheckTargetAssignmentError) {
                     return Promise.resolve({ data: null, error: mockOwnerCheckTargetAssignmentError });
@@ -212,7 +216,7 @@ vi.mock("@/lib/supabase/admin", () => ({
                 return Promise.resolve({ data: hasOwner ? { id: "assign-1" } : null, error: null });
               }),
             })),
-            in: vi.fn().mockImplementation((col: string, vals: any[]) => {
+            in: vi.fn().mockImplementation((col: string, vals: unknown[]) => {
               if (col === "role_id") {
                 return Promise.resolve({ data: mockOtherOwners.map((o) => ({ user_id: o.user_id })), error: null });
               }
@@ -231,7 +235,7 @@ vi.mock("@/lib/supabase/admin", () => ({
             }),
           })),
         }));
-        queryBuilder.insert.mockImplementation((payload: any) => {
+        queryBuilder.insert.mockImplementation((payload: unknown) => {
           mockRoleAssignmentInsertCalls.push(payload);
           return Promise.resolve({ error: null });
         });
@@ -248,7 +252,7 @@ vi.mock("@/lib/supabase/admin", () => ({
         });
         queryBuilder.in.mockResolvedValue({ data: mockRoles, error: null });
         queryBuilder.select.mockImplementation(() => {
-          const roleSelect: any = {
+          const roleSelect: unknown = {
             or: vi.fn().mockReturnThis(),
             eq: vi.fn().mockImplementation((field: string, val: string) => {
               if (field === "key" && val === "TENANT_OWNER" && mockOwnerCheckRolesError) {
@@ -256,23 +260,23 @@ vi.mock("@/lib/supabase/admin", () => ({
                   or: vi.fn().mockResolvedValue({ data: null, error: mockOwnerCheckRolesError }),
                 };
               }
-              const matched = mockRoles.filter((r) => (r as any)[field] === val);
-              const resObj: any = {
+              const matched = mockRoles.filter((r) => (r as Record<string, unknown>)[field] === val);
+              const resObj: unknown = {
                 single: vi.fn().mockResolvedValue({ data: matched[0] || mockRoles[0] || null, error: null }),
                 maybeSingle: vi.fn().mockResolvedValue({ data: matched[0] || mockRoles[0] || null, error: null }),
                 in: vi.fn().mockResolvedValue({ data: matched, error: null }),
                 or: vi.fn().mockImplementation(() => ({
-                  then: (resolve: any) => resolve({ data: matched, error: null }),
+                  then: (resolve: unknown) => resolve({ data: matched, error: null }),
                 })),
                 order: vi.fn().mockReturnThis(),
                 limit: vi.fn().mockReturnThis(),
-                then: (resolve: any) => resolve({ data: matched, error: null }),
+                then: (resolve: unknown) => resolve({ data: matched, error: null }),
               };
               return resObj;
             }),
 
             in: vi.fn().mockImplementation((field: string, vals: string[]) => {
-              const matched = mockRoles.filter((r) => vals.includes((r as any)[field]));
+              const matched = mockRoles.filter((r) => vals.includes((r as Record<string, unknown>)[field]));
               return Promise.resolve({ data: matched, error: null });
             }),
             order: vi.fn().mockReturnThis(),
@@ -282,7 +286,7 @@ vi.mock("@/lib/supabase/admin", () => ({
           };
           return roleSelect;
         });
-        queryBuilder.insert.mockImplementation((payload: any) => ({
+        queryBuilder.insert.mockImplementation((payload: unknown) => ({
           select: () => ({
             single: () => Promise.resolve({ data: { id: "92cf89b3-0bb3-456a-92dd-a9a657695e52" }, error: null }),
           }),
@@ -298,13 +302,13 @@ vi.mock("@/lib/supabase/admin", () => ({
       if (table === "role_permissions") {
         queryBuilder.select.mockImplementation(() => {
           if (mockRolePermissionsSelectError && !mockRolePermissionsTargetOnly) {
-            const errChain: any = {
+            const errChain: unknown = {
               in: vi.fn().mockResolvedValue({ data: null, error: mockRolePermissionsSelectError }),
               eq: vi.fn().mockResolvedValue({ data: null, error: mockRolePermissionsSelectError }),
             };
             return errChain;
           }
-          const chain: any = {
+          const chain: unknown = {
             in: vi.fn().mockImplementation((field: string, vals: string[]) => {
               if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && vals.includes(roleNewId)) {
                 return Promise.resolve({ data: null, error: mockRolePermissionsSelectError });
@@ -354,7 +358,7 @@ vi.mock("@/lib/supabase/admin", () => ({
               const seen = new Set<string>();
               const matched: Array<{ id: string; key: string }> = [];
               for (const p of mockPermissions) {
-                if (vals.includes((p as any)[field]) && !seen.has(p.id)) {
+                if (vals.includes((p as Record<string, unknown>)[field]) && !seen.has(p.id)) {
                   seen.add(p.id);
                   matched.push(p);
                 }
@@ -366,7 +370,7 @@ vi.mock("@/lib/supabase/admin", () => ({
                     return Promise.resolve({ data: found || null, error: null });
                   }),
                 })),
-                then: (resolve: any) => resolve({ data: matched, error: null }),
+                then: (resolve: unknown) => resolve({ data: matched, error: null }),
               };
             }),
           };
@@ -394,7 +398,7 @@ vi.mock("@/lib/supabase/admin", () => ({
       }
 
       if (table === "platform_audit_logs") {
-        queryBuilder.insert.mockImplementation((payload: any) => {
+        queryBuilder.insert.mockImplementation((payload: unknown) => {
           mockAuditLogs.push(payload);
           return Promise.resolve({ error: null });
         });
@@ -406,6 +410,17 @@ vi.mock("@/lib/supabase/admin", () => ({
 
       return queryBuilder;
     },
+    // Service-role RPC surface used by roles.ts. Only modelled functions succeed;
+    // an unmodelled name returns an error so a new production RPC cannot pass silently.
+    rpc: vi.fn(async (fnName: string, args: Record<string, unknown> = {}) => {
+      mockAdminRpcCalls.push({ fnName, args });
+      if (mockAdminRpcError) return { data: null, error: mockAdminRpcError };
+      if (fnName === "replace_role_permissions_atomic") {
+        // public.replace_role_permissions_atomic(...) RETURNS void
+        return { data: null, error: null };
+      }
+      return { data: null, error: { message: `unmocked_admin_rpc:${fnName}` } };
+    }),
     auth: {
       admin: {
         inviteUserByEmail: vi.fn(async (email: string) => {
@@ -478,6 +493,8 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
     mockMembershipDeleteCalls = [];
     mockOwnerCheckRolesError = null;
     mockOwnerCheckTargetAssignmentError = null;
+    mockAdminRpcCalls = [];
+    mockAdminRpcError = null;
     inviteUserFail = false;
     mockTargetMemberships = new Map<string, { status: string } | null>();
     mockTargetMemberships.set(targetUserId, { status: "active" });

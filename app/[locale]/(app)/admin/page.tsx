@@ -44,7 +44,7 @@ export default async function AdminProfilePage({
         organizationId={organization.id}
         name={organization.name}
         defaultCurrency={organization.default_currency || "EGP"}
-        taxJurisdiction={(organization.tax_jurisdiction as any) || "EG"}
+        taxJurisdiction={(organization.tax_jurisdiction as string | null) || "EG"}
         taxId={organization.tax_id || ""}
         address={organization.address || ""}
         phone={organization.phone || ""}

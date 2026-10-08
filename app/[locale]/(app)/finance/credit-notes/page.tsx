@@ -145,7 +145,7 @@ export default async function CreditNotesPage({
       reason: cn.reason,
       unit_code: unitCode,
       due_title: due?.description || (isAr ? "مطالبة مستحقة" : "Issued Due"),
-      decision_snapshot: cn.decision_snapshot,
+      decision_snapshot: (cn.decision_snapshot as Record<string, unknown> | null) ?? undefined,
     };
   });
 

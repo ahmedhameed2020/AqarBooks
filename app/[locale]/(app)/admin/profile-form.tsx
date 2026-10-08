@@ -112,7 +112,17 @@ export function ProfileForm({
   initialBrandColor?: string;
   initialLogoUrl?: string;
   initialTagline?: string;
-  einvoiceProfiles?: any[];
+  einvoiceProfiles?: Array<{
+    id: string;
+    jurisdiction: string;
+    updated_at?: string | null;
+    environment?: "SANDBOX" | "PRODUCTION" | null;
+    taxpayer_id?: string | null;
+    branch_code?: string | null;
+    activity_code?: string | null;
+    enabled: boolean;
+    verified_at?: string | null;
+  }>;
   locale: string;
   readOnly: boolean;
 }) {
@@ -133,7 +143,11 @@ export function ProfileForm({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedColor = localStorage.getItem("aqarbooks_brand_color");
-      if (savedColor && !initialBrandColor) setBrandColorState(savedColor);
+      if (savedColor && !initialBrandColor) {
+        // Hydrate the external browser preference after mount.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setBrandColorState(savedColor);
+      }
     }
   }, [initialBrandColor]);
 

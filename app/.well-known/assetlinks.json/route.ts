@@ -20,7 +20,7 @@ export function GET() {
             relation: ["delegate_permission/common.handle_all_urls"],
             target: {
               namespace: "android_app",
-              package_name: process.env.ANDROID_APP_ID ?? "com.aqarbooks.aqarbooks_mobile",
+              package_name: process.env.ANDROID_APP_ID ?? "com.aqarbooks.app",
               sha256_cert_fingerprints: fingerprints,
             },
           },

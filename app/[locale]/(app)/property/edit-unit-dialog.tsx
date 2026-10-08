@@ -100,6 +100,8 @@ export function EditUnitDialog({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    // Reset the async form state before loading the newly selected unit.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCtx(null);
     setLoadFailed(false);
     setError(null);

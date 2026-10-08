@@ -201,7 +201,7 @@ export function cleanNumericValue(val: string | null | undefined): number | null
  */
 export function cleanDateValue(val: string | null | undefined): string | null {
   if (!val) return null;
-  let clean = convertArabicHindiDigits(val.trim());
+  const clean = convertArabicHindiDigits(val.trim());
   if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
 
   // Check DD/MM/YYYY or DD-MM-YYYY
@@ -373,7 +373,7 @@ export function previewImportRows(
     membersByPhone?: Map<string, string>;
     customMappings?: Record<string, string>;
   } = {},
-): ImportPreviewResult<any> {
+): ImportPreviewResult<MemberImportRow | UnitImportRow> {
   const parsedCsv = parseCsvText(csvText);
   if (parsedCsv.error) {
     return { headers: [], mappings: [], rows: [], qualityScore: 0, parseError: parsedCsv.error };

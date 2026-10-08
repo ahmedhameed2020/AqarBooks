@@ -67,9 +67,8 @@ export function EditAccountDialog({
   });
 
   const submitted = useRef(false);
-  if (pending) submitted.current = true;
-
   useEffect(() => {
+    if (pending) submitted.current = true;
     if (submitted.current && !pending && state.ok) {
       handleClose();
     }

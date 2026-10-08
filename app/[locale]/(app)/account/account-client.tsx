@@ -43,17 +43,23 @@ import {
 import type { ActionResult } from "@/lib/actions/platform";
 import { useToast } from "@/components/ui/toast";
 
+export type AccountUserMetadata = {
+  phone?: string;
+  job_title?: string;
+  avatar_url?: string;
+  default_landing_page?: string;
+  wa_notifications?: boolean;
+  email_digest?: boolean;
+  security_alerts?: boolean;
+};
+
 export interface AccountClientProps {
   user: {
     id: string;
     email: string;
     created_at?: string;
     last_sign_in_at?: string;
-    user_metadata?: {
-      phone?: string;
-      job_title?: string;
-      avatar_url?: string;
-    };
+    user_metadata?: AccountUserMetadata;
   };
   profile: {
     full_name?: string | null;
@@ -137,16 +143,16 @@ export function AccountClient({
 
   // User preferences state (default landing page, notifications)
   const [defaultLandingPage, setDefaultLandingPage] = useState<string>(
-    (user.user_metadata as any)?.default_landing_page || "/dashboard"
+    user.user_metadata?.default_landing_page || "/dashboard"
   );
   const [waNotifications, setWaNotifications] = useState<boolean>(
-    (user.user_metadata as any)?.wa_notifications !== false
+    user.user_metadata?.wa_notifications !== false
   );
   const [emailDigest, setEmailDigest] = useState<boolean>(
-    (user.user_metadata as any)?.email_digest !== false
+    user.user_metadata?.email_digest !== false
   );
   const [securityAlerts, setSecurityAlerts] = useState<boolean>(
-    (user.user_metadata as any)?.security_alerts !== false
+    user.user_metadata?.security_alerts !== false
   );
   const [isSavingPrefs, startSavePrefsTransition] = useTransition();
 

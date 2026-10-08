@@ -240,6 +240,8 @@ export function EInvoiceClient({
   const [invoiceDescription, setInvoiceDescription] = useState("");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState(
+    // The initial form value is intentionally based on the current date.
+    // eslint-disable-next-line react-hooks/purity
     new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
   );
 

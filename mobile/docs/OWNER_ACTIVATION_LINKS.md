@@ -9,7 +9,7 @@ never logged or persisted; it lives only in the pushed route.
 
 | Platform | Identifier |
 | --- | --- |
-| Android `applicationId` | `com.aqarbooks.aqarbooks_mobile` (`android/app/build.gradle.kts`) |
+| Android `applicationId` | `com.aqarbooks.app` (`android/app/build.gradle.kts`) |
 | iOS bundle id | `com.aqarbooks.aqarbooksMobile` (`ios/Runner.xcodeproj/project.pbxproj`) |
 
 ## What the web team must serve (from `https://aqarbooks.com`)
@@ -21,7 +21,7 @@ never logged or persisted; it lives only in the pushed route.
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.aqarbooks.aqarbooks_mobile",
+    "package_name": "com.aqarbooks.app",
     "sha256_cert_fingerprints": ["<SHA-256 of the release signing cert>"]
   }
 }]
@@ -65,5 +65,5 @@ comes from the Apple developer account.
 ## Verifying
 
 - Android: `adb shell am start -a android.intent.action.VIEW -d "aqarbooks://activate/<token>"`
-  and `adb shell pm get-app-links com.aqarbooks.aqarbooks_mobile`.
+  and `adb shell pm get-app-links com.aqarbooks.app`.
 - iOS: `xcrun simctl openurl booted "aqarbooks://activate/<token>"`.

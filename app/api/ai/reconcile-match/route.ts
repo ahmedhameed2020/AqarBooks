@@ -51,12 +51,12 @@ export async function POST(req: Request) {
     const matchResults = await Promise.all(
       unmatchedLines.map(async (l, idx) => {
         const rawCandidates = candidateResults[idx]?.data || [];
-        const candidates: StatementLineCandidate[] = rawCandidates.map((c: any) => ({
+        const candidates: StatementLineCandidate[] = rawCandidates.map((c) => ({
           id: c.journal_entry_line_id,
           entryNumber: String(c.entry_number ?? ""),
           entryDate: c.entry_date,
-          amount: c.amount,
-          description: c.description,
+          amount: Number(c.signed_amount),
+          description: c.description ?? undefined,
         }));
 
         let interpretedMemo;

@@ -33,7 +33,7 @@ export type CreditNoteItem = {
   reason: string;
   unit_code: string;
   due_title: string;
-  decision_snapshot?: any;
+  decision_snapshot?: Record<string, unknown>;
 };
 
 export function CreditNotesClient({

@@ -71,7 +71,7 @@ export function IncomeStatementClient({
 
   // PDF Export
   const handleExportPdf = () => {
-    const formattedRows: Record<string, any>[] = [];
+    const formattedRows: Record<string, unknown>[] = [];
 
     // Header 1: Revenue
     formattedRows.push({
@@ -146,7 +146,7 @@ export function IncomeStatementClient({
       description: isAr ? "يتم تجهيز ملف الإكسل المنسق" : "Preparing workbook",
     });
 
-    const exportRows: Record<string, any>[] = [];
+    const exportRows: Record<string, unknown>[] = [];
     exportRows.push({
       __isGroup: true,
       code: "",

@@ -115,7 +115,7 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
   await page.goto("/en/finance/einvoice");
 
   // No row yet.
-  let body = await page.locator("body").innerText();
+  const body = await page.locator("body").innerText();
   expect(body).toMatch(/Not configured/i);
 
   // Nothing anywhere may imply a working link to a tax authority.

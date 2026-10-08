@@ -154,7 +154,7 @@ export function MembersFilters({
           {/* OWNERSHIP FILTER */}
           <Select
             value={ownership || undefined}
-            onValueChange={(v) => pushParams({ ownership: (v === ALL ? undefined : v) as any, page: undefined })}
+            onValueChange={(v) => pushParams({ ownership: (v === ALL ? undefined : v || undefined), page: undefined })}
           >
             <SelectTrigger className="w-40 h-10 text-xs font-bold rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700">
               <SelectValue placeholder={isAr ? "حالة الملكية" : "Ownership"} />

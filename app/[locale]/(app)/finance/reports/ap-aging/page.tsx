@@ -122,6 +122,8 @@ export default async function ApAgingPage({
     });
   });
 
+  // Server-rendered aging reports intentionally snapshot the request-time clock.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   (invoicesData || []).forEach((inv) => {
     const supId = inv.supplier_id;

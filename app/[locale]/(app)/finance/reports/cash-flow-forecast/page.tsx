@@ -122,6 +122,8 @@ export default async function CashFlowForecastPage({
     paidByInvoice.set(a.invoice_id, (paidByInvoice.get(a.invoice_id) ?? 0) + Number(a.amount));
   }
 
+  // Server-rendered forecasts intentionally snapshot the request-time clock.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const getDaysDiff = (dStr?: string | null) => {
     if (!dStr) return 0;

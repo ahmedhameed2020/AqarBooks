@@ -2,6 +2,29 @@ import { createClient } from "@/lib/supabase/server";
 export * from "./policy-memory-types";
 import { DEFAULT_REAL_ESTATE_POLICIES, type TenantAccountingPolicy } from "./policy-memory-types";
 
+type PolicyRow = {
+  id: string;
+  tenant_id: string;
+  vendor_pattern: string;
+  description_pattern: string | undefined;
+  preferred_account_id: string;
+  preferred_account_code: string;
+  preferred_account_name: string;
+  vat_treatment: TenantAccountingPolicy["vatTreatment"];
+  effective_from: string;
+  learned_from_approvals_count: number;
+  status: TenantAccountingPolicy["status"];
+  version: number;
+  last_used_at: string | undefined;
+};
+type PolicyQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: string) => {
+      neq: (column: string, value: string) => Promise<{ data: PolicyRow[] | null }>;
+    };
+  };
+};
+
 /**
  * In-memory / Database Hybrid Tenant Policy Resolver.
  * Returns active governed accounting policies for the specific tenant.
@@ -9,14 +32,15 @@ import { DEFAULT_REAL_ESTATE_POLICIES, type TenantAccountingPolicy } from "./pol
 export async function getTenantPolicies(tenantId: string): Promise<TenantAccountingPolicy[]> {
   try {
     const supabase = await createClient();
-    const { data: dbPolicies } = await (supabase as any)
+    const db = supabase as unknown as { from: (table: string) => PolicyQuery };
+    const { data: dbPolicies } = await db
       .from("tenant_accounting_policies")
       .select("*")
       .eq("tenant_id", tenantId)
       .neq("status", "DISABLED");
 
     if (dbPolicies && dbPolicies.length > 0) {
-      return dbPolicies.map((p: any) => ({
+      return dbPolicies.map((p: PolicyRow) => ({
         id: p.id,
         tenantId: p.tenant_id,
         vendorPattern: p.vendor_pattern,
