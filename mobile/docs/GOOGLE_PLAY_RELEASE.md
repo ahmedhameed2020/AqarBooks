@@ -1,6 +1,6 @@
 # AqarBooks Mobile — حزمة النشر على Google Play
 
-كل ما يلزم لإصدار V1 أندرويد. مبنية على الحالة الفعلية للمشروع (فحص `android/app/build.gradle.kts` والـManifest بتاريخ 2026-10-06).
+كل ما يلزم لإصدار V1 أندرويد. مبنية على الحالة الفعلية للمشروع — آخر تحقق ميداني بتاريخ **2026-10-08** (فحص `android/app/build.gradle.kts` والـManifest، وAAB موقّع مبني، وفحص حيّ لـ`assetlinks.json` وروابط سياسة الخصوصية).
 
 ---
 
@@ -11,11 +11,14 @@
 | `applicationId` | ✅ **محسوم ومنفَّذ (2026-10-06):** `com.aqarbooks.app` — الـnamespace الداخلي بقي كما هو عمدًا |
 | الإصدار | `1.0.0+1` من pubspec — جاهز |
 | `compileSdk 36` / target | يفي بمتطلبات Play الحالية — جاهز |
-| **توقيع الإصدار** | 🟡 **الكود جاهز:** build.gradle.kts يقرأ `android/key.properties` ويسقط إلى debug عند غيابه. **المتبقي عليك فقط:** توليد الـkeystore وكتابة key.properties (القسم 2-أ و2-ب) |
-| الأيقونة | موجودة (اللوجو الرسمي) — يلزم فقط نسخة 512×512 للمتجر |
-| Deep links | `app.aqarbooks.com` و`aqarbooks.com/activate` بـautoVerify — 🟡 يتطلب استضافة `assetlinks.json` (القسم 6) |
+| **توقيع الإصدار** | ✅ **منفَّذ (2026-10-08):** الـupload keystore و`android/key.properties` مولَّدان محليًا (خارج المستودع)، وكلاهما مُستثنى في `mobile/android/.gitignore` (`key.properties`, `**/*.jks`, `**/*.keystore`). build.gradle.kts يقرأ `android/key.properties` ويسقط إلى debug عند غيابه |
+| **بناء AAB موقّع** | ✅ **منفَّذ:** `mobile/build/app/outputs/bundle/release/app-release.aab` (≈68 MB، 2026-10-08) موقّع بشهادة upload `CN=AqarBooks, O=AqarBooks, C=EG` |
+| الأصول البصرية للمتجر | ✅ **الأيقونة والـFeature graphic جاهزتان** في [store-assets](../store-assets/README.md) وتجتازان `validate_store_assets.py` (`PASS: 2/2 assets valid`). 🟡 **المتبقي:** لقطات شاشة من جهاز حقيقي |
+| Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` **لا يُترجم DNS حاليًا** فرابطه العام لا يتحقق — **قرار مطلوب** |
 | الصلاحيات | ✅ **محسومة ومنفَّذة (2026-10-06):** حُذفت `READ_MEDIA_IMAGES` (الاختيار عبر system picker/Photo Picker بلا صلاحية) و`POST_NOTIFICATIONS` (لا push في V1). المتبقي: INTERNET وCAMERA وUSE_BIOMETRIC فقط |
-| سياسة الخصوصية | 🔴 مطلوبة برابط عام — مسودة جاهزة في [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md) تُستضاف على `aqarbooks.com/privacy` |
+| سياسة الخصوصية | ✅ **منشورة (2026-10-08):** https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (‏200)، و`https://aqarbooks.com/privacy` يعيد 307 إلى `/ar/privacy` (الأساس المنشور من [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md)). 🟡 المتبقي: لصق الرابط في الـConsole |
+| **Play App Signing** | 🟡 **معلَّق:** بصمة SHA-256 الخاصة بـPlay App Signing لا تظهر إلا بعد أول رفع في الـConsole، ويجب إضافتها إلى `assetlinks.json` **بجانب** بصمة upload (القسم 6) |
+| مهام Play Console اليدوية | 🔴 **كلها معلَّقة:** رفع الـAAB على Internal testing، Data safety، Content rating، حساب المراجع في App access، إضافة المختبرين، وتنفيذ بوابات الإصدار على جهاز حقيقي. لا تُعلَم أي منها كمكتملة قبل وجود دليل من الـConsole |
 
 ---
 
@@ -25,7 +28,9 @@
 - **لماذا مؤسسة تحديدًا:** الحسابات الشخصية الجديدة ملزمة باختبار مغلق بـ12 مختبِرًا لمدة 14 يومًا قبل الإنتاج؛ حسابات المؤسسات معفاة.
 - فعّل **Play App Signing** (الافتراضي): Google تحتفظ بمفتاح التوقيع النهائي وأنت تحتفظ بـupload key فقط — لو ضاع upload key يمكن استبداله.
 
-## 2. توقيع الإصدار (Blocker — نفّذه أولًا)
+## 2. توقيع الإصدار — ✅ منفَّذ (2026-10-08)
+
+**الحالة:** الـkeystore و`key.properties` مولَّدان محليًا، والـAAB خرج موقّعًا ونجح بناؤه. الأوامر أدناه محفوظة كمرجع لأي جهاز جديد أو أي إعادة توليد.
 
 **أ. توليد upload keystore (مرة واحدة، على جهاز آمن):**
 
@@ -33,9 +38,9 @@
 keytool -genkey -v -keystore aqarbooks-upload.jks -keyalg RSA -keysize 4096 -validity 10950 -alias upload -dname "CN=AqarBooks, O=AqarBooks, C=EG"
 ```
 
-احفظ الملف وكلمتي المرور في مدير كلمات مرور الشركة. **لا يُرفع الملف إلى git أبدًا.**
+احفظ الملف وكلمتي المرور في مدير كلمات مرور الشركة. **لا يُرفع الملف إلى git أبدًا.** ✅ منفَّذ: الملف محفوظ خارج المستودع (مجلد secrets محلي على جهاز البناء)، وكلمتا المرور في `key.properties` المحلي.
 
-**ب. أنشئ `android/key.properties`** (وأضفه إلى `.gitignore`):
+**ب. `android/key.properties`** — ✅ منشأ محليًا ومُستثنى من git في `mobile/android/.gitignore`. الشكل:
 
 ```properties
 storePassword=***
@@ -44,7 +49,9 @@ keyAlias=upload
 storeFile=C:/secure/aqarbooks-upload.jks
 ```
 
-**ج. تعديل `build.gradle.kts`: ✅ منفَّذ بالفعل** — الملف يقرأ `android/key.properties` تلقائيًا ويوقّع release به، ويسقط إلى مفتاح debug عند غيابه (حتى يظل `flutter run --release` يعمل على أي جهاز تطوير). `key.properties` و`*.jks` ضمن `.gitignore` أصلًا.
+**ج. تعديل `build.gradle.kts`: ✅ منفَّذ بالفعل** — الملف يقرأ `android/key.properties` تلقائيًا ويوقّع release به، ويسقط إلى مفتاح debug عند غيابه (حتى يظل `flutter run --release` يعمل على أي جهاز تطوير). `key.properties` و`*.jks` ضمن `.gitignore` أصلًا (ولا يوجد أي منها في `git ls-files`).
+
+**د. التحقق من أن التوقيع يعمل فعلًا:** بناء `flutter build appbundle --release` نجح وأنتج AAB موقّعًا بشهادة upload، والبصمة المطبوعة بـ`keytool -printcert -jarfile` هي نفسها البصمة المنشورة في `assetlinks.json` (القسم 6) — أي أن الـkeystore المحلي والاستضافة متطابقان.
 
 ## 3. بناء الـAAB
 
@@ -55,6 +62,8 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 ```
 
 الناتج: `build/app/outputs/bundle/release/app-release.aab`. المفتاح publishable/anon فقط — لا service key في التطبيق إطلاقًا (القاعدة قائمة أصلًا).
+
+✅ **مبني فعلًا (2026-10-08):** `mobile/build/app/outputs/bundle/release/app-release.aab` موجود وموقّع بشهادة upload (مجلد `build/` مُستثنى من git). **لم يُرفع بعد إلى Play Console.**
 
 لكل إصدار تالٍ: ارفع `version` في `pubspec.yaml` (مثلًا `1.0.1+2`) — الـ`versionCode` (بعد `+`) يجب أن يزيد دائمًا.
 
@@ -94,13 +103,15 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 
 **الأصول البصرية المطلوبة:**
 
-| الأصل | المواصفات | المصدر |
+| الأصل | المواصفات | المصدر / الحالة |
 |---|---|---|
-| أيقونة المتجر | 512×512 PNG (بلا شفافية) | اللوجو الرسمي على خلفية بيضاء أو Navy `#07425D` |
-| Feature graphic | 1024×500 PNG | اللوجو + «AqarBooks» على Navy — يمكن توليده من ملف Figma |
-| لقطات شاشة هاتف | 2–8 لقطات، يفضل 1080×2400 | من الجهاز الحقيقي أثناء تنفيذ خطة الاختبار (بيانات QA الوهمية — **لا بيانات حقيقية في اللقطات**)؛ المقترح: الرئيسية، المدفوعات، كود فوري، تصريح الزائر، مهام الفني، نتيجة البوابة الخضراء |
+| أيقونة المتجر | 512×512 PNG (بلا شفافية) | ✅ **جاهزة:** [google-play-icon-512.png](../store-assets/google-play-icon-512.png) — اللوجو الرسمي على خلفية بيضاء، 0 بكسل شفاف |
+| Feature graphic | 1024×500 PNG | ✅ **جاهزة:** [google-play-feature-graphic-1024x500.png](../store-assets/google-play-feature-graphic-1024x500.png) — اللوجو + «AqarBooks» على Navy `#07425D` |
+| لقطات شاشة هاتف | 2–8 لقطات، يفضل 1080×2400 | 🔴 **متبقية:** تُلتقط من الجهاز الحقيقي أثناء تنفيذ خطة الاختبار (بيانات QA الوهمية — **لا بيانات حقيقية في اللقطات**)؛ المقترح: الرئيسية، المدفوعات، كود فوري، تصريح الزائر، مهام الفني، نتيجة البوابة الخضراء |
 
-## 5. الصلاحيات — قراران قبل الإرسال
+تُعاد الأصول وتُتحقق حتميًا بالأمرين `python mobile/store-assets/generate_store_assets.py` ثم `python mobile/store-assets/validate_store_assets.py` (يفحص PNG والأبعاد وانعدام الشفافية وحضور لونَي العلامة، وينتهي بـ`PASS: 2/2 assets valid`). التفاصيل في [store-assets/README.md](../store-assets/README.md).
+
+## 5. الصلاحيات — ✅ محسومة ومطبَّقة
 
 ✅ **محسوم ومنفَّذ (2026-10-06):** الـManifest الآن يعلن `INTERNET` + `CAMERA` (بميزات `required=false`) + `USE_BIOMETRIC` فقط.
 - `READ_MEDIA_IMAGES` **حُذفت**: اختيار المرفقات كان أصلًا عبر الـsystem picker (SAF / Android Photo Picker) الذي لا يحتاج أي صلاحية — فسياسة Photo and Video Permissions لم تعد تنطبق ولا يلزم Declaration form.
@@ -108,14 +119,20 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 
 ## 6. App Links (autoVerify)
 
-الـManifest يعلن روابط `app.aqarbooks.com` و`aqarbooks.com/activate`. حتى يتحقق أندرويد منها يجب استضافة:
+الـManifest يعلن فلترَي App Link بـ`autoVerify="true"` على النطاقين `aqarbooks.com` (بمسارات `/activate`) و`app.aqarbooks.com`، إضافة إلى فلتر المخطط المخصص `aqarbooks://activate` الذي لا يحتاج `assetlinks.json`. يتحقق أندرويد من فلتر الـhttps فقط إذا وُجد `assetlinks.json` على النطاق المقابل بمحتوى يضم `package_name` وبصمات SHA-256 للشهادات التي وُقّع بها التطبيق المثبَّت فعلًا. بدونها تعمل الروابط كاختيار متصفح عادي فقط.
 
-- `https://app.aqarbooks.com/.well-known/assetlinks.json`
-- `https://aqarbooks.com/.well-known/assetlinks.json`
+**الحالة الفعلية (تحقق حيّ 2026-10-08):**
 
-بمحتوى يضم `package_name` وبصمة SHA-256 لشهادة **App Signing** (تؤخذ من Play Console → Setup → App integrity بعد أول رفع، وليست بصمة upload key). بدونها تعمل الروابط كاختيار متصفح عادي فقط.
+- ✅ `https://aqarbooks.com/.well-known/assetlinks.json` يعمل ويُرجع `package_name: com.aqarbooks.app` مع بصمة SHA-256 واحدة هي بصمة **upload key** (تم إعدادها في Cloudflare).
+- ⚠️ لأن الملف يضم بصمة upload فقط، فهو يطابق البناء الموقّع محليًا بمفتاح upload فقط. نسخ Play تُوقّعها Google بمفتاح **Play App Signing**، فلن تتحقق الروابط عليها حتى تُضاف البصمة الثانية.
+- 🟡 **بصمة Play App Signing معلَّقة:** لا تُعرض إلا في Play Console → Setup → App integrity بعد أول رفع. عندها **أضِفها إلى `sha256_cert_fingerprints` بجانب بصمة upload** (الاثنتان معًا، لا استبدال).
+- 🔴 `https://app.aqarbooks.com` **لا يُترجم DNS حاليًا** (فشل التحليل: "remote name could not be resolved")، فلا يمكن استضافة `assetlinks.json` عليه، وبالتالي فلتر App Link العام على هذا النطاق **لا يمكن أن يتحقق** ويبقى حاجبًا صريحًا.
 
-## 7. استمارة Data safety (الإجابات الجاهزة)
+**قرار مطلوب بخصوص `app.aqarbooks.com`** (أحد الخيارين، ولا يُترك النطاق معلَّقًا):
+1. ضبط DNS للنطاق الفرعي + شهادة TLS + استضافة `assetlinks.json` عليه، أو
+2. حذف فلتر `app.aqarbooks.com` غير المستخدم من الـManifest وأي إعداد App Link مرتبط به — وهذا قرار كود منفصل يُنفَّذ لاحقًا.
+
+## 7. استمارة Data safety (الإجابات الجاهزة — لم تُدخل في الـConsole بعد)
 
 | سؤال | الإجابة |
 |---|---|
@@ -130,7 +147,7 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 
 > ملاحظة اتساق: بيانات الدفع عبر فوري تتم عند منافذ فوري وليست داخل التطبيق (التطبيق يعرض كودًا مرجعيًا فقط) — لا تُعلن «بيانات بطاقات».
 
-## 8. Content rating
+## 8. Content rating (الاستبيان جاهز — لم يُرسل بعد)
 
 استبيان IARC: فئة Utility/Business، لا عنف، لا محتوى مستخدمين عام (المحتوى داخل مؤسسة مغلقة)، لا مقامرة، لا بيانات موقع تُشارك → النتيجة المتوقعة: **Everyone / 3+**.
 
@@ -149,10 +166,19 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 ## 10. Checklist نهائي قبل الضغط على Publish
 
 - [x] قرار `applicationId` النهائي: `com.aqarbooks.app` ✅ منفَّذ
-- [x] signingConfig في Gradle ✅ منفَّذ — **المتبقي:** توليد keystore + كتابة `key.properties` + بناء AAB ناجح
+- [x] signingConfig في Gradle ✅ منفَّذ (يقرأ `android/key.properties`)
+- [x] توليد upload keystore + كتابة `android/key.properties` ✅ منفَّذ محليًا — الملفان خارج git ومُستثنيان في `mobile/android/.gitignore`
+- [x] بناء AAB موقّع ✅ منفَّذ: `mobile/build/app/outputs/bundle/release/app-release.aab` موقّع بشهادة upload
 - [x] حذف `POST_NOTIFICATIONS` و`READ_MEDIA_IMAGES` ✅ منفَّذ
-- [ ] سياسة الخصوصية منشورة على `aqarbooks.com/privacy` والرابط في الـConsole
-- [ ] `assetlinks.json` على النطاقين (قسم 6)
-- [ ] بيانات المتجر + الأصول البصرية + حساب المراجعة التجريبي (قسم 4)
-- [ ] Data safety + Content rating (قسما 7–8)
-- [ ] كل Blockers خطة اختبار الجهاز ✅ على نسخة Internal testing
+- [x] سياسة الخصوصية منشورة: https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (و`/privacy` → 307 → `/ar/privacy`) ✅ منفَّذ
+- [x] أيقونة المتجر 512×512 + Feature graphic 1024×500 في `mobile/store-assets/` ✅ منفَّذة ومُتحقَّقة (`PASS: 2/2 assets valid`)
+- [x] `assetlinks.json` على `aqarbooks.com` يُرجع `package_name: com.aqarbooks.app` ✅ منفَّذ (ببصمة upload فقط)
+- [ ] **رفع الـAAB على Play Console (Internal testing)** — لم يُنفَّذ بعد. لا تُعلَم أي مهمة يدوية في الـConsole كمكتملة قبل وجود دليل منها
+- [ ] إضافة **بصمة Play App Signing** إلى `assetlinks.json` بجانب بصمة upload بعد أول رفع (قسم 6)
+- [ ] حسم **`app.aqarbooks.com`**: ضبط DNS + `assetlinks.json` عليه، أو حذف الفلتر غير المستخدم في قرار كود لاحق (قسم 6)
+- [ ] لقطات شاشة من جهاز حقيقي (2–8 لقطات، 1080×2400) + استكمال بيانات المتجر (قسم 4)
+- [ ] لصق رابط سياسة الخصوصية في حقل الـConsole
+- [ ] حساب المراجع التجريبي (`qa.owner`) في App access (قسم 4)
+- [ ] Data safety (قسم 7) + Content rating (قسم 8)
+- [ ] إضافة المختبرين (Internal ثم Closed) — قسم 9
+- [ ] تنفيذ كل بوابات [DEVICE_TEST_PLAN.md](DEVICE_TEST_PLAN.md) على نسخة مثبتة **من Play** — لم يُنفَّذ بعد
