@@ -17,7 +17,7 @@
 | Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` نطاق بلا DNS وقد **حُذف فلتر App Link العام غير المستخدم** من الـManifest (2026-10-08)، فلم يعد هناك حاجب DNS — والمتبقي الوحيد بصمة Play App Signing |
 | الصلاحيات | ✅ **محسومة ومنفَّذة (2026-10-06):** حُذفت `READ_MEDIA_IMAGES` (الاختيار عبر system picker/Photo Picker بلا صلاحية) و`POST_NOTIFICATIONS` (لا push في V1). المتبقي: INTERNET وCAMERA وUSE_BIOMETRIC فقط |
 | سياسة الخصوصية | ✅ **منشورة (2026-10-08):** https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (‏200)، و`https://aqarbooks.com/privacy` يعيد 307 إلى `/ar/privacy` (الأساس المنشور من [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md)). 🟡 المتبقي: لصق الرابط في الـConsole |
-| **جهة التواصل وحالة البريد** | 🔴 **حاجز إصدار:** جهة التواصل المنشورة هي `support@aqarbooks.com`، لكن فحص DNS MX حيًا بتاريخ **2026-10-08** لم يُرجع أي سجل MX. يجب إنشاء صندوق بريد/توجيه بريد يعمل أو اعتماد عنوان بديل موثّق قبل الإرسال إلى Play. لا تغيّر العنوان دون موافقة المالك. |
+| **جهة التواصل وحالة البريد** | 🟡 **التوجيه جاهز تقنيًا (2026-10-08):** Cloudflare Email Routing مفعّل وحالته `ready`، والوجهة موثّقة، وقاعدة `support@aqarbooks.com` مفعّلة. أكد Cloudflare DoH وGoogle DoH ظهور سجلات MX الثلاثة. **المتبقي:** اختبار رسالة end-to-end من حساب مختلف والتأكد من وصولها. |
 | **Play App Signing** | 🟡 **معلَّق:** بصمة SHA-256 الخاصة بـPlay App Signing لا تظهر إلا بعد أول رفع في الـConsole، ويجب إضافتها إلى `assetlinks.json` **بجانب** بصمة upload (القسم 6) |
 | مهام Play Console اليدوية | 🔴 **كلها معلَّقة:** رفع الـAAB على Internal testing، Data safety، Content rating، حساب المراجع في App access، إضافة المختبرين، وتنفيذ بوابات الإصدار على جهاز حقيقي. لا تُعلَم أي منها كمكتملة قبل وجود دليل من الـConsole |
 
@@ -202,7 +202,7 @@ The app requires an account issued by your compound or organisation using AqarBo
 - [x] سياسة الخصوصية منشورة: https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (و`/privacy` → 307 → `/ar/privacy`) ✅ منفَّذ
 - [x] أيقونة المتجر 512×512 + Feature graphic 1024×500 في `mobile/store-assets/` ✅ منفَّذة ومُتحقَّقة (`PASS: 2/2 assets valid`)
 - [x] `assetlinks.json` على `aqarbooks.com` يُرجع `package_name: com.aqarbooks.app` ✅ منفَّذ (ببصمة upload فقط)
-- [ ] **حاجز البريد قبل Play:** `support@aqarbooks.com` هو العنوان المنشور، لكن فحص MX حيًا بتاريخ 2026-10-08 لم يُرجع سجل MX؛ إنشاء توجيه/صندوق يعمل أو اعتماد عنوان بديل موثّق مطلوب قبل الإرسال، دون تغيير العنوان بلا موافقة المالك
+- [ ] **اختبار بريد الدعم end-to-end:** Cloudflare Email Routing وMX والوجهة وقاعدة `support@aqarbooks.com` جاهزة ومتحقّقة عبر API وDNS العام؛ أرسل رسالة من حساب مختلف وتأكد من وصولها إلى صندوق الاستقبال الموثّق
 - [ ] **رفع الـAAB على Play Console (Internal testing)** — لم يُنفَّذ بعد. لا تُعلَم أي مهمة يدوية في الـConsole كمكتملة قبل وجود دليل منها
 - [ ] إضافة **بصمة Play App Signing** إلى `assetlinks.json` بجانب بصمة upload بعد أول رفع (قسم 6)
 - [x] حسم **`app.aqarbooks.com`** ✅ منفَّذ (2026-10-08): حُذف فلتر App Link العام غير المستخدم من الـManifest، ولم يبقَ أي حاجب DNS — `assetlinks.json` مطلوب لفلتر التنشيط وحده (قسم 6)
