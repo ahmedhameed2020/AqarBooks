@@ -3,8 +3,8 @@ import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { LegalPage, type LegalSection } from "@/components/marketing/legal-page";
 
-const LAST_UPDATED_AR = "٢٠ أغسطس ٢٠٢٦";
-const LAST_UPDATED_EN = "20 August 2026";
+const LAST_UPDATED_AR = "أكتوبر ٢٠٢٦";
+const LAST_UPDATED_EN = "October 2026";
 
 export async function generateMetadata({
   params,
@@ -29,17 +29,19 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <p>
-            توضّح هذه السياسة كيفية تعاملنا مع البيانات في منصة AqarBooks. وثمة نوعان من
-            البيانات، والتمييز بينهما مهم:
+            توضّح هذه السياسة كيفية تعاملنا مع البيانات في منصة AqarBooks، بما في ذلك تطبيق الهاتف.
+            وتختلف التفاصيل بحسب ما تستخدمه:
           </p>
           <ul>
             <li>
-              <strong>بيانات حسابك:</strong> بياناتك بصفتك مستخدمًا (الاسم، البريد الإلكتروني،
-              سجل الدخول). ونحن المتحكم فيها.
+              <strong>حسابك:</strong> في تطبيق الهاتف يصدر الحساب من مؤسستك، ولا يوجد تسجيل عام
+              للمستخدمين؛ ونستخدم البريد الإلكتروني ومعرّف المستخدم لتسجيل الدخول وربطك بمؤسستك
+              ووحداتك. أما في الويب فنستخدم بيانات الحساب الموضحة أدناه.
             </li>
             <li>
-              <strong>بيانات دفاترك:</strong> ما تُدخله داخل المنصة عن الملاك والوحدات
-              والقيود. ونحن <strong>معالج</strong> لها فحسب، وأنت المتحكم فيها.
+              <strong>بيانات المؤسسة ودفاترك:</strong> ما تُدخله أنت أو مؤسستك داخل المنصة عن
+              الوحدات والقيود والسجلات التشغيلية. نعالجها لتقديم الخدمة، وتظل مؤسستك مسؤولة عن
+              تحديد من يملك حق الوصول إليها.
             </li>
           </ul>
         </>
@@ -51,24 +53,36 @@ function arabicSections(): LegalSection[] {
       body: (
         <ul>
           <li>
-            <strong>بيانات التسجيل:</strong> الاسم، والبريد الإلكتروني، واسم المنشأة، والدولة
-            والعملة.
+            <strong>بيانات الحساب والدخول:</strong> الاسم، والبريد الإلكتروني، ومعرّف المستخدم،
+            واسم المنشأة، والدولة والعملة، ووقت الدخول، وعنوان بروتوكول الإنترنت (IP)، ونوع
+            المتصفح، لأغراض الدخول والأمان وسجل التدقيق.
           </li>
           <li>
-            <strong>بيانات الدخول:</strong> وقت الدخول، وعنوان بروتوكول الإنترنت (IP)، ونوع
-            المتصفح، لأغراض الأمان وسجل التدقيق.
+            <strong>بيانات الوحدات المالية:</strong> المستحقات والمدفوعات والإيصالات الخاصة
+            بوحداتك، لعرضها ومتابعتها.
           </li>
           <li>
-            <strong>سجل الإجراءات:</strong> من رحّل قيدًا، ومن أقفل صندوقًا، ومن عدّل صلاحية.
-            وهذا جزء أساسي من التدقيق المحاسبي.
+            <strong>المحتوى الذي تنشئه:</strong> طلبات الصيانة ووصفها وصورها الاختيارية، وأسماء
+            الزوار وأرقام هواتفهم وتصاريح المرور المولّدة لهم ورموز QR الخاصة بها، وبيانات المركبات
+            التي تسجلها.
           </li>
           <li>
-            <strong>بيانات الدفع:</strong> تُعالَج مباشرة لدى مزوّدي خدمات الدفع. ونحن{" "}
-            <strong>لا نخزّن أرقام البطاقات</strong>.
+            <strong>السجلات التشغيلية:</strong> عمليات التحصيل، وتحديثات أوامر الصيانة، وقرارات
+            السماح أو الرفض عند البوابة ووقتها، بما في ذلك سجلات الإجراءات اللازمة للأمن والتدقيق.
           </li>
           <li>
-            <strong>محتوى دفاترك:</strong> ما تُدخله بنفسك. ولا نطّلع عليه إلا إذا طلبت دعمًا
-            فنيًا يستلزم ذلك.
+            <strong>الكاميرا:</strong> تُستخدم فقط لمسح رموز تصاريح الزوار، وعند اختيارك التقاط
+            صور لإثبات حالة الصيانة، ولا تعمل للتصوير في الخلفية.
+          </li>
+          <li>
+            <strong>بيانات الدفع:</strong> تتم المدفوعات الإلكترونية في التطبيق عبر كود مرجعي
+            يُسدّد لدى منافذ <strong>Fawry</strong>. ولا يجمع التطبيق أرقام البطاقات أو البيانات
+            البنكية.
+          </li>
+          <li>
+            <strong>اطّلاع فريق AqarBooks:</strong> لا يطّلع فريق AqarBooks على دفاترك أو على
+            المحتوى الذي تُدخله أنت أو مؤسستك إلا إذا طلبت مؤسستك دعمًا فنيًا يستلزم ذلك. ويبقى
+            وصول موظفي مؤسستك المخوّلين إلى هذه البيانات محكومًا بأدوارهم وصلاحياتهم.
           </li>
         </ul>
       ),
@@ -79,17 +93,18 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <ul>
-            <li>تشغيل المنصة وتمكينك من الوصول إلى حسابك.</li>
-            <li>تأمين الحساب واكتشاف محاولات الدخول غير المصرّح بها.</li>
-            <li>توفير سجل تدقيق سليم، وهو متطلب محاسبي لا خيار اختياري.</li>
+            <li>تشغيل المنصة والتطبيق وتمكينك من الوصول إلى حسابك ووحداتك.</li>
+            <li>تأمين الحساب والأجهزة الموثوقة واكتشاف محاولات الدخول غير المصرّح بها.</li>
+            <li>تمكين إدارة المؤسسة وفرقها المخوّلة من تنفيذ أعمال التحصيل والصيانة والبوابة.</li>
+            <li>توفير سجل تدقيق سليم، وهو متطلب محاسبي وتشغيلي لا خيار اختياري.</li>
             <li>
               إرسال الرسائل التشغيلية (تأكيد البريد، واستعادة كلمة المرور، وإشعارات الفواتير).
             </li>
             <li>تحسين الخدمة بناءً على أنماط استخدام مجمّعة ومجهولة الهوية.</li>
           </ul>
           <p>
-            <strong>نحن لا نبيع بياناتك لأي جهة</strong>، ولا نستخدمها في الإعلانات، ولا
-            نشاركها مع أطراف أخرى غير المذكورين أدناه.
+            <strong>لا نجمع موقعك الجغرافي أو جهات اتصالك، ولا نعرض إعلانات، ولا نبيع بياناتك</strong>.
+            ولا نشاركها مع أطراف أخرى غير المذكورين أدناه.
           </p>
         </>
       ),
@@ -119,7 +134,8 @@ function arabicSections(): LegalSection[] {
           <p>نستعين بعدد محدود من المزوّدين التقنيين، ولكلٍّ منهم دور محدد:</p>
           <ul>
             <li>
-              <strong>Supabase:</strong> استضافة قاعدة البيانات والمصادقة.
+              <strong>Supabase:</strong> استضافة البيانات والمصادقة؛ وتُنقل البيانات عبر HTTPS/TLS،
+              ويُحكم الوصول إليها بصلاحيات الأدوار وسياسات Row-Level Security داخل مؤسستك.
             </li>
             <li>
               <strong>Cloudflare:</strong> استضافة التطبيق وتوصيل المحتوى والحماية من الهجمات.
@@ -133,8 +149,9 @@ function arabicSections(): LegalSection[] {
             </li>
           </ul>
           <p>
-            ولا يصل هؤلاء المزوّدون إلى البيانات إلا بالقدر اللازم لأداء دورهم، وهم ملتزمون
-            تعاقديًا بحمايتها.
+            وتكون بياناتك مرئية لإدارة مؤسستك وفرقها المخوّلة بالقدر اللازم لأداء الخدمة، كما يصل
+            المزوّدون التقنيون إليها بالقدر اللازم لدورهم، وهم ملتزمون تعاقديًا بحمايتها. ولا نشارك
+            البيانات مع أطراف خارجية لأغراض تسويقية.
           </p>
         </>
       ),
@@ -144,10 +161,10 @@ function arabicSections(): LegalSection[] {
       heading: "مكان التخزين والنقل الدولي",
       body: (
         <p>
-          تُخزَّن البيانات على بنية تحتية سحابية قد تقع خارج نطاق ولايتك القضائية. وعند نقل
-          البيانات عبر الحدود، نعتمد على ضمانات تعاقدية مناسبة مع المزوّدين. وإذا كان لديك
-          متطلب تنظيمي بتخزين البيانات داخل دولة بعينها، فهذا متاح ضمن باقات المؤسسات، ونرحّب
-          بالتواصل معنا بشأنه.
+          تُخزَّن البيانات لدى Supabase على بنية تحتية سحابية قد تقع خارج نطاق ولايتك القضائية،
+          وتُنقل مشفّرة عبر HTTPS/TLS. وعند نقل البيانات عبر الحدود، نعتمد على ضمانات تعاقدية
+          مناسبة مع المزوّدين. أما بيانات اعتماد أجهزة البوابة الموثوقة فتُخزّن في التخزين الآمن
+          للجهاز ولا تُستعاد على جهاز آخر.
         </p>
       ),
     },
@@ -157,12 +174,14 @@ function arabicSections(): LegalSection[] {
       body: (
         <>
           <p>
-            نحتفظ ببياناتك طوال مدة سريان حسابك. وبعد الإنهاء تظل متاحة للتصدير مدة{" "}
-            <strong>ثلاثين يومًا</strong>، ثم تُحذف من الأنظمة التشغيلية خلال مدة معقولة.
+            نحتفظ ببياناتك طوال مدة سريان حسابك، ثم نتعامل معها وفق دورة حياة الخدمة
+            والالتزامات المطبقة. وقد تُحذف من الأنظمة التشغيلية بعد انتهاء الحاجة إليها، مع مراعاة
+            ما يلزم للتصدير أو الإغلاق المنظم.
           </p>
           <p>
-            وثمة استثناء مهم: <strong>سجلات التدقيق والقيود المرحّلة</strong> قد يلزم الاحتفاظ
-            بها مدة أطول متى اقتضت ذلك القوانين المحاسبية أو الضريبية السارية عليك.
+            وتشمل الاستثناءات <strong>السجلات المالية والتدقيقية والقيود المرحّلة</strong> التي قد
+            يلزم الاحتفاظ بها بالقدر والمدة اللذين تفرضهما الالتزامات النظامية أو المحاسبية أو
+            الضريبية للمؤسسة.
           </p>
         </>
       ),
@@ -181,9 +200,8 @@ function arabicSections(): LegalSection[] {
             <li>تصدير بياناتك بصيغة قابلة للقراءة.</li>
           </ul>
           <p>
-            ولممارسة أي من هذه الحقوق:{" "}
-            <a href="mailto:privacy@aqarbooks.com">privacy@aqarbooks.com</a>. ونرد خلال مدة
-            معقولة، لا تتجاوز ثلاثين يومًا في المعتاد.
+            ولممارسة أي من هذه الحقوق، تواصل مع إدارة مؤسستك أو راسلنا على{" "}
+            <a href="mailto:support@aqarbooks.com">support@aqarbooks.com</a>.
           </p>
         </>
       ),
@@ -197,7 +215,8 @@ function arabicSections(): LegalSection[] {
           <li>تُخزَّن كلمات المرور مُجزَّأة (hashed)، لا كنص صريح.</li>
           <li>عزل RLS على مستوى قاعدة البيانات بين جميع الكيانات.</li>
           <li>سجل تدقيق غير قابل للحذف لكل إجراء مالي حسّاس.</li>
-          <li>دعم المصادقة الثنائية (TOTP).</li>
+          <li>دعم المصادقة الثنائية (TOTP) في خدمات الويب عند توفرها.</li>
+          <li>تُخزّن بيانات اعتماد أجهزة البوابة في التخزين الآمن للجهاز.</li>
         </ul>
       ),
     },
@@ -226,8 +245,8 @@ function arabicSections(): LegalSection[] {
       heading: "التواصل",
       body: (
         <p>
-          لأي استفسار بشأن الخصوصية أو لممارسة حقوقك:{" "}
-          <a href="mailto:privacy@aqarbooks.com">privacy@aqarbooks.com</a>
+          لأي استفسار بشأن الخصوصية أو لممارسة حقوقك: تواصل مع إدارة مؤسستك أو راسلنا على{" "}
+          <a href="mailto:support@aqarbooks.com">support@aqarbooks.com</a>.
         </p>
       ),
     },
@@ -242,18 +261,19 @@ function englishSections(): LegalSection[] {
       body: (
         <>
           <p>
-            This policy explains how we handle data in AqarBooks. There are two kinds of data,
-            and the distinction matters:
+            This policy explains how we handle data in AqarBooks, including the mobile app. The
+            details differ depending on what you use:
           </p>
           <ul>
             <li>
-              <strong>Your account data:</strong> your details as a user (name, email, sign-in
-              history). We are the controller of this.
+              <strong>Your account:</strong> for the mobile app, your organisation issues your
+              account and there is no public sign-up. We use your email address and user ID to sign
+              you in and link you to your organisation and units. Web account data is described below.
             </li>
             <li>
-              <strong>Your ledger data:</strong> what you enter about your owners, units, and
-              journal entries. Here we are only a <strong>processor</strong>, and you are the
-              controller.
+              <strong>Organisation and ledger data:</strong> data you or your organisation enter
+              about units, journal entries, and operational records. We process it to provide the
+              service, while your organisation controls who is authorised to access it.
             </li>
           </ul>
         </>
@@ -265,24 +285,37 @@ function englishSections(): LegalSection[] {
       body: (
         <ul>
           <li>
-            <strong>Registration details:</strong> name, email, organisation name, country and
-            currency.
+            <strong>Account and sign-in data:</strong> name, email, user ID, organisation name,
+            country, currency, sign-in timestamp, IP address, and browser type, for sign-in,
+            security, and audit purposes.
           </li>
           <li>
-            <strong>Sign-in data:</strong> timestamp, IP address, and browser type, for
-            security and audit purposes.
+            <strong>Unit financial data:</strong> dues, payments, and receipts for your units, so
+            you can view and track them.
           </li>
           <li>
-            <strong>Action logs:</strong> who posted an entry, who closed a cashbox, who changed
-            a permission. This is a core part of accounting audit.
+            <strong>Content you create:</strong> maintenance requests and descriptions with
+            optional photos, visitor names and phone numbers and the passes issued to them, including
+            their QR codes, and vehicle details you register.
           </li>
           <li>
-            <strong>Payment data:</strong> handled directly by payment providers. We{" "}
-            <strong>do not store card numbers</strong>.
+            <strong>Operational records:</strong> collections, work-order updates, and gate access
+            decisions (allow or deny) and their times, including action logs needed for security and
+            audit.
           </li>
           <li>
-            <strong>Your ledger content:</strong> what you enter yourself. We do not look at it
-            unless you request support that requires it.
+            <strong>Camera:</strong> used only to scan visitor pass codes and, when you choose, to
+            capture maintenance evidence photos; it is not used for background capture.
+          </li>
+          <li>
+            <strong>Payment data:</strong> in-app payment uses a reference code settled at Fawry
+            outlets. The app does not collect card numbers or bank details.
+          </li>
+          <li>
+            <strong>AqarBooks team access:</strong> our team does not inspect your ledgers or the
+            content you or your organisation enter unless your organisation requests technical
+            support that requires it. Inside your organisation, authorised staff keep role-governed
+            access to that data.
           </li>
         </ul>
       ),
@@ -293,17 +326,19 @@ function englishSections(): LegalSection[] {
       body: (
         <>
           <ul>
-            <li>To run the platform and give you access to your account.</li>
-            <li>To secure your account and detect unauthorised access attempts.</li>
-            <li>To maintain a sound audit trail, an accounting requirement rather than a choice.</li>
+            <li>To run the platform and app and give you access to your account and units.</li>
+            <li>To secure your account and trusted devices and detect unauthorised access attempts.</li>
+            <li>To allow your organisation and authorised teams to carry out collections, maintenance, and gate operations.</li>
+            <li>To maintain a sound accounting and operational audit trail, which is a requirement
+              rather than an optional feature.</li>
             <li>
               To send operational email (email confirmation, password reset, billing notices).
             </li>
             <li>To improve the service using aggregated, anonymised usage patterns.</li>
           </ul>
           <p>
-            <strong>We do not sell your data</strong>, we do not use it for advertising, and we
-            do not share it with anyone beyond the processors listed below.
+            <strong>We do not collect location or contacts, show ads, or sell your data</strong>.
+            We do not share it with anyone beyond the processors listed below.
           </p>
         </>
       ),
@@ -333,7 +368,9 @@ function englishSections(): LegalSection[] {
           <p>We use a small set of technical providers, each with a defined role:</p>
           <ul>
             <li>
-              <strong>Supabase:</strong> database hosting and authentication.
+              <strong>Supabase:</strong> data hosting and authentication; data is transmitted over
+              HTTPS/TLS, with access governed by role permissions and Row-Level Security within your
+              organisation.
             </li>
             <li>
               <strong>Cloudflare:</strong> application hosting, content delivery, and attack
@@ -348,8 +385,10 @@ function englishSections(): LegalSection[] {
             </li>
           </ul>
           <p>
-            These providers access data only as needed to perform their role and are
-            contractually bound to protect it.
+            Your data is visible to your organisation&apos;s authorised staff as needed to provide the
+            service. Technical providers access data only as needed to perform their role, are
+            contractually bound to protect it, and we do not share data with third parties for
+            marketing.
           </p>
         </>
       ),
@@ -359,10 +398,10 @@ function englishSections(): LegalSection[] {
       heading: "Storage and international transfers",
       body: (
         <p>
-          Data is stored on cloud infrastructure that may be located outside your country. Where
-          data crosses borders we rely on appropriate contractual safeguards with our providers.
-          If you have a regulatory requirement to keep data within a specific country, that is
-          available on enterprise plans. Talk to us.
+          Data is hosted by Supabase on cloud infrastructure that may be located outside your
+          country and is transmitted using HTTPS/TLS. Where data crosses borders we rely on
+          appropriate contractual safeguards with our providers. Trusted gate-device credentials are
+          kept in the device&apos;s secure storage and cannot be restored onto another device.
         </p>
       ),
     },
@@ -372,14 +411,14 @@ function englishSections(): LegalSection[] {
       body: (
         <>
           <p>
-            We keep your data while your account is active. After termination it remains
-            available for export for <strong>30 days</strong>, then is removed from operational
-            systems within a reasonable period.
+            We keep your data while your account is active and then handle it according to the
+            service lifecycle and applicable obligations. It may be removed from operational systems
+            after it is no longer needed, subject to orderly export or closure requirements.
           </p>
           <p>
-            One important exception: <strong>audit logs and posted journal entries</strong> may
-            need to be retained longer where accounting or tax law in your jurisdiction requires
-            it.
+            This includes an important exception: <strong>financial and audit records and posted
+            journal entries</strong> may need to be retained for the period and to the extent required
+            by the organisation&apos;s legal, accounting, or tax obligations.
           </p>
         </>
       ),
@@ -398,9 +437,8 @@ function englishSections(): LegalSection[] {
             <li>Export your data in a readable format.</li>
           </ul>
           <p>
-            To exercise any of these:{" "}
-            <a href="mailto:privacy@aqarbooks.com">privacy@aqarbooks.com</a>. We respond within a
-            reasonable period, usually within 30 days.
+            To exercise any of these, contact your organisation or email{" "}
+            <a href="mailto:support@aqarbooks.com">support@aqarbooks.com</a>.
           </p>
         </>
       ),
@@ -414,7 +452,8 @@ function englishSections(): LegalSection[] {
           <li>Passwords are stored hashed, never in plain text.</li>
           <li>Database-level RLS isolation between all entities.</li>
           <li>An immutable audit trail for every sensitive financial action.</li>
-          <li>Two-factor authentication support (TOTP).</li>
+          <li>Two-factor authentication support (TOTP) for web services where available.</li>
+          <li>Trusted gate-device credentials are kept in the device&apos;s secure storage.</li>
         </ul>
       ),
     },
@@ -444,8 +483,8 @@ function englishSections(): LegalSection[] {
       heading: "Contact",
       body: (
         <p>
-          Any privacy question, or to exercise your rights:{" "}
-          <a href="mailto:privacy@aqarbooks.com">privacy@aqarbooks.com</a>
+          Any privacy question, or to exercise your rights: contact your organisation or email{" "}
+          <a href="mailto:support@aqarbooks.com">support@aqarbooks.com</a>.
         </p>
       ),
     },
