@@ -14,7 +14,7 @@
 | **توقيع الإصدار** | ✅ **منفَّذ (2026-10-08):** الـupload keystore و`android/key.properties` مولَّدان محليًا (خارج المستودع)، وكلاهما مُستثنى في `mobile/android/.gitignore` (`key.properties`, `**/*.jks`, `**/*.keystore`). build.gradle.kts يقرأ `android/key.properties` ويسقط إلى debug عند غيابه |
 | **بناء AAB موقّع** | ✅ **منفَّذ:** `mobile/build/app/outputs/bundle/release/app-release.aab` (≈68 MB، 2026-10-08) موقّع بشهادة upload `CN=AqarBooks, O=AqarBooks, C=EG` |
 | الأصول البصرية للمتجر | ✅ **الأيقونة والـFeature graphic جاهزتان** في [store-assets](../store-assets/README.md) وتجتازان `validate_store_assets.py` (`PASS: 2/2 assets valid`). 🟡 **المتبقي:** لقطات شاشة من جهاز حقيقي |
-| Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` **لا يُترجم DNS حاليًا** فرابطه العام لا يتحقق — **قرار مطلوب** |
+| Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` نطاق بلا DNS وقد **حُذف فلتر App Link العام غير المستخدم** من الـManifest (2026-10-08)، فلم يعد هناك حاجب DNS — والمتبقي الوحيد بصمة Play App Signing |
 | الصلاحيات | ✅ **محسومة ومنفَّذة (2026-10-06):** حُذفت `READ_MEDIA_IMAGES` (الاختيار عبر system picker/Photo Picker بلا صلاحية) و`POST_NOTIFICATIONS` (لا push في V1). المتبقي: INTERNET وCAMERA وUSE_BIOMETRIC فقط |
 | سياسة الخصوصية | ✅ **منشورة (2026-10-08):** https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (‏200)، و`https://aqarbooks.com/privacy` يعيد 307 إلى `/ar/privacy` (الأساس المنشور من [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md)). 🟡 المتبقي: لصق الرابط في الـConsole |
 | **Play App Signing** | 🟡 **معلَّق:** بصمة SHA-256 الخاصة بـPlay App Signing لا تظهر إلا بعد أول رفع في الـConsole، ويجب إضافتها إلى `assetlinks.json` **بجانب** بصمة upload (القسم 6) |
@@ -119,18 +119,17 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 
 ## 6. App Links (autoVerify)
 
-الـManifest يعلن فلترَي App Link بـ`autoVerify="true"` على النطاقين `aqarbooks.com` (بمسارات `/activate`) و`app.aqarbooks.com`، إضافة إلى فلتر المخطط المخصص `aqarbooks://activate` الذي لا يحتاج `assetlinks.json`. يتحقق أندرويد من فلتر الـhttps فقط إذا وُجد `assetlinks.json` على النطاق المقابل بمحتوى يضم `package_name` وبصمات SHA-256 للشهادات التي وُقّع بها التطبيق المثبَّت فعلًا. بدونها تعمل الروابط كاختيار متصفح عادي فقط.
+الـManifest يعلن فلتر App Link واحد بـ`autoVerify="true"` على `aqarbooks.com` بمسار `/activate` (روابط تنشيط المالك)، إضافة إلى فلتر المخطط المخصص `aqarbooks://activate` الذي لا يحتاج `assetlinks.json`. يتحقق أندرويد من فلتر الـhttps فقط إذا وُجد `assetlinks.json` على النطاق المقابل بمحتوى يضم `package_name` وبصمات SHA-256 للشهادات التي وُقّع بها التطبيق المثبَّت فعلًا. بدونها تعمل الروابط كاختيار متصفح عادي فقط.
 
 **الحالة الفعلية (تحقق حيّ 2026-10-08):**
 
 - ✅ `https://aqarbooks.com/.well-known/assetlinks.json` يعمل ويُرجع `package_name: com.aqarbooks.app` مع بصمة SHA-256 واحدة هي بصمة **upload key** (تم إعدادها في Cloudflare).
 - ⚠️ لأن الملف يضم بصمة upload فقط، فهو يطابق البناء الموقّع محليًا بمفتاح upload فقط. نسخ Play تُوقّعها Google بمفتاح **Play App Signing**، فلن تتحقق الروابط عليها حتى تُضاف البصمة الثانية.
 - 🟡 **بصمة Play App Signing معلَّقة:** لا تُعرض إلا في Play Console → Setup → App integrity بعد أول رفع. عندها **أضِفها إلى `sha256_cert_fingerprints` بجانب بصمة upload** (الاثنتان معًا، لا استبدال).
-- 🔴 `https://app.aqarbooks.com` **لا يُترجم DNS حاليًا** (فشل التحليل: "remote name could not be resolved")، فلا يمكن استضافة `assetlinks.json` عليه، وبالتالي فلتر App Link العام على هذا النطاق **لا يمكن أن يتحقق** ويبقى حاجبًا صريحًا.
+- ✅ **حُذف فلتر App Link العام غير المستخدم (2026-10-08):** كان الـManifest يعلن `autoVerify="true"` على النطاق `app.aqarbooks.com` أيضًا، وهذا النطاق **لا يُترجم DNS**، كما أن تحليل الروابط في التطبيق لا يتعامل إلا مع `aqarbooks.com/activate/<token>`، فكان الفلتر غير قابل للتحقق وغير معالَج في الوقت نفسه. حُذف الفلتر وحده، وبقيا كما هما: فلتر التنشيط `aqarbooks.com/activate` والمخطط المخصص.
+- ✅ رابط منفذ المستحقات صار يُبنى على النطاق الحيّ: `https://aqarbooks.com/ar/portal/dues` و`https://aqarbooks.com/en/portal/dues` (كان `paymentPortalHost` يشير إلى النطاق الميت). المنفذ صفحة ويب عادية — لا يحتاج `assetlinks.json`، والقائمة المسموح بها في التطبيق تقبل النطاق الحيّ وترفض `app.aqarbooks.com` صراحةً.
 
-**قرار مطلوب بخصوص `app.aqarbooks.com`** (أحد الخيارين، ولا يُترك النطاق معلَّقًا):
-1. ضبط DNS للنطاق الفرعي + شهادة TLS + استضافة `assetlinks.json` عليه، أو
-2. حذف فلتر `app.aqarbooks.com` غير المستخدم من الـManifest وأي إعداد App Link مرتبط به — وهذا قرار كود منفصل يُنفَّذ لاحقًا.
+**الخلاصة:** لم يبقَ أي حاجب DNS. `assetlinks.json` مطلوب لفلتر واحد فقط هو **App Link التنشيط** (`aqarbooks.com/activate`)، والمتبقي الوحيد عليه إضافة بصمة **Play App Signing** بعد أول رفع.
 
 ## 7. استمارة Data safety (الإجابات الجاهزة — لم تُدخل في الـConsole بعد)
 
@@ -175,7 +174,7 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 - [x] `assetlinks.json` على `aqarbooks.com` يُرجع `package_name: com.aqarbooks.app` ✅ منفَّذ (ببصمة upload فقط)
 - [ ] **رفع الـAAB على Play Console (Internal testing)** — لم يُنفَّذ بعد. لا تُعلَم أي مهمة يدوية في الـConsole كمكتملة قبل وجود دليل منها
 - [ ] إضافة **بصمة Play App Signing** إلى `assetlinks.json` بجانب بصمة upload بعد أول رفع (قسم 6)
-- [ ] حسم **`app.aqarbooks.com`**: ضبط DNS + `assetlinks.json` عليه، أو حذف الفلتر غير المستخدم في قرار كود لاحق (قسم 6)
+- [x] حسم **`app.aqarbooks.com`** ✅ منفَّذ (2026-10-08): حُذف فلتر App Link العام غير المستخدم من الـManifest، ولم يبقَ أي حاجب DNS — `assetlinks.json` مطلوب لفلتر التنشيط وحده (قسم 6)
 - [ ] لقطات شاشة من جهاز حقيقي (2–8 لقطات، 1080×2400) + استكمال بيانات المتجر (قسم 4)
 - [ ] لصق رابط سياسة الخصوصية في حقل الـConsole
 - [ ] حساب المراجع التجريبي (`qa.owner`) في App access (قسم 4)

@@ -44,7 +44,10 @@ class AppConfig {
       !anonKey.contains('YOUR_');
 }
 
-const paymentPortalHost = 'app.aqarbooks.com';
+// Live production host for the web dues portal. The old
+// `app.aqarbooks.com` subdomain has no DNS record, so links built on it were
+// dead; the portal is served from the main domain.
+const paymentPortalHost = 'aqarbooks.com';
 
 Uri duesPortalUri(Locale locale) {
   final language = locale.languageCode == 'ar' ? 'ar' : 'en';

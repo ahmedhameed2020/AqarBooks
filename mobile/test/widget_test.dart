@@ -180,10 +180,25 @@ void main() {
         '١٥ أكتوبر ٢٠٢٦');
   });
 
-  test('dues portal URI stays allowlisted (legacy web handoff)', () {
+  test('dues portal URI uses the live web host (legacy web handoff)', () {
     final arabic = duesPortalUri(const Locale('ar'));
-    expect(arabic.toString(), 'https://app.aqarbooks.com/ar/portal/dues');
+    expect(arabic.toString(), 'https://aqarbooks.com/ar/portal/dues');
+    expect(
+      duesPortalUri(const Locale('en')).toString(),
+      'https://aqarbooks.com/en/portal/dues',
+    );
     expect(isAllowedDuesPortalUri(arabic), isTrue);
+    expect(
+      isAllowedDuesPortalUri(Uri.parse('https://aqarbooks.com/en/portal/dues')),
+      isTrue,
+    );
+    // The retired subdomain has no DNS and must never be trusted again.
+    expect(
+      isAllowedDuesPortalUri(
+        Uri.parse('https://app.aqarbooks.com/en/portal/dues'),
+      ),
+      isFalse,
+    );
     expect(
       isAllowedDuesPortalUri(Uri.parse('https://evil.example/en/portal/dues')),
       isFalse,

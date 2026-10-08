@@ -32,12 +32,6 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="app.aqarbooks.com" />
-            </intent-filter>
             <!-- Owner activation links: https://aqarbooks.com/activate/<token> -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
