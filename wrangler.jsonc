@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "aqarbooks",
-  "main": ".open-next/worker.js",
+  // Custom entry: the OpenNext fetch handler plus the Cron Trigger handler.
+  "main": "cloudflare-worker.ts",
   "compatibility_date": "2026-08-16",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -10,5 +11,10 @@
   },
   "observability": {
     "enabled": true
+  },
+  // Scheduled jobs (formerly GitHub Actions cron). Which /api/cron/* route each
+  // expression runs is decided in lib/cron/schedule.ts. Times are UTC.
+  "triggers": {
+    "crons": ["* * * * *", "0,30 3,4 * * *"]
   }
 }
