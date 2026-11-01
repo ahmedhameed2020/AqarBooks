@@ -1,0 +1,19 @@
+$ tests/e2e/reports-lease-read-failure.spec.ts
+label=b3-wave2-reports-lease-read-failure
+exit=0
+elapsed_ms=16082
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\reports-lease-read-failure.spec.ts:43:5 › lease expirations shows the read error instead of partial or empty rows when the data read fails (9.0s)
+
+  1 passed (11.1s)
+(node:25156) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

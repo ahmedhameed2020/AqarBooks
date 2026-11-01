@@ -1,0 +1,54 @@
+$ tests/e2e/admin-team-invite-flow.spec.ts
+label=b3-wave2-admin-team-invite-flow
+exit=1
+elapsed_ms=108651
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\admin-team-invite-flow.spec.ts:13:7 › Admin Team & Users Governance E2E Suite › Complete Team Management Flow: Invite, Role Change, and Status Toggle (57.5s)
+
+
+  1) tests\e2e\admin-team-invite-flow.spec.ts:13:7 › Admin Team & Users Governance E2E Suite › Complete Team Management Flow: Invite, Role Change, and Status Toggle 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('محاسب أول المنشأة')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 20000ms
+      - waiting for getByText('محاسب أول المنشأة')
+
+
+      110 |
+      111 |     // Verify modal closes and new member name appears in the list
+    > 112 |     await expect(page.getByText(newMemberName)).toBeVisible({ timeout: 20_000 });
+          |                                                 ^
+      113 |
+      114 |     // 7. Test Role Change
+      115 |     const memberCard = page.locator(`div:has-text("${newMemberName}")`).last();
+        at D:\Web\AqarBooks\tests\e2e\admin-team-invite-flow.spec.ts:112:49
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-admin-team-invite-flow-artifacts\admin-team-invite-flow-Adm-5d567-le-Change-and-Status-Toggle\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-admin-team-invite-flow-artifacts\admin-team-invite-flow-Adm-5d567-le-Change-and-Status-Toggle\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-admin-team-invite-flow-artifacts\admin-team-invite-flow-Adm-5d567-le-Change-and-Status-Toggle\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\admin-team-invite-flow.spec.ts:13:7 › Admin Team & Users Governance E2E Suite › Complete Team Management Flow: Invite, Role Change, and Status Toggle 
+(node:16868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:36540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

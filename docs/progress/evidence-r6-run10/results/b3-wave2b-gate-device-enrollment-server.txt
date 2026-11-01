@@ -1,0 +1,8 @@
+▲ Next.js 16.3.0
+- Local:         http://localhost:3176
+- Network:       http://10.120.198.173:3176
+✓ Ready in 328ms
+✓ Running next.config.ts took 3.0s
+Using secrets defined in .dev.vars
+[redeemGateDeviceEnrollmentAction] failed: enrollment_unavailable
+[processVisitorGateScanAction] failed: device_not_authorized

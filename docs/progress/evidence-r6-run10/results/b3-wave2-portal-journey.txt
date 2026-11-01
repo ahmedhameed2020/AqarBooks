@@ -1,0 +1,55 @@
+$ tests/e2e/portal-journey.spec.ts
+label=b3-wave2-portal-journey
+exit=1
+elapsed_ms=15505
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (3ms)
+  -  2 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit
+  -  3 tests\e2e\portal-journey.spec.ts:56:5 › J3 the owner's statement shows their movements and nobody else's
+  -  4 tests\e2e\portal-journey.spec.ts:70:5 › J4 owner 1 submits a maintenance request for their unit
+  -  5 tests\e2e\portal-journey.spec.ts:96:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note
+  -  6 tests\e2e\portal-journey.spec.ts:121:5 › J6 the owner follows the status and sees only the member-visible note
+
+
+  1) tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at createPortalWorld (D:\Web\AqarBooks\tests\e2e\helpers\portal-fixture.ts:87:40)
+        at D:\Web\AqarBooks\tests\e2e\portal-journey.spec.ts:28:30
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-portal-journey-artifacts\portal-journey-J1-owner-1--71a7e--and-lands-on-the-dashboard\error-context.md
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-portal-journey-artifacts\portal-journey-J1-owner-1--71a7e--and-lands-on-the-dashboard\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-portal-journey-artifacts\portal-journey-J1-owner-1--71a7e--and-lands-on-the-dashboard\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-portal-journey-artifacts\portal-journey-J1-owner-1--71a7e--and-lands-on-the-dashboard\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard 
+  5 did not run
+(node:19772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

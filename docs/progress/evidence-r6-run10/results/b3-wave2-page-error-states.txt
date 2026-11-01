@@ -1,0 +1,18 @@
+$ tests/e2e/page-error-states.spec.ts
+label=b3-wave2-page-error-states
+exit=0
+elapsed_ms=61147
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\page-error-states.spec.ts:61:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers (23.2s)
+  ok 2 tests\e2e\page-error-states.spec.ts:87:5 › owner portal: units, home and statement show the error, not 'no units' / zeros; Retry recovers (21.0s)
+
+  2 passed (50.8s)
+(node:20500) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

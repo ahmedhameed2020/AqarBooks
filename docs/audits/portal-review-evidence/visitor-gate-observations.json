@@ -1,19 +1,19 @@
 {
   "V1": {
-    "deviceId": "b2efcbc7-b235-4ea9-aa61-37f40f2ce5f3",
+    "deviceId": "f15835c5-db6a-4202-94d3-f55c8a9347cf",
     "device": "BOTH:Field browser",
     "enrolledByIsGuard": true,
     "enrolledByIsManager": false,
     "enrollmentCodeReuse": "rejected by the existing gate-device-enrollment spec (reuse)"
   },
   "V1-guard-gates-page": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action 1 العربية ⌘K Dashboard PROPERTIES & OPERATIONS Live Visitor Occupancy SETTINGS & ACCOUNT My Account & Security",
-  "V2-entry": "ALLOW Entry allowed Alex Morgan · VP-47E2D81361 Access approved — barrier not confirmed QUEUED",
-  "V2-entry-while-inside": "DENY Pass already used Alex Morgan · VP-47E2D81361",
-  "V2-exit": "ALLOW Exit allowed Alex Morgan · VP-47E2D81361 Access approved — barrier not confirmed QUEUED",
-  "V2-second-use": "DENY Pass already used Alex Morgan · VP-47E2D81361",
+  "V2-entry": "ALLOW Entry allowed Alex Morgan · VP-174BDDCA22 Access approved — barrier not confirmed QUEUED",
+  "V2-entry-while-inside": "DENY Pass already used Alex Morgan · VP-174BDDCA22",
+  "V2-exit": "ALLOW Exit allowed Alex Morgan · VP-174BDDCA22 Access approved — barrier not confirmed QUEUED",
+  "V2-second-use": "DENY Pass already used Alex Morgan · VP-174BDDCA22",
   "V2-ledger": "ENTRY:ALLOW:VALID_ENTRY | ENTRY:DENY:PASS_ALREADY_USED | EXIT:ALLOW:VALID_EXIT | ENTRY:DENY:PASS_ALREADY_USED",
   "V3-ledger": "EXIT:DENY:NOT_INSIDE | ENTRY:ALLOW:VALID_ENTRY | ENTRY:DENY:ALREADY_INSIDE | EXIT:ALLOW:VALID_EXIT | ENTRY:ALLOW:VALID_ENTRY",
-  "V4-notifications": "VISITOR_INVITATION_CREATED:visitor_invitation,INVITATION_REVOKED:visitor_invitation",
+  "V4-notifications": "INVITATION_REVOKED:visitor_invitation,VISITOR_INVITATION_CREATED:visitor_invitation",
   "V4-other-owner-revoke": {
     "code": "42501",
     "message": "VISITOR_INVITATION_NOT_AUTHORIZED"
@@ -42,7 +42,7 @@
       {
         "decision": "DENY",
         "reason_code": "INVALID_PASS",
-        "event_id": "55adec0b-93d4-4875-82e7-8715b2cd0a68",
+        "event_id": "349c47cd-3962-4fe7-b294-64a3b243b658",
         "guest_name": null,
         "invitation_no": null,
         "unit_id": null,
@@ -50,9 +50,9 @@
         "usage_policy": null,
         "valid_until": null,
         "is_inside": null,
-        "gate_id": "ee967aea-ed01-4493-923a-de67d0e11d73",
-        "property_id": "f5033e15-9063-4d31-b73c-01db63c67031",
-        "occurred_at": "2026-10-11T19:23:08.738107+00:00",
+        "gate_id": "13240be9-d86f-428a-92f5-f122074fec58",
+        "property_id": "4efa7bb9-5d9e-490b-999f-ebe61dd28387",
+        "occurred_at": "2026-11-01T04:45:13.856252+00:00",
         "hardware_status": "NOT_ELIGIBLE"
       }
     ]

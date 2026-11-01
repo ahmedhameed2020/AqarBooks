@@ -1,0 +1,20 @@
+$ tests/e2e/aging-report-permission-gate.spec.ts
+label=b3-wave2-aging-report-permission-gate
+exit=0
+elapsed_ms=77952
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\aging-report-permission-gate.spec.ts:24:5 › a staff user without finance.dues.read sees a clear permission-denied message, not a misleading empty report (20.4s)
+  ok 2 tests\e2e\aging-report-permission-gate.spec.ts:69:5 › a TENANT_OWNER (has finance.dues.read) still sees the real report, not the denial message (15.7s)
+
+  2 passed (46.4s)
+(node:8580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

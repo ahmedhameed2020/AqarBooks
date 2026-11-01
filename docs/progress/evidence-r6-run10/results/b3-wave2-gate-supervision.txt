@@ -1,0 +1,114 @@
+$ tests/e2e/gate-supervision.spec.ts
+label=b3-wave2-gate-supervision
+exit=1
+elapsed_ms=19238
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\gate-supervision.spec.ts:8:5 › guard exception requires supervisor approval; corrected exit preserves scan evidence (361ms)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  2 tests\e2e\gate-supervision.spec.ts:58:5 › supervisor looks up a missing entry, reconciles inside, and exports occupancy (580ms)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  3 tests\e2e\gate-supervision.spec.ts:79:5 › ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL (666ms)
+
+
+  1) tests\e2e\gate-supervision.spec.ts:8:5 › guard exception requires supervisor approval; corrected exit preserves scan evidence 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-supervision.spec.ts:9:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-guard-exc-c71d4-xit-preserves-scan-evidence\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-guard-exc-c71d4-xit-preserves-scan-evidence\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-guard-exc-c71d4-xit-preserves-scan-evidence\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\gate-supervision.spec.ts:58:5 › supervisor looks up a missing entry, reconciles inside, and exports occupancy 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-supervision.spec.ts:59:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-superviso-13993-nside-and-exports-occupancy\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-superviso-13993-nside-and-exports-occupancy\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-superviso-13993-nside-and-exports-occupancy\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\gate-supervision.spec.ts:79:5 › ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-supervision.spec.ts:80:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-ledger-fi-60367--CSV-Arabic-screens-use-RTL\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-ledger-fi-60367--CSV-Arabic-screens-use-RTL\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-supervision-artifacts\gate-supervision-ledger-fi-60367--CSV-Arabic-screens-use-RTL\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    tests\e2e\gate-supervision.spec.ts:8:5 › guard exception requires supervisor approval; corrected exit preserves scan evidence 
+    tests\e2e\gate-supervision.spec.ts:58:5 › supervisor looks up a missing entry, reconciles inside, and exports occupancy 
+    tests\e2e\gate-supervision.spec.ts:79:5 › ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL 
+(node:26412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,216 @@
+$ tests/e2e/gate-scanner-field.spec.ts
+label=b3-wave2-gate-scanner-field
+exit=1
+elapsed_ms=27179
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\gate-scanner-field.spec.ts:41:5 › camera and manual scans announce decisions, distinguish feedback and suppress cooldown duplicates (347ms)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  2 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with missing browser capabilities (494ms)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  3 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with denied browser capabilities (400ms)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  4 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with feedback-throws browser capabilities (346ms)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  5 tests\e2e\gate-scanner-field.spec.ts:80:5 › a stationary camera QR remains one decision after multiple cooldown periods (385ms)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  6 tests\e2e\gate-scanner-field.spec.ts:90:5 › offline after load never allows or records access; reconnect persists one safe incident (382ms)
+
+
+  1) tests\e2e\gate-scanner-field.spec.ts:41:5 › camera and manual scans announce decisions, distinguish feedback and suppress cooldown duplicates 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:42:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-camera--170bf-uppress-cooldown-duplicates\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-camera--170bf-uppress-cooldown-duplicates\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-camera--170bf-uppress-cooldown-duplicates\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with missing browser capabilities 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:67:44
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--ea0f2-issing-browser-capabilities\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--ea0f2-issing-browser-capabilities\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--ea0f2-issing-browser-capabilities\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with denied browser capabilities 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:67:44
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--758bc-denied-browser-capabilities\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--758bc-denied-browser-capabilities\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--758bc-denied-browser-capabilities\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with feedback-throws browser capabilities 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:67:44
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--927ea-throws-browser-capabilities\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--927ea-throws-browser-capabilities\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-manual--927ea-throws-browser-capabilities\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) tests\e2e\gate-scanner-field.spec.ts:80:5 › a stationary camera QR remains one decision after multiple cooldown periods 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:81:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-a-stati-e0eff-r-multiple-cooldown-periods\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-a-stati-e0eff-r-multiple-cooldown-periods\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-a-stati-e0eff-r-multiple-cooldown-periods\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) tests\e2e\gate-scanner-field.spec.ts:90:5 › offline after load never allows or records access; reconnect persists one safe incident 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-scanner-field.spec.ts:91:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-offline-99a7d--persists-one-safe-incident\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-offline-99a7d--persists-one-safe-incident\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-scanner-field-artifacts\gate-scanner-field-offline-99a7d--persists-one-safe-incident\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    tests\e2e\gate-scanner-field.spec.ts:41:5 › camera and manual scans announce decisions, distinguish feedback and suppress cooldown duplicates 
+    tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with missing browser capabilities 
+    tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with denied browser capabilities 
+    tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with feedback-throws browser capabilities 
+    tests\e2e\gate-scanner-field.spec.ts:80:5 › a stationary camera QR remains one decision after multiple cooldown periods 
+    tests\e2e\gate-scanner-field.spec.ts:90:5 › offline after load never allows or records access; reconnect persists one safe incident 
+(node:41928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:36832) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38484) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

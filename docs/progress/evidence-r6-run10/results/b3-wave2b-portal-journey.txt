@@ -1,0 +1,22 @@
+$ tests/e2e/portal-journey.spec.ts
+label=b3-wave2b-portal-journey
+exit=0
+elapsed_ms=53070
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (4.2s)
+  ok 2 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (5.1s)
+  ok 3 tests\e2e\portal-journey.spec.ts:56:5 › J3 the owner's statement shows their movements and nobody else's (5.2s)
+  ok 4 tests\e2e\portal-journey.spec.ts:70:5 › J4 owner 1 submits a maintenance request for their unit (8.3s)
+  ok 5 tests\e2e\portal-journey.spec.ts:96:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note (8.6s)
+  ok 6 tests\e2e\portal-journey.spec.ts:121:5 › J6 the owner follows the status and sees only the member-visible note (5.2s)
+
+  6 passed (46.8s)
+(node:37428) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19632) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,22 @@
+$ tests/e2e/re-prior-year-boundary.spec.ts
+label=b3-wave2-re-prior-year-boundary
+exit=0
+elapsed_ms=71829
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 1 tests\e2e\re-prior-year-boundary.spec.ts:91:5 › P1 RE-PRIOR is a computed line: reading it (RPC and both screens) writes nothing and no account/line named RE-PRIOR exists (18.8s)
+  ok 2 tests\e2e\re-prior-year-boundary.spec.ts:114:5 › P2 PRE-CLOSING state: no double counting and continuity across 2025 -> 2026 (no year closed yet) (1.3s)
+  ok 3 tests\e2e\re-prior-year-boundary.spec.ts:146:5 › P3 the balance sheet agrees with the trial balance on both sides of the boundary (23.5s)
+  ok 4 tests\e2e\re-prior-year-boundary.spec.ts:175:5 › P4 nothing was closed automatically (322ms)
+  -  5 tests\e2e\re-prior-year-boundary.spec.ts:188:8 › POST-CLOSING expectations (placeholder, skipped until Batch 1B rehearsal) › P2 POST-CLOSING: after 2025 is closed, RE-PRIOR = 0 and retained earnings carries 800
+
+  1 skipped
+  4 passed (55.0s)
+(node:18940) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

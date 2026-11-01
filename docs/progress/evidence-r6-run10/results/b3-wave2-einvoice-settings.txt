@@ -1,0 +1,268 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-wave2-einvoice-settings
+exit=1
+elapsed_ms=156252
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (20.3s)
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  x  2 tests\e2e\einvoice-settings.spec.ts:164:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (16.4s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  3 tests\e2e\einvoice-settings.spec.ts:212:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (14.7s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 4 tests\e2e\einvoice-settings.spec.ts:310:5 › a user without the permission cannot see settings detail (10.7s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:337:5 › organization A cannot see or alter organization B's profile (14.1s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:394:5 › no secret material reaches the response, the DOM, or the client bundle (14.9s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:453:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (1.1s)
+
+
+  1) tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+
+    Error: expect(received).toMatch(expected)
+
+    Expected pattern: /Not configured/i
+    Received string:  "AqarBooks
+    ERP
+    Smart Real Estate Accounting
+    Live Cloud Sync
+    Search accounts, units, reports...
+    ⌘K
+    Quick Action
+    العربية
+    ⌘K
+    Dashboard
+    PROPERTIES & OPERATIONS
+    Entities & Resorts
+    Units Management
+    All Units
+    Rent Roll Schedule
+    Lease Expirations
+    Bulk Import
+    Members & Owners
+    Members Directory
+    Owner Statements
+    Maintenance Operations
+    Maintenance Requests
+    Work Orders
+    Operations Dashboard
+    Access / Visitors
+    Visitor Passes
+    Gate Scanner
+    Gate Management
+    Access Event Ledger
+    Live Visitor Occupancy
+    Vehicle Registry
+    Amenities & Bookings
+    FINANCE & ACCOUNTING
+    Chart of Accounts
+    Accounts Tree
+    Journal Entries
+    Fiscal Periods
+    Fiscal Budgets
+    Fixed Assets
+    Projects & WIP
+    Exchange Rates
+    Designated Accounts
+    General Ledger
+    Receivables & Billing
+    Dues & Invoices
+    Receipt Vouchers
+    Service Charges
+    Collections
+    AR Aging
+    Treasury & Banking
+    Cashier
+    Bank Accounts
+    PDC Register
+    Cash Runway Forecast
+    Bank Reconciliation
+    Purchasing & Payables
+    Vendors & Suppliers
+    Expense Vouchers
+    AP Aging
+    Broker Commissions
+    FINANCIAL REPORTS
+    Reports Hub (19 Reports)
+    Trial Balance
+    Income Statement
+    Balance Sheet
+    Cash Flow Statement
+    Property-Level P&L
+    Budget vs Actual
+    Audit Trail & Logs
+    TAX & COMPLIANCE
+    E-Invoicing & VAT
+    Tax Invoices Log
+    VAT Return Statement
+    Tax Mapping
+    GS1 / EGS Item Codes
+    SETTINGS & ACCOUNT
+    My Account & Security
+    Profile & Password
+    Notification Center
+    Organization Profile
+    Team & Users
+    Roles & Permissions
+    AI Governance & Pilot
+    Payment Gateways
+    E·
+    E2E EInv Settings 1793506940612-Owner·
+    e2e-einv-owner-1793506941502@aqarbooks-test.local·
+    Tenant Owner
+    • E2E EInv Settings 1793506940612-Owner
+    Account
+    Tax & Finance
+    /
+    E-Invoicing & Statutory Compliance
+    🇪🇬
+    جمهورية مصر العربية
+    • 14% VAT
+    E-Invoicing & Statutory Tax Compliance·
+    Issue statutory real estate tax invoices, auto-calculate VAT rates, and synchronize in real-time with ETA (Egypt) & ZATCA (Saudi Arabia).·
+    Issue New E-Invoice
+    Item Coding (GS1)
+    Gateway Settings
+    Excel
+    PDF
+    Taxable Base·
+    0EGP·
+    Net statutory revenue base
+    Output Output VAT·
+    0EGP·
+    Calculated VAT at 14%
+    Stamped Invoices·
+    0·
+    Audited statutory records
+    Compliance Link·
+    🇪🇬
+    EG·
+    Setup needed
+    Tax Invoices Register
+    0
+    Revenue Tax Rules
+    37
+    Invoicing Lifecycle
+    All
+    Taxable
+    Exempt
+    Newest
+    Invoice # / Unit	Revenue Tax Nature	Decision Date	Taxable Base	Rate	VAT Amount	Gross Total	Status	Actions·
+    No tax invoices or decisions recorded yet·
+    Issue your first compliant statutory tax invoice using the button below.·
+    Issue First E-Invoice"
+
+      117 |   // No row yet.
+      118 |   const body = await page.locator("body").innerText();
+    > 119 |   expect(body).toMatch(/Not configured/i);
+          |                ^
+      120 |
+      121 |   // Nothing anywhere may imply a working link to a tax authority.
+      122 |   expect(body, "must not claim a connection").not.toMatch(
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:119:16
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\einvoice-settings.spec.ts:164:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-jurisdiction="EG_ETA"]').getByText(/Verified — filing off/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-jurisdiction="EG_ETA"]').getByText(/Verified — filing off/i)
+
+
+      192 |
+      193 |   const eg = section(page, "EG_ETA");
+    > 194 |   await expect(eg.getByText(/Verified — filing off/i)).toBeVisible();
+          |                                                        ^
+      195 |   // Now the toggle is genuinely available.
+      196 |   const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
+      197 |   await expect(toggle).toBeEnabled();
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:194:56
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\einvoice-settings.spec.ts:212:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-jurisdiction="EG_ETA"]').getByText(/Active — filing on/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-jurisdiction="EG_ETA"]').getByText(/Active — filing on/i)
+
+
+      237 |   await page.goto("/en/finance/einvoice");
+      238 |   const eg = section(page, "EG_ETA");
+    > 239 |   await expect(eg.getByText(/Active — filing on/i)).toBeVisible();
+          |                                                     ^
+      240 |
+      241 |   // Editing a branch code is a correction, not a different filer: verification
+      242 |   // must survive it.
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:239:53
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+    tests\e2e\einvoice-settings.spec.ts:164:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+    tests\e2e\einvoice-settings.spec.ts:212:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+  4 passed (2.2m)
+(node:26628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

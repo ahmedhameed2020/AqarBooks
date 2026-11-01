@@ -1,0 +1,62 @@
+$ tests/e2e/einvoice-items.spec.ts
+label=b3-wave2-einvoice-items
+exit=1
+elapsed_ms=65725
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears (21.5s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 2 tests\e2e\einvoice-items.spec.ts:153:5 › a user without the permission is told so, and gets no controls (13.8s)
+
+
+  1) tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: /E-Document Items/i })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: /E-Document Items/i })
+
+
+      107 |   // The page renders at all: a server component importing from a "use client"
+      108 |   // module can fail in ways tsc and the build both accept.
+    > 109 |   await expect(page.getByRole("heading", { name: /E-Document Items/i })).toBeVisible();
+          |                                                                          ^
+      110 |
+      111 |   // The unlinked type is SHOWN. Absent from the screen would read as "nothing to
+      112 |   // do", which is the opposite of the truth.
+        at D:\Web\AqarBooks\tests\e2e\einvoice-items.spec.ts:109:74
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ─────
+  1 passed (50.3s)
+(node:15700) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,19 @@
+$ tests/e2e/gate-supervision.spec.ts
+label=b3-wave2b-gate-supervision
+exit=0
+elapsed_ms=58936
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 1 tests\e2e\gate-supervision.spec.ts:8:5 › guard exception requires supervisor approval; corrected exit preserves scan evidence (23.0s)
+  ok 2 tests\e2e\gate-supervision.spec.ts:58:5 › supervisor looks up a missing entry, reconciles inside, and exports occupancy (11.1s)
+  ok 3 tests\e2e\gate-supervision.spec.ts:79:5 › ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL (13.1s)
+
+  3 passed (49.6s)
+(node:5536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

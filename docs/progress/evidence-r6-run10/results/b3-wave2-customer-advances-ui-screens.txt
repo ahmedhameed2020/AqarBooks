@@ -1,0 +1,22 @@
+$ tests/e2e/customer-advances-ui-screens.spec.ts
+label=b3-wave2-customer-advances-ui-screens
+exit=0
+elapsed_ms=313812
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (ar) (1.1m)
+  ok 2 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (en) (1.2m)
+  ok 3 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (ar) (1.1m)
+  ok 4 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (en) (41.4s)
+  ok 5 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (ar) (20.2s)
+  ok 6 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (en) (24.3s)
+
+  6 passed (4.9m)
+(node:37228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

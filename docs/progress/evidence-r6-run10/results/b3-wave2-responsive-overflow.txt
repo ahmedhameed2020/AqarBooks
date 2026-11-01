@@ -1,0 +1,375 @@
+$ tests/e2e/responsive-overflow.spec.ts
+label=b3-wave2-responsive-overflow
+exit=1
+elapsed_ms=118123
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 18 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x   1 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar (15.0s)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok  2 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/login (4.3s)
+  ok  3 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/register (3.6s)
+  ok  4 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/forgot-password (3.8s)
+  ok  5 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/verify-email (3.9s)
+  x   6 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/contact (3.6s)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x   7 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/demo (3.8s)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x   8 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/privacy (4.2s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x   9 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/terms (3.9s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  10 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en (7.6s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 11 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/login (3.5s)
+  ok 12 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/register (3.4s)
+  ok 13 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/forgot-password (3.4s)
+  ok 14 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/verify-email (3.6s)
+  x  15 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/contact (3.7s)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  16 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/demo (5.4s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  17 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/privacy (5.4s)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  18 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/terms (4.3s)
+
+
+  1) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar ──────────────────────
+
+    Error: overflow at /ar
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "320px: 2 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"flex items-center gap-4\",\"right\":61},{\"tag\":\"span\",\"cls\":\"font-mono text-[11px]\",\"right\":61}]
+    375px: 2 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"flex items-center gap-4\",\"right\":6},{\"tag\":\"span\",\"cls\":\"font-mono text-[11px]\",\"right\":6}]
+    1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":122},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":122},{\"tag\":\"span\",\"cls\":\"\",\"right\":82},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":114},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":109}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/contact ──────────────
+
+    Error: overflow at /ar/contact
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":122},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":122},{\"tag\":\"span\",\"cls\":\"\",\"right\":82},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":114},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":109}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-contact\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-contact\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-contact\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/demo ─────────────────
+
+    Error: overflow at /ar/demo
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":122},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":122},{\"tag\":\"span\",\"cls\":\"\",\"right\":82},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":114},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":109}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-demo\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-demo\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-demo\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/privacy ──────────────
+
+    Error: overflow at /ar/privacy
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":122},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":122},{\"tag\":\"span\",\"cls\":\"\",\"right\":82},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":114},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":109}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-privacy\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-privacy\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-privacy\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/terms ────────────────
+
+    Error: overflow at /ar/terms
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":122},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":122},{\"tag\":\"span\",\"cls\":\"\",\"right\":82},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":114},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":109}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-terms\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-terms\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-ar-terms\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en ──────────────────────
+
+    Error: overflow at /en
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "320px: 2 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"flex items-center gap-4\",\"right\":71},{\"tag\":\"span\",\"cls\":\"font-mono text-[11px]\",\"right\":71}]
+    375px: 2 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"flex items-center gap-4\",\"right\":16},{\"tag\":\"span\",\"cls\":\"font-mono text-[11px]\",\"right\":16}]
+    1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":96},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":96},{\"tag\":\"span\",\"cls\":\"\",\"right\":56},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":88},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":83}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/contact ──────────────
+
+    Error: overflow at /en/contact
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":96},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":96},{\"tag\":\"span\",\"cls\":\"\",\"right\":56},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":88},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":83}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-contact\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-contact\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-contact\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/demo ─────────────────
+
+    Error: overflow at /en/demo
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":96},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":96},{\"tag\":\"span\",\"cls\":\"\",\"right\":56},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":88},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":83}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-demo\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-demo\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-demo\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/privacy ──────────────
+
+    Error: overflow at /en/privacy
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":96},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":96},{\"tag\":\"span\",\"cls\":\"\",\"right\":56},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":88},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":83}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-privacy\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-privacy\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-privacy\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/terms ───────────────
+
+    Error: overflow at /en/terms
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "1024px: 5 element(s) exceed the viewport: [{\"tag\":\"div\",\"cls\":\"hidden shrink-0 items-center gap-2.5 lg:flex\",\"right\":96},{\"tag\":\"a\",\"cls\":\"group relative inline-flex items-center gap-2 rounded-xl bg-[#07425d] ps-4 pe-2 py-1.5 text-xs font-bold text-white tran\",\"right\":96},{\"tag\":\"span\",\"cls\":\"\",\"right\":56},{\"tag\":\"span\",\"cls\":\"flex size-6 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:translate-x-0\",\"right\":88},{\"tag\":\"svg\",\"cls\":\"lucide lucide-arrow-up-right size-3.5\",\"right\":83}]"
+
+       99 |       }
+      100 |
+    > 101 |       expect(failures.join("\n"), `overflow at ${path}`).toBe("");
+          |                                                          ^
+      102 |     });
+      103 |   }
+      104 | }
+        at D:\Web\AqarBooks\tests\e2e\responsive-overflow.spec.ts:101:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-terms\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-terms\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-responsive-overflow-artifacts\responsive-overflow-no-horizontal-overflow-en-terms\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10 failed
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar ───────────────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/contact ───────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/demo ──────────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/privacy ───────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/terms ─────────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en ───────────────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/contact ───────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/demo ──────────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/privacy ───────────────
+    tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/terms ─────────────────
+  8 passed (1.9m)
+(node:16052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24104) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5216) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27144) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2396) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18284) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13456) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

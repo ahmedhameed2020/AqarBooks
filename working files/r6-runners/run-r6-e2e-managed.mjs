@@ -23,6 +23,7 @@ const explicit = {
   R6_API_CONTAINER: "g0r6-kong",
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:58461",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: kv.ANON_KEY,
+  R6_ANON_KEY: kv.ANON_KEY,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: kv.ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
   NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
@@ -59,7 +60,7 @@ try {
   }
   if (!ready) throw new Error("Next server did not become ready on r6 port 3176");
   const r = spawnSync(process.execPath, [join(REPO, "node_modules/@playwright/test/cli.js"), "test", spec, "--reporter=list", `--output=${join(OUT, `${label}-artifacts`)}`], {
-    cwd: REPO, env, encoding: "utf8", timeout: 600000, maxBuffer: 64 * 1024 * 1024,
+    cwd: REPO, env, encoding: "utf8", timeout: 1200000, maxBuffer: 64 * 1024 * 1024,
   });
   result = r.status ?? 1;
   writeFileSync(join(OUT, `${label}.txt`), `$ ${spec}\nlabel=${label}\nexit=${result}\nelapsed_ms=${Date.now() - started}\n\n${r.stdout ?? ""}${r.stderr ?? ""}`);

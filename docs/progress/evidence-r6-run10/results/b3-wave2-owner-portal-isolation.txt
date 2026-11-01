@@ -1,0 +1,19 @@
+$ tests/e2e/owner-portal-isolation.spec.ts
+label=b3-wave2-owner-portal-isolation
+exit=0
+elapsed_ms=39328
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 1 tests\e2e\owner-portal-isolation.spec.ts:139:5 › two owners in a browser each see only their own unit (24.3s)
+
+  1 passed (27.9s)
+(node:26588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

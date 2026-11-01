@@ -1,0 +1,54 @@
+▲ Next.js 16.3.0
+- Local:         http://localhost:3179
+- Network:       http://10.120.198.173:3179
+✓ Ready in 504ms
+✓ Running next.config.ts took 2.6s
+Using secrets defined in .dev.vars
+[data-load] members/[id]: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: members/[id]: units_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at N (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\members\[memberId]\page.js:55:20156) {
+  source: 'members/[id]: units_with_financials',
+  code: '42501',
+  digest: '1970241141'
+}
+[data-load] portal/units: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/units: units_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at k (D:\Web\AqarBooks\.next\server\app\[locale]\portal\(member)\units\page.js:1:25690) {
+  source: 'portal/units: units_with_financials',
+  code: '42501',
+  digest: '3066360193'
+}
+[data-load] portal/home: members_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/home: members_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at n (D:\Web\AqarBooks\.next\server\app\[locale]\portal\(member)\page.js:1:37977) {
+  source: 'portal/home: members_with_financials',
+  code: '42501',
+  digest: '1052275912'
+}
+[data-load] portal/statement: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/statement: units_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at m (D:\Web\AqarBooks\.next\server\app\[locale]\portal\(member)\statement\page.js:1:3478) {
+  source: 'portal/statement: units_with_financials',
+  code: '42501',
+  digest: '2852225703'
+}
+[data-load] portal/payments: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/payments: units_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at l (D:\Web\AqarBooks\.next\server\app\[locale]\portal\(member)\payments\page.js:1:28081) {
+  source: 'portal/payments: units_with_financials',
+  code: '42501',
+  digest: '3356008721'
+}
+[data-load] portal/units: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/units: units_with_financials (42501)
+    at e (D:\Web\AqarBooks\.next\server\app\[locale]\(app)\admin\resorts\page.js:1:7078)
+    at k (D:\Web\AqarBooks\.next\server\app\[locale]\portal\(member)\units\page.js:1:25690) {
+  source: 'portal/units: units_with_financials',
+  code: '42501',
+  digest: '3066360193'
+}

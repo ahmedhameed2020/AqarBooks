@@ -1,0 +1,20 @@
+$ tests/e2e/responsive-touch-targets.spec.ts
+label=b3-wave2-responsive-touch-targets
+exit=0
+elapsed_ms=13685
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\responsive-touch-targets.spec.ts:20:7 › touch targets are at least 44px: /ar/login (2.0s)
+  ok 2 tests\e2e\responsive-touch-targets.spec.ts:20:7 › touch targets are at least 44px: /en/login (1.4s)
+  ok 3 tests\e2e\responsive-touch-targets.spec.ts:20:7 › touch targets are at least 44px: /ar/auth/register (1.4s)
+  ok 4 tests\e2e\responsive-touch-targets.spec.ts:20:7 › touch targets are at least 44px: /en/contact (1.4s)
+
+  4 passed (8.5s)
+(node:40296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19676) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

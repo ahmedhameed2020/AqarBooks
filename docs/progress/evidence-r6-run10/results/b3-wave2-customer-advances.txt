@@ -1,0 +1,18 @@
+$ tests/e2e/customer-advances.spec.ts
+label=b3-wave2-customer-advances
+exit=1
+elapsed_ms=1078653
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 10 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok  1 tests\e2e\customer-advances.spec.ts:105:7 › B1–B7: advances on the staff screens and the owner's portal › B1 — an advance receipt with explicit confirmation (R1), and one without a due (R2) (1.0m)
+  ok  2 tests\e2e\customer-advances.spec.ts:147:7 › B1–B7: advances on the staff screens and the owner's portal › B2 — applying credit from the receipts page: 600 on 5 Sep, then 200 on 7 Sep (1.1m)
+  ok  3 tests\e2e\customer-advances.spec.ts:182:7 › B1–B7: advances on the staff screens and the owner's portal › B3 — reversing only the 600 application, with a reason: dated 9 Sep, the 200 stays (37.4s)
+  ok  4 tests\e2e\customer-advances.spec.ts:223:7 › B1–B7: advances on the staff screens and the owner's portal › B4 — the portal statement with a window ending 31 Aug, 4 Sep, 6 Sep, 8 Sep and 30 Sep (22.9s)
+(node:40376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

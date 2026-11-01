@@ -1,0 +1,19 @@
+$ tests/e2e/supplier-invoice-vat-wht.spec.ts
+label=b3-wave2-supplier-invoice-vat-wht
+exit=0
+elapsed_ms=33945
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\supplier-invoice-vat-wht.spec.ts:25:5 › staff posts a supplier invoice with VAT + WHT through the real form, and the correct gross amount appears in the list (20.9s)
+
+  1 passed (24.4s)
+(node:3232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

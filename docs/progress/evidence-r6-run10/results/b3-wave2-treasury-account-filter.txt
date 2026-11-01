@@ -1,0 +1,19 @@
+$ tests/e2e/treasury-account-filter.spec.ts
+label=b3-wave2-treasury-account-filter
+exit=0
+elapsed_ms=56583
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\treasury-account-filter.spec.ts:35:7 › treasury dialogs: only cash-like GL accounts › cashier page: the Add Cashbox dialog offers 1110 and 1120 only (12.0s)
+  ok 2 tests\e2e\treasury-account-filter.spec.ts:49:7 › treasury dialogs: only cash-like GL accounts › banks page: the Add Account dialog offers 1110 and 1120 only (10.7s)
+  ok 3 tests\e2e\treasury-account-filter.spec.ts:60:7 › treasury dialogs: only cash-like GL accounts › EMPTY list: no cash-like account in the organization — both dialogs say why (en) and cannot be saved; Arabic text too (19.9s)
+
+  3 passed (46.0s)
+(node:37328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

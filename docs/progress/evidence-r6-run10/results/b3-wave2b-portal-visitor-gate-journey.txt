@@ -1,0 +1,23 @@
+$ tests/e2e/portal-visitor-gate-journey.spec.ts
+label=b3-wave2b-portal-visitor-gate-journey
+exit=0
+elapsed_ms=152655
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device (16.4s)
+  ok 2 tests\e2e\portal-visitor-gate-journey.spec.ts:108:5 › with the guard's enrolled device › V2 owner creates a SINGLE_USE pass (QR shown once, only its hash is stored); the guard admits, lets out, then refuses a second use (30.8s)
+  ok 3 tests\e2e\portal-visitor-gate-journey.spec.ts:134:5 › with the guard's enrolled device › V3 a MULTI_USE pass admits repeatedly but never twice in a row without an exit (33.5s)
+  ok 4 tests\e2e\portal-visitor-gate-journey.spec.ts:150:5 › with the guard's enrolled device › V4 the owner revokes a pass in the portal; the guard is then refused; another owner cannot revoke it (16.6s)
+  ok 5 tests\e2e\portal-visitor-gate-journey.spec.ts:171:5 › with the guard's enrolled device › V5 expired and not-yet-valid passes are refused; a tampered or foreign QR is refused as an invalid pass (36.1s)
+  ok 6 tests\e2e\portal-visitor-gate-journey.spec.ts:206:5 › with the guard's enrolled device › V6 a pass of another organization is refused at this organization's gate and writes nothing to its ledger (881ms)
+  ok 7 tests\e2e\portal-visitor-gate-journey.spec.ts:226:5 › with the guard's enrolled device › V6b organization B's enrolled device scanning A's genuine pass is a generic DENY / INVALID_PASS recorded in B only (1.9s)
+
+  7 passed (2.4m)
+(node:8764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39656) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

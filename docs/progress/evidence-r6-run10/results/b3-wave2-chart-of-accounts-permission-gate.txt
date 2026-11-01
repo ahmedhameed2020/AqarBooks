@@ -1,0 +1,177 @@
+$ tests/e2e/chart-of-accounts-permission-gate.spec.ts
+label=b3-wave2-chart-of-accounts-permission-gate
+exit=1
+elapsed_ms=160014
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\chart-of-accounts-permission-gate.spec.ts:75:5 › a member without finance.accounts.view sees a denial message, never the table or the create-account form (25.5s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  x  2 tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › ACCOUNTANT (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message (25.8s)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  3 tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › FINANCE_MANAGER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message (23.5s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  4 tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › TENANT_OWNER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message (22.0s)
+
+
+  1) tests\e2e\chart-of-accounts-permission-gate.spec.ts:75:5 › a member without finance.accounts.view sees a denial message, never the table or the create-account form 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('You don\'t have permission to view the chart of accounts.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('You don\'t have permission to view the chart of accounts.')
+
+
+      88 |   await page.goto("/en/finance/accounts");
+      89 |   await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
+    > 90 |   await expect(page.getByText("You don't have permission to view the chart of accounts.")).toBeVisible();
+         |                                                                                            ^
+      91 |   await expect(page.getByRole("table")).not.toBeVisible();
+      92 |   await expect(page.getByRole("button", { name: /Add account/i })).not.toBeVisible();
+      93 |
+        at D:\Web\AqarBooks\tests\e2e\chart-of-accounts-permission-gate.spec.ts:90:92
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-7102c--or-the-create-account-form\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-7102c--or-the-create-account-form\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-7102c--or-the-create-account-form\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › ACCOUNTANT (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('table')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('table')
+
+
+      110 |     await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
+      111 |     await expect(page.getByText("You don't have permission to view the chart of accounts.")).not.toBeVisible();
+    > 112 |     await expect(page.getByRole("table")).toBeVisible();
+          |                                           ^
+      113 |
+      114 |     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+      115 |   });
+        at D:\Web\AqarBooks\tests\e2e\chart-of-accounts-permission-gate.spec.ts:112:43
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-1f1a8-page-not-the-denial-message\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-1f1a8-page-not-the-denial-message\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-1f1a8-page-not-the-denial-message\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › FINANCE_MANAGER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('table')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('table')
+
+
+      110 |     await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
+      111 |     await expect(page.getByText("You don't have permission to view the chart of accounts.")).not.toBeVisible();
+    > 112 |     await expect(page.getByRole("table")).toBeVisible();
+          |                                           ^
+      113 |
+      114 |     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+      115 |   });
+        at D:\Web\AqarBooks\tests\e2e\chart-of-accounts-permission-gate.spec.ts:112:43
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-cb6e4-page-not-the-denial-message\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-cb6e4-page-not-the-denial-message\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-cb6e4-page-not-the-denial-message\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › TENANT_OWNER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('table')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('table')
+
+
+      110 |     await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
+      111 |     await expect(page.getByText("You don't have permission to view the chart of accounts.")).not.toBeVisible();
+    > 112 |     await expect(page.getByRole("table")).toBeVisible();
+          |                                           ^
+      113 |
+      114 |     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+      115 |   });
+        at D:\Web\AqarBooks\tests\e2e\chart-of-accounts-permission-gate.spec.ts:112:43
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-b638a-page-not-the-denial-message\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-b638a-page-not-the-denial-message\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-chart-of-accounts-permission-gate-artifacts\chart-of-accounts-permissi-b638a-page-not-the-denial-message\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    tests\e2e\chart-of-accounts-permission-gate.spec.ts:75:5 › a member without finance.accounts.view sees a denial message, never the table or the create-account form 
+    tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › ACCOUNTANT (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+    tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › FINANCE_MANAGER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+    tests\e2e\chart-of-accounts-permission-gate.spec.ts:98:7 › TENANT_OWNER (has finance.accounts.view) sees the real chart-of-accounts page, not the denial message 
+(node:11872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

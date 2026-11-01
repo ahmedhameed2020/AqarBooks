@@ -1,0 +1,56 @@
+$ tests/e2e/portal-visitor-gate-journey.spec.ts
+label=b3-wave2-portal-visitor-gate-journey
+exit=1
+elapsed_ms=16222
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  x  1 tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device (1ms)
+  -  2 tests\e2e\portal-visitor-gate-journey.spec.ts:108:5 › with the guard's enrolled device › V2 owner creates a SINGLE_USE pass (QR shown once, only its hash is stored); the guard admits, lets out, then refuses a second use
+  -  3 tests\e2e\portal-visitor-gate-journey.spec.ts:134:5 › with the guard's enrolled device › V3 a MULTI_USE pass admits repeatedly but never twice in a row without an exit
+  -  4 tests\e2e\portal-visitor-gate-journey.spec.ts:150:5 › with the guard's enrolled device › V4 the owner revokes a pass in the portal; the guard is then refused; another owner cannot revoke it
+  -  5 tests\e2e\portal-visitor-gate-journey.spec.ts:171:5 › with the guard's enrolled device › V5 expired and not-yet-valid passes are refused; a tampered or foreign QR is refused as an invalid pass
+  -  6 tests\e2e\portal-visitor-gate-journey.spec.ts:206:5 › with the guard's enrolled device › V6 a pass of another organization is refused at this organization's gate and writes nothing to its ledger
+  -  7 tests\e2e\portal-visitor-gate-journey.spec.ts:226:5 › with the guard's enrolled device › V6b organization B's enrolled device scanning A's genuine pass is a generic DENY / INVALID_PASS recorded in B only
+
+
+  1) tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at createPortalWorld (D:\Web\AqarBooks\tests\e2e\helpers\portal-fixture.ts:87:40)
+        at D:\Web\AqarBooks\tests\e2e\portal-visitor-gate-journey.spec.ts:39:30
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-portal-visitor-gate-journey-artifacts\portal-visitor-gate-journe-601c2-eems-it-on-the-field-device\error-context.md
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-portal-visitor-gate-journey-artifacts\portal-visitor-gate-journe-601c2-eems-it-on-the-field-device\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-portal-visitor-gate-journey-artifacts\portal-visitor-gate-journe-601c2-eems-it-on-the-field-device\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-portal-visitor-gate-journey-artifacts\portal-visitor-gate-journe-601c2-eems-it-on-the-field-device\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device 
+  6 did not run
+(node:35696) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

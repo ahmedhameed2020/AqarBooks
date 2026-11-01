@@ -1,0 +1,148 @@
+$ tests/e2e/gate-device-enrollment.spec.ts
+label=b3-wave2-gate-device-enrollment
+exit=1
+elapsed_ms=20280
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  1 tests\e2e\gate-device-enrollment.spec.ts:7:5 › manager issues one-time enrollment; browser persists gate binding and rejects reuse (377ms)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  2 tests\e2e\gate-device-enrollment.spec.ts:40:5 › manager revocation removes a loaded scanner binding and cannot issue access (334ms)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  3 tests\e2e\gate-device-enrollment.spec.ts:61:5 › enrollment fields have accessible names and keyboard access (344ms)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  4 tests\e2e\gate-device-enrollment.spec.ts:76:5 › occupancy navigation is available to guards only with ledger permission (428ms)
+
+
+  1) tests\e2e\gate-device-enrollment.spec.ts:7:5 › manager issues one-time enrollment; browser persists gate binding and rejects reuse 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-device-enrollment.spec.ts:8:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9c4fd-e-binding-and-rejects-reuse\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9c4fd-e-binding-and-rejects-reuse\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9c4fd-e-binding-and-rejects-reuse\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\gate-device-enrollment.spec.ts:40:5 › manager revocation removes a loaded scanner binding and cannot issue access 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-device-enrollment.spec.ts:41:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9a793-ing-and-cannot-issue-access\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9a793-ing-and-cannot-issue-access\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-man-9a793-ing-and-cannot-issue-access\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\gate-device-enrollment.spec.ts:61:5 › enrollment fields have accessible names and keyboard access 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-device-enrollment.spec.ts:62:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-enr-05b07-e-names-and-keyboard-access\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-enr-05b07-e-names-and-keyboard-access\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-enr-05b07-e-names-and-keyboard-access\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) tests\e2e\gate-device-enrollment.spec.ts:76:5 › occupancy navigation is available to guards only with ledger permission 
+
+    Error: Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.
+
+       at ..\helpers\gate-release.ts:20
+
+      18 |     const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+      19 |     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    > 20 |     if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+         |                                                           ^
+      21 |     return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+      22 |   }
+      23 |   const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+        at localSupabase (D:\Web\AqarBooks\tests\helpers\gate-release.ts:20:59)
+        at createGateFixture (D:\Web\AqarBooks\tests\helpers\gate-release.ts:34:15)
+        at D:\Web\AqarBooks\tests\e2e\gate-device-enrollment.spec.ts:77:42
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-occ-04a9d-only-with-ledger-permission\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-occ-04a9d-only-with-ledger-permission\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-wave2-gate-device-enrollment-artifacts\gate-device-enrollment-occ-04a9d-only-with-ledger-permission\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    tests\e2e\gate-device-enrollment.spec.ts:7:5 › manager issues one-time enrollment; browser persists gate binding and rejects reuse 
+    tests\e2e\gate-device-enrollment.spec.ts:40:5 › manager revocation removes a loaded scanner binding and cannot issue access 
+    tests\e2e\gate-device-enrollment.spec.ts:61:5 › enrollment fields have accessible names and keyboard access 
+    tests\e2e\gate-device-enrollment.spec.ts:76:5 › occupancy navigation is available to guards only with ledger permission 
+(node:18924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4944) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

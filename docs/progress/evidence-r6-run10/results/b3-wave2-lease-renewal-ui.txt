@@ -1,0 +1,21 @@
+$ tests/e2e/lease-renewal-ui.spec.ts
+label=b3-wave2-lease-renewal-ui
+exit=0
+elapsed_ms=82313
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\lease-renewal-ui.spec.ts:237:7 › lease renewal product experience › tenant sees only supported renewal actions in English desktop and Arabic mobile (21.4s)
+  ok 2 tests\e2e\lease-renewal-ui.spec.ts:280:7 › lease renewal product experience › current owner receives the narrow status projection (7.4s)
+  ok 3 tests\e2e\lease-renewal-ui.spec.ts:299:7 › lease renewal product experience › property-scoped staff manages property A without renewal access in property B (22.5s)
+
+  3 passed (1.1m)
+(node:1756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25256) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

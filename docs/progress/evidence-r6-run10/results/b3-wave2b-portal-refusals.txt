@@ -1,0 +1,21 @@
+$ tests/e2e/portal-refusals.spec.ts
+label=b3-wave2b-portal-refusals
+exit=0
+elapsed_ms=74384
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (18.8s)
+  ok 2 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (13.4s)
+  ok 3 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (14.0s)
+  ok 4 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3) (8.8s)
+  ok 5 tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (3.0s)
+
+  5 passed (1.1m)
+(node:3848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

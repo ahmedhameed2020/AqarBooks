@@ -1,0 +1,8 @@
+▲ Next.js 16.3.0
+- Local:         http://localhost:3176
+- Network:       http://10.120.198.173:3176
+✓ Ready in 231ms
+✓ Running next.config.ts took 1282ms
+Using secrets defined in .dev.vars
+[customer-advances] rejected: APPLICATION_BEFORE_DUE 22023
+[customer-advances] rejected: APPLICATION_BEFORE_DUE 22023
