@@ -1,0 +1,34 @@
+$ tests/e2e/responsive-overflow.spec.ts
+label=b3-triage-responsive-overflow
+exit=0
+elapsed_ms=118587
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 18 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok  1 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar (14.2s)
+  ok  2 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/login (5.0s)
+  ok  3 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/register (4.7s)
+  ok  4 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/forgot-password (4.6s)
+  ok  5 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/auth/verify-email (4.5s)
+  ok  6 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/contact (4.4s)
+  ok  7 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/demo (4.2s)
+  ok  8 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/privacy (5.1s)
+  ok  9 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /ar/terms (5.2s)
+  ok 10 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en (10.2s)
+  ok 11 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/login (5.0s)
+  ok 12 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/register (4.5s)
+  ok 13 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/forgot-password (4.6s)
+  ok 14 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/auth/verify-email (4.6s)
+  ok 15 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/contact (4.0s)
+  ok 16 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/demo (4.3s)
+  ok 17 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/privacy (4.3s)
+  ok 18 tests\e2e\responsive-overflow.spec.ts:36:9 › no horizontal overflow: /en/terms (4.4s)
+
+  18 passed (1.7m)
+(node:27960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

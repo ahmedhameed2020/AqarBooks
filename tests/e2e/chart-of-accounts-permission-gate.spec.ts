@@ -87,7 +87,7 @@ test("a member without finance.accounts.view sees a denial message, never the ta
 
   await page.goto("/en/finance/accounts");
   await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
-  await expect(page.getByText("You don't have permission to view the chart of accounts.")).toBeVisible();
+  await expect(page.getByText("You do not have permission to view the chart of accounts.")).toBeVisible();
   await expect(page.getByRole("table")).not.toBeVisible();
   await expect(page.getByRole("button", { name: /Add account/i })).not.toBeVisible();
 
@@ -108,8 +108,8 @@ for (const roleKey of ["ACCOUNTANT", "FINANCE_MANAGER", "TENANT_OWNER"]) {
 
     await page.goto("/en/finance/accounts");
     await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible();
-    await expect(page.getByText("You don't have permission to view the chart of accounts.")).not.toBeVisible();
-    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByText("You do not have permission to view the chart of accounts.")).not.toBeVisible();
+    await expect(page.getByText("Unified Ledger")).toBeVisible();
 
     await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
   });

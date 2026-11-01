@@ -59,7 +59,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
         </Link>
 
         {/* Editorial Desktop Navigation */}
-        <nav className="hidden items-center gap-1 lg:flex xl:gap-2">
+        <nav className="hidden items-center gap-1 xl:flex xl:gap-2">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -80,7 +80,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
         </nav>
 
         {/* Action Controls */}
-        <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
+        <div className="hidden shrink-0 items-center gap-2.5 xl:flex">
           <Link
             href={pathname}
             locale={isAr ? "en" : "ar"}
@@ -115,7 +115,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
           aria-label={isAr ? "فتح القائمة" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen(!open)}
-          className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-2xs lg:hidden active:scale-95"
+          className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-2xs xl:hidden active:scale-95"
         >
           {open ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
         </button>
@@ -123,7 +123,7 @@ export function MarketingNav({ locale }: { locale: Locale }) {
 
       {/* Mobile Drawer */}
       {open && (
-        <div className="mx-auto mt-2 max-w-7xl rounded-2xl border border-slate-200 bg-white/98 p-4 shadow-xl backdrop-blur-xl lg:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="mx-auto mt-2 max-w-7xl rounded-2xl border border-slate-200 bg-white/98 p-4 shadow-xl backdrop-blur-xl xl:hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-1 pb-3">
             {NAV_LINKS.map((link) => (
               <Link

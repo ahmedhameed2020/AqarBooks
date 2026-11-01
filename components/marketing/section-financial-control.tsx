@@ -167,7 +167,7 @@ export function SectionFinancialControl({ locale }: { locale: Locale }) {
 
         {/* Audit Trail Metadata Strip */}
         <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4.5 flex flex-wrap items-center justify-between gap-4 text-xs font-medium text-slate-600">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span className="font-bold text-slate-900 flex items-center gap-1.5">
               <History className="size-4 text-[#1A3C2E]" />
               {isAr ? "سجل التدقيق الرقمي:" : "Audit Metadata:"}
