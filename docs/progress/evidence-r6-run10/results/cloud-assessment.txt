@@ -1,5 +1,5 @@
 Cloud project read-only assessment — 2026-11-01
-project: Aqar Books (ataslxlcflxuilpgyepm), region eu-west-1, status ACTIVE_HEALTHY
+project: Aqar Books (ataslxkcflxuilpgyepm), region eu-west-1, status ACTIVE_HEALTHY
 auth settings: signup_disabled=false, email=true, phone=false, providers=[email], mailer_autoconfirm=true
 edge functions: none (management API 404)
 backups list: 404 (CLI/plan unavailable) — backup capability unverified

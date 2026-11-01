@@ -1,4 +1,4 @@
-# Production Identity Assessment — `ataslxlc…` (2026-11-01)
+# Production Identity Assessment — `ataslxkc…` (2026-11-01)
 
 **السؤال:** هل نستطيع تحويل مشروع Supabase السحابي الحالي إلى بيئة Production آمنة مع الاحتفاظ بكل أعمال التطوير المهمة، دون شراء مشروع إضافي؟
 
@@ -9,7 +9,7 @@
 | الدليل | النتيجة |
 |---|---|
 | ‏`GET /auth/v1/health` بمفتاح anon المتتبَّع | **200** — المشروع حي والمفتاح يخصه |
-| حزم الموقع الحي `aqarbooks.com` | تحتوي `ataslxlcflxuilpgyepm.supabase.co` **و** `placeholder-project.supabase.co` — الموقع الحي متصل بهذا المشروع |
+| حزم الموقع الحي `aqarbooks.com` | تحتوي `ataslxkcflxuilpgyepm.supabase.co` **و** `placeholder-project.supabase.co` — الموقع الحي متصل بهذا المشروع |
 | `.env.production` (متتبَّع في git) | نفس المشروع |
 | `.env.local` (تطوير محلي) | **نفس المشروع** |
 | `supabase/.temp/project-ref` (‏CLI مرتبط) | **نفس المشروع** |

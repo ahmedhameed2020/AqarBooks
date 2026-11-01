@@ -7,7 +7,7 @@
 
 | البند | القيمة |
 |---|---|
-| المشروع | **Aqar Books** — `ataslxlcflxuilpgyepm` |
+| المشروع | **Aqar Books** — `ataslxkcflxuilpgyepm` |
 | المنطقة/الحالة | ‏eu-west-1 — **ACTIVE_HEALTHY** |
 | الربط | CLI مرتبط به؛ الموقع الحي `aqarbooks.com` يستدعي نفس المشروع (أدلة `7d997d3`) |
 | ‏Edge Functions | **لا يوجد** (Management API: 404) |
@@ -64,7 +64,7 @@
 3. **تقييد Auth للإنتاج**: تعطيل signup العام، ضبط SMTP مخصص، ومراجعة autoconfirm.
 4. **اعتماد خطة النسخ الاحتياطي** (تفريغ كامل + احتفاظ؛ PITR/ترقية قرار منفصل).
 5. **تنفيذ فصل التطوير إلى r6** (تغيير env محلي).
-6. **إعلان `PRODUCTION_SUPABASE_PROJECT_REF=ataslxlc…`** في CI + موافقة نشر.
+6. **إعلان `PRODUCTION_SUPABASE_PROJECT_REF=ataslxkc…`** في CI + موافقة نشر.
 7. **الاعتمادات الخارجية** (أمن/جاهزية/حمل/ضرائب/Fawry/مترجم) كما هي.
 
 ## 9.5) الفارق DDL الدقيق (مخطط public، تفريغ قراءة فقط)

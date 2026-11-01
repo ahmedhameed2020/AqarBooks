@@ -2,7 +2,7 @@
 // A bundle is only acceptable when it was built for the expected Supabase project.
 
 const FOREIGN_PROJECT_HOST = /^[a-z0-9]{16,}\.supabase\.(co|in)$/;
-const DEV_MARKERS = ["127.0.0.1:58461", "localhost:3176", "localhost:3100", "ataslxlcflxuilpgyepm"];
+const DEV_MARKERS = ["127.0.0.1:58461", "localhost:3176", "localhost:3100", "ataslxkcflxuilpgyepm"];
 
 export function hostOf(url) {
   return String(url || "")
