@@ -1,4 +1,4 @@
-AqarBooks — migration inventory (read-only), 2026-11-01
+AqarBooks — migration inventory (read-only), regenerated 2026-11-01
 count: 94
 
 20260821105505_baseline.sql

@@ -1,0 +1,32 @@
+{
+  "base": "http://127.0.0.1:3100",
+  "checkedAt": "2026-11-01T11:57:55.060Z",
+  "failed": 0,
+  "results": [
+    {
+      "probe": "login page (en)",
+      "status": 200,
+      "ok": true,
+      "ms": 2885
+    },
+    {
+      "probe": "login page (ar)",
+      "status": 200,
+      "ok": true,
+      "ms": 68
+    },
+    {
+      "probe": "finance gate (anon redirect)",
+      "status": 307,
+      "ok": true,
+      "ms": 10
+    },
+    {
+      "probe": "dashboard gate (anon redirect)",
+      "status": 307,
+      "ok": true,
+      "ms": 11
+    }
+  ]
+}
+exit=0

@@ -1,0 +1,45 @@
+$ tests/e2e/post-deploy-smoke.spec.ts
+label=post-deploy-smoke-local2
+exit=1
+elapsed_ms=86384
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\post-deploy-smoke.spec.ts:18:7 › post-deploy smoke › public login and authenticated finance surfaces answer without page errors (1.0m)
+
+
+  1) tests\e2e\post-deploy-smoke.spec.ts:18:7 › post-deploy smoke › public login and authenticated finance surfaces answer without page errors 
+
+    TimeoutError: page.waitForURL: Timeout 60000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+    ============================================================
+
+      27 |     await page.locator("#password").fill(password!);
+      28 |     await page.getByRole("button", { name: /Sign In/i }).click();
+    > 29 |     await page.waitForURL(/\/dashboard/, { timeout: 60_000 });
+         |                ^
+      30 |
+      31 |     await page.goto("/en/admin/finance/periods");
+      32 |     await expect(page.locator("h1").first()).toBeVisible({ timeout: 30_000 });
+        at D:\Web\AqarBooks\tests\e2e\post-deploy-smoke.spec.ts:29:16
+
+    Error Context: docs\progress\evidence-r6-run10\results\post-deploy-smoke-local2-artifacts\post-deploy-smoke-post-dep-38e22--answer-without-page-errors\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\post-deploy-smoke-local2-artifacts\post-deploy-smoke-post-dep-38e22--answer-without-page-errors\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\post-deploy-smoke-local2-artifacts\post-deploy-smoke-post-dep-38e22--answer-without-page-errors\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\post-deploy-smoke.spec.ts:18:7 › post-deploy smoke › public login and authenticated finance surfaces answer without page errors 
+(node:3712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

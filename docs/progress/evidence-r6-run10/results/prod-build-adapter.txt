@@ -232,3 +232,13 @@ Applying code patches: 15.295s
 [0m
 OpenNext build complete.
 exit=0
+
+--- CORRECTION (2026-11-01, reviewer verification) ---
+The build above was run as `npm run build` WITHOUT the isolated env, so Next
+read `.env.local` and INLINED THE DEVELOPMENT Supabase URL
+(ataslxkcflxuilpgyepm.supabase.co) into `.next/static`. The adapter itself built
+(worker.js, exit 0) but the env was wrong, and this build later made the local
+post-deploy smoke fail at sign-in (invalid credentials against the wrong project).
+This is a build-time env hazard, not a product defect.
+Mitigation: rebuild with the r6 env (`node "working files/r6-runners/app-r6.mjs" build --webpack`)
+and gate every build with `node scripts/verify-build-env.mjs <expected-url>`.

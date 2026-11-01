@@ -18,3 +18,6 @@
 ## تنبيه
 - لا يُرفع أي عدّاد (19/19 أو Production Verified) إلا بدليل قابل للتحقق لكل بند.
 - الحالة الحالية: ✅4 · ⚠️5 · ❌10 — و**Production Verified = 0**.
+
+## سجل التنفيذ
+- 2026-11-01: لا مدخلات مستلمة بعد لأي من E1–E6. الأدوات المحلية الجاهزة لتشغيلها فورًا: `scripts/healthcheck.mjs`، `scripts/verify-build-env.mjs`، `tests/e2e/post-deploy-smoke.spec.ts` (‏1/1 على r6).

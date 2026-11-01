@@ -21,16 +21,26 @@
 - [ ] نسخة من مخطط القاعدة مُصدَّرة (`pg_dump --schema-only`) قبل أي ترحيل.
 - [ ] البنود 1، 2، 6، 8، 9، 10 إما مكتملة بدليل أو مُعلَن قبولها صراحةً كقيود إطلاق.
 
+## 1.5) قاعدة إلزامية: هوية بيئة البناء
+`NEXT_PUBLIC_*` تُحقن وقت البناء. بناء صحيح البنية برابط مشروع خاطئ يبني واجهة تتصل بمشروع آخر (كل تسجيلات الدخول تفشل).
+- قبل أي بناء تحقق/إطلاق: صدّر `NEXT_PUBLIC_SUPABASE_URL` و`NEXT_PUBLIC_SUPABASE_ANON_KEY` للبيئة المستهدفة صراحةً.
+- بعد البناء: `node scripts/verify-build-env.mjs <expected-url>` — يجب أن يجد حزمًا تحمل الرابط المتوقع وألا يشير إلى أي مشروع آخر (‏supabase.co).
+- حدث 2026-11-01: بناء محلي بدون ذلك حقن رابط التطوير وأنتج فشل دخول؛ أُصلح بإعادة بناء r6 + المدقق.
+
 ## 2) النشر (المرجع: docs/deployment.md)
 الترتيب: بناء ← فحص ← نشر ← تحقق.
 1. `opennextjs-cloudflare build` (الملف يشرح المتغيرات والاستثناءات).
 2. فحوص ما قبل النشر: `tsc --noEmit`، `vitest run` للمجموعات الحرجة، `playwright` على بيئة staging مطابقة.
 3. نشر Worker + ربط المتغيرات (Build-time vs Runtime per deployment.md).
-4. تحقق بعد النشر: ‏`/en/login` 200، ‏`/en/finance/periods` (مصادق) 200، ‏RPC قراءة واحدة.
+4. تحقق بعد النشر:
+   - `node scripts/healthcheck.mjs https://<domain>` (exit 0).
+   - `SMOKE_EMAIL=... SMOKE_PASSWORD=... PLAYWRIGHT_BASE_URL=https://<domain> npx playwright test tests/e2e/post-deploy-smoke.spec.ts`
+   - استعلام RPC قراءة واحدة وسجل دخول واحد.
+   - `node scripts/verify-build-env.mjs <prod-supabase-url>` قبل النشر (المدقق يمنع حقن مشروع خاطئ).
 5. تسجيل الأدلة: سجل النشر + استجابة الفحوص + وقت البدء/الانتهاء.
 
 ## 3) الترحيلات الإنتاجية
-1. سرد الترحيلات المطلوبة من `supabase/migrations/` بترتيب أسمائها (يشمل `20261101090000_platform_admin_membership_guard.sql` المعتمد). الجرد الحالي (96 ملفًا) محفوظ في `evidence-r6-run10/results/migration-inventory.txt`.
+1. سرد الترحيلات المطلوبة من `supabase/migrations/` بترتيب أسمائها (يشمل `20261101090000_platform_admin_membership_guard.sql` المعتمد). الجرد الحالي (94 ملفًا) محفوظ في `evidence-r6-run10/results/migration-inventory.txt`.
 2. **قبل**: نسخة قاعدة كاملة + عدّاد صفوف للجداول الحساسة (أدوار/صلاحيات/قيود/فترات).
 3. **أثناء**: تطبيق على بيئة staging أولًا؛ ثم الإنتاج في نافذة معلنة.
 4. **بعد**: فحص `pg_policies` للجداول الحرجة، ‏`has_permission` دخان، ومطابقة العدادات.

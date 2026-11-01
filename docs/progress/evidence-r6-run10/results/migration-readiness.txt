@@ -1,0 +1,5 @@
+migrations: 94
+lexicographic order: OK
+duplicate timestamps: 0
+latest 5: 20261019100200_fiscal_year_close_permission_and_reports.sql, 20261019100300_fiscal_calendar_truncate_revoke.sql, 20261019100400_fiscal_calendar_draft_and_open_transition.sql, 20261019100500_fiscal_year_opened_audit.sql, 20261101090000_platform_admin_membership_guard.sql
+exit=0

@@ -1,0 +1,17 @@
+$ tests/e2e/post-deploy-smoke.spec.ts
+label=post-deploy-smoke-r6
+exit=0
+elapsed_ms=30761
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\post-deploy-smoke.spec.ts:18:7 › post-deploy smoke › public login and authenticated finance surfaces answer without page errors (16.9s)
+
+  1 passed (22.3s)
+(node:35372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
