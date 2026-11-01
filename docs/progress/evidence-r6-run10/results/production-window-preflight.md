@@ -60,3 +60,40 @@
 | خطة التعافي قابلة للتنفيذ سحابيًا | **BLOCKED** — كلمة مرور قاعدة البيانات غير متاحة لهذه الجلسة |
 | عدم وجود تغييرات/نشر متزامن | **PASS** |
 | متغير GitHub للنشر | **مفقود** (`PRODUCTION_SUPABASE_PROJECT_REF`) — يمنع النشر لا الترحيل |
+
+## 6) تجهيز نافذة التنفيذ — فحوص الاعتماد والتعافي (بلا أي تنفيذ)
+
+### Credential readiness — PASS
+- **مصدر آمن محلي:** Windows Credential Manager، الهدف `Supabase CLI:supabase` (رمز وصول). يُقرأ عند الحاجة ولا يُطبع ولا يُخزَّن في المستودع.
+- **تحقق الاتصال بصلاحية الترحيل:** `POST /v1/projects/ataslxkcflxuilpgyepm/database/query` أعاد 201 مع `current_user=postgres`، `rolsuper=false`، `has_schema_privilege('public','CREATE')=true`، `has_schema_privilege('supabase_migrations','USAGE')=true`، `has_table_privilege(...schema_migrations,'INSERT')=true`، و`SET session_replication_role=replica` مسموح، وتنفيذ عدة عبارات في طلب واحد مدعوم، وطلب بحجم 500KB نجح.
+- **قناة كلمة مرور القاعدة (لمسار `supabase db push`):** جاهزة عبر `%USERPROFILE%\.aqar-secrets\supabase-db-password` (ACL للمالك فقط) أو `SUPABASE_DB_PASSWORD` أو إدخال تفاعلي. تم اختبار القارئ: لا يطبع القيمة، ويعيد `CREDENTIAL_MISSING` عند غيابها. **الملف غير موجود بعد.**
+- `db push` يتطلب `-p/--password` ولا توجد كلمة مرور محفوظة ⇒ مسار CLI يحتاج تزويدك المحلي، أو استخدام الاعتماد المتحقق عبر الـAPI.
+
+### Recovery readiness — PASS
+- النسخة الجديدة (ما قبل النافذة) استُعيدت محليًا: **0 أخطاء**، 143 جدولًا، 202 سياسة، 0 انتهاكات FK.
+- اكتمال Auth: 1,512 مستخدمًا، 1,512 هوية، 3,827 جلسة، ومحفز `trg_on_auth_user_created` موجود.
+- قدرات الاستعادة عن بُعد تحققت بالاعتماد الحالي (CREATE/INSERT + replica mode) دون تنفيذ أي تغيير سحابي.
+- إجراء الفشل الجزئي: إيقاف فوري، لا Rollback فردي، استعادة كاملة، إعادة محفز التسجيل، ثم تحقق العدادات — موثق في `production-cutover-plan.md` §3.5.
+
+### Migration readiness — PASS
+- بصمة ملفات الـ34: `2d8fb209ebda26c077ba9cc0db4bc10dcb803c57802e2ee37c68d7cf92611330` (لم تتغير).
+- السجل السحابي: 60 مطبَّقًا / 34 معلّقًا (لم يتغير). شجرة العمل نظيفة.
+- تمرين الـ34: 34/34 على نسخة سحابية مطابقة، والبيانات ثابتة.
+
+### Scheduled jobs readiness — PASS
+- `Gate notifications` (id `372172167`): state=**active**، لا تشغيل قيد التنفيذ ولا في الانتظار.
+- `Payment event retries` (id `366775979`): state=**active**، لا تشغيل قيد التنفيذ ولا في الانتظار.
+- الإيقاف/الاستئناف: `gh workflow disable|enable <id>` بعد حفظ الحالة الأصلية. **لم يُنفَّذ أي تغيير.**
+
+### Storage & backups
+- مساحة حرة: `C:` 27GB، `D:` 7.8GB (كافية لنسخ النافذة والاستعادة المحلية ~84MB).
+- النسختان (الأساس + ما قبل النافذة) اجتازتا `sha256sum -c` بالكامل، والنسخة القديمة محفوظة.
+
+### الحكم
+| البند | النتيجة |
+|---|---|
+| Credential readiness | **PASS** |
+| Recovery readiness | **PASS** |
+| Migration readiness | **PASS** |
+| Scheduled jobs readiness | **PASS** |
+| **Overall execution gate** | **READY** — بانتظار الموافقة التنفيذية النهائية |
