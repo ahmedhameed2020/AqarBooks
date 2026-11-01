@@ -1,0 +1,10 @@
+Cloud project read-only assessment — 2026-11-01
+project: Aqar Books (ataslxlcflxuilpgyepm), region eu-west-1, status ACTIVE_HEALTHY
+auth settings: signup_disabled=false, email=true, phone=false, providers=[email], mailer_autoconfirm=true
+edge functions: none (management API 404)
+backups list: 404 (CLI/plan unavailable) — backup capability unverified
+migrations: local=94, remote applied=60, pending=34 (20261009120000 .. 20261101090000)
+pending versions: 
+table stats (estimated rows): organizations=116, journal_entries=16996, journal_entry_lines=75743, payments=12326, dues=14020, payment_allocations=23232, chart_of_accounts=1418, members=694, units=612, properties=40
+legacy schemas present: legacy_migration.raw_journal_lines=75047 rows, accsys_stage.je=16555, accsys_stage.jel=74860
+rest probes: permissions=200; organizations/chart_of_accounts=401 (anon blocked, expected under RLS)
