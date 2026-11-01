@@ -1,0 +1,20 @@
+$ tests/e2e/new-finance-screens-smoke.spec.ts
+label=b3-fin8-smoke
+exit=0
+elapsed_ms=56937
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\new-finance-screens-smoke.spec.ts:178:5 › every new finance screen renders for an authorised user (24.7s)
+  ok 2 tests\e2e\new-finance-screens-smoke.spec.ts:230:5 › a service charge levy can be created and allocated from the browser (18.5s)
+
+  2 passed (48.0s)
+(node:33084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

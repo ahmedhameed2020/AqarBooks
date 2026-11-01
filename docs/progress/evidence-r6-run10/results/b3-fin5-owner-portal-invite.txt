@@ -1,0 +1,44 @@
+$ tests/e2e/owner-portal-invite.spec.ts
+label=b3-fin5-owner-portal-invite
+exit=1
+elapsed_ms=15163
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard (2.9s)
+
+
+  1) tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+
+    Error: locator.fill: value: expected string, got undefined
+
+      121 |   ).toBeVisible({ timeout: 20_000 });
+      122 |
+    > 123 |   await page.locator('input[inputmode="numeric"]').fill(invitation!.code);
+          |                                                    ^
+      124 |   await page.getByRole("button", { name: /Enter the portal|الدخول إلى البوابة/ }).click();
+      125 |
+      126 |   await expect(page).toHaveURL(/\/portal$/, { timeout: 20_000 });
+        at D:\Web\AqarBooks\tests\e2e\owner-portal-invite.spec.ts:123:52
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fin5-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fin5-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fin5-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+(node:25432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31520) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

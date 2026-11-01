@@ -1,0 +1,55 @@
+$ tests/e2e/owner-portal-invite.spec.ts
+label=b3-fin6-owner-portal-invite
+exit=1
+elapsed_ms=19202
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard (6.6s)
+
+
+  1) tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('E2E Test Owner', { exact: true })
+    Expected: visible
+    Error: strict mode violation: getByText('E2E Test Owner', { exact: true }) resolved to 2 elements:
+        1) <span class="truncate">E2E Test Owner</span> aka getByRole('complementary').getByText('E2E Test Owner')
+        2) <p class="max-w-[180px] truncate text-[10px] font-semibold text-slate-400">E2E Test Owner</p> aka locator('header').getByText('E2E Test Owner')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('E2E Test Owner', { exact: true })
+
+
+      132 |   // one that actually proves the member link succeeded (PortalShell only
+      133 |   // renders it once getPortalMemberContext() resolves a real member row).
+    > 134 |   await expect(page.getByText("E2E Test Owner", { exact: true })).toBeVisible();
+          |                                                                   ^
+      135 |
+      136 |   // set_organization_status is security definer but self-gates on
+      137 |   // is_platform_admin(auth.uid()) -- auth.uid() is null under the
+        at D:\Web\AqarBooks\tests\e2e\owner-portal-invite.spec.ts:134:67
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fin6-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fin6-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fin6-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+(node:31156) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

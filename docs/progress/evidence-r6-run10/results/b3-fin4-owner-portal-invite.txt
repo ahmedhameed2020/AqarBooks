@@ -1,0 +1,54 @@
+$ tests/e2e/owner-portal-invite.spec.ts
+label=b3-fin4-owner-portal-invite
+exit=1
+elapsed_ms=34591
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard (22.0s)
+
+
+  1) tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: /Enter your access code|أدخل رمز الدخول/ })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 20000ms
+      - waiting for getByRole('heading', { name: /Enter your access code|أدخل رمز الدخول/ })
+
+
+      108 |   await expect(
+      109 |     page.getByRole("heading", { name: /Enter your access code|أدخل رمز الدخول/ }),
+    > 110 |   ).toBeVisible({ timeout: 20_000 });
+          |     ^
+      111 |
+      112 |   await page.locator('input[inputmode="numeric"]').fill(invitation!.code);
+      113 |   await page.getByRole("button", { name: /Enter the portal|الدخول إلى البوابة/ }).click();
+        at D:\Web\AqarBooks\tests\e2e\owner-portal-invite.spec.ts:110:5
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fin4-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fin4-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fin4-owner-portal-invite-artifacts\owner-portal-invite-owner--a6f2f-eaches-the-portal-dashboard\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard 
+(node:34448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

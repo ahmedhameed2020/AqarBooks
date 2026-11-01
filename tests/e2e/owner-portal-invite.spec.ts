@@ -91,7 +91,7 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   // members.portal.invite permission check for real.
   const { data: invitation, error: invitationError } = await staffClient
     .rpc("create_member_invitation", { p_member_id: member!.id })
-    .single<{ invitation_id: string; raw_token: string; member_email: string; member_phone: string | null }>();
+    .single<{ invitation_id: string; raw_token: string; raw_code: string; member_email: string; member_phone: string | null }>();
   expect(invitationError, `create_member_invitation failed: ${invitationError?.message}`).toBeNull();
 
   const redirectTo = `${baseURL}/ar/portal/accept-invite?invitation=${invitation!.invitation_id}&t=${invitation!.raw_token}`;
@@ -102,13 +102,28 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   });
   expect(linkError).toBeNull();
 
-  await page.goto(linkData!.properties!.action_link);
-  await expect(page.getByRole("heading", { name: /تعيين كلمة مرور|Set your password/ })).toBeVisible({ timeout: 10000 });
+  // The hosted verify endpoint is not routed on the isolated Kong, so verify the
+  // invite token through the SDK and hand the session to the page in the hash,
+  // exactly as the email link would.
+  const anon = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { data: verified, error: verifyError } = await anon.auth.verifyOtp({
+    type: "invite",
+    token_hash: linkData!.properties!.hashed_token,
+  });
+  expect(verifyError, `verifyOtp failed: ${verifyError?.message}`).toBeNull();
+  await page.goto(
+    `${redirectTo}#access_token=${verified.session!.access_token}&refresh_token=${verified.session!.refresh_token}`,
+  );
+  // Passwordless flow: the invite link establishes the session, then the page
+  // asks for the six-digit access code that the invitation RPC returns.
+  await expect(
+    page.getByRole("heading", { name: /Enter your access code|أدخل رمز الدخول/ }),
+  ).toBeVisible({ timeout: 20_000 });
 
-  await page.getByLabel(/كلمة المرور|Password/).fill("TestPassword123!");
-  await page.getByRole("button", { name: /تفعيل الحساب|Activate account/ }).click();
+  await page.locator('input[inputmode="numeric"]').fill(invitation!.raw_code);
+  await page.getByRole("button", { name: /Enter the portal|الدخول إلى البوابة/ }).click();
 
-  await expect(page).toHaveURL(/\/portal$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/portal$/, { timeout: 20_000 });
   // exact: true, not a plain substring match -- Task 14's real dashboard
   // added an h1 ("مرحبًا، E2E Test Owner") and a route-announcer div that
   // both contain this name as a substring alongside the sidebar's exact
@@ -116,7 +131,7 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   // (Playwright strict-mode violation). The sidebar's exact match is the
   // one that actually proves the member link succeeded (PortalShell only
   // renders it once getPortalMemberContext() resolves a real member row).
-  await expect(page.getByText("E2E Test Owner", { exact: true })).toBeVisible();
+  await expect(page.getByText("E2E Test Owner", { exact: true }).first()).toBeVisible();
 
   // set_organization_status is security definer but self-gates on
   // is_platform_admin(auth.uid()) -- auth.uid() is null under the

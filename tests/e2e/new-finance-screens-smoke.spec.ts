@@ -232,16 +232,22 @@ test("a service charge levy can be created and allocated from the browser", asyn
   await page.goto("/en/finance/service-charges");
   await page.getByRole("button", { name: /New Levy/i }).click();
 
-  await page.locator("#name").fill("E2E Smoke Levy");
-  await page.locator("#periodStart").fill("2026-01-01");
-  await page.locator("#periodEnd").fill("2026-03-31");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByPlaceholder(/Q2 2026 Maintenance/i).fill("E2E Smoke Levy");
+
+  // Property and allocation basis are Radix selects; pick the fixture property
+  // and equal split through the dialog.
+  await dialog.getByRole("combobox").first().click();
+  await page.getByRole("option").first().click();
+  await dialog.getByRole("combobox").nth(1).click();
+  await page.getByRole("option", { name: /Equal Split/i }).click();
+
+  await dialog.locator('input[type="date"]').nth(0).fill("2026-01-01");
+  await dialog.locator('input[type="date"]').nth(1).fill("2026-03-31");
   // 1000.01 over a single unit still exercises the largest-remainder path:
   // the whole amount must land on that unit, to the piastre.
-  await page.locator("#totalAmount").fill("1000.01");
-  await page.locator("#allocationBasis").selectOption("EQUAL");
-  await page.locator("#issueDate").fill("2026-08-18");
-  await page.locator("#dueDate").fill("2026-09-15");
-  await page.getByRole("button", { name: /Create as draft/i }).click();
+  await dialog.locator('input[type="number"]').fill("1000.01");
+  await dialog.getByRole("button", { name: /Create Levy & Compute Shares/i }).click();
 
   // The action revalidates rather than navigating, so the levy appears in the
   // list below the form.
