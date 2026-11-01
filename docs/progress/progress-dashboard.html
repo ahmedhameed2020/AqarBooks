@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AqarBooks — لوحة تقدم المشروع</title>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --green:#059669; --green-bg:#ecfdf5; --amber:#d97706; --amber-bg:#fffbeb;
+    --red:#dc2626; --red-bg:#fef2f2; --blue:#2563eb; --blue-bg:#eff6ff;
+    --teal:#07425d; --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(1200px 500px at 85% -10%, #dbeafe66, transparent),
+      radial-gradient(900px 400px at 10% 0%, #d1fae566, transparent), var(--bg);
+    color:var(--ink);font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",system-ui,sans-serif;line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 64px}
+  header.hero{background:linear-gradient(135deg,#07425d,#0e7490 55%,#0d9488);color:#fff;
+    border-radius:26px;padding:34px 34px 30px;box-shadow:0 18px 44px -18px #07425d99;position:relative;overflow:hidden}
+  header.hero::after{content:"";position:absolute;inset:auto -80px -120px auto;width:360px;height:360px;
+    background:radial-gradient(circle,#ffffff22,transparent 65%);border-radius:50%}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:-.3px}
+  .sub{opacity:.85;font-size:13px}
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700}
+  .badge.green{background:var(--green-bg);color:var(--green)}
+  .badge.amber{background:var(--amber-bg);color:var(--amber)}
+  .badge.red{background:var(--red-bg);color:var(--red)}
+  .badge.blue{background:var(--blue-bg);color:var(--blue)}
+  .badge.onDark{background:#ffffff22;color:#fff}
+  .grid{display:grid;gap:18px}
+  .rings{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:26px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:0 1px 2px #0f172a08,0 10px 26px -18px #0f172a33}
+  .ring-wrap{display:flex;gap:16px;align-items:center}
+  .ring{--p:0;width:96px;height:96px;border-radius:50%;flex:0 0 auto;
+    background:conic-gradient(var(--ringColor) calc(var(--p)*1%), #e5e7eb 0);display:grid;place-items:center}
+  .ring > div{width:74px;height:74px;border-radius:50%;background:#fff;display:grid;place-items:center;
+    font-weight:800;font-size:18px;color:var(--ink)}
+  .ring small{display:block;font-size:10px;font-weight:600;color:var(--muted)}
+  .ring-label b{display:block;font-size:15px}
+  .ring-label span{font-size:12px;color:var(--muted)}
+  .dash{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted)}
+  .bar{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden;margin:8px 0 4px}
+  .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0d9488,#2563eb);
+    animation:grow 1.1s cubic-bezier(.2,.7,.3,1) both}
+  .bar.green > i{background:linear-gradient(90deg,#10b981,#059669)}
+  .bar.amber > i{background:linear-gradient(90deg,#f59e0b,#d97706)}
+  .bar.red > i{background:linear-gradient(90deg,#f87171,#dc2626)}
+  @keyframes grow{from{width:0!important}to{}}
+  h2{font-size:18px;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  h2::before{content:"";width:6px;height:22px;border-radius:4px;background:linear-gradient(#0d9488,#2563eb)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px 12px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  .rows .row{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+  .rows .row:last-child{border-bottom:none}
+  .row b{font-size:13px}
+  .row span{font-size:12px;color:var(--muted)}
+  .chip{font-size:11px;font-weight:800;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .chip.g{background:var(--green-bg);color:var(--green)} .chip.a{background:var(--amber-bg);color:var(--amber)}
+  .chip.r{background:var(--red-bg);color:var(--red)} .chip.b{background:var(--blue-bg);color:var(--blue)}
+  .two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+  ul.clean{margin:6px 0 0;padding-inline-start:18px;font-size:13px;color:#334155}
+  ul.clean li{margin:6px 0}
+  code{background:#f1f5f9;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:11px;direction:ltr;display:inline-block}
+  footer{margin-top:36px;font-size:11px;color:var(--muted);text-align:center}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#cfe3ea;margin-top:10px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <h1>AqarBooks — لوحة تقدم المشروع</h1>
+        <div class="sub">إقفال السنة المالية · جودة الواجهة · جاهزية الإطلاق — حالة موثقة بالأدلة، محليًا على r6 فقط</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge onDark">آخر تحديث: 2026-11-01</span>
+        <span class="badge onDark">لا نشر · لا push</span>
+      </div>
+    </div>
+
+    <div class="grid rings">
+      <div class="card">
+        <div class="ring-wrap">
+          <div class="ring" style="--p:44;--ringColor:#0d9488"><div>44%<small>verified</small></div></div>
+          <div class="ring-label">
+            <b>مراحل المشروع</b>
+            <span>4 verified · 4 code_complete · 1 not_started</span>
+            <div class="dash">الدفعات المالية: 1B، 2، 3، BI-1 مقبولة على r6</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ring-wrap">
+          <div class="ring" style="--p:85;--ringColor:#2563eb"><div>85%<small>أخضر</small></div></div>
+          <div class="ring-label">
+            <b>الواجهة القابلة للتشغيل</b>
+            <span>41 من 48 spec خضراء (20 نواة + 21 موجة ثانية)</span>
+            <div class="dash">6 محجوبة خارجيًا · 7 قيد المعالجة</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ring-wrap">
+          <div class="ring" style="--p:11;--ringColor:#d97706"><div>2/19<small>مكتمل</small></div></div>
+          <div class="ring-label">
+            <b>بوابة الإطلاق</b>
+            <span>2 ✅ · 2 ⚠️ جزئي · 15 ❌</span>
+            <div class="dash">الإنتاج غير متصل · الجاهزية غير مقيّمة</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:#059669"></i>مكتمل بتقديم دليل</span>
+      <span><i class="dot" style="background:#d97706"></i>جزئي / قيد العمل</span>
+      <span><i class="dot" style="background:#dc2626"></i>غير منجز</span>
+      <span><i class="dot" style="background:#94a3b8"></i>محجوب خارجيًا</span>
+    </div>
+  </header>
+
+  <h2>الدفعات المالية</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>الدفعة</th><th>النطاق</th><th>الحالة</th><th>الدليل</th></tr></thead>
+      <tbody>
+        <tr><td>Batch 1B</td><td>SQL الإقفال والحراسات والصلاحيات</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-1b.md</code></td></tr>
+        <tr><td>Batch 2</td><td>رموز أخطاء الترحيل الثابتة</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-2.md</code></td></tr>
+        <tr><td>Batch 3</td><td>رحلة إقفال السنة (واجهة)</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-3.md</code></td></tr>
+        <tr><td>BI-1</td><td>صدق مؤشرات لوحات المعلومات</td><td><span class="chip g">verified</span></td><td>مراجعة مستقلة داخل الحزمة</td></tr>
+        <tr><td>Batch 0 / 1A / UX-1</td><td>صدق المعالج · الحاسبة النقية · تجربة المالية</td><td><span class="chip b">code_complete</span></td><td><code>status.json</code></td></tr>
+        <tr><td>G0</td><td>بوابة التدريب المحلي</td><td><span class="chip b">code_complete</span></td><td><code>APPROVAL-RECORD.md</code></td></tr>
+        <tr><td>الإنتاج</td><td>نشر وتشغيل</td><td><span class="chip r">not_started</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>جودة الواجهة (E2E على r6)</h2>
+  <div class="grid two">
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 1 — النواة المالية</b><span class="chip g">20/20</span></div>
+      <div class="bar green"><i style="width:100%"></i></div>
+      <div class="dash">37 اختبارًا · أُعيد تشغيل الست المتعثرة بعد الإصلاحات</div>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 2 — الباقي القابل للتشغيل</b><span class="chip a">21/28</span></div>
+      <div class="bar amber"><i style="width:75%"></i></div>
+      <div class="dash">7 متبقية: 4 تحتاج إعادة كتابة spec · 3 بيئة/fixture</div>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>المحجوبة خارجيًا</b><span class="chip b">6</span></div>
+      <div class="bar"><i style="width:0;background:#94a3b8"></i></div>
+      <div class="dash">Fawry ×3 · الضرائب · المؤجلات · بوابة الإنتاج</div>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>الإصلاحات المنتجية المثبتة</b><span class="chip g">2 + 2</span></div>
+      <div class="bar green"><i style="width:100%"></i></div>
+      <div class="dash">responsive-overflow (18/18) · chart-gates (4/4) · بانر dunning · شرح rates</div>
+    </div>
+  </div>
+
+  <h2>بوابة الإطلاق — 19 بندًا</h2>
+  <div class="grid two">
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 1 · قرارات خارجية</b><span class="chip r">0/3</span></div>
+      <ul class="clean">
+        <li>قواعد ضريبية معتمدة <span class="chip r">❌</span></li>
+        <li>مفاتيح Fawry + اختبار الدفع <span class="chip r">❌</span></li>
+        <li>قرار البنود المؤجلة <span class="chip r">❌</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 2 · اكتمال النطاق</b><span class="chip a">2/4</span></div>
+      <ul class="clean">
+        <li>قبول Batch 3 <span class="chip g">✅</span></li>
+        <li>مجموعة الواجهة الكاملة <span class="chip a">⚠️ 41/48</span></li>
+        <li>مراجعة عربية بمترجم <span class="chip r">❌</span></li>
+        <li>مراجعة أمنية مستقلة للقرار <span class="chip g">✅</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 3 · جاهزية الإنتاج</b><span class="chip r">0/3</span></div>
+      <ul class="clean">
+        <li>تقييم جاهزية إنتاج مستقل <span class="chip r">❌</span></li>
+        <li>مراجعة أمنية شاملة <span class="chip a">⚠️ جزئي</span></li>
+        <li>اختبار حمل وأداء <span class="chip r">❌</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 4 · بيئة الإنتاج</b><span class="chip r">0/6</span></div>
+      <ul class="clean">
+        <li>إنتاج متصل ونشر وترحيلات</li>
+        <li>نسخ احتياطي واستعادة مختبرة</li>
+        <li>مراقبة وتنبيهات + rollback</li>
+        <li>موافقة مالك على الاتصال بالإنتاج</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 5 · تسويق بصدق</b><span class="chip r">0/3</span></div>
+      <ul class="clean">
+        <li>مواد تصف الميزات المثبتة فقط</li>
+        <li>جولة يدوية على الإنتاج</li>
+        <li>خطة دعم وقناة بلاغ</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between"><b>الأعمال المتبقية الآن</b><span class="chip a">4+3</span></div>
+      <ul class="clean">
+        <li>إعادة كتابة 4 specs (dunning · exchange-rates · einvoice-items · einvoice-settings)</li>
+        <li>3 عوائق بيئة/ fixture (invite email · صلاحية البوابة · تعليق smoke)</li>
+        <li>F1: تحويل المقترح إلى ترحيل إنتاجي (أو تراجع)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>الالتزامات الأخيرة</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>الالتزام</th><th>المحتوى</th></tr></thead>
+      <tbody>
+        <tr><td><code>daa7b34</code></td><td>الشجرة المتراكمة · قبول Batch 3 · مقترح F1 · Trail Code</td></tr>
+        <tr><td><code>17819bc</code></td><td>أدلة الموجة الثانية · إصلاحا المُشغّل (R6_ANON_KEY · حد 1200s)</td></tr>
+        <tr><td><code>86b92e3</code></td><td>تحديث قائمة الإطلاق</td></tr>
+        <tr><td><code>21a7d09</code></td><td>إصلاح responsive + chart gates + تقرير التدقيق</td></tr>
+        <tr><td><code>5b17d44</code></td><td>تحسينات صدق dunning/rates + تصنيف انحراف الواجهات</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    مُولَّد يدويًا من <code>docs/progress/status.json</code> · <code>launch-checklist.md</code> · تقارير الأدلة — محلي على r6 فقط، وليس تقييم جاهزية إنتاج.
+  </footer>
+</div>
+</body>
+</html>
