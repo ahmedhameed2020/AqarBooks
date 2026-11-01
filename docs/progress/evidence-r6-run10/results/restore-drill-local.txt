@@ -1,0 +1,8 @@
+Restore drill (local, schema-only, scratch database) — 2026-11-01
+source: g0r6-db public schema
+dump: pg_dump -s -n public --no-owner --no-privileges (37,620 lines)
+target: bare scratch database preflight_restore (no auth/extensions schemas)
+result: 305 ERROR statements (auth.uid() unresolved; FKs to auth.users)
+objects: source 145 tables + 6 views | restored 143 tables + 6 views
+missing tables: gate_device_enrollments, gate_devices
+conclusion: FAILED drill — a bare Postgres target cannot absorb this schema; restore needs a Supabase-provisioned project (auth/extensions) or a full-cluster dump.
