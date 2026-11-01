@@ -1,0 +1,57 @@
+# After migration 2026-11-01T18:21:19Z
+Pager usage is off.
+       metric        | value 
+---------------------+-------
+ applied_migrations  | 94
+ tables              | 145
+ functions           | 629
+ policies            | 204
+ constraints         | 1148
+ rls_tables          | 145
+ unvalidated_fk      | 0
+ organizations       | 116
+ journal_entries     | 16996
+ journal_entry_lines | 75743
+ payments            | 12326
+ payment_allocations | 23232
+ members             | 694
+ units               | 612
+ chart_of_accounts   | 1418
+ auth_users          | 1512
+ auth_identities     | 1512
+ auth_sessions       | 3827
+ signup_trigger      | 1
+(19 rows)
+
+   kind   |                name                
+----------+------------------------------------
+ function | apply_payment_credit
+ function | assert_open_fiscal_period_for_date
+ function | close_fiscal_year
+ function | generate_lease_rent_dues
+ function | generate_recurring_dues
+ function | issue_dues
+ function | record_online_payment
+ function | reverse_journal_entry
+ table    | fiscal_year_closings
+ table    | payment_credit_requests
+(10 rows)
+
+       metric       | value 
+--------------------+-------
+ policy_on_closings | 1
+(1 row)
+
+psql:<stdin>:34: NOTICE:  schema "pg_temp" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+DO
+        metric        | value 
+----------------------+-------
+ orphan_fk_violations | 0
+(1 row)
+
+ schema_name | child_table | constraint_name | orphan_rows 
+-------------+-------------+-----------------+-------------
+(0 rows)
+

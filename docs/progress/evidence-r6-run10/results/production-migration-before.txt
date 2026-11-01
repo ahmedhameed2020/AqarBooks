@@ -1,0 +1,18 @@
+# Before migration 2026-11-01T18:00:36Z
+applied_migrations | 60
+tables | 143
+functions | 582
+policies | 202
+constraints | 1124
+organizations | 116
+journal_entries | 16996
+journal_entry_lines | 75743
+payments | 12326
+payment_allocations | 23232
+members | 694
+units | 612
+chart_of_accounts | 1418
+auth_users | 1512
+auth_identities | 1512
+auth_sessions | 3827
+signup_trigger | 1

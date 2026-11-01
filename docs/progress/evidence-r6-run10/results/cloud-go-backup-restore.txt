@@ -1,0 +1,60 @@
+Pager usage is off.
+         metric          | value 
+-------------------------+-------
+ public_tables           | 143
+ public_views            | 4
+ public_functions        | 582
+ public_policies         | 202
+ public_triggers         | 85
+ auth_table_rows_objects | 27
+(6 rows)
+
+ constraint_type | validated |  n  
+-----------------+-----------+-----
+ c               | false     |   1
+ c               | true      | 387
+ f               | true      | 497
+ p               | true      | 143
+ u               | true      |  92
+ x               | true      |   2
+(6 rows)
+
+psql:<stdin>:20: NOTICE:  schema "pg_temp" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+DO
+        metric        | value 
+----------------------+-------
+ orphan_fk_violations | 0
+(1 row)
+
+ schema_name | child_table | constraint_name | orphan_rows 
+-------------+-------------+-----------------+-------------
+(0 rows)
+
+          t          |   n   
+---------------------+-------
+ auth_identities     |  1512
+ auth_sessions       |  3827
+ auth_users          |  1512
+ chart_of_accounts   |  1418
+ journal_entries     | 16996
+ journal_entry_lines | 75743
+ members             |   694
+ organizations       |   116
+ payment_allocations | 23232
+ payments            | 12326
+ units               |   612
+(11 rows)
+
+          tgname          |                                                        def                                                         
+--------------------------+--------------------------------------------------------------------------------------------------------------------
+ trg_on_auth_user_created | CREATE TRIGGER trg_on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
+(1 row)
+
+                   seq                   | last_value 
+-----------------------------------------+------------
+ public.public_action_rate_limits_id_seq |        124
+ public.onboarding_request_events_id_seq |         43
+(2 rows)
+
