@@ -1,0 +1,55 @@
+name: Production healthcheck
+
+# Why a workflow and not a Cloudflare Cron Trigger: the site is served by
+# OpenNext output, so a scheduled handler would mean maintaining generated
+# code. A workflow runs outside the origin, keeps a visible run history, and a
+# failure both notifies the repository owner and leaves an issue behind.
+#
+# `base_url` exists so the alarm path itself can be proven: dispatch it once
+# with an unreachable URL and confirm the issue is opened.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to probe"
+        required: false
+        default: "https://aqarbooks.com"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: healthcheck
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Probe
+        run: node scripts/healthcheck.mjs "${{ inputs.base_url || 'https://aqarbooks.com' }}"
+
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          title="Production healthcheck is failing"
+          open=$(gh issue list --state open --search "$title in:title" --json number --jq 'length')
+          if [ "$open" -eq 0 ]; then
+            gh issue create \
+              --title "$title" \
+              --body "The scheduled probe of https://aqarbooks.com failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
