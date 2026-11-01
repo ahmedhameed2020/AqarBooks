@@ -1,0 +1,147 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-restore2-einvoice-settings
+exit=1
+elapsed_ms=123534
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (19.4s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  2 tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (11.8s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  3 tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (27.6s)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 4 tests\e2e\einvoice-settings.spec.ts:309:5 › a user without the permission cannot see settings detail (6.9s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:336:5 › organization A cannot see or alter organization B's profile (13.2s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:393:5 › no secret material reaches the response, the DOM, or the client bundle (11.9s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:452:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (798ms)
+
+
+  1) tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator: locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByRole('button', { name: /Activate Auto-Filing/i })
+    Expected: disabled
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByRole('button', { name: /Activate Auto-Filing/i })
+
+
+      145 |   await expect(
+      146 |     section(page, "EG_ETA").getByRole("button", { name: /Activate Auto-Filing/i }),
+    > 147 |   ).toBeDisabled();
+          |     ^
+      148 |
+      149 |   const { data: profile } = await admin
+      150 |     .from("einvoice_profiles")
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:147:5
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator: locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByRole('button', { name: /Activate Auto-Filing/i })
+    Expected: enabled
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByRole('button', { name: /Activate Auto-Filing/i })
+
+
+      193 |   // Now the toggle is genuinely available.
+      194 |   const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
+    > 195 |   await expect(toggle).toBeEnabled();
+          |                        ^
+      196 |   await toggle.click();
+      197 |
+      198 |   await expect(page.getByText(/Active & Auto-filing/i).first()).toBeVisible({ timeout: 15_000 });
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:195:24
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/does not match the organization/i)
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/does not match the organization/i)
+
+
+      273 |   await expect(eg2.locator("#tax-EG_ETA")).toHaveValue("TAX-DIFFERENT-FILER");
+      274 |   await eg2.getByRole("button", { name: /Save Settings/i }).click();
+    > 275 |   await expect(eg2.getByText(/does not match the organization/i)).toBeVisible({ timeout: 15_000 });
+          |                                                                   ^
+      276 |
+      277 |   const { data: unchanged } = await admin
+      278 |     .from("einvoice_profiles")
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:275:67
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore2-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+    tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+    tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+  4 passed (1.9m)
+(node:32732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20644) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

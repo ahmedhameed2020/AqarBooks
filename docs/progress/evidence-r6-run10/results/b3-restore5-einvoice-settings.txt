@@ -1,0 +1,25 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-restore5-einvoice-settings
+exit=0
+elapsed_ms=92130
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (19.0s)
+  ok 2 tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (11.6s)
+  ok 3 tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (17.5s)
+  ok 4 tests\e2e\einvoice-settings.spec.ts:303:5 › a user without the permission cannot see settings detail (6.4s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:330:5 › organization A cannot see or alter organization B's profile (12.4s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:387:5 › no secret material reaches the response, the DOM, or the client bundle (14.2s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:446:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (687ms)
+
+  7 passed (1.4m)
+(node:1332) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7352) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

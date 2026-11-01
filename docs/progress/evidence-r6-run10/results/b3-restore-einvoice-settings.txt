@@ -1,0 +1,151 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-restore-einvoice-settings
+exit=1
+elapsed_ms=128698
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (13.1s)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  2 tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (11.6s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  3 tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (16.6s)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 4 tests\e2e\einvoice-settings.spec.ts:309:5 › a user without the permission cannot see settings detail (10.9s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:336:5 › organization A cannot see or alter organization B's profile (11.7s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:393:5 › no secret material reaches the response, the DOM, or the client bundle (12.5s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:452:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (1.3s)
+
+
+  1) tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/Setup needed/i)
+    Expected: visible
+    Error: strict mode violation: getByText(/Setup needed/i) resolved to 3 elements:
+        1) <span class="mt-1 block text-[11px] font-semibold text-indigo-600/90 dark:text-indigo-400/90">Setup needed</span> aka getByText('Setup needed').first()
+        2) <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Setup needed</span> aka getByText('Setup needed').nth(1)
+        3) <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Setup needed</span> aka getByText('Setup needed').nth(2)
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByText(/Setup needed/i)
+
+
+      133 |
+      134 |   // Configured-but-unverified must not claim more than "Setup needed".
+    > 135 |   await expect(page.getByText(/Setup needed/i)).toBeVisible({ timeout: 15_000 });
+          |                                                 ^
+      136 |
+      137 |   // Reload before checking the saved value: proving it survives a fresh request
+      138 |   // is the point, and an input's value never appears in innerText anyway.
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:135:49
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-walks-NO-213fb-d-never-claims-a-connection\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/Verified — ready/i)
+    Expected: visible
+    Error: strict mode violation: getByText(/Verified — ready/i) resolved to 2 elements:
+        1) <span class="mt-1 block text-[11px] font-semibold text-indigo-600/90 dark:text-indigo-400/90">Verified — ready</span> aka getByText('Verified — ready').first()
+        2) <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Verified — ready</span> aka locator('section').getByText('Verified — ready')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/Verified — ready/i)
+
+
+      190 |
+      191 |   const eg = section(page, "EG_ETA");
+    > 192 |   await expect(page.getByText(/Verified — ready/i)).toBeVisible();
+          |                                                     ^
+      193 |   // Now the toggle is genuinely available.
+      194 |   const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
+      195 |   await expect(toggle).toBeEnabled();
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:192:53
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-shows-VE-ff7bb--database-genuinely-says-so\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/Active & Auto-filing/i)
+    Expected: visible
+    Error: strict mode violation: getByText(/Active & Auto-filing/i) resolved to 2 elements:
+        1) <span class="mt-1 block text-[11px] font-semibold text-indigo-600/90 dark:text-indigo-400/90">Active & Auto-filing</span> aka getByText('Active & Auto-filing').first()
+        2) <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Active & Auto-filing</span> aka locator('section').getByText('Active & Auto-filing')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/Active & Auto-filing/i)
+
+
+      235 |   await page.goto("/en/finance/einvoice");
+      236 |   const eg = section(page, "EG_ETA");
+    > 237 |   await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible();
+          |                                                         ^
+      238 |
+      239 |   // Editing a branch code is a correction, not a different filer: verification
+      240 |   // must survive it.
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:237:57
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection 
+    tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so 
+    tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+  4 passed (2.0m)
+(node:39732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27524) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29668) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

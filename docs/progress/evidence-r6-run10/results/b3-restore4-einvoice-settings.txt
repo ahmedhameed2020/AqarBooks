@@ -1,0 +1,67 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-restore4-einvoice-settings
+exit=1
+elapsed_ms=88723
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (13.5s)
+  ok 2 tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (9.2s)
+  x  3 tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (28.2s)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 4 tests\e2e\einvoice-settings.spec.ts:303:5 › a user without the permission cannot see settings detail (7.3s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:330:5 › organization A cannot see or alter organization B's profile (8.3s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:387:5 › no secret material reaches the response, the DOM, or the client bundle (8.1s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:446:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (518ms)
+
+
+  1) tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/Configured — not verified/i)
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/Configured — not verified/i)
+
+
+      286 |   await expect(
+      287 |     section(page, "EG_ETA").getByText(/Configured — not verified/i),
+    > 288 |   ).toBeVisible({ timeout: 15_000 });
+          |     ^
+      289 |
+      290 |   const { data: after } = await admin
+      291 |     .from("einvoice_profiles")
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:288:5
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore4-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore4-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore4-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+  6 passed (1.4m)
+(node:28752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

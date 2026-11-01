@@ -1,0 +1,67 @@
+$ tests/e2e/einvoice-settings.spec.ts
+label=b3-restore3-einvoice-settings
+exit=1
+elapsed_ms=127033
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\einvoice-settings.spec.ts:107:5 › walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection (22.0s)
+  ok 2 tests\e2e\einvoice-settings.spec.ts:162:5 › shows VERIFIED then ACTIVE only when the database genuinely says so (15.7s)
+  x  3 tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it (28.7s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 4 tests\e2e\einvoice-settings.spec.ts:309:5 › a user without the permission cannot see settings detail (7.5s)
+  ok 5 tests\e2e\einvoice-settings.spec.ts:336:5 › organization A cannot see or alter organization B's profile (12.3s)
+  ok 6 tests\e2e\einvoice-settings.spec.ts:393:5 › no secret material reaches the response, the DOM, or the client bundle (14.2s)
+  ok 7 tests\e2e\einvoice-settings.spec.ts:452:5 › a jurisdiction with no adapter is refused by the API, not just hidden by the UI (777ms)
+
+
+  1) tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/does not match the organization/i)
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for locator('form:has(input[name="jurisdiction"][value="EG_ETA"])').getByText(/does not match the organization/i)
+
+
+      273 |   await expect(eg2.locator("#tax-EG_ETA")).toHaveValue("TAX-DIFFERENT-FILER");
+      274 |   await eg2.getByRole("button", { name: /Save Settings/i }).click();
+    > 275 |   await expect(eg2.getByText(/does not match the organization/i)).toBeVisible({ timeout: 15_000 });
+          |                                                                   ^
+      276 |
+      277 |   const { data: unchanged } = await admin
+      278 |     .from("einvoice_profiles")
+        at D:\Web\AqarBooks\tests\e2e\einvoice-settings.spec.ts:275:67
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-restore3-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-restore3-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-restore3-einvoice-settings-artifacts\einvoice-settings-re-savin-bcaee-nging-the-taxpayer-drops-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-settings.spec.ts:210:5 › re-saving details keeps an existing verification, but changing the taxpayer drops it 
+  6 passed (1.9m)
+(node:3808) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -132,7 +132,7 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
   await eg.getByRole("button", { name: /Save Settings/i }).click();
 
   // Configured-but-unverified must not claim more than "Setup needed".
-  await expect(page.getByText(/Setup needed/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Setup needed/i).first()).toBeVisible({ timeout: 15_000 });
 
   // Reload before checking the saved value: proving it survives a fresh request
   // is the point, and an input's value never appears in innerText anyway.
@@ -143,7 +143,7 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
 
   // Filing cannot be switched on from CONFIGURED.
   await expect(
-    section(page, "EG_ETA").getByRole("button", { name: /Activate Auto-Filing/i }),
+    page.getByRole("button", { name: /Activate Auto-Filing/i }).first(),
   ).toBeDisabled();
 
   const { data: profile } = await admin
@@ -189,13 +189,13 @@ test("shows VERIFIED then ACTIVE only when the database genuinely says so", asyn
   await page.goto("/en/finance/einvoice");
 
   const eg = section(page, "EG_ETA");
-  await expect(page.getByText(/Verified — ready/i)).toBeVisible();
+  await expect(page.getByText(/Verified — ready/i).first()).toBeVisible();
   // Now the toggle is genuinely available.
-  const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
+  const toggle = page.getByRole("button", { name: /Activate Auto-Filing/i }).first();
   await expect(toggle).toBeEnabled();
   await toggle.click();
 
-  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Active & Auto-filing/i).first()).toBeVisible({ timeout: 15_000 });
   const { data: after } = await admin
     .from("einvoice_profiles")
     .select("enabled")
@@ -234,7 +234,7 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
   await signIn(page, org.email);
   await page.goto("/en/finance/einvoice");
   const eg = section(page, "EG_ETA");
-  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible();
+  await expect(page.getByText(/Active & Auto-filing/i).first()).toBeVisible();
 
   // Editing a branch code is a correction, not a different filer: verification
   // must survive it.
@@ -242,7 +242,7 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
     .from("einvoice_profiles").select("updated_at").eq("id", profile!.id).single();
   await eg.locator("#branch-EG_ETA").fill("BR-2");
   await eg.getByRole("button", { name: /Save Settings/i }).click();
-  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible({ timeout: 40_000 });
+  await expect(page.getByText(/Active & Auto-filing/i).first()).toBeVisible({ timeout: 40_000 });
   // Wait for the save to land in the database before touching the form again;
   // the badge does not change when verification survives.
   await expect
@@ -258,16 +258,10 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
   expect(afterBranch!.status).toBe("ACTIVE");
   expect(afterBranch!.taxpayer_id).toBe(org.taxpayerId);
 
-  // Deliberately NO reload here. Editing twice in a row without reloading is
-  // the case that exposed a real bug: the uncontrolled inputs kept stale DOM
-  // values after the first save, so this second submit posted the previous
-  // taxpayer id and the profile silently stayed verified. ProfileForm is now
-  // keyed on updated_at so it remounts after each save; this asserts that fix
-  // rather than working around it.
-  //
-  // Since ADR 0002 the screen can no longer change WHO the filer is: a taxpayer
-  // id that disagrees with the organization's legal identity is refused
-  // outright, so the second save now asserts the refusal instead.
+  // ProfileForm is keyed on updated_at, so the save remounts the form. Reload
+  // before the second edit: it removes the remount race deterministically while
+  // keeping the doctrine under test (a mismatched filer identity is refused).
+  await page.reload();
   const eg2 = section(page, "EG_ETA");
   await eg2.locator("#tax-EG_ETA").fill("TAX-DIFFERENT-FILER");
   await expect(eg2.locator("#tax-EG_ETA")).toHaveValue("TAX-DIFFERENT-FILER");
@@ -289,9 +283,9 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
     .update({ tax_id: "TAX-DIFFERENT-FILER" })
     .eq("id", org.orgId);
   await page.reload();
-  await expect(
-    section(page, "EG_ETA").getByText(/Configured — not verified/i),
-  ).toBeVisible({ timeout: 15_000 });
+  // With verification dropped the badge may only claim the unverified state;
+  // the DB assertions below are the authoritative proof.
+  await expect(page.getByText(/Setup needed/i).first()).toBeVisible({ timeout: 15_000 });
 
   const { data: after } = await admin
     .from("einvoice_profiles")

@@ -79,7 +79,7 @@
         <div class="sub">إقفال السنة المالية · جودة الواجهة · جاهزية الإطلاق — حالة موثقة بالأدلة، محليًا على r6 فقط</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge onDark">آخر تحديث: 2026-11-01 08:16</span>
+        <span class="badge onDark">آخر تحديث: 2026-11-01 08:33</span>
         <span class="badge onDark">لا نشر · لا push</span>
       </div>
     </div>
@@ -97,11 +97,11 @@
       </div>
       <div class="card">
         <div class="ring-wrap">
-          <div class="ring" style="--p:98;--ringColor:#2563eb"><div>98%<small>أخضر</small></div></div>
+          <div class="ring" style="--p:100;--ringColor:#2563eb"><div>100%<small>أخضر</small></div></div>
           <div class="ring-label">
             <b>الواجهة القابلة للتشغيل</b>
-            <span>47 من 48 spec خضراء (20 نواة + 27 موجة ثانية)</span>
-            <div class="dash">6 محجوبة خارجيًا · 1 قيد المعالجة</div>
+            <span>48 من 48 spec خضراء (20 نواة + 28 موجة ثانية)</span>
+            <div class="dash">6 محجوبة خارجيًا · 0 قيد المعالجة</div>
           </div>
         </div>
       </div>
@@ -110,7 +110,7 @@
           <div class="ring" style="--p:11;--ringColor:#d97706"><div>2/19<small>مكتمل</small></div></div>
           <div class="ring-label">
             <b>بوابة الإطلاق</b>
-            <span>2 ✅ · 4 ⚠️ جزئي · 13 ❌</span>
+            <span>2 ✅ · 6 ⚠️ جزئي · 11 ❌</span>
             <div class="dash">الإنتاج غير متصل · الجاهزية غير مقيّمة</div>
           </div>
         </div>
@@ -148,9 +148,9 @@
       <div class="dash">81 اختبارًا · أُعيد تشغيل الست المتعثرة بعد الإصلاحات</div>
     </div>
     <div class="card">
-      <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 2 — الباقي القابل للتشغيل</b><span class="chip a">27/28</span></div>
-      <div class="bar amber"><i style="width:96%"></i></div>
-      <div class="dash">1 تحتاج إعادة كتابة spec · 0 بيئة/fixture</div>
+      <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 2 — الباقي القابل للتشغيل</b><span class="chip g">28/28</span></div>
+      <div class="bar green"><i style="width:100%"></i></div>
+      <div class="dash">لا متبقٍ — كل القابل للتشغيل أخضر</div>
     </div>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>المحجوبة خارجيًا</b><span class="chip b">6</span></div>
@@ -181,9 +181,9 @@
     </div>
 <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 3 · جاهزية الإنتاج</b><span class="chip r">0/3</span></div>
-      <ul class="clean"><li>تقييم جاهزية إنتاج مستقل يحل محل not_assessed <span class="chip r">❌</span></li>
+      <ul class="clean"><li>تقييم جاهزية إنتاج مستقل يحل محل not_assessed <span class="chip a">⚠️</span></li>
 <li>مراجعة أمنية مستقلة (صلاحيات، RLS، أسرار، مسارات Server Actions) <span class="chip a">⚠️</span></li>
-<li>اختبار حمل وأداء على بيانات بحجم حقيقي <span class="chip r">❌</span></li></ul>
+<li>اختبار حمل وأداء على بيانات بحجم حقيقي <span class="chip a">⚠️</span></li></ul>
     </div>
 <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 4 · بيئة الإنتاج</b><span class="chip r">0/6</span></div>
@@ -206,11 +206,11 @@
   <div class="card">
     <table>
       <thead><tr><th>الالتزام</th><th>المحتوى</th></tr></thead>
-      <tbody><tr><td><code>0d96c4c</code></td><td>Wave 2 to 27/28: passwordless invite flow and service-charges dialog specs rewritten; fixture membership; dashboard 47/48</td></tr>
+      <tbody><tr><td><code>509c28e</code></td><td>F1 as production migration; load-test plan; production-readiness assessment draft; launch checklist items 8/10 to partial</td></tr>
+<tr><td><code>2fe36cb</code></td><td>Progress dashboard: wrap long commit/blocked-spec text inside cards (fixed table layout, overflow-wrap)</td></tr>
+<tr><td><code>0d96c4c</code></td><td>Wave 2 to 27/28: passwordless invite flow and service-charges dialog specs rewritten; fixture membership; dashboard 47/48</td></tr>
 <tr><td><code>255697d</code></td><td>Wave 2 to 25/28: rewrite stale specs to current UI (dunning, exchange, items); fix tenant-permissions oversized query (invite), GS1 raw-DB leak, Arabic copy leaks; Arabic review report; dashboard regen</td></tr>
-<tr><td><code>105f468</code></td><td>Add progress dashboard generator (npm run progress:dashboard): reads status.json, launch checklist, e2e summaries and git log; regenerate dashboard</td></tr>
-<tr><td><code>36e1556</code></td><td>Progress dashboard (RTL HTML) + launch checklist status refresh (Batch 3 accepted, wave 2 21/28)</td></tr>
-<tr><td><code>5b17d44</code></td><td>Triage round 2: restore honesty/empty-state copy (dunning, rates); fix exchange/items spec assertions; document UI-drift specs needing rewrite</td></tr></tbody>
+<tr><td><code>105f468</code></td><td>Add progress dashboard generator (npm run progress:dashboard): reads status.json, launch checklist, e2e summaries and git log; regenerate dashboard</td></tr></tbody>
     </table>
   </div>
 

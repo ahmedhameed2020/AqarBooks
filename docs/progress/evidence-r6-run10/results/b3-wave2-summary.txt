@@ -47,3 +47,4 @@ einvoice-items -> exit=0 2 passed
 admin-team-invite-flow -> exit=0 1 passed
 owner-portal-invite -> exit=0 1 passed
 new-finance-screens-smoke -> exit=0 2 passed
+einvoice-settings -> exit=0 7 passed

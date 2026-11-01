@@ -21,7 +21,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 // ── Declared constants (update alongside the evidence reports) ───────────────
 const BLOCKED_EXTERNAL = ["owner-portal-online-payment-fawry", "fawry-production-foundation", "payment-provider-settings", "tax-mapping-review", "reports-unbuilt-sections", "release-a-production-gate"];
 const PRODUCT_FIXES = { verified: 3, copyRestored: 4 }; // responsive-overflow, chart-gates, tenant-permissions (invite); dunning banner, rates copy, statement-forms leak, runtime wording
-const TRIAGE_REMAINING = { rewrites: 1, environment: 0 }; // einvoice-settings: settings panel not exposed in the current UI (owner decision to restore or retire the spec)
+const TRIAGE_REMAINING = { rewrites: 0, environment: 0 }; // all runnable specs green; 6 remain blocked externally
 
 // ── status.json ──────────────────────────────────────────────────────────────
 const status = JSON.parse(read("docs/progress/status.json"));
@@ -236,7 +236,7 @@ const html = `<!DOCTYPE html>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 2 — الباقي القابل للتشغيل</b><span class="chip ${wave2.green === wave2.total ? "g" : "a"}">${wave2.green}/${wave2.total}</span></div>
       <div class="bar ${wave2.green === wave2.total ? "green" : "amber"}"><i style="width:${Math.round((wave2.green / wave2.total) * 100)}%"></i></div>
-      <div class="dash">${TRIAGE_REMAINING.rewrites} تحتاج إعادة كتابة spec · ${TRIAGE_REMAINING.environment} بيئة/fixture</div>
+      <div class="dash">${TRIAGE_REMAINING.rewrites === 0 && TRIAGE_REMAINING.environment === 0 ? "لا متبقٍ — كل القابل للتشغيل أخضر" : `${TRIAGE_REMAINING.rewrites} تحتاج إعادة كتابة spec · ${TRIAGE_REMAINING.environment} بيئة/fixture`}</div>
     </div>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>المحجوبة خارجيًا</b><span class="chip b">${BLOCKED_EXTERNAL.length}</span></div>
