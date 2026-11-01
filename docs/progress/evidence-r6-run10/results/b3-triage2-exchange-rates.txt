@@ -1,0 +1,95 @@
+$ tests/e2e/exchange-rates.spec.ts
+label=b3-triage2-exchange-rates
+exit=1
+elapsed_ms=37687
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\exchange-rates.spec.ts:74:5 › a rate is recorded, the direction is spelled out, and a superseded rate is kept (12.8s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  2 tests\e2e\exchange-rates.spec.ts:144:5 › a reader sees the rates without the form, and someone with neither permission is told so (12.0s)
+
+
+  1) tests\e2e\exchange-rates.spec.ts:74:5 › a rate is recorded, the direction is spelled out, and a superseded rate is kept 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/1 foreign unit = this many EGP/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/1 foreign unit = this many EGP/i)
+
+
+      92 |
+      93 |     // The direction is stated on the form itself, not left to the operator.
+    > 94 |     await expect(page.getByText(/1 foreign unit = this many EGP/i)).toBeVisible();
+         |                                                                     ^
+      95 |
+      96 |     await page.locator("#fx-foreign").fill("EUR");
+      97 |     await page.locator("#fx-rate").fill("50");
+        at D:\Web\AqarBooks\tests\e2e\exchange-rates.spec.ts:94:69
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-rate-is-r-bf0c3-d-a-superseded-rate-is-kept\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-rate-is-r-bf0c3-d-a-superseded-rate-is-kept\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-rate-is-r-bf0c3-d-a-superseded-rate-is-kept\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\exchange-rates.spec.ts:144:5 › a reader sees the rates without the form, and someone with neither permission is told so 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-rate="USD/EGP"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-rate="USD/EGP"]')
+
+
+      162 |     await readPage.goto("/en/finance/exchange-rates");
+      163 |
+    > 164 |     await expect(readPage.locator('[data-rate="USD/EGP"]')).toBeVisible();
+          |                                                             ^
+      165 |     await expect(readPage.getByRole("button", { name: /Record rate/i })).toHaveCount(0);
+      166 |     await readCtx.close();
+      167 |
+        at D:\Web\AqarBooks\tests\e2e\exchange-rates.spec.ts:164:61
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-reader-se-ac638-ither-permission-is-told-so\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-reader-se-ac638-ither-permission-is-told-so\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-triage2-exchange-rates-artifacts\exchange-rates-a-reader-se-ac638-ither-permission-is-told-so\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\exchange-rates.spec.ts:74:5 › a rate is recorded, the direction is spelled out, and a superseded rate is kept 
+    tests\e2e\exchange-rates.spec.ts:144:5 › a reader sees the rates without the form, and someone with neither permission is told so 
+(node:22688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

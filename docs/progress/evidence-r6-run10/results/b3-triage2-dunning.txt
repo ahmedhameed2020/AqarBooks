@@ -1,0 +1,95 @@
+$ tests/e2e/dunning.spec.ts
+label=b3-triage2-dunning
+exit=1
+elapsed_ms=51736
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it (15.5s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  2 tests\e2e\dunning.spec.ts:227:5 › a reader sees the collections work without the controls (18.0s)
+
+
+  1) tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/Nothing will be flagged until at least one stage exists/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/Nothing will be flagged until at least one stage exists/i)
+
+
+      156 |     // Nothing is flagged until a stage exists -- and the screen says so rather
+      157 |     // than showing an empty list that reads as "no overdue debts".
+    > 158 |     await expect(page.getByText(/Nothing will be flagged until at least one stage exists/i)).toBeVisible();
+          |                                                                                              ^
+      159 |
+      160 |     await page.locator("#pol-stage").fill("1");
+      161 |     await page.locator("#pol-ar").fill("إنذار نهائي");
+        at D:\Web\AqarBooks\tests\e2e\dunning.spec.ts:158:94
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\dunning.spec.ts:227:5 › a reader sees the collections work without the controls ─────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/don't have permission to view collections/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/don't have permission to view collections/i)
+
+
+      256 |     await expect(
+      257 |       denyPage.getByText(/don't have permission to view collections/i),
+    > 258 |     ).toBeVisible();
+          |       ^
+      259 |     await expect(denyPage.locator("[data-candidate]")).toHaveCount(0);
+      260 |     await denyCtx.close();
+      261 |   } finally {
+        at D:\Web\AqarBooks\tests\e2e\dunning.spec.ts:258:7
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-triage2-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it 
+    tests\e2e\dunning.spec.ts:227:5 › a reader sees the collections work without the controls ──────
+(node:19692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31520) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

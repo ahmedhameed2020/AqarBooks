@@ -274,6 +274,10 @@ export function DunningClient({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] font-semibold text-amber-900 space-y-1">
+        <p>{isAr ? "هذه الشاشة تُصدر إشعارات فقط؛ ولا ترسلها إلى العملاء." : "This screen RAISES notices; it does not send them."}</p>
+        <p>{isAr ? "لن تُوسم أي مستحقات حتى تُعرّف مرحلة تحصيل واحدة على الأقل." : "Nothing will be flagged until at least one stage exists."}</p>
+      </div>
       {/* 1. Financial KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Overdue */}
@@ -683,7 +687,15 @@ export function DunningClient({
 
       {/* 6. Tab 3: Policies */}
       {activeTab === "policies" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-4">
+          {policies.length === 0 && (
+            <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-600">
+              {isAr
+                ? "لن تُوسم أي مستحقات حتى تُعرّف مرحلة تحصيل واحدة على الأقل."
+                : "Nothing will be flagged until at least one stage exists."}
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {policies.map((p) => (
             <div
               key={p.stage}
@@ -724,6 +736,7 @@ export function DunningClient({
               </div>
             </div>
           ))}
+        </div>
         </div>
       )}
 

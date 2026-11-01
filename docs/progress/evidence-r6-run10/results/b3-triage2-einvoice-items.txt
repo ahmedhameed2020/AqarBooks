@@ -1,0 +1,62 @@
+$ tests/e2e/einvoice-items.spec.ts
+label=b3-triage2-einvoice-items
+exit=1
+elapsed_ms=31229
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  1 tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears (11.9s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 2 tests\e2e\einvoice-items.spec.ts:153:5 › a user without the permission is told so, and gets no controls (6.4s)
+
+
+  1) tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ────
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: locator('[data-due-type="8d5893ba-9bfd-4d39-aa93-2eb2e31d9550"]')
+    Expected: "unlinked"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('[data-due-type="8d5893ba-9bfd-4d39-aa93-2eb2e31d9550"]')
+
+
+      112 |   // do", which is the opposite of the truth.
+      113 |   const card = page.locator(`[data-due-type="${org.dueTypeId}"]`);
+    > 114 |   await expect(card).toHaveAttribute("data-linked", "unlinked");
+          |                      ^
+      115 |   await expect(page.locator('[data-gap="ITEM_LINK_MISSING"]').first()).toBeVisible();
+      116 |
+      117 |   // An invalid GS1 is refused with an explanation rather than a raw constraint.
+        at D:\Web\AqarBooks\tests\e2e\einvoice-items.spec.ts:114:22
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-triage2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-triage2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-triage2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ─────
+  1 passed (24.7s)
+(node:32572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -91,7 +91,7 @@ test("a rate is recorded, the direction is spelled out, and a superseded rate is
     await expect(page.getByText(/will be refused until one is/i)).toBeVisible();
 
     // The direction is stated on the form itself, not left to the operator.
-    await expect(page.getByText(/1 foreign unit = this many EGP/i)).toBeVisible();
+    await expect(page.getByText(/How many .* per 1 foreign unit/i)).toBeVisible();
 
     await page.locator("#fx-foreign").fill("EUR");
     await page.locator("#fx-rate").fill("50");

@@ -432,6 +432,11 @@ export function RatesClient({
                     <p className="text-sm font-bold text-slate-700">
                       {isAr ? "لا توجد أسعار صرف مسجلة" : "No exchange rates found"}
                     </p>
+                    <p className="text-xs text-slate-500">
+                      {isAr
+                        ? "ستُرفض المبالغ بالعملات الأجنبية حتى يُسجَّل سعر صرف أول."
+                        : "Foreign-currency amounts will be refused until one is recorded."}
+                    </p>
                   </td>
                 </tr>
               )}

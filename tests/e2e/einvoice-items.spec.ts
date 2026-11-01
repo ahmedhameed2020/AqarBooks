@@ -106,7 +106,7 @@ test("an item is created, linked, and the gap disappears", async ({ browser }) =
 
   // The page renders at all: a server component importing from a "use client"
   // module can fail in ways tsc and the build both accept.
-  await expect(page.getByRole("heading", { name: /E-Document Items/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /E-Invoice Item/i })).toBeVisible();
 
   // The unlinked type is SHOWN. Absent from the screen would read as "nothing to
   // do", which is the opposite of the truth.
