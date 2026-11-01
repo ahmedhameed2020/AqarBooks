@@ -8,3 +8,11 @@ pending versions:
 table stats (estimated rows): organizations=116, journal_entries=16996, journal_entry_lines=75743, payments=12326, dues=14020, payment_allocations=23232, chart_of_accounts=1418, members=694, units=612, properties=40
 legacy schemas present: legacy_migration.raw_journal_lines=75047 rows, accsys_stage.je=16555, accsys_stage.jel=74860
 rest probes: permissions=200; organizations/chart_of_accounts=401 (anon blocked, expected under RLS)
+
+--- DDL drift (cloud public schema dump vs r6) ---
+cloud dump size: 1,380,235 bytes
+tables: cloud 143 | r6 145 | missing in cloud: fiscal_year_closings, payment_credit_requests
+functions: cloud 393 | r6 638 | missing in cloud: 245 (sample: close_fiscal_year, assert_open_fiscal_period_for_date, cash_dist, date_dist, check_project_wip_floor, apply_payment_credit)
+policies: cloud 202 | r6 204 | missing in cloud: 19 (new permission-keyed SELECT policies) | extra in cloud: 17 (old member-based SELECT policies)
+triggers present in dump: 138
+conclusion: the cloud runs the pre-Batch-1B/2/3 schema (old RLS names, no closing engine); deploying current code without the 34 migrations would break.
