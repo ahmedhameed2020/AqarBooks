@@ -1,0 +1,20 @@
+$ tests/e2e/reports-cam-allocation.spec.ts
+label=b4b-reports-cam-allocation
+exit=0
+elapsed_ms=23290
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\reports-cam-allocation.spec.ts:37:5 › CAM shares are computed from the levy allocations and tie to the total (7.8s)
+  ok 2 tests\e2e\reports-cam-allocation.spec.ts:111:5 › an organization without a levy sees an explained empty CAM register (4.7s)
+
+  2 passed (14.6s)
+(node:27348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

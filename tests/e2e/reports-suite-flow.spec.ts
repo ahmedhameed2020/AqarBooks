@@ -197,13 +197,8 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await admin.from("organizations").delete().eq("id", orgId);
   });
 
-  // DEFERRED, NOT A PASS. The fixed-asset schedule report is out of Batch 1B by owner decision (2026-10-29), and its
-  // navigation link is hidden. The report page is still a placeholder, so this check cannot pass until a separate batch
-  // builds the schedule and its own fixtures. Kept skipped so the deferral stays visible in the test report.
-  test.fixme("DEFERRED (Batch 1B excluded): fixed-asset schedule shows the NBV table", async ({ page }) => {
-    await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
-    await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
-  });
+  // The fixed-asset schedule is now BUILT (Batch 4, 2026-11-01) and covered by
+  // its own fixture-based suite: tests/e2e/reports-fixed-assets.spec.ts. The
+  // deferral is closed; the old placeholder check was removed rather than kept
+  // skipped, so the test report carries no stale skip.
 });

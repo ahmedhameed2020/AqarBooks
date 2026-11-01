@@ -58,52 +58,76 @@ export default async function FixedAssetsPage({
     );
   }
 
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
-      <h1 className="text-lg font-bold">{isAr ? "سجل الأصول الثابتة" : "Fixed Assets Report"}</h1>
-      <p className="mt-2 text-sm text-slate-500">{isAr ? "قريبًا / غير متاح في هذا الإصدار." : "Coming soon / Not available in this version."}</p>
-    </div>
-  );
-
-  /* No real fixed-asset register binding is available; fabricated exports are disabled.
   const supabase = await createClient();
+  const [
+    { data: assetsRaw, error: assetsError },
+    { data: depRaw, error: depError },
+    { data: accountsRaw },
+  ] = await Promise.all([
+    supabase
+      .from("fixed_assets")
+      .select("id, code, name_ar, name_en, asset_account_id, acquisition_date, acquisition_cost, salvage_value, useful_life_months, status")
+      .eq("organization_id", organization.id),
+    supabase
+      .from("fixed_asset_depreciation")
+      .select("fixed_asset_id, amount")
+      .eq("organization_id", organization.id),
+    supabase
+      .from("chart_of_accounts")
+      .select("id, name_ar, name_en")
+      .eq("organization_id", organization.id),
+  ]);
 
-  // 1. Fetch Asset accounts from Chart of Accounts
-  const { data: coaData } = await supabase
-    .from("chart_of_accounts")
-    .select("id, code, name_ar, name_en, category, resort_id, resorts(name)")
-    .eq("organization_id", organization.id)
-    .eq("category", "ASSET");
+  // A failed read is a failure, never an empty register.
+  if (assetsError || depError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <div className="size-12 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600">
+          <AlertCircle className="size-6" />
+        </div>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          {isAr ? "تعذر تحميل سجل الأصول" : "The asset register could not be loaded"}
+        </h1>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          {isAr
+            ? "لم تُقرأ البيانات من قاعدة البيانات. أعد المحاولة؛ لا تُعرض أرقام ناقصة."
+            : "Data could not be read from the database. Try again; no partial numbers are shown."}
+        </p>
+      </div>
+    );
+  }
 
-  // Generate standardized fixed asset items based on resort infrastructure
-  const standardAssetTemplates = [
-    { code: "FA-001", nameAr: "مولدات الديزل الاحتياطية وشبكة الطوارئ", nameEn: "Backup Diesel Generators & Grid", catAr: "الآلات والمعدات", cost: 450000, rate: 10, yearsActive: 3 },
-    { code: "FA-002", nameAr: "منظومة المصاعد البانورامية وخدمات الأبراج", nameEn: "Elevators & Lift Systems", catAr: "المنشآت والمصاعد", cost: 850000, rate: 5, yearsActive: 4 },
-    { code: "FA-003", nameAr: "محطة تحلية وتنقية ومعالجة المياه المركزية", nameEn: "Central Water Desalination Plant", catAr: "المرافق وشبكات المياه", cost: 620000, rate: 10, yearsActive: 2 },
-    { code: "FA-004", nameAr: "أنظمة التكييف المركزي ووحدات الشيلر (Chillers)", nameEn: "Central HVAC & Chillers", catAr: "التكييف والتهوية", cost: 1200000, rate: 12.5, yearsActive: 3 },
-    { code: "FA-005", nameAr: "سيارات الخدمة وسيارات الغولف لنقل النزلاء", nameEn: "Service Fleet & Club Carts", catAr: "وسائل النقل", cost: 280000, rate: 20, yearsActive: 2 },
-    { code: "FA-006", nameAr: "أنظمة كاميرات المراقبة والتحكم في البوابات الذكية", nameEn: "CCTV & Smart Access Gates", catAr: "الأجهزة الإلكترونية والأمنية", cost: 190000, rate: 20, yearsActive: 1 },
-    { code: "FA-007", nameAr: "معدات وفلاتر حمامات السباحة والبحيرات الصناعية", nameEn: "Pool & Lagoon Pumps and Filters", catAr: "المعدات الترفيهية", cost: 310000, rate: 15, yearsActive: 2 },
-  ];
+  const accountsById = new Map((accountsRaw ?? []).map((a) => [a.id, a]));
+  const depreciationByAsset = new Map<string, number>();
+  for (const row of depRaw ?? []) {
+    depreciationByAsset.set(
+      row.fixed_asset_id,
+      (depreciationByAsset.get(row.fixed_asset_id) ?? 0) + Number(row.amount ?? 0),
+    );
+  }
 
-  const assets: FixedAssetItem[] = standardAssetTemplates.map((t) => {
-    const annualDepreciation = (t.cost * t.rate) / 100;
-    const accumulatedDepreciation = annualDepreciation * t.yearsActive;
-    const netBookValue = Math.max(0, t.cost - accumulatedDepreciation);
-
-    return {
-      assetCode: t.code,
-      name: isAr ? t.nameAr : t.nameEn,
-      category: t.catAr,
-      purchaseDate: `${2026 - t.yearsActive}-01-15`,
-      cost: t.cost,
-      depreciationRate: t.rate,
-      annualDepreciation,
-      accumulatedDepreciation,
-      netBookValue,
-      status: "ACTIVE",
-    };
-  });
+  const assets: FixedAssetItem[] = (assetsRaw ?? [])
+    .map((asset) => {
+      const cost = Number(asset.acquisition_cost ?? 0);
+      const salvage = Number(asset.salvage_value ?? 0);
+      const lifeMonths = Number(asset.useful_life_months ?? 0);
+      const accumulated = depreciationByAsset.get(asset.id) ?? 0;
+      const years = lifeMonths > 0 ? lifeMonths / 12 : 0;
+      const account = asset.asset_account_id ? accountsById.get(asset.asset_account_id) : undefined;
+      return {
+        assetCode: asset.code,
+        name: (isAr ? asset.name_ar : asset.name_en) || asset.name_ar || asset.name_en,
+        category: (isAr ? account?.name_ar : account?.name_en) || account?.name_ar || account?.name_en || "—",
+        purchaseDate: asset.acquisition_date ?? "",
+        cost,
+        depreciationRate: years > 0 ? 100 / years : 0,
+        annualDepreciation: years > 0 ? (cost - salvage) / years : 0,
+        accumulatedDepreciation: accumulated,
+        netBookValue: cost - accumulated,
+        status: asset.status,
+      };
+    })
+    .sort((a, b) => a.assetCode.localeCompare(b.assetCode));
 
   return (
     <FixedAssetsClient
@@ -113,5 +137,4 @@ export default async function FixedAssetsPage({
       locale={locale}
     />
   );
-  */
 }

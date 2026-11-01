@@ -58,47 +58,86 @@ export default async function CapexOpexPage({
     );
   }
 
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
-      <h1 className="text-lg font-bold">{isAr ? "تقرير CAPEX / OPEX" : "CAPEX / OPEX Report"}</h1>
-      <p className="mt-2 text-sm text-slate-500">{isAr ? "قريبًا / غير متاح في هذا الإصدار." : "Coming soon / Not available in this version."}</p>
-    </div>
+  const supabase = await createClient();
+  const [
+    { data: assetsRaw, error: assetsError },
+    { data: expensesRaw, error: expensesError },
+    { data: propertiesRaw },
+    { data: resortsRaw },
+    { data: accountsRaw },
+    { data: categoriesRaw },
+  ] = await Promise.all([
+    supabase
+      .from("fixed_assets")
+      .select("id, code, name_ar, name_en, property_id, acquisition_date, acquisition_cost, asset_account_id")
+      .eq("organization_id", organization.id),
+    supabase
+      .from("expenses")
+      .select("id, description, amount, expense_date, voucher_number, property_id, expense_category_id")
+      .eq("organization_id", organization.id),
+    supabase.from("properties").select("id, name").eq("organization_id", organization.id),
+    supabase.from("resorts").select("id, name").eq("organization_id", organization.id),
+    supabase.from("chart_of_accounts").select("id, name_ar, name_en").eq("organization_id", organization.id),
+    supabase.from("expense_categories").select("id, name_ar, name_en").eq("organization_id", organization.id),
+  ]);
+
+  // A failed read is a failure, never an empty report.
+  if (assetsError || expensesError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <div className="size-12 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600">
+          <AlertCircle className="size-6" />
+        </div>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          {isAr ? "تعذر تحميل تقرير CAPEX / OPEX" : "The CAPEX / OPEX report could not be loaded"}
+        </h1>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          {isAr
+            ? "لم تُقرأ البيانات من قاعدة البيانات. أعد المحاولة؛ لا تُعرض أرقام ناقصة."
+            : "Data could not be read from the database. Try again; no partial numbers are shown."}
+        </p>
+      </div>
+    );
+  }
+
+  // Classification rule (shown to the reader): CAPEX = capitalised fixed assets
+  // acquired (acquisition cost); OPEX = recorded expense vouchers (expense amount).
+  const propertyName = new Map(
+    [...(propertiesRaw ?? []), ...(resortsRaw ?? [])].map((row) => [row.id, row.name] as const),
+  );
+  const accountName = new Map(
+    (accountsRaw ?? []).map((a) => [a.id, isAr ? a.name_ar : a.name_en] as const),
+  );
+  const categoryName = new Map(
+    (categoriesRaw ?? []).map((c) => [c.id, isAr ? c.name_ar : c.name_en] as const),
   );
 
-  /* Real work-order/accounting binding is not available; never export fabricated values.
-  const supabase = await createClient();
-
-  // 1. Fetch Resorts
-  const { data: resortsData } = await supabase
-    .from("resorts")
-    .select("id, name")
-    .eq("organization_id", organization.id);
-
-  // Standard categorized CAPEX / OPEX items
-  const standardWorkOrders = [
-    { titleAr: "إحلال وتحديث منظومة المصاعد الرئيسية", titleEn: "Elevator System Modernization", type: "CAPEX", cost: 180000, catAr: "المنشآت والمصاعد", contractor: "شركة النيل للمصاعد" },
-    { titleAr: "تطوير وعزل واجهات المباني البحرية", titleEn: "Sea-Facing Building Facade Insulation", type: "CAPEX", cost: 240000, catAr: "الإنشاءات والعزل", contractor: "المقاولون المتحدون" },
-    { titleAr: "الصيانة الدورية لأنظمة التكييف والتهوية", titleEn: "HVAC Routine Service & Filters", type: "OPEX", cost: 35000, catAr: "التكييف والتبريد", contractor: "المهندس للتبريد" },
-    { titleAr: "توريد كيماويات واختبارات جودة مياه المسابح", titleEn: "Pool Chemicals & Quality Testing", type: "OPEX", cost: 18000, catAr: "المسابح والبحيرات", contractor: "الأهرام للمسابح" },
-    { titleAr: "تركيب ألواح طاقة شمسية لإنارة الطرق والممرات", titleEn: "Solar Street Lighting Installation", type: "CAPEX", cost: 115000, catAr: "الطاقة والكهرباء", contractor: "سولار إيجيبت" },
-    { titleAr: "أعمال النظافة ومكافحة الحشرات والحدائق", titleEn: "Landscaping & Pest Control", type: "OPEX", cost: 28000, catAr: "اللاندسكيب والنظافة", contractor: "جرين فالي للخدمات" },
-    { titleAr: "إصلاح طوارئ لشبكة المياه والصرف الصحي", titleEn: "Emergency Plumbing & Drain Repairs", type: "OPEX", cost: 14500, catAr: "السباكة والصرف", contractor: "الصيانة السريعة" },
-  ];
-
-  const primaryResortName = resortsData?.[0]?.name || (isAr ? "المنتجع الرئيسي" : "Main Resort");
-
-  const items: CapexOpexItem[] = standardWorkOrders.map((wo, idx) => ({
-    id: `WO-2026-${idx + 1}`,
-    workOrderNumber: `WO-${1000 + idx}`,
-    title: isAr ? wo.titleAr : wo.titleEn,
-    category: wo.catAr,
-    resortName: primaryResortName,
-    type: wo.type as "CAPEX" | "OPEX",
-    contractorName: wo.contractor,
-    cost: wo.cost,
-    completionDate: `2026-0${(idx % 6) + 1}-15`,
-    isCapitalized: wo.type === "CAPEX",
-  }));
+  const items: CapexOpexItem[] = [
+    ...(assetsRaw ?? []).map((asset) => ({
+      id: `CAPEX-${asset.id}`,
+      workOrderNumber: asset.code,
+      title: (isAr ? asset.name_ar : asset.name_en) || asset.name_ar || asset.name_en,
+      category: (asset.asset_account_id && accountName.get(asset.asset_account_id)) || (isAr ? "أصل ثابت" : "Fixed asset"),
+      resortName: asset.property_id ? propertyName.get(asset.property_id) ?? "—" : "—",
+      type: "CAPEX" as const,
+      contractorName: "—",
+      cost: Number(asset.acquisition_cost ?? 0),
+      completionDate: asset.acquisition_date ?? "",
+      isCapitalized: true,
+    })),
+    ...(expensesRaw ?? []).map((expense) => ({
+      id: `OPEX-${expense.id}`,
+      workOrderNumber: expense.voucher_number != null ? `V-${expense.voucher_number}` : "—",
+      title: expense.description ?? "—",
+      category: (expense.expense_category_id && categoryName.get(expense.expense_category_id)) || (isAr ? "مصروف" : "Expense"),
+      resortName: expense.property_id ? propertyName.get(expense.property_id) ?? "—" : "—",
+      type: "OPEX" as const,
+      contractorName: "—",
+      cost: Number(expense.amount ?? 0),
+      completionDate: expense.expense_date ?? "",
+      isCapitalized: false,
+    })),
+  ].sort((a, b) => b.completionDate.localeCompare(a.completionDate));
 
   return (
     <CapexOpexClient
@@ -108,5 +147,5 @@ export default async function CapexOpexPage({
       locale={locale}
     />
   );
-  */
 }
+

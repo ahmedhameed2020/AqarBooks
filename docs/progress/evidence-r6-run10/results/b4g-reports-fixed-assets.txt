@@ -1,0 +1,21 @@
+$ tests/e2e/reports-fixed-assets.spec.ts
+label=b4g-reports-fixed-assets
+exit=0
+elapsed_ms=25086
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database (7.9s)
+  ok 2 tests\e2e\reports-fixed-assets.spec.ts:152:5 › an organization with no assets sees an explained empty register, never invented rows (5.7s)
+  ok 3 tests\e2e\reports-fixed-assets.spec.ts:165:5 › a member without report permission is denied (4.0s)
+
+  3 passed (19.8s)
+(node:4760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

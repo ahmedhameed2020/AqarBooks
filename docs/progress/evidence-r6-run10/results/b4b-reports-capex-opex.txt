@@ -1,0 +1,56 @@
+$ tests/e2e/reports-capex-opex.spec.ts
+label=b4b-reports-capex-opex
+exit=1
+elapsed_ms=17647
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented (764ms)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 2 tests\e2e\reports-capex-opex.spec.ts:79:5 › an organization with no spend sees an explained empty split (7.3s)
+
+
+  1) tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented 
+
+    Error: expense insert: null value in column "property_id" of relation "expenses" violates not-null constraint
+
+    expect(received).toBeNull()
+
+    Received: {"code": "23502", "details": "Failing row contains (75aac140-a44b-406c-917a-1cbe17d84a82, f55189ee-e034-4783-b01c-efb52df3120c, null, null, Pump maintenance, 300.0000, 2026-03-05, null, 77, null, null, null, 2026-11-01 10:38:27.461929+00).", "hint": null, "message": "null value in column \"property_id\" of relation \"expenses\" violates not-null constraint"}
+
+      58 |     voucher_number: 77,
+      59 |   });
+    > 60 |   expect(expenseErr, `expense insert: ${expenseErr?.message}`).toBeNull();
+         |                                                                ^
+      61 |
+      62 |   await signIn(page, fx.email);
+      63 |   await page.goto("/en/finance/reports/capex-opex");
+        at D:\Web\AqarBooks\tests\e2e\reports-capex-opex.spec.ts:60:64
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4b-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4b-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4b-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented 
+  1 passed (11.9s)
+(node:19844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -351,6 +351,48 @@
       "percent_note": "No defined set of sub-items; no percentage is reported. Local code completion is not production readiness."
     },
     {
+      "id": "sprint-2-batch-4",
+      "name_ar": "السبرينت 2 - الدفعة 4 (تقارير الأصول وCAM وCAPEX/OPEX)",
+      "name_en": "Sprint 2 Batch 4 (asset, CAM, CAPEX/OPEX reports)",
+      "status": "verified",
+      "tests": [
+        {
+          "file": "tests/e2e/reports-fixed-assets.spec.ts",
+          "result_text": "3/3 passing on isolated r6: schedule reads fixed_assets + depreciation (cost 1000, accumulated 500, NBV 500), empty register, permission denial. Evidence b4g-reports-fixed-assets.txt."
+        },
+        {
+          "file": "tests/e2e/reports-capex-opex.spec.ts",
+          "result_text": "2/2 passing on isolated r6: CAPEX from fixed assets, OPEX from expense vouchers, empty state without fabricated rows. Evidence b4d-reports-capex-opex.txt."
+        },
+        {
+          "file": "tests/e2e/reports-cam-allocation.spec.ts",
+          "result_text": "2/2 passing on isolated r6: latest levy allocations give 60.00%/40.00% shares tying to the 1000 total; empty state explained. Evidence b4b-reports-cam-allocation.txt."
+        },
+        {
+          "file": "tests/e2e/reports-suite-flow.spec.ts",
+          "result_text": "1/1 passing after replacing the old fixed-asset fixme with a pointer; no regression. Evidence b4b-reports-suite-flow.txt."
+        }
+      ],
+      "blockers": [
+        "Owner decision 2026-11-01: the reports were built in Batch 4, closing the 2026-10-29 deferral; hub links are visible.",
+        "Verified on r6 only; not a production approval.",
+        "Read-only reports over existing tables: no new migration, RLS change, or fabricated data path."
+      ],
+      "last_updated": "2026-11-01",
+      "evidence": [
+        "tests/e2e/reports-fixed-assets.spec.ts",
+        "tests/e2e/reports-capex-opex.spec.ts",
+        "tests/e2e/reports-cam-allocation.spec.ts",
+        "docs/progress/evidence-r6-run10/results/b4g-reports-fixed-assets.txt",
+        "docs/progress/evidence-r6-run10/results/b4d-reports-capex-opex.txt",
+        "docs/progress/evidence-r6-run10/results/b4b-reports-cam-allocation.txt",
+        "docs/progress/evidence-r6-run10/results/b4b-reports-suite-flow.txt",
+        "docs/progress/batch-4-scope-proposal.md"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported. Local code completion is not production readiness."
+    },
+    {
       "id": "bi-1",
       "name_ar": "BI-1 - صدق مؤشرات لوحات المعلومات",
       "name_en": "BI-1 (dashboard indicator honesty)",

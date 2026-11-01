@@ -1,0 +1,19 @@
+$ tests/e2e/reports-suite-flow.spec.ts
+label=b4b-reports-suite-flow
+exit=0
+elapsed_ms=42980
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register (35.3s)
+
+  1 passed (37.6s)
+(node:38940) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

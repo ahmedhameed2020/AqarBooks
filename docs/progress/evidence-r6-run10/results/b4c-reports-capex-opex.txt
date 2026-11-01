@@ -1,0 +1,52 @@
+$ tests/e2e/reports-capex-opex.spec.ts
+label=b4c-reports-capex-opex
+exit=1
+elapsed_ms=21553
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented (1.0s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 2 tests\e2e\reports-capex-opex.spec.ts:104:5 › an organization with no spend sees an explained empty split (9.2s)
+
+
+  1) tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented 
+
+    TypeError: Cannot read properties of null (reading 'id')
+
+      78 |   });
+      79 |   const { error: expenseErr } = await admin.from("expenses").insert({
+    > 80 |     organization_id: fx.orgId, property_id: property!.id, expense_category_id: expenseCategory!.id,
+         |                                                                                                 ^
+      81 |     payment_account_id: paymentAccount!.id,
+      82 |     description: "Pump maintenance", amount: 300, expense_date: "2026-03-05",
+      83 |     voucher_number: 77,
+        at D:\Web\AqarBooks\tests\e2e\reports-capex-opex.spec.ts:80:97
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4c-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4c-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4c-reports-capex-opex-artifacts\reports-capex-opex-CAPEX-c-928b9-nse-vouchers-never-invented\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-capex-opex.spec.ts:42:5 › CAPEX comes from fixed assets and OPEX from expense vouchers, never invented 
+  1 passed (15.2s)
+(node:25620) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,57 @@
+$ tests/e2e/reports-fixed-assets.spec.ts
+label=b4e-reports-fixed-assets
+exit=1
+elapsed_ms=23814
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database (770ms)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 2 tests\e2e\reports-fixed-assets.spec.ts:147:5 › an organization with no assets sees an explained empty register, never invented rows (8.6s)
+  ok 3 tests\e2e\reports-fixed-assets.spec.ts:160:5 › a member without report permission is denied (4.2s)
+
+
+  1) tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+
+    Error: fiscal year insert: FISCAL_STATUS_DIRECT_WRITE_BLOCKED
+
+    expect(received).toBeNull()
+
+    Received: {"code": "42501", "details": null, "hint": null, "message": "FISCAL_STATUS_DIRECT_WRITE_BLOCKED"}
+
+      107 |     .insert({ organization_id: fx.orgId, name: "2026", start_date: "2026-01-01", end_date: "2026-12-31" })
+      108 |     .select("id").single();
+    > 109 |   expect(yearErr, `fiscal year insert: ${yearErr?.message}`).toBeNull();
+          |                                                              ^
+      110 |   const { data: period, error: periodErr } = await admin
+      111 |     .from("fiscal_periods")
+      112 |     .insert({
+        at D:\Web\AqarBooks\tests\e2e\reports-fixed-assets.spec.ts:109:62
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4e-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4e-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4e-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+  2 passed (18.6s)
+(node:11308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

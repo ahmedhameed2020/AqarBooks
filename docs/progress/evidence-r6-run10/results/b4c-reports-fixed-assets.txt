@@ -1,0 +1,57 @@
+$ tests/e2e/reports-fixed-assets.spec.ts
+label=b4c-reports-fixed-assets
+exit=1
+elapsed_ms=30374
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database (1.3s)
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 2 tests\e2e\reports-fixed-assets.spec.ts:132:5 › an organization with no assets sees an explained empty register, never invented rows (8.7s)
+  ok 3 tests\e2e\reports-fixed-assets.spec.ts:145:5 › a member without report permission is denied (5.2s)
+
+
+  1) tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+
+    Error: depreciation insert: null value in column "fiscal_period_id" of relation "fixed_asset_depreciation" violates not-null constraint
+
+    expect(received).toBeNull()
+
+    Received: {"code": "23502", "details": "Failing row contains (6c28c12e-dca7-43ff-b6d1-3aab56a864ca, 0655717d-c64a-4579-9c46-1b214a0af485, 53fbf12f-1945-4e4c-9917-c948367b2afc, null, 2026-06-30, 250.0000, null, null, 2026-11-01 10:40:36.822767+00).", "hint": null, "message": "null value in column \"fiscal_period_id\" of relation \"fixed_asset_depreciation\" violates not-null constraint"}
+
+      110 |       amount,
+      111 |     });
+    > 112 |     expect(error, `depreciation insert: ${error?.message}`).toBeNull();
+          |                                                             ^
+      113 |   }
+      114 |
+      115 |   // The database is the source: accumulated = 500, NBV = 1000 - 500 = 500.
+        at D:\Web\AqarBooks\tests\e2e\reports-fixed-assets.spec.ts:112:61
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4c-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4c-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4c-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+  2 passed (20.5s)
+(node:6220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19008) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

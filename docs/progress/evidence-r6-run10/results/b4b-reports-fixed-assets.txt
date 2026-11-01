@@ -1,0 +1,91 @@
+$ tests/e2e/reports-fixed-assets.spec.ts
+label=b4b-reports-fixed-assets
+exit=1
+elapsed_ms=59381
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database (1.3s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 2 tests\e2e\reports-fixed-assets.spec.ts:121:5 › an organization with no assets sees an explained empty register, never invented rows (8.9s)
+  x  3 tests\e2e\reports-fixed-assets.spec.ts:134:5 › a member without report permission is denied (35.7s)
+
+
+  1) tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+
+    Error: asset insert: null value in column "accumulated_depreciation_account_id" of relation "fixed_assets" violates not-null constraint
+
+    expect(received).toBeNull()
+
+    Received: {"code": "23502", "details": "Failing row contains (b5073afb-a247-42d0-851d-b3c867ccb9ef, b85a7d54-ac6c-4e8f-80b7-91695521e456, null, FA-001, مولد احتياطي, Backup Generator, ec0d1911-b7ed-4e4a-8460-95cdae48f178, null, null, 2026-01-01, 1000.0000, 0.0000, 12, STRAIGHT_LINE, ACTIVE, null, null, null, 2026-11-01 10:37:30.415265+00, 2026-11-01 10:37:30.415265+00).", "hint": null, "message": "null value in column \"accumulated_depreciation_account_id\" of relation \"fixed_assets\" violates not-null constraint"}
+
+      90 |     .select("id")
+      91 |     .single();
+    > 92 |   expect(assetErr, `asset insert: ${assetErr?.message}`).toBeNull();
+         |                                                          ^
+      93 |
+      94 |   for (const amount of [250, 250]) {
+      95 |     const { error } = await admin.from("fixed_asset_depreciation").insert({
+        at D:\Web\AqarBooks\tests\e2e\reports-fixed-assets.spec.ts:92:58
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\reports-fixed-assets.spec.ts:134:5 › a member without report permission is denied ───
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/don't have permission to view this report|do not have permission to view this report/i)
+    Expected: visible
+    Timeout: 30000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 30000ms
+      - waiting for getByText(/don't have permission to view this report|do not have permission to view this report/i)
+
+
+      141 |   await expect(
+      142 |     page.getByText(/don't have permission to view this report|do not have permission to view this report/i),
+    > 143 |   ).toBeVisible({ timeout: 30_000 });
+          |     ^
+      144 |   await expect(page.getByText("FA-001")).toHaveCount(0);
+      145 |
+      146 |   await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", fx.orgId);
+        at D:\Web\AqarBooks\tests\e2e\reports-fixed-assets.spec.ts:143:5
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-a-mem-eeb6b-report-permission-is-denied\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-a-mem-eeb6b-report-permission-is-denied\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4b-reports-fixed-assets-artifacts\reports-fixed-assets-a-mem-eeb6b-report-permission-is-denied\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+    tests\e2e\reports-fixed-assets.spec.ts:134:5 › a member without report permission is denied ────
+  1 passed (53.1s)
+(node:24980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

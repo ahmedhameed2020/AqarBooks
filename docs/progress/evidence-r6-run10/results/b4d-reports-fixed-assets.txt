@@ -1,0 +1,53 @@
+$ tests/e2e/reports-fixed-assets.spec.ts
+label=b4d-reports-fixed-assets
+exit=1
+elapsed_ms=29410
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database (1.4s)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 2 tests\e2e\reports-fixed-assets.spec.ts:145:5 › an organization with no assets sees an explained empty register, never invented rows (7.9s)
+  ok 3 tests\e2e\reports-fixed-assets.spec.ts:158:5 › a member without report permission is denied (5.5s)
+
+
+  1) tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+
+    TypeError: Cannot read properties of null (reading 'id')
+
+      110 |     .from("fiscal_periods")
+      111 |     .insert({
+    > 112 |       organization_id: fx.orgId, fiscal_year_id: year!.id, period_number: 6, name: "2026-06",
+          |                                                        ^
+      113 |       start_date: "2026-06-01", end_date: "2026-06-30",
+      114 |     })
+      115 |     .select("id").single();
+        at D:\Web\AqarBooks\tests\e2e\reports-fixed-assets.spec.ts:112:56
+
+    Error Context: docs\progress\evidence-r6-run10\results\b4d-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b4d-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b4d-reports-fixed-assets-artifacts\reports-fixed-assets-the-f-5970d-n-and-NBV-from-the-database\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-fixed-assets.spec.ts:57:5 › the fixed-asset schedule reads cost, accumulated depreciation and NBV from the database 
+  2 passed (20.2s)
+(node:24556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -44,3 +44,22 @@
 
 ## المطلوب للبدء
 موافقتك على النطاق + قرارا CAM/CAPEX أعلاه + ترتيب الأولوية (يوصى: B4-1 → B4-3 → B4-2 لاعتماد B4-2 على قرار أساس التوزيع).
+
+---
+
+## حالة التنفيذ (2026-11-01)
+
+| الوحدة | الحالة | التنفيذ |
+|---|---|---|
+| B4-1 تقرير الأصول | منفَّذ — بانتظار التحقق | `fixed_assets` + `fixed_asset_depreciation` + أسماء الحسابات؛ NBV = التكلفة − مجمع الإهلاك؛ فشل قراءة = شاشة فشل صريحة؛ رابط في مركز التقارير؛ `tests/e2e/reports-fixed-assets.spec.ts`؛ أُزيل fixme القديم في `reports-suite-flow` |
+| B4-3 CAPEX/OPEX | منفَّذ — بانتظار التحقق | CAPEX من الأصول الرأسمالية (acquisition_cost)، OPEX من سندات المصروفات (`expenses`)، القاعدة معلنة على الشاشة؛ رابط + `tests/e2e/reports-capex-opex.spec.ts` |
+| B4-2 CAM | منفَّذ — بانتظار التحقق | أحدث levy + `service_charge_allocations` + `units` + `unit_ownerships` + `members` + تحصيل من `effective_payment_allocations`؛ أنصبة % وموازنة المتبقي؛ رابط + `tests/e2e/reports-cam-allocation.spec.ts` |
+| تنظيف التأجيل | مكتمل | حُذف `tests/e2e/reports-unbuilt-sections.spec.ts` (كلا التأجيلين أُغلقا) واستُبدل fixme الأصول بإحالة إلى الـ spec الجديد |
+
+**القرارات المطبقة:** CAM لكل عقار (أحدث levy)؛ CAPEX/OPEX من فئة المصدر (أصل رأسمالي مقابل سند مصروف) — منصوص عليها داخل الصفحتين.
+
+## نتيجة التحقق (2026-11-01)
+- `reports-fixed-assets` ‏3/3 · `reports-capex-opex` ‏2/2 · `reports-cam-allocation` ‏2/2 · `reports-suite-flow` ‏1/1 — كلها على r6.
+- الأدلة: `evidence-r6-run10/results/b4g-reports-fixed-assets.txt`، `b4d-reports-capex-opex.txt`، `b4b-reports-cam-allocation.txt`، `b4b-reports-suite-flow.txt`.
+- الحالة في المتتبع: `sprint-2-batch-4` = **verified على r6 فقط** (ليست اعتماد إنتاج). تأجيل 2026-10-29 أُغلق والروابط ظاهرة في مركز التقارير.
+- ملاحظات تصميم واجهة الاختبار: التكلفة/الـNBV تُعرض بلا كسور (`toLocaleString`)، وتُفرض قيود `fiscal_years` و`fad_once_per_period` عبر RPC/فترة واحدة في الـ fixtures.
