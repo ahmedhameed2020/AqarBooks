@@ -211,27 +211,27 @@ export async function getCallerTenantPermissions(
   const validRoleIds = validOrgRoles.map((r) => r.id);
 
   // 4. Fetch permissions
+  // Resolve permission keys through the foreign-key embed: one query, and no
+  // oversized permission-ID list for heavily privileged roles (the same class of
+  // failure the proveTenantPermission fix removed).
   const { data: grants, error: grantErr } = await adminClient
     .from("role_permissions")
-    .select("permission_id")
+    .select("permissions(key)")
     .in("role_id", validRoleIds);
 
-  if (grantErr || !grants || grants.length === 0) {
-    return { ok: true, permissions: new Set<string>(), isOwner };
-  }
-
-  const permissionIds = grants.map((g) => g.permission_id);
-
-  const { data: perms, error: permErr } = await adminClient
-    .from("permissions")
-    .select("key")
-    .in("id", permissionIds);
-
-  if (permErr || !perms) {
+  if (grantErr || !grants) {
     return { ok: false, error: "forbidden" };
   }
 
-  const permKeys = new Set(perms.map((p) => p.key));
+  if (grants.length === 0) {
+    return { ok: true, permissions: new Set<string>(), isOwner };
+  }
+
+  const permKeys = new Set(
+    (grants as unknown as { permissions: { key: string } | null }[])
+      .map((g) => g.permissions?.key)
+      .filter((k): k is string => Boolean(k)),
+  );
   return { ok: true, permissions: permKeys, isOwner };
 }
 

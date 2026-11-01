@@ -56,6 +56,12 @@ test("owner accepts an invite and reaches the portal dashboard", async ({ page }
   expect(staffCreateError).toBeNull();
   const staffUserId = staffCreated!.user!.id;
 
+  // has_permission() requires an ACTIVE membership, not just a role assignment.
+  const { error: staffMembershipError } = await admin
+    .from("organization_memberships")
+    .insert({ organization_id: org!.id, user_id: staffUserId, status: "active" });
+  expect(staffMembershipError).toBeNull();
+
   const { data: ownerRole, error: ownerRoleError } = await admin
     .from("roles")
     .select("id")

@@ -300,6 +300,13 @@ vi.mock("@/lib/supabase/admin", () => ({
       }
 
       if (table === "role_permissions") {
+        // Rows may be selected with the FK embed `permissions(key)`; expose it so
+        // getCallerTenantPermissions can resolve keys without an ID list.
+        const withPerm = (rows: Array<Record<string, unknown>>) =>
+          rows.map((rp) => ({
+            ...rp,
+            permissions: mockPermissions.find((p) => p.id === rp.permission_id) ?? null,
+          }));
         queryBuilder.select.mockImplementation(() => {
           if (mockRolePermissionsSelectError && !mockRolePermissionsTargetOnly) {
             const errChain: unknown = {
@@ -315,9 +322,9 @@ vi.mock("@/lib/supabase/admin", () => ({
               }
               if (field === "role_id") {
                 const matched = mockRolePermissions.filter((rp) => !rp.role_id || vals.includes(rp.role_id));
-                return Promise.resolve({ data: matched, error: null });
+                return Promise.resolve({ data: withPerm(matched), error: null });
               }
-              return Promise.resolve({ data: mockRolePermissions, error: null });
+              return Promise.resolve({ data: withPerm(mockRolePermissions), error: null });
             }),
             eq: vi.fn().mockImplementation((field: string, val: string) => {
               if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && val === roleNewId) {
@@ -335,7 +342,7 @@ vi.mock("@/lib/supabase/admin", () => ({
                     maybeSingle: vi.fn().mockResolvedValue({ data: nextMatches[0] || null, error: null }),
                   };
                 }),
-                then: (resolve: unknown) => resolve({ data: matched, error: null }),
+                then: (resolve: unknown) => resolve({ data: withPerm(matched), error: null }),
               };
             }),
           };

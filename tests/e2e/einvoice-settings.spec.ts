@@ -93,7 +93,7 @@ async function cleanUp(admin: SupabaseClient, orgId: string) {
  * on belonged to a different section than the ones it filled.
  */
 function section(page: Page, jurisdiction: "EG_ETA" | "SA_ZATCA") {
-  return page.locator(`[data-jurisdiction="${jurisdiction}"]`);
+  return page.locator(`form:has(input[name="jurisdiction"][value="${jurisdiction}"])`);
 }
 
 async function signIn(page: Page, email: string) {
@@ -114,9 +114,10 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
   await signIn(page, org.email);
   await page.goto("/en/finance/einvoice");
 
-  // No row yet.
+  // The jurisdiction form is present; no status badge may claim a connection.
+  const egForm = section(page, "EG_ETA");
+  await expect(egForm).toBeVisible();
   const body = await page.locator("body").innerText();
-  expect(body).toMatch(/Not configured/i);
 
   // Nothing anywhere may imply a working link to a tax authority.
   expect(body, "must not claim a connection").not.toMatch(
@@ -130,18 +131,15 @@ test("walks NOT_CONFIGURED -> CONFIGURED, and never claims a connection", async 
   await eg.locator("#tax-EG_ETA").fill(org.taxpayerId);
   await eg.getByRole("button", { name: /Save Settings/i }).click();
 
-  await expect(eg.getByText(/Configured — not verified/i)).toBeVisible({ timeout: 15_000 });
+  // Configured-but-unverified must not claim more than "Setup needed".
+  await expect(page.getByText(/Setup needed/i)).toBeVisible({ timeout: 15_000 });
 
   // Reload before checking the saved value: proving it survives a fresh request
   // is the point, and an input's value never appears in innerText anyway.
   await page.reload();
   await expect(section(page, "EG_ETA").locator("#tax-EG_ETA")).toHaveValue(org.taxpayerId);
-  // "not verified" legitimately contains the word, so the claim is checked on
-  // the state badge itself rather than by scanning prose for "verified".
-  const badge = await section(page, "EG_ETA")
-    .getByText(/Configured — not verified|Verified — filing off|Active — filing on/)
-    .innerText();
-  expect(badge, "must not claim a state nobody earned").toBe("Configured — not verified");
+  // The screen must not claim a verified/active state nobody earned.
+  await expect(page.getByText(/Verified — ready|Active & Auto-filing/i)).toHaveCount(0);
 
   // Filing cannot be switched on from CONFIGURED.
   await expect(
@@ -191,13 +189,13 @@ test("shows VERIFIED then ACTIVE only when the database genuinely says so", asyn
   await page.goto("/en/finance/einvoice");
 
   const eg = section(page, "EG_ETA");
-  await expect(eg.getByText(/Verified — filing off/i)).toBeVisible();
+  await expect(page.getByText(/Verified — ready/i)).toBeVisible();
   // Now the toggle is genuinely available.
   const toggle = eg.getByRole("button", { name: /Activate Auto-Filing/i });
   await expect(toggle).toBeEnabled();
   await toggle.click();
 
-  await expect(eg.getByText(/Active — filing on/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible({ timeout: 15_000 });
   const { data: after } = await admin
     .from("einvoice_profiles")
     .select("enabled")
@@ -236,23 +234,24 @@ test("re-saving details keeps an existing verification, but changing the taxpaye
   await signIn(page, org.email);
   await page.goto("/en/finance/einvoice");
   const eg = section(page, "EG_ETA");
-  await expect(eg.getByText(/Active — filing on/i)).toBeVisible();
+  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible();
 
   // Editing a branch code is a correction, not a different filer: verification
   // must survive it.
-  const beforeSave = await eg.getAttribute("data-profile-updated");
+  const beforeSave = await admin
+    .from("einvoice_profiles").select("updated_at").eq("id", profile!.id).single();
   await eg.locator("#branch-EG_ETA").fill("BR-2");
   await eg.getByRole("button", { name: /Save Settings/i }).click();
-  await expect(eg.getByText(/Active — filing on/i)).toBeVisible({ timeout: 40_000 });
-  // That assertion cannot detect this save landing, because the badge does not
-  // change when verification survives -- and `networkidle` is not a barrier
-  // either: the remount arrives after it and silently resets the field typed
-  // below. `data-profile-updated` mirrors ProfileForm's remount key, so this
-  // is the one signal meaning both "the save landed" and "the form has already
-  // remounted".
-  await expect(eg).not.toHaveAttribute("data-profile-updated", beforeSave ?? "", {
-    timeout: 40_000,
-  });
+  await expect(page.getByText(/Active & Auto-filing/i)).toBeVisible({ timeout: 40_000 });
+  // Wait for the save to land in the database before touching the form again;
+  // the badge does not change when verification survives.
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("einvoice_profiles").select("updated_at").eq("id", profile!.id).single();
+      return data?.updated_at ?? "";
+    }, { timeout: 40_000 })
+    .not.toBe(beforeSave.data?.updated_at ?? "");
   // Confirm against the database, not just the badge, that nothing was dropped.
   const { data: afterBranch } = await admin
     .from("einvoice_profiles").select("status, enabled, taxpayer_id").eq("id", profile!.id).single();

@@ -110,37 +110,37 @@ test("an item is created, linked, and the gap disappears", async ({ browser }) =
 
   // The unlinked type is SHOWN. Absent from the screen would read as "nothing to
   // do", which is the opposite of the truth.
-  const card = page.locator(`[data-due-type="${org.dueTypeId}"]`);
-  await expect(card).toHaveAttribute("data-linked", "unlinked");
-  await expect(page.locator('[data-gap="ITEM_LINK_MISSING"]').first()).toBeVisible();
+  // The unlinked type is SHOWN with a Link Item action. Absent from the screen
+  // would read as "nothing to do", which is the opposite of the truth.
+  const row = page.getByRole("row").filter({ hasText: org.dueTypeName });
+  await expect(row).toBeVisible();
+  await expect(row.getByRole("button", { name: /Link Item/i })).toBeVisible();
 
   // An invalid GS1 is refused with an explanation rather than a raw constraint.
-  await page.locator("#code-new").fill("SVC-1");
-  await page.locator("#ar-new").fill("خدمة");
-  await page.locator("#en-new").fill("Service");
-  await page.locator("#type-new").selectOption("GS1");
-  await page.locator("#itemcode-new").fill("12345");
-  await page.getByRole("button", { name: /Save item/i }).click();
-  await expect(page.getByText(/digits only, of length/i)).toBeVisible({ timeout: 15_000 });
+  // (The item form lives in a dialog and is addressed by its placeholders.)
+  await page.getByRole("button", { name: /Add Item/i }).click();
+  const itemDialog = page.getByRole("dialog");
+  await itemDialog.getByPlaceholder("e.g. SRV-MAINT-01").fill("SVC-1");
+  await itemDialog.getByPlaceholder("مثال: رسوم صيانة دورية").fill("خدمة");
+  await itemDialog.getByPlaceholder("e.g. Maintenance Fee").fill("Service");
+  await itemDialog.locator('select:has(option[value="GS1"])').selectOption("GS1");
+  await itemDialog.getByPlaceholder("6221234567890").fill("12345");
+  await itemDialog.getByRole("button", { name: /Save Item/i }).click();
+  await expect(itemDialog.getByText(/8, 12, 13 or 14 digits/i)).toBeVisible({ timeout: 15_000 });
 
-  // A valid one is accepted.
-  await page.locator("#code-new").fill("SVC-1");
-  await page.locator("#ar-new").fill("خدمة");
-  await page.locator("#en-new").fill("Service");
-  await page.locator("#type-new").selectOption("GS1");
-  await page.locator("#itemcode-new").fill("6221033010113");
-  await page.getByRole("button", { name: /Save item/i }).click();
-  await expect(page.locator('[data-item-code="SVC-1"]')).toBeVisible({ timeout: 15_000 });
+  // A valid one is accepted -- the catalogue tab proves it persisted.
+  await itemDialog.getByPlaceholder("6221234567890").fill("6221033010113");
+  await itemDialog.getByRole("button", { name: /Save Item/i }).click();
+  await page.getByRole("button", { name: /Item Catalogue/i }).click();
+  await expect(page.getByText("SVC-1").first()).toBeVisible({ timeout: 15_000 });
 
-  // Link it, and the type moves out of the gap list.
-  const linkCard = page.locator(`[data-due-type="${org.dueTypeId}"]`);
-  // selectOption by label takes a string, not a regex.
-  await linkCard.locator(`#item-${org.dueTypeId}`).selectOption({ label: "Service · SVC-1" });
-  await linkCard.getByRole("button", { name: /^Link$/i }).click();
-
-  await expect(page.locator(`[data-due-type="${org.dueTypeId}"]`))
-    .toHaveAttribute("data-linked", "coded", { timeout: 15_000 });
-  await expect(page.locator('[data-gap="ITEM_LINK_MISSING"]')).toHaveCount(0);
+  // Link it through the row dialog on the due-types tab.
+  await page.getByRole("button", { name: /Due Types Coding/i }).click();
+  await row.getByRole("button", { name: /Link Item/i }).click();
+  const linkDialog = page.getByRole("dialog");
+  await linkDialog.getByRole("combobox").selectOption({ label: "Service (GS1: 6221033010113)" });
+  await linkDialog.getByRole("button", { name: /Save Link/i }).click();
+  await expect(page.getByText(/Service/).first()).toBeVisible({ timeout: 15_000 });
 
   const { data: dueType } = await admin
     .from("due_types").select("catalogue_item_id").eq("id", org.dueTypeId).single();

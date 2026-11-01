@@ -41,3 +41,7 @@ portal-visitor-gate-journey -> exit=0 7 passed
 customer-advances -> exit=0 10 passed
 responsive-overflow -> exit=0 18 passed
 chart-of-accounts-permission-gate -> exit=0 4 passed
+dunning -> exit=0 2 passed
+exchange-rates -> exit=0 2 passed
+einvoice-items -> exit=0 2 passed
+admin-team-invite-flow -> exit=0 1 passed

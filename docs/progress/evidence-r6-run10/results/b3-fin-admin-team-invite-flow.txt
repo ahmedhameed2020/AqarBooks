@@ -1,0 +1,19 @@
+$ tests/e2e/admin-team-invite-flow.spec.ts
+label=b3-fin-admin-team-invite-flow
+exit=0
+elapsed_ms=23557
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\admin-team-invite-flow.spec.ts:13:7 › Admin Team & Users Governance E2E Suite › Complete Team Management Flow: Invite, Role Change, and Status Toggle (11.8s)
+
+  1 passed (14.4s)
+(node:15072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13156) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

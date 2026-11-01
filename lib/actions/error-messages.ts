@@ -45,6 +45,10 @@ const FINANCE_ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
     ar: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
     en: "Check the values you entered and try again.",
   },
+  gs1_invalid: {
+    ar: "كود GS1 يجب أن يكون 8 أو 12 أو 13 أو 14 رقمًا.",
+    en: "A GS1 code must be 8, 12, 13 or 14 digits.",
+  },
   RECEIVABLE_ACCOUNT_REQUIRED: {
     ar: "اختر حساب الذمم المدينة أولًا.",
     en: "Choose a receivable account first.",

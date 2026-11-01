@@ -230,6 +230,7 @@ test("every new finance screen renders for an authorised user", async ({ page })
 test("a service charge levy can be created and allocated from the browser", async ({ page }) => {
   await signIn(page);
   await page.goto("/en/finance/service-charges");
+  await page.getByRole("button", { name: /New Levy/i }).click();
 
   await page.locator("#name").fill("E2E Smoke Levy");
   await page.locator("#periodStart").fill("2026-01-01");

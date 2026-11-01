@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBankStatement } from "@/lib/actions/bank-reconciliation";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
 import type { ActionResult } from "@/lib/actions/platform";
 
 export type BankAccountOption = {
@@ -24,7 +25,7 @@ function errorText(error: string, isAr: boolean) {
   if (error === "invalid_input") {
     return isAr ? "تحقق من البيانات المدخلة." : "Check the values you entered.";
   }
-  return isAr ? `تعذّر الحفظ: ${error}` : `Could not save: ${error}`;
+  return financeErrorMessage(error, isAr);
 }
 
 export function CreateStatementForm({

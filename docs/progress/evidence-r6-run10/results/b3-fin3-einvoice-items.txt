@@ -1,0 +1,20 @@
+$ tests/e2e/einvoice-items.spec.ts
+label=b3-fin3-einvoice-items
+exit=0
+elapsed_ms=32757
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears (17.7s)
+  ok 2 tests\e2e\einvoice-items.spec.ts:153:5 › a user without the permission is told so, and gets no controls (6.3s)
+
+  2 passed (26.3s)
+(node:41968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

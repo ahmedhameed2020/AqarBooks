@@ -1,0 +1,90 @@
+$ tests/e2e/dunning.spec.ts
+label=b3-rw-dunning
+exit=1
+elapsed_ms=239371
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  x  1 tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it (3.3m)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  2 tests\e2e\dunning.spec.ts:242:5 › a reader sees the collections work without the controls (16.5s)
+
+
+  1) tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it 
+
+    Test timeout of 200000ms exceeded.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for getByRole('button', { name: /Notice Register/i })
+
+
+      190 |
+      191 |     // Raised, and NOT delivered.
+    > 192 |     await page.getByRole("button", { name: /Notice Register/i }).click();
+          |                                                                  ^
+      193 |     await expect(page.getByText("Raised", { exact: true }).first()).toBeVisible({ timeout: 40_000 });
+      194 |
+      195 |     const { data: rows } = await admin
+        at D:\Web\AqarBooks\tests\e2e\dunning.spec.ts:192:66
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-stage-is-defined-fae9a-RED-once-a-human-records-it\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\dunning.spec.ts:242:5 › a reader sees the collections work without the controls ─────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/don't have permission to view collections/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/don't have permission to view collections/i)
+
+
+      271 |     await expect(
+      272 |       denyPage.getByText(/don't have permission to view collections/i),
+    > 273 |     ).toBeVisible();
+          |       ^
+      274 |     await expect(denyPage.getByRole("button", { name: /Raise Stage Notices/i })).toHaveCount(0);
+      275 |     await denyCtx.close();
+      276 |   } finally {
+        at D:\Web\AqarBooks\tests\e2e\dunning.spec.ts:273:7
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-rw-dunning-artifacts\dunning-a-reader-sees-the--41bf6-s-work-without-the-controls\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\dunning.spec.ts:137:5 › a stage is defined, notices are raised, and one is only DELIVERED once a human records it 
+    tests\e2e\dunning.spec.ts:242:5 › a reader sees the collections work without the controls ──────
+(node:40392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

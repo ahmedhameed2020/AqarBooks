@@ -51,7 +51,10 @@ export async function saveCatalogueItem(
     p_item_code_type: d.itemCodeType ?? null,
     p_item_code: d.itemCode ?? null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    if (/catalogue_items_gs1_shape/.test(error.message)) return { ok: false, error: "gs1_invalid" };
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath(PATH, "page");
   return { ok: true };

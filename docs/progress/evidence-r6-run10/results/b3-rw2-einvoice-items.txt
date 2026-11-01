@@ -1,0 +1,62 @@
+$ tests/e2e/einvoice-items.spec.ts
+label=b3-rw2-einvoice-items
+exit=1
+elapsed_ms=75201
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears (37.3s)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 2 tests\e2e\einvoice-items.spec.ts:151:5 › a user without the permission is told so, and gets no controls (17.2s)
+
+
+  1) tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog').getByText(/digits only, of length/i)
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByRole('dialog').getByText(/digits only, of length/i)
+
+
+      127 |   await itemDialog.getByPlaceholder("6221234567890").fill("12345");
+      128 |   await itemDialog.getByRole("button", { name: /Save Item/i }).click();
+    > 129 |   await expect(itemDialog.getByText(/digits only, of length/i)).toBeVisible({ timeout: 15_000 });
+          |                                                                 ^
+      130 |
+      131 |   // A valid one is accepted.
+      132 |   await itemDialog.getByPlaceholder("6221234567890").fill("6221033010113");
+        at D:\Web\AqarBooks\tests\e2e\einvoice-items.spec.ts:129:65
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-rw2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-rw2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-rw2-einvoice-items-artifacts\einvoice-items-an-item-is--40f8e-nked-and-the-gap-disappears\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-items.spec.ts:97:5 › an item is created, linked, and the gap disappears ─────
+  1 passed (1.1m)
+(node:35312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

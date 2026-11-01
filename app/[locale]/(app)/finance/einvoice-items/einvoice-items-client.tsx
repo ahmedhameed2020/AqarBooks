@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
 import {
   Barcode,
   Package,
@@ -175,7 +176,7 @@ export function EInvoiceItemsClient({
         setIsItemDialogOpen(false);
         router.refresh();
       } else {
-        setItemError(res.error || (isAr ? "فشل حفظ الصنف" : "Failed to save item"));
+        setItemError(financeErrorMessage(res.error, isAr));
       }
     });
   };
@@ -202,7 +203,7 @@ export function EInvoiceItemsClient({
         setIsLinkDialogOpen(false);
         router.refresh();
       } else {
-        setLinkError(res.error || (isAr ? "فشل ربط البند" : "Failed to link item"));
+        setLinkError(financeErrorMessage(res.error, isAr));
       }
     });
   };

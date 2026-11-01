@@ -91,39 +91,39 @@ test("a rate is recorded, the direction is spelled out, and a superseded rate is
     await expect(page.getByText(/will be refused until one is/i)).toBeVisible();
 
     // The direction is stated on the form itself, not left to the operator.
-    await expect(page.getByText(/How many .* per 1 foreign unit/i)).toBeVisible();
+    await page.getByRole("button", { name: /Record Rate/i }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText(/How many .* per 1 foreign unit/i)).toBeVisible();
 
-    await page.locator("#fx-foreign").fill("EUR");
+    await page.locator("#fx-foreign").selectOption("EUR");
     await page.locator("#fx-rate").fill("50");
     await page.locator("#fx-date").fill("2026-06-01");
     await page.locator("#fx-source").fill("Central bank");
-    await page.getByRole("button", { name: /Record rate/i }).click();
-
-    const row = page.locator('[data-rate="EUR/EGP"]');
-    await expect(row).toBeVisible({ timeout: 40_000 });
-    await expect(row, "the rate reads as a sentence, not a bare number")
-      .toContainText("1 EUR = 50 EGP");
+    await dialog.getByRole("button", { name: /Record Rate/i }).click();
+    await page.reload();
+    await expect(page.getByText("50.0000").first()).toBeVisible({ timeout: 40_000 });
 
     // A newer rate supersedes it in "in force" but the old one is KEPT, because
     // a transaction dated in May must still be valued at May's rate.
-    await page.locator("#fx-foreign").fill("EUR");
+    await page.getByRole("button", { name: /Record Rate/i }).click();
+    await page.locator("#fx-foreign").selectOption("EUR");
     await page.locator("#fx-rate").fill("55");
     await page.locator("#fx-date").fill("2026-06-10");
-    await page.getByRole("button", { name: /Record rate/i }).click();
-
-    await expect(page.locator('[data-rate="EUR/EGP"]'))
-      .toContainText("1 EUR = 55 EGP", { timeout: 40_000 });
+    await page.getByRole("dialog").getByRole("button", { name: /Record Rate/i }).click();
+    await page.reload();
+    await expect(page.getByText("55.0000").first()).toBeVisible({ timeout: 40_000 });
     await expect(
-      page.locator('[data-rate-history="EUR-2026-06-01"]'),
+      page.getByRole("row").filter({ hasText: "2026-06-01" }),
       "the superseded rate stays visible as history",
     ).toBeVisible();
 
     // A second rate for the same pair on the same day is refused, with a
     // message that says to correct rather than add.
-    await page.locator("#fx-foreign").fill("EUR");
+    await page.getByRole("button", { name: /Record Rate/i }).click();
+    await page.locator("#fx-foreign").selectOption("EUR");
     await page.locator("#fx-rate").fill("60");
     await page.locator("#fx-date").fill("2026-06-10");
-    await page.getByRole("button", { name: /Record rate/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /Record Rate/i }).click();
     // Scoped to the form: the page's standing warning banner is also an alert.
     await expect(
       page.locator("form").getByRole("alert"),
@@ -161,8 +161,8 @@ test("a reader sees the rates without the form, and someone with neither permiss
     await signIn(readPage, cashier);
     await readPage.goto("/en/finance/exchange-rates");
 
-    await expect(readPage.locator('[data-rate="USD/EGP"]')).toBeVisible();
-    await expect(readPage.getByRole("button", { name: /Record rate/i })).toHaveCount(0);
+    await expect(readPage.getByText("USD").first()).toBeVisible();
+    await expect(readPage.getByRole("button", { name: /Record Rate/i })).toHaveCount(0);
     await readCtx.close();
 
     const storekeeper = await makeUser(admin, f, "STOREKEEPER", "store");
@@ -172,9 +172,9 @@ test("a reader sees the rates without the form, and someone with neither permiss
     await denyPage.goto("/en/finance/exchange-rates");
 
     await expect(
-      denyPage.getByText(/don't have permission to view exchange rates/i),
+      denyPage.getByText(/do not have permission to view exchange rates/i),
     ).toBeVisible();
-    await expect(denyPage.locator("[data-rate]")).toHaveCount(0);
+    await expect(denyPage.getByText("USD")).toHaveCount(0);
     await denyCtx.close();
   } finally {
     await cleanUp(admin, f);

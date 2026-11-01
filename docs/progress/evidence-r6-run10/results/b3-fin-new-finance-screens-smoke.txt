@@ -1,0 +1,53 @@
+$ tests/e2e/new-finance-screens-smoke.spec.ts
+label=b3-fin-new-finance-screens-smoke
+exit=1
+elapsed_ms=154822
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\new-finance-screens-smoke.spec.ts:178:5 › every new finance screen renders for an authorised user (18.9s)
+  x  2 tests\e2e\new-finance-screens-smoke.spec.ts:230:5 › a service charge levy can be created and allocated from the browser (2.1m)
+
+
+  1) tests\e2e\new-finance-screens-smoke.spec.ts:230:5 › a service charge levy can be created and allocated from the browser 
+
+    Test timeout of 120000ms exceeded.
+
+    Error: locator.fill: Test timeout of 120000ms exceeded.
+    Call log:
+      - waiting for locator('#name')
+
+
+      232 |   await page.goto("/en/finance/service-charges");
+      233 |
+    > 234 |   await page.locator("#name").fill("E2E Smoke Levy");
+          |                               ^
+      235 |   await page.locator("#periodStart").fill("2026-01-01");
+      236 |   await page.locator("#periodEnd").fill("2026-03-31");
+      237 |   // 1000.01 over a single unit still exercises the largest-remainder path:
+        at D:\Web\AqarBooks\tests\e2e\new-finance-screens-smoke.spec.ts:234:31
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fin-new-finance-screens-smoke-artifacts\new-finance-screens-smoke--f8068--allocated-from-the-browser\error-context.md
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fin-new-finance-screens-smoke-artifacts\new-finance-screens-smoke--f8068--allocated-from-the-browser\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fin-new-finance-screens-smoke-artifacts\new-finance-screens-smoke--f8068--allocated-from-the-browser\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fin-new-finance-screens-smoke-artifacts\new-finance-screens-smoke--f8068--allocated-from-the-browser\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\new-finance-screens-smoke.spec.ts:230:5 › a service charge levy can be created and allocated from the browser 
+  1 passed (2.5m)
+(node:38252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

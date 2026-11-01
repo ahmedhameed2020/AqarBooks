@@ -22,7 +22,7 @@ export function AiGovernanceClient({ locale = "ar" }: { locale?: string; organiz
             </div>
             <p className="max-w-2xl text-sm leading-6 text-amber-900/80 dark:text-amber-200/80">
               {isAr
-                ? "لا توجد مفاتيح تشغيل أو سجلات تدقيق أو عدادات محلية معروضة؛ لم يتم تفعيل ميزات الذكاء الاصطناعي حتى تتوفر حوكمة محفوظة وتأثير runtime موثوق."
+                ? "لا توجد مفاتيح تشغيل أو سجلات تدقيق أو عدادات محلية معروضة؛ لم يتم تفعيل ميزات الذكاء الاصطناعي حتى تتوفر حوكمة محفوظة وتأثير تشغيلي موثّق."
                 : "No runtime toggles, audit logs, or local counters are shown. AI features remain disabled until persisted governance and a verified runtime effect are available."}
             </p>
           </div>

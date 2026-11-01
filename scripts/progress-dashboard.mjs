@@ -20,8 +20,8 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 // ── Declared constants (update alongside the evidence reports) ───────────────
 const BLOCKED_EXTERNAL = ["owner-portal-online-payment-fawry", "fawry-production-foundation", "payment-provider-settings", "tax-mapping-review", "reports-unbuilt-sections", "release-a-production-gate"];
-const PRODUCT_FIXES = { verified: 2, copyRestored: 2 }; // responsive-overflow 18/18, chart-gates 4/4; dunning banner, rates empty-state copy
-const TRIAGE_REMAINING = { rewrites: 4, environment: 3 }; // dunning, exchange-rates, einvoice-items, einvoice-settings | owner-portal-invite, admin-team-invite-flow, new-finance-screens-smoke
+const PRODUCT_FIXES = { verified: 3, copyRestored: 4 }; // responsive-overflow, chart-gates, tenant-permissions (invite); dunning banner, rates copy, statement-forms leak, runtime wording
+const TRIAGE_REMAINING = { rewrites: 3, environment: 0 }; // einvoice-settings (feature not exposed), owner-portal-invite (passwordless flow), new-finance-screens-smoke (dialog controls)
 
 // ── status.json ──────────────────────────────────────────────────────────────
 const status = JSON.parse(read("docs/progress/status.json"));

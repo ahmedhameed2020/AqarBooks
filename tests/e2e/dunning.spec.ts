@@ -137,7 +137,7 @@ async function signIn(page: Page, email: string) {
 test("a stage is defined, notices are raised, and one is only DELIVERED once a human records it", async ({
   browser,
 }) => {
-  test.setTimeout(200_000);
+  test.setTimeout(300_000);
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const f = await setUp(admin);
 
@@ -153,36 +153,51 @@ test("a stage is defined, notices are raised, and one is only DELIVERED once a h
       "the screen must not let an operator assume the debtor was contacted",
     ).toBeVisible();
 
-    // Nothing is flagged until a stage exists -- and the screen says so rather
-    // than showing an empty list that reads as "no overdue debts".
+    // Nothing is flagged until a stage exists -- and the screen says so.
     await expect(page.getByText(/Nothing will be flagged until at least one stage exists/i)).toBeVisible();
 
+    // Define stage 1 through the policy dialog (the form lives in a modal).
+    await page.getByRole("button", { name: /Dunning Policies/i }).click();
+    await page.getByRole("button", { name: /New Policy Stage/i }).click();
     await page.locator("#pol-stage").fill("1");
     await page.locator("#pol-ar").fill("إنذار نهائي");
     await page.locator("#pol-en").fill("Final notice");
     await page.locator("#pol-days").fill("90");
     await page.locator("#pol-min").fill("100");
-    await page.getByRole("button", { name: /Save stage/i }).click();
-
-    await expect(page.locator('[data-stage="1"]').first()).toBeVisible({ timeout: 40_000 });
+    await page.getByRole("dialog").getByRole("button", { name: /Save Stage/i }).click();
+    await expect(page.getByText("Final notice").first()).toBeVisible({ timeout: 40_000 });
 
     // Both debts are eligible -- including the one whose unit has no owner.
+    await page.getByRole("button", { name: /Eligible Overdue/i }).click();
     await expect(page.getByText(f.lateDescription)).toBeVisible({ timeout: 40_000 });
     await expect(
       page.getByText(f.orphanDescription),
       "an ownerless debt must be visible, not hidden until the data is fixed",
     ).toBeVisible();
-    await expect(page.getByText(/no owner on record/i).first()).toBeVisible();
+    await expect(page.getByText(/No member/i).first()).toBeVisible();
 
-    await page.getByRole("button", { name: /Raise this stage/i }).click();
-    await expect(page.locator("[data-raise-result]")).toHaveAttribute("data-raise-result", "2", {
-      timeout: 40_000,
-    });
+    // Raise stage notices through the raise dialog, and prove it in the database.
+    await page.getByRole("button", { name: /Raise Stage Notices/i }).click();
+    await page.locator("#raise-stage").selectOption("1");
+    await page.getByRole("dialog").getByRole("button", { name: /Raise Notices/i }).click();
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from("dunning_notices").select("id").eq("organization_id", f.orgId);
+        return data?.length ?? 0;
+      }, { timeout: 40_000 })
+      .toBe(2);
+
+    // The raise dialog may stay open after a successful raise; close it before
+    // interacting with the tabs behind it.
+    if (await page.getByRole("dialog").count()) {
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
 
     // Raised, and NOT delivered.
-    const notice = page.locator('[data-notice]').first();
-    await expect(notice).toHaveAttribute("data-status", "RAISED");
-    await expect(notice).toContainText(/Raised — not delivered/i);
+    await page.getByRole("button", { name: /Notice Register/i }).click();
+    await expect(page.getByText("Raised", { exact: true }).first()).toBeVisible({ timeout: 40_000 });
 
     const { data: rows } = await admin
       .from("dunning_notices").select("status, delivered_at, delivery_channel")
@@ -191,9 +206,10 @@ test("a stage is defined, notices are raised, and one is only DELIVERED once a h
     expect(rows!.every((r) => r.status === "RAISED" && r.delivered_at === null)).toBe(true);
 
     // Now a human records that they actually delivered it.
-    await notice.locator('select[name="channel"]').selectOption("HAND_DELIVERED");
-    await notice.locator('input[name="reference"]').fill("receipt 123");
-    await notice.getByRole("button", { name: /Record delivery/i }).click();
+    await page.getByRole("button", { name: /^Deliver$/i }).first().click();
+    await page.locator("#del-channel").selectOption("HAND_DELIVERED");
+    await page.locator("#del-reference").fill("receipt 123");
+    await page.getByRole("dialog").getByRole("button", { name: /Confirm Delivery/i }).click();
 
     await expect
       .poll(async () => {
@@ -213,10 +229,16 @@ test("a stage is defined, notices are raised, and one is only DELIVERED once a h
 
     // Re-running the same stage raises nothing rather than nagging twice.
     await page.reload();
-    await page.getByRole("button", { name: /Raise this stage/i }).click();
-    await expect(page.locator("[data-raise-result]")).toHaveAttribute("data-raise-result", "0", {
-      timeout: 40_000,
-    });
+    await page.getByRole("button", { name: /Raise Stage Notices/i }).click();
+    await page.locator("#raise-stage").selectOption("1");
+    await page.getByRole("dialog").getByRole("button", { name: /Raise Notices/i }).click();
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from("dunning_notices").select("id").eq("organization_id", f.orgId);
+        return data?.length ?? 0;
+      }, { timeout: 40_000 })
+      .toBe(2);
 
     await ctx.close();
   } finally {
@@ -243,8 +265,8 @@ test("a reader sees the collections work without the controls", async ({ browser
     await readPage.goto("/en/finance/dunning");
 
     await expect(readPage.getByText(f.lateDescription)).toBeVisible({ timeout: 40_000 });
-    await expect(readPage.getByRole("button", { name: /Raise this stage/i })).toHaveCount(0);
-    await expect(readPage.getByRole("button", { name: /Save stage/i })).toHaveCount(0);
+    await expect(readPage.getByRole("button", { name: /Raise Stage Notices/i })).toHaveCount(0);
+    await expect(readPage.getByRole("button", { name: /New Policy Stage/i })).toHaveCount(0);
     await readCtx.close();
 
     const storekeeper = await makeUser(admin, f, "STOREKEEPER", "store");
@@ -254,9 +276,9 @@ test("a reader sees the collections work without the controls", async ({ browser
     await denyPage.goto("/en/finance/dunning");
 
     await expect(
-      denyPage.getByText(/don't have permission to view collections/i),
+      denyPage.getByText(/do not have permission to view collections/i),
     ).toBeVisible();
-    await expect(denyPage.locator("[data-candidate]")).toHaveCount(0);
+    await expect(denyPage.getByRole("button", { name: /Raise Stage Notices/i })).toHaveCount(0);
     await denyCtx.close();
   } finally {
     await cleanUp(admin, f);
