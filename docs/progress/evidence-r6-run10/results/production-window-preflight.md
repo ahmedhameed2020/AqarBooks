@@ -126,3 +126,28 @@
 | الوظائف المجدولة | أُعيدتا `active`، وتشغيل يدوي لكل منهما نجح (Gate 12s، Payment 10s) | GitHub Actions |
 
 **لم يُنفَّذ:** تغيير Auth/SMTP/الأسرار، حذف بيانات، نشر Cloudflare، `push`، أو أي معاملة مالية.
+
+## 8) Auth hardening — منفذ ومتحقق (2026-11-01)
+
+| الإعداد | قبل | بعد |
+|---|---|---|
+| `disable_signup` | false | **true** |
+| `password_min_length` | 6 | **8** |
+| `rate_limit_email_sent` | 2/ساعة | **30/ساعة** (SMTP مخصص؛ الخطة free) |
+| `mailer_autoconfirm` | true | true (بلا تغيير) |
+
+**الأدلة:**
+- `/auth/v1/settings` → `disable_signup=true`.
+- محاولة تسجيل مباشر عبر `/auth/v1/signup` → **422 `signup_disabled`**، وعدد المستخدمين بقي **1512** (0 حساب أُنشئ).
+- مسار الدخول: فحص ببيانات خاطئة → 400 `invalid_credentials` (الخدمة سليمة)، ودخول حساب Smoke عبر `/auth/v1/token` → **200 مع رمز**.
+- إنشاء مستخدم عبر Admin API بعد التعطيل → **200** (مسار التجهيز الإداري يعمل).
+- `/auth/v1/recover` → 200 (بدون إرسال لعنوان غير موجود).
+- حساب Smoke: `smoke-verify@aqarbooks.com`، بلا أي دور (0 user_role_assignments)، بياناته في `~/.aqar-secrets/smoke-credentials.env` (ACL للمالك).
+- **SMTP:** لم يُختبر الإرسال (لا يوجد عنوان معتمد). القيمة المخزنة لا تُقبل كمفتاح Resend عند فحصها، لذا التسليم غير متحقق.
+
+## 9) نسخ مجدولة ومشفرة خارج الجهاز
+
+- مهمة `AqarBooks Cloud Backup` يوميًا 03:30 (تفاعلية: تتطلب جلسة Windows مفتوحة).
+- بعد كل نسخة: `cloud-backup-offsite.sh` يُنشئ أرشيفًا مشفرًا (AES-256/PBKDF2) في `~/OneDrive/AqarBooks-Backups`، يتحقق من فكّه ومطابقة البصمات، ويحتفظ بآخر 7.
+- نُفّذ الآن: `backup-20261101T183554Z.tar.gz.enc` (11MB) وفكّه طابق `SHA256SUMS.txt`.
+- مفتاح التشفير في `~/.aqar-secrets/backup-passphrase` (ACL للمالك) — فقدانه يعني فقدان الأرشيفات.

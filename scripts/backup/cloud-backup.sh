@@ -27,4 +27,10 @@ echo "== backup start $(date -u +%FT%TZ) -> $DEST"
 test -s "$DEST/public_schema.sql"
 test -s "$DEST/public_data.sql"
 test -s "$DEST/auth_data.sql"
+
+# Encrypted off-device copy (OneDrive by default). Never blocks the local backup.
+if [ -x "$(dirname "${BASH_SOURCE[0]}")/cloud-backup-offsite.sh" ] || [ -f "$(dirname "${BASH_SOURCE[0]}")/cloud-backup-offsite.sh" ]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/cloud-backup-offsite.sh" || echo "warning: offsite copy failed"
+fi
+
 echo "== backup ok $(date -u +%FT%TZ)"
