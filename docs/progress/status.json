@@ -8,7 +8,7 @@
       "id": "ux-sprint-1",
       "name_ar": "السبرينت 1 لتجربة المستخدم (المالية)",
       "name_en": "UX Sprint 1 (finance UX)",
-      "status": "code_complete",
+      "status": "verified",
       "tests": [
         {
           "file": "tests/finance-error-message.test.ts",
@@ -44,10 +44,10 @@
         }
       ],
       "blockers": [
-        "Browser/Playwright coverage now exists across the finance screens (core + wave 2 suites, 48/48 runnable green on r6).",
-        "Arabic copy: automated review completed 2026-11-01 (docs/progress/arabic-copy-review.md); professional translator sign-off still pending (launch item 6).",
-        "Ownership of treasury error mapping in receivables.ts is still not settled (owner decision needed).",
-        "Fixed 2026-11-01: the English string in the Arabic branch of statement-forms.tsx now maps through financeErrorMessage."
+        "Verified on r6 only; not a production approval.",
+        "Owner decision 2026-11-01: treasury error mapping is owned by the finance actions layer (lib/actions/receivables.ts + the shared finance map in lib/actions/error-messages.ts); treasury screens consume it and do not own a parallel map.",
+        "Arabic professional translator sign-off remains tracked as launch-checklist item 6 and is NOT claimed by this phase closure.",
+        "Browser/Playwright coverage: 48/48 runnable specs green on r6 (core + wave 2)."
       ],
       "last_updated": "2026-11-01",
       "evidence": [
@@ -433,15 +433,16 @@
       "id": "g0-local-rehearsal",
       "name_ar": "بوابة G0 للتدريب المحلي",
       "name_en": "Local rehearsal gate G0",
-      "status": "code_complete",
+      "status": "verified",
       "tests": [],
       "blockers": [
-        "Covers the LOCAL scope only (conditional approval recorded in APPROVAL-RECORD.md)",
-        "Blocked for production: production identity and any production action need separate approval"
+        "Owner decision 2026-11-01: G0 closed as completed for the LOCAL scope only (APPROVAL-RECORD.md).",
+        "Blocked for production: production identity and any production action still need separate approval; production phase remains not_started."
       ],
-      "last_updated": "2026-10-23",
+      "last_updated": "2026-11-01",
       "evidence": [
-        "APPROVAL-RECORD.md (session report: G0 conditional local approval)"
+        "APPROVAL-RECORD.md (session report: G0 conditional local approval)",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-e2e-final.txt"
       ],
       "percent_defined": null,
       "percent_note": "No defined set of sub-items; no percentage is reported."
