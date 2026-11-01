@@ -175,6 +175,7 @@ const html = `<!DOCTYPE html>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <span class="badge onDark">آخر تحديث: ${generatedAt}</span>
         <span class="badge onDark">لا نشر · لا push</span>
+        <span class="badge onDark">Local Verified فقط · Production Verified: 0</span>
       </div>
     </div>
 
@@ -183,9 +184,9 @@ const html = `<!DOCTYPE html>
         <div class="ring-wrap">
           <div class="ring" style="--p:${phasePct};--ringColor:#0d9488"><div>${phasePct}%<small>verified</small></div></div>
           <div class="ring-label">
-            <b>مراحل المشروع</b>
-            <span>${verified} verified · ${codeComplete} code_complete · ${notStarted} not_started</span>
-            <div class="dash">الدفعات المالية المقبولة على r6: 1B، 2، 3، BI-1</div>
+            <b>مراحل المشروع — Local Verified</b>
+            <span>${verified} verified (r6) · ${codeComplete} code_complete · ${notStarted} not_started</span>
+            <div class="dash">Production Verified: 0 · المقبولة محليًا: 1B، 2، 3، 4، BI-1، 0، 1A، UX، G0</div>
           </div>
         </div>
       </div>
@@ -253,6 +254,13 @@ const html = `<!DOCTYPE html>
   <h2>بوابة الإطلاق — ${items.length} بندًا</h2>
   <div class="grid two">
 ${gateCards}
+  </div>
+
+  <h2>حزمة جاهزية الإنتاج (توثيق فقط — لم تُنفَّذ)</h2>
+  <div class="grid two">
+    <div class="card"><b>Production Readiness Matrix</b><div class="dash"><code>docs/progress/production-readiness-matrix.md</code></div></div>
+    <div class="card"><b>Release Runbook</b><div class="dash"><code>docs/progress/release-runbook.md</code></div></div>
+    <div class="card"><b>External Approvals Tracker</b><div class="dash"><code>docs/progress/external-approvals-tracker.md</code></div></div>
   </div>
 
   <h2>الالتزامات الأخيرة</h2>
