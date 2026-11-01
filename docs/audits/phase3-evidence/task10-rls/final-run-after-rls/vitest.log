@@ -1,0 +1,269 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances-integrity.integration.test.ts (16 tests | 4 failed) 149021ms
+     × a key that already identifies a receipt (recorded by the legacy record_payment) is refused by all three 8522ms
+     × setup: member M has an advance receipt with one application; member M2 (another unit) has its own; M also has a receipt that was voided 8413ms
+     × M sees exactly the right figures at each date, equal to the staff view for M's receipt; the ledger stays closed to M 3ms
+     × another member of the same organization, the other organization's owner and an anonymous caller see none of M's figures 2ms
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 5 failed) 154209ms
+     × an active, permitted member reads their organization's rows (and only theirs) 30173ms
+     × invited sees no financial/property rows in any affected table or view 20678ms
+     × suspended sees no financial/property rows in any affected table or view 8266ms
+     × stranger sees no financial/property rows in any affected table or view 8134ms
+     × an active member of ANOTHER organization sees none of org A's rows 15452ms
+ ❯ tests/customer-advances.integration.test.ts (39 tests | 4 failed) 220680ms
+     × permissions: apply needs receivables.allocations.manage — the cashier, the auditor and other organizations are refused; a normal receipt is not an advance 11728ms
+     × a reason is required; the 600 (not the 200) is reversed on 09-09: entry mirrored, D2 owes 600, R1 credit 800, dates linked to the reversal entry 9517ms
+     × a second reversal, a receipt allocation, a date before the application, the future, other users and a reused key are all refused without a trace 8680ms
+     × R4 with an active application is refused (CREDIT_APPLICATIONS_ACTIVE) without a trace; after reversing it the void works and the earlier reversal date is preserved 3044ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 3. one idempotency registry for record / apply / reverse > a key that already identifies a receipt (recorded by the legacy record_payment) is refused by all three
+AssertionError: canceling statement due to statement timeout: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ issueDue tests/customer-advances-integrity.integration.test.ts:49:37
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:202:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > setup: member M has an advance receipt with one application; member M2 (another unit) has its own; M also has a receipt that was voided
+AssertionError: canceling statement due to statement timeout: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ issueDue tests/customer-advances-integrity.integration.test.ts:49:37
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:228:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > M sees exactly the right figures at each date, equal to the staff view for M's receipt; the ledger stays closed to M
+TypeError: Cannot read properties of undefined (reading 'rpc')
+ ❯ asOf tests/customer-advances-integrity.integration.test.ts:238:84
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:241:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > another member of the same organization, the other organization's owner and an anonymous caller see none of M's figures
+TypeError: Cannot read properties of undefined (reading 'rpc')
+ ❯ tests/customer-advances-integrity.integration.test.ts:260:36
+    258|   });
+    259|   it("another member of the same organization, the other organization'…
+    260|     const m2Ids = ((await m2Portal.rpc("payment_credit_balances_as_of"…
+       |                                    ^
+    261|     expect(m2Ids).toEqual([m2Receipt]);
+    262|     expect(((await m2Portal.rpc("payment_allocations_as_of", { p_org: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > permissions: apply needs receivables.allocations.manage — the cashier, the auditor and other organizations are refused; a normal receipt is not an advance
+AssertionError: canceling statement due to statement timeout: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:18:92
+     16| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     17| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     18| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     19| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     20|
+ ❯ tests/customer-advances.integration.test.ts:246:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 4. reversing one application > a reason is required; the 600 (not the 200) is reversed on 09-09: entry mirrored, D2 owes 600, R1 credit 800, dates linked to the reversal entry
+AssertionError: canceling statement due to statement timeout: expected { code: '57014', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "57014",
+  "details": null,
+  "hint": null,
+  "message": "canceling statement due to statement timeout",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:18:92
+     16| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     17| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     18| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     19| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     20|
+ ❯ tests/customer-advances.integration.test.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 4. reversing one application > a second reversal, a receipt allocation, a date before the application, the future, other users and a reused key are all refused without a trace
+AssertionError: expected '57014:canceling statement due to stat…' to match /ALREADY_REVERSED/
+
+- Expected:
+/ALREADY_REVERSED/
+
++ Received:
+"57014:canceling statement due to statement timeout"
+
+ ❯ refused tests/customer-advances.integration.test.ts:47:18
+     45|   const r = await call();
+     46|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+     47|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     48|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     49| }
+ ❯ tests/customer-advances.integration.test.ts:266:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 5. voiding a receipt: only when no application is in force > R4 with an active application is refused (CREDIT_APPLICATIONS_ACTIVE) without a trace; after reversing it the void works and the earlier reversal date is preserved
+AssertionError: expected 900 to be 860 // Object.is equality
+
+- Expected
++ Received
+
+- 860
++ 900
+
+ ❯ tests/customer-advances.integration.test.ts:300:29
+    298|     expect(q(`select count(*) from public.payment_allocations where pa…
+    299|     expect(q(`select p.status||'/'||p.unallocated_amount::text from pu…
+    300|     expect(outstanding(D4)).toBe(860); // 900 less the plain 40 receip…
+       |                             ^
+    301|     // history: the application counts at 09-05, not at 09-07 (reverse…
+    302|     const at = (d: string) => Number(q(`select coalesce(sum(amount),0)…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active, permitted member reads their organization's rows (and only theirs)
+AssertionError: journal_entry_lines: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:114:51
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > invited sees no financial/property rows in any affected table or view
+AssertionError: fiscal_periods: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:120:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > suspended sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > stranger sees no financial/property rows in any affected table or view
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:120:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active member of ANOTHER organization sees none of org A's rows
+AssertionError: journal_entry_lines: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:126:103
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+
+ Test Files  3 failed | 20 passed | 1 skipped (24)
+      Tests  13 failed | 404 passed | 40 skipped (457)
+   Start at  18:10:27
+   Duration  222.32s (transform 4.22s, setup 2.34s, import 139.40s, tests 987.88s, environment 16ms)
+

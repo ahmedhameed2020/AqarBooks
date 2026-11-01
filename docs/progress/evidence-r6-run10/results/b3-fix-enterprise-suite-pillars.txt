@@ -1,0 +1,19 @@
+$ tests/e2e/enterprise-suite-pillars.spec.ts
+label=b3-fix-enterprise-suite-pillars
+exit=0
+elapsed_ms=160772
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\enterprise-suite-pillars.spec.ts:13:7 › Enterprise Suite 3-Pillar Comprehensive Flow › Verify Fiscal Periods, Real Estate Entities & Platform Dashboard (50.2s)
+
+  1 passed (1.6m)
+(node:20372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

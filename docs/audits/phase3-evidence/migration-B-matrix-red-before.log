@@ -1,0 +1,655 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances.integration.test.ts (31 tests | 27 failed) 16322ms
+     × a receipt with an advance is refused until the account is approved; nothing is created 477ms
+     × only a user with finance.accounts.manage can approve it; it must be a leaf active LIABILITY account of the organization 466ms
+     × R1: 3,000 with 2,000 allocated => entry Dr 3,000 / Cr 2,000 / Cr 1,000 advance; account and amount stored on the receipt; D1 PAID 93ms
+     × R2: 1,500 with no allocation => Dr 1,500 / Cr 1,500 advance 46ms
+     × idempotency by CONTENT: same key + same request = same receipt, no second entry; same key + different request refused 36ms
+     × a missing key, a zero/negative amount and a FUTURE date are refused without a trace 355ms
+     × allocation rules at receipt time: not above what is owed, not a duplicate due, same unit, an existing due, a non-void due, not 'no advance left' 343ms
+     × member/unit rules: both required, the member must own the unit on that date; a closed/undefined period is refused 312ms
+     × permissions: the cashier can record an advance; the auditor and other organizations cannot; anon cannot 29ms
+     × 600 from R1 on D2 (09-05): entry Dr advance 600 / Cr receivable 600 dated 09-05; D2 PARTIALLY_PAID, owes 200; R1 credit 400 28ms
+     × 200 more on 09-07 => D2 PAID, R1 credit 200 30ms
+     × replay: same key and same content returns the first result without a second entry; same key with other content is refused 80ms
+     × refusals leave no trace: beyond the due, beyond the credit, wrong unit, other organization, void due, due without a posted entry, duplicate due, empty, bad shape 293ms
+     × date and period rules: not before the receipt, not in the future, not in a missing/closed period 305ms
+     × permissions: apply needs receivables.allocations.manage — the cashier, the auditor and other organizations are refused; a normal receipt is not an advance 317ms
+     × a reason is required; the 600 (not the 200) is reversed on 09-09: entry mirrored, D2 owes 600, R1 credit 800, dates linked to the reversal entry 322ms
+     × a second reversal, a receipt allocation, a date before the application, the future, other users and a reused key are all refused without a trace 312ms
+     × R3 (no application) can be voided: whole entry reversed, credit 0, liability back to its prior level 26ms
+     × R4 with an active application is refused (CREDIT_APPLICATIONS_ACTIVE) without a trace; after reversing it the void works and the earlier reversal date is preserved 29ms
+     × R5: one application reversed and a second still in force => the void is still refused until the second is reversed 43ms
+     × changing the default does not move an existing receipt; deactivating the original account blocks apply AND reverse with a clear error; reactivating restores both 27ms
+     × two simultaneous applications of 800+800 against 1,000 of credit: exactly one succeeds, the other is CREDIT_EXCEEDED; the books agree 24ms
+     × two identical requests with the SAME key at once: both succeed (one is the replay) and only one application exists 44ms
+     × apply vs void of the same receipt: one consistent end state (never a voided receipt with an application in force) 33ms
+     × two reversals of the same application at once: exactly one succeeds 29ms
+     × applying is refused, the credit is flagged stranded, the new owner sees nothing and cannot use it; the old owner still sees it; the void works 24ms
+     × public functions: authenticated only (never anon/PUBLIC); internal helpers: NOT authenticated, anon or PUBLIC 387ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 27 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 1. approved advance account (setting) and its absence > a receipt with an advance is refused until the account is approved; nothing is created
+AssertionError: expected 'PGRST202:Could not find the function …' to match /ADVANCE_ACCOUNT_NOT_CONFIGURED/
+
+- Expected:
+/ADVANCE_ACCOUNT_NOT_CONFIGURED/
+
++ Received:
+"PGRST202:Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:112:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 1. approved advance account (setting) and its absence > only a user with finance.accounts.manage can approve it; it must be a leaf active LIABILITY account of the organization
+AssertionError: expected 'PGRST202:Could not find the function …' to match /42501/
+
+- Expected:
+/42501/
+
++ Received:
+"PGRST202:Could not find the function public.set_default_customer_advance_account(p_account_id, p_organization_id, p_property_id) in the schema cache"
+
+ ❯ tests/customer-advances.integration.test.ts:115:168
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > R1: 3,000 with 2,000 allocated => entry Dr 3,000 / Cr 2,000 / Cr 1,000 advance; account and amount stored on the receipt; D1 PAID
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:126:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > R2: 1,500 with no allocation => Dr 1,500 / Cr 1,500 advance
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:136:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > idempotency by CONTENT: same key + same request = same receipt, no second entry; same key + different request refused
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:142:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > a missing key, a zero/negative amount and a FUTURE date are refused without a trace
+AssertionError: expected 'PGRST202:Could not find the function …' to match /IDEMPOTENCY_KEY_REQUIRED/
+
+- Expected:
+/IDEMPOTENCY_KEY_REQUIRED/
+
++ Received:
+"PGRST202:Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:151:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > allocation rules at receipt time: not above what is owed, not a duplicate due, same unit, an existing due, a non-void due, not 'no advance left'
+AssertionError: expected 'PGRST202:Could not find the function …' to match /ALLOCATION_EXCEEDS_REMAINING/
+
+- Expected:
+/ALLOCATION_EXCEEDS_REMAINING/
+
++ Received:
+"PGRST202:Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:156:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > member/unit rules: both required, the member must own the unit on that date; a closed/undefined period is refused
+AssertionError: expected 'PGRST202:Could not find the function …' to match /MEMBER_NOT_LINKED_TO_UNIT/
+
+- Expected:
+/MEMBER_NOT_LINKED_TO_UNIT/
+
++ Received:
+"PGRST202:Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:170:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 2. recording advance receipts > permissions: the cashier can record an advance; the auditor and other organizations cannot; anon cannot
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:176:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > 600 from R1 on D2 (09-05): entry Dr advance 600 / Cr receivable 600 dated 09-05; D2 PARTIALLY_PAID, owes 200; R1 credit 400
+AssertionError: Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.apply_payment_credit with parameters p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:190:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > 200 more on 09-07 => D2 PAID, R1 credit 200
+AssertionError: Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.apply_payment_credit with parameters p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:203:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > replay: same key and same content returns the first result without a second entry; same key with other content is refused
+AssertionError: Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.apply_payment_credit with parameters p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:210:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > refusals leave no trace: beyond the due, beyond the credit, wrong unit, other organization, void due, due without a posted entry, duplicate due, empty, bad shape
+AssertionError: expected 'PGRST202:Could not find the function …' to match /ALLOCATION_EXCEEDS_REMAINING/
+
+- Expected:
+/ALLOCATION_EXCEEDS_REMAINING/
+
++ Received:
+"PGRST202:Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:219:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > date and period rules: not before the receipt, not in the future, not in a missing/closed period
+AssertionError: expected 'PGRST202:Could not find the function …' to match /APPLICATION_BEFORE_RECEIPT/
+
+- Expected:
+/APPLICATION_BEFORE_RECEIPT/
+
++ Received:
+"PGRST202:Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:233:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 3. applying credit > permissions: apply needs receivables.allocations.manage — the cashier, the auditor and other organizations are refused; a normal receipt is not an advance
+AssertionError: expected 'PGRST202:Could not find the function …' to match /42501|FORBIDDEN/
+
+- Expected:
+/42501|FORBIDDEN/
+
++ Received:
+"PGRST202:Could not find the function public.apply_payment_credit(p_allocations, p_application_date, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_payment_id) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:240:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 4. reversing one application > a reason is required; the 600 (not the 200) is reversed on 09-09: entry mirrored, D2 owes 600, R1 credit 800, dates linked to the reversal entry
+AssertionError: expected 'PGRST202:Could not find the function …' to match /REASON_REQUIRED/
+
+- Expected:
+/REASON_REQUIRED/
+
++ Received:
+"PGRST202:Could not find the function public.reverse_credit_application(p_allocation_id, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_reason, p_reversal_date) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:250:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 4. reversing one application > a second reversal, a receipt allocation, a date before the application, the future, other users and a reused key are all refused without a trace
+AssertionError: expected 'PGRST202:Could not find the function …' to match /ALREADY_REVERSED/
+
+- Expected:
+/ALREADY_REVERSED/
+
++ Received:
+"PGRST202:Could not find the function public.reverse_credit_application(p_allocation_id, p_fiscal_period_id, p_idempotency_key, p_organization_id, p_reason, p_reversal_date) in the schema cache"
+
+ ❯ refused tests/customer-advances.integration.test.ts:46:18
+     44|   const r = await call();
+     45|   expect(r.error, "expected a refusal").not.toBeNull();
+     46|   expect(err(r)).toMatch(pattern);
+       |                  ^
+     47|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+     48| }
+ ❯ tests/customer-advances.integration.test.ts:263:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 5. voiding a receipt: only when no application is in force > R3 (no application) can be voided: whole entry reversed, credit 0, liability back to its prior level
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:284:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 5. voiding a receipt: only when no application is in force > R4 with an active application is refused (CREDIT_APPLICATIONS_ACTIVE) without a trace; after reversing it the void works and the earlier reversal date is preserved
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:289:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 5. voiding a receipt: only when no application is in force > R5: one application reversed and a second still in force => the void is still refused until the second is reversed
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:303:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 6. the advance account is the one the receipt was received into > changing the default does not move an existing receipt; deactivating the original account blocks apply AND reverse with a clear error; reactivating restores both
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:317:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 7. concurrency > two simultaneous applications of 800+800 against 1,000 of credit: exactly one succeeds, the other is CREDIT_EXCEEDED; the books agree
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:344:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 7. concurrency > two identical requests with the SAME key at once: both succeed (one is the replay) and only one application exists
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:356:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 7. concurrency > apply vs void of the same receipt: one consistent end state (never a voided receipt with an application in force)
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:367:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 7. concurrency > two reversals of the same application at once: exactly one succeeds
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:375:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 8. ownership change (D13): the credit stays with the original member > applying is refused, the credit is flagged stranded, the new owner sees nothing and cannot use it; the old owner still sees it; the void works
+AssertionError: Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.record_advance_payment with parameters p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": "Perhaps you meant to call the function public.record_online_payment",
+  "message": "Could not find the function public.record_advance_payment(p_allocations, p_amount, p_deposit_account_id, p_fiscal_period_id, p_idempotency_key, p_member_id, p_method, p_organization_id, p_payment_date, p_resort_id, p_unit_id) in the schema cache",
+}
+
+ ❯ ok tests/customer-advances.integration.test.ts:19:92
+     17| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     18| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     19| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     20| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     21|
+ ❯ tests/customer-advances.integration.test.ts:389:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/27]⎯
+
+ FAIL  tests/customer-advances.integration.test.ts > 9. grants and isolation > public functions: authenticated only (never anon/PUBLIC); internal helpers: NOT authenticated, anon or PUBLIC
+AssertionError: set_default_customer_advance_account: expected '' to contain 'authenticated'
+
+- Expected
++ Received
+
+- authenticated
+
+ ❯ tests/customer-advances.integration.test.ts:429:25
+    427|   it("public functions: authenticated only (never anon/PUBLIC); intern…
+    428|     for (const f of ["set_default_customer_advance_account", "record_a…
+    429|       expect(acl(f), f).toContain("authenticated");
+       |                         ^
+    430|       expect(acl(f), f).not.toMatch(/anon|PUBLIC/);
+    431|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/27]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  27 failed | 4 passed (31)
+   Start at  17:55:00
+   Duration  16.89s (transform 134ms, setup 99ms, import 170ms, tests 16.32s, environment 0ms)
+

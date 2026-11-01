@@ -3,6 +3,7 @@ import { AGING_BUCKETS, type AgingBucketKey } from "@/lib/finance/aging";
 import type { MonthlyFinancialPoint } from "@/lib/property/unit-financials";
 import { DuesTable } from "../dues-table";
 import { PaymentsTable } from "../payments-table";
+import { UnitCreditCard } from "./unit-credit-card";
 import { UnitFinancialsChart } from "./unit-financials-chart";
 
 // Aging severity reads as a heat progression, cool -> hot, so the eye finds
@@ -63,6 +64,8 @@ export function TabFinancials({
         <h2 className="text-sm font-semibold">{isAr ? "سجل الاستحقاقات" : "Dues history"}</h2>
         <DuesTable organizationId={organizationId} unitId={unitId} locale={locale} currency={currency} />
       </section>
+
+      <UnitCreditCard organizationId={organizationId} unitId={unitId} locale={locale} currency={currency} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">{isAr ? "سجل الدفعات" : "Payments history"}</h2>

@@ -1,0 +1,11 @@
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+[1/1] tests\e2e\owner-portal-isolation.spec.ts:139:5 › two owners in a browser each see only their own unit
+  1 passed (22.4s)

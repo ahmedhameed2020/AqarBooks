@@ -1,0 +1,9 @@
+==== T1 one POSTED entry, one statement, two WIP credits 600+600 on W1 (sum 1200 > balance 1000)
+psql:/tmp/guard_tests.sql:6: ERROR:  PROJECT_WIP_NEGATIVE: العكس أو التحرير يجعل رصيد WIP سالبًا (الرصيد 400.0000, المطلوب 600.0000)
+==== T2 one POSTED entry on W2: WIP debit 500 and WIP credit 1200 (net -700, final 300 should be accepted)
+==== T3 two DRAFT entries on W3, each WIP credit 600 (pending sum 1200 > balance 1000), same transaction
+==== STATE after the three cases
+ W1 balance=1000.0000 lines=1
+ W2 balance=300.0000 lines=3
+ W3 balance=1000.0000 lines=3
+ unbalanced test entries: 0

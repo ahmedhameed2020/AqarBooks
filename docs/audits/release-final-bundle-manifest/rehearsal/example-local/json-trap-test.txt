@@ -1,0 +1,19 @@
+JSON allowlist trap test (TEST data). Planted in rh_trial: short name 'ahmed', short lowercase secret 'abc123', phone as number 966500000000 and as string 0500123456, personal data as KEYS (0500123456, ahmed@mail.com, Ahmed, 966500000000), nested containers, arrays of strings, a string where a NUM/UUID/ENUM/scalar is allowed.
+Expected: only the allowlisted path with the right type survives; everything else is dropped and counted in _redacted.
+Row A allowlisted: total NUM, due_id UUID, direction ENUM -> kept; row B: as_of_date TS kept; row C: [].row NUM, [].error ENUM kept; row D: string at NUM/BOOL scalar path -> {}
+
+export-exit=0
+== survivors per planted row (what the export holds)
+A platform_audit_logs.safe_change_summary:
+"{""total"": 12.5, ""due_id"": ""6f1c2d3e-1111-4222-8333-444455556666"", ""_redacted"": 11, ""direction"": ""ENTRY""}"
+B financial_audit_logs.metadata:
+"{""_redacted"": 5, ""as_of_date"": ""2026-10-17""}"
+C property_import_logs.failures:
+"[{""row"": 3, ""error"": ""bad_phone"", ""_redacted"": 3}, {""_redacted"": 2}, {}, {}, {""_redacted"": 1}]"
+D plan_entitlements.value (string at a NUM/BOOL scalar path):
+0
+== needles in the whole export (ahmed, abc123, omar, sara, 0500123456, 966500000000, ahmed@mail.com)
+[end]
+== positive control: the unredacted rows hold them
+3
+== survivors that are allowed by type: due_id/total/direction in A, as_of_date in B

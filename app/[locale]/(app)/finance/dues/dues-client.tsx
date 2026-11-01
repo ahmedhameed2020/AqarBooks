@@ -56,6 +56,8 @@ export function DuesClient({
   dueTypes,
   revenueAccounts,
   receivableAccounts,
+  defaultReceivableAccountId = null,
+  canSaveReceivableDefault = false,
   periods,
   organizationId,
   resortId,
@@ -70,6 +72,8 @@ export function DuesClient({
   dueTypes: Option[];
   revenueAccounts: { id: string; code: string; name_ar: string; name_en: string }[];
   receivableAccounts: Option[];
+  defaultReceivableAccountId?: string | null;
+  canSaveReceivableDefault?: boolean;
   periods: Option[];
   organizationId: string;
   resortId: string;
@@ -489,6 +493,8 @@ export function DuesClient({
         units={units}
         dueTypes={dueTypes}
         receivableAccounts={receivableAccounts}
+        defaultReceivableAccountId={defaultReceivableAccountId}
+        canSaveReceivableDefault={canSaveReceivableDefault}
         periods={periods}
         currency={currency}
         locale={locale}

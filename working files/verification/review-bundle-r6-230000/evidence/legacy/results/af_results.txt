@@ -1,0 +1,16 @@
+==== T1 (same as before) one POSTED entry, two WIP credits 600+600 on W11
+psql:/tmp/af_tests.sql:6: ERROR:  PROJECT_WIP_NEGATIVE: صافي الحركات يجعل رصيد WIP سالبًا (المرحّل -200.0000, المعلّق 0)
+==== T2 (same as before) POSTED entry on W12: WIP debit 500 then WIP credit 1200 (net final 300, must be accepted)
+==== T2b (credit first, same net) on W13: must be accepted, same as T2
+==== T3 two DRAFT entries on W14, each WIP credit 600 (pending 1200 > 1000): must be refused at commit
+psql:/tmp/af_tests.sql:21: ERROR:  PROJECT_WIP_NEGATIVE: صافي الحركات يجعل رصيد WIP سالبًا (المرحّل 1000.0000, المعلّق -1200.0000)
+==== T4 one statement, lines tagged to TWO projects (W15 debit 0 credit 600, W16 credit 600), POSTED, balanced
+==== T5 opposite lock order: S1 tags W15 then W16; S2 tags W16 then W15 (run in two sessions, see af_t5_*.sql)
+==== STATE
+ W11 balance=1000.0000
+ W12 balance=300.0000
+ W13 balance=300.0000
+ W14 balance=1000.0000
+ W15 balance=400.0000
+ W16 balance=400.0000
+ unbalanced AF entries: 0

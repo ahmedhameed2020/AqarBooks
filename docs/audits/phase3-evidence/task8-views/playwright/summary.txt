@@ -1,0 +1,19 @@
+=== page-error-states 15:03:20
+exit 0 ;  2 passed (1.3m);
+=== owner-portal-isolation 15:04:50
+exit 1 ;  1 failed;
+=== portal-refusals 15:05:05
+exit 0 ;  5 passed (2.6m);
+=== accounting-duplicates 15:07:51
+exit 0 ;  5 passed (1.2m);
+=== accounting-journey 15:09:12
+exit 0 ;  15 passed (4.2m);
+=== portal-journey 15:13:33
+exit 0 ;  6 passed (1.7m);
+=== portal-statement 15:15:32
+exit 0 ;  8 passed (3.9m);
+=== customer-advances 15:19:31
+exit 1 ;  1 failed; 7 did not run; 2 passed (2.8m);
+=== customer-advances-ui-screens 15:22:26
+exit 0 ;  6 passed (3.9m);
+ALL-DONE

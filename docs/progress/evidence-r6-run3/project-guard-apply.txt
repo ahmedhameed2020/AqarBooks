@@ -1,0 +1,19 @@
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+psql:/tmp/project_guard.sql:59: NOTICE:  trigger "trg_projects_locked_fields" for relation "public.projects" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+REVOKE
+psql:/tmp/project_guard.sql:105: NOTICE:  trigger "trg_projects_audit_update" for relation "public.projects" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE

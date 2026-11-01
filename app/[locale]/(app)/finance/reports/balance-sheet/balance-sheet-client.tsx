@@ -32,6 +32,7 @@ export function BalanceSheetClient({
   liabilityRows,
   equityRows,
   currentEarnings,
+  priorResults = 0,
   asOfDate,
   organizationName,
   taxNumber,
@@ -42,6 +43,8 @@ export function BalanceSheetClient({
   liabilityRows: BalanceSheetAccountRow[];
   equityRows: BalanceSheetAccountRow[];
   currentEarnings: number;
+  /** results of earlier fiscal years that were never closed (RE-PRIOR); 0 when there are none */
+  priorResults?: number;
   asOfDate: string;
   organizationName: string;
   taxNumber?: string | null;
@@ -63,7 +66,7 @@ export function BalanceSheetClient({
   const totalAssets = assetRows.reduce((s, r) => s + r.balance, 0);
   const totalLiabilities = liabilityRows.reduce((s, r) => s + r.balance, 0);
   const baseEquity = equityRows.reduce((s, r) => s + r.balance, 0);
-  const totalEquity = baseEquity + currentEarnings;
+  const totalEquity = baseEquity + priorResults + currentEarnings;
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
   const diff = Math.abs(totalAssets - totalLiabilitiesAndEquity);
@@ -123,9 +126,16 @@ export function BalanceSheetClient({
         amount: r.balance,
       });
     });
+    if (priorResults !== 0) {
+      formattedRows.push({
+        code: "RE-PRIOR",
+        name: isAr ? "نتائج سنوات سابقة (لم تُقفل)" : "Results of prior years (not closed)",
+        amount: priorResults,
+      });
+    }
     formattedRows.push({
       code: "—",
-      name: isAr ? "صافي أرباح / فائض الفترة الحالية" : "Current Period Surplus / Earnings",
+      name: isAr ? "نتيجة السنة المالية الحالية" : "Current fiscal year result",
       amount: currentEarnings,
     });
 
@@ -214,9 +224,16 @@ export function BalanceSheetClient({
         amount: r.balance,
       });
     });
+    if (priorResults !== 0) {
+      exportRows.push({
+        code: "RE-PRIOR",
+        name: isAr ? "نتائج سنوات سابقة (لم تُقفل)" : "Results of prior years (not closed)",
+        amount: priorResults,
+      });
+    }
     exportRows.push({
       code: "—",
-      name: isAr ? "صافي أرباح / فائض الفترة" : "Current Period Earnings",
+      name: isAr ? "نتيجة السنة المالية الحالية" : "Current fiscal year result",
       amount: currentEarnings,
     });
 
@@ -428,9 +445,16 @@ export function BalanceSheetClient({
                     <td className="p-3 text-end font-mono font-bold text-purple-600 dark:text-purple-400">{fmt(r.balance)}</td>
                   </tr>
                 ))}
-                <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                {priorResults !== 0 && (
+                  <tr data-testid="bs-prior-results" className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="p-3 font-mono font-bold text-slate-400 ps-5">RE-PRIOR</td>
+                    <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? "نتائج سنوات سابقة (لم تُقفل)" : "Results of prior years (not closed)"}</td>
+                    <td className="p-3 text-end font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(priorResults)}</td>
+                  </tr>
+                )}
+                <tr data-testid="bs-current-result" className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="p-3 font-mono font-bold text-slate-400 ps-5">—</td>
-                  <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? "صافي أرباح / فائض الفترة الحالية" : "Current Period Surplus / Earnings"}</td>
+                  <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{isAr ? "نتيجة السنة المالية الحالية" : "Current fiscal year result"}</td>
                   <td className="p-3 text-end font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(currentEarnings)}</td>
                 </tr>
               </tbody>

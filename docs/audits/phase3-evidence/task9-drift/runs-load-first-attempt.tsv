@@ -1,0 +1,6 @@
+1	281s	rc=0	clean	alter=0	applied=82	
+2	590s	rc=0	clean	alter=0	applied=82	
+3	189s	rc=1	clean	alter=0	applied=0	[local] 2026-10-13 19:43:30.796 UTC [113] postgres@postgres LOG:  statement: alter role anon set statement_timeout = '3s
+4	210s	rc=1	clean	alter=0	applied=0	[local] 2026-10-13 19:47:17.386 UTC [134] postgres@postgres LOG:  statement: alter role anon set statement_timeout = '3s
+5	191s	rc=1	clean	alter=0	applied=0	[local] 2026-10-13 19:50:17.244 UTC [106] postgres@postgres LOG:  statement: alter role anon set statement_timeout = '3s
+6	228s	rc=1	clean	alter=0	applied=0	[local] 2026-10-13 19:54:11.440 UTC [116] postgres@postgres LOG:  statement: alter role anon set statement_timeout = '3s

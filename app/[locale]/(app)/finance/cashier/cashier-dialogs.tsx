@@ -194,6 +194,13 @@ export function CreateCashboxDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {assetAccounts.length === 0 ? (
+                <p className="text-[11px] text-destructive" data-testid="gl-accounts-empty">
+                  {isAr
+                    ? "لا يوجد حساب أستاذ نقدي أو بنكي فعّال. فعّل علامة «نقدية / ما في حكمها» على الحساب المناسب في دليل الحسابات أولًا."
+                    : "No active cash or bank GL account exists. Mark the right account as cash / cash-equivalent in the chart of accounts first."}
+                </p>
+              ) : null}
             </div>
           </DialogBody>
 
@@ -208,7 +215,7 @@ export function CreateCashboxDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isPending || !name.trim() || !glAccountId}
+              disabled={isPending || !name.trim() || !glAccountId || assetAccounts.length === 0}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
             >
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}

@@ -11,10 +11,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
 type Fixture = { orgId: string; email: string; userIds: string[] };
@@ -58,16 +60,15 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
   await acc("2100", "Accounts Payable", "LIABILITY", "CREDIT");
   await acc("5600", "Cost of Sales", "EXPENSE", "DEBIT");
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  });
-
   f.email = await makeUser(admin, f, "TENANT_OWNER", "owner");
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
+  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
+  await createOpenFiscalYear(admin, ownerClient, {
+    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
   return f;
 }
 
@@ -79,8 +80,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
   }
   await admin.from("journal_entries").delete().eq("organization_id", id);
   await admin.from("projects").delete().eq("organization_id", id);
-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
-  await admin.from("fiscal_years").delete().eq("organization_id", id);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
   await admin.from("chart_of_accounts").update({ is_used: false }).eq("organization_id", id);
   await admin.from("chart_of_accounts").delete().eq("organization_id", id);
@@ -116,23 +116,43 @@ test("a project without accounts cannot capitalise, and once set the cost flows 
 
     const code = `TWR-${String(Date.now()).slice(-8)}`;
 
-    // 1. Saved WITHOUT accounts: allowed, but marked and not capitalisable.
+    // 1. Saved WITHOUT accounts: the accounts are optional at creation, so the save succeeds.
+    await page.getByRole("button", { name: /New Project/i }).click();
     await page.locator("#prj-code").fill(code);
     await page.locator("#prj-ar").fill("برج الاختبار");
     await page.locator("#prj-en").fill("Test Tower");
     await page.locator("#prj-budget").fill("1000000");
     await page.getByRole("button", { name: /Save project/i }).click();
 
-    const row = page.locator(`[data-project="${code}"]`);
+    const row = page.getByRole("row").filter({ hasText: code });
     await expect(row).toBeVisible({ timeout: 40_000 });
-    await expect(row).toHaveAttribute("data-accounts-set", "no");
-    await expect(row).toContainText(/cannot capitalise/i);
-    await expect(
-      page.getByRole("button", { name: /Capitalise cost/i }),
-      "no capitalise control exists while no project can take a cost",
-    ).toHaveCount(0);
+
+    // 1b. Capitalising without both accounts is refused by the server, and leaves no partial effect.
+    const { data: prj, error: prjErr } = await admin
+      .from("projects").select("id").eq("organization_id", f.orgId).eq("code", code).single();
+    expect(prjErr, `saved project lookup failed: ${prjErr?.message}`).toBeNull();
+    const { data: credit } = await admin
+      .from("chart_of_accounts").select("id").eq("organization_id", f.orgId).eq("code", "2100").single();
+    const { count: entriesBefore } = await admin
+      .from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", f.orgId);
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: signErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
+    expect(signErr, `owner sign-in failed: ${signErr?.message}`).toBeNull();
+    const { error: capErr } = await ownerClient.rpc("capitalise_project_cost", {
+      p_project_id: prj!.id as string,
+      p_amount: 1000,
+      p_credit_account_id: credit!.id as string,
+      p_entry_date: "2026-06-01",
+      p_description: "must be refused without both accounts",
+    });
+    expect(capErr?.message ?? "", "capitalising without both accounts must be refused").toMatch(/PROJECT_ACCOUNTS_NOT_SET/);
+    const { count: entriesAfter } = await admin
+      .from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", f.orgId);
+    expect(entriesAfter, "a refused capitalisation must post no journal entry").toBe(entriesBefore);
 
     // 2. Set both accounts on the same code -- an edit, not a second project.
+    // The explicit edit path: the row's Edit control. Re-submitting the create dialog is refused, not an edit.
+    await page.getByRole("row").filter({ hasText: code }).getByRole("button", { name: /^Edit$/ }).click();
     await page.locator("#prj-code").fill(code);
     await page.locator("#prj-ar").fill("برج الاختبار");
     await page.locator("#prj-en").fill("Test Tower");
@@ -141,20 +161,29 @@ test("a project without accounts cannot capitalise, and once set the cost flows 
     await page.locator("#prj-cos").selectOption({ label: "5600 — Cost of Sales" });
     await page.getByRole("button", { name: /Save project/i }).click();
 
-    await expect(page.locator(`[data-project="${code}"]`))
-      .toHaveAttribute("data-accounts-set", "yes", { timeout: 40_000 });
-    await expect(page.locator("[data-project]"), "editing must not create a second project")
-      .toHaveCount(1);
+    // The saved values, read back from the database: both accounts are set on the one project.
+    await expect.poll(async () => {
+      const { data } = await admin.from("projects")
+        .select("wip_account_id, cost_of_sales_account_id").eq("organization_id", f.orgId).eq("code", code).single();
+      return Boolean(data?.wip_account_id && data?.cost_of_sales_account_id);
+    }, { timeout: 40_000 }).toBe(true);
+    const { count: sameCode } = await admin.from("projects")
+      .select("id", { count: "exact", head: true }).eq("organization_id", f.orgId).eq("code", code);
+    expect(sameCode, "editing must not create a second project").toBe(1);
 
     // 3. Capitalise 400,000 -- it becomes an ASSET, not an expense.
+    await page.getByRole("button", { name: /Capitalise WIP/i }).click();
+    const capProject = await page.locator("#cap-project option").filter({ hasText: code }).first().getAttribute("value");
+    await page.locator("#cap-project").selectOption(capProject!);
     await page.locator("#cap-amount").fill("400000");
     await page.locator("#cap-credit").selectOption({ label: "2100 — Accounts Payable" });
     await page.locator("#cap-date").fill("2026-03-01");
     await page.locator("#cap-desc").fill("concrete");
-    await page.getByRole("button", { name: /Capitalise cost/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Capitalise Cost$/i }).click();
 
-    await expect(page.locator(`[data-project="${code}"]`))
-      .toHaveAttribute("data-wip", "400000", { timeout: 40_000 });
+    // The value the screen shows for this project's capitalised cost.
+    await expect(page.getByRole("row").filter({ hasText: code }))
+      .toContainText("400,000.00", { timeout: 40_000 });
 
     const { data: wipAcc } = await admin.from("chart_of_accounts")
       .select("id").eq("organization_id", f.orgId).eq("code", "1300").single();
@@ -173,9 +202,12 @@ test("a project without accounts cannot capitalise, and once set the cost flows 
     expect(wipDebit!.project_id, "and carry the project tag").not.toBeNull();
 
     // 4. Releasing more than accumulated is refused, WITH both numbers.
+    await page.getByRole("button", { name: /^Release Cost$/i }).click();
+    const relProject = await page.locator("#rel-project option").filter({ hasText: code }).first().getAttribute("value");
+    await page.locator("#rel-project").selectOption(relProject!);
     await page.locator("#rel-amount").fill("500000");
     await page.locator("#rel-date").fill("2026-04-01");
-    await page.getByRole("button", { name: /Release to cost of sales/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Release Cost$/i }).click();
 
     const refusal = page.getByRole("alert").filter({ hasText: /exceeds what has accumulated/i });
     await expect(refusal).toBeVisible({ timeout: 40_000 });
@@ -186,10 +218,10 @@ test("a project without accounts cannot capitalise, and once set the cost flows 
     await page.locator("#rel-amount").fill("150000");
     await page.locator("#rel-date").fill("2026-04-01");
     await page.locator("#rel-desc").fill("10 units sold");
-    await page.getByRole("button", { name: /Release to cost of sales/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Release Cost$/i }).click();
 
-    await expect(page.locator(`[data-project="${code}"]`))
-      .toHaveAttribute("data-wip", "250000", { timeout: 40_000 });
+    await expect(page.getByRole("row").filter({ hasText: code }))
+      .toContainText("250,000.00", { timeout: 40_000 });
 
     // The ledger agrees: cost of sales debited, WIP credited.
     const { data: cosAcc } = await admin.from("chart_of_accounts")
@@ -238,9 +270,313 @@ test("a member without finance.accounts.manage sees the projects but no controls
 
     await expect(page.getByText("Read Only Tower")).toBeVisible({ timeout: 40_000 });
     await expect(page.getByRole("button", { name: /Save project/i })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Capitalise cost/i })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Release to cost of sales/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Capitalise WIP/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Release Cost$/i })).toHaveCount(0);
 
+    await ctx.close();
+  } finally {
+    await cleanUp(admin, f);
+  }
+});
+
+test("a project form that names another organization is refused and writes nothing", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  // An organization the signed-in owner does not belong to.
+  const { data: other, error: otherErr } = await admin.from("organizations").insert({
+    name: "Foreign Org", slug: `foreign-prj-${Date.now()}`, default_currency: "EGP", status: "ACTIVE",
+  }).select("id").single();
+  expect(otherErr, `foreign org insert failed: ${otherErr?.message}`).toBeNull();
+
+  try {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, f.email);
+    await page.goto("/en/finance/projects");
+    await expect(page.getByRole("heading", { name: /Projects & Work in Progress/i })).toBeVisible();
+    await page.getByRole("button", { name: /New Project/i }).click();
+
+    const code = `TWR-X${String(Date.now()).slice(-6)}`;
+    await page.locator("#prj-code").fill(code);
+    await page.locator("#prj-ar").fill("برج مرفوض");
+    await page.locator("#prj-en").fill("Refused Tower");
+    await page.locator("#prj-budget").fill("1000000");
+    // The form requires both ledger accounts, so select them for the request to reach the server.
+    await page.locator("#prj-wip").selectOption({ label: "1300 — Work in Progress" });
+    await page.locator("#prj-cos").selectOption({ label: "5600 — Cost of Sales" });
+
+    // Tamper: the hidden field now names the foreign organization.
+    await page.locator('input[name="organizationId"]').evaluate((el, v) => {
+      (el as HTMLInputElement).value = v;
+    }, other!.id as string);
+    await page.getByRole("button", { name: /Save project/i }).click();
+
+    await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible({ timeout: 40_000 });
+    const { data: written } = await admin.from("projects").select("id").eq("code", code);
+    expect(written, "a refused request must leave no project row behind").toHaveLength(0);
+    await ctx.close();
+  } finally {
+    await admin.from("organizations").delete().eq("id", other!.id as string);
+    await cleanUp(admin, f);
+  }
+});
+
+test("a duplicate project code is refused, and the existing project is left unchanged", async ({ browser }) => {
+  test.setTimeout(220_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  try {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, f.email);
+    await page.goto("/en/finance/projects");
+    await expect(page.getByRole("heading", { name: /Projects & Work in Progress/i })).toBeVisible();
+
+    const code = `TWR-D${String(Date.now()).slice(-6)}`;
+    await page.getByRole("button", { name: /New Project/i }).click();
+    await page.locator("#prj-code").fill(code);
+    await page.locator("#prj-ar").fill("أصلي");
+    await page.locator("#prj-en").fill("Original Tower");
+    await page.locator("#prj-budget").fill("500000");
+    await page.getByRole("button", { name: /Save project/i }).click();
+    await expect(page.getByRole("row").filter({ hasText: code })).toBeVisible({ timeout: 40_000 });
+
+    // The same code again, with different values: the create must be refused, not an overwrite.
+    await page.getByRole("button", { name: /New Project/i }).click();
+    await page.locator("#prj-code").fill(code);
+    await page.locator("#prj-ar").fill("بديل");
+    await page.locator("#prj-en").fill("Replacement Tower");
+    await page.locator("#prj-budget").fill("1");
+    await page.getByRole("button", { name: /Save project/i }).click();
+    await expect(page.getByRole("dialog").getByRole("alert")).toContainText(/already in use in this organization/i, {
+      timeout: 40_000,
+    });
+
+    const { data: rows } = await admin
+      .from("projects").select("name_en, budget_amount").eq("organization_id", f.orgId).eq("code", code);
+    expect(rows, "the duplicate must not create or replace a row").toHaveLength(1);
+    expect(rows![0].name_en).toBe("Original Tower");
+    expect(Number(rows![0].budget_amount)).toBe(500000);
+    await ctx.close();
+  } finally {
+    await cleanUp(admin, f);
+  }
+});
+
+test("an explicit edit by a manager changes the name, budget and accounts of a project without postings", async ({
+  browser,
+}) => {
+  test.setTimeout(220_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  try {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, f.email);
+    await page.goto("/en/finance/projects");
+    await expect(page.getByRole("heading", { name: /Projects & Work in Progress/i })).toBeVisible();
+
+    // Created without accounts, then completed through the edit path.
+    const code = `TWR-E${String(Date.now()).slice(-6)}`;
+    await page.getByRole("button", { name: /New Project/i }).click();
+    await page.locator("#prj-code").fill(code);
+    await page.locator("#prj-ar").fill("قبل التعديل");
+    await page.locator("#prj-en").fill("Before Edit");
+    await page.locator("#prj-budget").fill("500000");
+    await page.getByRole("button", { name: /Save project/i }).click();
+    await expect(page.getByRole("row").filter({ hasText: code })).toBeVisible({ timeout: 40_000 });
+
+    await page.getByRole("row").filter({ hasText: code }).getByRole("button", { name: /^Edit$/ }).click();
+    await page.locator("#prj-en").fill("Renamed Tower");
+    await page.locator("#prj-budget").fill("750000");
+    await page.locator("#prj-wip").selectOption({ label: "1300 — Work in Progress" });
+    await page.locator("#prj-cos").selectOption({ label: "5600 — Cost of Sales" });
+    await page.getByRole("button", { name: /Save project/i }).click();
+
+    await expect.poll(async () => {
+      const { data } = await admin.from("projects")
+        .select("name_en, budget_amount, wip_account_id, cost_of_sales_account_id")
+        .eq("organization_id", f.orgId).eq("code", code).single();
+      return data?.name_en === "Renamed Tower" && Number(data?.budget_amount) === 750000
+        && Boolean(data?.wip_account_id) && Boolean(data?.cost_of_sales_account_id);
+    }, { timeout: 40_000 }).toBe(true);
+    const { count } = await admin.from("projects")
+      .select("id", { count: "exact", head: true }).eq("organization_id", f.orgId).eq("code", code);
+    expect(count, "the edit must not create a second project").toBe(1);
+    await ctx.close();
+  } finally {
+    await cleanUp(admin, f);
+  }
+});
+
+test("a project with posted entries refuses a locked change, and a name change still goes through", async ({
+  browser,
+}) => {
+  test.setTimeout(220_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  try {
+    const { data: wip } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "1300").single();
+    const { data: cos } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "5600").single();
+    const { data: credit } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "2100").single();
+    const code = `TWR-P${String(Date.now()).slice(-6)}`;
+    const { data: prj, error: prjErr } = await admin.from("projects").insert({
+      organization_id: f.orgId, code, name_ar: "مرسمل", name_en: "Posted Tower",
+      wip_account_id: wip!.id, cost_of_sales_account_id: cos!.id, budget_amount: 1000000,
+    }).select("id").single();
+    expect(prjErr, `project insert failed: ${prjErr?.message}`).toBeNull();
+
+    // Post a real capitalisation through the product RPC as the owner.
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: signErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
+    expect(signErr, `owner sign-in failed: ${signErr?.message}`).toBeNull();
+    const { error: capErr } = await ownerClient.rpc("capitalise_project_cost", {
+      p_project_id: prj!.id as string, p_amount: 1000, p_credit_account_id: credit!.id as string,
+      p_entry_date: "2026-03-01", p_description: "posted before the edit",
+    });
+    expect(capErr, `capitalise failed: ${capErr?.message}`).toBeNull();
+    const { count: entriesBefore } = await admin
+      .from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", f.orgId);
+
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, f.email);
+    await page.goto("/en/finance/projects");
+    await page.getByRole("row").filter({ hasText: code }).getByRole("button", { name: /^Edit$/ }).click();
+
+    // Locked: the code cannot change once the project has postings.
+    await page.locator("#prj-code").fill(`${code}-X`);
+    await page.getByRole("button", { name: /Save project/i }).click();
+    await expect(page.getByRole("dialog").getByRole("alert")).toContainText(/already has posted entries/i, {
+      timeout: 40_000,
+    });
+    const { data: afterLock } = await admin.from("projects").select("code").eq("id", prj!.id as string).single();
+    expect(afterLock!.code, "a refused edit must leave the code unchanged").toBe(code);
+
+    // Permitted: the name still changes after postings.
+    await page.locator("#prj-code").fill(code);
+    await page.locator("#prj-en").fill("Renamed After Posting");
+    await page.getByRole("button", { name: /Save project/i }).click();
+    await expect.poll(async () => {
+      const { data } = await admin.from("projects").select("name_en").eq("id", prj!.id as string).single();
+      return data?.name_en;
+    }, { timeout: 40_000 }).toBe("Renamed After Posting");
+
+    const { count: entriesAfter } = await admin
+      .from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", f.orgId);
+    expect(entriesAfter, "editing a project must not change its postings").toBe(entriesBefore);
+    await ctx.close();
+  } finally {
+    await cleanUp(admin, f);
+  }
+});
+
+test("a member without the accounts permission sees no edit control and cannot change a project", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  try {
+    const { data: wip } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "1300").single();
+    const { data: cos } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "5600").single();
+    const code = `TWR-R${String(Date.now()).slice(-6)}`;
+    const { data: prj, error: prjErr } = await admin.from("projects").insert({
+      organization_id: f.orgId, code, name_ar: "محمي", name_en: "Protected Tower",
+      wip_account_id: wip!.id, cost_of_sales_account_id: cos!.id,
+    }).select("id").single();
+    expect(prjErr, `project insert failed: ${prjErr?.message}`).toBeNull();
+
+    const cashier = await makeUser(admin, f, "CASHIER", "cashier");
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, cashier);
+    await page.goto("/en/finance/projects");
+    await expect(page.getByText("Protected Tower")).toBeVisible({ timeout: 40_000 });
+    await expect(page.getByRole("button", { name: /^Edit$/ }), "no edit control without the permission").toHaveCount(0);
+
+    // The database refuses the write too: an update on the caller's session reaches no row.
+    const cashierClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: signErr } = await cashierClient.auth.signInWithPassword({ email: cashier, password: STAFF_PASSWORD });
+    expect(signErr, `cashier sign-in failed: ${signErr?.message}`).toBeNull();
+    const { data: changed } = await cashierClient.from("projects")
+      .update({ name_en: "Hijacked" }).eq("id", prj!.id as string).select("id");
+    expect(changed ?? [], "a member without the permission must update no row").toHaveLength(0);
+    const { data: still } = await admin.from("projects").select("name_en").eq("id", prj!.id as string).single();
+    expect(still!.name_en).toBe("Protected Tower");
+    await ctx.close();
+  } finally {
+    await cleanUp(admin, f);
+  }
+});
+
+test("a draft cancelled by status alone does not appear as released cost in the WIP report", async ({ browser }) => {
+  test.setTimeout(220_000);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const f = await setUp(admin);
+  try {
+    const { data: wip } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "1300").single();
+    const { data: cos } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "5600").single();
+    const { data: credit } = await admin.from("chart_of_accounts")
+      .select("id").eq("organization_id", f.orgId).eq("code", "2100").single();
+    const { data: period, error: periodErr } = await admin.from("fiscal_periods")
+      .select("id").eq("organization_id", f.orgId)
+      .lte("start_date", "2026-03-08").gte("end_date", "2026-03-08").single();
+    expect(periodErr, `period lookup failed: ${periodErr?.message}`).toBeNull();
+    const code = `TWR-C${String(Date.now()).slice(-6)}`;
+    const { data: prj, error: prjErr } = await admin.from("projects").insert({
+      organization_id: f.orgId, code, name_ar: "مسودة ملغاة", name_en: "Cancelled Draft Tower",
+      wip_account_id: wip!.id, cost_of_sales_account_id: cos!.id,
+    }).select("id").single();
+    expect(prjErr, `project insert failed: ${prjErr?.message}`).toBeNull();
+
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: signErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
+    expect(signErr, `owner sign-in failed: ${signErr?.message}`).toBeNull();
+    const { error: capErr } = await ownerClient.rpc("capitalise_project_cost", {
+      p_project_id: prj!.id as string, p_amount: 1000, p_credit_account_id: credit!.id as string,
+      p_entry_date: "2026-03-01", p_description: "base capitalisation",
+    });
+    expect(capErr, `capitalise failed: ${capErr?.message}`).toBeNull();
+    const { error: relErr } = await ownerClient.rpc("release_project_wip", {
+      p_project_id: prj!.id as string, p_amount: 600, p_entry_date: "2026-03-10",
+      p_description: "base release",
+    });
+    expect(relErr, `release failed: ${relErr?.message}`).toBeNull();
+
+    const { data: draft, error: draftErr } = await admin.from("journal_entries").insert({
+      organization_id: f.orgId, fiscal_period_id: period!.id as string, entry_date: "2026-03-08",
+      description: "draft cancelled by status alone", source_type: "JOURNAL_VOUCHER", status: "DRAFT",
+    }).select("id").single();
+    expect(draftErr, `draft insert failed: ${draftErr?.message}`).toBeNull();
+    const { error: linesErr } = await admin.from("journal_entry_lines").insert([
+      { journal_entry_id: draft!.id, line_number: 1, account_id: wip!.id, debit: 0, credit: 300, project_id: prj!.id },
+      { journal_entry_id: draft!.id, line_number: 2, account_id: credit!.id, debit: 300, credit: 0, project_id: null },
+    ]);
+    expect(linesErr, `draft lines insert failed: ${linesErr?.message}`).toBeNull();
+    const { error: cancelErr } = await admin.from("journal_entries")
+      .update({ status: "REVERSED" }).eq("id", draft!.id as string);
+    expect(cancelErr, `status-only cancellation failed: ${cancelErr?.message}`).toBeNull();
+
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await signIn(page, f.email);
+    await page.goto("/en/finance/projects");
+    const row = page.getByRole("row").filter({ hasText: code });
+    await expect(row).toBeVisible({ timeout: 40_000 });
+    await expect(row.locator("td").nth(3)).toHaveText("1,000.00");
+    await expect(row.locator("td").nth(4), "a cancelled draft is not a cost release").toHaveText("600.00");
+    await expect(row.locator("td").nth(5), "the cancelled draft must not reduce WIP").toContainText("400.00");
     await ctx.close();
   } finally {
     await cleanUp(admin, f);

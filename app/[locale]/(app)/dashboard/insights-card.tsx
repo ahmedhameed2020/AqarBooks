@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 
 interface InsightsCardProps {
   collectionRate: number | null;
+  target: number;
   overdueCount: number;
   overdueAmount: number;
-  unpostedCount: number;
-  outstandingCheques: number;
+  unpostedCount: number | null;
+  outstandingCheques: number | null;
   surplus: number;
   currency: string;
   locale: Locale;
@@ -16,6 +17,7 @@ interface InsightsCardProps {
 
 export function InsightsCard({
   collectionRate,
+  target,
   overdueCount,
   overdueAmount,
   unpostedCount,
@@ -35,25 +37,25 @@ export function InsightsCard({
     actionHref?: string;
   }[] = [];
 
-  // Insight 1: Collection Rate Analysis
+  // Insight 1: Collection Rate Analysis, using the same cumulative target as the gauge.
   if (collectionRate !== null) {
-    if (collectionRate >= 85) {
+    if (collectionRate >= target) {
       insights.push({
         type: "positive",
         icon: <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400" />,
-        title: isAr ? "تحصيل مالي ممتاز" : "Excellent Collection Rate",
+        title: isAr ? "تم تحقيق هدف التحصيل" : "Collection Target Met",
         description: isAr
-          ? `نسبة التحصيل بلغت ${collectionRate}% وهو أداء قوي يشير إلى انضباط التدفقات النقدية.`
-          : `Collection rate reached ${collectionRate}%, indicating robust cash flow stability.`,
+          ? `نسبة التحصيل الإجمالي ${collectionRate}%، والهدف ${target}%.`
+          : `Cumulative collection rate is ${collectionRate}%, against a ${target}% target.`,
       });
-    } else if (collectionRate < 70) {
+    } else {
       insights.push({
         type: "warning",
         icon: <AlertTriangle className="size-4.5 text-amber-600 dark:text-amber-400" />,
-        title: isAr ? "تحذير: تدفقات بحاجة إلى متابعة" : "Warning: Low Collection Rate",
+        title: isAr ? "التحصيل دون الهدف" : "Collection Below Target",
         description: isAr
-          ? `نسبة التحصيل الحالية ${collectionRate}% أقل من النسبة المستهدفة (80%).`
-          : `Current collection rate at ${collectionRate}% is below the target benchmark (80%).`,
+          ? `نسبة التحصيل الإجمالي ${collectionRate}%، أقل من الهدف ${target}%.`
+          : `Cumulative collection rate is ${collectionRate}%, below the ${target}% target.`,
         actionLabel: isAr ? "عرض المستحقات" : "View dues",
         actionHref: "/finance/dues",
       });
@@ -75,7 +77,7 @@ export function InsightsCard({
   }
 
   // Insight 3: Pending Approvals Queue
-  if (unpostedCount > 0) {
+  if (unpostedCount !== null && unpostedCount > 0) {
     insights.push({
       type: "info",
       icon: <FileText className="size-4.5 text-blue-600 dark:text-blue-400" />,
@@ -89,7 +91,7 @@ export function InsightsCard({
   }
 
   // Insight 4: Pending Cheques Clearance
-  if (outstandingCheques > 0) {
+  if (outstandingCheques !== null && outstandingCheques > 0) {
     insights.push({
       type: "neutral",
       icon: <ArrowRightLeft className="size-4.5 text-purple-600 dark:text-purple-400" />,
@@ -104,14 +106,27 @@ export function InsightsCard({
 
   // Fallback if no issues
   if (insights.length === 0) {
-    insights.push({
-      type: "positive",
-      icon: <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400" />,
-      title: isAr ? "النظام يعمل بكفاءة مكتملة" : "System Operating Smoothly",
-      description: isAr
-        ? "جميع العمليات المالية متوازنة، والقيود مرحلة بدقة 100% ولا توجد تنبيهات عاجلة."
-        : "All financial operations are balanced with zero variance and no pending alerts.",
-    });
+    if (unpostedCount === null || outstandingCheques === null) {
+      insights.push({
+        type: "neutral",
+        icon: <AlertTriangle className="size-4.5 text-amber-600 dark:text-amber-400" />,
+        title: isAr ? "تعذر التحقق من بعض المؤشرات" : "Some indicators could not be verified",
+        description: isAr
+          ? "بعض بيانات المتابعة غير متاحة، لذلك لا يمكن تأكيد عدم وجود عناصر تحتاج إلى إجراء."
+          : "Some follow-up data is unavailable, so this summary cannot confirm that nothing needs attention.",
+      });
+    } else {
+      insights.push({
+        type: "positive",
+        icon: <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400" />,
+        // Factual only: this card checks four things (collection rate, overdue dues, unposted entries, cheques
+        // in hand). It does not verify ledger balance or posting accuracy, so it must not claim either.
+        title: isAr ? "لا توجد عناصر تحتاج متابعة" : "Nothing needs attention here",
+        description: isAr
+          ? "بحسب نسبة التحصيل والمستحقات المتأخرة والقيود غير المرحّلة والشيكات قيد التحصيل، لا يوجد ما يستدعي إجراءً."
+          : "Based on the collection rate, overdue dues, unposted entries and cheques in hand, nothing needs action.",
+      });
+    }
   }
 
   return (

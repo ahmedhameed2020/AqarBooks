@@ -1,0 +1,40 @@
+$ tests/fixed-asset-disposal.integration.test.ts
+label=rel03-red-integration
+exit=1
+elapsed_ms=20321
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/fixed-asset-disposal.integration.test.ts
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+ ❯ tests/fixed-asset-disposal.integration.test.ts (0 test)
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  02:02:10
+   Duration  15.44s (transform 796ms, setup 873ms, import 0ms, tests 0ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/rel03-red-integration.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/fixed-asset-disposal.integration.test.ts [ tests/fixed-asset-disposal.integration.test.ts ]
+Error: Refusing to run (isolation check "same-database"): the newest auth user in g0r6-db is not found through the r6 API (HTTP 503). Run through the isolated runners (`node scripts/demo-local/run-vitest-local.mjs ...` / `npm run demo:e2e -- ...`) against the clean stack; there is deliberately no fallback to the development stack.
+ ❯ assertIsolatedStack tests/helpers/isolated-target.ts:136:11
+    134|   }
+    135|   if (!cached.ok) {
+    136|     throw new Error(
+       |           ^
+    137|       `Refusing to run (isolation check "${cached.check}"): ${cached.r…
+    138|         "Run through the isolated runners (`node scripts/demo-local/ru…
+ ❯ assertClientUrlIsVerifiedTarget tests/helpers/isolated-target.ts:171:20
+ ❯ tests/setup/guarded-create-client.ts:10:5
+ ❯ tests/fixed-asset-disposal.integration.test.ts:24:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

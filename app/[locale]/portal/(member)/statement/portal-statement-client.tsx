@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getOwnPositionAsOfAction } from "@/lib/actions/member-portal-receipts";
+import type { OwnPosition } from "@/lib/portal/statement-position";
+import { buildLedger, isDebitKind, isInfoKind } from "@/lib/portal/statement-ledger";
 import { FileText, TrendingDown, TrendingUp, Wallet, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
@@ -20,7 +23,8 @@ import {
 export interface PortalStatementMovement {
   id: string;
   date: string;
-  kind: "CHARGE" | "PAYMENT";
+  /** APPLICATION / REVERSAL are informational lines of a customer-advance credit: dated, with a net effect of zero. */
+  kind: "CHARGE" | "PAYMENT" | "PAYMENT_REVERSAL" | "SETTLEMENT" | "SETTLEMENT_REVERSAL" | "APPLICATION" | "REVERSAL";
   description: string;
   unitCode: string | null;
   reference: string | null;
@@ -29,12 +33,19 @@ export interface PortalStatementMovement {
 
 type KindFilter = "ALL" | "CHARGE" | "PAYMENT";
 
+const isInfo = (m: { kind: PortalStatementMovement["kind"] }) => isInfoKind(m.kind);
+const isDebit = (m: { kind: PortalStatementMovement["kind"] }) => isDebitKind(m.kind);
+/** the payments side of the ledger: receipts, settlements by another payer, and the reversal of either */
+const isCreditSide = (k: PortalStatementMovement["kind"]) => k === "PAYMENT" || k === "PAYMENT_REVERSAL" || k === "SETTLEMENT" || k === "SETTLEMENT_REVERSAL";
+
 export function PortalStatementClient({
   organizationName,
   currency,
   memberName,
   movements,
   unitCodes,
+  position: positionToday = null,
+  creditStranded = false,
   locale,
 }: {
   organizationName: string;
@@ -43,6 +54,10 @@ export function PortalStatementClient({
   /** Ascending by date -- the running balance depends on that order. */
   movements: PortalStatementMovement[];
   unitCodes: string[];
+  /** Arrears, available credit and net as of today (server value); the client refetches it as of the end of the filter. */
+  position?: OwnPosition | null;
+  /** the member still holds credit on a receipt of a unit they no longer own (shown as on hold) */
+  creditStranded?: boolean;
   locale: string;
 }) {
   const isAr = locale === "ar";
@@ -54,39 +69,42 @@ export function PortalStatementClient({
   const [query, setQuery] = useState("");
   const [newestFirst, setNewestFirst] = useState(true);
 
-  // Everything the account owed before the period opens. Filtering a statement
-  // by date without carrying this forward would produce a closing balance that
-  // is arithmetically wrong -- the single most damaging thing a statement can
-  // get wrong, so it is computed from the unfiltered series.
-  const openingBalance = useMemo(() => {
-    if (!from) return 0;
-    return movements
-      .filter((m) => m.date < from)
-      .reduce((sum, m) => sum + (m.kind === "CHARGE" ? m.amount : -m.amount), 0);
-  }, [movements, from]);
+  // The position cards are as of the END of the window: the filter's "to" date, today when it is empty.
+  const [asOf, setAsOf] = useState<OwnPosition | null>(null);
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!to) return;
+    let cancelled = false;
+    getOwnPositionAsOfAction(to)
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) {
+          setAsOf(r.position);
+          setFailedFor(null);
+        } else setFailedFor(to);
+      })
+      .catch(() => {
+        if (!cancelled) setFailedFor(to);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [to, attempt]);
+  const position = !to ? positionToday : asOf?.asOf === to ? asOf : null;
+  const positionFailed = Boolean(to) && position === null && failedFor === to;
+  const positionLoading = Boolean(to) && position === null && !positionFailed;
 
-  // The date window alone, before the descriptive filters. The running balance
-  // has to accumulate over this series: hiding payments (a "charges only"
-  // view) must not silently rewrite the balance column.
-  const inPeriod = useMemo(
-    () => movements.filter((m) => (!from || m.date >= from) && (!to || m.date <= to)),
-    [movements, from, to],
-  );
-
-  const withBalance = useMemo(() => {
-    const result: Array<PortalStatementMovement & { balanceAfter: number }> = [];
-    let running = openingBalance;
-    for (const movement of inPeriod) {
-      running += movement.kind === "CHARGE" ? movement.amount : -movement.amount;
-      result.push({ ...movement, balanceAfter: running });
-    }
-    return result;
-  }, [inPeriod, openingBalance]);
+  // One ledger for the screen, the PDF and the Excel export (lib/portal/statement-ledger.ts): opening balance carried from the whole
+  // unfiltered series, running balance over the date window, and the totals that make closing = opening + debits - credits.
+  const ledger = useMemo(() => buildLedger(movements, from, to), [movements, from, to]);
+  const { openingBalance, inPeriod, totalCharges, totalReceipts, totalReversals, totalPaid, closingBalance } = ledger;
+  const withBalance = ledger.rows;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = withBalance.filter((m) => {
-      if (kind !== "ALL" && m.kind !== kind) return false;
+      if (kind !== "ALL" && !(kind === "CHARGE" ? m.kind === "CHARGE" : isCreditSide(m.kind))) return false;
       if (unit !== "ALL" && m.unitCode !== unit) return false;
       if (!q) return true;
       return (
@@ -98,10 +116,6 @@ export function PortalStatementClient({
     });
     return newestFirst ? [...filtered].reverse() : filtered;
   }, [withBalance, kind, unit, query, newestFirst]);
-
-  const totalCharges = inPeriod.filter((m) => m.kind === "CHARGE").reduce((s, m) => s + m.amount, 0);
-  const totalPaid = inPeriod.filter((m) => m.kind === "PAYMENT").reduce((s, m) => s + m.amount, 0);
-  const closingBalance = openingBalance + totalCharges - totalPaid;
 
   const label = periodLabel(from || null, to || null, isAr);
   const hasFilters = Boolean(from || to || query || kind !== "ALL" || unit !== "ALL");
@@ -155,12 +169,12 @@ export function PortalStatementClient({
           ...withBalance.map((m) => ({
             date: m.date,
             typeLabel:
-              m.kind === "CHARGE" ? (isAr ? "مطالبة" : "Charge") : isAr ? "سداد" : "Payment",
+              m.kind === "CHARGE" ? (isAr ? "مطالبة" : "Charge") : m.kind === "PAYMENT" ? (isAr ? "سداد" : "Payment") : m.kind === "SETTLEMENT" ? (isAr ? "تسوية" : "Settlement") : m.kind === "SETTLEMENT_REVERSAL" ? (isAr ? "عكس تسوية" : "Settlement reversed") : m.kind === "PAYMENT_REVERSAL" ? (isAr ? "عكس سداد" : "Receipt reversed") : m.kind === "APPLICATION" ? (isAr ? "تطبيق رصيد (معلومة)" : "Credit applied (info)") : isAr ? "عكس تطبيق (معلومة)" : "Credit reversed (info)",
             description: m.description,
             unitCode: m.unitCode || "—",
             reference: m.reference || "—",
-            debit: m.kind === "CHARGE" ? m.amount : null,
-            credit: m.kind === "PAYMENT" ? m.amount : null,
+            debit: m.debit,
+            credit: m.credit,
             balance: m.balanceAfter,
           })),
         ],
@@ -188,9 +202,10 @@ export function PortalStatementClient({
   }
 
   function handleExportPdf() {
-    const lines: StatementLine[] = inPeriod.map((m) => ({
+    const lines: StatementLine[] = inPeriod.filter((m) => !isInfo(m)).map((m) => ({
       date: m.date,
-      kind: m.kind,
+      // the PDF has two sides only: a settlement by another payer is a payment line, its reversal a reversal line (the description says which)
+      kind: (m.kind === "SETTLEMENT" ? "PAYMENT" : m.kind === "SETTLEMENT_REVERSAL" ? "PAYMENT_REVERSAL" : m.kind) as "CHARGE" | "PAYMENT" | "PAYMENT_REVERSAL",
       description: m.description,
       unitCode: m.unitCode,
       reference: m.reference,
@@ -231,6 +246,83 @@ export function PortalStatementClient({
         />
       </PortalPageHeader>
 
+      {positionFailed && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200" data-testid="portal-position-error">
+          <span>{isAr ? "تعذّر تحميل المركز المالي في التاريخ المحدد." : "The position at the selected date could not be loaded."}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setFailedFor(null);
+              setAttempt((n) => n + 1);
+            }}
+            className="rounded-lg border border-rose-300 px-3 py-1 font-bold hover:bg-rose-100 dark:border-rose-800 dark:hover:bg-rose-900/40"
+            data-testid="portal-position-retry"
+          >
+            {isAr ? "إعادة المحاولة" : "Retry"}
+          </button>
+        </div>
+      )}
+
+      {(position || positionLoading) && (
+        <div className="space-y-2" data-testid="portal-position">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            {isAr ? (
+              <>المركز المالي {to ? <>حتى <bdi>{to}</bdi></> : "حتى اليوم"}: الصافي = المتأخرات والمستحقات المفتوحة ناقص الرصيد الدائن المتاح. تطبيق الرصيد على مطالبة أو عكسه لا يغيّر الصافي.</>
+            ) : (
+              `Position ${to ? `as of ${to}` : "to date"}: net = open dues minus the available credit. Applying credit to a charge, or reversing it, does not change the net.`
+            )}
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-busy={positionLoading}>
+            <StatCard
+              label={isAr ? "المتأخرات" : "Arrears"}
+              icon={<TrendingDown className="size-4 text-rose-500" />}
+              tone={position && position.arrears > 0 ? "negative" : undefined}
+              value={<span data-testid="pos-arrears">{position ? <Money amount={position.arrears} locale={locale} tone={position.arrears > 0 ? "negative" : undefined} /> : "…"}</span>}
+              hint={isAr ? "مطالبات حلّ موعدها ولم تُسدَّد" : "Past due and not yet settled"}
+            />
+            <StatCard
+              label={isAr ? "الرصيد الدائن المتاح" : "Available credit"}
+              icon={<Wallet className="size-4 text-indigo-500" />}
+              tone="positive"
+              value={<span data-testid="pos-credit">{position ? <Money amount={position.credit.remaining} locale={locale} tone="positive" /> : "…"}</span>}
+              hint={isAr ? "دفعات مقدمة لم تُطبَّق بعد" : "Advances not applied yet"}
+            />
+            <StatCard
+              label={isAr ? "الصافي" : "Net"}
+              icon={<Scale className="size-4 text-slate-400" />}
+              tone={position && position.net > 0 ? "negative" : "positive"}
+              value={<span data-testid="pos-net">{position ? <Money amount={position.net} locale={locale} tone={position.net > 0 ? "negative" : "positive"} /> : "…"}</span>}
+              hint={position && position.net < 0 ? (isAr ? "لصالحكم" : "In your favour") : isAr ? "المطلوب منكم" : "Owed by you"}
+            />
+          </div>
+          {creditStranded && (
+            <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200" data-testid="portal-stranded">
+              {isAr
+                ? "معلّق — لم تعد مرتبطًا بوحدة هذا الرصيد الدائن. لا يمكن تطبيقه على مطالبات وحدة أخرى؛ تواصل مع الإدارة."
+                : "On hold — you are no longer linked to the unit this credit was received for. It cannot be applied to another unit's charges; please contact the management."}
+            </p>
+          )}
+          {position && position.legacyUnallocated > 0 && (
+            <p className="text-[11px] text-slate-500" data-testid="pos-legacy">
+              {isAr ? (
+                <>منها <bdi>{formatAmount(position.legacyUnallocated, locale)}</bdi> دفعات قديمة غير مخصّصة على الحساب (ليست رصيدًا مقدمًا ولا يمكن تطبيقها).</>
+              ) : (
+                `Includes ${formatAmount(position.legacyUnallocated, locale)} of older unallocated payments on account (not advance credit; they cannot be applied).`
+              )}
+            </p>
+          )}
+          {position && position.credit.received > 0 && (
+            <p className="text-[11px] text-slate-500" data-testid="pos-detail">
+              {isAr ? (
+                <>تفصيل الرصيد الدائن: مستلم <bdi>{formatAmount(position.credit.received, locale)}</bdi> — مطبَّق <bdi>{formatAmount(position.credit.applied, locale)}</bdi> — متبقٍ <bdi>{formatAmount(position.credit.remaining, locale)}</bdi></>
+              ) : (
+                `Credit detail: received ${formatAmount(position.credit.received, locale)} — applied ${formatAmount(position.credit.applied, locale)} — left ${formatAmount(position.credit.remaining, locale)}`
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           label={isAr ? "رصيد أول المدة" : "Opening balance"}
@@ -248,25 +340,31 @@ export function PortalStatementClient({
           label={isAr ? "إجمالي المسدد" : "Total paid"}
           icon={<TrendingUp className="size-4 text-emerald-500" />}
           value={<Money amount={totalPaid} locale={locale} tone="positive" />}
-          hint={isAr ? "سندات معتمدة خلال المدة" : "Posted receipts in the period"}
+          hint={totalReversals > 0 ? (isAr ? "صافٍ بعد خصم الإيصالات الملغاة" : "Net of voided receipts") : isAr ? "سندات معتمدة خلال المدة" : "Posted receipts in the period"}
         />
         <StatCard
           label={isAr ? "الرصيد آخر المدة" : "Closing balance"}
           icon={<Wallet className="size-4 text-indigo-500" />}
           tone={closingBalance > 0 ? "negative" : "positive"}
           value={
-            <Money
-              amount={closingBalance}
-              locale={locale}
-              tone={closingBalance > 0 ? "negative" : "positive"}
-            />
+            <span data-testid="ledger-closing">
+              <Money
+                amount={closingBalance}
+                locale={locale}
+                tone={closingBalance > 0 ? "negative" : "positive"}
+              />
+            </span>
           }
           hint={
             closingBalance > 0
               ? isAr
                 ? "رصيد مستحق بذمتكم"
                 : "Outstanding balance due"
-              : isAr
+              : closingBalance < 0
+                ? isAr
+                  ? "رصيد دائن لصالحكم (دفعات مقدمة)"
+                  : "Credit in your favour (advances)"
+                : isAr
                 ? "الحساب مسوّى بالكامل"
                 : "Account fully settled"
           }
@@ -311,7 +409,7 @@ export function PortalStatementClient({
                 value: "PAYMENT",
                 label: isAr ? "المدفوعات" : "Payments",
                 tone: "positive",
-                count: inPeriod.filter((m) => m.kind === "PAYMENT").length,
+                count: inPeriod.filter((m) => isCreditSide(m.kind)).length,
               },
             ]}
           />
@@ -416,24 +514,32 @@ export function PortalStatementClient({
             </thead>
             <tbody className="divide-y divide-border/40">
               {visible.map((m) => {
-                const isCharge = m.kind === "CHARGE";
+                const isCharge = isDebit(m);
+                const info = isInfo(m);
                 return (
-                  <tr key={m.id} className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                  <tr key={m.id} data-kind={m.kind} className={`transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40 ${info ? "bg-sky-50/40 dark:bg-sky-950/10" : ""}`}>
                     <td className="whitespace-nowrap p-3 font-mono text-slate-500">{m.date}</td>
                     <td className="p-3">
                       <Badge
                         variant="outline"
                         className={`px-2 py-0.5 text-[10px] font-semibold ${
-                          isCharge
-                            ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                            : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          info
+                            ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                            : isCharge
+                              ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         }`}
                       >
-                        {isCharge ? (isAr ? "مطالبة" : "Charge") : isAr ? "سداد" : "Payment"}
+                        {m.kind === "SETTLEMENT" ? (isAr ? "تسوية" : "Settlement") : m.kind === "SETTLEMENT_REVERSAL" ? (isAr ? "عكس تسوية" : "Settlement reversed") : m.kind === "PAYMENT_REVERSAL" ? (isAr ? "عكس سداد" : "Receipt reversed") : m.kind === "APPLICATION" ? (isAr ? "تطبيق رصيد" : "Credit applied") : m.kind === "REVERSAL" ? (isAr ? "عكس تطبيق" : "Reversed") : isCharge ? (isAr ? "مطالبة" : "Charge") : isAr ? "سداد" : "Payment"}
                       </Badge>
                     </td>
                     <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
                       {m.description}
+                      {info && (
+                        <span className="mt-0.5 block text-[11px] font-medium text-sky-700 dark:text-sky-300" data-testid="portal-info-line">
+                          {isAr ? "معلومة — بلا أثر على الرصيد" : "Information — no effect on the balance"}: <bdi>{formatAmount(m.amount, locale)}</bdi>
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                       {m.unitCode || "—"}
@@ -443,7 +549,7 @@ export function PortalStatementClient({
                       {isCharge ? <Money amount={m.amount} locale={locale} /> : "—"}
                     </td>
                     <td className="p-3 text-end font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
-                      {isCharge ? "—" : <Money amount={m.amount} locale={locale} />}
+                      {isCharge || info ? "—" : <Money amount={m.amount} locale={locale} />}
                     </td>
                     <td className="p-3 text-end font-bold tabular-nums text-slate-900 dark:text-white">
                       <Money amount={m.balanceAfter} locale={locale} />
@@ -458,10 +564,10 @@ export function PortalStatementClient({
                   {isAr ? "إجمالي المدة" : "Period total"}
                 </td>
                 <td className="p-3 text-end tabular-nums text-rose-600 dark:text-rose-400">
-                  <Money amount={totalCharges} locale={locale} />
+                  <Money amount={totalCharges + totalReversals} locale={locale} />
                 </td>
                 <td className="p-3 text-end tabular-nums text-emerald-600 dark:text-emerald-400">
-                  <Money amount={totalPaid} locale={locale} />
+                  <Money amount={totalReceipts} locale={locale} />
                 </td>
                 <td className="p-3 text-end tabular-nums text-slate-900 dark:text-white">
                   <Money amount={closingBalance} locale={locale} />

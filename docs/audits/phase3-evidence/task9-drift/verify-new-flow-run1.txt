@@ -1,0 +1,7 @@
+ledger 82 / files 82 → MATCH
+db diff observation 1: clean
+db diff observation 2: clean
+db diff (public): no schema changes (2 observations: 2 clean, 0 differing, 0 tool errors; decided by two consecutive identical clean runs)
+(node:32268) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+exit 0

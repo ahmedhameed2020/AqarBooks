@@ -1,0 +1,23 @@
+=== vitest --each (one vitest process per file) 08:09:45
+exit 0
+=== page-error-states 08:29:52
+exit 0 ;  2 passed (47.0s);
+=== owner-portal-isolation 08:30:45
+exit 0 ;  1 passed (24.8s);
+=== portal-refusals 08:31:22
+exit 0 ;  5 passed (2.5m);
+=== accounting-duplicates 08:33:59
+exit 0 ;  5 passed (1.7m);
+=== accounting-journey 08:35:50
+exit 0 ;  15 passed (3.0m);
+=== portal-journey 08:39:14
+exit 0 ;  6 passed (1.4m);
+=== portal-statement 08:40:44
+exit 0 ;  8 passed (1.7m);
+=== customer-advances 08:42:30
+exit 0 ;  10 passed (3.4m);
+=== customer-advances-ui-screens 08:45:59
+exit 0 ;  6 passed (3.2m);
+=== schema verify with catalog capture 08:49:15
+exit 0
+ALL-DONE

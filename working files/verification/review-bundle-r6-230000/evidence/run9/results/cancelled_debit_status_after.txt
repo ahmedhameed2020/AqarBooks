@@ -1,0 +1,42 @@
+==== CASE 3: cancelling a DRAFT WIP debit by status must not change the floor net
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 2
+INSERT 0 4
+ net_before_cancellation | floor_net_before_cancellation 
+-------------------------+-------------------------------
+                100.0000 |                      100.0000
+(1 row)
+
+COMMIT
+BEGIN
+UPDATE 1
+ net_after_cancellation | floor_net_after_cancellation 
+------------------------+------------------------------
+               100.0000 |                    -200.0000
+(1 row)
+
+psql:/tmp/cancelled_debit_status_guard.sql:27: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 100.0000, الصافي المتوقع بعد الحركة -200.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(v_project_id)"
+PL/pgSQL function guard_project_status_cancel_after() line 13 at PERFORM
+psql:/tmp/cancelled_debit_status_guard.sql:28: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ net_after_rollback | floor_net_after_rollback | draft_status_after_rollback 
+--------------------+--------------------------+-----------------------------
+           100.0000 |                 100.0000 | DRAFT
+(1 row)
+
+psql:/tmp/cancelled_debit_status_guard.sql:49: NOTICE:  ASSERT_CANCELLED_DEBIT_STATUS_GUARD_PASS: invalid cancellation refused at deferred constraints; committed net=100 floor=100 ledger=100 status=DRAFT
+DO
+BEGIN
+DELETE 4
+DELETE 1
+COMMIT

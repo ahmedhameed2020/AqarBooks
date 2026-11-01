@@ -1,0 +1,61 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 1 failed) 61620ms
+     × activation through the real updateUserStatusAction grants access immediately; suspension removes it 11269ms
+ ❯ tests/customer-advances-actions.integration.test.ts (8 tests | 1 failed) 25613ms
+       × reverse it with a reason: ok and the credit is back; the retry is a replay; reversing again with a new key says it is already reversed 1226ms
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_inbucket_aqarbooks_clean supabase_realtime_aqarbooks_clean supabase_imgproxy_aqarbooks_clean supabase_pg_meta_aqarbooks_clean supabase_studio_aqarbooks_clean supabase_edge_runtime_aqarbooks_clean supabase_analytics_aqarbooks_clean supabase_vector_aqarbooks_clean supabase_pooler_aqarbooks_clean]
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-actions.integration.test.ts > record -> retry -> new operation > apply and reverse through the actions > reverse it with a reason: ok and the credit is back; the retry is a replay; reversing again with a new key says it is already reversed
+AssertionError: expected '5' to be '2' // Object.is equality
+
+Expected: "2"
+Received: "5"
+
+ ❯ tests/customer-advances-actions.integration.test.ts:144:108
+    142|       expect(await reverseCreditApplicationAction({ ...input, operatio…
+    143|       expect(q(`select unallocated_amount::text from public.payments w…
+    144|       expect(q(`select count(*) from public.payment_credit_requests wh…
+       |                                                                                                            ^
+    145|     });
+    146|     it("a reversal needs a reason (validation) and nothing is revalida…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > invitation path is preserved > activation through the real updateUserStatusAction grants access immediately; suspension removes it
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:178:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 26 passed (28)
+      Tests  2 failed | 434 passed (436)
+   Start at  21:12:26
+   Duration  402.77s (transform 1.72s, setup 1.22s, import 12.47s, tests 380.55s, environment 7ms)
+

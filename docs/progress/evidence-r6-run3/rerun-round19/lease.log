@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\reports-lease-expirations.spec.ts:91:5 › lease expirations loads real leases, shows only this organization's, and never another's (15.7s)
+
+  1 passed (18.2s)
+

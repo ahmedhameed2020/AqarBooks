@@ -51,6 +51,11 @@ function message(error: string, isAr: boolean) {
       ? "عيّن حسابي أرباح وخسائر الاستبعاد أولًا (الإدارة ← الحسابات المعيَّنة) — لن يختار النظام حسابًا نيابةً عنك."
       : "Designate the disposal gain and loss accounts first (Admin → Designated Accounts). The system will not pick one for you.";
   }
+  if (error.includes("DISPOSAL_PROCEEDS_ACCOUNT_INVALID")) {
+    return isAr
+      ? "اختر حساب نقدية أو بنك نشطًا وغير تجميعي للحصيلة؛ لا يجوز استخدام حساب الأصل أو مجمع إهلاكه أو حساب يطلب مركز تكلفة."
+      : "Select an active, non-group cash or bank account. The asset account, accumulated depreciation account, and cost-centre-required accounts are not allowed.";
+  }
   if (error.includes("ASSET_ALREADY_DISPOSED")) {
     return isAr ? "هذا الأصل مستبعَد بالفعل." : "That asset has already been disposed of.";
   }
@@ -72,6 +77,7 @@ function message(error: string, isAr: boolean) {
 export function RegisterAssetForm({
   open = true,
   onOpenChange,
+  organizationId,
   assetAccounts,
   deprAccounts,
   accumulatedAccounts,
@@ -80,6 +86,7 @@ export function RegisterAssetForm({
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  organizationId: string;
   assetAccounts: Option[];
   deprAccounts?: Option[];
   accumulatedAccounts?: Option[];
@@ -123,6 +130,7 @@ export function RegisterAssetForm({
         </DialogHeader>
 
         <form action={formAction}>
+          <input type="hidden" name="organizationId" value={organizationId} />
           <DialogBody className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="space-y-1.5">
@@ -329,11 +337,13 @@ export function RegisterAssetForm({
 export function RunDepreciationForm({
   open = true,
   onOpenChange,
+  organizationId,
   periods,
   locale,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  organizationId: string;
   periods: Option[];
   locale: string;
 }) {
@@ -363,6 +373,7 @@ export function RunDepreciationForm({
         </DialogHeader>
 
         <form action={formAction}>
+          <input type="hidden" name="organizationId" value={organizationId} />
           <DialogBody className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="dep-period" className="text-xs font-bold text-foreground">
@@ -445,6 +456,7 @@ export function DisposeAssetForm({
   assetName,
   gainAccounts,
   lossAccounts,
+  proceedsAccounts,
   periods,
   locale,
 }: {
@@ -455,6 +467,7 @@ export function DisposeAssetForm({
   assetName: string;
   gainAccounts?: Option[];
   lossAccounts?: Option[];
+  proceedsAccounts?: Option[];
   periods?: Option[];
   locale: string;
 }) {
@@ -533,6 +546,28 @@ export function DisposeAssetForm({
                   {isAr ? "0 = تخريد بدون عائد مالي" : "0 = Scrapped with zero proceeds"}
                 </span>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dispose-account" className="text-xs font-bold text-foreground">
+                {isAr ? "حساب المتحصلات" : "Proceeds Account"} <span className="text-rose-500">*</span>
+              </Label>
+              <select
+                id="dispose-account"
+                name="proceedsAccountId"
+                required
+                defaultValue=""
+                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="" disabled>
+                  {isAr ? "اختر حساب المتحصلات..." : "Select proceeds account..."}
+                </option>
+                {(proceedsAccounts ?? []).map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-1.5">

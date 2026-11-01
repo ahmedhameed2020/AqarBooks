@@ -1,0 +1,7 @@
+PASS  tests/pilot-rehearsal.manual.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+FAIL  tests/sandbox-pilot.manual.test.ts  |  files: 1 failed (1)  |  tests: 6 failed | 3 passed (9)
+PASS  tests/payments/fawry-v1-sql-proposal.test.ts  |  files: 1 passed (1)  |  tests: 13 passed (13)
+PASS  tests/payments/payment-provider-settings-reverify.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+PASS  tests/payments/payment-provider-verification-race.test.ts  |  files: 1 passed (1)  |  tests: 2 passed (2)
+PASS  tests/payments/resolve-credentials.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/security/w0-sec-postgres-invariants.test.ts  |  files: 1 passed (1)  |  tests: 14 passed (14)

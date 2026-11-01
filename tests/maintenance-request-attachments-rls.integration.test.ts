@@ -1,3 +1,4 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -79,7 +80,7 @@ function runLocalDbQuery(sql: string): string {
     "docker",
     [
       "exec",
-      "supabase_db_aqarbooks",
+      isolatedDbContainer(),
       "psql",
       "-U",
       "postgres",

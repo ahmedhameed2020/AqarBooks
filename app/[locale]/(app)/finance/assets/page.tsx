@@ -64,7 +64,7 @@ export default async function FixedAssetsPage({
     supabase.rpc("list_fixed_assets", { p_organization_id: organization.id }),
     supabase
       .from("chart_of_accounts")
-      .select("id, code, name_ar, name_en, category")
+      .select("id, code, name_ar, name_en, category, is_cash_equivalent, requires_cost_center")
       .eq("organization_id", organization.id)
       .eq("is_group", false)
       .eq("is_active", true)
@@ -85,6 +85,9 @@ export default async function FixedAssetsPage({
     `${a.code} — ${isAr ? a.name_ar : a.name_en}`;
   const assetAccounts: Option[] = (accounts ?? [])
     .filter((a) => a.category === "ASSET")
+    .map((a) => ({ id: a.id, label: label(a) }));
+  const proceedsAccounts: Option[] = (accounts ?? [])
+    .filter((a) => a.category === "ASSET" && a.is_cash_equivalent && !a.requires_cost_center)
     .map((a) => ({ id: a.id, label: label(a) }));
   const expenseAccounts: Option[] = (accounts ?? [])
     .filter((a) => a.category === "EXPENSE")
@@ -119,8 +122,10 @@ export default async function FixedAssetsPage({
 
       {/* Main Interactive Client Table & KPIs */}
       <AssetsClient
+        organizationId={organization.id}
         assets={assets}
         assetAccounts={assetAccounts}
+        proceedsAccounts={proceedsAccounts}
         deprAccounts={deprAccounts}
         expenseAccounts={expenseAccounts}
         gainAccounts={assetAccounts}

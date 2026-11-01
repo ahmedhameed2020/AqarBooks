@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -65,16 +66,6 @@ beforeAll(async () => {
   }).select("id").single();
   propertyId = property!.id as string;
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  const { data: period } = await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  periodId = period!.id as string;
-
   const email = `e2e-fxdiff-${stamp}@aqarbooks-test.local`;
   const { data: created } = await admin.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
@@ -90,6 +81,18 @@ beforeAll(async () => {
   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, signInErr?.message).toBeNull();
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // The entries are dated 2026-06-01, so the period under test is the monthly period that contains it.
+  await createOpenFiscalYear(admin, asUser, {
+    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
+  const { data: period, error: periodErr } = await admin
+    .from("fiscal_periods").select("id")
+    .eq("organization_id", orgId)
+    .lte("start_date", "2026-06-01").gte("end_date", "2026-06-01").single();
+  expect(periodErr, periodErr?.message).toBeNull();
+  periodId = period!.id as string;
 });
 
 afterAll(async () => {
@@ -99,8 +102,7 @@ afterAll(async () => {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
   await admin.from("properties").delete().eq("organization_id", orgId);
   await admin.from("organizations")
@@ -147,7 +149,7 @@ describe("fx difference accounts and posting", () => {
   it("reports readiness honestly while only one account is set", async () => {
     await admin.from("organizations")
       .update({ fx_gain_account_id: gainAcc, fx_loss_account_id: null }).eq("id", orgId);
-    const { data } = await asUser.rpc("check_fx_readiness", { p_organization_id: orgId });
+    const { data } = await admin.rpc("check_fx_readiness", { p_organization_id: orgId });
     const row = (data as unknown as { ready: boolean; reason: string }[])[0];
     expect(row.ready).toBe(false);
     expect(row.reason).toBe("FX_LOSS_ACCOUNT_NOT_SET");

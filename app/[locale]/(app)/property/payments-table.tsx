@@ -28,6 +28,9 @@ type Row = {
   paymentDate: string;
   receiptNumber: number | null;
   status: string;
+  /** a customer-advance application (credit applied to this unit's due), and whether it was later reversed */
+  creditApplication?: boolean;
+  applicationReversed?: boolean;
 };
 
 export async function PaymentsTable({
@@ -56,7 +59,7 @@ export async function PaymentsTable({
     if (dueIds.length) {
       const { data: allocations, count } = await supabase
         .from("payment_allocations")
-        .select("id, payment_id, amount, due_id", { count: "exact" })
+        .select("id, payment_id, amount, due_id, kind, reversed_at", { count: "exact" })
         .in("due_id", dueIds);
       totalCount = count ?? 0;
 
@@ -81,6 +84,8 @@ export async function PaymentsTable({
             paymentDate: p.payment_date,
             receiptNumber: p.receipt_number,
             status: p.status,
+            creditApplication: a.kind === "CREDIT_APPLICATION",
+            applicationReversed: a.reversed_at != null,
           };
         })
         .filter((r): r is Row => r !== null)
@@ -148,6 +153,13 @@ export async function PaymentsTable({
                   </TableCell>
                   <TableCell className="text-muted-foreground tabular-nums">
                     {r.receiptNumber ? `#${r.receiptNumber}` : "—"}
+                    {r.creditApplication && (
+                      <Badge variant="outline" className="ms-2 text-[10px]">
+                        {r.applicationReversed
+                          ? isAr ? "تطبيق رصيد (معكوس)" : "Credit application (reversed)"
+                          : isAr ? "تطبيق رصيد مقدم" : "Advance applied"}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={r.status === "REVERSED" ? "destructive" : "default"}>

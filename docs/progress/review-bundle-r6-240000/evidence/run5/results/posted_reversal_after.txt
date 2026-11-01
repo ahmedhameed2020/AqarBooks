@@ -1,0 +1,40 @@
+==== CASE 2: genuine POSTED-then-REVERSED entries retain classification and reversal effect
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+DO
+psql:/tmp/posted_reversal_regression.sql:24: NOTICE:  ASSERT_REVERSED_RELEASE_PASS: cap=1000 rel=0 wip=1000 ledger=1000
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+      0.0000 |   0.0000 |      0.0000
+(1 row)
+
+DO
+psql:/tmp/posted_reversal_regression.sql:41: NOTICE:  ASSERT_REVERSED_CAP_PASS: cap=0 rel=0 wip=0 ledger=0
+                   description                   |  status  |          reversed_entry_id           | has_reversal_entry 
+-------------------------------------------------+----------+--------------------------------------+--------------------
+ WIP — R5-REVERSE — R5 reverse cap               | REVERSED |                                      | t
+ Cost of sales — R5-REVERSE — R5 reverse release | REVERSED |                                      | t
+ R5 reverse release first                        | POSTED   | 9d1566f5-5bd5-4236-ba78-a209555079ba | f
+ R5 reverse cap second                           | POSTED   | 6f4ffe53-e027-4792-bf5a-b73e3a393221 | f
+(4 rows)
+
+ROLLBACK

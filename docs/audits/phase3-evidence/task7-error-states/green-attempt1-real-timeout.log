@@ -1,0 +1,25 @@
+Running 2 tests using 1 worker
+  x  1 tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers (1.6m)
+  -  2 tests\e2e\page-error-states.spec.ts:77:5 › owner portal: units, home and statement show the error, not 'no units' / zeros; Retry recovers
+  1) tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers 
+    Error: expect(locator).toBeVisible() failed
+    Locator: getByRole('button', { name: /Opening balance/i })
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByRole('button', { name: /Opening balance/i })
+      53 |   await staffSignIn(page);
+      54 |   await page.goto(`/en/members/${fx.member.id}`);
+    > 55 |   await expect(page.getByRole("button", { name: /Opening balance/i })).toBeVisible({ timeout: 60_000 }); // healthy first
+         |                                                                        ^
+      56 |
+      57 |   try {
+      58 |     revokeViews();
+        at D:\Web\AqarBooks\tests\e2e\page-error-states.spec.ts:55:72
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\page-error-states-staff-me-916ef-nits-owned-0-Retry-recovers\error-context.md
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\page-error-states-staff-me-916ef-nits-owned-0-Retry-recovers\error-context.md
+  1 failed
+    tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers 
+  1 did not run

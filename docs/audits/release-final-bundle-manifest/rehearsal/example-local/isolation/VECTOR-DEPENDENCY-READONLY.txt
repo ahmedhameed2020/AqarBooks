@@ -1,0 +1,23 @@
+supabase_vector_aqarbooks: read-only dependency check (2026-10-23). Nothing stopped, restarted, reconfigured, or re-enabled. Docker TCP 2375 was NOT enabled.
+
+Configuration (copied read-only from the container, /etc/vector/vector.yaml):
+  source:  docker_logs (reads container logs through DOCKER_HOST=http://host.docker.internal:2375, which is closed)
+  sinks:   http -> http://supabase_analytics_aqarbooks:4000/api/logs?source_name=... (gotrue, realtime, postgREST, postgres, deno-relay, storage, ...)
+  api:     0.0.0.0:9001 (Vector's own API; no other container in this project references port 9001)
+
+Who depends on it:
+  - No container's environment references the vector service or its API (checked every aqarbooks container's env: names only).
+  - No compose depends_on label points at vector.
+  - The only "VECTOR_*" variables in supabase_storage_aqarbooks and supabase_storage_aqarbooks_clean are the storage service's pgvector feature (VECTOR_DATABASE_URL, VECTOR_BUCKET_PROVIDER...). They are NOT the log shipper. Not a dependency.
+  - Its only downstream is supabase_analytics_aqarbooks (Logflare, healthy). Logflare receives logs; it does not require vector to run.
+
+Impact of stopping it (recommendation input, NOT executed):
+  - Database, auth, rest, kong, realtime, storage, studio: no functional dependency found.
+  - Log shipping to analytics/Logflare stops. Logs stay in each container's own Docker log (until rotated), so nothing is destroyed by stopping vector.
+  - Already lost: the restart loop has been running since 2026-09-14 (262 restarts). Logs of that period were never shipped to analytics. Stopping it does not change that.
+  - Monitoring: Studio's Logs pages and the analytics dashboard show no new entries while it is stopped. This is the only visible effect.
+
+Recommendation (for the owner to approve separately; not applied):
+  - Stopping vector temporarily is low-impact and removes a permanent restart loop. Keep the restart policy as it is until the owner decides; do not disable the policy without approval.
+  - Better long-term: either enable the Docker API on the engine (a Docker Desktop setting; a security decision, not recommended) or change the source to the mounted socket, or leave it stopped during local development.
+  - Caveat: the sinks use the literal header value "api-key" in the config. Not a secret, but it means analytics authentication is not real. Noted for the owner.

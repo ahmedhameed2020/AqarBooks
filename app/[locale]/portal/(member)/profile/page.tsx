@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import { PortalProfileClient, type PortalProfileData } from "./portal-profile-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 type MemberRow = {
   full_name: string;
@@ -38,7 +39,7 @@ export default async function PortalProfilePage({
   const [
     { data: memberRow, error: memberError },
     { data: orgDisplay },
-    { data: summary },
+    { data: summary, error: summaryError },
     {
       data: { user },
     },
@@ -58,6 +59,7 @@ export default async function PortalProfilePage({
       .maybeSingle(),
     supabase.auth.getUser(),
   ]);
+  assertRead(summaryError, "portal/profile: members_with_financials");
 
   if (memberError) console.error("[PortalProfilePage] member query failed:", memberError.message);
 

@@ -114,6 +114,9 @@ describe("resolveProviderCredentials (real Supabase, no mocks)", () => {
     expect(staffCreateErr, staffCreateErr?.message).toBeNull();
     const staffUserId = staffCreated!.user!.id;
 
+    // A role assignment only grants access to an ACTIVE member of the organization (Phase 1.1).
+    const { error: memberErr } = await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: staffUserId, status: "active" });
+    expect(memberErr, memberErr?.message).toBeNull();
     const { error: assignErr } = await admin
       .from("user_role_assignments")
       .insert({ user_id: staffUserId, role_id: ownerRole!.id, organization_id: orgId });

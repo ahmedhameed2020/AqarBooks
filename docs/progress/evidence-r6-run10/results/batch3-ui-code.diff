@@ -1,0 +1,915 @@
+diff --git a/app/[locale]/(app)/admin/finance/periods/page.tsx b/app/[locale]/(app)/admin/finance/periods/page.tsx
+index e37d950b..aa15a8d8 100644
+--- a/app/[locale]/(app)/admin/finance/periods/page.tsx
++++ b/app/[locale]/(app)/admin/finance/periods/page.tsx
+@@ -8,6 +8,7 @@ import { CreateFiscalYearForm } from "./create-fiscal-year-form";
+ import { PeriodsClient, type FiscalYearItem, type FiscalPeriodItem, type PendingDuesSummary } from "./periods-client";
+ import { getCurrencyLabel } from "@/lib/currency";
+ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
++import { hasPermission } from "@/lib/auth/authorize";
+ 
+ export const dynamic = "force-dynamic";
+ export const revalidate = 0;
+@@ -45,6 +46,7 @@ export default async function FiscalPeriodsPage({
+   if (denied) return denied;
+ 
+   const supabase = await createClient();
++  const canClose = await hasPermission(organization.id, "finance.years.close");
+ 
+   const [
+     { data: years },
+@@ -105,6 +107,7 @@ export default async function FiscalPeriodsPage({
+         initialYears={initialYears}
+         initialPeriods={initialPeriods}
+         pendingDues={pending}
++        canClose={canClose}
+       />
+ 
+       {/* CREATE FISCAL YEAR FORM */}
+diff --git a/app/[locale]/(app)/admin/finance/periods/periods-client.tsx b/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
+index f2d68394..543abaae 100644
+--- a/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
++++ b/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
+@@ -15,8 +15,10 @@ import {
+ } from "@/components/ui/dialog";
+ import { useToast } from "@/components/ui/toast";
+ import { setFiscalPeriodStatusAction, recognizePendingDuesAction } from "@/lib/actions/accounting";
++import { financeErrorMessage } from "@/lib/actions/error-messages";
+ import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
+ import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
++import { YearEndClosingDialog } from "./year-end-closing-dialog";
+ import {
+   Calendar,
+   Clock,
+@@ -24,16 +26,10 @@ import {
+   Lock,
+   Unlock,
+   AlertTriangle,
+-  Layers,
+-  Sparkles,
+   RefreshCw,
+   FileSpreadsheet,
+   FileText,
+-  Plus,
+-  ArrowRightLeft,
+-  ShieldCheck,
+   Zap,
+-  TrendingUp,
+   FolderLock,
+ } from "lucide-react";
+ 
+@@ -55,6 +51,14 @@ export interface FiscalYearItem {
+   status: string;
+ }
+ 
++// Preset reasons offered for CLOSED/LOCKED changes. OPEN never starts from a preset.
++const PRESET_STATUS_REASONS = [
++  "إغلاق دوري للفترة",
++  "Periodic closure",
++  "إقفال نهائي للفترة المحاسبية ومراجعة الميزان",
++  "Final period lockdown",
++];
++
+ export interface PendingDuesSummary {
+   pending_count: number;
+   pending_total: number;
+@@ -71,6 +75,7 @@ export function PeriodsClient({
+   initialYears,
+   initialPeriods,
+   pendingDues,
++  canClose,
+ }: {
+   organizationId: string;
+   organizationName: string;
+@@ -80,6 +85,7 @@ export function PeriodsClient({
+   initialYears: FiscalYearItem[];
+   initialPeriods: FiscalPeriodItem[];
+   pendingDues?: PendingDuesSummary | null;
++  canClose: boolean;
+ }) {
+   const isAr = locale === "ar";
+   const { toast } = useToast();
+@@ -94,9 +100,7 @@ export function PeriodsClient({
+   const [targetStatus, setTargetStatus] = useState<"PLANNED" | "OPEN" | "CLOSED" | "LOCKED">("OPEN");
+   const [statusReason, setStatusReason] = useState("");
+ 
+-  // Year-End Closing Wizard Modal
+   const [closingYear, setClosingYear] = useState<FiscalYearItem | null>(null);
+-  const [closingStep, setClosingStep] = useState<1 | 2 | 3>(1);
+ 
+   // Statistics
+   const openCount = periods.filter((p) => p.status === "OPEN").length;
+@@ -108,13 +112,20 @@ export function PeriodsClient({
+     return years.filter((y) => y.id === selectedYearId);
+   }, [years, selectedYearId]);
+ 
++  // Reopening (target OPEN) always needs a reason typed by the user, so no preset text is offered for it.
++  const isReopenTarget = targetStatus === "OPEN";
++  const reasonMissing = isReopenTarget && !statusReason.trim();
++
+   // Handle Quick Status Change
+   const handleStatusChange = (period: FiscalPeriodItem, newStatus: "PLANNED" | "OPEN" | "CLOSED" | "LOCKED") => {
++    const owningYear = years.find((y) => y.id === period.fiscal_year_id);
++    // A closed fiscal year is never reopened from this screen (the database guard is authoritative).
++    if (newStatus === "OPEN" && owningYear?.status === "CLOSED") return;
+     setStatusModalPeriod(period);
+     setTargetStatus(newStatus);
+     setStatusReason(
+       newStatus === "OPEN"
+-        ? isAr ? "فتح الفترة لقبول القيود والاعتراف بالإيرادات" : "Open period for entry posting"
++        ? ""
+         : newStatus === "LOCKED"
+         ? isAr ? "إقفال نهائي للفترة المحاسبية ومراجعة الميزان" : "Final period lockdown"
+         : isAr ? "إغلاق دوري للفترة" : "Periodic closure"
+@@ -124,10 +135,16 @@ export function PeriodsClient({
+   const handleConfirmStatusChange = () => {
+     if (!statusModalPeriod) return;
+ 
++    const trimmedReason = statusReason.trim();
++    // Guard: a reopen never runs without a reason (the inline message is already shown).
++    if (isReopenTarget && !trimmedReason) return;
++    const owningYear = years.find((y) => y.id === statusModalPeriod.fiscal_year_id);
++    if (isReopenTarget && owningYear?.status === "CLOSED") return;
++
+     const formData = new FormData();
+     formData.append("fiscalPeriodId", statusModalPeriod.id);
+     formData.append("status", targetStatus);
+-    formData.append("reason", statusReason.trim() || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
++    formData.append("reason", trimmedReason || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
+ 
+     startTransition(async () => {
+       const res = await setFiscalPeriodStatusAction({ ok: true }, formData);
+@@ -304,8 +321,8 @@ export function PeriodsClient({
+             </h1>
+             <p className="text-xs text-slate-500 max-w-2xl font-medium">
+               {isAr
+-                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، فحص قيود الإقفال ونقل الأرصدة الافتتاحية مع حماية قيود دفتر الأستاذ."
+-                : "Manage monthly accounting periods, lock/open cycles, review closing journals, and rollover opening balances."}
++                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، ومراجعة قيد إقفال السنة مع حماية قيود دفتر الأستاذ."
++                : "Manage monthly accounting periods, lock/open cycles, and review the year-end closing entry with ledger protection."}
+             </p>
+           </div>
+ 
+@@ -433,6 +450,7 @@ export function PeriodsClient({
+       <div className="space-y-6">
+         {filteredYears.map((year) => {
+           const yearPeriods = periods.filter((p) => p.fiscal_year_id === year.id);
++          const yearClosed = year.status === "CLOSED";
+ 
+           return (
+             <div
+@@ -462,23 +480,33 @@ export function PeriodsClient({
+ 
+                 {/* YEAR ACTIONS */}
+                 <div className="flex items-center gap-2">
+-                  <Button
+-                    onClick={() => {
+-                      setClosingYear(year);
+-                      setClosingStep(1);
+-                    }}
+-                    variant="outline"
+-                    size="sm"
+-                    className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
+-                  >
+-                    <FolderLock className="size-3.5" />
+-                    <span>{isAr ? "مساعد الإقفال السنوي وترحيل الأرصدة" : "Year-End Closing Wizard"}</span>
+-                  </Button>
++                  {canClose && !yearClosed && (
++                    <Button
++                      onClick={() => setClosingYear(year)}
++                      variant="outline"
++                      size="sm"
++                      className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
++                      data-testid={`open-year-closing-${year.name}`}
++                    >
++                      <FolderLock className="size-3.5" />
++                      <span>{isAr ? "إقفال السنة المالية" : "Close Fiscal Year"}</span>
++                    </Button>
++                  )}
+                 </div>
+               </div>
+ 
+               {/* MONTHLY GRID TILES */}
+               <div className="p-5">
++                {yearClosed && (
++                  <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
++                    <Lock className="size-4 shrink-0 mt-0.5 text-slate-500" />
++                    <span>
++                      {isAr
++                        ? "هذه السنة المالية مغلقة. لا يمكن إعادة فتح فتراتها من هذه الشاشة، وقاعدة البيانات تمنع ذلك."
++                        : "This fiscal year is closed. Its periods cannot be reopened from this screen; the database enforces this."}
++                    </span>
++                  </div>
++                )}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                   {yearPeriods.map((period) => (
+                     <div
+@@ -531,15 +559,17 @@ export function PeriodsClient({
+                           </>
+                         ) : period.status === "CLOSED" ? (
+                           <>
+-                            <Button
+-                              onClick={() => handleStatusChange(period, "OPEN")}
+-                              variant="outline"
+-                              size="sm"
+-                              className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
+-                            >
+-                              <Unlock className="size-3 me-1" />
+-                              <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
+-                            </Button>
++                            {!yearClosed && (
++                              <Button
++                                onClick={() => handleStatusChange(period, "OPEN")}
++                                variant="outline"
++                                size="sm"
++                                className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
++                              >
++                                <Unlock className="size-3 me-1" />
++                                <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
++                              </Button>
++                            )}
+                             <Button
+                               onClick={() => handleStatusChange(period, "LOCKED")}
+                               variant="ghost"
+@@ -550,25 +580,29 @@ export function PeriodsClient({
+                             </Button>
+                           </>
+                         ) : period.status === "LOCKED" ? (
+-                          <Button
+-                            onClick={() => handleStatusChange(period, "OPEN")}
+-                            variant="outline"
+-                            size="sm"
+-                            className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
+-                          >
+-                            <Unlock className="size-3 me-1" />
+-                            <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
+-                          </Button>
++                          !yearClosed && (
++                            <Button
++                              onClick={() => handleStatusChange(period, "OPEN")}
++                              variant="outline"
++                              size="sm"
++                              className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
++                            >
++                              <Unlock className="size-3 me-1" />
++                              <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
++                            </Button>
++                          )
+                         ) : (
+-                          <Button
+-                            onClick={() => handleStatusChange(period, "OPEN")}
+-                            variant="outline"
+-                            size="sm"
+-                            className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
+-                          >
+-                            <Unlock className="size-3 me-1" />
+-                            <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
+-                          </Button>
++                          !yearClosed && (
++                            <Button
++                              onClick={() => handleStatusChange(period, "OPEN")}
++                              variant="outline"
++                              size="sm"
++                              className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
++                            >
++                              <Unlock className="size-3 me-1" />
++                              <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
++                            </Button>
++                          )
+                         )}
+                       </div>
+                     </div>
+@@ -602,7 +636,12 @@ export function PeriodsClient({
+               <Label className="text-xs font-bold">{isAr ? "الحالة الجديدة المستهدفة" : "Target Status"}</Label>
+               <select
+                 value={targetStatus}
+-                onChange={(e) => setTargetStatus(e.target.value as FiscalPeriodItem["status"])}
++                onChange={(e) => {
++                  const next = e.target.value as FiscalPeriodItem["status"];
++                  setTargetStatus(next);
++                  // Drop a preset close/lock text when switching to OPEN, so the reason is typed explicitly.
++                  if (next === "OPEN") setStatusReason((r) => (PRESET_STATUS_REASONS.includes(r) ? "" : r));
++                }}
+                 className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+               >
+                 <option value="OPEN">{isAr ? "مفتوحة للقيود (OPEN)" : "Open"}</option>
+@@ -619,9 +658,16 @@ export function PeriodsClient({
+                 required
+                 value={statusReason}
+                 onChange={(e) => setStatusReason(e.target.value)}
++                aria-invalid={reasonMissing}
++                aria-describedby={reasonMissing ? "period-status-reason-error" : undefined}
+                 placeholder={isAr ? "مثال: مراجعة القيود الشهرية واعتماد الميزان" : "Reason for audit log"}
+                 className="text-xs h-9 bg-slate-50 dark:bg-slate-800"
+               />
++              {reasonMissing && (
++                <p id="period-status-reason-error" role="alert" className="text-[11px] font-bold text-rose-600">
++                  {financeErrorMessage("reason_required", isAr)}
++                </p>
++              )}
+             </div>
+ 
+             <DialogFooter className="pt-3 flex items-center justify-between">
+@@ -647,128 +693,15 @@ export function PeriodsClient({
+         </DialogContent>
+       </Dialog>
+ 
+-      {/* ──────────────────────────────────────────────────────────────────────────
+-          YEAR-END CLOSING & OPENING BALANCES ROLLOVER WIZARD
+-          ────────────────────────────────────────────────────────────────────────── */}
+-      <Dialog open={Boolean(closingYear)} onOpenChange={(open) => !open && setClosingYear(null)}>
+-        <DialogContent className="max-w-xl rounded-3xl p-6">
+-          <DialogHeader>
+-            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center gap-2">
+-              <FolderLock className="size-5 text-indigo-600" />
+-              <span>{isAr ? `مساعد الإقفال المحاسبي للسنة: ${closingYear?.name}` : `Year-End Closing Wizard: ${closingYear?.name}`}</span>
+-            </DialogTitle>
+-            <DialogDescription className="text-xs text-slate-500 mt-1">
+-              {isAr
+-                ? "إجراءات إقفال السنة المالية، التحقق من توازن الأرصدة، وترحيل الأرصدة الافتتاحية للسنة التالية."
+-                : "Step-by-step fiscal year closing, trial balance audit, and opening balance rollover."}
+-            </DialogDescription>
+-          </DialogHeader>
+-
+-          <div className="space-y-4 pt-3">
+-            {/* STEP PROGRESS */}
+-            <div className="grid grid-cols-1 gap-2 pb-2 sm:grid-cols-3">
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 1 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>1. {isAr ? "فحص الفترات والقيود" : "Audit Periods"}</span>
+-              </div>
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 2 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>2. {isAr ? "قيد إقفال الأرباح/الخسائر" : "P&L Closing Entry"}</span>
+-              </div>
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 3 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>3. {isAr ? "ترحيل الأرصدة الافتتاحية" : "Rollover Balances"}</span>
+-              </div>
+-            </div>
+-
+-            {closingStep === 1 && (
+-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
+-                <div className="flex items-center gap-2 text-emerald-600 font-bold">
+-                  <ShieldCheck className="size-4" />
+-                  <span>{isAr ? "اكتمال الفحص المحاسبي الأولي" : "Audit Check Completed"}</span>
+-                </div>
+-                <p className="text-slate-600 dark:text-slate-300">
+-                  {isAr
+-                    ? `تم فحص جميع شهور السنة المالية «${closingYear?.name}». سيتم التأكد من ترحيل كافة القيود اليومية وفحص مطابقة الإيرادات والمصروفات مع ميزان المراجعة.`
+-                    : `Audited all periods for ${closingYear?.name}. Verifying all journal entries.`}
+-                </p>
+-              </div>
+-            )}
+-
+-            {closingStep === 2 && (
+-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
+-                <div className="flex items-center gap-2 text-indigo-600 font-bold">
+-                  <ArrowRightLeft className="size-4" />
+-                  <span>{isAr ? "توليد قيد إقفال حسابات النتيجة (الأرباح المبقاة)" : "Closing Revenue & Expense Accounts"}</span>
+-                </div>
+-                <p className="text-slate-600 dark:text-slate-300">
+-                  {isAr
+-                    ? "يقوم النظام آلياً بتصفير حسابات الإيرادات والمصروفات ونقل صافي الربح/الخسارة إلى حساب (الأرباح المحتجزة / Retained Earnings) في حقوق الملكية."
+-                    : "Automatically clears temporary revenue and expense accounts into Retained Earnings."}
+-                </p>
+-              </div>
+-            )}
+-
+-            {closingStep === 3 && (
+-              <div className="space-y-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 p-4 border border-emerald-200 text-xs">
+-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
+-                  <CheckCircle2 className="size-4" />
+-                  <span>{isAr ? "جاهز لترحيل الأرصدة الافتتاحية للسنة الجديدة" : "Ready for Opening Balance Rollover"}</span>
+-                </div>
+-                <p className="text-emerald-800 dark:text-emerald-300">
+-                  {isAr
+-                    ? "سيتم نقل أرصدة الأصول والالتزامات وحقوق الملكية المنتهية كأرصدة افتتاحية معتمدة في بداية السنة المالية القادمة."
+-                    : "Assets, liabilities, and equity balances will be carried forward as opening balances."}
+-                </p>
+-              </div>
+-            )}
+-
+-            <DialogFooter className="pt-3 flex items-center justify-between">
+-              {closingStep > 1 ? (
+-                <Button
+-                  variant="outline"
+-                  size="sm"
+-                  onClick={() => setClosingStep((s) => (s - 1) as 1 | 2 | 3)}
+-                  className="text-xs font-bold h-9"
+-                >
+-                  {isAr ? "السابق" : "Back"}
+-                </Button>
+-              ) : (
+-                <Button
+-                  variant="outline"
+-                  size="sm"
+-                  onClick={() => setClosingYear(null)}
+-                  className="text-xs font-bold h-9"
+-                >
+-                  {isAr ? "إلغاء" : "Cancel"}
+-                </Button>
+-              )}
+-
+-              {closingStep < 3 ? (
+-                <Button
+-                  onClick={() => setClosingStep((s) => (s + 1) as 1 | 2 | 3)}
+-                  size="sm"
+-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-5"
+-                >
+-                  {isAr ? "المتابعة للخطوة التالية" : "Next Step"}
+-                </Button>
+-              ) : (
+-                <Button
+-                  onClick={() => {
+-                    toast({
+-                      type: "info",
+-                      title: isAr ? "إقفال السنة غير متاح في نسخة MVP" : "Year-end closing unavailable in MVP",
+-                      description: isAr ? "هذا المعالج للعرض فقط؛ لم يتم تنفيذ محرك الإقفال أو ترحيل الأرصدة." : "This wizard is display-only; no closing engine or opening-balance rollover has been executed.",
+-                    });
+-                  }}
+-                  size="sm"
+-                  variant="outline"
+-                  className="text-amber-700 border-amber-300 text-xs font-bold h-9 px-5"
+-                >
+-                  {isAr ? "غير متاح في MVP" : "Unavailable in MVP"}
+-                </Button>
+-              )}
+-            </DialogFooter>
+-          </div>
+-        </DialogContent>
+-      </Dialog>
++      <YearEndClosingDialog
++        open={Boolean(closingYear)}
++        onOpenChange={(open) => !open && setClosingYear(null)}
++        organizationId={organizationId}
++        year={closingYear}
++        locale={locale}
++        currencyLabel={currencyLabel}
++        onClosed={(yearId) => setYears((current) => current.map((item) => item.id === yearId ? { ...item, status: "CLOSED" } : item))}
++      />
+     </div>
+   );
+ }
+diff --git a/lib/actions/error-messages.ts b/lib/actions/error-messages.ts
+index dd814d7e..bf6d081d 100644
+--- a/lib/actions/error-messages.ts
++++ b/lib/actions/error-messages.ts
+@@ -29,3 +29,167 @@ export function formErrorMessage(code: string, isAr: boolean): string {
+   const entry = ERROR_MESSAGES[code] ?? GENERIC_FALLBACK;
+   return isAr ? entry.ar : entry.en;
+ }
++
++// Finance dialogs and banking screens. Server actions return short codes
++// (lowercase or uppercase, depending on the action). Codes are mapped to
++// actionable messages; anything else -- including raw database text -- becomes
++// the generic message, so SQL, schema names, and internal codes never reach
++// the accountant. Callers must still show a failure as a failure: never map a
++// failed read to empty data.
++const FINANCE_ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
++  invalid_input: {
++    ar: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
++    en: "Check the values you entered and try again.",
++  },
++  INVALID_INPUT: {
++    ar: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
++    en: "Check the values you entered and try again.",
++  },
++  RECEIVABLE_ACCOUNT_REQUIRED: {
++    ar: "اختر حساب الذمم المدينة أولًا.",
++    en: "Choose a receivable account first.",
++  },
++  DEPOSIT_ACCOUNT_INVALID: {
++    ar: "حساب الإيداع المختار غير صالح أو غير مفعّل. اختر حسابًا آخر.",
++    en: "The selected deposit account is invalid or inactive. Choose another account.",
++  },
++  reason_required: {
++    ar: "اكتب سببًا للإلغاء قبل المتابعة.",
++    en: "Enter a reason before continuing.",
++  },
++  ALREADY_REVERSED: {
++    ar: "تم إلغاء هذا السند مسبقًا.",
++    en: "This receipt has already been voided.",
++  },
++  state_unchanged: {
++    ar: "لم تتغير حالة العنصر. حدّث الصفحة وحاول مرة أخرى.",
++    en: "The item's status did not change. Refresh the page and try again.",
++  },
++  STALE_VERIFICATION: {
++    ar: "تغيّرت البيانات منذ آخر تحميل. حدّث الصفحة وحاول مرة أخرى.",
++    en: "The data changed since it was loaded. Refresh the page and try again.",
++  },
++  rate_limited: {
++    ar: "محاولات كثيرة في وقت قصير. انتظر قليلًا ثم حاول مرة أخرى.",
++    en: "Too many attempts in a short time. Wait a moment and try again.",
++  },
++  self_approval: {
++    ar: "لا يمكنك اعتماد عملية قمت بإعدادها بنفسك.",
++    en: "You cannot approve an action you prepared yourself.",
++  },
++  ORGANIZATION_INACTIVE: {
++    ar: "المنظمة غير مفعّلة حاليًا.",
++    en: "This organization is currently inactive.",
++  },
++  unauthenticated: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  not_authenticated: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  NOT_AUTHENTICATED: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  forbidden: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  unauthorized: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  NOT_AUTHORIZED: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  not_found: {
++    ar: "تعذر العثور على العنصر المطلوب.",
++    en: "The requested item could not be found.",
++  },
++  NOT_FOUND: {
++    ar: "تعذر العثور على العنصر المطلوب.",
++    en: "The requested item could not be found.",
++  },
++  query_failed: {
++    ar: "تعذر تحميل البيانات، يرجى المحاولة مرة أخرى.",
++    en: "The data could not be loaded. Please try again.",
++  },
++  PERIOD_NOT_CLOSED: {
++    ar: "أغلق أو اقفل جميع فترات السنة أولًا، ثم أعد الفحص.",
++    en: "Close or lock every period in the year first, then run the checks again.",
++  },
++  UNREVIEWED_ENTRIES_EXIST: {
++    ar: "توجد قيود مسودة أو قيد المراجعة داخل السنة. راجعها قبل الإقفال.",
++    en: "Draft or under-review entries exist in the year. Review them before closing.",
++  },
++  RE_ACCOUNT_REQUIRED: {
++    ar: "حدّد حساب الأرباح المبقاة قبل إقفال السنة.",
++    en: "Designate a retained-earnings account before closing the year.",
++  },
++  RE_ACCOUNT_INVALID: {
++    ar: "حساب الأرباح المبقاة غير صالح. اختر حساب حقوق ملكية نشطًا وغير تجميعي.",
++    en: "The retained-earnings account is invalid. Choose an active, non-group equity account.",
++  },
++  ENTRIES_UNBALANCED: {
++    ar: "قيود السنة غير متوازنة. راجع ميزان المراجعة قبل الإقفال.",
++    en: "The year's entries are unbalanced. Review the trial balance before closing.",
++  },
++  NOTHING_TO_CLOSE: {
++    ar: "لا توجد أرصدة إيرادات أو مصروفات تحتاج إلى إقفال.",
++    en: "There are no revenue or expense balances to close.",
++  },
++  ALREADY_CLOSED: {
++    ar: "هذه السنة مقفلة بالفعل. حدّث الصفحة لعرض حالتها الحالية.",
++    en: "This fiscal year is already closed. Refresh the page to see its current state.",
++  },
++  FORBIDDEN_CLOSE_PERMISSION: {
++    ar: "ليست لديك صلاحية إقفال السنة المالية.",
++    en: "You do not have permission to close the fiscal year.",
++  },
++  FISCAL_YEAR_NOT_FOUND: {
++    ar: "تعذر العثور على السنة المالية المطلوبة.",
++    en: "The requested fiscal year could not be found.",
++  },
++  OPERATION_KEY_REUSED: {
++    ar: "تعذر تأكيد العملية. أعد فتح المعالج وأنشئ محاولة إقفال جديدة.",
++    en: "The operation could not be confirmed. Reopen the wizard and start a new closing attempt.",
++  },
++  COST_CENTER_REQUIRED: {
++    ar: "توجد حسابات تتطلب مركز تكلفة. راجع أسطر القيود قبل الإقفال.",
++    en: "Some accounts require a cost centre. Review the entry lines before closing.",
++  },
++  COST_CENTRE_INVALID: {
++    ar: "مركز تكلفة في القيود غير موجود أو غير نشط. صححه قبل الإقفال.",
++    en: "A cost centre in the entries is missing or inactive. Correct it before closing.",
++  },
++  INCOMPLETE_BALANCE_DATA: {
++    ar: "تعذر قراءة جميع أرصدة السنة. أعد الفحص قبل المتابعة.",
++    en: "Not all year balances could be read. Run the checks again before continuing.",
++  },
++  CONFIRMATION_MISMATCH: {
++    ar: "اكتب عبارة تأكيد الإقفال كما هي تمامًا.",
++    en: "Type the closing confirmation phrase exactly as shown.",
++  },
++  ORG_NOT_ACTIVE: {
++    ar: "المؤسسة غير نشطة، لذلك لا يمكن إقفال السنة.",
++    en: "The organization is inactive, so the year cannot be closed.",
++  },
++  AUTHENTICATION_REQUIRED: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  INVALID_CLOSE_RESULT: {
++    ar: "لم تُرجع قاعدة البيانات نتيجة إقفال صالحة. تحقق من حالة السنة قبل إعادة المحاولة.",
++    en: "The database did not return a valid closing result. Check the year's state before retrying.",
++  },
++};
++
++export function financeErrorMessage(code: string | null | undefined, isAr: boolean): string {
++  const entry = code && Object.prototype.hasOwnProperty.call(FINANCE_ERROR_MESSAGES, code)
++    ? FINANCE_ERROR_MESSAGES[code]
++    : GENERIC_FALLBACK;
++  return isAr ? entry.ar : entry.en;
++}
+diff --git a/lib/supabase/types.ts b/lib/supabase/types.ts
+index 9c119399..ab6eb9ba 100644
+--- a/lib/supabase/types.ts
++++ b/lib/supabase/types.ts
+@@ -288,6 +288,8 @@ export type Database = {
+           security_deposit_liability_account_id: string | null;
+           commission_expense_account_id: string | null;
+           commission_payable_account_id: string | null;
++          receivable_account_id: string | null;
++          customer_advance_account_id: string | null;
+           created_at: string;
+           updated_at: string;
+         };
+@@ -423,6 +425,7 @@ export type Database = {
+           is_active: boolean;
+           is_used: boolean;
+           is_cash_equivalent: boolean;
++          is_retained_earnings: boolean;
+           cash_flow_section: "OPERATING" | "INVESTING" | "FINANCING" | null;
+         };
+         Insert: {
+@@ -497,7 +500,7 @@ export type Database = {
+           entry_number: number | null;
+           entry_date: string;
+           description: string;
+-          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER";
++          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER" | "YEAR_END_CLOSING";
+           source_id: string | null;
+           status: "DRAFT" | "UNDER_REVIEW" | "POSTED" | "REVERSED";
+           idempotency_key: string | null;
+@@ -526,7 +529,15 @@ export type Database = {
+         };
+         Insert: never;
+         Update: never;
+-        Relationships: [];
++        Relationships: [
++          {
++            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey";
++            columns: ["journal_entry_id"];
++            isOneToOne: false;
++            referencedRelation: "journal_entries";
++            referencedColumns: ["id"];
++          },
++        ];
+       };
+       zones: {
+         Row: { id: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
+@@ -2768,8 +2779,10 @@ export type Database = {
+           reversed_at: string | null;
+           reversed_by: string | null;
+           reversal_reason: string | null;
+-
+-                   };
++          advance_amount: number;
++          advance_account_id: string | null;
++          request_hash: string | null;
++        };
+         Insert: never;
+         Update: never;
+         Relationships: [];
+@@ -2782,6 +2795,14 @@ export type Database = {
+           amount: number;
+           reversed_at: string | null;
+           reversed_by: string | null;
++          applied_on: string;
++          reversed_on: string | null;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++          journal_entry_id: string | null;
++          reversal_journal_entry_id: string | null;
++          credit_account_id: string | null;
++          created_at: string;
++          created_by: string | null;
+         };
+         Insert: never;
+         Update: never;
+@@ -3398,8 +3419,118 @@ export type Database = {
+         };
+         Relationships: [];
+       };
++      /** allocations that count NOW: not reversed, receipt POSTED (migration 20261017100000) */
++      effective_payment_allocations: {
++        Row: {
++          id: string;
++          payment_id: string;
++          organization_id: string;
++          property_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++          journal_entry_id: string | null;
++          credit_account_id: string | null;
++          created_at: string;
++        };
++        Relationships: [];
++      };
++      payment_credit_balances: {
++        Row: {
++          payment_id: string;
++          organization_id: string;
++          property_id: string;
++          member_id: string | null;
++          unit_id: string | null;
++          payment_date: string;
++          advance_amount: number;
++          advance_account_id: string | null;
++          applied_amount: number;
++          remaining_amount: number;
++          is_stranded: boolean;
++        };
++        Relationships: [];
++      };
+     };
+     Functions: {
++      close_fiscal_year: {
++        Args: {
++          p_organization_id: string;
++          p_fiscal_year_id: string;
++          p_retained_earnings_account_id: string;
++          p_reason: string;
++          p_operation_key: string;
++        };
++        Returns: {
++          ok: boolean;
++          error_code?: string;
++          already_closed?: boolean;
++          closing_entry_id?: string;
++          line_count?: number;
++          net_income?: string | number;
++        };
++      };
++      payment_allocations_as_of: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: {
++          allocation_id: string;
++          payment_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++        }[];
++      };
++      payment_credit_balances_as_of: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: {
++          payment_id: string;
++          member_id: string | null;
++          unit_id: string | null;
++          advance_account_id: string | null;
++          advance_amount: number;
++          remaining_amount: number;
++        }[];
++      };
++      customer_advance_account_configured: { Args: { p_organization_id: string; p_property_id: string }; Returns: boolean };
++      list_deposit_accounts: {
++        Args: { p_organization_id: string; p_resort_id?: string | null };
++        Returns: { account_id: string; code: string; name_ar: string; name_en: string; source: string }[];
++      };
++      own_statement_dues: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: { due_id: string; unit_id: string; unit_code: string | null; amount: number; issue_date: string; due_date: string; description: string | null; status: string; settled_amount: number }[];
++      };
++      own_due_settlement_lines: {
++        Args: { p_org: string };
++        Returns: { allocation_id: string; due_id: string; amount: number; applied_on: string; reversed_on: string | null }[];
++      };
++      own_statement_receipts: {
++        Args: { p_org: string };
++        Returns: {
++          payment_id: string;
++          unit_id: string | null;
++          receipt_no: string | null;
++          receipt_number: number | null;
++          payment_date: string;
++          amount: number;
++          advance_amount: number;
++          status: string;
++          reversed_on: string | null;
++        }[];
++      };
++      own_credit_application_lines: {
++        Args: { p_org: string };
++        Returns: {
++          allocation_id: string;
++          payment_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          reversed_on: string | null;
++        }[];
++      };
+       gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
+       release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
+       export_gate_current_visitors: {
+@@ -4533,6 +4664,57 @@ export type Database = {
+         };
+         Returns: string;
+       };
++      get_default_receivable_account: {
++        Args: { p_organization_id: string; p_property_id: string };
++        Returns: string | null;
++      };
++      set_default_receivable_account: {
++        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
++        Returns: undefined;
++      };
++      set_default_customer_advance_account: {
++        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
++        Returns: undefined;
++      };
++      record_advance_payment: {
++        Args: {
++          p_organization_id: string;
++          p_resort_id: string;
++          p_member_id: string;
++          p_unit_id: string;
++          p_amount: number;
++          p_method: string;
++          p_payment_date: string;
++          p_deposit_account_id: string;
++          p_fiscal_period_id: string;
++          p_allocations: { due_id: string; amount: number }[];
++          p_idempotency_key: string;
++          p_cashier_session_id?: string | null;
++        };
++        Returns: Record<string, unknown>;
++      };
++      apply_payment_credit: {
++        Args: {
++          p_organization_id: string;
++          p_payment_id: string;
++          p_allocations: { due_id: string; amount: number }[];
++          p_application_date: string;
++          p_fiscal_period_id: string;
++          p_idempotency_key: string;
++        };
++        Returns: Record<string, unknown>;
++      };
++      reverse_credit_application: {
++        Args: {
++          p_organization_id: string;
++          p_allocation_id: string;
++          p_reason: string;
++          p_reversal_date: string;
++          p_fiscal_period_id: string;
++          p_idempotency_key: string;
++        };
++        Returns: Record<string, unknown>;
++      };
+       record_payment: {
+         Args: {
+           p_organization_id: string;
+@@ -4832,6 +5014,31 @@ export type Database = {
+           balance: number;
+         }[];
+       };
++      get_audit_actor_names: {
++        Args: { p_organization_id: string; p_actor_ids: string[] };
++        Returns: { id: string; full_name: string | null }[];
++      };
++      get_trial_balance_with_opening: {
++        Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
++        Returns: {
++          account_id: string | null;
++          code: string;
++          name_ar: string;
++          name_en: string;
++          category: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
++          normal_balance: "DEBIT" | "CREDIT";
++          opening_debit: number;
++          opening_credit: number;
++          period_debit: number;
++          period_credit: number;
++          closing_debit: number;
++          closing_credit: number;
++          opening_balance: number;
++          closing_balance: number;
++          is_synthetic: boolean;
++          fiscal_year_known: boolean;
++        }[];
++      };
+       void_payment: {
+         Args: {
+           p_organization_id: string;
+@@ -4843,7 +5050,7 @@ export type Database = {
+         Returns: Record<string, unknown>;
+       };
+       replace_role_permissions_atomic: {
+-        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[] };
++        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[]; p_actor_user_id: string };
+         Returns: undefined;
+       };
+       verify_financial_audit_chain: {

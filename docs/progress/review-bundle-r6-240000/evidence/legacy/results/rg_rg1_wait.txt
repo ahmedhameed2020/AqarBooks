@@ -1,0 +1,8 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/rg1_wait.sql:3: ERROR:  PROJECT_WIP_NEGATIVE: صافي الحركات يجعل رصيد WIP سالبًا (المرحّل -600.0000, المعلّق 0)
+CONTEXT:  PL/pgSQL function guard_project_floor_at_commit() line 22 at RAISE

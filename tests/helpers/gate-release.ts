@@ -1,15 +1,26 @@
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { assertIsolatedStack, isolatedDbContainer } from "./isolated-target";
 
 // Local-only fixtures: never read .env.production or accept a remote override.
 export const password = "Gate_Release_Test_P@ssw0rd_2026!";
 export const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 export function sql(query: string) {
-  return execFileSync("docker", ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c", query], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 }).trim();
+  return execFileSync("docker", ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c", query], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 }).trim();
 }
 export function localSupabase() {
-  const output = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
+  // r6 contract (ISOLATED_CONTRACT=r6): no `supabase status` (it would resolve the development stack). The verified r6 gate
+  // is the only authority; URL and keys are declared explicitly, and a missing value stops the run.
+  if (process.env.ISOLATED_CONTRACT === "r6") {
+    assertIsolatedStack();
+    const API_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+    const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) throw new Error("Release gates under r6 need NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly.");
+    return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
+  }
+  const output = execFileSync("supabase", ["status", "-o", "env", ...(() => { const wd = process.env.SUPABASE_WORKDIR ?? process.env.LOCAL_SUPABASE_WORKDIR; if (!wd) throw new Error("Refusing to run: SUPABASE_WORKDIR is not set, `supabase status` would resolve to the development stack."); return ["--workdir", wd]; })()], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 });
   const env = Object.fromEntries(output.split(/\r?\n/).flatMap((line) => {
     const match = line.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
     return match ? [[match[1], match[2]]] : [];

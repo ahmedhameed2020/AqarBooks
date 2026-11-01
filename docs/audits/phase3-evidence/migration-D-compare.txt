@@ -1,0 +1,6 @@
+units_with_financials: 481 rows in the snapshot, 0 changed, 0 gone, 100 new since
+members_with_financials: 477 rows in the snapshot, 0 changed, 0 gone, 104 new since
+due_outstanding: 432 rows in the snapshot, 0 changed, 0 gone, 152 new since
+payments: 433 rows in the snapshot, 0 changed, 0 gone, 221 new since
+payment_allocations: 367 rows in the snapshot, 0 changed, 0 gone, 205 new since
+IDENTICAL: every legacy row matches the snapshot

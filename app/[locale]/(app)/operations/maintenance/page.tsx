@@ -5,6 +5,7 @@ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { StaffMaintenanceClient, type StaffMaintenanceItem } from "./maintenance-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 type RequestRow = {
   id: string;
@@ -62,15 +63,19 @@ export default async function MaintenanceOperationsPage({
     .order("created_at", { ascending: false })
     .limit(300);
 
-  if (error) console.error("[MaintenanceOperationsPage] query failed:", error.message);
+  assertRead(error, "operations/maintenance: maintenance_requests");
   const requests = (requestData ?? []) as RequestRow[];
 
-  const [{ data: units }, { data: properties }, { data: members }, { data: categories }] = await Promise.all([
-    requests.length ? supabase.from("units").select("id, code").in("id", [...new Set(requests.map((r) => r.unit_id))]) : { data: [] },
-    requests.length ? supabase.from("properties").select("id, name").in("id", [...new Set(requests.map((r) => r.property_id))]) : { data: [] },
-    requests.length ? supabase.from("members").select("id, full_name").in("id", [...new Set(requests.map((r) => r.requester_member_id))]) : { data: [] },
-    requests.length ? supabase.from("maintenance_categories").select("id, name_ar, name_en").in("id", [...new Set(requests.map((r) => r.category_id))]) : { data: [] },
+  const [{ data: units, error: unitsError }, { data: properties, error: propertiesError }, { data: members, error: membersError }, { data: categories, error: categoriesError }] = await Promise.all([
+    requests.length ? supabase.from("units").select("id, code").in("id", [...new Set(requests.map((r) => r.unit_id))]) : { data: [], error: null },
+    requests.length ? supabase.from("properties").select("id, name").in("id", [...new Set(requests.map((r) => r.property_id))]) : { data: [], error: null },
+    requests.length ? supabase.from("members").select("id, full_name").in("id", [...new Set(requests.map((r) => r.requester_member_id))]) : { data: [], error: null },
+    requests.length ? supabase.from("maintenance_categories").select("id, name_ar, name_en").in("id", [...new Set(requests.map((r) => r.category_id))]) : { data: [], error: null },
   ]);
+  assertRead(unitsError, "operations/maintenance: units");
+  assertRead(propertiesError, "operations/maintenance: properties");
+  assertRead(membersError, "operations/maintenance: members");
+  assertRead(categoriesError, "operations/maintenance: maintenance_categories");
 
   const unitById = new Map((units ?? []).map((u) => [u.id, u.code]));
   const propertyById = new Map((properties ?? []).map((p) => [p.id, p.name]));

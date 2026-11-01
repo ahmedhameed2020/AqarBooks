@@ -1,0 +1,6 @@
+▲ Next.js 16.3.0
+- Local:         http://localhost:3100
+- Network:       http://192.168.0.106:3100
+✓ Ready in 295ms
+✓ Running next.config.ts took 2.1s
+Using secrets defined in .dev.vars

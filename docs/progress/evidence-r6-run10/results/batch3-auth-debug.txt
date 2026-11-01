@@ -1,0 +1,28 @@
+$ tests/batch3-auth-debug.integration.test.ts
+label=batch3-auth-debug
+exit=1
+elapsed_ms=4486
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/batch3-auth-debug.integration.test.ts (0 test)
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  15:46:19
+   Duration  1.15s (transform 312ms, setup 362ms, import 0ms, tests 0ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch3-auth-debug.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/batch3-auth-debug.integration.test.ts [ tests/batch3-auth-debug.integration.test.ts ]
+Error: This module cannot be imported from a Client Component module. It should only be used from a Server Component.
+ ❯ Object.<anonymous> node_modules/server-only/index.js:1:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

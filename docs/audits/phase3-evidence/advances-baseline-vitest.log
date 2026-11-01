@@ -1,0 +1,16 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_inbucket_aqarbooks_clean supabase_realtime_aqarbooks_clean supabase_imgproxy_aqarbooks_clean supabase_pg_meta_aqarbooks_clean supabase_studio_aqarbooks_clean supabase_edge_runtime_aqarbooks_clean supabase_analytics_aqarbooks_clean supabase_vector_aqarbooks_clean supabase_pooler_aqarbooks_clean]
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+
+ Test Files  20 passed (20)
+      Tests  251 passed (251)
+   Start at  15:00:40
+   Duration  132.45s (transform 1.47s, setup 1.32s, import 18.47s, tests 100.61s, environment 11ms)
+

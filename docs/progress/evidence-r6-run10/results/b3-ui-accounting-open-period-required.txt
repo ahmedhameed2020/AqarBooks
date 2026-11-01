@@ -1,0 +1,61 @@
+$ tests/e2e/accounting-open-period-required.spec.ts
+label=b3-ui-accounting-open-period-required
+exit=1
+elapsed_ms=250963
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\accounting-open-period-required.spec.ts:82:5 › O0 the FIRST opening balance of an organization, refused: the due type and the equity account it would create are rolled back too (1.8s)
+  ok 2 tests\e2e\accounting-open-period-required.spec.ts:90:5 › O1 control: with an OPEN period both operations post their journal entry (1.7s)
+  ok 3 tests\e2e\accounting-open-period-required.spec.ts:110:5 › O2/O3 an opening balance is refused atomically for a missing, planned and closed period (4.1s)
+  ok 4 tests\e2e\accounting-open-period-required.spec.ts:120:5 › O2/O3 a due is refused atomically for a missing, planned and closed period; a batch creates none (4.9s)
+  x  5 tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing (3.0m)
+  -  6 tests\e2e\accounting-open-period-required.spec.ts:166:5 › O4 once the period is opened the same operation succeeds and posts
+
+
+  1) tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+
+    Test timeout of 120000ms exceeded.
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-slot="dialog-content"][data-open]').getByRole('alert')
+    Expected pattern: /FISCAL_PERIOD_MISSING/
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 60000ms
+      - waiting for locator('[data-slot="dialog-content"][data-open]').getByRole('alert')
+      - Test timeout of 120000ms exceeded.
+
+
+      147 |   await dialog.getByPlaceholder(/Q2 maintenance fee/i).fill("UI refused: no period");
+      148 |   await dialog.getByRole("button", { name: /Issue Due & Post/i }).click();
+    > 149 |   await expect(dialog.getByRole("alert")).toContainText(/FISCAL_PERIOD_MISSING/, { timeout: 60_000 });
+          |                                           ^
+      150 |   await page.screenshot({ path: "docs/audits/phase2-evidence/screens/70-issue-due-no-fiscal-period.png" });
+      151 |   expect(await snapshot()).toEqual(before);
+      152 |
+        at D:\Web\AqarBooks\tests\e2e\accounting-open-period-required.spec.ts:149:43
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-ui-accounting-open-period-required-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-ui-accounting-open-period-required-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-ui-accounting-open-period-required-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+  1 did not run
+  4 passed (3.7m)
+(node:23140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24096) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

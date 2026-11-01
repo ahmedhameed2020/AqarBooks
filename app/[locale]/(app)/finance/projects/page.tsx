@@ -59,7 +59,21 @@ export default async function ProjectsPage({
       .order("name"),
   ]);
 
-  const projects = (projectsRaw ?? []) as unknown as ProjectRow[];
+  // The list RPC reports whether accounts are set, not which ones: the edit form needs the stored ids.
+  const { data: storedRows } = await supabase
+    .from("projects")
+    .select("id, property_id, wip_account_id, cost_of_sales_account_id")
+    .eq("organization_id", organization.id);
+  const storedById = new Map((storedRows ?? []).map((r) => [r.id, r]));
+  const projects = (projectsRaw ?? []).map((row) => {
+    const stored = storedById.get((row as { id: string }).id);
+    return {
+      ...row,
+      property_id: stored?.property_id ?? null,
+      wip_account_id: stored?.wip_account_id ?? null,
+      cost_of_sales_account_id: stored?.cost_of_sales_account_id ?? null,
+    };
+  }) as unknown as ProjectRow[];
   const currency = organization.default_currency ?? "EGP";
 
   const label = (a: { code: string; name_ar: string; name_en: string }) =>
@@ -98,6 +112,7 @@ export default async function ProjectsPage({
 
       {/* Main Interactive Client Table & KPIs */}
       <ProjectsClient
+        organizationId={organization.id}
         projects={projects}
         assetAccounts={assetAccounts}
         expenseAccounts={expenseAccounts}

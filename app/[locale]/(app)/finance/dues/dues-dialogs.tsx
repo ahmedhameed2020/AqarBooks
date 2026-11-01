@@ -33,9 +33,10 @@ import {
   CheckCircle2,
   Tag,
 } from "lucide-react";
-import { issueDueAction, createDueTypeAction } from "@/lib/actions/receivables";
+import { issueDueAction, createDueTypeAction, saveDefaultReceivableAccountAction } from "@/lib/actions/receivables";
 import { useToast } from "@/components/ui/toast";
 import { getCurrencyLabel } from "@/lib/currency";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
 
 export type Option = { id: string; label: string };
 
@@ -94,7 +95,7 @@ export function CreateDueTypeDialog({
         setNameEn("");
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل إنشاء نوع المستحق" : "Failed to create due type"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل إنشاء نوع المستحق" : "Failed to create due type"));
       }
     });
   };
@@ -199,6 +200,8 @@ export function IssueDueDialog({
   units,
   dueTypes,
   receivableAccounts,
+  defaultReceivableAccountId = null,
+  canSaveReceivableDefault = false,
   periods,
   currency = "EGP",
   locale,
@@ -211,6 +214,9 @@ export function IssueDueDialog({
   units: Option[];
   dueTypes: Option[];
   receivableAccounts: Option[];
+  /** the organization's approved receivable account; null = not configured, the user must choose */
+  defaultReceivableAccountId?: string | null;
+  canSaveReceivableDefault?: boolean;
   periods: Option[];
   currency?: string;
   locale: string;
@@ -225,7 +231,11 @@ export function IssueDueDialog({
 
   const [unitId, setUnitId] = useState<string>(preselectedUnitId ?? units[0]?.id ?? "");
   const [dueTypeId, setDueTypeId] = useState<string>(dueTypes[0]?.id ?? "");
-  const [receivableAccountId, setReceivableAccountId] = useState<string>(receivableAccounts[0]?.id ?? "");
+  const [receivableAccountId, setReceivableAccountId] = useState<string>(
+    defaultReceivableAccountId && receivableAccounts.some((a) => a.id === defaultReceivableAccountId) ? defaultReceivableAccountId : "",
+  );
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const hasApprovedDefault = Boolean(defaultReceivableAccountId && receivableAccounts.some((a) => a.id === defaultReceivableAccountId));
   const [fiscalPeriodId, setFiscalPeriodId] = useState<string>(periods[0]?.id ?? "");
   const [amount, setAmount] = useState("");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
@@ -248,6 +258,7 @@ export function IssueDueDialog({
       formData.set("unitId", unitId);
       formData.set("dueTypeId", dueTypeId);
       formData.set("receivableAccountId", receivableAccountId);
+      if (saveAsDefault && canSaveReceivableDefault) formData.set("saveAsDefault", "true");
       formData.set("fiscalPeriodId", fiscalPeriodId);
       formData.set("amount", amount);
       formData.set("issueDate", issueDate);
@@ -256,7 +267,53 @@ export function IssueDueDialog({
 
       const res = await issueDueAction({ ok: true }, formData);
 
-      if (res.ok) {
+      if (res.ok && res.data?.warning === "DEFAULT_NOT_SAVED") {
+        // The due IS issued; only the optional default was not saved. Say so separately and offer a retry that
+        // saves the setting alone (issuing again would be skipped by the duplicate guard).
+        const accountId = receivableAccountId;
+        // One attempt at a time, and never again once it has succeeded (a double click or a double dispatch of the
+        // toast control must not save - and audit - the setting twice).
+        let busy = false;
+        let saved = false;
+        toast.add({
+          type: "warning",
+          title: res.data.outcome === "ALREADY_EXISTS"
+            ? isAr ? "المستحق موجود بالفعل، ولم يُحفظ الحساب الافتراضي" : "Due already exists, and the default account was not saved"
+            : isAr ? "صدر المستحق، لكن لم يُحفظ الحساب الافتراضي" : "Due issued, but the default account was not saved",
+          description: res.data.detail ? financeErrorMessage(res.data.detail, isAr) : "",
+          actionProps: {
+            children: isAr ? "إعادة محاولة الحفظ" : "Retry saving",
+            onClick: async () => {
+              if (busy || saved) return;
+              busy = true;
+              const retry = await saveDefaultReceivableAccountAction({ organizationId, resortId, accountId });
+              busy = false;
+              saved = retry.ok;
+              toast.add(
+                retry.ok
+                  ? { type: "success", title: isAr ? "حُفظ الحساب الافتراضي" : "Default account saved" }
+                  : { type: "error", title: isAr ? "تعذّر الحفظ" : "Could not save", description: financeErrorMessage(retry.error, isAr) },
+              );
+              router.refresh();
+            },
+          },
+        });
+        onOpenChange(false);
+        setAmount("");
+        setDescription("");
+        router.refresh();
+      } else if (res.ok && res.data?.outcome === "ALREADY_EXISTS") {
+        // Nothing was created: say so instead of "issued".
+        toast.add({
+          type: "info",
+          title: isAr ? "المستحق موجود بالفعل" : "Due already exists",
+          description: isAr
+            ? "يوجد مستحق مطابق لنفس الوحدة والنوع والتاريخ والبيان، فلم يُصدر مستحق جديد."
+            : "An identical due (same unit, type, date and description) is already there, so no new due was issued.",
+        });
+        onOpenChange(false);
+        router.refresh();
+      } else if (res.ok) {
         toast.add({
           type: "success",
           title: isAr ? "تم إصدار المستحق بنجاح" : "Due Issued Successfully",
@@ -269,7 +326,7 @@ export function IssueDueDialog({
         setDescription("");
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل إصدار المستحق" : "Failed to issue due"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل إصدار المستحق" : "Failed to issue due"));
       }
     });
   };
@@ -357,6 +414,24 @@ export function IssueDueDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {!hasApprovedDefault && (
+                  <p data-testid="receivable-not-configured" className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                    {isAr
+                      ? "لم يُعتمد حساب ذمم افتراضي لهذه المؤسسة. اختر الحساب بنفسك؛ لن نخمّنه."
+                      : "No receivable account has been approved for this organization. Choose it yourself; it is not guessed."}
+                  </p>
+                )}
+                {!hasApprovedDefault && canSaveReceivableDefault && (
+                  <label className="flex items-center gap-2 text-[11px] font-medium text-foreground">
+                    <input
+                      type="checkbox"
+                      data-testid="save-receivable-default"
+                      checked={saveAsDefault}
+                      onChange={(e) => setSaveAsDefault(e.target.checked)}
+                    />
+                    {isAr ? "اعتمد هذا الحساب كحساب الذمم الافتراضي" : "Approve this account as the default receivable account"}
+                  </label>
+                )}
               </div>
 
               <div className="space-y-1.5 text-start">

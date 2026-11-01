@@ -1,0 +1,14 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (39.7s)
+  ok 2 tests\e2e\projects-wip.spec.ts:245:5 › a member without finance.accounts.manage sees the projects but no controls (15.0s)
+  ok 3 tests\e2e\projects-wip.spec.ts:282:5 › a project form that names another organization is refused and writes nothing (19.7s)
+
+  3 passed (1.3m)
+

@@ -1,0 +1,56 @@
+$ tests/e2e/asset-disposal.spec.ts
+label=rel03-red-e2e
+exit=1
+elapsed_ms=35840
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (20.3s)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Error: expect(locator).not.toContainText(expected) failed
+
+    Locator: locator('#dispose-account')
+    Expected substring: not "1210 — Buildings"
+    Received string: "Select proceeds account...1010 — Cash1210 — Buildings1220 — Accumulated Depreciation"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "not toContainText" with timeout 5000ms
+      - waiting for locator('#dispose-account')
+        14 × locator resolved to <select required="" id="dispose-account" name="proceedsAccountId" class="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">…</select>
+           - unexpected value "Select proceeds account...1010 — Cash1210 — Buildings1220 — Accumulated Depreciation"
+
+
+      134 |     await page.locator("#dispose-proceeds").fill("7000");
+      135 |     await expect(page.locator("#dispose-account")).toContainText("1010 — Cash");
+    > 136 |     await expect(page.locator("#dispose-account")).not.toContainText("1210 — Buildings");
+          |                                                        ^
+      137 |     await expect(page.locator("#dispose-account")).not.toContainText("1220 — Accumulated Depreciation");
+      138 |     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+      139 |     await page.locator("#dispose-date").fill("2026-06-01");
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:136:56
+
+    Error Context: docs\progress\evidence-r6-run10\results\rel03-red-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\rel03-red-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\rel03-red-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+(node:12424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

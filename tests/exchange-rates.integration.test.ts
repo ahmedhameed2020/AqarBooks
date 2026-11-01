@@ -80,7 +80,7 @@ afterAll(async () => {
 
 describe("exchange rates and conversion to the base currency", () => {
   it("REFUSES to convert when no rate exists, rather than assuming 1:1", async () => {
-    const { error } = await asUser.rpc("convert_to_base", {
+    const { error } = await admin.rpc("convert_to_base", {
       p_organization_id: orgId,
       p_amount: 1000,
       p_currency: "EUR",
@@ -91,7 +91,7 @@ describe("exchange rates and conversion to the base currency", () => {
   });
 
   it("passes the organization's own currency through untouched, with no rate needed", async () => {
-    const { data, error } = await asUser.rpc("convert_to_base", {
+    const { data, error } = await admin.rpc("convert_to_base", {
       p_organization_id: orgId,
       p_amount: 1234.56,
       p_currency: "EGP",
@@ -110,20 +110,20 @@ describe("exchange rates and conversion to the base currency", () => {
     ]);
 
     // On the later date: the newer rate.
-    const { data: late } = await asUser.rpc("convert_to_base", {
+    const { data: late } = await admin.rpc("convert_to_base", {
       p_organization_id: orgId, p_amount: 100, p_currency: "EUR", p_date: "2026-06-15",
     });
     expect(Number(late)).toBe(5500);
 
     // Between the two: still the older one -- a rate published on the 10th was
     // not knowable on the 5th.
-    const { data: mid } = await asUser.rpc("convert_to_base", {
+    const { data: mid } = await admin.rpc("convert_to_base", {
       p_organization_id: orgId, p_amount: 100, p_currency: "EUR", p_date: "2026-06-05",
     });
     expect(Number(mid), "a later rate must not reach an earlier transaction").toBe(5000);
 
     // Before any rate exists: refused, not extrapolated backwards.
-    const { error } = await asUser.rpc("convert_to_base", {
+    const { error } = await admin.rpc("convert_to_base", {
       p_organization_id: orgId, p_amount: 100, p_currency: "EUR", p_date: "2026-05-31",
     });
     expect(error?.message).toMatch(/EXCHANGE_RATE_MISSING/);
@@ -135,7 +135,7 @@ describe("exchange rates and conversion to the base currency", () => {
       organization_id: kwdOrgId, foreign_currency: "USD", base_currency: "KWD",
       rate_date: "2026-01-01", base_per_unit: 0.30655, source: "test",
     });
-    const { data, error } = await asUser.rpc("convert_to_base", {
+    const { data, error } = await admin.rpc("convert_to_base", {
       p_organization_id: kwdOrgId, p_amount: 100, p_currency: "USD", p_date: "2026-06-01",
     });
     expect(error, error?.message).toBeNull();

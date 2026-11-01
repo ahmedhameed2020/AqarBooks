@@ -1,0 +1,7 @@
+$ node node_modules/typescript/bin/tsc --noEmit
+label=batch3-typescript-after-auth-fix
+note=regenerated during owner review on 2026-10-31; original captured file was empty (0 bytes)
+regenerated_by=reviewer-verification-run
+run_at_utc=2026-10-31T17:14:15Z
+--- tsc output (empty section = no diagnostics) ---
+exit=0

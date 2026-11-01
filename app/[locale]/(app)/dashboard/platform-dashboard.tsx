@@ -11,13 +11,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KpiCard } from "./kpi-card";
-import { Building2, Inbox, ShieldAlert, Activity, ArrowUpRight, ShieldCheck } from "lucide-react";
+import { Building2, Inbox, ShieldAlert, Activity, ArrowUpRight } from "lucide-react";
 
 export async function PlatformDashboard({ locale }: { locale: Locale }) {
   const isAr = locale === "ar";
   const supabase = await createClient();
 
-  const [{ data: organizations }, { data: leads }, { data: auditEvents }] = await Promise.all([
+  const [organizationsRes, leadsRes, auditEventsRes] = await Promise.all([
     supabase.from("organizations").select("id, name, status, created_at").order("created_at", { ascending: false }),
     supabase
       .from("demo_leads")
@@ -31,9 +31,14 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
       .limit(6),
   ]);
 
-  const orgs = organizations ?? [];
+  const organizationsError = Boolean(organizationsRes.error);
+  const leadsError = Boolean(leadsRes.error);
+  const auditEventsError = Boolean(auditEventsRes.error);
+  const orgs = organizationsError ? [] : organizationsRes.data ?? [];
+  const leads = leadsError ? [] : leadsRes.data ?? [];
+  const auditEvents = auditEventsError ? [] : auditEventsRes.data ?? [];
   const byStatus = (s: string) => orgs.filter((o) => o.status === s).length;
-  const newLeads = (leads ?? []).filter((l) => l.status === "NEW").length;
+  const newLeads = leads.filter((l) => l.status === "NEW").length;
 
   const dateLabel = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
     weekday: "long",
@@ -63,9 +68,9 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
               {isAr ? "إدارة المنظمات والاشتراكات وسجلات الأمان" : "Multi-tenant supervision, leads & audit operations"}
             </p>
           </div>
-          <span className="hidden items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 sm:flex">
-            <ShieldCheck className="size-4" />
-            {isAr ? "النظام يعمل باستقرار" : "System Healthy"}
+          <span className="hidden items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground sm:flex">
+            <Activity className="size-4" />
+            {isAr ? "لقطة تشغيلية" : "Operational snapshot"}
           </span>
         </div>
       </div>
@@ -74,7 +79,7 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
         <div style={{ "--reveal-i": 0 } as React.CSSProperties}>
           <KpiCard
             label={isAr ? "منظمات نشطة" : "Active organizations"}
-            value={String(byStatus("ACTIVE"))}
+            value={organizationsError ? "—" : String(byStatus("ACTIVE"))}
             icon={<Building2 className="size-5" />}
             tone="positive"
           />
@@ -82,7 +87,7 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
         <div style={{ "--reveal-i": 1 } as React.CSSProperties}>
           <KpiCard
             label={isAr ? "منظمات تجريبية" : "Trial organizations"}
-            value={String(byStatus("TRIAL"))}
+            value={organizationsError ? "—" : String(byStatus("TRIAL"))}
             icon={<Building2 className="size-5" />}
             tone="info"
           />
@@ -90,17 +95,17 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
         <div style={{ "--reveal-i": 2 } as React.CSSProperties}>
           <KpiCard
             label={isAr ? "طلبات عرض جديدة" : "New demo leads"}
-            value={String(newLeads)}
+            value={leadsError ? "—" : String(newLeads)}
             icon={<Inbox className="size-5" />}
-            tone={newLeads > 0 ? "warning" : undefined}
+            tone={!leadsError && newLeads > 0 ? "warning" : undefined}
           />
         </div>
         <div style={{ "--reveal-i": 3 } as React.CSSProperties}>
           <KpiCard
             label={isAr ? "منظمات معلّقة" : "Suspended"}
-            value={String(byStatus("SUSPENDED"))}
+            value={organizationsError ? "—" : String(byStatus("SUSPENDED"))}
             icon={<ShieldAlert className="size-5" />}
-            tone={byStatus("SUSPENDED") > 0 ? "negative" : undefined}
+            tone={!organizationsError && byStatus("SUSPENDED") > 0 ? "negative" : undefined}
           />
         </div>
       </div>
@@ -126,7 +131,13 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orgs.length ? (
+              {organizationsError ? (
+                <TableRow>
+                  <TableCell colSpan={2} role="alert" className="py-8 text-center text-sm text-amber-700 dark:text-amber-400">
+                    {isAr ? "تعذر تحميل المنظمات" : "Could not load organizations"}
+                  </TableCell>
+                </TableRow>
+              ) : orgs.length ? (
                 orgs.slice(0, 6).map((o) => (
                   <TableRow key={o.id} className="hover:bg-muted/40 transition-colors">
                     <TableCell className="font-semibold text-foreground">{o.name}</TableCell>
@@ -164,8 +175,12 @@ export async function PlatformDashboard({ locale }: { locale: Locale }) {
             </Link>
           </div>
           <div className="divide-y divide-border/40">
-            {(auditEvents ?? []).length ? (
-              (auditEvents ?? []).map((e) => (
+            {auditEventsError ? (
+              <p role="alert" className="px-5 py-8 text-center text-sm text-amber-700 dark:text-amber-400">
+                {isAr ? "تعذر تحميل أحداث التدقيق الأخيرة" : "Could not load recent audit activity"}
+              </p>
+            ) : auditEvents.length ? (
+              auditEvents.map((e) => (
                 <div key={e.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors">
                   <span className="font-mono text-xs font-medium text-foreground">{e.action}</span>
                   <span className="text-[11px] text-muted-foreground">

@@ -1,0 +1,23 @@
+BEGIN
+INSERT 0 1
+                                 set_config                                 
+----------------------------------------------------------------------------
+ {"sub" : "22a1363a-134f-494a-9ada-c978878737e7", "role" : "authenticated"}
+(1 row)
+
+         probe          |                result                
+------------------------+--------------------------------------
+ RED create_fiscal_year | 1dfb024e-33d5-401e-83f4-a5aca7fef3e5
+(1 row)
+
+      probe       |                               result                               
+------------------+--------------------------------------------------------------------
+ RED designate_re | {"ok": true, "account_id": "4f7fac43-cd1a-4bd0-8dc7-d765c64f7cb8"}
+(1 row)
+
+       probe       |                result                
+-------------------+--------------------------------------
+ RED reverse_entry | df23dd67-da79-439d-8315-fabe28dca565
+(1 row)
+
+ROLLBACK

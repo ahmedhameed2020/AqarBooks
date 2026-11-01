@@ -1,0 +1,100 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts (5 tests | 4 failed) 66ms
+     × no principal sees a different set of journal entries OR of journal entry lines through the installed policies 19ms
+     × catalog: exactly one policy per table, a PUBLIC permissive SELECT policy, no per-row permission helper, an uncorrelated platform-admin sub-select; no write policy exists 4ms
+     × plans: an InitPlan executed at most once, no per-row is_platform_admin in any Filter, for a regular user, the platform admin and a stranger 34ms
+     × writes stay denied on the real tables: a principal that can read entries still updates and deletes none, and so do the platform admin and a stranger 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > no principal sees a different set of journal entries OR of journal entry lines through the installed policies
+AssertionError: je-differs: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "platform_admin|only_new=0|only_old=158",
++ ]
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:157:77
+    155|
+    156|   it("no principal sees a different set of journal entries OR of journ…
+    157|     for (const bad of ["je-differs", "lines-differs"]) expect(of(bad),…
+       |                                                                             ^
+    158|   });
+    159|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > catalog: exactly one policy per table, a PUBLIC permissive SELECT policy, no per-row permission helper, an uncorrelated platform-admin sub-select; no write policy exists
+AssertionError: both policies carry the admin sub-select: expected Set{ 'journal_entry_lines_select_per…' } to deeply equal Set{ …(2) }
+
+- Expected
++ Received
+
+  Set {
+-   "journal_entries_select_permission",
+    "journal_entry_lines_select_permission",
+  }
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:181:88
+    179|     }
+    180|     const subs = of("admin-subselect").map((d) => d.split("~"));
+    181|     expect(new Set(subs.map((s) => s[0])), "both policies carry the ad…
+       |                                                                                        ^
+    182|     for (const [name, text] of subs) expect(text, `${name}: the sub-se…
+    183|     expect(subs.filter((x) => x[0] === "journal_entries_select_permiss…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > plans: an InitPlan executed at most once, no per-row is_platform_admin in any Filter, for a regular user, the platform admin and a stranger
+AssertionError: platform_admin journal_entries: InitPlan present: expected 'Aggregate (actual rows=1 loops=1)\n  …' to match /InitPlan \d+/
+
+- Expected:
+/InitPlan \d+/
+
++ Received:
+"Aggregate (actual rows=1 loops=1)
+  ->  Index Only Scan using idx_journal_entries_org on journal_entries (actual rows=0 loops=1)
+        Filter: (ANY (organization_id = (hashed SubPlan 1).col1))
+        Rows Removed by Filter: 2954
+        Heap Fetches: 0
+        SubPlan 1
+          ->  ProjectSet (actual rows=0 loops=1)
+                ->  Result (actual rows=1 loops=1)"
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:193:79
+    191|     for (const w of who) for (const t of ["journal_entries", "journal_…
+    192|       const ls = plans.filter((p) => p[0] === w && p[1] === t).sort((a…
+    193|       expect(ls.join(String.fromCharCode(10)), `${w} ${t}: InitPlan pr…
+       |                                                                               ^
+    194|       const results = ls.map((l, k) => (/^\s*InitPlan \d+/.test(l) ? l…
+    195|       for (const r of results) expect(r, `${w} ${t}: an InitPlan must …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > writes stay denied on the real tables: a principal that can read entries still updates and deletes none, and so do the platform admin and a stranger
+AssertionError: platform_admin journal_entries: the denial is meaningful only if rows are readable: expected 0 to be greater than 0
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:207:170
+    205|       expect(deleted, `${who} ${t}`).toBe("deleted=0");
+    206|       expect(updated, `${who} ${t}`).toBe("updated=0");
+    207|       if (who.startsWith("staff:") || who === "platform_admin") expect…
+       |                                                                                                                                                                          ^
+    208|     }
+    209|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  08:05:05
+   Duration  11.13s (transform 144ms, setup 176ms, import 10.46s, tests 66ms, environment 0ms)
+

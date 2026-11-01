@@ -1,6 +1,6 @@
 # AqarBooks Mobile — حزمة النشر على Google Play
 
-كل ما يلزم لإصدار V1 أندرويد. مبنية على الحالة الفعلية للمشروع — آخر تحقق ميداني بتاريخ **2026-10-08** (فحص `android/app/build.gradle.kts` والـManifest، وAAB موقّع مبني، وفحص حيّ لـ`assetlinks.json` وروابط سياسة الخصوصية).
+مسودة تجهيز إصدار V1 أندرويد؛ تحديث محلي 2026-10-09: تأجيل Fawry. الـAAB الحالي يحتاج استبدالًا بعد الاختبارات وموافقة البناء، ولا يجوز إرسال وصفه أو لقطته القديمة للمراجعة.  مبنية على الحالة الفعلية للمشروع — آخر تحقق ميداني بتاريخ **2026-10-08** (فحص `android/app/build.gradle.kts` والـManifest، وAAB موقّع مبني، وفحص حيّ لـ`assetlinks.json` وروابط سياسة الخصوصية).
 
 ---
 
@@ -13,7 +13,7 @@
 | `compileSdk 36` / target | يفي بمتطلبات Play الحالية — جاهز |
 | **توقيع الإصدار** | ✅ **منفَّذ (2026-10-08):** الـupload keystore و`android/key.properties` مولَّدان محليًا (خارج المستودع)، وكلاهما مُستثنى في `mobile/android/.gitignore` (`key.properties`, `**/*.jks`, `**/*.keystore`). build.gradle.kts يقرأ `android/key.properties` ويسقط إلى debug عند غيابه |
 | **بناء AAB موقّع** | ✅ **منفَّذ:** `mobile/build/app/outputs/bundle/release/app-release.aab` (≈68 MB، 2026-10-08) موقّع بشهادة upload `CN=AqarBooks, O=AqarBooks, C=EG` |
-| الأصول البصرية للمتجر | ✅ **الأيقونة والـFeature graphic جاهزتان** في [store-assets](../store-assets/README.md) وتجتازان `validate_store_assets.py` (`PASS: 2/2 assets valid`). 🟡 **المتبقي:** لقطات شاشة من جهاز حقيقي |
+| الأصول البصرية للمتجر | ✅ **الأيقونة والـFeature graphic جاهزتان** في [store-assets](../store-assets/README.md) وتجتازان `validate_store_assets.py` (`PASS: 2/2 assets valid`). ✅ **لقطات الشاشة جاهزة (2026-10-11):** ثماني لقطات فعلية 1080×2400 من تطبيق Android على المحاكي في [screenshots/ar](../store-assets/screenshots/ar/) تجتاز `validate_play_screenshots.py` (`PASS: 8/8`) — التفاصيل والبصمات في [GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md](GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md) |
 | Deep links | 🟡 `assetlinks.json` منشور على `aqarbooks.com` ويُرجع `com.aqarbooks.app` ببصمة **upload** فقط، وبصمة Play App Signing معلَّقة (القسم 6). `app.aqarbooks.com` نطاق بلا DNS وقد **حُذف فلتر App Link العام غير المستخدم** من الـManifest (2026-10-08)، فلم يعد هناك حاجب DNS — والمتبقي الوحيد بصمة Play App Signing |
 | الصلاحيات | ✅ **محسومة ومنفَّذة (2026-10-06):** حُذفت `READ_MEDIA_IMAGES` (الاختيار عبر system picker/Photo Picker بلا صلاحية) و`POST_NOTIFICATIONS` (لا push في V1). المتبقي: INTERNET وCAMERA وUSE_BIOMETRIC فقط |
 | سياسة الخصوصية | ✅ **منشورة (2026-10-08):** https://aqarbooks.com/ar/privacy وhttps://aqarbooks.com/en/privacy (‏200)، و`https://aqarbooks.com/privacy` يعيد 307 إلى `/ar/privacy` (الأساس المنشور من [PRIVACY_POLICY_DRAFT.md](PRIVACY_POLICY_DRAFT.md)). 🟡 المتبقي: لصق الرابط في الـConsole |
@@ -86,7 +86,7 @@ flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.s
 >
 > **للمالك والساكن:**
 > • تابع رصيد وحدتك ومستحقاتك أولًا بأول
-> • ادفع عبر فوري بكود مرجعي من داخل التطبيق
+> • تابع سجل مدفوعات وحدتك والتحصيلات المسجّلة
 > • اطلب الصيانة بالصور وتابع حالة الطلب خطوة بخطوة
 > • أصدر تصاريح زوار بكود QR وشاركها واتساب
 >
@@ -104,7 +104,7 @@ AqarBooks is a property-community management app for compounds and residential c
 
 **For owners and residents:**
 • Track your unit balance and dues at a glance
-• Start a Fawry payment with a reference code from the app
+• View your unit's payment history and recorded collections
 • Submit maintenance requests with photos or documents and follow each update
 • Issue QR visitor passes and share them through WhatsApp
 
@@ -124,7 +124,7 @@ The app requires an account issued by your compound or organisation using AqarBo
 |---|---|---|
 | أيقونة المتجر | 512×512 PNG (بلا شفافية) | ✅ **جاهزة:** [google-play-icon-512.png](../store-assets/google-play-icon-512.png) — اللوجو الرسمي على خلفية بيضاء، 0 بكسل شفاف |
 | Feature graphic | 1024×500 PNG | ✅ **جاهزة:** [google-play-feature-graphic-1024x500.png](../store-assets/google-play-feature-graphic-1024x500.png) — اللوجو + «AqarBooks» على Navy `#07425D` |
-| لقطات شاشة هاتف | 2–8 لقطات، يفضل 1080×2400 | 🔴 **متبقية:** تُلتقط من الجهاز الحقيقي أثناء تنفيذ خطة الاختبار (بيانات QA الوهمية — **لا بيانات حقيقية في اللقطات**)؛ المقترح: الرئيسية، المدفوعات، كود فوري، تصريح الزائر، مهام الفني، نتيجة البوابة الخضراء |
+| لقطات شاشة هاتف | 2–8 لقطات، يفضل 1080×2400 | ⚠️ **مجموعة سابقة تحتاج تحديث V1:** [screenshots/ar](../store-assets/screenshots/ar/) تضم ثماني لقطات فعلية 1080×2400 **ملتقطة من محاكي Android** (`Medium_Phone_API_36.1`)، لا من جهاز بيع فعلي: الرئيسية (ساكن)، المدفوعات، كود فوري، تصريح الزائر، تفاصيل طلب صيانة، اليوم (فني)، المسح (بوابة)، الرئيسية (مدير). بيانات تجريبية بالكامل — **لا بيانات حقيقية ولا اعتماد زائر صالح**. التحقق: [GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md](GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md) |
 
 تُعاد الأصول وتُتحقق حتميًا بالأمرين `python mobile/store-assets/generate_store_assets.py` ثم `python mobile/store-assets/validate_store_assets.py` (يفحص PNG والأبعاد وانعدام الشفافية وحضور لونَي العلامة، وينتهي بـ`PASS: 2/2 assets valid`). التفاصيل في [store-assets/README.md](../store-assets/README.md).
 
@@ -148,49 +148,30 @@ The app requires an account issued by your compound or organisation using AqarBo
 
 **الخلاصة:** لم يبقَ أي حاجب DNS. `assetlinks.json` مطلوب لفلتر واحد فقط هو **App Link التنشيط** (`aqarbooks.com/activate`)، والمتبقي الوحيد عليه إضافة بصمة **Play App Signing** بعد أول رفع.
 
-## 7. استمارة Data safety (مصفوفة محافظة جاهزة للمراجعة — لم تُدخل في الـConsole بعد)
+## 7. استمارة Data safety — مسودة معلّقة، لا إقرار نهائي
 
-هذه المصفوفة مبنية على فئات Google Play الحالية وعلى مصادر التطبيق، لكنها ليست إجابة نهائية قبل مراجعة واجهة Console وعقود مزوّدي الخدمة. رابط المساعدة الرسمي: https://support.google.com/googleplay/android-developer/answer/10787469?hl=en
+التدقيق الجديد حلّ محل المصفوفة السابقة. راجع [مسودة V1](GOOGLE_PLAY_DATA_SAFETY_DRAFT_V1_2026-10-09.md)، و[تدقيق الكود والمكتبات](GOOGLE_PLAY_DATA_CODE_AUDIT_2026-10-09.md)، و[مراجعة المزوّدين](GOOGLE_PLAY_DATA_PROVIDER_REVIEW_2026-10-09.md).
 
-| فئة Google Play / نوع البيانات | الحالة | مشاركة مزوّد الخدمة | مرتبط بالمستخدم؟ | مطلوب أم اختياري؟ | الغرض في Play Console |
-|---|---|---|---|---|---|
-| Personal info — Name | يُجمع | Supabase لتشغيل الحساب؛ لا يُرسل الاسم إلى Fawry في تدفق الدفع الموثّق هنا | نعم | مطلوب للحساب؛ اسم الزائر اختياري حسب الوظيفة | App functionality; Account management |
-| Personal info — Email | يُجمع | يُرسل إلى Fawry عند بدء دفعة مطلوبة؛ Supabase/Resend قد يعالجه لتشغيل الخدمة، وفق الاستثناء التعاقدي | نعم | مطلوب للحساب | App functionality; Account management |
-| Personal info — User IDs | يُجمع | Supabase لتشغيل الحساب وربط البيانات | نعم | مطلوب | App functionality; Account management; Fraud prevention, security, and compliance |
-| Personal info — Phone | يُجمع | يُرسل إلى Fawry عند بدء دفعة مطلوبة؛ Supabase لتسجيل الدخول، وفق الاستثناء التعاقدي | نعم | مطلوب لإكمال first login؛ هاتف الزائر اختياري | App functionality; Account management |
-| Personal info — Other info (visitor/vehicle details) | يُجمع | Supabase للمشاركة داخل المؤسسة وتشغيل الزوار والمركبات | نعم | اختياري بحسب الوظيفة | App functionality; Fraud prevention, security, and compliance |
-| Financial info — Purchase history | يُجمع | Supabase لتشغيل المستحقات والمدفوعات؛ Fawry لمعالجة الدفعة المطلوبة | نعم | مطلوب عند استخدام الدفع | App functionality; Account management; Fraud prevention, security, and compliance |
-| Financial info — Other financial info (amount, transaction/reference data) | يُجمع عند الدفع | Fawry receives email, phone, amount, and transaction/reference data to process a user-requested payment | نعم | اختياري؛ فقط عند بدء دفعة | App functionality; Fraud prevention, security, and compliance |
-| Photos | تُجمع عند اختيار المستخدم | Supabase/التخزين لتشغيل مرفقات الصيانة، وفق الاستثناء التعاقدي | نعم | اختياري | App functionality |
-| Files and docs — PDF | يُجمع عند اختيار المستخدم | Supabase/التخزين لتشغيل مرفقات الصيانة، وفق الاستثناء التعاقدي | نعم | اختياري | App functionality |
-| App activity — Other user-generated content (maintenance, visitor, vehicle, and work-order notes) | يُجمع | Supabase لتشغيل الخدمة داخل المؤسسة | نعم | اختياري بحسب الوظيفة | App functionality; Account management |
-| Device or other IDs — gate installation/device/client scan identifiers | تُجمع | Supabase لتوثيق جهاز البوابة ومنع إعادة التشغيل أو التكرار، وفق الاستثناء التعاقدي | نعم | مطلوب لوظيفة البوابة فقط | App functionality; Fraud prevention, security, and compliance |
-| Location | لا يُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
-| Contacts | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
-| Health and fitness | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
-| Ads, analytics, and crash data | لا تُجمع | لا ينطبق | لا ينطبق | لا ينطبق | لا ينطبق |
+- الجمع: نعم للمسارات المثبتة. المشاركة لكل نوع معلّقة حتى حسم العقود والمستلمين؛ لا استثناء تلقائي لمزوّد خدمة.
+- ML Kit في مسح QR يتضمن بيانات قياس تشخيص واستخدام؛ نفي التحليلات السابق غير معتمد.
+- التشفير الشامل، مسار طلب الحذف، اختيارية البيانات لكل الأدوار، وبيانات القياس الخاصة بإصدار SDK تحتاج تحققًا تشغيليًا قبل الحفظ.
+- المصدر المحلي المقترح لـV1 يحظر بدء Fawry؛ الـAAB المرفوع والـBackend لم يُستبدلا بهذه التعديلات. لا تفترض زوال مساراته من النسخة المنشورة.
+- Financial features تبقى مفتوحة بسبب إدارة المستحقات والتحصيلات والسجل، حتى بعد تأجيل الدفع الإلكتروني.
+- لا حفظ لاستمارة Data safety أو اعتماد نهائي قبل موافقة المستخدم.
 
-**مشاركة Fawry والتحقق التعاقدي:** عند بدء دفعة يطلبها المستخدم، تستلم Fawry البريد الإلكتروني ورقم الهاتف والمبلغ وبيانات العملية والمرجع لمعالجة الدفع. لا يجمع AqarBooks بيانات البطاقة أو الحساب البنكي. لا تختَر «لا تتم مشاركة البيانات» في Play Console إلا إذا كان استثناء مزوّد الخدمة مستوفيًا فعلًا بموجب العقود وDPA الحالية؛ يجب فحص ذلك مع العقود وDPA لدى Supabase وFawry قبل الإرسال.
+## 8. Content rating — معلّق
 
-- التشفير أثناء النقل: نعم، HTTPS/TLS.
-- طلب حذف البيانات: نعم، عبر إدارة المؤسسة أو `support@aqarbooks.com` ضمن حدود الالتزامات المطبقة.
-- هذا المحتوى مُعدّ، لكن إجابات Console والمشاركة التعاقدية ما زالت معلّقة.
-
-## 8. Content rating (الاستبيان جاهز — لم يُرسل بعد)
-
-استبيان IARC: فئة Utility/Business، لا عنف، لا محتوى مستخدمين عام (المحتوى داخل مؤسسة مغلقة)، لا مقامرة، لا بيانات موقع تُشارك → النتيجة المتوقعة: **Everyone / 3+**.
+شروط IARC لم تُقبل والاستبيان لم يُرسل. لا يُعتمد تصنيف عمري متوقع أو إجابات تتعلق بالمشاركة قبل مراجعة الأسئلة والأدلة وموافقة المستخدم.
 
 ## 9. مسار النشر
 
-1. **Internal testing** أولًا: ارفع الـAAB، أضف بريد الفريق، ونفّذ [DEVICE_TEST_PLAN.md](DEVICE_TEST_PLAN.md) على النسخة المثبتة **من Play** (تختلف عن sideload في التوقيع والتحسين).
-2. **Closed testing**: 10–20 مستخدمًا حقيقيًا من كمبوند تجريبي أسبوعًا.
-3. **Production** بطرح تدريجي: 10% ← 50% ← 100% مع مراقبة ANR/Crash في Android Vitals.
+الهدف Production وفق المتطلبات الفعلية لحساب المؤسسة في Console. الاختبار المغلق اختياري ما لم يفرضه Console. يلزم اختبار نسخة V1 الجديدة المثبتة من Play بعد الموافقة على البناء والرفع؛ لا نشر أو إرسال للمراجعة دون موافقة صريحة.
 
 **ملاحظات الإصدار (جاهزة):**
 
-> **عربي:** الإصدار الأول من AqarBooks: متابعة مستحقات وحدتك والدفع عبر فوري، طلبات الصيانة بالصور، تصاريح زوار بكود QR، وأدوات فرق التشغيل (التحصيل، الصيانة، البوابة).
+> **عربي:** الإصدار الأول من AqarBooks: متابعة مستحقات وحدتك وسجل المدفوعات، طلبات الصيانة بالصور، تصاريح زوار بكود QR، وأدوات فرق التشغيل (التحصيل، الصيانة، البوابة).
 >
-> **English:** First release of AqarBooks: track your unit dues and pay via Fawry, submit maintenance requests with photos, issue QR visitor passes, and operations tools for collection, maintenance, and gate teams.
+> **English:** First release of AqarBooks: track your unit dues and payment history, submit maintenance requests with photos, issue QR visitor passes, and operations tools for collection, maintenance, and gate teams.
 
 ## 10. Checklist نهائي قبل الضغط على Publish
 
@@ -206,7 +187,7 @@ The app requires an account issued by your compound or organisation using AqarBo
 - [ ] **رفع الـAAB على Play Console (Internal testing)** — لم يُنفَّذ بعد. لا تُعلَم أي مهمة يدوية في الـConsole كمكتملة قبل وجود دليل منها
 - [ ] إضافة **بصمة Play App Signing** إلى `assetlinks.json` بجانب بصمة upload بعد أول رفع (قسم 6)
 - [x] حسم **`app.aqarbooks.com`** ✅ منفَّذ (2026-10-08): حُذف فلتر App Link العام غير المستخدم من الـManifest، ولم يبقَ أي حاجب DNS — `assetlinks.json` مطلوب لفلتر التنشيط وحده (قسم 6)
-- [ ] لقطات شاشة من جهاز حقيقي (2–8 لقطات، 1080×2400) + استكمال بيانات المتجر (قسم 4)
+- [x] لقطات شاشة (2–8 لقطات، 1080×2400) ✅ منفَّذة (2026-10-11): ثماني لقطات **ملتقطة من محاكي Android** (`Medium_Phone_API_36.1` بدقة 1080×2400) لتطبيقنا الفعلي في [screenshots/ar](../store-assets/screenshots/ar/) — **ليست من جهاز بيع فعلي** — التفاصيل والبصمات في [GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md](GOOGLE_PLAY_SCREENSHOTS_VALIDATION.md) (المتبقي داخل هذا البند: استكمال بيانات المتجر — قسم 4)
 - [ ] لصق رابط سياسة الخصوصية في حقل الـConsole
 - [ ] حساب المراجع التجريبي (`qa.owner`) في App access (قسم 4)
 - [ ] Data safety (قسم 7): المحتوى مُعدّ، لكن إدخال Console والتحقق التعاقدي مع مزوّدي الخدمة ما زالا معلّقين + Content rating (قسم 8)

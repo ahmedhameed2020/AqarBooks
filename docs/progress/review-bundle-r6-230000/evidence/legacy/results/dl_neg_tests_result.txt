@@ -1,0 +1,7 @@
+==== C1 pre-existing negative (-500): debit 100 must be ACCEPTED (-> -400, improves)
+ NG-after-C1 net=-400.0000
+==== C2 negative (-400): credit 50 must be REFUSED (worsens)
+psql:/tmp/dl_neg_tests.sql:12: ERROR:  PROJECT_WIP_NEGATIVE: الرصيد سالب أصلًا والحركة لا تحسّنه (قبل -400.0000, بعد -450.0000)
+ NG-after-C2 net=-400.0000
+==== C3 negative (-400): debit 600 must be ACCEPTED (-> +200)
+ NG-after-C3 net=200.0000

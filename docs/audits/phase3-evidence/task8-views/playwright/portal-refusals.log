@@ -1,0 +1,12 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+[1/5] tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit
+[2/5] tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable
+[3/5] tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions
+[4/5] tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3)
+[5/5] tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody
+  5 passed (2.6m)

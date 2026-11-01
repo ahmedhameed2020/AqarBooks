@@ -39,6 +39,9 @@ export type ProjectRow = {
   released: number | string;
   wip_balance: number | string;
   budget_variance: number | string | null;
+  property_id: string | null;
+  wip_account_id: string | null;
+  cost_of_sales_account_id: string | null;
 };
 
 const n = (v: number | string | null | undefined) => Number(v ?? 0);
@@ -52,6 +55,7 @@ interface ProjectsClientProps {
   canManage: boolean;
   locale: string;
   currency: string;
+  organizationId: string;
   organizationName?: string;
 }
 
@@ -64,6 +68,7 @@ export function ProjectsClient({
   canManage,
   locale,
   currency,
+  organizationId,
   organizationName,
 }: ProjectsClientProps) {
   const isAr = locale === "ar";
@@ -74,6 +79,7 @@ export function ProjectsClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [capitaliseOpen, setCapitaliseOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const [editProject, setEditProject] = useState<ProjectRow | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const currencySymbol = getCurrencyLabel(currency, isAr);
@@ -494,6 +500,15 @@ export function ProjectsClient({
                           <span className="text-[11px] text-slate-400 block font-mono">
                             {isAr ? p.name_en : p.name_ar}
                           </span>
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setEditProject(p)}
+                              className="text-[11px] font-bold text-primary hover:underline"
+                            >
+                              {isAr ? "تعديل" : "Edit"}
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -559,8 +574,24 @@ export function ProjectsClient({
       </div>
 
       {/* Modal Dialogs */}
+      {editProject && (
+        <ProjectForm
+          organizationId={organizationId}
+          project={editProject}
+          open={!!editProject}
+          onOpenChange={(open) => {
+            if (!open) setEditProject(null);
+          }}
+          assetAccounts={assetAccounts}
+          expenseAccounts={expenseAccounts}
+          properties={propertyOptions}
+          locale={locale}
+        />
+      )}
+
       {createOpen && (
         <ProjectForm
+          organizationId={organizationId}
           open={createOpen}
           onOpenChange={setCreateOpen}
           assetAccounts={assetAccounts}

@@ -1,0 +1,1954 @@
+select $rev$
+TABLE|access_events|DATA
+TABLE|alert_digest_runs|DATA
+TABLE|alert_dismissals|DATA
+TABLE|alert_settings|DATA
+TABLE|amenities|DATA
+TABLE|amenity_bookings|DATA
+TABLE|bank_accounts|DATA
+TABLE|bank_statement_lines|DATA
+TABLE|bank_statements|DATA
+TABLE|banks|DATA
+TABLE|brokers|DATA
+TABLE|budgets|DATA
+TABLE|buildings|DATA
+TABLE|cash_transactions|DATA
+TABLE|cashboxes|DATA
+TABLE|cashier_sessions|DATA
+TABLE|catalogue_items|DATA
+TABLE|chart_of_accounts|DATA
+TABLE|cheque_status_history|DATA
+TABLE|cheques|DATA
+TABLE|coa_template_accounts|DATA
+TABLE|coa_templates|DATA
+TABLE|commissions|DATA
+TABLE|contact_requests|DATA
+TABLE|cost_centers|DATA
+TABLE|credit_notes|DATA
+TABLE|demo_leads|DATA
+TABLE|document_number_counters|DATA
+TABLE|document_numbers|DATA
+TABLE|document_sequences|DATA
+TABLE|due_generation_runs|DATA
+TABLE|due_schedules|DATA
+TABLE|due_type_revenue_natures|DATA
+TABLE|due_types|DATA
+TABLE|dues|DATA
+TABLE|dunning_notices|DATA
+TABLE|dunning_policies|DATA
+TABLE|einvoice_documents|DATA
+TABLE|einvoice_profiles|DATA
+TABLE|einvoice_submission_attempts|DATA
+TABLE|exchange_rates|DATA
+TABLE|expense_account_input_tax|DATA
+TABLE|expense_categories|DATA
+TABLE|expenses|DATA
+TABLE|financial_audit_logs|DATA
+TABLE|fiscal_periods|DATA
+TABLE|fiscal_years|DATA
+TABLE|fixed_asset_depreciation|DATA
+TABLE|fixed_assets|DATA
+TABLE|gate_access_reconciliations|DATA
+TABLE|gate_completion_policy|DATA
+TABLE|gate_connectivity_incidents|DATA
+TABLE|gate_device_enrollments|DATA
+TABLE|gate_devices|DATA
+TABLE|gate_hardware_commands|DATA
+TABLE|gate_hardware_endpoints|DATA
+TABLE|gate_hardware_settings|DATA
+TABLE|gate_long_stay_policy|DATA
+TABLE|gate_manual_exceptions|DATA
+TABLE|gate_notification_outbox|DATA
+TABLE|gate_notification_recovery|DATA
+TABLE|gate_scan_devices|DATA
+TABLE|gates|DATA
+TABLE|input_tax_decisions|DATA
+TABLE|installment_plans|DATA
+TABLE|journal_entries|DATA
+TABLE|journal_entry_lines|DATA
+TABLE|lease_expiry_dispatches|DATA
+TABLE|lease_renewal_requests|DATA
+TABLE|lease_renewal_transitions|DATA
+TABLE|lease_rent_generation_runs|DATA
+TABLE|maintenance_categories|DATA
+TABLE|maintenance_request_attachments|DATA
+TABLE|maintenance_request_updates|DATA
+TABLE|maintenance_requests|DATA
+TABLE|member_activation_tokens|DATA
+TABLE|member_activity_log|DATA
+TABLE|member_documents|DATA
+TABLE|member_invitation_short_links|DATA
+TABLE|member_invitations|DATA
+TABLE|member_phones|DATA
+TABLE|member_portal_access|DATA
+TABLE|member_saved_filters|DATA
+TABLE|member_tag_assignments|DATA
+TABLE|member_tags|DATA
+TABLE|members|DATA
+TABLE|notifications|DATA
+TABLE|onboarding_request_events|DATA
+TABLE|onboarding_requests|DATA
+TABLE|online_payment_events|DATA
+TABLE|online_payment_production_pilots|DATA
+TABLE|online_payment_transaction_allocations|DATA
+TABLE|online_payment_transactions|DATA
+TABLE|organization_finance_settings|DATA
+TABLE|organization_memberships|DATA
+TABLE|organizations|DATA
+TABLE|payment_allocations|DATA
+TABLE|payment_credit_requests|DATA
+TABLE|payment_provider_settings|DATA
+TABLE|payments|DATA
+TABLE|permissions|DATA
+TABLE|plan_entitlements|DATA
+TABLE|plan_installments|DATA
+TABLE|plans|DATA
+TABLE|platform_audit_logs|DATA
+TABLE|profiles|DATA
+TABLE|projects|DATA
+TABLE|properties|DATA
+TABLE|property_import_logs|DATA
+TABLE|public_action_rate_limits|SKIP
+TABLE|purchase_orders|DATA
+TABLE|purchase_requests|DATA
+TABLE|resort_memberships|DATA
+TABLE|revenue_natures|DATA
+TABLE|role_permissions|DATA
+TABLE|role_template_permissions|DATA
+TABLE|role_templates|DATA
+TABLE|roles|DATA
+TABLE|service_charge_allocations|DATA
+TABLE|service_charge_levies|DATA
+TABLE|subscriptions|DATA
+TABLE|supplier_invoices|DATA
+TABLE|supplier_payment_allocations|DATA
+TABLE|supplier_payments|DATA
+TABLE|suppliers|DATA
+TABLE|tax_decisions|DATA
+TABLE|tax_rule_versions|DATA
+TABLE|tenant_branding|DATA
+TABLE|tenant_feature_flags|DATA
+TABLE|unit_handover_snags|DATA
+TABLE|unit_handovers|DATA
+TABLE|unit_lease_deposit_events|DATA
+TABLE|unit_leases|DATA
+TABLE|unit_ownerships|DATA
+TABLE|units|DATA
+TABLE|user_role_assignments|DATA
+TABLE|vehicles|DATA
+TABLE|visitor_access_state|DATA
+TABLE|visitor_invitation_secrets|DATA
+TABLE|visitor_invitations|DATA
+TABLE|work_order_costs|DATA
+TABLE|work_order_updates|DATA
+TABLE|work_orders|DATA
+TABLE|zones|DATA
+access_events|id|uuid|KEEP
+access_events|organization_id|uuid|KEEP
+access_events|property_id|uuid|KEEP
+access_events|gate_id|uuid|KEEP
+access_events|visitor_invitation_id|uuid|KEEP
+access_events|unit_id|uuid|KEEP
+access_events|direction|text|KEEP
+access_events|decision|text|KEEP
+access_events|reason_code|text|KEEP
+access_events|client_scan_id|uuid|KEEP
+access_events|operator_user_id|uuid|KEEP
+access_events|usage_policy|text|KEEP
+access_events|guest_name|text|PII
+access_events|invitation_no|text|KEEP
+access_events|is_inside_after|boolean|KEEP
+access_events|occurred_at|timestamp with time zone|KEEP
+access_events|created_at|timestamp with time zone|KEEP
+access_events|reconciliation_id|uuid|KEEP
+alert_digest_runs|id|uuid|KEEP
+alert_digest_runs|organization_id|uuid|KEEP
+alert_digest_runs|run_date|date|KEEP
+alert_digest_runs|status|text|KEEP
+alert_digest_runs|recipients_count|integer|KEEP
+alert_digest_runs|alerts_count|integer|KEEP
+alert_digest_runs|error_message|text|KEEP
+alert_digest_runs|created_at|timestamp with time zone|KEEP
+alert_dismissals|id|uuid|KEEP
+alert_dismissals|organization_id|uuid|KEEP
+alert_dismissals|user_id|uuid|KEEP
+alert_dismissals|alert_key|text|KEEP
+alert_dismissals|dismissed_at|timestamp with time zone|KEEP
+alert_settings|organization_id|uuid|KEEP
+alert_settings|cheque_lead_days|integer|KEEP
+alert_settings|lease_lead_days|integer|KEEP
+alert_settings|overdue_min_days|integer|KEEP
+alert_settings|cheques_enabled|boolean|KEEP
+alert_settings|leases_enabled|boolean|KEEP
+alert_settings|overdue_enabled|boolean|KEEP
+alert_settings|unreachable_owners_enabled|boolean|KEEP
+alert_settings|updated_at|timestamp with time zone|KEEP
+alert_settings|updated_by|uuid|KEEP
+amenities|id|uuid|KEEP
+amenities|organization_id|uuid|KEEP
+amenities|property_id|uuid|KEEP
+amenities|name_ar|text|KEEP
+amenities|name_en|text|KEEP
+amenities|description_ar|text|KEEP
+amenities|description_en|text|KEEP
+amenities|capacity|integer|KEEP
+amenities|slot_minutes|integer|KEEP
+amenities|opens_at|time without time zone|KEEP
+amenities|closes_at|time without time zone|KEEP
+amenities|max_advance_days|integer|KEEP
+amenities|requires_approval|boolean|KEEP
+amenities|is_active|boolean|KEEP
+amenities|created_by|uuid|KEEP
+amenities|updated_by|uuid|KEEP
+amenities|created_at|timestamp with time zone|KEEP
+amenities|updated_at|timestamp with time zone|KEEP
+amenity_bookings|id|uuid|KEEP
+amenity_bookings|organization_id|uuid|KEEP
+amenity_bookings|property_id|uuid|KEEP
+amenity_bookings|amenity_id|uuid|KEEP
+amenity_bookings|unit_id|uuid|KEEP
+amenity_bookings|member_id|uuid|KEEP
+amenity_bookings|starts_at|timestamp with time zone|KEEP
+amenity_bookings|ends_at|timestamp with time zone|KEEP
+amenity_bookings|status|text|KEEP
+amenity_bookings|member_note|text|KEEP
+amenity_bookings|staff_note|text|KEEP
+amenity_bookings|decided_at|timestamp with time zone|KEEP
+amenity_bookings|decided_by|uuid|KEEP
+amenity_bookings|cancelled_at|timestamp with time zone|KEEP
+amenity_bookings|cancelled_by|uuid|KEEP
+amenity_bookings|created_by|uuid|KEEP
+amenity_bookings|created_at|timestamp with time zone|KEEP
+amenity_bookings|updated_at|timestamp with time zone|KEEP
+bank_accounts|id|uuid|KEEP
+bank_accounts|organization_id|uuid|KEEP
+bank_accounts|property_id|uuid|KEEP
+bank_accounts|bank_id|uuid|KEEP
+bank_accounts|account_name|text|KEEP
+bank_accounts|account_number|text|KEEP
+bank_accounts|gl_account_id|uuid|KEEP
+bank_accounts|is_active|boolean|KEEP
+bank_accounts|created_at|timestamp with time zone|KEEP
+bank_statement_lines|id|uuid|KEEP
+bank_statement_lines|organization_id|uuid|KEEP
+bank_statement_lines|statement_id|uuid|KEEP
+bank_statement_lines|line_date|date|KEEP
+bank_statement_lines|description|text|FREETEXT
+bank_statement_lines|reference|text|KEEP
+bank_statement_lines|amount|numeric(19,4)|KEEP
+bank_statement_lines|matched_journal_entry_line_id|uuid|KEEP
+bank_statement_lines|match_type|text|KEEP
+bank_statement_lines|matched_at|timestamp with time zone|KEEP
+bank_statement_lines|matched_by|uuid|KEEP
+bank_statement_lines|sort_order|integer|KEEP
+bank_statement_lines|created_at|timestamp with time zone|KEEP
+bank_statements|id|uuid|KEEP
+bank_statements|organization_id|uuid|KEEP
+bank_statements|bank_account_id|uuid|KEEP
+bank_statements|period_start|date|KEEP
+bank_statements|period_end|date|KEEP
+bank_statements|opening_balance|numeric(19,4)|KEEP
+bank_statements|closing_balance|numeric(19,4)|KEEP
+bank_statements|status|text|KEEP
+bank_statements|reconciled_at|timestamp with time zone|KEEP
+bank_statements|reconciled_by|uuid|KEEP
+bank_statements|note|text|FREETEXT
+bank_statements|created_by|uuid|KEEP
+bank_statements|created_at|timestamp with time zone|KEEP
+bank_statements|updated_at|timestamp with time zone|KEEP
+banks|id|uuid|KEEP
+banks|organization_id|uuid|KEEP
+banks|name_ar|text|KEEP
+banks|name_en|text|KEEP
+banks|created_at|timestamp with time zone|KEEP
+brokers|id|uuid|KEEP
+brokers|organization_id|uuid|KEEP
+brokers|name|text|KEEP
+brokers|broker_type|text|KEEP
+brokers|tax_id|text|KEEP
+brokers|phone|text|PII
+brokers|email|text|PII
+brokers|default_wht_rate|numeric(5,2)|KEEP
+brokers|is_active|boolean|KEEP
+brokers|created_by|uuid|KEEP
+brokers|created_at|timestamp with time zone|KEEP
+brokers|updated_at|timestamp with time zone|KEEP
+budgets|id|uuid|KEEP
+budgets|organization_id|uuid|KEEP
+budgets|fiscal_period_id|uuid|KEEP
+budgets|account_id|uuid|KEEP
+budgets|amount|numeric(19,4)|KEEP
+budgets|created_by|uuid|KEEP
+budgets|updated_by|uuid|KEEP
+budgets|created_at|timestamp with time zone|KEEP
+budgets|updated_at|timestamp with time zone|KEEP
+buildings|id|uuid|KEEP
+buildings|organization_id|uuid|KEEP
+buildings|property_id|uuid|KEEP
+buildings|zone_id|uuid|KEEP
+buildings|code|text|KEEP
+buildings|name_ar|text|KEEP
+buildings|name_en|text|KEEP
+buildings|created_at|timestamp with time zone|KEEP
+cash_transactions|id|uuid|KEEP
+cash_transactions|organization_id|uuid|KEEP
+cash_transactions|session_id|uuid|KEEP
+cash_transactions|type|text|KEEP
+cash_transactions|amount|numeric(19,4)|KEEP
+cash_transactions|payment_id|uuid|KEEP
+cash_transactions|description|text|FREETEXT
+cash_transactions|created_by|uuid|KEEP
+cash_transactions|created_at|timestamp with time zone|KEEP
+cashboxes|id|uuid|KEEP
+cashboxes|organization_id|uuid|KEEP
+cashboxes|property_id|uuid|KEEP
+cashboxes|name|text|KEEP
+cashboxes|gl_account_id|uuid|KEEP
+cashboxes|is_active|boolean|KEEP
+cashboxes|created_at|timestamp with time zone|KEEP
+cashier_sessions|id|uuid|KEEP
+cashier_sessions|organization_id|uuid|KEEP
+cashier_sessions|property_id|uuid|KEEP
+cashier_sessions|cashbox_id|uuid|KEEP
+cashier_sessions|opened_by|uuid|KEEP
+cashier_sessions|opening_balance|numeric(19,4)|KEEP
+cashier_sessions|status|text|KEEP
+cashier_sessions|expected_closing_balance|numeric(19,4)|KEEP
+cashier_sessions|actual_closing_balance|numeric(19,4)|KEEP
+cashier_sessions|variance|numeric(19,4)|KEEP
+cashier_sessions|opened_at|timestamp with time zone|KEEP
+cashier_sessions|closed_by|uuid|KEEP
+cashier_sessions|closed_at|timestamp with time zone|KEEP
+catalogue_items|id|uuid|KEEP
+catalogue_items|organization_id|uuid|KEEP
+catalogue_items|code|text|KEEP
+catalogue_items|name_ar|text|KEEP
+catalogue_items|name_en|text|KEEP
+catalogue_items|unit_code|text|KEEP
+catalogue_items|item_code_type|text|KEEP
+catalogue_items|item_code|text|KEEP
+catalogue_items|is_active|boolean|KEEP
+catalogue_items|created_by|uuid|KEEP
+catalogue_items|created_at|timestamp with time zone|KEEP
+catalogue_items|updated_at|timestamp with time zone|KEEP
+chart_of_accounts|id|uuid|KEEP
+chart_of_accounts|organization_id|uuid|KEEP
+chart_of_accounts|property_id|uuid|KEEP
+chart_of_accounts|code|text|KEEP
+chart_of_accounts|name_ar|text|KEEP
+chart_of_accounts|name_en|text|KEEP
+chart_of_accounts|parent_id|uuid|KEEP
+chart_of_accounts|category|text|KEEP
+chart_of_accounts|normal_balance|text|KEEP
+chart_of_accounts|is_group|boolean|KEEP
+chart_of_accounts|requires_cost_center|boolean|KEEP
+chart_of_accounts|is_active|boolean|KEEP
+chart_of_accounts|is_used|boolean|KEEP
+chart_of_accounts|created_at|timestamp with time zone|KEEP
+chart_of_accounts|updated_at|timestamp with time zone|KEEP
+chart_of_accounts|is_cash_equivalent|boolean|KEEP
+chart_of_accounts|cash_flow_section|text|KEEP
+cheque_status_history|id|uuid|KEEP
+cheque_status_history|cheque_id|uuid|KEEP
+cheque_status_history|from_status|text|KEEP
+cheque_status_history|to_status|text|KEEP
+cheque_status_history|changed_by|uuid|KEEP
+cheque_status_history|changed_at|timestamp with time zone|KEEP
+cheque_status_history|note|text|FREETEXT
+cheques|id|uuid|KEEP
+cheques|organization_id|uuid|KEEP
+cheques|property_id|uuid|KEEP
+cheques|bank_account_id|uuid|KEEP
+cheques|direction|text|KEEP
+cheques|cheque_number|text|KEEP
+cheques|amount|numeric(19,4)|KEEP
+cheques|member_id|uuid|KEEP
+cheques|cheque_date|date|KEEP
+cheques|due_date|date|KEEP
+cheques|status|text|KEEP
+cheques|payment_id|uuid|KEEP
+cheques|created_by|uuid|KEEP
+cheques|created_at|timestamp with time zone|KEEP
+coa_template_accounts|id|uuid|KEEP
+coa_template_accounts|template_key|text|KEEP
+coa_template_accounts|sort_order|integer|KEEP
+coa_template_accounts|code|text|KEEP
+coa_template_accounts|parent_code|text|KEEP
+coa_template_accounts|name_ar|text|KEEP
+coa_template_accounts|name_en|text|KEEP
+coa_template_accounts|category|text|KEEP
+coa_template_accounts|normal_balance|text|KEEP
+coa_template_accounts|is_group|boolean|KEEP
+coa_template_accounts|is_cash_equivalent|boolean|KEEP
+coa_template_accounts|cash_flow_section|text|KEEP
+coa_templates|key|text|KEEP
+coa_templates|name_ar|text|KEEP
+coa_templates|name_en|text|KEEP
+commissions|id|uuid|KEEP
+commissions|organization_id|uuid|KEEP
+commissions|property_id|uuid|KEEP
+commissions|broker_id|uuid|KEEP
+commissions|unit_id|uuid|KEEP
+commissions|source_type|text|KEEP
+commissions|lease_id|uuid|KEEP
+commissions|installment_plan_id|uuid|KEEP
+commissions|basis_amount|numeric(19,4)|KEEP
+commissions|rate_percent|numeric(6,3)|KEEP
+commissions|gross_amount|numeric(19,4)|KEEP
+commissions|wht_rate|numeric(5,2)|KEEP
+commissions|wht_amount|numeric(19,4)|KEEP
+commissions|net_amount|numeric(19,4)|KEEP
+commissions|earned_date|date|KEEP
+commissions|status|text|KEEP
+commissions|accrual_journal_entry_id|uuid|KEEP
+commissions|payment_journal_entry_id|uuid|KEEP
+commissions|paid_date|date|KEEP
+commissions|note|text|FREETEXT
+commissions|created_by|uuid|KEEP
+commissions|created_at|timestamp with time zone|KEEP
+commissions|updated_at|timestamp with time zone|KEEP
+contact_requests|id|uuid|KEEP
+contact_requests|full_name|text|PII
+contact_requests|email|text|PII
+contact_requests|phone|text|PII
+contact_requests|message|text|FREETEXT
+contact_requests|status|text|KEEP
+contact_requests|created_at|timestamp with time zone|KEEP
+cost_centers|id|uuid|KEEP
+cost_centers|organization_id|uuid|KEEP
+cost_centers|property_id|uuid|KEEP
+cost_centers|code|text|KEEP
+cost_centers|name_ar|text|KEEP
+cost_centers|name_en|text|KEEP
+cost_centers|is_active|boolean|KEEP
+cost_centers|created_at|timestamp with time zone|KEEP
+credit_notes|id|uuid|KEEP
+credit_notes|organization_id|uuid|KEEP
+credit_notes|document_type|text|KEEP
+credit_notes|document_number|text|KEEP
+credit_notes|source_type|text|KEEP
+credit_notes|source_id|uuid|KEEP
+credit_notes|tax_decision_id|uuid|KEEP
+credit_notes|credit_date|date|KEEP
+credit_notes|gross_amount|numeric(19,4)|KEEP
+credit_notes|taxable_base|numeric(19,4)|KEEP
+credit_notes|vat_amount|numeric(19,4)|KEEP
+credit_notes|reason|text|FREETEXT
+credit_notes|journal_entry_id|uuid|KEEP
+credit_notes|decision_snapshot|jsonb|JSONALLOW
+credit_notes|issued_by|uuid|KEEP
+credit_notes|issued_at|timestamp with time zone|KEEP
+demo_leads|id|uuid|KEEP
+demo_leads|full_name|text|PII
+demo_leads|company|text|KEEP
+demo_leads|role_title|text|KEEP
+demo_leads|organization_name|text|KEEP
+demo_leads|units_count|integer|KEEP
+demo_leads|gates_count|integer|KEEP
+demo_leads|email|text|PII
+demo_leads|phone|text|PII
+demo_leads|preferred_contact_method|text|KEEP
+demo_leads|message|text|FREETEXT
+demo_leads|status|text|KEEP
+demo_leads|created_at|timestamp with time zone|KEEP
+document_number_counters|organization_id|uuid|KEEP
+document_number_counters|document_type|text|KEEP
+document_number_counters|year|integer|KEEP
+document_number_counters|next_number|integer|KEEP
+document_numbers|id|uuid|KEEP
+document_numbers|organization_id|uuid|KEEP
+document_numbers|document_type|text|KEEP
+document_numbers|source_type|text|KEEP
+document_numbers|source_id|uuid|KEEP
+document_numbers|year|integer|KEEP
+document_numbers|sequence_number|integer|KEEP
+document_numbers|document_number|text|KEEP
+document_numbers|issued_at|timestamp with time zone|KEEP
+document_sequences|id|uuid|KEEP
+document_sequences|organization_id|uuid|KEEP
+document_sequences|property_id|uuid|KEEP
+document_sequences|sequence_type|text|KEEP
+document_sequences|next_value|bigint|KEEP
+due_generation_runs|id|uuid|KEEP
+due_generation_runs|organization_id|uuid|KEEP
+due_generation_runs|schedule_id|uuid|KEEP
+due_generation_runs|period|text|KEEP
+due_generation_runs|generated_units_count|integer|KEEP
+due_generation_runs|total_amount|numeric(19,4)|KEEP
+due_generation_runs|generated_by|uuid|KEEP
+due_generation_runs|generated_at|timestamp with time zone|KEEP
+due_schedules|id|uuid|KEEP
+due_schedules|organization_id|uuid|KEEP
+due_schedules|property_id|uuid|KEEP
+due_schedules|name|text|KEEP
+due_schedules|description_ar|text|KEEP
+due_schedules|description_en|text|KEEP
+due_schedules|due_type_id|uuid|KEEP
+due_schedules|receivable_account_id|uuid|KEEP
+due_schedules|amount|numeric(19,4)|KEEP
+due_schedules|amount_by_unit_type|jsonb|JSONALLOW
+due_schedules|frequency|text|KEEP
+due_schedules|day_of_month|integer|KEEP
+due_schedules|month_of_year|integer|KEEP
+due_schedules|scope|jsonb|JSONALLOW
+due_schedules|due_offset_days|integer|KEEP
+due_schedules|is_active|boolean|KEEP
+due_schedules|created_by|uuid|KEEP
+due_schedules|created_at|timestamp with time zone|KEEP
+due_schedules|updated_at|timestamp with time zone|KEEP
+due_type_revenue_natures|id|uuid|KEEP
+due_type_revenue_natures|organization_id|uuid|KEEP
+due_type_revenue_natures|due_type_id|uuid|KEEP
+due_type_revenue_natures|revenue_nature|text|KEEP
+due_type_revenue_natures|status|text|KEEP
+due_type_revenue_natures|notes|text|FREETEXT
+due_type_revenue_natures|approved_by|uuid|KEEP
+due_type_revenue_natures|approved_at|timestamp with time zone|KEEP
+due_type_revenue_natures|created_by|uuid|KEEP
+due_type_revenue_natures|created_at|timestamp with time zone|KEEP
+due_type_revenue_natures|updated_at|timestamp with time zone|KEEP
+due_type_revenue_natures|amount_basis|text|KEEP
+due_types|id|uuid|KEEP
+due_types|organization_id|uuid|KEEP
+due_types|name_ar|text|KEEP
+due_types|name_en|text|KEEP
+due_types|default_revenue_account_id|uuid|KEEP
+due_types|is_active|boolean|KEEP
+due_types|created_at|timestamp with time zone|KEEP
+due_types|catalogue_item_id|uuid|KEEP
+dues|id|uuid|KEEP
+dues|organization_id|uuid|KEEP
+dues|property_id|uuid|KEEP
+dues|unit_id|uuid|KEEP
+dues|due_type_id|uuid|KEEP
+dues|receivable_account_id|uuid|KEEP
+dues|amount|numeric(19,4)|KEEP
+dues|issue_date|date|KEEP
+dues|due_date|date|KEEP
+dues|description|text|FREETEXT
+dues|status|text|KEEP
+dues|journal_entry_id|uuid|KEEP
+dues|created_by|uuid|KEEP
+dues|created_at|timestamp with time zone|KEEP
+dues|source_type|text|KEEP
+dues|source_id|uuid|KEEP
+dunning_notices|id|uuid|KEEP
+dunning_notices|organization_id|uuid|KEEP
+dunning_notices|due_id|uuid|KEEP
+dunning_notices|member_id|uuid|KEEP
+dunning_notices|stage|smallint|KEEP
+dunning_notices|raised_on|date|KEEP
+dunning_notices|days_overdue|integer|KEEP
+dunning_notices|outstanding_amount|numeric(19,4)|KEEP
+dunning_notices|status|text|KEEP
+dunning_notices|delivered_at|timestamp with time zone|KEEP
+dunning_notices|delivery_channel|text|KEEP
+dunning_notices|delivery_reference|text|KEEP
+dunning_notices|raised_by|uuid|KEEP
+dunning_notices|created_at|timestamp with time zone|KEEP
+dunning_policies|id|uuid|KEEP
+dunning_policies|organization_id|uuid|KEEP
+dunning_policies|stage|smallint|KEEP
+dunning_policies|name_ar|text|KEEP
+dunning_policies|name_en|text|KEEP
+dunning_policies|days_overdue|integer|KEEP
+dunning_policies|minimum_amount|numeric(19,4)|KEEP
+dunning_policies|is_active|boolean|KEEP
+dunning_policies|created_at|timestamp with time zone|KEEP
+dunning_policies|updated_at|timestamp with time zone|KEEP
+einvoice_documents|id|uuid|KEEP
+einvoice_documents|organization_id|uuid|KEEP
+einvoice_documents|profile_id|uuid|KEEP
+einvoice_documents|source_type|text|KEEP
+einvoice_documents|source_id|uuid|KEEP
+einvoice_documents|document_type|text|KEEP
+einvoice_documents|status|text|KEEP
+einvoice_documents|authority_status|text|KEEP
+einvoice_documents|authority_uuid|text|KEEP
+einvoice_documents|authority_long_id|text|KEEP
+einvoice_documents|qr_payload|text|BLOB
+einvoice_documents|idempotency_key|text|KEEP
+einvoice_documents|attempt_count|integer|KEEP
+einvoice_documents|last_error_code|text|KEEP
+einvoice_documents|last_error_detail|text|KEEP
+einvoice_documents|submitted_at|timestamp with time zone|KEEP
+einvoice_documents|settled_at|timestamp with time zone|KEEP
+einvoice_documents|created_by|uuid|KEEP
+einvoice_documents|created_at|timestamp with time zone|KEEP
+einvoice_documents|updated_at|timestamp with time zone|KEEP
+einvoice_profiles|id|uuid|KEEP
+einvoice_profiles|organization_id|uuid|KEEP
+einvoice_profiles|property_id|uuid|KEEP
+einvoice_profiles|jurisdiction|text|KEEP
+einvoice_profiles|environment|text|KEEP
+einvoice_profiles|taxpayer_id|text|KEEP
+einvoice_profiles|branch_code|text|KEEP
+einvoice_profiles|activity_code|text|KEEP
+einvoice_profiles|client_id_secret_id|uuid|SECRET
+einvoice_profiles|client_secret_secret_id|uuid|SECRET
+einvoice_profiles|signing_certificate_secret_id|uuid|SECRET
+einvoice_profiles|signing_key_secret_id|uuid|SECRET
+einvoice_profiles|status|text|KEEP
+einvoice_profiles|enabled|boolean|KEEP
+einvoice_profiles|verified_at|timestamp with time zone|KEEP
+einvoice_profiles|last_verification_error|text|KEEP
+einvoice_profiles|created_by|uuid|KEEP
+einvoice_profiles|updated_by|uuid|KEEP
+einvoice_profiles|created_at|timestamp with time zone|KEEP
+einvoice_profiles|updated_at|timestamp with time zone|KEEP
+einvoice_submission_attempts|id|uuid|KEEP
+einvoice_submission_attempts|organization_id|uuid|KEEP
+einvoice_submission_attempts|document_id|uuid|KEEP
+einvoice_submission_attempts|attempt_number|integer|KEEP
+einvoice_submission_attempts|operation|text|KEEP
+einvoice_submission_attempts|http_status|integer|KEEP
+einvoice_submission_attempts|authority_status|text|KEEP
+einvoice_submission_attempts|resulting_status|text|KEEP
+einvoice_submission_attempts|request_summary|jsonb|JSONALLOW
+einvoice_submission_attempts|response_summary|jsonb|BLOB
+einvoice_submission_attempts|occurred_at|timestamp with time zone|KEEP
+exchange_rates|id|uuid|KEEP
+exchange_rates|organization_id|uuid|KEEP
+exchange_rates|foreign_currency|text|KEEP
+exchange_rates|base_currency|text|KEEP
+exchange_rates|rate_date|date|KEEP
+exchange_rates|base_per_unit|numeric(18,8)|KEEP
+exchange_rates|source|text|KEEP
+exchange_rates|created_by|uuid|KEEP
+exchange_rates|created_at|timestamp with time zone|KEEP
+expense_account_input_tax|id|uuid|KEEP
+expense_account_input_tax|organization_id|uuid|KEEP
+expense_account_input_tax|expense_account_id|uuid|KEEP
+expense_account_input_tax|recoverability|text|KEEP
+expense_account_input_tax|recoverable_ratio|numeric(7,4)|KEEP
+expense_account_input_tax|ratio_method|text|KEEP
+expense_account_input_tax|ratio_period|text|KEEP
+expense_account_input_tax|ratio_reference|text|KEEP
+expense_account_input_tax|status|text|KEEP
+expense_account_input_tax|notes|text|FREETEXT
+expense_account_input_tax|approved_by|uuid|KEEP
+expense_account_input_tax|approved_at|timestamp with time zone|KEEP
+expense_account_input_tax|created_by|uuid|KEEP
+expense_account_input_tax|created_at|timestamp with time zone|KEEP
+expense_account_input_tax|updated_at|timestamp with time zone|KEEP
+expense_categories|id|uuid|KEEP
+expense_categories|organization_id|uuid|KEEP
+expense_categories|name_ar|text|KEEP
+expense_categories|name_en|text|KEEP
+expense_categories|default_expense_account_id|uuid|KEEP
+expense_categories|is_active|boolean|KEEP
+expense_categories|created_at|timestamp with time zone|KEEP
+expenses|id|uuid|KEEP
+expenses|organization_id|uuid|KEEP
+expenses|property_id|uuid|KEEP
+expenses|expense_category_id|uuid|KEEP
+expenses|description|text|FREETEXT
+expenses|amount|numeric(19,4)|KEEP
+expenses|expense_date|date|KEEP
+expenses|payment_account_id|uuid|KEEP
+expenses|voucher_number|bigint|KEEP
+expenses|journal_entry_id|uuid|KEEP
+expenses|cashier_session_id|uuid|KEEP
+expenses|created_by|uuid|KEEP
+expenses|created_at|timestamp with time zone|KEEP
+financial_audit_logs|id|uuid|KEEP
+financial_audit_logs|organization_id|uuid|KEEP
+financial_audit_logs|property_id|uuid|KEEP
+financial_audit_logs|actor_user_id|uuid|KEEP
+financial_audit_logs|action|text|KEEP
+financial_audit_logs|entity_type|text|KEEP
+financial_audit_logs|entity_id|uuid|KEEP
+financial_audit_logs|request_id|text|KEEP
+financial_audit_logs|occurred_at|timestamp with time zone|KEEP
+financial_audit_logs|ip_address|inet|PII
+financial_audit_logs|user_agent|text|KEEP
+financial_audit_logs|metadata|jsonb|JSONALLOW
+financial_audit_logs|previous_hash|text|KEEP
+financial_audit_logs|event_hash|text|KEEP
+financial_audit_logs|created_at|timestamp with time zone|KEEP
+fiscal_periods|id|uuid|KEEP
+fiscal_periods|organization_id|uuid|KEEP
+fiscal_periods|fiscal_year_id|uuid|KEEP
+fiscal_periods|period_number|integer|KEEP
+fiscal_periods|name|text|KEEP
+fiscal_periods|start_date|date|KEEP
+fiscal_periods|end_date|date|KEEP
+fiscal_periods|status|text|KEEP
+fiscal_periods|created_at|timestamp with time zone|KEEP
+fiscal_years|id|uuid|KEEP
+fiscal_years|organization_id|uuid|KEEP
+fiscal_years|name|text|KEEP
+fiscal_years|start_date|date|KEEP
+fiscal_years|end_date|date|KEEP
+fiscal_years|status|text|KEEP
+fiscal_years|created_at|timestamp with time zone|KEEP
+fixed_asset_depreciation|id|uuid|KEEP
+fixed_asset_depreciation|organization_id|uuid|KEEP
+fixed_asset_depreciation|fixed_asset_id|uuid|KEEP
+fixed_asset_depreciation|fiscal_period_id|uuid|KEEP
+fixed_asset_depreciation|entry_date|date|KEEP
+fixed_asset_depreciation|amount|numeric(18,4)|KEEP
+fixed_asset_depreciation|journal_entry_id|uuid|KEEP
+fixed_asset_depreciation|posted_by|uuid|KEEP
+fixed_asset_depreciation|posted_at|timestamp with time zone|KEEP
+fixed_assets|id|uuid|KEEP
+fixed_assets|organization_id|uuid|KEEP
+fixed_assets|property_id|uuid|KEEP
+fixed_assets|code|text|KEEP
+fixed_assets|name_ar|text|KEEP
+fixed_assets|name_en|text|KEEP
+fixed_assets|asset_account_id|uuid|KEEP
+fixed_assets|accumulated_depreciation_account_id|uuid|KEEP
+fixed_assets|depreciation_expense_account_id|uuid|KEEP
+fixed_assets|acquisition_date|date|KEEP
+fixed_assets|acquisition_cost|numeric(18,4)|KEEP
+fixed_assets|salvage_value|numeric(18,4)|KEEP
+fixed_assets|useful_life_months|integer|KEEP
+fixed_assets|method|text|KEEP
+fixed_assets|status|text|KEEP
+fixed_assets|disposal_date|date|KEEP
+fixed_assets|disposal_proceeds|numeric(18,4)|KEEP
+fixed_assets|created_by|uuid|KEEP
+fixed_assets|created_at|timestamp with time zone|KEEP
+fixed_assets|updated_at|timestamp with time zone|KEEP
+gate_access_reconciliations|id|uuid|KEEP
+gate_access_reconciliations|organization_id|uuid|KEEP
+gate_access_reconciliations|gate_id|uuid|KEEP
+gate_access_reconciliations|visitor_invitation_id|uuid|KEEP
+gate_access_reconciliations|category|text|KEEP
+gate_access_reconciliations|reason|text|FREETEXT
+gate_access_reconciliations|actor_user_id|uuid|KEEP
+gate_access_reconciliations|before_is_inside|boolean|KEEP
+gate_access_reconciliations|after_is_inside|boolean|KEEP
+gate_access_reconciliations|before_entry_count|integer|KEEP
+gate_access_reconciliations|before_exit_count|integer|KEEP
+gate_access_reconciliations|after_entry_count|integer|KEEP
+gate_access_reconciliations|after_exit_count|integer|KEEP
+gate_access_reconciliations|occurred_at|timestamp with time zone|KEEP
+gate_completion_policy|organization_id|uuid|KEEP
+gate_completion_policy|enabled|boolean|KEEP
+gate_completion_policy|updated_by|uuid|KEEP
+gate_completion_policy|updated_at|timestamp with time zone|KEEP
+gate_connectivity_incidents|organization_id|uuid|KEEP
+gate_connectivity_incidents|gate_id|uuid|KEEP
+gate_connectivity_incidents|device_id|uuid|KEEP
+gate_connectivity_incidents|direction|text|KEEP
+gate_connectivity_incidents|client_scan_id|uuid|KEEP
+gate_connectivity_incidents|occurred_at|timestamp with time zone|KEEP
+gate_connectivity_incidents|payload_fingerprint|text|KEEP
+gate_connectivity_incidents|error_code|text|KEEP
+gate_device_enrollments|id|uuid|KEEP
+gate_device_enrollments|organization_id|uuid|KEEP
+gate_device_enrollments|property_id|uuid|KEEP
+gate_device_enrollments|gate_id|uuid|KEEP
+gate_device_enrollments|direction|text|KEEP
+gate_device_enrollments|code_hash|text|SECRET
+gate_device_enrollments|expires_at|timestamp with time zone|KEEP
+gate_device_enrollments|redeemed_at|timestamp with time zone|KEEP
+gate_device_enrollments|redeemed_by|uuid|KEEP
+gate_device_enrollments|created_by|uuid|KEEP
+gate_device_enrollments|created_at|timestamp with time zone|KEEP
+gate_devices|id|uuid|KEEP
+gate_devices|organization_id|uuid|KEEP
+gate_devices|property_id|uuid|KEEP
+gate_devices|gate_id|uuid|KEEP
+gate_devices|installation_id_hash|text|SECRET
+gate_devices|credential_hash|text|SECRET
+gate_devices|display_name|text|KEEP
+gate_devices|device_notes|text|KEEP
+gate_devices|allowed_direction|text|KEEP
+gate_devices|status|text|KEEP
+gate_devices|enrolled_at|timestamp with time zone|KEEP
+gate_devices|last_seen_at|timestamp with time zone|KEEP
+gate_devices|enrolled_by|uuid|KEEP
+gate_devices|revoked_at|timestamp with time zone|KEEP
+gate_devices|revoked_by|uuid|KEEP
+gate_devices|revocation_reason|text|KEEP
+gate_devices|created_at|timestamp with time zone|KEEP
+gate_devices|updated_at|timestamp with time zone|KEEP
+gate_hardware_commands|id|uuid|KEEP
+gate_hardware_commands|access_event_id|uuid|KEEP
+gate_hardware_commands|organization_id|uuid|KEEP
+gate_hardware_commands|endpoint_id|uuid|KEEP
+gate_hardware_commands|gate_id|uuid|KEEP
+gate_hardware_commands|command_type|text|KEEP
+gate_hardware_commands|direction|text|KEEP
+gate_hardware_commands|adapter|text|KEEP
+gate_hardware_commands|status|text|KEEP
+gate_hardware_commands|attempts|integer|KEEP
+gate_hardware_commands|claim_token|uuid|SECRET
+gate_hardware_commands|claimed_at|timestamp with time zone|KEEP
+gate_hardware_commands|next_attempt_at|timestamp with time zone|KEEP
+gate_hardware_commands|result_code|text|KEEP
+gate_hardware_commands|created_at|timestamp with time zone|KEEP
+gate_hardware_commands|updated_at|timestamp with time zone|KEEP
+gate_hardware_endpoints|id|uuid|KEEP
+gate_hardware_endpoints|organization_id|uuid|KEEP
+gate_hardware_endpoints|gate_id|uuid|KEEP
+gate_hardware_endpoints|adapter|text|KEEP
+gate_hardware_endpoints|is_active|boolean|KEEP
+gate_hardware_settings|organization_id|uuid|KEEP
+gate_hardware_settings|enabled|boolean|KEEP
+gate_long_stay_policy|organization_id|uuid|KEEP
+gate_long_stay_policy|threshold_hours|integer|KEEP
+gate_long_stay_policy|notifications_enabled|boolean|KEEP
+gate_long_stay_policy|updated_by|uuid|KEEP
+gate_long_stay_policy|updated_at|timestamp with time zone|KEEP
+gate_manual_exceptions|id|uuid|KEEP
+gate_manual_exceptions|organization_id|uuid|KEEP
+gate_manual_exceptions|gate_id|uuid|KEEP
+gate_manual_exceptions|property_id|uuid|KEEP
+gate_manual_exceptions|visitor_invitation_id|uuid|KEEP
+gate_manual_exceptions|device_id|uuid|KEEP
+gate_manual_exceptions|source_event_id|uuid|KEEP
+gate_manual_exceptions|record_type|text|KEEP
+gate_manual_exceptions|parent_exception_id|uuid|KEEP
+gate_manual_exceptions|direction|text|KEEP
+gate_manual_exceptions|outcome|text|KEEP
+gate_manual_exceptions|category|text|KEEP
+gate_manual_exceptions|reason|text|FREETEXT
+gate_manual_exceptions|actor_user_id|uuid|KEEP
+gate_manual_exceptions|occurred_at|timestamp with time zone|KEEP
+gate_notification_outbox|dedupe_key|text|KEEP
+gate_notification_outbox|organization_id|uuid|KEEP
+gate_notification_outbox|recipient_user_id|uuid|KEEP
+gate_notification_outbox|recipient_member_id|uuid|KEEP
+gate_notification_outbox|type|text|KEEP
+gate_notification_outbox|source_id|uuid|KEEP
+gate_notification_outbox|body_ar|text|KEEP
+gate_notification_outbox|body_en|text|KEEP
+gate_notification_outbox|action_url|text|KEEP
+gate_notification_outbox|status|text|KEEP
+gate_notification_outbox|attempts|integer|KEEP
+gate_notification_outbox|next_attempt_at|timestamp with time zone|KEEP
+gate_notification_outbox|created_at|timestamp with time zone|KEEP
+gate_notification_recovery|organization_id|uuid|KEEP
+gate_notification_recovery|source_id|uuid|KEEP
+gate_notification_recovery|type|text|KEEP
+gate_notification_recovery|reason_code|text|KEEP
+gate_notification_recovery|attempts|integer|KEEP
+gate_notification_recovery|status|text|KEEP
+gate_notification_recovery|next_attempt_at|timestamp with time zone|KEEP
+gate_scan_devices|organization_id|uuid|KEEP
+gate_scan_devices|access_event_id|uuid|KEEP
+gate_scan_devices|device_id|uuid|KEEP
+gate_scan_devices|validation_ms|integer|KEEP
+gate_scan_devices|scanner_version|text|KEEP
+gates|id|uuid|KEEP
+gates|organization_id|uuid|KEEP
+gates|property_id|uuid|KEEP
+gates|code|text|KEEP
+gates|name_ar|text|KEEP
+gates|name_en|text|KEEP
+gates|direction_mode|text|KEEP
+gates|is_active|boolean|KEEP
+gates|created_by|uuid|KEEP
+gates|updated_by|uuid|KEEP
+gates|created_at|timestamp with time zone|KEEP
+gates|updated_at|timestamp with time zone|KEEP
+input_tax_decisions|id|uuid|KEEP
+input_tax_decisions|organization_id|uuid|KEEP
+input_tax_decisions|source_type|text|KEEP
+input_tax_decisions|source_id|uuid|KEEP
+input_tax_decisions|supplier_id|uuid|KEEP
+input_tax_decisions|expense_account_id|uuid|KEEP
+input_tax_decisions|invoice_number|text|KEEP
+input_tax_decisions|invoice_date|date|KEEP
+input_tax_decisions|supply_date|date|KEEP
+input_tax_decisions|gross_amount|numeric(19,4)|KEEP
+input_tax_decisions|taxable_base|numeric(19,4)|KEEP
+input_tax_decisions|tax_amount|numeric(19,4)|KEEP
+input_tax_decisions|recoverability|text|KEEP
+input_tax_decisions|recoverable_ratio|numeric(7,4)|KEEP
+input_tax_decisions|recoverable_amount|numeric(19,4)|KEEP
+input_tax_decisions|non_recoverable_amount|numeric(19,4)|KEEP
+input_tax_decisions|input_tax_account_id|uuid|KEEP
+input_tax_decisions|decision_snapshot|jsonb|JSONALLOW
+input_tax_decisions|reverses_decision_id|uuid|KEEP
+input_tax_decisions|replaces_decision_id|uuid|KEEP
+input_tax_decisions|reason|text|FREETEXT
+input_tax_decisions|decided_by|uuid|KEEP
+input_tax_decisions|decided_at|timestamp with time zone|KEEP
+installment_plans|id|uuid|KEEP
+installment_plans|organization_id|uuid|KEEP
+installment_plans|property_id|uuid|KEEP
+installment_plans|unit_id|uuid|KEEP
+installment_plans|buyer_member_id|uuid|KEEP
+installment_plans|due_type_id|uuid|KEEP
+installment_plans|receivable_account_id|uuid|KEEP
+installment_plans|status|text|KEEP
+installment_plans|total_price|numeric(19,4)|KEEP
+installment_plans|down_payment|numeric(19,4)|KEEP
+installment_plans|installment_count|integer|KEEP
+installment_plans|installment_frequency|text|KEEP
+installment_plans|starts_on|date|KEEP
+installment_plans|created_by|uuid|KEEP
+installment_plans|created_at|timestamp with time zone|KEEP
+installment_plans|updated_at|timestamp with time zone|KEEP
+installment_plans|cancelled_by|uuid|KEEP
+installment_plans|cancelled_at|timestamp with time zone|KEEP
+installment_plans|cancel_reason|text|KEEP
+journal_entries|id|uuid|KEEP
+journal_entries|organization_id|uuid|KEEP
+journal_entries|property_id|uuid|KEEP
+journal_entries|fiscal_period_id|uuid|KEEP
+journal_entries|entry_number|bigint|KEEP
+journal_entries|entry_date|date|KEEP
+journal_entries|description|text|FREETEXT
+journal_entries|source_type|text|KEEP
+journal_entries|source_id|uuid|KEEP
+journal_entries|status|text|KEEP
+journal_entries|idempotency_key|text|KEEP
+journal_entries|reversed_entry_id|uuid|KEEP
+journal_entries|created_by|uuid|KEEP
+journal_entries|reviewed_by|uuid|KEEP
+journal_entries|posted_by|uuid|KEEP
+journal_entries|posted_at|timestamp with time zone|KEEP
+journal_entries|created_at|timestamp with time zone|KEEP
+journal_entry_lines|id|uuid|KEEP
+journal_entry_lines|journal_entry_id|uuid|KEEP
+journal_entry_lines|line_number|integer|KEEP
+journal_entry_lines|account_id|uuid|KEEP
+journal_entry_lines|description|text|FREETEXT
+journal_entry_lines|debit|numeric(19,4)|KEEP
+journal_entry_lines|credit|numeric(19,4)|KEEP
+journal_entry_lines|cost_center_id|uuid|KEEP
+journal_entry_lines|project_id|uuid|KEEP
+lease_expiry_dispatches|id|uuid|KEEP
+lease_expiry_dispatches|organization_id|uuid|KEEP
+lease_expiry_dispatches|lease_id|uuid|KEEP
+lease_expiry_dispatches|lease_ends_on|date|KEEP
+lease_expiry_dispatches|threshold_days|integer|KEEP
+lease_expiry_dispatches|recipient_user_id|uuid|KEEP
+lease_expiry_dispatches|recipient_member_id|uuid|KEEP
+lease_expiry_dispatches|dispatched_at|timestamp with time zone|KEEP
+lease_renewal_requests|id|uuid|KEEP
+lease_renewal_requests|organization_id|uuid|KEEP
+lease_renewal_requests|property_id|uuid|KEEP
+lease_renewal_requests|unit_id|uuid|KEEP
+lease_renewal_requests|lease_id|uuid|KEEP
+lease_renewal_requests|tenant_member_id|uuid|KEEP
+lease_renewal_requests|status|text|KEEP
+lease_renewal_requests|requester_kind|text|KEEP
+lease_renewal_requests|requested_by|uuid|KEEP
+lease_renewal_requests|proposed_starts_on|date|KEEP
+lease_renewal_requests|proposed_ends_on|date|KEEP
+lease_renewal_requests|proposed_rent_amount|numeric(19,4)|KEEP
+lease_renewal_requests|proposed_rent_frequency|text|KEEP
+lease_renewal_requests|request_note|text|KEEP
+lease_renewal_requests|decided_by|uuid|KEEP
+lease_renewal_requests|decided_at|timestamp with time zone|KEEP
+lease_renewal_requests|decision_reason|text|KEEP
+lease_renewal_requests|created_at|timestamp with time zone|KEEP
+lease_renewal_requests|updated_at|timestamp with time zone|KEEP
+lease_renewal_requests|successor_lease_id|uuid|KEEP
+lease_renewal_transitions|id|uuid|KEEP
+lease_renewal_transitions|organization_id|uuid|KEEP
+lease_renewal_transitions|renewal_request_id|uuid|KEEP
+lease_renewal_transitions|from_status|text|KEEP
+lease_renewal_transitions|to_status|text|KEEP
+lease_renewal_transitions|actor_id|uuid|KEEP
+lease_renewal_transitions|reason|text|FREETEXT
+lease_renewal_transitions|created_at|timestamp with time zone|KEEP
+lease_rent_generation_runs|id|uuid|KEEP
+lease_rent_generation_runs|organization_id|uuid|KEEP
+lease_rent_generation_runs|lease_id|uuid|KEEP
+lease_rent_generation_runs|period|text|KEEP
+lease_rent_generation_runs|due_id|uuid|KEEP
+lease_rent_generation_runs|generated_by|uuid|KEEP
+lease_rent_generation_runs|generated_at|timestamp with time zone|KEEP
+maintenance_categories|id|uuid|KEEP
+maintenance_categories|organization_id|uuid|KEEP
+maintenance_categories|name_ar|text|KEEP
+maintenance_categories|name_en|text|KEEP
+maintenance_categories|default_priority|text|KEEP
+maintenance_categories|is_active|boolean|KEEP
+maintenance_categories|sort_order|integer|KEEP
+maintenance_categories|created_by|uuid|KEEP
+maintenance_categories|updated_by|uuid|KEEP
+maintenance_categories|created_at|timestamp with time zone|KEEP
+maintenance_categories|updated_at|timestamp with time zone|KEEP
+maintenance_request_attachments|id|uuid|KEEP
+maintenance_request_attachments|organization_id|uuid|KEEP
+maintenance_request_attachments|maintenance_request_id|uuid|KEEP
+maintenance_request_attachments|uploaded_by_user_id|uuid|KEEP
+maintenance_request_attachments|uploaded_by_member_id|uuid|KEEP
+maintenance_request_attachments|kind|text|KEEP
+maintenance_request_attachments|visibility|text|KEEP
+maintenance_request_attachments|original_file_name|text|KEEP
+maintenance_request_attachments|storage_bucket|text|KEEP
+maintenance_request_attachments|storage_path|text|KEEP
+maintenance_request_attachments|mime_type|text|KEEP
+maintenance_request_attachments|byte_size|bigint|KEEP
+maintenance_request_attachments|status|text|KEEP
+maintenance_request_attachments|created_at|timestamp with time zone|KEEP
+maintenance_request_attachments|ready_at|timestamp with time zone|KEEP
+maintenance_request_updates|id|uuid|KEEP
+maintenance_request_updates|organization_id|uuid|KEEP
+maintenance_request_updates|maintenance_request_id|uuid|KEEP
+maintenance_request_updates|actor_user_id|uuid|KEEP
+maintenance_request_updates|actor_member_id|uuid|KEEP
+maintenance_request_updates|previous_status|text|KEEP
+maintenance_request_updates|resulting_status|text|KEEP
+maintenance_request_updates|note|text|FREETEXT
+maintenance_request_updates|visibility|text|KEEP
+maintenance_request_updates|created_at|timestamp with time zone|KEEP
+maintenance_requests|id|uuid|KEEP
+maintenance_requests|organization_id|uuid|KEEP
+maintenance_requests|property_id|uuid|KEEP
+maintenance_requests|unit_id|uuid|KEEP
+maintenance_requests|requester_member_id|uuid|KEEP
+maintenance_requests|category_id|uuid|KEEP
+maintenance_requests|request_no|text|KEEP
+maintenance_requests|title|text|KEEP
+maintenance_requests|description|text|FREETEXT
+maintenance_requests|priority|text|KEEP
+maintenance_requests|status|text|KEEP
+maintenance_requests|submitted_at|timestamp with time zone|KEEP
+maintenance_requests|triaged_at|timestamp with time zone|KEEP
+maintenance_requests|started_at|timestamp with time zone|KEEP
+maintenance_requests|waiting_at|timestamp with time zone|KEEP
+maintenance_requests|completed_at|timestamp with time zone|KEEP
+maintenance_requests|closed_at|timestamp with time zone|KEEP
+maintenance_requests|cancelled_at|timestamp with time zone|KEEP
+maintenance_requests|created_by|uuid|KEEP
+maintenance_requests|updated_by|uuid|KEEP
+maintenance_requests|created_at|timestamp with time zone|KEEP
+maintenance_requests|updated_at|timestamp with time zone|KEEP
+member_activation_tokens|id|uuid|KEEP
+member_activation_tokens|organization_id|uuid|KEEP
+member_activation_tokens|member_id|uuid|KEEP
+member_activation_tokens|token_hash|text|SECRET
+member_activation_tokens|email|text|PII
+member_activation_tokens|expires_at|timestamp with time zone|KEEP
+member_activation_tokens|used_at|timestamp with time zone|KEEP
+member_activation_tokens|revoked_at|timestamp with time zone|KEEP
+member_activation_tokens|delivery_status|text|KEEP
+member_activation_tokens|delivery_detail|text|KEEP
+member_activation_tokens|delivered_at|timestamp with time zone|KEEP
+member_activation_tokens|created_by|uuid|KEEP
+member_activation_tokens|created_at|timestamp with time zone|KEEP
+member_activity_log|id|uuid|KEEP
+member_activity_log|organization_id|uuid|KEEP
+member_activity_log|member_id|uuid|KEEP
+member_activity_log|actor_id|uuid|KEEP
+member_activity_log|type|text|KEEP
+member_activity_log|body|text|BLOB
+member_activity_log|created_at|timestamp with time zone|KEEP
+member_documents|id|uuid|KEEP
+member_documents|organization_id|uuid|KEEP
+member_documents|member_id|uuid|KEEP
+member_documents|file_path|text|KEEP
+member_documents|file_name|text|KEEP
+member_documents|file_size|bigint|KEEP
+member_documents|mime_type|text|KEEP
+member_documents|uploaded_by|uuid|KEEP
+member_documents|created_at|timestamp with time zone|KEEP
+member_invitation_short_links|slug|text|KEEP
+member_invitation_short_links|invitation_id|uuid|KEEP
+member_invitation_short_links|action_link|text|KEEP
+member_invitation_short_links|expires_at|timestamp with time zone|KEEP
+member_invitation_short_links|created_at|timestamp with time zone|KEEP
+member_invitations|id|uuid|KEEP
+member_invitations|organization_id|uuid|KEEP
+member_invitations|member_id|uuid|KEEP
+member_invitations|email|text|PII
+member_invitations|token_hash|text|SECRET
+member_invitations|status|text|KEEP
+member_invitations|expires_at|timestamp with time zone|KEEP
+member_invitations|invited_by|uuid|KEEP
+member_invitations|accepted_at|timestamp with time zone|KEEP
+member_invitations|accepted_user_id|uuid|KEEP
+member_invitations|created_at|timestamp with time zone|KEEP
+member_invitations|code_hash|text|SECRET
+member_invitations|code_attempts|integer|KEEP
+member_invitations|code_locked_until|timestamp with time zone|KEEP
+member_phones|id|uuid|KEEP
+member_phones|organization_id|uuid|KEEP
+member_phones|member_id|uuid|KEEP
+member_phones|phone_number|text|PII
+member_phones|normalized_phone|text|KEEP
+member_phones|label|text|KEEP
+member_phones|is_primary|boolean|KEEP
+member_phones|can_receive_whatsapp|boolean|KEEP
+member_phones|is_verified|boolean|KEEP
+member_phones|created_at|timestamp with time zone|KEEP
+member_phones|updated_at|timestamp with time zone|KEEP
+member_portal_access|id|uuid|KEEP
+member_portal_access|organization_id|uuid|KEEP
+member_portal_access|member_id|uuid|KEEP
+member_portal_access|status|text|KEEP
+member_portal_access|login_method|text|KEEP
+member_portal_access|client_id|text|KEEP
+member_portal_access|auth_user_id|uuid|KEEP
+member_portal_access|auth_origin|text|KEEP
+member_portal_access|must_change_password|boolean|KEEP
+member_portal_access|temp_password_expires_at|timestamp with time zone|KEEP
+member_portal_access|temp_pw_fingerprint|text|KEEP
+member_portal_access|confirmed_phone|text|KEEP
+member_portal_access|phone_confirmed_at|timestamp with time zone|KEEP
+member_portal_access|activated_at|timestamp with time zone|KEEP
+member_portal_access|suspended_at|timestamp with time zone|KEEP
+member_portal_access|suspended_by|uuid|KEEP
+member_portal_access|suspend_reason|text|KEEP
+member_portal_access|created_by|uuid|KEEP
+member_portal_access|created_at|timestamp with time zone|KEEP
+member_portal_access|updated_at|timestamp with time zone|KEEP
+member_saved_filters|id|uuid|KEEP
+member_saved_filters|organization_id|uuid|KEEP
+member_saved_filters|created_by|uuid|KEEP
+member_saved_filters|name|text|KEEP
+member_saved_filters|query|jsonb|JSONALLOW
+member_saved_filters|created_at|timestamp with time zone|KEEP
+member_tag_assignments|member_id|uuid|KEEP
+member_tag_assignments|tag_id|uuid|KEEP
+member_tag_assignments|organization_id|uuid|KEEP
+member_tag_assignments|created_at|timestamp with time zone|KEEP
+member_tags|id|uuid|KEEP
+member_tags|organization_id|uuid|KEEP
+member_tags|name|text|KEEP
+member_tags|color|text|KEEP
+member_tags|created_at|timestamp with time zone|KEEP
+members|id|uuid|KEEP
+members|organization_id|uuid|KEEP
+members|full_name|text|PII
+members|is_company|boolean|KEEP
+members|email|text|PII
+members|phone|text|PII
+members|created_at|timestamp with time zone|KEEP
+members|updated_at|timestamp with time zone|KEEP
+members|created_by|uuid|KEEP
+members|user_id|uuid|KEEP
+members|customer_type|text|KEEP
+members|tax_registration_number|text|KEEP
+members|identity_document_type|text|KEEP
+members|identity_document_number|text|KEEP
+members|legal_name|text|KEEP
+members|country_code|text|KEEP
+members|billing_address|text|PII
+members|identity_verified_at|timestamp with time zone|KEEP
+members|identity_verification_source|text|KEEP
+members|identity_verification_reference|text|KEEP
+members|archived_at|timestamp with time zone|KEEP
+members|archived_by|uuid|KEEP
+members|archive_reason|text|KEEP
+notifications|id|uuid|KEEP
+notifications|organization_id|uuid|KEEP
+notifications|recipient_user_id|uuid|KEEP
+notifications|recipient_member_id|uuid|KEEP
+notifications|type|text|KEEP
+notifications|title_ar|text|KEEP
+notifications|title_en|text|KEEP
+notifications|body_ar|text|KEEP
+notifications|body_en|text|KEEP
+notifications|source_type|text|KEEP
+notifications|source_id|uuid|KEEP
+notifications|action_url|text|KEEP
+notifications|priority|text|KEEP
+notifications|is_read|boolean|KEEP
+notifications|read_at|timestamp with time zone|KEEP
+notifications|created_at|timestamp with time zone|KEEP
+onboarding_request_events|id|bigint|KEEP
+onboarding_request_events|request_id|uuid|KEEP
+onboarding_request_events|event_type|text|KEEP
+onboarding_request_events|actor_id|uuid|KEEP
+onboarding_request_events|notes|text|FREETEXT
+onboarding_request_events|metadata|jsonb|JSONALLOW
+onboarding_request_events|created_at|timestamp with time zone|KEEP
+onboarding_requests|id|uuid|KEEP
+onboarding_requests|status|text|KEEP
+onboarding_requests|requester_user_id|uuid|KEEP
+onboarding_requests|full_name|text|PII
+onboarding_requests|work_email|text|PII
+onboarding_requests|phone|text|PII
+onboarding_requests|organization_name|text|KEEP
+onboarding_requests|entity_type|text|KEEP
+onboarding_requests|entity_type_custom_label|text|KEEP
+onboarding_requests|country|text|KEEP
+onboarding_requests|city|text|KEEP
+onboarding_requests|expected_properties_count|integer|KEEP
+onboarding_requests|expected_units_count|integer|KEEP
+onboarding_requests|notes|text|FREETEXT
+onboarding_requests|requested_plan_key|text|KEEP
+onboarding_requests|organization_id|uuid|KEEP
+onboarding_requests|failure_reason|text|KEEP
+onboarding_requests|submitted_at|timestamp with time zone|KEEP
+onboarding_requests|reviewed_at|timestamp with time zone|KEEP
+onboarding_requests|reviewed_by|uuid|KEEP
+onboarding_requests|review_notes|text|KEEP
+onboarding_requests|created_at|timestamp with time zone|KEEP
+onboarding_requests|updated_at|timestamp with time zone|KEEP
+online_payment_events|id|uuid|KEEP
+online_payment_events|organization_id|uuid|KEEP
+online_payment_events|property_id|uuid|KEEP
+online_payment_events|transaction_id|uuid|KEEP
+online_payment_events|provider|text|KEEP
+online_payment_events|environment|text|KEEP
+online_payment_events|event_identifier|text|KEEP
+online_payment_events|event_type|text|KEEP
+online_payment_events|provider_status|text|KEEP
+online_payment_events|signature_verified|boolean|KEEP
+online_payment_events|redacted_payload|jsonb|BLOB
+online_payment_events|payload_hash|text|KEEP
+online_payment_events|processing_status|text|KEEP
+online_payment_events|attempt_count|integer|KEEP
+online_payment_events|next_attempt_at|timestamp with time zone|KEEP
+online_payment_events|last_error_code|text|KEEP
+online_payment_events|processed_at|timestamp with time zone|KEEP
+online_payment_events|created_at|timestamp with time zone|KEEP
+online_payment_events|updated_at|timestamp with time zone|KEEP
+online_payment_production_pilots|organization_id|uuid|KEEP
+online_payment_production_pilots|enabled_at|timestamp with time zone|KEEP
+online_payment_production_pilots|enabled_by|uuid|KEEP
+online_payment_production_pilots|expires_at|timestamp with time zone|KEEP
+online_payment_production_pilots|note|text|FREETEXT
+online_payment_production_pilots|created_at|timestamp with time zone|KEEP
+online_payment_transaction_allocations|id|uuid|KEEP
+online_payment_transaction_allocations|transaction_id|uuid|KEEP
+online_payment_transaction_allocations|due_id|uuid|KEEP
+online_payment_transaction_allocations|amount|numeric(19,4)|KEEP
+online_payment_transaction_allocations|created_at|timestamp with time zone|KEEP
+online_payment_transactions|id|uuid|KEEP
+online_payment_transactions|organization_id|uuid|KEEP
+online_payment_transactions|property_id|uuid|KEEP
+online_payment_transactions|member_id|uuid|KEEP
+online_payment_transactions|client_request_id|text|KEEP
+online_payment_transactions|provider|text|KEEP
+online_payment_transactions|provider_reference|text|KEEP
+online_payment_transactions|provider_payload|jsonb|BLOB
+online_payment_transactions|amount|numeric(19,4)|KEEP
+online_payment_transactions|status|text|KEEP
+online_payment_transactions|failure_code|text|KEEP
+online_payment_transactions|failure_message|text|KEEP
+online_payment_transactions|payment_id|uuid|KEEP
+online_payment_transactions|webhook_event_id|text|KEEP
+online_payment_transactions|webhook_received_at|timestamp with time zone|KEEP
+online_payment_transactions|paid_at|timestamp with time zone|KEEP
+online_payment_transactions|failed_at|timestamp with time zone|KEEP
+online_payment_transactions|expires_at|timestamp with time zone|KEEP
+online_payment_transactions|created_at|timestamp with time zone|KEEP
+online_payment_transactions|updated_at|timestamp with time zone|KEEP
+online_payment_transactions|environment|text|KEEP
+online_payment_transactions|currency|text|KEEP
+online_payment_transactions|provider_settings_id|uuid|KEEP
+online_payment_transactions|provider_merchant_identifier_snapshot|text|KEEP
+online_payment_transactions|checkout_requested_at|timestamp with time zone|KEEP
+online_payment_transactions|checkout_created_at|timestamp with time zone|KEEP
+online_payment_transactions|last_provider_status|text|KEEP
+online_payment_transactions|last_status_checked_at|timestamp with time zone|KEEP
+online_payment_transactions|completed_at|timestamp with time zone|KEEP
+organization_finance_settings|id|uuid|KEEP
+organization_finance_settings|organization_id|uuid|KEEP
+organization_finance_settings|property_id|uuid|KEEP
+organization_finance_settings|online_payments_clearing_account_id|uuid|KEEP
+organization_finance_settings|created_at|timestamp with time zone|KEEP
+organization_finance_settings|updated_at|timestamp with time zone|KEEP
+organization_finance_settings|security_deposit_liability_account_id|uuid|KEEP
+organization_finance_settings|commission_expense_account_id|uuid|KEEP
+organization_finance_settings|commission_payable_account_id|uuid|KEEP
+organization_finance_settings|receivable_account_id|uuid|KEEP
+organization_finance_settings|customer_advance_account_id|uuid|KEEP
+organization_memberships|id|uuid|KEEP
+organization_memberships|organization_id|uuid|KEEP
+organization_memberships|user_id|uuid|KEEP
+organization_memberships|status|text|KEEP
+organization_memberships|created_at|timestamp with time zone|KEEP
+organizations|id|uuid|KEEP
+organizations|name|text|KEEP
+organizations|slug|text|KEEP
+organizations|status|text|KEEP
+organizations|default_currency|text|KEEP
+organizations|created_at|timestamp with time zone|KEEP
+organizations|updated_at|timestamp with time zone|KEEP
+organizations|created_by|uuid|KEEP
+organizations|updated_by|uuid|KEEP
+organizations|entity_type|text|KEEP
+organizations|entity_type_custom_label|text|KEEP
+organizations|address|text|PII
+organizations|governorate|text|KEEP
+organizations|city|text|KEEP
+organizations|phone|text|PII
+organizations|email|text|PII
+organizations|tax_id|text|KEEP
+organizations|tax_jurisdiction|text|KEEP
+organizations|tax_enforcement_enabled|boolean|KEEP
+organizations|tax_enforcement_enabled_at|timestamp with time zone|KEEP
+organizations|tax_enforcement_enabled_by|uuid|KEEP
+organizations|tax_enforcement_disabled_at|timestamp with time zone|KEEP
+organizations|tax_enforcement_disabled_by|uuid|KEEP
+organizations|tax_enforcement_disabled_reason|text|KEEP
+organizations|output_tax_account_id|uuid|KEEP
+organizations|input_tax_account_id|uuid|KEEP
+organizations|brand_color|text|KEEP
+organizations|logo_url|text|KEEP
+organizations|commercial_registry|text|KEEP
+organizations|tagline|text|KEEP
+organizations|fx_gain_account_id|uuid|KEEP
+organizations|fx_loss_account_id|uuid|KEEP
+organizations|asset_disposal_gain_account_id|uuid|KEEP
+organizations|asset_disposal_loss_account_id|uuid|KEEP
+organizations|is_demo|boolean|KEEP
+payment_allocations|id|uuid|KEEP
+payment_allocations|payment_id|uuid|KEEP
+payment_allocations|due_id|uuid|KEEP
+payment_allocations|amount|numeric(19,4)|KEEP
+payment_allocations|reversed_at|timestamp with time zone|KEEP
+payment_allocations|reversed_by|uuid|KEEP
+payment_allocations|applied_on|date|KEEP
+payment_allocations|reversed_on|date|KEEP
+payment_allocations|kind|text|KEEP
+payment_allocations|journal_entry_id|uuid|KEEP
+payment_allocations|reversal_journal_entry_id|uuid|KEEP
+payment_allocations|credit_account_id|uuid|KEEP
+payment_allocations|created_at|timestamp with time zone|KEEP
+payment_allocations|created_by|uuid|KEEP
+payment_credit_requests|organization_id|uuid|KEEP
+payment_credit_requests|idempotency_key|text|KEEP
+payment_credit_requests|operation|text|KEEP
+payment_credit_requests|request_hash|text|KEEP
+payment_credit_requests|result|jsonb|JSONALLOW
+payment_credit_requests|created_by|uuid|KEEP
+payment_credit_requests|created_at|timestamp with time zone|KEEP
+payment_provider_settings|id|uuid|KEEP
+payment_provider_settings|organization_id|uuid|KEEP
+payment_provider_settings|property_id|uuid|KEEP
+payment_provider_settings|provider|text|KEEP
+payment_provider_settings|environment|text|KEEP
+payment_provider_settings|merchant_identifier|text|KEEP
+payment_provider_settings|public_key|text|KEEP
+payment_provider_settings|api_key_secret_id|uuid|SECRET
+payment_provider_settings|hmac_secret_id|uuid|SECRET
+payment_provider_settings|status|text|KEEP
+payment_provider_settings|enabled|boolean|KEEP
+payment_provider_settings|verified_at|timestamp with time zone|KEEP
+payment_provider_settings|last_verification_error|text|KEEP
+payment_provider_settings|created_by|uuid|KEEP
+payment_provider_settings|updated_by|uuid|KEEP
+payment_provider_settings|created_at|timestamp with time zone|KEEP
+payment_provider_settings|updated_at|timestamp with time zone|KEEP
+payments|id|uuid|KEEP
+payments|organization_id|uuid|KEEP
+payments|property_id|uuid|KEEP
+payments|member_id|uuid|KEEP
+payments|unit_id|uuid|KEEP
+payments|amount|numeric(19,4)|KEEP
+payments|method|text|KEEP
+payments|payment_date|date|KEEP
+payments|receipt_number|bigint|KEEP
+payments|deposit_account_id|uuid|KEEP
+payments|journal_entry_id|uuid|KEEP
+payments|status|text|KEEP
+payments|created_by|uuid|KEEP
+payments|created_at|timestamp with time zone|KEEP
+payments|idempotency_key|text|KEEP
+payments|memo|text|FREETEXT
+payments|unallocated_amount|numeric(19,4)|KEEP
+payments|receipt_no|text|KEEP
+payments|reversed_at|timestamp with time zone|KEEP
+payments|reversed_by|uuid|KEEP
+payments|reversal_reason|text|KEEP
+payments|reversal_journal_entry_id|uuid|KEEP
+payments|advance_amount|numeric(19,4)|KEEP
+payments|advance_account_id|uuid|KEEP
+payments|request_hash|text|KEEP
+permissions|id|uuid|KEEP
+permissions|key|text|KEEP
+permissions|description|text|FREETEXT
+plan_entitlements|id|uuid|KEEP
+plan_entitlements|plan_id|uuid|KEEP
+plan_entitlements|key|text|KEEP
+plan_entitlements|value|jsonb|JSONALLOW
+plan_installments|id|uuid|KEEP
+plan_installments|plan_id|uuid|KEEP
+plan_installments|due_id|uuid|KEEP
+plan_installments|sequence_no|integer|KEEP
+plan_installments|principal_amount|numeric(19,4)|KEEP
+plan_installments|created_at|timestamp with time zone|KEEP
+plans|id|uuid|KEEP
+plans|key|text|KEEP
+plans|name_ar|text|KEEP
+plans|name_en|text|KEEP
+plans|sort_order|integer|KEEP
+plans|created_at|timestamp with time zone|KEEP
+platform_audit_logs|id|uuid|KEEP
+platform_audit_logs|actor_id|uuid|KEEP
+platform_audit_logs|organization_id|uuid|KEEP
+platform_audit_logs|property_id|uuid|KEEP
+platform_audit_logs|action|text|KEEP
+platform_audit_logs|entity_type|text|KEEP
+platform_audit_logs|entity_id|uuid|KEEP
+platform_audit_logs|reason|text|FREETEXT
+platform_audit_logs|safe_change_summary|jsonb|JSONALLOW
+platform_audit_logs|correlation_id|uuid|KEEP
+platform_audit_logs|created_at|timestamp with time zone|KEEP
+profiles|id|uuid|KEEP
+profiles|full_name|text|PII
+profiles|avatar_url|text|KEEP
+profiles|locale|text|KEEP
+profiles|created_at|timestamp with time zone|KEEP
+profiles|updated_at|timestamp with time zone|KEEP
+projects|id|uuid|KEEP
+projects|organization_id|uuid|KEEP
+projects|property_id|uuid|KEEP
+projects|code|text|KEEP
+projects|name_ar|text|KEEP
+projects|name_en|text|KEEP
+projects|is_active|boolean|KEEP
+projects|created_at|timestamp with time zone|KEEP
+projects|wip_account_id|uuid|KEEP
+projects|cost_of_sales_account_id|uuid|KEEP
+projects|status|text|KEEP
+projects|start_date|date|KEEP
+projects|expected_completion_date|date|KEEP
+projects|budget_amount|numeric(19,4)|KEEP
+projects|updated_at|timestamp with time zone|KEEP
+properties|id|uuid|KEEP
+properties|organization_id|uuid|KEEP
+properties|name|text|KEEP
+properties|code|text|KEEP
+properties|timezone|text|KEEP
+properties|created_at|timestamp with time zone|KEEP
+properties|updated_at|timestamp with time zone|KEEP
+properties|created_by|uuid|KEEP
+properties|updated_by|uuid|KEEP
+properties|address|text|PII
+properties|governorate|text|KEEP
+properties|phone|text|PII
+properties|email|text|PII
+properties|property_type|text|KEEP
+property_import_logs|id|uuid|KEEP
+property_import_logs|organization_id|uuid|KEEP
+property_import_logs|property_id|uuid|KEEP
+property_import_logs|import_kind|text|KEEP
+property_import_logs|imported_rows|integer|KEEP
+property_import_logs|skipped_rows|integer|KEEP
+property_import_logs|allow_partial|boolean|KEEP
+property_import_logs|failures|jsonb|JSONALLOW
+property_import_logs|created_by|uuid|KEEP
+property_import_logs|created_at|timestamp with time zone|KEEP
+public_action_rate_limits|id|bigint|KEEP
+public_action_rate_limits|action|text|KEEP
+public_action_rate_limits|client_key|text|KEEP
+public_action_rate_limits|created_at|timestamp with time zone|KEEP
+purchase_orders|id|uuid|KEEP
+purchase_orders|organization_id|uuid|KEEP
+purchase_orders|property_id|uuid|KEEP
+purchase_orders|supplier_id|uuid|KEEP
+purchase_orders|purchase_request_id|uuid|KEEP
+purchase_orders|order_number|bigint|KEEP
+purchase_orders|description|text|FREETEXT
+purchase_orders|amount|numeric(19,4)|KEEP
+purchase_orders|order_date|date|KEEP
+purchase_orders|status|text|KEEP
+purchase_orders|created_by|uuid|KEEP
+purchase_orders|approved_by|uuid|KEEP
+purchase_orders|created_at|timestamp with time zone|KEEP
+purchase_requests|id|uuid|KEEP
+purchase_requests|organization_id|uuid|KEEP
+purchase_requests|property_id|uuid|KEEP
+purchase_requests|description|text|FREETEXT
+purchase_requests|estimated_amount|numeric(19,4)|KEEP
+purchase_requests|status|text|KEEP
+purchase_requests|requested_by|uuid|KEEP
+purchase_requests|approved_by|uuid|KEEP
+purchase_requests|created_at|timestamp with time zone|KEEP
+resort_memberships|id|uuid|KEEP
+resort_memberships|property_id|uuid|KEEP
+resort_memberships|organization_id|uuid|KEEP
+resort_memberships|user_id|uuid|KEEP
+resort_memberships|created_at|timestamp with time zone|KEEP
+revenue_natures|code|text|KEEP
+revenue_natures|name_ar|text|KEEP
+revenue_natures|name_en|text|KEEP
+revenue_natures|is_derived|boolean|KEEP
+revenue_natures|sort_order|integer|KEEP
+revenue_natures|created_at|timestamp with time zone|KEEP
+role_permissions|role_id|uuid|KEEP
+role_permissions|permission_id|uuid|KEEP
+role_template_permissions|role_template_key|text|KEEP
+role_template_permissions|permission_key|text|KEEP
+role_templates|key|text|KEEP
+role_templates|name_ar|text|KEEP
+role_templates|name_en|text|KEEP
+role_templates|sort_order|integer|KEEP
+roles|id|uuid|KEEP
+roles|organization_id|uuid|KEEP
+roles|key|text|KEEP
+roles|name_ar|text|KEEP
+roles|name_en|text|KEEP
+roles|is_system|boolean|KEEP
+roles|created_at|timestamp with time zone|KEEP
+service_charge_allocations|id|uuid|KEEP
+service_charge_allocations|organization_id|uuid|KEEP
+service_charge_allocations|levy_id|uuid|KEEP
+service_charge_allocations|unit_id|uuid|KEEP
+service_charge_allocations|basis_value|numeric(14,4)|KEEP
+service_charge_allocations|share_amount|numeric(19,4)|KEEP
+service_charge_allocations|due_id|uuid|KEEP
+service_charge_allocations|created_at|timestamp with time zone|KEEP
+service_charge_levies|id|uuid|KEEP
+service_charge_levies|organization_id|uuid|KEEP
+service_charge_levies|property_id|uuid|KEEP
+service_charge_levies|name|text|KEEP
+service_charge_levies|period_start|date|KEEP
+service_charge_levies|period_end|date|KEEP
+service_charge_levies|total_amount|numeric(19,4)|KEEP
+service_charge_levies|allocation_basis|text|KEEP
+service_charge_levies|due_type_id|uuid|KEEP
+service_charge_levies|receivable_account_id|uuid|KEEP
+service_charge_levies|issue_date|date|KEEP
+service_charge_levies|due_date|date|KEEP
+service_charge_levies|status|text|KEEP
+service_charge_levies|issued_at|timestamp with time zone|KEEP
+service_charge_levies|issued_by|uuid|KEEP
+service_charge_levies|note|text|FREETEXT
+service_charge_levies|created_by|uuid|KEEP
+service_charge_levies|created_at|timestamp with time zone|KEEP
+service_charge_levies|updated_at|timestamp with time zone|KEEP
+service_charge_levies|handed_over_only|boolean|KEEP
+subscriptions|id|uuid|KEEP
+subscriptions|organization_id|uuid|KEEP
+subscriptions|plan_id|uuid|KEEP
+subscriptions|status|text|KEEP
+subscriptions|current_period_start|timestamp with time zone|KEEP
+subscriptions|current_period_end|timestamp with time zone|KEEP
+subscriptions|created_at|timestamp with time zone|KEEP
+subscriptions|updated_at|timestamp with time zone|KEEP
+subscriptions|created_by|uuid|KEEP
+supplier_invoices|id|uuid|KEEP
+supplier_invoices|organization_id|uuid|KEEP
+supplier_invoices|property_id|uuid|KEEP
+supplier_invoices|supplier_id|uuid|KEEP
+supplier_invoices|purchase_order_id|uuid|KEEP
+supplier_invoices|invoice_number|text|KEEP
+supplier_invoices|expense_account_id|uuid|KEEP
+supplier_invoices|payable_account_id|uuid|KEEP
+supplier_invoices|amount|numeric(19,4)|KEEP
+supplier_invoices|invoice_date|date|KEEP
+supplier_invoices|due_date|date|KEEP
+supplier_invoices|status|text|KEEP
+supplier_invoices|journal_entry_id|uuid|KEEP
+supplier_invoices|created_by|uuid|KEEP
+supplier_invoices|created_at|timestamp with time zone|KEEP
+supplier_invoices|net_amount|numeric(19,4)|KEEP
+supplier_invoices|discount_amount|numeric(19,4)|KEEP
+supplier_invoices|vat_rate|numeric(5,2)|KEEP
+supplier_invoices|vat_amount|numeric(19,4)|KEEP
+supplier_invoices|vat_account_id|uuid|KEEP
+supplier_invoices|wht_rate|numeric(5,2)|KEEP
+supplier_invoices|wht_amount|numeric(19,4)|KEEP
+supplier_invoices|wht_account_id|uuid|KEEP
+supplier_invoices|reversed_at|timestamp with time zone|KEEP
+supplier_invoices|reversed_by|uuid|KEEP
+supplier_invoices|reversal_reason|text|KEEP
+supplier_invoices|currency|text|KEEP
+supplier_invoices|exchange_rate|numeric(18,8)|KEEP
+supplier_invoices|foreign_net_amount|numeric(19,4)|KEEP
+supplier_invoices|foreign_discount_amount|numeric(19,4)|KEEP
+supplier_invoices|foreign_amount|numeric(19,4)|KEEP
+supplier_payment_allocations|id|uuid|KEEP
+supplier_payment_allocations|payment_id|uuid|KEEP
+supplier_payment_allocations|invoice_id|uuid|KEEP
+supplier_payment_allocations|amount|numeric(19,4)|KEEP
+supplier_payment_allocations|reversed_at|timestamp with time zone|KEEP
+supplier_payment_allocations|reversed_by|uuid|KEEP
+supplier_payments|id|uuid|KEEP
+supplier_payments|organization_id|uuid|KEEP
+supplier_payments|property_id|uuid|KEEP
+supplier_payments|supplier_id|uuid|KEEP
+supplier_payments|amount|numeric(19,4)|KEEP
+supplier_payments|method|text|KEEP
+supplier_payments|payment_date|date|KEEP
+supplier_payments|voucher_number|bigint|KEEP
+supplier_payments|payment_account_id|uuid|KEEP
+supplier_payments|journal_entry_id|uuid|KEEP
+supplier_payments|cashier_session_id|uuid|KEEP
+supplier_payments|idempotency_key|text|KEEP
+supplier_payments|created_by|uuid|KEEP
+supplier_payments|created_at|timestamp with time zone|KEEP
+supplier_payments|wht_amount|numeric(19,4)|KEEP
+supplier_payments|wht_account_id|uuid|KEEP
+supplier_payments|reversed_at|timestamp with time zone|KEEP
+supplier_payments|reversed_by|uuid|KEEP
+supplier_payments|reversal_reason|text|KEEP
+suppliers|id|uuid|KEEP
+suppliers|organization_id|uuid|KEEP
+suppliers|name|text|KEEP
+suppliers|contact_email|text|PII
+suppliers|contact_phone|text|KEEP
+suppliers|payable_account_id|uuid|KEEP
+suppliers|is_active|boolean|KEEP
+suppliers|created_at|timestamp with time zone|KEEP
+suppliers|tax_number|text|KEEP
+suppliers|commercial_registry|text|KEEP
+suppliers|contact_person|text|KEEP
+suppliers|address|text|PII
+suppliers|secondary_phone|text|KEEP
+suppliers|bank_account_details|text|KEEP
+suppliers|bank_name|text|KEEP
+suppliers|bank_iban|text|KEEP
+suppliers|payment_terms_days|integer|KEEP
+suppliers|credit_limit|numeric(19,4)|KEEP
+suppliers|category|text|KEEP
+tax_decisions|id|uuid|KEEP
+tax_decisions|organization_id|uuid|KEEP
+tax_decisions|source_type|text|KEEP
+tax_decisions|source_id|uuid|KEEP
+tax_decisions|revenue_nature|text|KEEP
+tax_decisions|jurisdiction|text|KEEP
+tax_decisions|transaction_date|date|KEEP
+tax_decisions|tax_rule_version_id|uuid|KEEP
+tax_decisions|tax_rule_hash|text|KEEP
+tax_decisions|tax_decision_snapshot|jsonb|JSONALLOW
+tax_decisions|decided_by|uuid|KEEP
+tax_decisions|decided_at|timestamp with time zone|KEEP
+tax_decisions|reverses_decision_id|uuid|KEEP
+tax_decisions|replaces_decision_id|uuid|KEEP
+tax_decisions|reason|text|FREETEXT
+tax_decisions|amount_basis|text|KEEP
+tax_decisions|taxable_base|numeric(19,4)|KEEP
+tax_decisions|vat_amount|numeric(19,4)|KEEP
+tax_decisions|gross_amount|numeric(19,4)|KEEP
+tax_decisions|output_tax_account_id|uuid|KEEP
+tax_decisions|buyer_member_id|uuid|KEEP
+tax_rule_versions|id|uuid|KEEP
+tax_rule_versions|jurisdiction|text|KEEP
+tax_rule_versions|revenue_nature|text|KEEP
+tax_rule_versions|tax_treatment|text|KEEP
+tax_rule_versions|vat_rate|numeric(6,3)|KEEP
+tax_rule_versions|effective_from|date|KEEP
+tax_rule_versions|effective_to|date|KEEP
+tax_rule_versions|e_document_type|text|KEEP
+tax_rule_versions|issuer_scope|text|KEEP
+tax_rule_versions|version|integer|KEEP
+tax_rule_versions|rule_hash|text|KEEP
+tax_rule_versions|status|text|KEEP
+tax_rule_versions|legal_reference|text|KEEP
+tax_rule_versions|approved_by|uuid|KEEP
+tax_rule_versions|approved_at|timestamp with time zone|KEEP
+tax_rule_versions|created_by|uuid|KEEP
+tax_rule_versions|created_at|timestamp with time zone|KEEP
+tenant_branding|organization_id|uuid|KEEP
+tenant_branding|logo_url|text|KEEP
+tenant_branding|primary_color|text|KEEP
+tenant_branding|secondary_color|text|KEEP
+tenant_branding|updated_at|timestamp with time zone|KEEP
+tenant_feature_flags|id|uuid|KEEP
+tenant_feature_flags|organization_id|uuid|KEEP
+tenant_feature_flags|flag_key|text|KEEP
+tenant_feature_flags|enabled|boolean|KEEP
+tenant_feature_flags|created_at|timestamp with time zone|KEEP
+unit_handover_snags|id|uuid|KEEP
+unit_handover_snags|organization_id|uuid|KEEP
+unit_handover_snags|handover_id|uuid|KEEP
+unit_handover_snags|description|text|FREETEXT
+unit_handover_snags|severity|text|KEEP
+unit_handover_snags|status|text|KEEP
+unit_handover_snags|resolved_at|timestamp with time zone|KEEP
+unit_handover_snags|resolved_by|uuid|KEEP
+unit_handover_snags|created_by|uuid|KEEP
+unit_handover_snags|created_at|timestamp with time zone|KEEP
+unit_handovers|id|uuid|KEEP
+unit_handovers|organization_id|uuid|KEEP
+unit_handovers|property_id|uuid|KEEP
+unit_handovers|unit_id|uuid|KEEP
+unit_handovers|handed_to_member_id|uuid|KEEP
+unit_handovers|status|text|KEEP
+unit_handovers|scheduled_date|date|KEEP
+unit_handovers|completed_date|date|KEEP
+unit_handovers|electricity_reading|numeric(14,3)|KEEP
+unit_handovers|water_reading|numeric(14,3)|KEEP
+unit_handovers|gas_reading|numeric(14,3)|KEEP
+unit_handovers|note|text|FREETEXT
+unit_handovers|completed_by|uuid|KEEP
+unit_handovers|created_by|uuid|KEEP
+unit_handovers|created_at|timestamp with time zone|KEEP
+unit_handovers|updated_at|timestamp with time zone|KEEP
+unit_lease_deposit_events|id|uuid|KEEP
+unit_lease_deposit_events|lease_id|uuid|KEEP
+unit_lease_deposit_events|event_type|text|KEEP
+unit_lease_deposit_events|amount|numeric(19,4)|KEEP
+unit_lease_deposit_events|reason|text|FREETEXT
+unit_lease_deposit_events|created_by|uuid|KEEP
+unit_lease_deposit_events|created_at|timestamp with time zone|KEEP
+unit_lease_deposit_events|event_date|date|KEEP
+unit_lease_deposit_events|journal_entry_id|uuid|KEEP
+unit_lease_deposit_events|settlement_account_id|uuid|KEEP
+unit_leases|id|uuid|KEEP
+unit_leases|organization_id|uuid|KEEP
+unit_leases|property_id|uuid|KEEP
+unit_leases|unit_id|uuid|KEEP
+unit_leases|tenant_member_id|uuid|KEEP
+unit_leases|status|text|KEEP
+unit_leases|starts_on|date|KEEP
+unit_leases|ends_on|date|KEEP
+unit_leases|rent_amount|numeric(19,4)|KEEP
+unit_leases|rent_frequency|text|KEEP
+unit_leases|security_deposit_amount|numeric(19,4)|KEEP
+unit_leases|billing_recipient|text|KEEP
+unit_leases|created_by|uuid|KEEP
+unit_leases|created_at|timestamp with time zone|KEEP
+unit_leases|updated_at|timestamp with time zone|KEEP
+unit_leases|ended_by|uuid|KEEP
+unit_leases|ended_at|timestamp with time zone|KEEP
+unit_leases|end_reason|text|KEEP
+unit_leases|due_type_id|uuid|KEEP
+unit_leases|receivable_account_id|uuid|KEEP
+unit_leases|renewed_from_lease_id|uuid|KEEP
+unit_ownerships|id|uuid|KEEP
+unit_ownerships|organization_id|uuid|KEEP
+unit_ownerships|unit_id|uuid|KEEP
+unit_ownerships|member_id|uuid|KEEP
+unit_ownerships|share_percentage|numeric(5,2)|KEEP
+unit_ownerships|is_primary_contact|boolean|KEEP
+unit_ownerships|start_date|date|KEEP
+unit_ownerships|end_date|date|KEEP
+unit_ownerships|created_at|timestamp with time zone|KEEP
+unit_ownerships|created_by|uuid|KEEP
+units|id|uuid|KEEP
+units|organization_id|uuid|KEEP
+units|property_id|uuid|KEEP
+units|building_id|uuid|KEEP
+units|zone_id|uuid|KEEP
+units|code|text|KEEP
+units|unit_type|text|KEEP
+units|floor_number|integer|KEEP
+units|area|numeric(10,2)|KEEP
+units|is_active|boolean|KEEP
+units|created_at|timestamp with time zone|KEEP
+units|updated_at|timestamp with time zone|KEEP
+units|custom_type_label|text|KEEP
+units|created_by|uuid|KEEP
+units|archived_at|timestamp with time zone|KEEP
+units|archived_by|uuid|KEEP
+units|handed_over_at|date|KEEP
+user_role_assignments|id|uuid|KEEP
+user_role_assignments|user_id|uuid|KEEP
+user_role_assignments|role_id|uuid|KEEP
+user_role_assignments|organization_id|uuid|KEEP
+user_role_assignments|property_id|uuid|KEEP
+user_role_assignments|created_at|timestamp with time zone|KEEP
+user_role_assignments|created_by|uuid|KEEP
+vehicles|id|uuid|KEEP
+vehicles|organization_id|uuid|KEEP
+vehicles|property_id|uuid|KEEP
+vehicles|unit_id|uuid|KEEP
+vehicles|member_id|uuid|KEEP
+vehicles|plate_number|text|PII
+vehicles|plate_country|text|KEEP
+vehicles|plate_region|text|KEEP
+vehicles|normalized_plate|text|PII
+vehicles|make|text|KEEP
+vehicles|model|text|KEEP
+vehicles|color|text|KEEP
+vehicles|year|integer|KEEP
+vehicles|notes|text|FREETEXT
+vehicles|is_active|boolean|KEEP
+vehicles|created_by|uuid|KEEP
+vehicles|updated_by|uuid|KEEP
+vehicles|deactivated_at|timestamp with time zone|KEEP
+vehicles|deactivated_by|uuid|KEEP
+vehicles|created_at|timestamp with time zone|KEEP
+vehicles|updated_at|timestamp with time zone|KEEP
+visitor_access_state|visitor_invitation_id|uuid|KEEP
+visitor_access_state|organization_id|uuid|KEEP
+visitor_access_state|property_id|uuid|KEEP
+visitor_access_state|unit_id|uuid|KEEP
+visitor_access_state|is_inside|boolean|KEEP
+visitor_access_state|entry_count|integer|KEEP
+visitor_access_state|exit_count|integer|KEEP
+visitor_access_state|last_entry_at|timestamp with time zone|KEEP
+visitor_access_state|last_exit_at|timestamp with time zone|KEEP
+visitor_access_state|last_gate_id|uuid|KEEP
+visitor_access_state|updated_at|timestamp with time zone|KEEP
+visitor_invitation_secrets|invitation_id|uuid|KEEP
+visitor_invitation_secrets|organization_id|uuid|KEEP
+visitor_invitation_secrets|token_hash|text|SECRET
+visitor_invitation_secrets|created_at|timestamp with time zone|KEEP
+visitor_invitations|id|uuid|KEEP
+visitor_invitations|organization_id|uuid|KEEP
+visitor_invitations|property_id|uuid|KEEP
+visitor_invitations|unit_id|uuid|KEEP
+visitor_invitations|invited_by_member_id|uuid|KEEP
+visitor_invitations|invitation_no|text|KEEP
+visitor_invitations|guest_name|text|PII
+visitor_invitations|guest_phone|text|KEEP
+visitor_invitations|guest_note|text|KEEP
+visitor_invitations|valid_from|timestamp with time zone|KEEP
+visitor_invitations|valid_until|timestamp with time zone|KEEP
+visitor_invitations|usage_policy|text|KEEP
+visitor_invitations|status|text|KEEP
+visitor_invitations|token_hint|text|SECRET
+visitor_invitations|revoked_at|timestamp with time zone|KEEP
+visitor_invitations|revoked_by|uuid|KEEP
+visitor_invitations|created_by|uuid|KEEP
+visitor_invitations|updated_by|uuid|KEEP
+visitor_invitations|created_at|timestamp with time zone|KEEP
+visitor_invitations|updated_at|timestamp with time zone|KEEP
+work_order_costs|id|uuid|KEEP
+work_order_costs|organization_id|uuid|KEEP
+work_order_costs|work_order_id|uuid|KEEP
+work_order_costs|cost_type|text|KEEP
+work_order_costs|description|text|FREETEXT
+work_order_costs|quantity|numeric(19,4)|KEEP
+work_order_costs|unit_cost|numeric(19,4)|KEEP
+work_order_costs|total_cost|numeric(19,4)|KEEP
+work_order_costs|currency|text|KEEP
+work_order_costs|supplier_id|uuid|KEEP
+work_order_costs|source_reference|text|KEEP
+work_order_costs|financial_status|text|KEEP
+work_order_costs|owner_charge_status|text|KEEP
+work_order_costs|expense_id|uuid|KEEP
+work_order_costs|supplier_invoice_id|uuid|KEEP
+work_order_costs|owner_due_id|uuid|KEEP
+work_order_costs|created_by|uuid|KEEP
+work_order_costs|updated_by|uuid|KEEP
+work_order_costs|created_at|timestamp with time zone|KEEP
+work_order_costs|updated_at|timestamp with time zone|KEEP
+work_order_costs|posted_at|timestamp with time zone|KEEP
+work_order_costs|owner_charged_at|timestamp with time zone|KEEP
+work_order_costs|voided_at|timestamp with time zone|KEEP
+work_order_updates|id|uuid|KEEP
+work_order_updates|organization_id|uuid|KEEP
+work_order_updates|work_order_id|uuid|KEEP
+work_order_updates|actor_user_id|uuid|KEEP
+work_order_updates|previous_status|text|KEEP
+work_order_updates|resulting_status|text|KEEP
+work_order_updates|note|text|FREETEXT
+work_order_updates|visibility|text|KEEP
+work_order_updates|created_at|timestamp with time zone|KEEP
+work_orders|id|uuid|KEEP
+work_orders|organization_id|uuid|KEEP
+work_orders|property_id|uuid|KEEP
+work_orders|unit_id|uuid|KEEP
+work_orders|maintenance_request_id|uuid|KEEP
+work_orders|work_order_no|text|KEEP
+work_orders|status|text|KEEP
+work_orders|assigned_user_id|uuid|KEEP
+work_orders|supplier_id|uuid|KEEP
+work_orders|scheduled_start_at|timestamp with time zone|KEEP
+work_orders|scheduled_end_at|timestamp with time zone|KEEP
+work_orders|sla_due_at|timestamp with time zone|KEEP
+work_orders|started_at|timestamp with time zone|KEEP
+work_orders|waiting_at|timestamp with time zone|KEEP
+work_orders|resumed_at|timestamp with time zone|KEEP
+work_orders|completed_at|timestamp with time zone|KEEP
+work_orders|cancelled_at|timestamp with time zone|KEEP
+work_orders|completion_summary|text|KEEP
+work_orders|member_visible_summary|text|KEEP
+work_orders|created_by|uuid|KEEP
+work_orders|updated_by|uuid|KEEP
+work_orders|created_at|timestamp with time zone|KEEP
+work_orders|updated_at|timestamp with time zone|KEEP
+zones|id|uuid|KEEP
+zones|organization_id|uuid|KEEP
+zones|property_id|uuid|KEEP
+zones|name_ar|text|KEEP
+zones|name_en|text|KEEP
+zones|created_at|timestamp with time zone|KEEP
+# JSONKEEP|table|column|path|kind   (path: key | [].key for arrays of objects | . for a top-level scalar; kind: KEEP|NUM|BOOL|UUID|TS|ENUM:a,b,c)
+# EXAMPLE built from the TEST database. The owner must review the real keys on production; anything not listed is DROPPED by the export.
+JSONKEEP|financial_audit_logs|metadata|amount|NUM
+JSONKEEP|financial_audit_logs|metadata|as_of_date|TS
+JSONKEEP|financial_audit_logs|metadata|due_date|TS
+JSONKEEP|financial_audit_logs|metadata|due_type_id|UUID
+JSONKEEP|financial_audit_logs|metadata|issue_date|TS
+JSONKEEP|financial_audit_logs|metadata|issued_count|NUM
+JSONKEEP|financial_audit_logs|metadata|member_id|UUID
+JSONKEEP|financial_audit_logs|metadata|original_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|previous_unallocated_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|receivable_account_id|UUID
+JSONKEEP|financial_audit_logs|metadata|reversal_journal_entry_id|UUID
+JSONKEEP|financial_audit_logs|metadata|skipped_count|NUM
+JSONKEEP|financial_audit_logs|metadata|target_units_count|NUM
+JSONKEEP|financial_audit_logs|metadata|total_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|unit_id|UUID
+JSONKEEP|payment_credit_requests|result|advance_amount|NUM
+JSONKEEP|payment_credit_requests|result|allocated_amount|NUM
+JSONKEEP|payment_credit_requests|result|allocation_id|UUID
+JSONKEEP|payment_credit_requests|result|amount|NUM
+JSONKEEP|payment_credit_requests|result|applied_total|NUM
+JSONKEEP|payment_credit_requests|result|due_id|UUID
+JSONKEEP|payment_credit_requests|result|payment_id|UUID
+JSONKEEP|payment_credit_requests|result|remaining|NUM
+JSONKEEP|payment_credit_requests|result|replay|BOOL
+JSONKEEP|payment_credit_requests|result|reversal_journal_entry_id|UUID
+JSONKEEP|plan_entitlements|value|.|BOOL
+JSONKEEP|plan_entitlements|value|.|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|account_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|advance|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|advance_account_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|allocated|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|allocation_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|allowed_direction|ENUM:BOTH,ENTRY
+JSONKEEP|platform_audit_logs|safe_change_summary|amount|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|application_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|applied_total|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|cashier_session_id|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|category_changed|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|direction|ENUM:BOTH,ENTRY,EXIT
+JSONKEEP|platform_audit_logs|safe_change_summary|direction_mode|ENUM:BOTH
+JSONKEEP|platform_audit_logs|safe_change_summary|due_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|entry_number|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|expires_at|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|explained_at|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|explained_by|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|from|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|gate_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|invitation_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|line_count|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|line_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|linked_to_active_cashbox_or_bank|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|member_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|new_status|ENUM:CLOSED,OPEN
+JSONKEEP|platform_audit_logs|safe_change_summary|payment_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|periods|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|previous_status|ENUM:SUBMITTED,TRIAGED
+JSONKEEP|platform_audit_logs|safe_change_summary|priority_changed|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|provider|ENUM:FAWRY,PAYMOB
+JSONKEEP|platform_audit_logs|safe_change_summary|purchase_order_id|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|reason_code|ENUM:VALID_ENTRY,VALID_EXIT
+JSONKEEP|platform_audit_logs|safe_change_summary|reason_given|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|receipt_number|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|remaining|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|remaining_after|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|reversal_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|reversal_journal_entry_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|statement_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|status|ENUM:IN_PROGRESS,SUBMITTED,TRIAGED,active,suspended
+JSONKEEP|platform_audit_logs|safe_change_summary|to|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|total|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|unit_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|usage_policy|ENUM:MULTI_USE,SINGLE_USE
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_from|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_hours|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_until|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|visitor_invitation_id|UUID
+# not listed (dropped by the export): 23
+#   financial_audit_logs.metadata.affected_due_ids (array: free text, container or open set)
+#   financial_audit_logs.metadata.fixture (string: free text, container or open set)
+#   financial_audit_logs.metadata.reason (string: free text, container or open set)
+#   financial_audit_logs.metadata.reversed_allocations (array: free text, container or open set)
+#   payment_credit_requests.result.allocations (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.account_code (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.allocations (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.changed_fields (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.client_id (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.code (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.display_name (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.identity (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.invitation_no (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.invoice_number (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.method (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.name (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.new (object,string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.note (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.old (object,string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary key 'permissionCount' (dynamic or unusual key)
+#   platform_audit_logs.safe_change_summary.reason (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.request_no (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary key 'roleKey' (dynamic or unusual key)
+# hand-added for the array-path test (the test data holds only empty arrays here):
+JSONKEEP|property_import_logs|failures|[].row|NUM
+JSONKEEP|property_import_logs|failures|[].error|ENUM:bad_phone,bad_email
+$rev$ as reviewed \gset

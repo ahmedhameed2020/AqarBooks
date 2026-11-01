@@ -1,0 +1,50 @@
+$ tests/e2e/accounting-demo-defects.spec.ts
+label=b3-ui-accounting-demo-defects
+exit=1
+elapsed_ms=78565
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\accounting-demo-defects.spec.ts:62:5 › F1 members page: header count equals the rows shown (13.2s)
+  ok 2 tests\e2e\accounting-demo-defects.spec.ts:72:5 › F2 unit counts agree between dashboard and property page (owner); accountant gets an honest 'not available' (23.6s)
+  ok 3 tests\e2e\accounting-demo-defects.spec.ts:93:5 › F3 dashboard carries no invented figures or AI insight (9.7s)
+  ok 4 tests\e2e\accounting-demo-defects.spec.ts:106:5 › F4 cash-flow forecast shows its status, not invented results (11.8s)
+  x  5 tests\e2e\accounting-demo-defects.spec.ts:114:5 › F5 /api/ai/journal-propose refuses before any provider call (807ms)
+  -  6 tests\e2e\accounting-demo-defects.spec.ts:131:5 › F6 the auditor sees the audit trail with actor names
+
+
+  1) tests\e2e\accounting-demo-defects.spec.ts:114:5 › F5 /api/ai/journal-propose refuses before any provider call 
+
+    Error: apiRequestContext.post: connect ECONNREFUSED ::1:3100
+    Call log:
+      - → POST http://localhost:3100/api/ai/journal-propose
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - content-type: application/json
+        - content-length: 126
+
+        at apiRequestContext.post: connect ECONNREFUSED ::1:3100
+        at D:\Web\AqarBooks\tests\e2e\accounting-demo-defects.spec.ts:117:37
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-ui-accounting-demo-defects-artifacts\accounting-demo-defects-F5-d1a1a-es-before-any-provider-call\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-ui-accounting-demo-defects-artifacts\accounting-demo-defects-F5-d1a1a-es-before-any-provider-call\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-ui-accounting-demo-defects-artifacts\accounting-demo-defects-F5-d1a1a-es-before-any-provider-call\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-demo-defects.spec.ts:114:5 › F5 /api/ai/journal-propose refuses before any provider call 
+  1 did not run
+  4 passed (1.1m)
+(node:41344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37504) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

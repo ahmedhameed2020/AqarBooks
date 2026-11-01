@@ -257,8 +257,21 @@ describe("post_supplier_invoice VAT/WHT (real Supabase, no mocks)", () => {
     expect(debitTotal).toBe(1140);
     expect(creditTotal).toBe(1140);
 
+    // Input-tax policy (compute_input_tax_split, input-tax phase): VAT is posted to the
+    // input-VAT asset account only when the expense account has an APPROVED recoverability
+    // declaration. This fixture declares none, so the VAT is non-recoverable
+    // (INPUT_TAX_RECOVERABILITY_UNDECLARED) and is carried in the expense debit instead:
+    // expense 1000 + 140 = 1140 (two debit lines on the expense account), and no line is posted to the VAT account. The recoverable
+    // split is covered by input-tax.integration.test.ts. This assertion previously expected
+    // a separate 140 line at the VAT account -- true before the input-tax feature existed.
     const vatLine = (lines ?? []).find((l) => l.account_id === vatAccountId);
-    expect(Number(vatLine?.debit)).toBe(140);
+    expect(vatLine, "no VAT line without an approved recoverability declaration").toBeUndefined();
+    // post_supplier_invoice emits the taxable base (1000) and the non-recoverable VAT (140)
+    // as two debit lines on the same expense account.
+    const expenseDebit = (lines ?? [])
+      .filter((l) => l.account_id === expenseAccountId)
+      .reduce((sum, l) => sum + Number(l.debit), 0);
+    expect(expenseDebit).toBe(1140);
   });
 
   it("rejects a VAT rate above zero without a VAT account -- proves the account-required validation this form's optional VAT account field must respect", async () => {

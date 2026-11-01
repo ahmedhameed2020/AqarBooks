@@ -1,0 +1,8 @@
+Q1 report: wip=400.0000 released=600.0000 capitalised=1000.0000
+Q2 report: wip=0.0000 released=1000.0000 capitalised=1000.0000
+Q1 WIP ledger net (project lines): 400.0000
+Q2 WIP ledger net (project lines): 0.0000
+Q1 cost of sales debit: 600.0000
+unbalanced entries (org): 0
+Q1 entries: POSTED/Cost of sales — CONC-Q1 — release held | POSTED/Cost of sales — CONC-Q1 — release held
+Q1 entries: POSTED/WIP — CONC-Q1 — capitalise for race test | POSTED/WIP — CONC-Q1 — capitalise for race test

@@ -1,0 +1,19 @@
+==== A1 privileged DELETE of P1 capitalisation debit 1000 (net 400 -> -600, must be refused)
+psql:/tmp/dl_tests.sql:5: ERROR:  PROJECT_WIP_NEGATIVE: الحركة تجعل رصيد WIP سالبًا (قبل 400.0000, بعد -600.0000)
+ P1-after-A1 net=400.0000
+==== A2 privileged DELETE of P1 release credit 600 (net 400 -> 1000, must be accepted)
+ P1-after-A2 net=1000.0000
+==== B atomicity: in ONE transaction move P2 capitalisation debit 1000 to P3 (P2 would go -600) AND insert an unrelated line on P4
+psql:/tmp/dl_tests.sql:17: ERROR:  PROJECT_WIP_NEGATIVE: الحركة تجعل رصيد WIP سالبًا (قبل 400.0000, بعد -600.0000)
+ P2-after-B net=400.0000
+ P3-after-B net=0
+ P4 lines after B (unchanged expected = 1 seed + 0 unrelated): 1
+==== C1 pre-existing negative N (net -500 from a bypass): debit 100 must be ACCEPTED (-500 -> -400)
+ N-after-C1 net=1100.0000
+==== C2 pre-existing negative N (now -400): credit 50 must be REFUSED (worsens)
+ N-after-C2 net=1050.0000
+==== C3 pre-existing negative N (-400): debit 600 must be ACCEPTED (-> +200, nonnegative)
+ N-after-C3 net=1650.0000
+==== C4 NON-negative M (1000) credit 1500 must be REFUSED (transition nonnegative -> negative)
+psql:/tmp/dl_tests.sql:43: ERROR:  PROJECT_WIP_NEGATIVE: الحركة تجعل رصيد WIP سالبًا (قبل 1000.0000, بعد -500.0000)
+ M-after-C4 net=1000.0000

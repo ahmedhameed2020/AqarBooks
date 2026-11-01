@@ -1,0 +1,22 @@
+$ tests/e2e/accounting-open-period-required.spec.ts
+label=b3-retry2-accounting-open-period-required
+exit=0
+elapsed_ms=39906
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 1 tests\e2e\accounting-open-period-required.spec.ts:82:5 › O0 the FIRST opening balance of an organization, refused: the due type and the equity account it would create are rolled back too (652ms)
+  ok 2 tests\e2e\accounting-open-period-required.spec.ts:90:5 › O1 control: with an OPEN period both operations post their journal entry (504ms)
+  ok 3 tests\e2e\accounting-open-period-required.spec.ts:110:5 › O2/O3 an opening balance is refused atomically for a missing, planned and closed period (1.1s)
+  ok 4 tests\e2e\accounting-open-period-required.spec.ts:120:5 › O2/O3 a due is refused atomically for a missing, planned and closed period; a batch creates none (1.4s)
+  ok 5 tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing (18.9s)
+  ok 6 tests\e2e\accounting-open-period-required.spec.ts:167:5 › O4 once the period is opened the same operation succeeds and posts (823ms)
+
+  6 passed (29.7s)
+(node:24520) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

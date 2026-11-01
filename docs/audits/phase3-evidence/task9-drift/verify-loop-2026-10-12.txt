@@ -1,0 +1,5 @@
+run 4: ledger 81 / files 81 → MATCH|db diff (public): no schema changes| bytes=330
+run 5: ledger 81 / files 81 → MATCH|db diff (public): no schema changes| bytes=331
+run 6: ledger 81 / files 81 → MATCH|db diff (public): no schema changes| bytes=331
+run 7: ledger 81 / files 81 → MATCH|db diff (public): no schema changes| bytes=331
+run 8: ledger 81 / files 81 → MATCH|db diff: DRIFT drop trigger if exists "access_event_hardware" on "public"."access_events" bytes=272288

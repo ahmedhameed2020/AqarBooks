@@ -1,0 +1,46 @@
+$ tests/e2e/asset-disposal.spec.ts
+label=rel03-review-e2e
+exit=1
+elapsed_ms=308764
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  1 tests\e2e\asset-disposal.spec.ts:118:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (3.0m)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:118:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Test timeout of 180000ms exceeded.
+
+    Error: browserContext.close: Target page, context or browser has been closed
+
+      204 |     expect(Number(lossLine!.debit), "loss = 10,000 book value - 7,000 proceeds").toBe(3000);
+      205 |
+    > 206 |     await ctx.close();
+          |     ^
+      207 |   } finally {
+      208 |     await cleanUp(admin, f);
+      209 |   }
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:206:5
+
+    Error Context: docs\progress\evidence-r6-run10\results\rel03-review-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\rel03-review-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\rel03-review-e2e-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:118:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+(node:32832) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

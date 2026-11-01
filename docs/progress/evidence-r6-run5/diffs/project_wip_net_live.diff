@@ -1,0 +1,30 @@
+--- docs/progress/evidence-r6-run5/results/project_wip_net_live_before.txt	2026-10-29 23:59:25.774948500 +0300
++++ docs/progress/evidence-r6-run5/results/project_wip_net_live_after.txt	2026-10-30 00:00:13.255545600 +0300
+@@ -6,21 +6,19 @@
+ AS $function$
+ DECLARE
+   v_wip uuid;
+-  v_posted numeric;
+-  v_pending numeric;
++  v_net numeric;
+ BEGIN
+   SELECT wip_account_id INTO v_wip FROM public.projects WHERE id = p_project_id;
+   IF v_wip IS NULL THEN
+     RETURN NULL;
+   END IF;
+-  SELECT s.wip_balance INTO v_posted FROM public.project_wip_summary(p_project_id) s;
+-  SELECT COALESCE(SUM(l.debit - l.credit), 0) INTO v_pending
++
++  SELECT COALESCE(SUM(l.debit - l.credit), 0) INTO v_net
+   FROM public.journal_entry_lines l
+-  JOIN public.journal_entries je ON je.id = l.journal_entry_id
+   WHERE l.project_id = p_project_id
+-    AND l.account_id = v_wip
+-    AND je.status NOT IN ('POSTED', 'REVERSED');
+-  RETURN COALESCE(v_posted, 0) + COALESCE(v_pending, 0);
++    AND l.account_id = v_wip;
++
++  RETURN v_net;
+ END;
+ $function$
+ 

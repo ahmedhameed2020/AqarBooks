@@ -1,0 +1,37 @@
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\finance-screens-show-their-data.spec.ts:194:5 › the finance screens show the rows that exist, not an empty list (3ms)
+
+
+  1) tests\e2e\finance-screens-show-their-data.spec.ts:194:5 › the finance screens show the rows that exist, not an empty list 
+
+    TypeError: Cannot read properties of null (reading 'id')
+
+      122 |   const { error: chequeErr } = await admin.from("cheques").insert({
+      123 |     organization_id: orgId, property_id: propertyId,
+    > 124 |     bank_account_id: bankAccount!.id, direction: "INCOMING",
+          |                                   ^
+      125 |     cheque_number: CHEQUE_NUMBER, amount: 750, member_id: member!.id,
+      126 |     cheque_date: "2026-06-05", due_date: "2026-07-05", status: "RECEIVED",
+      127 |   });
+        at D:\Web\AqarBooks\tests\e2e\finance-screens-show-their-data.spec.ts:124:35
+
+    Error Context: test-results\finance-screens-show-their-1f8e3-hat-exist-not-an-empty-list\error-context.md
+
+    Error Context: test-results\finance-screens-show-their-1f8e3-hat-exist-not-an-empty-list\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\finance-screens-show-their-1f8e3-hat-exist-not-an-empty-list\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\finance-screens-show-their-1f8e3-hat-exist-not-an-empty-list\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\finance-screens-show-their-data.spec.ts:194:5 › the finance screens show the rows that exist, not an empty list 

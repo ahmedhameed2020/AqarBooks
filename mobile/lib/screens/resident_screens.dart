@@ -1,6 +1,5 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,15 +29,6 @@ final paymentsProvider = FutureProvider.autoDispose<List<PaymentItem>>(
 );
 final unitsProvider = FutureProvider.autoDispose<List<UnitItem>>(
   (ref) => ref.watch(repositoryProvider).units(),
-);
-final fawrySettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>?>(
-  (ref) async {
-    try {
-      return await ref.watch(repositoryProvider).fawrySettings();
-    } catch (_) {
-      return null;
-    }
-  },
 );
 
 // ───────────────────────── 02 · Resident home ─────────────────────────
@@ -490,7 +480,6 @@ class ResidentHomeScreen extends ConsumerWidget {
                     style: const TextStyle(fontSize: 12, color: appGrey),
                   ),
                 ),
-                _PayCta(due: due),
               ],
             ),
           ],
@@ -498,44 +487,7 @@ class ResidentHomeScreen extends ConsumerWidget {
       );
 }
 
-/// «ادفع عبر فوري» appears only when the organization has Fawry enabled;
-/// otherwise nothing renders here and the payments tab explains the offline
-/// path (blueprint: no dead electronic-payment buttons).
-class _PayCta extends ConsumerWidget {
-  final DueItem due;
-  const _PayCta({required this.due});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLabels(Localizations.localeOf(context));
-    final settings = ref.watch(fawrySettingsProvider);
-    return settings.maybeWhen(
-      data: (s) => s == null
-          ? const SizedBox.shrink()
-          : FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: appNavy,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FawryCodeScreen(due: due, settings: s),
-                ),
-              ),
-              child: Text(
-                t.ar ? 'ادفع عبر فوري' : 'Pay with Fawry',
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ),
-      orElse: () => const SizedBox.shrink(),
-    );
-  }
-}
+
 
 // ───────────────────────── My units ─────────────────────────
 
@@ -767,7 +719,6 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
 
   Widget _duesList(Locale locale, AppLabels t) {
     final dues = ref.watch(duesProvider);
-    final fawry = ref.watch(fawrySettingsProvider).valueOrNull;
     return dues.when(
       data: (items) {
         final open = items.where((d) => d.outstanding > 0).toList()
@@ -822,37 +773,30 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
               ),
               const SizedBox(height: 12),
               for (var i = 0; i < open.length; i++) ...[
-                _dueCard(open[i], i == 0, locale, t, fawry),
+                _dueCard(open[i], i == 0, locale, t),
                 const SizedBox(height: 10),
               ],
-              if (fawry == null)
-                AqarCard(
-                  child: Row(
-                    children: [
-                      const IconBadge(AqarIconType.cash),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          t.ar
-                              ? 'السداد عند المحصّل أو مكتب الإدارة'
-                              : 'Pay with the collector or at the office',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: appInk,
-                          ),
+              AqarCard(
+                child: Row(
+                  children: [
+                    const IconBadge(AqarIconType.cash),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        t.ar
+                            ? 'السداد عند المحصّل أو مكتب الإدارة'
+                            : 'Pay with the collector or at the office',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: appInk,
                         ),
                       ),
-                    ],
-                  ),
-                )
-              else
-                Text(
-                  t.ar
-                      ? 'لا يظهر خيار الدفع الإلكتروني إلا إذا كانت خدمة فوري مفعّلة لمؤسستك.'
-                      : 'Online payment only appears when Fawry is enabled for your organization.',
-                  style: const TextStyle(fontSize: 11, color: appGrey),
+                    ),
+                  ],
                 ),
+              ),
+
             ],
           ),
         );
@@ -870,7 +814,6 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
     bool highlight,
     Locale locale,
     AppLabels t,
-    Map<String, dynamic>? fawry,
   ) {
     final late = overdueDays(due.dueDate);
     final isLate = late > 0;
@@ -930,29 +873,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
                       fg: appNavy,
                       bg: appNavyBg,
                     ),
-              if (fawry != null && highlight)
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: appNavy,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          FawryCodeScreen(due: due, settings: fawry),
-                    ),
-                  ),
-                  child: Text(
-                    t.ar ? 'ادفع عبر فوري' : 'Pay with Fawry',
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
+
             ],
           ),
         ],
@@ -1006,217 +927,28 @@ class _PaymentsTabState extends ConsumerState<PaymentsTabScreen> {
 
 // ───────────────────────── 04 · Fawry reference code ─────────────────────────
 
-class FawryCodeScreen extends ConsumerStatefulWidget {
+/// Retained for legacy navigation, but V1 never starts a checkout here.
+class FawryCodeScreen extends StatelessWidget {
   final DueItem due;
   final Map<String, dynamic> settings;
   const FawryCodeScreen({super.key, required this.due, required this.settings});
-  @override
-  ConsumerState<FawryCodeScreen> createState() => _FawryCodeState();
-}
-
-class _FawryCodeState extends ConsumerState<FawryCodeScreen> {
-  late final Future<FawryCheckout> _checkout;
-  @override
-  void initState() {
-    super.initState();
-    _checkout = ref.read(repositoryProvider).createFawryCheckout(
-          dueIds: [widget.due.id],
-          settings: widget.settings,
-          clientRequestId:
-              'mob-${widget.due.id}-${DateTime.now().millisecondsSinceEpoch ~/ 60000}',
-        );
-  }
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    final t = AppLabels(locale);
+    final t = AppLabels(Localizations.localeOf(context));
     return Scaffold(
+      appBar: AppBar(title: Text(t.payments)),
       body: SafeArea(
-        child: Column(
-          children: [
-            const ScreenHeader(title: ''),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  t.ar ? 'الدفع عبر فوري' : 'Pay with Fawry',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: appNavy,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFDD00),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'fawry',
-                    style: TextStyle(
-                      color: Color(0xFF1C3F94),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: FutureBuilder<FawryCheckout>(
-                future: _checkout,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return AppError(
-                      message: friendlyError(snapshot.error!, locale, loading: true),
-                      onRetry: () => setState(() {}),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(
-                        child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: SkeletonList(rows: 1, rowHeight: 200),
-                    ));
-                  }
-                  final checkout = snapshot.data!;
-                  final grouped = _groupReference(checkout.reference);
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                    children: [
-                      AqarCard(
-                        gold: true,
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          children: [
-                            Text(
-                              t.ar
-                                  ? 'كود الدفع المرجعي'
-                                  : 'Payment reference code',
-                              style: const TextStyle(
-                                  fontSize: 14, color: appGrey),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              localizedDigits(grouped, locale),
-                              textAlign: TextAlign.center,
-                              textDirection: TextDirection.ltr,
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.w700,
-                                color: appNavy,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              '${t.ar ? 'المبلغ' : 'Amount'}: ${formatMoney(checkout.amount, locale)}',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: appInk,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const AqarIcon(AqarIconType.clock,
-                                    size: 16, color: appGold),
-                                const SizedBox(width: 6),
-                                Text(
-                                  t.ar
-                                      ? 'الكود صالح للسداد الآن'
-                                      : 'Code is ready for payment',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: appGold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      AqarButton(
-                        t.ar ? 'نسخ الكود' : 'Copy code',
-                        onPressed: () async {
-                          await Clipboard.setData(
-                              ClipboardData(text: checkout.reference));
-                          if (context.mounted) {
-                            showFeedback(
-                                context, t.ar ? 'تم نسخ الكود' : 'Code copied');
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      AqarButton(
-                        t.ar ? 'مشاركة' : 'Share',
-                        secondary: true,
-                        onPressed: () => _shareViaWhatsApp(checkout, t),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        t.ar
-                            ? 'ادفع بهذا الكود في أي منفذ فوري'
-                            : 'Pay with this code at any Fawry outlet',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: appInk,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        t.ar
-                            ? 'تظهر الدفعة في سجلك بعد السداد — حدّث الشاشة بالسحب'
-                            : 'The payment appears in your history after paying — pull to refresh',
-                        textAlign: TextAlign.center,
-                        style:
-                            const TextStyle(fontSize: 11.5, color: appGrey),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            t.ar
+                ? 'السداد عند المحصّل أو مكتب الإدارة'
+                : 'Pay with the collector or at the office',
+          ),
         ),
       ),
     );
-  }
-
-  String _groupReference(String ref) {
-    final digits = ref.replaceAll(RegExp(r'\s'), '');
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && i % 3 == 0) buffer.write(' ');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
-  }
-
-  Future<void> _shareViaWhatsApp(FawryCheckout checkout, AppLabels t) async {
-    final text = Uri.encodeComponent(
-      t.ar
-          ? 'كود الدفع المرجعي (فوري): ${checkout.reference}'
-          : 'Fawry payment reference: ${checkout.reference}',
-    );
-    final uri = Uri.parse('https://wa.me/?text=$text');
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      if (mounted) {
-        showFeedback(context,
-            t.ar ? 'تعذر فتح المشاركة' : 'Could not open sharing');
-      }
-    }
   }
 }
 
@@ -2160,6 +1892,8 @@ String gateReasonLabel(String? code, bool ar) => switch (code) {
       'PASS_ALREADY_USED' =>
         ar ? 'التصريح مستخدم من قبل' : 'Pass already used',
       'REVOKED' => ar ? 'التصريح ملغي' : 'Pass revoked',
+      'OWNER_SUSPENDED' =>
+        ar ? 'التصريح موقوف مؤقتًا — راجع الإدارة' : 'Pass on hold — contact management',
       'INVALID_PASS' => ar ? 'تصريح غير صحيح' : 'Invalid pass',
       'NOT_YET_VALID' => ar ? 'خارج وقت الصلاحية' : 'Not yet valid',
       'GATE_INACTIVE' => ar ? 'البوابة غير نشطة' : 'Gate inactive',

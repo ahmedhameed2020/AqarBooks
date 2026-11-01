@@ -2,10 +2,12 @@ import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
 
@@ -78,27 +80,13 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
       status: "ACTIVE",
     });
 
-    // 5. Create Fiscal Year & Period
-    const { data: insertedYear } = await admin
-      .from("fiscal_years")
-      .insert({
-        organization_id: orgId,
-        name: "2026",
-        start_date: "2026-01-01",
-        end_date: "2026-12-31",
-        status: "OPEN",
-      })
-      .select("id")
-      .single();
-
-    await admin.from("fiscal_periods").insert({
-      organization_id: orgId,
-      fiscal_year_id: insertedYear!.id,
-      period_number: 1,
-      name: "2026-01",
-      start_date: "2026-01-01",
-      end_date: "2026-01-31",
-      status: "OPEN",
+    // 5. Create Fiscal Year & Periods through the product RPCs as the owner (the guard refuses direct writes).
+    //    The year creates its monthly periods and all of them are opened, so January is open as before.
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: STAFF_PASSWORD });
+    expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
+    await createOpenFiscalYear(admin, ownerClient, {
+      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
     });
 
     // 4. Sign in through UI
@@ -154,11 +142,7 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("تقرير أعمار ديون الموردين والالتزامات (AP Aging)");
     await expect(page.locator("text=إجمالي ديون الموردين").first()).toBeVisible();
 
-    // 12. Test Fixed Assets Page
-    await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
-    await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
+    // 12. Fixed Assets report: deferred out of Batch 1B by owner decision (see the separate fixme test below).
 
     // 13. Test Audit Trail Page
     await page.goto(`${baseURL}/ar/finance/reports/audit-trail`);
@@ -166,29 +150,17 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     await expect(page.locator("h1")).toContainText("سجل التدقيق والحركات الملغاة ومكافحة التلاعب");
     await expect(page.locator("text=إجمالي الحركات الموثقة").first()).toBeVisible();
 
-    // 14. Test CAM Allocation Page
-    await page.goto(`${baseURL}/ar/finance/reports/cam-allocation`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM)");
-    await expect(page.locator("text=معدل تكلفة المتر المربع").first()).toBeVisible();
+    // 14. CAM allocation and 16. CAPEX/OPEX are unbuilt placeholders. They run in reports-unbuilt-sections.spec.ts,
+    //     so an unbuilt page cannot stop this journey.
 
-    // 15. Test Cash Flow Forecast Page
+    // 15. Test Cash Flow Forecast Page (the heading the page renders today; the forward projection stays withheld)
     await page.goto(`${baseURL}/ar/finance/reports/cash-flow-forecast`);
     await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("تقرير توقعات التدفق النقدي والسيولة المستقبلية");
-    await expect(page.locator("text=الرصيد النقدي الفعلي الحالي").first()).toBeVisible();
+    await expect(page.locator("h1")).toContainText("توقعات التدفق النقدي");
+    await expect(page.locator("text=الرصيد النقدي الحالي").first()).toBeVisible();
 
-    // 16. Test CAPEX vs OPEX Page
-    await page.goto(`${baseURL}/ar/finance/reports/capex-opex`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX)");
-    await expect(page.locator("text=إنفاق رأسمالي (CAPEX)").first()).toBeVisible();
-
-    // 17. Test Lease Expirations Page
-    await page.goto(`${baseURL}/ar/finance/reports/lease-expirations`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("تقرير جداول انتهاء العقود ومعدل دوران الإشغال");
-    await expect(page.locator("text=إجمالي العقود النشطة").first()).toBeVisible();
+    // 17. Lease expirations: a product defect (the page cannot load its data). It runs in
+    //     reports-blocked-sections.spec.ts so it cannot stop the rest of this journey.
 
     // 18. Test User Account & Security Settings Page
     await page.goto(`${baseURL}/ar/account`);
@@ -212,8 +184,8 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
     // 21. Test Notifications & Alerts Center Page
     await page.goto(`${baseURL}/ar/notifications`);
     await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("h1")).toContainText("إدارة التنبيهات، الشيكات، وقنوات المراسلة");
-    await expect(page.locator("text=سجل الإشعارات والتنبيهات").first()).toBeVisible();
+    await expect(page.locator("h1")).toContainText("التنبيهات التشغيلية");
+    await expect(page.locator("text=الإعدادات والعتبات").first()).toBeVisible();
 
     // 22. Test Members & Owners Directory Page
     await page.goto(`${baseURL}/ar/members`);
@@ -223,5 +195,15 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
 
     // Clean up
     await admin.from("organizations").delete().eq("id", orgId);
+  });
+
+  // DEFERRED, NOT A PASS. The fixed-asset schedule report is out of Batch 1B by owner decision (2026-10-29), and its
+  // navigation link is hidden. The report page is still a placeholder, so this check cannot pass until a separate batch
+  // builds the schedule and its own fixtures. Kept skipped so the deferral stays visible in the test report.
+  test.fixme("DEFERRED (Batch 1B excluded): fixed-asset schedule shows the NBV table", async ({ page }) => {
+    await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
+    await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
   });
 });

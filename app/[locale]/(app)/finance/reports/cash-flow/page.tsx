@@ -100,7 +100,12 @@ export default async function CashFlowPage({
     );
   }
 
-  const rows = (rowsData ?? []) as unknown as CashFlowItem[];
+  // get_cash_flow_statement returns the movement as `net_amount`; the statement component reads `amount`.
+  // Passing the rows through unmapped made the page crash (fmt(undefined)) as soon as any cash moved.
+  const rows: CashFlowItem[] = ((rowsData ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
+    ...(r as unknown as CashFlowItem),
+    amount: Number(r.net_amount ?? r.amount ?? 0),
+  }));
 
   return (
     <div className="space-y-6">

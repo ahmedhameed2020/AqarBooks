@@ -1,0 +1,59 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/rls-fiscal-years-equivalence.integration.test.ts (4 tests | 2 failed) 85ms
+     × no principal reads, updates, deletes, inserts or moves anything different through the installed policies (WITH CHECK included) 32ms
+     × catalog: exactly one SELECT policy and one ALL policy, PUBLIC, permissive, no per-row permission helper, an uncorrelated admin sub-select in each USING (and in the WITH CHECK), table ACL unchanged 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rls-fiscal-years-equivalence.integration.test.ts > RLS: fiscal_years evaluates permissions once per statement, with the same rows, updates, deletes and inserts as before (migration 20261017101200) > no principal reads, updates, deletes, inserts or moves anything different through the installed policies (WITH CHECK included)
+AssertionError: read-differs: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "staff:CASHIER|only_new=0|only_old=2",
++   "staff:FRA_READER|only_new=0|only_old=2",
++ ]
+
+ ❯ tests/rls-fiscal-years-equivalence.integration.test.ts:182:166
+    180|
+    181|   it("no principal reads, updates, deletes, inserts or moves anything …
+    182|     for (const bad of ["read-differs", "update-differs", "delete-diffe…
+       |                                                                                                                                                                      ^
+    183|   });
+    184|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/rls-fiscal-years-equivalence.integration.test.ts > RLS: fiscal_years evaluates permissions once per statement, with the same rows, updates, deletes and inserts as before (migration 20261017101200) > catalog: exactly one SELECT policy and one ALL policy, PUBLIC, permissive, no per-row permission helper, an uncorrelated admin sub-select in each USING (and in the WITH CHECK), table ACL unchanged
+AssertionError: fiscal_years_manage/using: expected undefined to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+undefined
+
+ ❯ tests/rls-fiscal-years-equivalence.integration.test.ts:218:149
+    216|       per.set(`${name}/${part}`, (per.get(`${name}/${part}`) ?? 0) + 1…
+    217|     }
+    218|     for (const key of ["fiscal_years_select_permission/using", "fiscal…
+       |                                                                                                                                                     ^
+    219|     expect(of("acl")[0], "the table ACL is unchanged").toBe(ACL_BEFORE…
+    220|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  17:57:51
+   Duration  5.65s (transform 92ms, setup 113ms, import 5.09s, tests 85ms, environment 0ms)
+

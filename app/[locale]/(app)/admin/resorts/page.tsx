@@ -11,6 +11,7 @@ import {
   Globe2,
   ShieldCheck,
 } from "lucide-react";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export default async function ResortsPage({
   params,
@@ -29,7 +30,7 @@ export default async function ResortsPage({
   if (denied) return denied;
 
   const supabase = await createClient();
-  const [{ data: resorts }, { data: unitsData }, { data: monthPayments }] = await Promise.all([
+  const [{ data: resorts, error: resortsError }, { data: unitsData, error: unitsError }, { data: monthPayments, error: paymentsError }] = await Promise.all([
     supabase
       .from("resorts")
       .select("id, name, code, timezone, property_type, address, phone")
@@ -45,6 +46,9 @@ export default async function ResortsPage({
       .eq("organization_id", organization.id)
       .eq("status", "POSTED"),
   ]);
+  assertRead(resortsError, "admin/resorts: resorts");
+  assertRead(unitsError, "admin/resorts: units_with_financials");
+  assertRead(paymentsError, "admin/resorts: payments");
 
   const totalEntities = resorts?.length ?? 0;
   const totalUnits = unitsData?.length ?? 0;

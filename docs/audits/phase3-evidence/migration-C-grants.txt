@@ -1,0 +1,13 @@
+# Migration C - function ACLs
+apply_payment_credit | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+credit_min_available_from | postgres:EXECUTE, service_role:EXECUTE
+due_min_outstanding_from | postgres:EXECUTE, service_role:EXECUTE
+payment_allocations_as_of | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_credit_balances_as_of | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_receipt_entry_status | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+post_advance_payment_internal | postgres:EXECUTE, service_role:EXECUTE
+reverse_credit_application | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+
+# relation grants (anon select / authenticated select)
+effective_payment_allocations | f | t
+payment_credit_balances | f | t

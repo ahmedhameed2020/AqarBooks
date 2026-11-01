@@ -1,0 +1,8 @@
+\set ON_ERROR_STOP 0
+insert into projects(id,organization_id,code,name_ar,name_en,wip_account_id,cost_of_sales_account_id,budget_amount) values ('bbbbbbb1-0000-4000-8000-0000000002a0','11111111-1111-4111-8111-111111111111','NG-A0','n','n','aaaaaaa1-0000-4000-8000-000000000001','aaaaaaa1-0000-4000-8000-000000000004',1000000) on conflict do nothing;
+insert into journal_entries(id,organization_id,fiscal_period_id,entry_date,description,source_type,status) values ('cccccccc-0000-4000-8000-00000000f2a1','11111111-1111-4111-8111-111111111111','57c9ef44-56e4-491c-b3a8-2402a3b8d185','2026-03-01','NG-A0 seed','JOURNAL_VOUCHER','POSTED'),('cccccccc-0000-4000-8000-00000000f2a2','11111111-1111-4111-8111-111111111111','57c9ef44-56e4-491c-b3a8-2402a3b8d185','2026-03-01','NG-A0 bypass credit','JOURNAL_VOUCHER','POSTED') on conflict do nothing;
+insert into journal_entry_lines(journal_entry_id,line_number,account_id,debit,credit,project_id) values ('cccccccc-0000-4000-8000-00000000f2a1',1,'aaaaaaa1-0000-4000-8000-000000000001',1000,0,'bbbbbbb1-0000-4000-8000-0000000002a0'),('cccccccc-0000-4000-8000-00000000f2a1',2,'aaaaaaa1-0000-4000-8000-000000000003',0,1000,null) on conflict do nothing;
+set session_replication_role = replica;
+insert into journal_entry_lines(journal_entry_id,line_number,account_id,debit,credit,project_id) values ('cccccccc-0000-4000-8000-00000000f2a2',1,'aaaaaaa1-0000-4000-8000-000000000001',0,1500,'bbbbbbb1-0000-4000-8000-0000000002a0'),('cccccccc-0000-4000-8000-00000000f2a2',2,'aaaaaaa1-0000-4000-8000-000000000003',1500,0,null) on conflict do nothing;
+set session_replication_role = origin;
+select 'NG-A0 pre-existing: '||(wip_balance) from project_wip_summary('bbbbbbb1-0000-4000-8000-0000000002a0');

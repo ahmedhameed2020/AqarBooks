@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,9 @@ import {
   setLineMatch,
 } from "@/lib/actions/bank-reconciliation";
 import type { ActionResult } from "@/lib/actions/platform";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
+import { ConfirmActionDialog } from "./confirm-action-dialog";
+import { ltrIsolate } from "./candidate-label";
 
 function ErrorNote({ state, isAr }: { state: ActionResult; isAr: boolean }) {
   if (state.ok !== false) return null;
@@ -20,8 +23,12 @@ function ErrorNote({ state, isAr }: { state: ActionResult; isAr: boolean }) {
   if (state.error.startsWith("parse_error:")) {
     const lines = state.error.slice("parse_error:".length);
     message = isAr
-      ? `تعذّر قراءة السطور رقم ${lines}. الصيغة المتوقعة لكل سطر: التاريخ (YYYY-MM-DD)، البيان، المبلغ، ثم المرجع اختياريًا. لم يُستورد أي سطر.`
+      ? `تعذّر قراءة السطور رقم ${lines}. الصيغة المتوقعة لكل سطر: التاريخ (${ltrIsolate('YYYY-MM-DD', true)})، البيان، المبلغ، ثم المرجع اختياريًا. لم يُستورد أي سطر.`
       : `Could not read line(s) ${lines}. Each line must be: date (YYYY-MM-DD), description, amount, optional reference. Nothing was imported.`;
+  } else if (state.error.includes("RECONCILIATION_UNHANDLED_LINES")) {
+    message = isAr
+      ? "توجد أسطر في الكشف غير مطابقة لقيد محاسبي. سجّل القيد (مثل رسوم البنك) وارحّله ثم طابق السطر."
+      : "Some statement lines are not matched to a booked entry. Create and post the entry (for example the bank fee), then match the line.";
   } else if (state.error === "no_rows") {
     message = isAr ? "لم يُعثر على أي سطر صالح." : "No valid rows found.";
   } else if (state.error === "already_matched") {
@@ -35,7 +42,7 @@ function ErrorNote({ state, isAr }: { state: ActionResult; isAr: boolean }) {
   } else if (state.error.includes("FORBIDDEN_FINANCE_PERMISSION")) {
     message = isAr ? "لا تملك صلاحية تنفيذ هذا الإجراء." : "You don't have permission for this action.";
   } else {
-    message = state.error;
+    message = financeErrorMessage(state.error, isAr);
   }
 
   return <p className="text-sm text-destructive">{message}</p>;
@@ -74,7 +81,7 @@ export function ImportLinesForm({
         />
         <p className="text-xs text-muted-foreground">
           {isAr
-            ? "كل سطر: التاريخ (YYYY-MM-DD)، البيان، المبلغ، ثم المرجع اختياريًا — مفصولة بفاصلة أو Tab. المبلغ بالموجب للوارد وبالسالب للمنصرف."
+            ? `كل سطر: التاريخ (${ltrIsolate('YYYY-MM-DD', true)})، البيان، المبلغ، ثم المرجع اختياريًا — مفصولة بفاصلة أو مفتاح ${ltrIsolate('Tab', true)}. المبلغ بالموجب للوارد وبالسالب للمنصرف.`
             : "One row per line: date (YYYY-MM-DD), description, amount, optional reference — comma or tab separated. Amount is positive for money in, negative for money out."}
         </p>
       </div>
@@ -136,20 +143,39 @@ export function MatchLineForm({
   locale: string;
 }) {
   const isAr = locale === "ar";
+  const formId = useId();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(setLineMatch, {
     ok: true,
   });
 
   if (currentMatchId) {
     return (
-      <form action={formAction} className="flex items-center gap-2">
-        <input type="hidden" name="lineId" value={lineId} />
-        <input type="hidden" name="journalLineId" value="" />
-        <Button type="submit" variant="ghost" size="sm" disabled={pending}>
-          {isAr ? "إلغاء المطابقة" : "Unmatch"}
-        </Button>
-        <ErrorNote state={state} isAr={isAr} />
-      </form>
+      <>
+        <form id={formId} action={formAction} className="flex items-center gap-2">
+          <input type="hidden" name="lineId" value={lineId} />
+          <input type="hidden" name="journalLineId" value="" />
+          <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => setConfirmOpen(true)}>
+            {isAr ? "إلغاء المطابقة" : "Unmatch"}
+          </Button>
+          <ErrorNote state={state} isAr={isAr} />
+        </form>
+        <ConfirmActionDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          formId={formId}
+          pending={pending}
+          title={isAr ? "إلغاء المطابقة لهذا السطر؟" : "Unmatch this statement line?"}
+          description={
+            isAr
+              ? "سيُفكّ هذا الإجراء الارتباط بين سطر الكشف البنكي والقيد المحاسبي المرتبط به، ويعود السطر إلى حالة غير مطابق. يمكنك إعادة المطابقة لاحقًا."
+              : "This releases the link between this bank statement line and its journal entry. The line returns to unmatched and can be matched again later."
+          }
+          confirmLabel={isAr ? "نعم، إلغاء المطابقة" : "Yes, unmatch"}
+          cancelLabel={isAr ? "تراجع" : "Cancel"}
+          pendingLabel={isAr ? "جارٍ الإلغاء…" : "Unmatching…"}
+        />
+      </>
     );
   }
 
@@ -191,23 +217,33 @@ export function FinalizeForm({
   statementId,
   status,
   balanced,
+  unhandled = 0,
   locale,
 }: {
   statementId: string;
   status: "DRAFT" | "RECONCILED";
   balanced: boolean;
+  /** statement lines not matched to a booked entry */
+  unhandled?: number;
   locale: string;
 }) {
   const isAr = locale === "ar";
+  const formId = useId();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     status === "DRAFT" ? finalizeReconciliation : reopenReconciliation,
     { ok: true },
   );
+  const isReopen = status !== "DRAFT";
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-3">
+    <form id={formId} action={formAction} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="statementId" value={statementId} />
-      <Button type="submit" disabled={pending || (status === "DRAFT" && !balanced)}>
+      <Button
+        type={isReopen ? "button" : "submit"}
+        onClick={isReopen ? () => setConfirmOpen(true) : undefined}
+        disabled={pending || (status === "DRAFT" && (!balanced || unhandled > 0))}
+      >
         {status === "DRAFT"
           ? isAr
             ? "اعتماد المطابقة"
@@ -216,6 +252,30 @@ export function FinalizeForm({
             ? "إعادة فتح"
             : "Reopen"}
       </Button>
+      {isReopen && (
+        <ConfirmActionDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          formId={formId}
+          pending={pending}
+          title={isAr ? "إعادة فتح الكشف البنكي؟" : "Reopen this bank statement?"}
+          description={
+            isAr
+              ? "سيعود الكشف إلى حالة المطابقة الجارية، فتصبح سطوره قابلة للتعديل والمطابقة من جديد، وستحتاج إلى اعتماد المطابقة مرة أخرى بعد انتهائك."
+              : "The statement goes back to in-progress, so its lines can be matched and changed again. You will need to finalize the reconciliation once more when you are done."
+          }
+          confirmLabel={isAr ? "نعم، إعادة الفتح" : "Yes, reopen"}
+          cancelLabel={isAr ? "تراجع" : "Cancel"}
+          pendingLabel={isAr ? "جارٍ إعادة الفتح…" : "Reopening…"}
+        />
+      )}
+      {status === "DRAFT" && balanced && unhandled > 0 && (
+        <span data-testid="unhandled-lines-note" className="text-sm text-amber-700 dark:text-amber-400">
+          {isAr
+            ? `الفرق صفر لكن ${unhandled} سطر/أسطر بالكشف غير مطابقة لقيد محاسبي — سجّل القيد وطابقه.`
+            : `The difference is zero, but ${unhandled} statement line(s) are not matched to a booked entry — create, post and match the entry.`}
+        </span>
+      )}
       {status === "DRAFT" && !balanced && (
         <span className="text-sm text-muted-foreground">
           {isAr

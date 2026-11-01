@@ -1,0 +1,65 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts (5 tests | 2 failed) 67ms
+     × catalog: exactly one policy per table, a PUBLIC permissive SELECT policy, no per-row permission helper, an uncorrelated platform-admin sub-select; no write policy exists 16ms
+     × plans: an InitPlan executed at most once, no per-row is_platform_admin in any Filter, for a regular user, the platform admin and a stranger 39ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > catalog: exactly one policy per table, a PUBLIC permissive SELECT policy, no per-row permission helper, an uncorrelated platform-admin sub-select; no write policy exists
+AssertionError: journal_entries_select_permission: expected [ 'cmd=r', 'permissive=true', …(3) ] to deeply equal [ 'cmd=r', 'permissive=true', …(3) ]
+
+- Expected
++ Received
+
+  [
+    "cmd=r",
+    "permissive=true",
+    "roles=PUBLIC",
+-   "per_row_helper=false",
++   "per_row_helper=true",
+    "has_check=false",
+  ]
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:178:32
+    176|     expect(pol.map((p) => `${p[0]}/${p[1]}`).sort()).toEqual(["journal…
+    177|     for (const p of pol) {
+    178|       expect(p.slice(2), p[1]).toEqual(["cmd=r", "permissive=true", "r…
+       |                                ^
+    179|     }
+    180|     const subs = of("admin-subselect").map((d) => d.split("~"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/rls-journal-entry-lines-equivalence.integration.test.ts > RLS: journal_entries and journal_entry_lines evaluate permissions once per statement, with the same rows as before (migration 20261017101100) > plans: an InitPlan executed at most once, no per-row is_platform_admin in any Filter, for a regular user, the platform admin and a stranger
+AssertionError: platform_admin journal_entries: InitPlan present: expected 'Aggregate (actual rows=1 loops=1)\n  …' to match /InitPlan \d+/
+
+- Expected:
+/InitPlan \d+/
+
++ Received:
+"Aggregate (actual rows=1 loops=1)
+  ->  Index Only Scan using idx_journal_entries_org on journal_entries (actual rows=3525 loops=1)
+        Filter: (public.has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.reports.read'::text) OR public.has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.entries.create'::text))
+        Heap Fetches: 71"
+
+ ❯ tests/rls-journal-entry-lines-equivalence.integration.test.ts:191:79
+    189|     for (const w of who) for (const t of ["journal_entries", "journal_…
+    190|       const ls = plans.filter((p) => p[0] === w && p[1] === t).sort((a…
+    191|       expect(ls.join(String.fromCharCode(10)), `${w} ${t}: InitPlan pr…
+       |                                                                               ^
+    192|       const results = ls.map((l, k) => (/^\s*InitPlan \d+/.test(l) ? l…
+    193|       for (const r of results) expect(r, `${w} ${t}: an InitPlan must …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  08:01:04
+   Duration  56.11s (transform 182ms, setup 203ms, import 55.29s, tests 67ms, environment 0ms)
+

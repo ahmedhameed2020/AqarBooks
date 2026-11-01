@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register (12.0s)
+
+  1 passed (14.5s)
+

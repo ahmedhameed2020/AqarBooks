@@ -8,6 +8,7 @@ import { CreateFiscalYearForm } from "./create-fiscal-year-form";
 import { PeriodsClient, type FiscalYearItem, type FiscalPeriodItem, type PendingDuesSummary } from "./periods-client";
 import { getCurrencyLabel } from "@/lib/currency";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { hasPermission } from "@/lib/auth/authorize";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,6 +46,7 @@ export default async function FiscalPeriodsPage({
   if (denied) return denied;
 
   const supabase = await createClient();
+  const canClose = await hasPermission(organization.id, "finance.years.close");
 
   const [
     { data: years },
@@ -105,6 +107,7 @@ export default async function FiscalPeriodsPage({
         initialYears={initialYears}
         initialPeriods={initialPeriods}
         pendingDues={pending}
+        canClose={canClose}
       />
 
       {/* CREATE FISCAL YEAR FORM */}

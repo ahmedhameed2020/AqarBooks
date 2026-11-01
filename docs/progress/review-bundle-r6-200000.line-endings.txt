@@ -1,0 +1,1 @@
+MANIFEST_LF_PASS: no CR; final LF present

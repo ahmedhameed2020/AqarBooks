@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -151,8 +152,7 @@ afterAll(async () => {
       await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
     }
     await admin.from("journal_entries").delete().eq("organization_id", id);
-    await admin.from("fiscal_periods").delete().eq("organization_id", id);
-    await admin.from("fiscal_years").delete().eq("organization_id", id);
+    // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
     await admin.from("suppliers").delete().eq("organization_id", id);
     await admin.from("properties").delete().eq("organization_id", id);
     await admin.from("platform_audit_logs").delete().eq("organization_id", id);
@@ -359,14 +359,14 @@ describe("أهلية ضريبة المدخلات", () => {
 
   it("الترحيل الحقيقي: القابل أصل، وغير القابل تكلفة على حساب المصروف", async () => {
     // فترة مالية مفتوحة، وإلا لم يُرحَّل شيء وصار التوكيد فارغًا.
-    const { data: fy } = await admin.from("fiscal_years").insert({
-      organization_id: orgId, name: "IT FY", start_date: "2026-01-01",
-      end_date: "2026-12-31", status: "OPEN",
-    } as never).select("id").single();
-    const { data: fp } = await admin.from("fiscal_periods").insert({
-      organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-      name: "IT Period", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-    } as never).select("id").single();
+    // Through the product RPCs as the owner (the guard refuses direct writes); the invoices are dated
+    // 2026-06-01, so the period under test is the monthly period that contains that date.
+    await createOpenFiscalYear(admin, owner.client, {
+      orgId, name: "IT FY", startDate: "2026-01-01", endDate: "2026-12-31",
+    });
+    const { data: fp, error: fpErr } = await admin.from("fiscal_periods").select("id")
+      .eq("organization_id", orgId).lte("start_date", "2026-06-01").gte("end_date", "2026-06-01").single();
+    expect(fpErr, `fiscal period lookup: ${fpErr?.message}`).toBeNull();
 
     // حساب المصروف القابل صار إعلانه غير معتمد في اختبار سابق؛ يُعاد اعتماده.
     const redo = await declare(accFull, "FULLY_RECOVERABLE");

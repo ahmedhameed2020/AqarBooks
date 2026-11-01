@@ -1,0 +1,2 @@
+psql:/tmp/dd_s2.sql:6: ERROR:  PROJECT_WIP_NEGATIVE: الرصيد سالب أصلًا والحركة لا تحسّنه (قبل -400.0000, بعد -450.0000)
+NG2-final net=-400.0000

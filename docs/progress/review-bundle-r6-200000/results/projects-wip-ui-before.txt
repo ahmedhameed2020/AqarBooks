@@ -1,0 +1,42 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+<ref *1> Error: spawnSync docker ENOENT
+    at Object.spawnSync (node:internal/child_process:1143:20)
+    at spawnSync (node:child_process:911:24)
+    at execFileSync (node:child_process:954:15)
+    at inspect (D:\Web\AqarBooks\tests\helpers\isolated-target-r6.ts:100:27)
+    at evaluateR6Contract (D:\Web\AqarBooks\tests\helpers\isolated-target-r6.ts:61:14)
+    at assertIsolatedStack (D:\Web\AqarBooks\tests\helpers\isolated-target.ts:125:32)
+    at Object.<anonymous> (D:\Web\AqarBooks\playwright.config.ts:26:20)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object.<anonymous> (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at requireOrImport (D:\Web\AqarBooks\node_modules\playwright\lib\common\index.js:1138:18)
+    at loadUserConfig (D:\Web\AqarBooks\node_modules\playwright\lib\common\index.js:1323:52)
+    at loadConfig (D:\Web\AqarBooks\node_modules\playwright\lib\common\index.js:1330:28)
+    at Object.loadConfigFromFile (D:\Web\AqarBooks\node_modules\playwright\lib\common\index.js:1546:10)
+    at runTests (D:\Web\AqarBooks\node_modules\playwright\lib\cli\testActions.js:46:18)
+    at _Command.<anonymous> (D:\Web\AqarBooks\node_modules\playwright\lib\program.js:55:7) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'spawnSync docker',
+  path: 'docker',
+  spawnargs: [
+    'inspect',
+    'g0r6-db',
+    '--format',
+    '{{json .State.Running}}|{{json .NetworkSettings.Networks}}|{{json .NetworkSettings.Ports}}'
+  ],
+  error: [Circular *1],
+  status: null,
+  signal: null,
+  output: null,
+  pid: 0,
+  stdout: undefined,
+  stderr: undefined
+}
+

@@ -1,0 +1,7 @@
+# Isolation checks, shared clean stack (aqarbooks_clean:55321) - 2026-10-11T08:39:01Z
+ Test Files  4 passed (4)
+      Tests  61 passed (61)
+
+# Same checks selected onto the dedicated hardware stack (aqarbooks_hw:55431)
+ Test Files  4 passed (4)
+      Tests  61 passed (61)

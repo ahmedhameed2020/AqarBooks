@@ -1,0 +1,20 @@
+$ tests/batch3-auth-debug.integration.test.ts
+label=batch3-auth-fixed
+exit=0
+elapsed_ms=8082
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ✓ tests/batch3-auth-debug.integration.test.ts (1 test) 3841ms
+     ✓ resolves finance.years.close by key before checking the owner role grant  3835ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  16:20:52
+   Duration  5.28s (transform 263ms, setup 375ms, import 351ms, tests 3.84s, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch3-auth-fixed.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

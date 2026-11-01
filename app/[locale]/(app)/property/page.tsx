@@ -17,6 +17,7 @@ import { UnitsPagination } from "./units-pagination";
 import { ResortSelector } from "./resort-selector";
 import { PropertyNavProvider } from "./property-nav-context";
 import { UnitDrawer, type UnitDrawerData } from "./unit-drawer";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 const PAGE_SIZE = 50;
 
@@ -26,12 +27,13 @@ async function getUnitDrawerData(
   unitId: string,
   isAr: boolean,
 ): Promise<UnitDrawerData | null> {
-  const { data: unit } = await supabase
+  const { data: unit, error: unitError } = await supabase
     .from("units_with_financials")
     .select("*")
     .eq("id", unitId)
     .eq("organization_id", organizationId)
     .maybeSingle();
+  assertRead(unitError, "property/drawer: units_with_financials");
   if (!unit) return null;
 
   const { data: dueRows } = await supabase
@@ -59,7 +61,7 @@ async function getUnitDrawerData(
   let payments: UnitDrawerData["payments"] = [];
   if (unitDueIds.length) {
     const { data: allocations } = await supabase
-      .from("payment_allocations")
+      .from("effective_payment_allocations")
       .select("payment_id, amount")
       .in("due_id", unitDueIds);
     const paymentIds = [...new Set((allocations ?? []).map((a) => a.payment_id))];
@@ -153,7 +155,28 @@ export default async function PropertyPage({
     );
   }
 
-  const resort = resorts.find((r) => r.id === sp.resort) ?? resorts[0];
+  // Which property opens by default: the one the user asked for, else the first that actually has units.
+  // It used to be simply the oldest property, so an organization whose oldest property was an empty
+  // placeholder opened on "0 units" while the rest of the product (dashboard, members) showed hundreds.
+  const unitCounts = await Promise.all(
+    resorts.map((r) =>
+      supabase
+        .from("units_with_financials")
+        .select("id", { count: "exact", head: true })
+        .eq("property_id", r.id)
+        .is("archived_at", null)
+        .then((res) => {
+          // a failed count used to read as "0 units" and could pick the wrong default property
+          assertRead(res.error, "property: units count");
+          return [r.id, res.count ?? 0] as const;
+        }),
+    ),
+  );
+  const activeUnitsByProperty = new Map(unitCounts);
+  const resort =
+    resorts.find((r) => r.id === sp.resort) ??
+    resorts.find((r) => (activeUnitsByProperty.get(r.id) ?? 0) > 0) ??
+    resorts[0];
   const page = Math.max(1, Number(sp.page) || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -161,10 +184,10 @@ export default async function PropertyPage({
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 8) + "01";
 
-  const [{ data: buildings }, { data: zones }, { data: kpiRows }, { data: monthPayments }] = await Promise.all([
+  const [{ data: buildings, error: buildingsError }, { data: zones, error: zonesError }, { data: kpiRows, error: kpiError }, { data: monthPayments, error: monthPaymentsError }] = await Promise.all([
     supabase.from("buildings").select("id, name_ar, name_en").eq("property_id", resort.id).order("code"),
     supabase.from("zones").select("id, name_ar, name_en").eq("property_id", resort.id).order("name_ar"),
-    supabase.from("units_with_financials").select("occupancy_status, balance").eq("property_id", resort.id),
+    supabase.from("units_with_financials").select("occupancy_status, balance").eq("property_id", resort.id).is("archived_at", null),
     supabase
       .from("payments")
       .select("amount")
@@ -172,6 +195,11 @@ export default async function PropertyPage({
       .eq("status", "POSTED")
       .gte("payment_date", monthStart),
   ]);
+
+  assertRead(buildingsError, "property: buildings");
+  assertRead(zonesError, "property: zones");
+  assertRead(kpiError, "property: units_with_financials kpis");
+  assertRead(monthPaymentsError, "property: month payments");
 
   const totalUnits = kpiRows?.length ?? 0;
   const occupiedUnits = (kpiRows ?? []).filter((r) => r.occupancy_status === "OCCUPIED").length;
@@ -182,7 +210,8 @@ export default async function PropertyPage({
   let query = supabase
     .from("units_with_financials")
     .select("*", { count: "exact" })
-    .eq("property_id", resort.id);
+    .eq("property_id", resort.id)
+    .is("archived_at", null);
 
   if (sp.q) {
     const term = sp.q.replace(/"/g, "").trim();
@@ -209,7 +238,8 @@ export default async function PropertyPage({
   }
   if (sp.arrears === "1") query = query.eq("has_arrears", true);
 
-  const { data: units, count } = await query.order("code").range(from, to);
+  const { data: units, count, error: unitsError } = await query.order("code").range(from, to);
+  assertRead(unitsError, "property: units list");
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const drawerData = sp.unit ? await getUnitDrawerData(supabase, organization.id, sp.unit, isAr) : null;

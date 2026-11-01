@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -68,16 +69,6 @@ beforeAll(async () => {
   }).select("id").single();
   supplierId = supplier!.id as string;
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  const { data: period } = await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  periodId = period!.id as string;
-
   await admin.from("organizations").update({
     fx_gain_account_id: gainAcc, fx_loss_account_id: lossAcc,
   }).eq("id", orgId);
@@ -97,6 +88,18 @@ beforeAll(async () => {
   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, signInErr?.message).toBeNull();
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // The invoice is dated 2026-06-01, so the period under test is the monthly period that contains it.
+  await createOpenFiscalYear(admin, asUser, {
+    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
+  const { data: period, error: periodErr } = await admin
+    .from("fiscal_periods").select("id")
+    .eq("organization_id", orgId)
+    .lte("start_date", "2026-06-01").gte("end_date", "2026-06-01").single();
+  expect(periodErr, periodErr?.message).toBeNull();
+  periodId = period!.id as string;
 });
 
 afterAll(async () => {
@@ -108,8 +111,6 @@ afterAll(async () => {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
   await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
   await admin.from("exchange_rates").delete().eq("organization_id", orgId);
   await admin.from("resorts").delete().eq("organization_id", orgId);

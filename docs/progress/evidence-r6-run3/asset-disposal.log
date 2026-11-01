@@ -1,0 +1,47 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (23.4s)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-asset="FA-20694207"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-asset="FA-20694207"]')
+
+
+      129 |     // 1. Try to dispose with nothing designated.
+      130 |     await page.goto("/en/finance/assets");
+    > 131 |     await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toBeVisible();
+          |                                                                 ^
+      132 |
+      133 |     await page.locator("#dispose-proceeds").fill("7000");
+      134 |     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:131:65
+
+    Error Context: docs\progress\evidence-r6-run3\asset-disposal\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\asset-disposal\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\asset-disposal\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+

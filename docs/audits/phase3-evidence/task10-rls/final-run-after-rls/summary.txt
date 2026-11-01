@@ -1,0 +1,21 @@
+=== vitest (one invocation) 18:10:20
+exit 1 ; ⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯; Test Files 3 failed | 20 passed | 1 skipped (24); Tests 13 failed | 404 passed | 40 skipped (457);
+=== page-error-states 18:14:09
+exit 0 ;  2 passed (42.2s);
+=== owner-portal-isolation 18:14:58
+exit 0 ;  1 passed (20.3s);
+=== portal-refusals 18:15:24
+exit 0 ;  5 passed (1.5m);
+=== accounting-duplicates 18:16:56
+exit 0 ;  5 passed (1.0m);
+=== accounting-journey 18:18:09
+exit 0 ;  15 passed (2.7m);
+=== portal-journey 18:20:54
+exit 0 ;  6 passed (1.2m);
+=== portal-statement 18:22:11
+exit 0 ;  8 passed (1.8m);
+=== customer-advances 18:24:02
+exit 0 ;  10 passed (4.8m);
+=== customer-advances-ui-screens 18:28:58
+exit 0 ;  6 passed (2.5m);
+ALL-DONE

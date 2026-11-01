@@ -1,0 +1,20 @@
+$ tests/e2e/trial-balance-opening-db.spec.ts
+label=b3-ui-trial-balance-opening-db
+exit=0
+elapsed_ms=26974
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\trial-balance-opening-db.spec.ts:74:5 › E1 opening + movement = closing for every row, and each column balances (862ms)
+  ok 2 tests\e2e\trial-balance-opening-db.spec.ts:90:5 › E2 fixed expectations: balance-sheet carries cumulative, income-statement opens year-to-date, earlier years go to RE-PRIOR (412ms)
+  ok 3 tests\e2e\trial-balance-opening-db.spec.ts:109:5 › E3 refused for: no finance.reports.read, suspended, invited, another organization's member, anonymous, null org (3.8s)
+  ok 4 tests\e2e\trial-balance-opening-db.spec.ts:153:5 › E4 an invalid period is rejected, not guessed (198ms)
+
+  4 passed (11.3s)
+(node:32784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,19 @@
+A1 tagged single-line-style manual entry must be refused
+psql:/tmp/optA_tests.sql:4: ERROR:  MANUAL_PROJECT_TAG_NOT_ALLOWED: القيود اليدوية لا تُربط بمشروع؛ الرسملة والتحرير عبر إجراءات المشروع
+A2 untagged two-line manual entry must be accepted
+ A2 entry: 4953b301-9c67-4566-be65-a0e069535850
+A3 untagged three-line manual entry must be accepted
+ A3 entry: c0fc57b4-84a0-42de-ab03-d95632d5ba4b
+A4 three-line entry with ONE tagged line must be refused whole
+psql:/tmp/optA_tests.sql:10: ERROR:  MANUAL_PROJECT_TAG_NOT_ALLOWED: القيود اليدوية لا تُربط بمشروع؛ الرسملة والتحرير عبر إجراءات المشروع
+A5 no partial rows from A4 (count of entries described manual 3-line tagged)
+ A5 partial entries: 0
+A6 project postings still work through the internal path (capitalise then release)
+ A6 cap: true
+ A6 rel: true
+A7 reversal of a tagged project posting still works (not via the wrapper)
+psql:/tmp/optA_tests.sql:21: ERROR:  journal entry not found
+psql:/tmp/optA_a7.sql:3: ERROR:  PROJECT_WIP_NEGATIVE: العكس أو التحرير يجعل رصيد WIP سالبًا (الرصيد 30.0000, المطلوب 50.0000)
+ A7 reverse release first: true
+ A7 then reverse capitalisation: true
+ A7 report R: cap=0.0000 rel=0.0000 wip=0.0000

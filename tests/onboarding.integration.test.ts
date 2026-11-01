@@ -120,6 +120,8 @@ describe("public tenant provisioning is closed", () => {
     // The refusal must be a privilege refusal, not a validation error that a
     // determined caller could simply satisfy with better arguments.
     expect(error.code).toBe("42501");
+    // ...and specifically the GRANT being absent ("permission denied for function"), not the function's own UNAUTHORIZED guard that also uses 42501.
+    expect(error.message, "the refusal must come from the missing EXECUTE grant").toMatch(/permission denied for function/i);
 
     const { count } = await admin
       .from("organizations")
@@ -144,9 +146,13 @@ describe("public tenant provisioning is closed", () => {
     // The RPC derives its owner from auth.uid(); under service_role there is no
     // JWT subject, so it refuses rather than provisioning an ownerless tenant.
     // Either outcome proves the function still exists and is reachable to a
-    // privileged caller -- what must NOT happen is a 42501 privilege refusal.
+    // privileged caller -- what must NOT happen is a privilege (missing EXECUTE grant) refusal.
+    // Both refusals carry SQLSTATE 42501, so the code cannot tell them apart; the message can (verified against the database: authenticated gets
+    // "permission denied for function create_organization_onboarding", service_role gets the function's own "UNAUTHORIZED: ..." guard, and
+    // has_function_privilege('service_role', ...) is true). A privilege refusal here would mean the grant was lost.
     if (error) {
-      expect(error.code).not.toBe("42501");
+      expect(error.message, "service_role must not be refused by a missing EXECUTE grant").not.toMatch(/permission denied for function/i);
+      expect(error.message, "the only acceptable refusal is the function's own no-identity guard").toMatch(/UNAUTHORIZED/);
       return;
     }
 

@@ -14,6 +14,17 @@ export interface PaymentReceiptAllocation {
   description: string;
   dueDate: string;
   allocatedAmount: number;
+  /** date the line was applied (credit applications) */
+  appliedOn?: string;
+  /** a credit application taken from a later advance, not the receipt's own allocation */
+  credit?: boolean;
+  /** set on a REVERSED application: shown for history, never counted in the total */
+  reversedOn?: string | null;
+}
+
+/** The total allocated: only lines still in force. */
+export function receiptAllocatedTotal(allocations: PaymentReceiptAllocation[]): number {
+  return Math.round(allocations.filter((a) => !a.reversedOn).reduce((sum, a) => sum + a.allocatedAmount, 0) * 10_000) / 10_000;
 }
 
 interface PaymentReceiptData {
@@ -24,6 +35,8 @@ interface PaymentReceiptData {
   paymentDate: string;
   amount: number;
   unallocatedAmount: number;
+  /** Customer-advance part of the receipt (credit on the unit), 0 for an ordinary receipt. */
+  advanceAmount?: number;
   memberName: string;
   method: string;
   memo: string | null;
@@ -42,6 +55,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
     paymentDate,
     amount,
     unallocatedAmount,
+    advanceAmount = 0,
     memberName,
     method,
     memo,
@@ -292,8 +306,8 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
       <div class="kpi-value">${safeMethodLabel}</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">${isAr ? `مبلغ غير مخصص (${safeCurrency})` : `Unallocated (${safeCurrency})`}</div>
-      <div class="kpi-value">${fmt(unallocatedAmount)}</div>
+      <div class="kpi-label">${advanceAmount > 0 ? (isAr ? `دفعة مقدمة – رصيد دائن (${safeCurrency})` : `Advance credit (${safeCurrency})`) : isAr ? `مبلغ غير مخصص (${safeCurrency})` : `Unallocated (${safeCurrency})`}</div>
+      <div class="kpi-value">${fmt(advanceAmount > 0 ? advanceAmount : unallocatedAmount)}</div>
     </div>
   </div>
 
@@ -340,9 +354,9 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
         <tr>
           <td>${i + 1}</td>
           <td><strong>${a.unitCode || "—"}</strong></td>
-          <td>${a.description || "—"}</td>
+          <td>${a.description || "—"}${a.credit ? ` <span style="color:#64748b">· ${isAr ? "رصيد مقدم" : "advance credit"}${a.appliedOn ? ` ${escapeHtml(a.appliedOn)}` : ""}</span>` : ""}${a.reversedOn ? ` <strong>· ${isAr ? "معكوس" : "reversed"} ${escapeHtml(a.reversedOn)} — ${isAr ? "غير محتسب في الإجمالي" : "not in the total"}</strong>` : ""}</td>
           <td>${a.dueDate || "—"}</td>
-          <td>${fmt(a.allocatedAmount)}</td>
+          <td${a.reversedOn ? ' style="text-decoration: line-through; opacity: .6"' : ""}>${fmt(a.allocatedAmount)}</td>
         </tr>
       `,
         )
@@ -351,7 +365,7 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData, locale: stri
     <tfoot>
       <tr>
         <td colspan="4">${isAr ? "الإجمالي المخصص" : "Total Allocated"}</td>
-        <td>${fmt(allocations.reduce((sum, a) => sum + a.allocatedAmount, 0))}</td>
+        <td>${fmt(receiptAllocatedTotal(allocations))}</td>
       </tr>
     </tfoot>
   </table>`

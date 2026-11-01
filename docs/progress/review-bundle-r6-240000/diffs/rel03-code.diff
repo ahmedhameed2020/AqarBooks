@@ -1,0 +1,487 @@
+diff --git a/app/[locale]/(app)/finance/assets/asset-forms.tsx b/app/[locale]/(app)/finance/assets/asset-forms.tsx
+index a455a9bf..62ef5819 100644
+--- a/app/[locale]/(app)/finance/assets/asset-forms.tsx
++++ b/app/[locale]/(app)/finance/assets/asset-forms.tsx
+@@ -51,6 +51,11 @@ function message(error: string, isAr: boolean) {
+       ? "عيّن حسابي أرباح وخسائر الاستبعاد أولًا (الإدارة ← الحسابات المعيَّنة) — لن يختار النظام حسابًا نيابةً عنك."
+       : "Designate the disposal gain and loss accounts first (Admin → Designated Accounts). The system will not pick one for you.";
+   }
++  if (error.includes("DISPOSAL_PROCEEDS_ACCOUNT_INVALID")) {
++    return isAr
++      ? "اختر حساب نقدية أو بنك نشطًا وغير تجميعي للحصيلة؛ لا يجوز استخدام حساب الأصل أو مجمع إهلاكه أو حساب يطلب مركز تكلفة."
++      : "Select an active, non-group cash or bank account. The asset account, accumulated depreciation account, and cost-centre-required accounts are not allowed.";
++  }
+   if (error.includes("ASSET_ALREADY_DISPOSED")) {
+     return isAr ? "هذا الأصل مستبعَد بالفعل." : "That asset has already been disposed of.";
+   }
+@@ -72,6 +77,7 @@ function message(error: string, isAr: boolean) {
+ export function RegisterAssetForm({
+   open = true,
+   onOpenChange,
++  organizationId,
+   assetAccounts,
+   deprAccounts,
+   accumulatedAccounts,
+@@ -80,6 +86,7 @@ export function RegisterAssetForm({
+ }: {
+   open?: boolean;
+   onOpenChange?: (open: boolean) => void;
++  organizationId: string;
+   assetAccounts: Option[];
+   deprAccounts?: Option[];
+   accumulatedAccounts?: Option[];
+@@ -123,6 +130,7 @@ export function RegisterAssetForm({
+         </DialogHeader>
+ 
+         <form action={formAction}>
++          <input type="hidden" name="organizationId" value={organizationId} />
+           <DialogBody className="space-y-4">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+               <div className="space-y-1.5">
+@@ -329,11 +337,13 @@ export function RegisterAssetForm({
+ export function RunDepreciationForm({
+   open = true,
+   onOpenChange,
++  organizationId,
+   periods,
+   locale,
+ }: {
+   open?: boolean;
+   onOpenChange?: (open: boolean) => void;
++  organizationId: string;
+   periods: Option[];
+   locale: string;
+ }) {
+@@ -363,6 +373,7 @@ export function RunDepreciationForm({
+         </DialogHeader>
+ 
+         <form action={formAction}>
++          <input type="hidden" name="organizationId" value={organizationId} />
+           <DialogBody className="space-y-4">
+             <div className="space-y-1.5">
+               <Label htmlFor="dep-period" className="text-xs font-bold text-foreground">
+@@ -445,6 +456,7 @@ export function DisposeAssetForm({
+   assetName,
+   gainAccounts,
+   lossAccounts,
++  proceedsAccounts,
+   periods,
+   locale,
+ }: {
+@@ -455,6 +467,7 @@ export function DisposeAssetForm({
+   assetName: string;
+   gainAccounts?: Option[];
+   lossAccounts?: Option[];
++  proceedsAccounts?: Option[];
+   periods?: Option[];
+   locale: string;
+ }) {
+@@ -535,6 +548,28 @@ export function DisposeAssetForm({
+               </div>
+             </div>
+ 
++            <div className="space-y-1.5">
++              <Label htmlFor="dispose-account" className="text-xs font-bold text-foreground">
++                {isAr ? "حساب المتحصلات" : "Proceeds Account"} <span className="text-rose-500">*</span>
++              </Label>
++              <select
++                id="dispose-account"
++                name="proceedsAccountId"
++                required
++                defaultValue=""
++                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
++              >
++                <option value="" disabled>
++                  {isAr ? "اختر حساب المتحصلات..." : "Select proceeds account..."}
++                </option>
++                {(proceedsAccounts ?? []).map((a) => (
++                  <option key={a.id} value={a.id}>
++                    {a.label}
++                  </option>
++                ))}
++              </select>
++            </div>
++
+             <div className="space-y-1.5">
+               <Label htmlFor="dispose-reason" className="text-xs font-bold text-foreground">
+                 {isAr ? "سبب الاستبعاد أو التخريد" : "Reason / Note"}
+diff --git a/app/[locale]/(app)/finance/assets/assets-client.tsx b/app/[locale]/(app)/finance/assets/assets-client.tsx
+index 071d46e0..70fae260 100644
+--- a/app/[locale]/(app)/finance/assets/assets-client.tsx
++++ b/app/[locale]/(app)/finance/assets/assets-client.tsx
+@@ -48,6 +48,7 @@ const n = (v: number | string) => Number(v ?? 0);
+ interface AssetsClientProps {
+   assets: AssetRow[];
+   assetAccounts: Option[];
++  proceedsAccounts: Option[];
+   deprAccounts: Option[];
+   expenseAccounts: Option[];
+   gainAccounts: Option[];
+@@ -56,12 +57,14 @@ interface AssetsClientProps {
+   canManage: boolean;
+   locale: string;
+   currency: string;
++  organizationId: string;
+   organizationName?: string;
+ }
+ 
+ export function AssetsClient({
+   assets,
+   assetAccounts,
++  proceedsAccounts,
+   deprAccounts,
+   expenseAccounts,
+   gainAccounts,
+@@ -70,6 +73,7 @@ export function AssetsClient({
+   canManage,
+   locale,
+   currency,
++  organizationId,
+   organizationName,
+ }: AssetsClientProps) {
+   const isAr = locale === "ar";
+@@ -582,6 +586,7 @@ export function AssetsClient({
+       {/* Modal Dialogs */}
+       {registerOpen && (
+         <RegisterAssetForm
++          organizationId={organizationId}
+           open={registerOpen}
+           onOpenChange={setRegisterOpen}
+           assetAccounts={assetAccounts}
+@@ -593,6 +598,7 @@ export function AssetsClient({
+ 
+       {depreciateOpen && (
+         <RunDepreciationForm
++          organizationId={organizationId}
+           open={depreciateOpen}
+           onOpenChange={setDepreciateOpen}
+           periods={periods}
+@@ -611,6 +617,7 @@ export function AssetsClient({
+           assetName={isAr ? disposeAsset.name_ar : disposeAsset.name_en}
+           gainAccounts={gainAccounts}
+           lossAccounts={lossAccounts}
++          proceedsAccounts={proceedsAccounts}
+           periods={periods}
+           locale={locale}
+         />
+diff --git a/app/[locale]/(app)/finance/assets/page.tsx b/app/[locale]/(app)/finance/assets/page.tsx
+index 7791c30a..6b4f6a98 100644
+--- a/app/[locale]/(app)/finance/assets/page.tsx
++++ b/app/[locale]/(app)/finance/assets/page.tsx
+@@ -64,7 +64,7 @@ export default async function FixedAssetsPage({
+     supabase.rpc("list_fixed_assets", { p_organization_id: organization.id }),
+     supabase
+       .from("chart_of_accounts")
+-      .select("id, code, name_ar, name_en, category")
++      .select("id, code, name_ar, name_en, category, is_cash_equivalent, requires_cost_center")
+       .eq("organization_id", organization.id)
+       .eq("is_group", false)
+       .eq("is_active", true)
+@@ -86,6 +86,9 @@ export default async function FixedAssetsPage({
+   const assetAccounts: Option[] = (accounts ?? [])
+     .filter((a) => a.category === "ASSET")
+     .map((a) => ({ id: a.id, label: label(a) }));
++  const proceedsAccounts: Option[] = (accounts ?? [])
++    .filter((a) => a.category === "ASSET" && a.is_cash_equivalent && !a.requires_cost_center)
++    .map((a) => ({ id: a.id, label: label(a) }));
+   const expenseAccounts: Option[] = (accounts ?? [])
+     .filter((a) => a.category === "EXPENSE")
+     .map((a) => ({ id: a.id, label: label(a) }));
+@@ -119,8 +122,10 @@ export default async function FixedAssetsPage({
+ 
+       {/* Main Interactive Client Table & KPIs */}
+       <AssetsClient
++        organizationId={organization.id}
+         assets={assets}
+         assetAccounts={assetAccounts}
++        proceedsAccounts={proceedsAccounts}
+         deprAccounts={deprAccounts}
+         expenseAccounts={expenseAccounts}
+         gainAccounts={assetAccounts}
+diff --git a/lib/actions/fixed-assets.ts b/lib/actions/fixed-assets.ts
+index 27a11c43..7e4be4f8 100644
+--- a/lib/actions/fixed-assets.ts
++++ b/lib/actions/fixed-assets.ts
+@@ -129,6 +129,37 @@ export async function disposeAsset(
+   const d = parsed.data;
+ 
+   const supabase = await createClient();
++  if (d.proceeds > 0) {
++    const { data: asset, error: assetError } = await supabase
++      .from("fixed_assets")
++      .select("organization_id, asset_account_id, accumulated_depreciation_account_id")
++      .eq("id", d.assetId)
++      .maybeSingle();
++    if (assetError) return { ok: false, error: assetError.message };
++
++    if (asset) {
++      const { data: proceedsAccount, error: accountError } = await supabase
++        .from("chart_of_accounts")
++        .select("id")
++        .eq("id", d.proceedsAccountId)
++        .eq("organization_id", asset.organization_id)
++        .eq("category", "ASSET")
++        .eq("is_group", false)
++        .eq("is_active", true)
++        .eq("is_cash_equivalent", true)
++        .eq("requires_cost_center", false)
++        .maybeSingle();
++      if (accountError) return { ok: false, error: accountError.message };
++      if (
++        !proceedsAccount ||
++        d.proceedsAccountId === asset.asset_account_id ||
++        d.proceedsAccountId === asset.accumulated_depreciation_account_id
++      ) {
++        return { ok: false, error: "DISPOSAL_PROCEEDS_ACCOUNT_INVALID" };
++      }
++    }
++  }
++
+   const { error } = await supabase.rpc("dispose_fixed_asset", {
+     p_asset_id: d.assetId,
+     p_disposal_date: d.disposalDate,
+diff --git a/tests/e2e/asset-disposal.spec.ts b/tests/e2e/asset-disposal.spec.ts
+index 357e5567..c76e5e73 100644
+--- a/tests/e2e/asset-disposal.spec.ts
++++ b/tests/e2e/asset-disposal.spec.ts
+@@ -8,10 +8,12 @@
+ import { test, expect, type Page } from "@playwright/test";
+ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ 
+ type Fixture = { orgId: string; email: string; userIds: string[]; assetCode: string };
+@@ -27,10 +29,11 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+ 
+   await admin.rpc("clone_tenant_role_templates", { p_organization_id: f.orgId });
+ 
+-  const acc = async (code: string, nameEn: string, cat: string, bal: string) => {
++  const acc = async (code: string, nameEn: string, cat: string, bal: string, cashEquivalent = false) => {
+     const { data, error: e } = await admin.from("chart_of_accounts").insert({
+       organization_id: f.orgId, code, name_ar: nameEn, name_en: nameEn,
+       category: cat, normal_balance: bal, is_group: false, is_active: true,
++      is_cash_equivalent: cashEquivalent,
+     }).select("id").single();
+     expect(e, e?.message).toBeNull();
+     return data!.id as string;
+@@ -38,7 +41,10 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+   const assetAcc = await acc("1210", "Buildings", "ASSET", "DEBIT");
+   const accumAcc = await acc("1220", "Accumulated Depreciation", "ASSET", "DEBIT");
+   const expenseAcc = await acc("5500", "Depreciation Expense", "EXPENSE", "DEBIT");
+-  await acc("1010", "Cash", "ASSET", "DEBIT");
++  await acc("1010", "Cash", "ASSET", "DEBIT", true);
++  // Independent of every fixed-asset field: its absence must be caused by the
++  // cash-equivalent filter, not by the asset/accumulated-account exclusions.
++  await acc("1230", "Other Non-Cash Assets", "ASSET", "DEBIT");
+   await acc("5910", "Loss on Disposal", "EXPENSE", "DEBIT");
+   await acc("4910", "Gain on Disposal", "REVENUE", "CREDIT");
+ 
+@@ -47,15 +53,6 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+     timezone: "Africa/Cairo", property_type: "building",
+   }).select("id").single();
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  await admin.from("fiscal_periods").insert({
+-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+-  });
+-
+   await admin.from("fixed_assets").insert({
+     organization_id: f.orgId, property_id: property!.id, code: f.assetCode,
+     name_ar: "مبنى", name_en: "Building",
+@@ -78,6 +75,14 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+   await admin.from("user_role_assignments")
+     .insert({ user_id: created!.user!.id, role_id: role!.id, organization_id: f.orgId });
+   f.email = email;
++
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++  const { error: signInErr } = await ownerClient.auth.signInWithPassword({ email, password: STAFF_PASSWORD });
++  expect(signInErr, `owner sign-in failed: ${signInErr?.message}`).toBeNull();
++  await createOpenFiscalYear(admin, ownerClient, {
++    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
+   return f;
+ }
+ 
+@@ -90,8 +95,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
+     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
+   }
+   await admin.from("journal_entries").delete().eq("organization_id", id);
+-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
+-  await admin.from("fiscal_years").delete().eq("organization_id", id);
++  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
+   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
+   await admin.from("properties").delete().eq("organization_id", id);
+   await admin.from("organizations").update({
+@@ -128,12 +132,17 @@ test("disposal is refused until the accounts are designated, then succeeds and c
+ 
+     // 1. Try to dispose with nothing designated.
+     await page.goto("/en/finance/assets");
+-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toBeVisible();
++    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toBeVisible();
++    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
+ 
+     await page.locator("#dispose-proceeds").fill("7000");
++    await expect(page.locator("#dispose-account")).toContainText("1010 — Cash");
++    await expect(page.locator("#dispose-account")).not.toContainText("1230 — Other Non-Cash Assets");
++    await expect(page.locator("#dispose-account")).not.toContainText("1210 — Buildings");
++    await expect(page.locator("#dispose-account")).not.toContainText("1220 — Accumulated Depreciation");
+     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+     await page.locator("#dispose-date").fill("2026-06-01");
+-    await page.getByRole("button", { name: /^Dispose$/i }).click();
++    await page.getByRole("dialog").getByRole("button", { name: /^Confirm Disposal$/i }).click();
+ 
+     // The refusal must say where to fix it, not merely that it failed.
+     const refusal = page.locator("form").getByRole("alert");
+@@ -149,7 +158,7 @@ test("disposal is refused until the accounts are designated, then succeeds and c
+ 
+     await disposal.locator("#disposal-gain").selectOption({ label: "4910 — Gain on Disposal" });
+     await disposal.locator("#disposal-loss").selectOption({ label: "5910 — Loss on Disposal" });
+-    await disposal.getByRole("button", { name: /^Save$/i }).click();
++    await disposal.getByRole("button", { name: /^Save Designation$/i }).click();
+ 
+     await expect(page.locator('[data-designation="disposal"]')).toHaveAttribute(
+       "data-ready", "yes", { timeout: 40_000 },
+@@ -157,15 +166,14 @@ test("disposal is refused until the accounts are designated, then succeeds and c
+ 
+     // 3. Now the disposal goes through.
+     await page.goto("/en/finance/assets");
++    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
+     await page.locator("#dispose-proceeds").fill("7000");
+     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+     await page.locator("#dispose-date").fill("2026-06-01");
+     await page.locator("#dispose-reason").fill("sold");
+-    await page.getByRole("button", { name: /^Dispose$/i }).click();
++    await page.getByRole("dialog").getByRole("button", { name: /^Confirm Disposal$/i }).click();
+ 
+-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toHaveAttribute(
+-      "data-status", "DISPOSED", { timeout: 40_000 },
+-    );
++    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toContainText("Disposed", { timeout: 40_000 });
+ 
+     // 4. The ledger agrees: cost out in full, loss = book value - proceeds.
+     // No depreciation was posted, so book value is the full 10,000 and selling
+diff --git a/tests/fixed-asset-disposal.integration.test.ts b/tests/fixed-asset-disposal.integration.test.ts
+index 96c617f3..5161ef9c 100644
+--- a/tests/fixed-asset-disposal.integration.test.ts
++++ b/tests/fixed-asset-disposal.integration.test.ts
+@@ -12,6 +12,7 @@
+ import { describe, it, expect, beforeAll, afterAll } from "vitest";
+ import { createClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
+ 
+ loadEnv({ path: ".env.local" });
+ 
+@@ -42,10 +43,11 @@ beforeAll(async () => {
+   orgId = org!.id as string;
+   await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
+ 
+-  const acc = async (code: string, cat: string, bal: string) => {
++  const acc = async (code: string, cat: string, bal: string, cashEquivalent = false) => {
+     const { data, error: e } = await admin.from("chart_of_accounts").insert({
+       organization_id: orgId, code, name_ar: code, name_en: code,
+       category: cat, normal_balance: bal, is_group: false, is_active: true,
++      is_cash_equivalent: cashEquivalent,
+     }).select("id").single();
+     expect(e, e?.message).toBeNull();
+     return data!.id as string;
+@@ -55,7 +57,7 @@ beforeAll(async () => {
+   expenseAcc = await acc("5500", "EXPENSE", "DEBIT");
+   lossAcc = await acc("5910", "EXPENSE", "DEBIT");
+   gainAcc = await acc("4910", "REVENUE", "CREDIT");
+-  cashAcc = await acc("1010", "ASSET", "DEBIT");
++  cashAcc = await acc("1010", "ASSET", "DEBIT", true);
+ 
+   const { data: property } = await admin.from("properties").insert({
+     organization_id: orgId, name: "D P", code: `DSP-${stamp}`,
+@@ -63,16 +65,6 @@ beforeAll(async () => {
+   }).select("id").single();
+   propertyId = property!.id as string;
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  const { data: period } = await admin.from("fiscal_periods").insert({
+-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  periodId = period!.id as string;
+-
+   const email = `e2e-disposal-${stamp}@aqarbooks-test.local`;
+   const { data: created } = await admin.auth.admin.createUser({
+     email, password: PASSWORD, email_confirm: true,
+@@ -88,6 +80,17 @@ beforeAll(async () => {
+   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
+   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
+   expect(signInErr, signInErr?.message).toBeNull();
++
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  // The test posts into the first monthly period; the other eleven stay open and unused.
++  await createOpenFiscalYear(admin, asUser, {
++    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
++  const { data: period, error: periodErr } = await admin
++    .from("fiscal_periods").select("id")
++    .eq("organization_id", orgId).eq("period_number", 1).single();
++  expect(periodErr, periodErr?.message).toBeNull();
++  periodId = period!.id as string;
+ });
+ 
+ afterAll(async () => {
+@@ -99,8 +102,7 @@ afterAll(async () => {
+     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
+   }
+   await admin.from("journal_entries").delete().eq("organization_id", orgId);
+-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
+-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
++  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
+   await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
+   await admin.from("properties").delete().eq("organization_id", orgId);
+   await admin.from("organizations").update({
+@@ -171,6 +173,34 @@ describe("fixed asset disposal", () => {
+     expect(ok.error, ok.error?.message).toBeNull();
+   });
+ 
++  it("refuses a non-cash proceeds account without posting or disposing the asset", async () => {
++    const id = await makeAsset(`D-NONCASH-${Date.now()}`);
++    // This account is unrelated to the disposed asset: the refusal must come
++    // from its non-cash classification, not from the asset-account exclusion.
++    const { data: nonCashAccount, error: nonCashAccountError } = await admin
++      .from("chart_of_accounts").insert({
++        organization_id: orgId, code: "1230", name_ar: "أصول غير نقدية",
++        name_en: "Non-cash assets", category: "ASSET", normal_balance: "DEBIT",
++        is_group: false, is_active: true, is_cash_equivalent: false,
++      }).select("id").single();
++    expect(nonCashAccountError, nonCashAccountError?.message).toBeNull();
++    const { count: before } = await admin.from("journal_entries")
++      .select("id", { count: "exact", head: true }).eq("organization_id", orgId);
++
++    const { error } = await asUser.rpc("dispose_fixed_asset", {
++      p_asset_id: id, p_disposal_date: "2026-06-01",
++      p_proceeds: 100, p_proceeds_account_id: nonCashAccount!.id,
++    });
++    expect(error?.message).toMatch(/DISPOSAL_PROCEEDS_ACCOUNT_INVALID/);
++
++    const { data: asset } = await admin.from("fixed_assets")
++      .select("status").eq("id", id).single();
++    expect(asset!.status).toBe("ACTIVE");
++    const { count: after } = await admin.from("journal_entries")
++      .select("id", { count: "exact", head: true }).eq("organization_id", orgId);
++    expect(after).toBe(before);
++  });
++
+   it("closes cost and accumulated depreciation and books the gain, line by line", async () => {
+     const id = await makeAsset(`D-GAIN-${Date.now()}`);
+     // Two instalments of 1000 posted, so accumulated 2000 and NBV 8000.

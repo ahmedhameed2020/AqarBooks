@@ -24,6 +24,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -127,20 +128,6 @@ async function makeOrg(label: string): Promise<Org> {
     name_ar: "رسوم / x", name_en: "Fee / x", is_active: true,
   } as never).select("id").single();
 
-  // فترة مالية مفتوحة تغطي 2025 و2026: بدونها لا يرحّل post_due_to_ledger شيئًا،
-  // فيصبح توكيد «ولا قيد» فارغًا — 0 قبل و0 بعد. أول نسخة من هذا الملف وقعت في
-  // ذلك بالضبط ومرّت 9/9 وهي لا تُثبت الذرية إطلاقًا.
-  const { data: fy, error: fyErr } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "E2E FY", start_date: "2025-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  } as never).select("id").single();
-  expect(fyErr, `fiscal year insert failed: ${fyErr?.message}`).toBeNull();
-  const { error: fpErr } = await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "E2E Period", start_date: "2025-01-01", end_date: "2026-12-31", status: "OPEN",
-  } as never);
-  expect(fpErr, `fiscal period insert failed: ${fpErr?.message}`).toBeNull();
-
   const owner = await makeUser(label);
   await admin.from("organization_memberships")
     .insert({ organization_id: orgId, user_id: owner.userId, status: "active" });
@@ -148,6 +135,14 @@ async function makeOrg(label: string): Promise<Org> {
     .select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
   await admin.from("user_role_assignments")
     .insert({ user_id: owner.userId, role_id: role!.id, organization_id: orgId });
+
+  // فترة مالية مفتوحة تغطي 2025 و2026: بدونها لا يرحّل post_due_to_ledger شيئًا،
+  // فيصبح توكيد «ولا قيد» فارغًا — 0 قبل و0 بعد. أول نسخة من هذا الملف وقعت في
+  // ذلك بالضبط ومرّت 9/9 وهي لا تُثبت الذرية إطلاقًا.
+  // تُنشأ عبر RPC بجلسة المالك (الحارس يرفض الكتابة المباشرة)، فتصبح فترات شهرية مفتوحة.
+  await createOpenFiscalYear(admin, owner.client, {
+    orgId, name: "E2E FY", startDate: "2025-01-01", endDate: "2026-12-31",
+  });
 
   return {
     orgId,
@@ -234,8 +229,6 @@ afterAll(async () => {
       await admin.from("journal_entry_lines").delete().eq("journal_entry_id", entry.id);
     }
     await admin.from("journal_entries").delete().eq("organization_id", orgId);
-    await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-    await admin.from("fiscal_years").delete().eq("organization_id", orgId);
     await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
     await admin.from("units").delete().eq("organization_id", orgId);
     await admin.from("properties").delete().eq("organization_id", orgId);

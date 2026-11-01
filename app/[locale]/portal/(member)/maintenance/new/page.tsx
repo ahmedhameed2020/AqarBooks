@@ -8,6 +8,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import { EmptyState, PortalPageHeader } from "../../portal-ui";
 import { NewMaintenanceRequestForm } from "./new-maintenance-request-form";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export default async function NewPortalMaintenancePage({
   params,
@@ -22,7 +23,7 @@ export default async function NewPortalMaintenancePage({
   if (ctx.status !== "ok") redirect("/portal/login");
 
   const supabase = await createClient();
-  const [{ data: ownerships }, { data: categories }] = await Promise.all([
+  const [{ data: ownerships, error: ownershipsError }, { data: categories, error: categoriesError }] = await Promise.all([
     supabase
       .from("unit_ownerships")
       .select("unit_id, start_date, end_date")
@@ -33,6 +34,8 @@ export default async function NewPortalMaintenancePage({
       .eq("is_active", true)
       .order("sort_order"),
   ]);
+  assertRead(ownershipsError, "portal/maintenance/new: unit_ownerships");
+  assertRead(categoriesError, "portal/maintenance/new: maintenance_categories");
 
   const today = new Date().toISOString().slice(0, 10);
   const unitIds = [
@@ -42,9 +45,10 @@ export default async function NewPortalMaintenancePage({
         .map((o) => o.unit_id),
     ),
   ];
-  const { data: units } = unitIds.length
+  const { data: units, error: unitsError } = unitIds.length
     ? await supabase.from("units").select("id, code").in("id", unitIds).order("code")
-    : { data: [] };
+    : { data: [], error: null };
+  assertRead(unitsError, "portal/maintenance/new: units");
 
   const unitOptions = (units ?? []).map((u) => ({ id: u.id, label: u.code }));
   const categoryOptions = (categories ?? []).map((c) => ({

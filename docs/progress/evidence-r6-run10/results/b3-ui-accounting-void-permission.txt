@@ -1,0 +1,57 @@
+$ tests/e2e/accounting-void-permission.spec.ts
+label=b3-ui-accounting-void-permission
+exit=1
+elapsed_ms=180793
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (760ms)
+  ok 2 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (22.2s)
+  x  3 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (1.5m)
+  -  4 tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous
+
+
+  1) tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('row', { name: /#1\b/ })
+    Expected pattern: /Reversed/i
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 60000ms
+      - waiting for getByRole('row', { name: /#1\b/ })
+
+
+      125 |   const entriesBefore = (await state()).entries;
+      126 |   await row.getByRole("button", { name: /Reverse/i }).click();
+    > 127 |   await expect(page.getByRole("row", { name: /#1\b/ })).toContainText(/Reversed/i, { timeout: 60_000 });
+          |                                                         ^
+      128 |   expect(await status(payments[0])).toBe("REVERSED");
+      129 |   expect((await state()).entries).toBe(entriesBefore + 1); // exactly one mirror entry
+      130 |   const audits = await adminClient().from("financial_audit_logs").select("id", { count: "exact", head: true }).eq("organization_id", fx.orgId).eq("action", "PAYMENT_REVERSED");
+        at D:\Web\AqarBooks\tests\e2e\accounting-void-permission.spec.ts:127:57
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-ui-accounting-void-permission-artifacts\accounting-void-permission-dba16-manager-can-through-the-RPC\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-ui-accounting-void-permission-artifacts\accounting-void-permission-dba16-manager-can-through-the-RPC\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-ui-accounting-void-permission-artifacts\accounting-void-permission-dba16-manager-can-through-the-RPC\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC 
+  1 did not run
+  2 passed (2.5m)
+(node:30364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

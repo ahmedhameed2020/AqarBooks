@@ -1,0 +1,56 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register (1.6m)
+
+
+  1) tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register 
+
+    Test timeout of 90000ms exceeded.
+
+    Error: page.click: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for locator('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")')
+        - locator resolved to <button disabled tabindex="0" type="submit" data-disabled="" data-slot="button" class="group/button inline-flex shrink-0 items-center justify-center touch:min-h-11 touch:min-w-11 border border-transparent bg-clip-padding whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50 aria-i…>…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        138 × waiting for element to be visible, enabled and stable
+            - element is not enabled
+          - retrying click action
+            - waiting 500ms
+
+
+      182 |
+      183 |     // Submit invoice
+    > 184 |     await page.click('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")');
+          |                ^
+      185 |     await expect(page.locator("text=تم إصدار الفاتورة الضريبية الإلكترونية بنجاح")).toBeVisible({ timeout: 15000 });
+      186 |
+      187 |     // Clean up
+        at D:\Web\AqarBooks\tests\e2e\einvoice-flow.spec.ts:184:16
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-test-fixes\einvoice-flow-artifacts\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-test-fixes\einvoice-flow-artifacts\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-test-fixes\einvoice-flow-artifacts\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register 
+

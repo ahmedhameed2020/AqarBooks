@@ -1,0 +1,6 @@
+# The hardware file started on the SHARED stack refuses before any claim (queue fingerprint identical before/after)
+Error: Refusing to run: 33 claimable hardware command(s) of other runs share this database's global queue. Run this file through scripts/demo-local/hardware-stack.mjs (dedicated stack); nothing was claimed or changed.
+ Test Files  1 failed (1)
+      Tests  12 skipped (12)
+before=dde8be9767f143566094dd9ae6131084|135
+after =dde8be9767f143566094dd9ae6131084|135

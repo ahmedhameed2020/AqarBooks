@@ -1,0 +1,11 @@
+json-key-inventory.sql -- tests on TEST data only (container supabase_db_aqarbooks_clean; throwaway copy rh_inv_test of rh_trial; nothing run on production)
+1. Read-only: runs under default_transaction_read_only=on as role postgres; a write attempt in the same session fails ("cannot execute CREATE TABLE in a read-only transaction").
+2. Trap copy (short name 'ahmed', 'abc123', phone as number and as string, personal data as keys 0500123456 / ahmed@mail.com / Ahmed / 966500000000):
+   - needles searched in json-inventory.txt and json-inventory-proposed.txt: NONE (after the rare-path rule; the first build listed the key 'Ahmed' because it is identifier-shaped and seen once -> fixed by withholding identifier-shaped paths seen in fewer than 3 rows).
+   - non-identifier keys: counted only (financial_audit_logs.metadata 371, platform_audit_logs.safe_change_summary 26,894, ...), names never written.
+   - paths with mixed or free-string values are REVIEW (not proposed): e.g. financial_audit_logs.metadata.unit_id after a non-uuid string was planted; plan_entitlements.value after a string was planted.
+   - numbers are proposed only as '#?JSONKEEP' (commented): e.g. phone (number) appears as a NUM candidate that the owner must consciously refuse or accept.
+   - no line has more than 7 fields; no JSON value appears anywhere.
+3. 253 paths in one column (200 added): written as one DYNAMIC line, none of the 'dyn*' names appears.
+4. Clean trial DB: 39 active JSONKEEP proposals (UUID/TS/BOOL) and 24 commented NUM proposals; compare with example-local/json-allowlist.txt.
+Known limit: an identifier-shaped key that is a person's name and occurs in 3+ rows is listed; the owner reads the file before sending (stated in the file header).

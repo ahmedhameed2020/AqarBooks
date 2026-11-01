@@ -1,0 +1,105 @@
+# JSONKEEP|table|column|path|kind   (path: key | [].key for arrays of objects | . for a top-level scalar; kind: KEEP|NUM|BOOL|UUID|TS|ENUM:a,b,c)
+# EXAMPLE built from the TEST database. The owner must review the real keys on production; anything not listed is DROPPED by the export.
+JSONKEEP|financial_audit_logs|metadata|amount|NUM
+JSONKEEP|financial_audit_logs|metadata|as_of_date|TS
+JSONKEEP|financial_audit_logs|metadata|due_date|TS
+JSONKEEP|financial_audit_logs|metadata|due_type_id|UUID
+JSONKEEP|financial_audit_logs|metadata|issue_date|TS
+JSONKEEP|financial_audit_logs|metadata|issued_count|NUM
+JSONKEEP|financial_audit_logs|metadata|member_id|UUID
+JSONKEEP|financial_audit_logs|metadata|original_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|previous_unallocated_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|receivable_account_id|UUID
+JSONKEEP|financial_audit_logs|metadata|reversal_journal_entry_id|UUID
+JSONKEEP|financial_audit_logs|metadata|skipped_count|NUM
+JSONKEEP|financial_audit_logs|metadata|target_units_count|NUM
+JSONKEEP|financial_audit_logs|metadata|total_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|unit_id|UUID
+JSONKEEP|payment_credit_requests|result|advance_amount|NUM
+JSONKEEP|payment_credit_requests|result|allocated_amount|NUM
+JSONKEEP|payment_credit_requests|result|allocation_id|UUID
+JSONKEEP|payment_credit_requests|result|amount|NUM
+JSONKEEP|payment_credit_requests|result|applied_total|NUM
+JSONKEEP|payment_credit_requests|result|due_id|UUID
+JSONKEEP|payment_credit_requests|result|payment_id|UUID
+JSONKEEP|payment_credit_requests|result|remaining|NUM
+JSONKEEP|payment_credit_requests|result|replay|BOOL
+JSONKEEP|payment_credit_requests|result|reversal_journal_entry_id|UUID
+JSONKEEP|plan_entitlements|value|.|BOOL
+JSONKEEP|plan_entitlements|value|.|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|account_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|advance|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|advance_account_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|allocated|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|allocation_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|allowed_direction|ENUM:BOTH,ENTRY
+JSONKEEP|platform_audit_logs|safe_change_summary|amount|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|application_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|applied_total|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|cashier_session_id|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|category_changed|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|direction|ENUM:BOTH,ENTRY,EXIT
+JSONKEEP|platform_audit_logs|safe_change_summary|direction_mode|ENUM:BOTH
+JSONKEEP|platform_audit_logs|safe_change_summary|due_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|entry_number|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|expires_at|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|explained_at|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|explained_by|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|from|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|gate_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|invitation_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|line_count|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|line_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|linked_to_active_cashbox_or_bank|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|member_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|new_status|ENUM:CLOSED,OPEN
+JSONKEEP|platform_audit_logs|safe_change_summary|payment_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|periods|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|previous_status|ENUM:SUBMITTED,TRIAGED
+JSONKEEP|platform_audit_logs|safe_change_summary|priority_changed|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|provider|ENUM:FAWRY,PAYMOB
+JSONKEEP|platform_audit_logs|safe_change_summary|purchase_order_id|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|reason_code|ENUM:VALID_ENTRY,VALID_EXIT
+JSONKEEP|platform_audit_logs|safe_change_summary|reason_given|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|receipt_number|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|remaining|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|remaining_after|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|reversal_date|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|reversal_journal_entry_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|statement_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|status|ENUM:IN_PROGRESS,SUBMITTED,TRIAGED,active,suspended
+JSONKEEP|platform_audit_logs|safe_change_summary|to|BOOL
+JSONKEEP|platform_audit_logs|safe_change_summary|total|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|unit_id|UUID
+JSONKEEP|platform_audit_logs|safe_change_summary|usage_policy|ENUM:MULTI_USE,SINGLE_USE
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_from|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_hours|NUM
+JSONKEEP|platform_audit_logs|safe_change_summary|valid_until|TS
+JSONKEEP|platform_audit_logs|safe_change_summary|visitor_invitation_id|UUID
+# not listed (dropped by the export): 23
+#   financial_audit_logs.metadata.affected_due_ids (array: free text, container or open set)
+#   financial_audit_logs.metadata.fixture (string: free text, container or open set)
+#   financial_audit_logs.metadata.reason (string: free text, container or open set)
+#   financial_audit_logs.metadata.reversed_allocations (array: free text, container or open set)
+#   payment_credit_requests.result.allocations (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.account_code (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.allocations (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.changed_fields (array: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.client_id (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.code (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.display_name (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.identity (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.invitation_no (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.invoice_number (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.method (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.name (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.new (object,string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.note (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.old (object,string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary key 'permissionCount' (dynamic or unusual key)
+#   platform_audit_logs.safe_change_summary.reason (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary.request_no (string: free text, container or open set)
+#   platform_audit_logs.safe_change_summary key 'roleKey' (dynamic or unusual key)
+# hand-added for the array-path test (the test data holds only empty arrays here):
+JSONKEEP|property_import_logs|failures|[].row|NUM
+JSONKEEP|property_import_logs|failures|[].error|ENUM:bad_phone,bad_email

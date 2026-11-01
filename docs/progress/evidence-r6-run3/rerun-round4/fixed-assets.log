@@ -1,0 +1,52 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (53.9s)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 2 tests\e2e\fixed-assets.spec.ts:190:5 › a reader sees the register without the controls, and someone with neither permission is told so (13.4s)
+  ok 3 tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing (10.4s)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: locator('[data-run-result]')
+    Expected: "1"
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 40000ms
+      - waiting for locator('[data-run-result]')
+
+
+      148 |     // Post one period. The book value must fall by exactly one instalment.
+      149 |     await page.getByRole("button", { name: /Run depreciation/i }).click();
+    > 150 |     await expect(page.locator("[data-run-result]")).toHaveAttribute("data-run-result", "1", {
+          |                                                     ^
+      151 |       timeout: 40_000,
+      152 |     });
+      153 |     await expect(page.getByRole("row").filter({ hasText: code })).toContainText("11,000.00 EGP", {
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:150:53
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round4\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round4\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round4\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+  2 passed (1.4m)
+

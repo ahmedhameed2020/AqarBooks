@@ -1,0 +1,15 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 8 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+[1/8] tests\e2e\portal-statement.spec.ts:81:5 › an owner's statement shows their own movements, and never another owner's
+[2/8] tests\e2e\portal-statement.spec.ts:101:5 › an owner with no activity gets an empty statement, not a crash or a wrong zero
+[3/8] tests\e2e\portal-statement.spec.ts:113:5 › the statement renders right-to-left in Arabic and left-to-right in English
+[4/8] tests\e2e\portal-statement.spec.ts:126:5 › the statement is unreachable without a portal session
+[5/8] tests\e2e\portal-statement.spec.ts:135:5 › a receipt voided later: visible before the void date, reversed at the actual reversal entry, and every figure agrees (ar)
+[6/8] tests\e2e\portal-statement.spec.ts:135:5 › a receipt voided later: visible before the void date, reversed at the actual reversal entry, and every figure agrees (en)
+[7/8] tests\e2e\portal-statement.spec.ts:180:5 › the dated position cards show an error with a retry when the request fails, instead of an endless placeholder
+[8/8] tests\e2e\portal-statement.spec.ts:204:5 › a legacy receipt with an unallocated remainder keeps its meaning: statement = net before and after it is voided, and it is not credit
+  8 passed (2.9m)

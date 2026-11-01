@@ -1,0 +1,16 @@
+==== S2 first attempt: lock PB, then request PA
+BEGIN
+INSERT 0 1
+INSERT 0 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+INSERT 0 2
+COMMIT
+        ?column?         
+-------------------------
+ S2 entry persisted=true
+(1 row)
+

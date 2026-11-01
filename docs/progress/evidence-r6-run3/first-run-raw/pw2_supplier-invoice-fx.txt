@@ -1,0 +1,10 @@
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\supplier-invoice-fx.spec.ts:123:5 › a euro invoice is entered from the dialog, lands in the books in EGP, and its settlement difference posts (53.2s)
+
+  1 passed (1.0m)

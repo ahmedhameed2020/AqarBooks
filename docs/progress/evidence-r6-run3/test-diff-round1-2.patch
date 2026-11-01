@@ -1,0 +1,492 @@
+diff --git a/tests/e2e/asset-disposal.spec.ts b/tests/e2e/asset-disposal.spec.ts
+index 357e556..7185974 100644
+--- a/tests/e2e/asset-disposal.spec.ts
++++ b/tests/e2e/asset-disposal.spec.ts
+@@ -8,10 +8,12 @@
+ import { test, expect, type Page } from "@playwright/test";
+ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ 
+ type Fixture = { orgId: string; email: string; userIds: string[]; assetCode: string };
+@@ -47,15 +49,6 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+     timezone: "Africa/Cairo", property_type: "building",
+   }).select("id").single();
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  await admin.from("fiscal_periods").insert({
+-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+-  });
+-
+   await admin.from("fixed_assets").insert({
+     organization_id: f.orgId, property_id: property!.id, code: f.assetCode,
+     name_ar: "مبنى", name_en: "Building",
+@@ -78,6 +71,14 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+   await admin.from("user_role_assignments")
+     .insert({ user_id: created!.user!.id, role_id: role!.id, organization_id: f.orgId });
+   f.email = email;
++
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++  const { error: signInErr } = await ownerClient.auth.signInWithPassword({ email, password: STAFF_PASSWORD });
++  expect(signInErr, `owner sign-in failed: ${signInErr?.message}`).toBeNull();
++  await createOpenFiscalYear(admin, ownerClient, {
++    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
+   return f;
+ }
+ 
+@@ -90,8 +91,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
+     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
+   }
+   await admin.from("journal_entries").delete().eq("organization_id", id);
+-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
+-  await admin.from("fiscal_years").delete().eq("organization_id", id);
++  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
+   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
+   await admin.from("properties").delete().eq("organization_id", id);
+   await admin.from("organizations").update({
+@@ -128,7 +128,8 @@ test("disposal is refused until the accounts are designated, then succeeds and c
+ 
+     // 1. Try to dispose with nothing designated.
+     await page.goto("/en/finance/assets");
+-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toBeVisible();
++    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toBeVisible();
++    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
+ 
+     await page.locator("#dispose-proceeds").fill("7000");
+     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+@@ -157,13 +158,14 @@ test("disposal is refused until the accounts are designated, then succeeds and c
+ 
+     // 3. Now the disposal goes through.
+     await page.goto("/en/finance/assets");
++    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
+     await page.locator("#dispose-proceeds").fill("7000");
+     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+     await page.locator("#dispose-date").fill("2026-06-01");
+     await page.locator("#dispose-reason").fill("sold");
+     await page.getByRole("button", { name: /^Dispose$/i }).click();
+ 
+-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toHaveAttribute(
++    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toHaveAttribute(
+       "data-status", "DISPOSED", { timeout: 40_000 },
+     );
+ 
+diff --git a/tests/e2e/einvoice-flow.spec.ts b/tests/e2e/einvoice-flow.spec.ts
+index 8052ada..427e3ec 100644
+--- a/tests/e2e/einvoice-flow.spec.ts
++++ b/tests/e2e/einvoice-flow.spec.ts
+@@ -1,10 +1,12 @@
+ import { test, expect } from "@playwright/test";
+ import { createClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
+ 
+@@ -78,29 +80,13 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
+       role_id: ownerRole!.id,
+     });
+ 
+-    // 4. Create Fiscal Year & Period
+-    await admin.from("fiscal_years").insert({
+-      organization_id: orgId,
+-      name: "2026",
+-      start_date: "2026-01-01",
+-      end_date: "2026-12-31",
+-      status: "OPEN",
+-    });
+-
+-    const { data: insertedYear } = await admin
+-      .from("fiscal_years")
+-      .select("id")
+-      .eq("organization_id", orgId)
+-      .single();
+-
+-    await admin.from("fiscal_periods").insert({
+-      organization_id: orgId,
+-      fiscal_year_id: insertedYear!.id,
+-      period_number: 1,
+-      name: "2026-01",
+-      start_date: "2026-01-01",
+-      end_date: "2026-01-31",
+-      status: "OPEN",
++    // 4. Create Fiscal Year & Periods through the product RPCs as the owner (the guard refuses direct writes).
++    //    The year creates its monthly periods and all of them are opened, so January is open as before.
++    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++    const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: STAFF_PASSWORD });
++    expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
++    await createOpenFiscalYear(admin, ownerClient, {
++      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
+     });
+ 
+     // 5. Create Resort, Unit, Due Type, and Receivable Account
+@@ -184,16 +170,20 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
+     await page.goto(`${baseURL}/ar/finance/einvoice`);
+     await page.waitForLoadState("domcontentloaded");
+     await expect(page.locator("h1")).toContainText("الفوترة والإقرارات الضريبية الإلكترونية");
+-    await expect(page.locator("text=إنشاء فاتورة إلكترونية جديدة")).toBeVisible();
++    await expect(page.locator("text=إصدار فاتورة ضريبية جديدة")).toBeVisible();
+ 
+     // 8. Open Create E-Invoice Modal
+-    await page.click("text=إنشاء فاتورة إلكترونية جديدة");
++    await page.click("text=إصدار فاتورة ضريبية جديدة");
+     await expect(page.locator("text=إنشاء وإصدار فاتورة ضريبية إلكترونية")).toBeVisible();
+ 
+     // Fill amount and check real-time calculation
+     await page.fill('input[type="number"]', "10000");
+     await expect(page.getByText("11,400")).toBeVisible(); // Gross total (10,000 + 14% VAT)
+ 
++    // The receivable account is never selected automatically: choose the fixture's 1201 explicitly.
++    await page.locator('[data-testid="einvoice-receivable-account"]').click();
++    await page.getByRole("option", { name: /1201/ }).click();
++
+     // Submit invoice
+     await page.click('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")');
+     await expect(page.locator("text=تم إصدار الفاتورة الضريبية الإلكترونية بنجاح")).toBeVisible({ timeout: 15000 });
+diff --git a/tests/e2e/finance-screens-show-their-data.spec.ts b/tests/e2e/finance-screens-show-their-data.spec.ts
+index 373f1c4..a5846d4 100644
+--- a/tests/e2e/finance-screens-show-their-data.spec.ts
++++ b/tests/e2e/finance-screens-show-their-data.spec.ts
+@@ -14,10 +14,12 @@
+ import { test, expect, type Page } from "@playwright/test";
+ import { createClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ 
+ const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+@@ -59,14 +61,14 @@ test.beforeAll(async () => {
+   await admin.from("user_role_assignments")
+     .insert({ user_id: userId, role_id: role!.id, organization_id: orgId });
+ 
+-  const acc = async (code: string, cat: string, bal: string) => {
++  const acc = async (code: string, cat: string, bal: string, cashEquivalent = false) => {
+     const { data } = await admin.from("chart_of_accounts").insert({
+       organization_id: orgId, code, name_ar: code, name_en: code,
+-      category: cat, normal_balance: bal,
++      category: cat, normal_balance: bal, is_cash_equivalent: cashEquivalent,
+     }).select("id").single();
+     return data!.id as string;
+   };
+-  const cashAccount = await acc("1010", "ASSET", "DEBIT");
++  const cashAccount = await acc("1010", "ASSET", "DEBIT", true);
+   const receivable = await acc("1200", "ASSET", "DEBIT");
+   const revenue = await acc("4100", "REVENUE", "CREDIT");
+ 
+@@ -84,14 +86,17 @@ test.beforeAll(async () => {
+     organization_id: orgId, full_name: "دافع الاختبار", is_company: false,
+   }).select("id").single();
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  const { data: period } = await admin.from("fiscal_periods").insert({
+-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  // The journal entry below is dated 2026-06-15, so its period is the monthly period containing that date.
++  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: staffEmail, password: STAFF_PASSWORD });
++  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
++  await createOpenFiscalYear(admin, ownerClient, {
++    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
++  const { data: period, error: periodErr } = await admin.from("fiscal_periods").select("id")
++    .eq("organization_id", orgId).lte("start_date", "2026-06-15").gte("end_date", "2026-06-15").single();
++  expect(periodErr, `period lookup failed: ${periodErr?.message}`).toBeNull();
+ 
+   // --- the four markers ---
+ 
+@@ -131,7 +136,7 @@ test.beforeAll(async () => {
+   expect(paymentErr, `payment seed failed: ${paymentErr?.message}`).toBeNull();
+ 
+   const { data: entry, error: entryErr } = await admin.from("journal_entries").insert({
+-    organization_id: orgId, property_id: propertyId, fiscal_period_id: period!.id,
++    organization_id: orgId, property_id: propertyId, fiscal_period_id: period!.id as string,
+     entry_date: "2026-06-15", description: ENTRY_DESCRIPTION,
+     source_type: "JOURNAL_VOUCHER", status: "POSTED",
+   }).select("id").single();
+@@ -162,8 +167,6 @@ test.afterAll(async () => {
+   await del("payments");
+   await del("dues");
+   await del("journal_entries");
+-  await del("fiscal_periods");
+-  await del("fiscal_years");
+   await del("bank_accounts");
+   await del("banks");
+   await del("members");
+diff --git a/tests/e2e/fixed-assets.spec.ts b/tests/e2e/fixed-assets.spec.ts
+index 1621faf..0288547 100644
+--- a/tests/e2e/fixed-assets.spec.ts
++++ b/tests/e2e/fixed-assets.spec.ts
+@@ -12,10 +12,12 @@
+ import { test, expect, type Page } from "@playwright/test";
+ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ 
+ type Fixture = { orgId: string; email: string; userIds: string[] };
+@@ -67,16 +69,15 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+   await acc("1220", "Accumulated Depreciation", "ASSET");
+   await acc("5500", "Depreciation Expense", "EXPENSE");
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  await admin.from("fiscal_periods").insert({
+-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-01-31", status: "OPEN",
+-  });
+-
+   f.email = await makeUser(admin, f, "TENANT_OWNER", "owner");
++
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
++  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
++  await createOpenFiscalYear(admin, ownerClient, {
++    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
+   return f;
+ }
+ 
+@@ -89,8 +90,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
+     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
+   }
+   await admin.from("journal_entries").delete().eq("organization_id", id);
+-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
+-  await admin.from("fiscal_years").delete().eq("organization_id", id);
++  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
+   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
+   await admin.from("chart_of_accounts").update({ is_used: false }).eq("organization_id", id);
+   await admin.from("chart_of_accounts").delete().eq("organization_id", id);
+@@ -127,6 +127,7 @@ test("an asset is registered, a period is posted, and the book value drops on sc
+     // 12,000 over 12 months with no salvage: a deliberately clean 1,000/month,
+     // because the rounding edge is the integration test's job, not this one's.
+     const code = `FA-${String(Date.now()).slice(-8)}`;
++    await page.getByRole("button", { name: /New Asset/i }).click();
+     await page.locator("#asset-code").fill(code);
+     await page.locator("#asset-ar").fill("مبنى الاختبار");
+     await page.locator("#asset-en").fill("Test Building");
+@@ -139,7 +140,7 @@ test("an asset is registered, a period is posted, and the book value drops on sc
+     await page.locator("#asset-expense").selectOption({ label: "5500 — Depreciation Expense" });
+     await page.getByRole("button", { name: /Register asset/i }).click();
+ 
+-    const row = page.locator(`[data-asset="${code}"]`);
++    const row = page.getByRole("row").filter({ hasText: code });
+     await expect(row).toBeVisible({ timeout: 40_000 });
+     await expect(row, "a new asset carries its full cost").toHaveAttribute("data-nbv", "12000");
+     await expect(row).toHaveAttribute("data-status", "ACTIVE");
+@@ -149,7 +150,7 @@ test("an asset is registered, a period is posted, and the book value drops on sc
+     await expect(page.locator("[data-run-result]")).toHaveAttribute("data-run-result", "1", {
+       timeout: 40_000,
+     });
+-    await expect(page.locator(`[data-asset="${code}"]`)).toHaveAttribute("data-nbv", "11000", {
++    await expect(page.getByRole("row").filter({ hasText: code })).toHaveAttribute("data-nbv", "11000", {
+       timeout: 40_000,
+     });
+ 
+@@ -161,7 +162,7 @@ test("an asset is registered, a period is posted, and the book value drops on sc
+       timeout: 40_000,
+     });
+     await expect(page.getByText(/already done/i)).toBeVisible();
+-    await expect(page.locator(`[data-asset="${code}"]`)).toHaveAttribute("data-nbv", "11000");
++    await expect(page.getByRole("row").filter({ hasText: code })).toHaveAttribute("data-nbv", "11000");
+ 
+     // And the ledger agrees with the screen: exactly one balanced entry.
+     const { data: deps } = await admin
+@@ -216,7 +217,7 @@ test("a reader sees the register without the controls, and someone with neither
+     await denyPage.goto("/en/finance/assets");
+ 
+     await expect(
+-      denyPage.getByText(/don't have permission to view the fixed asset register/i),
++      denyPage.getByText(/do not have permission to view the fixed asset register/i),
+     ).toBeVisible();
+     await expect(denyPage.locator("[data-asset]")).toHaveCount(0);
+     await denyCtx.close();
+diff --git a/tests/e2e/projects-wip.spec.ts b/tests/e2e/projects-wip.spec.ts
+index 93f8e42..7f78d78 100644
+--- a/tests/e2e/projects-wip.spec.ts
++++ b/tests/e2e/projects-wip.spec.ts
+@@ -11,10 +11,12 @@
+ import { test, expect, type Page } from "@playwright/test";
+ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ 
+ type Fixture = { orgId: string; email: string; userIds: string[] };
+@@ -58,16 +60,15 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
+   await acc("2100", "Accounts Payable", "LIABILITY", "CREDIT");
+   await acc("5600", "Cost of Sales", "EXPENSE", "DEBIT");
+ 
+-  const { data: fy } = await admin.from("fiscal_years").insert({
+-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
+-    end_date: "2026-12-31", status: "OPEN",
+-  }).select("id").single();
+-  await admin.from("fiscal_periods").insert({
+-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
+-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
+-  });
+-
+   f.email = await makeUser(admin, f, "TENANT_OWNER", "owner");
++
++  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
++  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: f.email, password: STAFF_PASSWORD });
++  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
++  await createOpenFiscalYear(admin, ownerClient, {
++    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
++  });
+   return f;
+ }
+ 
+@@ -79,8 +80,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
+   }
+   await admin.from("journal_entries").delete().eq("organization_id", id);
+   await admin.from("projects").delete().eq("organization_id", id);
+-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
+-  await admin.from("fiscal_years").delete().eq("organization_id", id);
++  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
+   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
+   await admin.from("chart_of_accounts").update({ is_used: false }).eq("organization_id", id);
+   await admin.from("chart_of_accounts").delete().eq("organization_id", id);
+@@ -117,13 +117,14 @@ test("a project without accounts cannot capitalise, and once set the cost flows
+     const code = `TWR-${String(Date.now()).slice(-8)}`;
+ 
+     // 1. Saved WITHOUT accounts: allowed, but marked and not capitalisable.
++    await page.getByRole("button", { name: /New Project/i }).click();
+     await page.locator("#prj-code").fill(code);
+     await page.locator("#prj-ar").fill("برج الاختبار");
+     await page.locator("#prj-en").fill("Test Tower");
+     await page.locator("#prj-budget").fill("1000000");
+     await page.getByRole("button", { name: /Save project/i }).click();
+ 
+-    const row = page.locator(`[data-project="${code}"]`);
++    const row = page.getByRole("row").filter({ hasText: code });
+     await expect(row).toBeVisible({ timeout: 40_000 });
+     await expect(row).toHaveAttribute("data-accounts-set", "no");
+     await expect(row).toContainText(/cannot capitalise/i);
+@@ -141,7 +142,7 @@ test("a project without accounts cannot capitalise, and once set the cost flows
+     await page.locator("#prj-cos").selectOption({ label: "5600 — Cost of Sales" });
+     await page.getByRole("button", { name: /Save project/i }).click();
+ 
+-    await expect(page.locator(`[data-project="${code}"]`))
++    await expect(page.getByRole("row").filter({ hasText: code }))
+       .toHaveAttribute("data-accounts-set", "yes", { timeout: 40_000 });
+     await expect(page.locator("[data-project]"), "editing must not create a second project")
+       .toHaveCount(1);
+@@ -153,7 +154,7 @@ test("a project without accounts cannot capitalise, and once set the cost flows
+     await page.locator("#cap-desc").fill("concrete");
+     await page.getByRole("button", { name: /Capitalise cost/i }).click();
+ 
+-    await expect(page.locator(`[data-project="${code}"]`))
++    await expect(page.getByRole("row").filter({ hasText: code }))
+       .toHaveAttribute("data-wip", "400000", { timeout: 40_000 });
+ 
+     const { data: wipAcc } = await admin.from("chart_of_accounts")
+@@ -188,7 +189,7 @@ test("a project without accounts cannot capitalise, and once set the cost flows
+     await page.locator("#rel-desc").fill("10 units sold");
+     await page.getByRole("button", { name: /Release to cost of sales/i }).click();
+ 
+-    await expect(page.locator(`[data-project="${code}"]`))
++    await expect(page.getByRole("row").filter({ hasText: code }))
+       .toHaveAttribute("data-wip", "250000", { timeout: 40_000 });
+ 
+     // The ledger agrees: cost of sales debited, WIP credited.
+diff --git a/tests/e2e/reports-suite-flow.spec.ts b/tests/e2e/reports-suite-flow.spec.ts
+index b586f60..76f3967 100644
+--- a/tests/e2e/reports-suite-flow.spec.ts
++++ b/tests/e2e/reports-suite-flow.spec.ts
+@@ -2,10 +2,12 @@ import { test, expect } from "@playwright/test";
+ import { createClient } from "@supabase/supabase-js";
+ import { randomUUID } from "node:crypto";
+ import { config as loadEnv } from "dotenv";
++import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
+ loadEnv({ path: ".env.local" });
+ 
+ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
++const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+ const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
+ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
+ 
+@@ -78,27 +80,13 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
+       status: "ACTIVE",
+     });
+ 
+-    // 5. Create Fiscal Year & Period
+-    const { data: insertedYear } = await admin
+-      .from("fiscal_years")
+-      .insert({
+-        organization_id: orgId,
+-        name: "2026",
+-        start_date: "2026-01-01",
+-        end_date: "2026-12-31",
+-        status: "OPEN",
+-      })
+-      .select("id")
+-      .single();
+-
+-    await admin.from("fiscal_periods").insert({
+-      organization_id: orgId,
+-      fiscal_year_id: insertedYear!.id,
+-      period_number: 1,
+-      name: "2026-01",
+-      start_date: "2026-01-01",
+-      end_date: "2026-01-31",
+-      status: "OPEN",
++    // 5. Create Fiscal Year & Periods through the product RPCs as the owner (the guard refuses direct writes).
++    //    The year creates its monthly periods and all of them are opened, so January is open as before.
++    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
++    const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: STAFF_PASSWORD });
++    expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
++    await createOpenFiscalYear(admin, ownerClient, {
++      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
+     });
+ 
+     // 4. Sign in through UI
+@@ -157,7 +145,7 @@ test.describe("Financial & Real Estate Reports Suite E2E Flow", () => {
+     // 12. Test Fixed Assets Page
+     await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
+     await page.waitForLoadState("domcontentloaded");
+-    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
++    await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة");
+     await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
+ 
+     // 13. Test Audit Trail Page

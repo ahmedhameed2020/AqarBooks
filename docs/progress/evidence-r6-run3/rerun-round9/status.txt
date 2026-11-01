@@ -1,0 +1,5 @@
+TSC_EXIT=0
+BUILD_EXIT=0
+projects-wip runner_exit=1
+reports-suite-flow runner_exit=1
+DONE

@@ -1,0 +1,105 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts (12 tests | 5 failed) 18431ms
+     × …but not the receivables account 1130, another ordinary asset (1210), a liability (2250), a group (1100) or an inactive account — by insert AND by create_cashbox 387ms
+     × …and not an account of ANOTHER organization, nor a row written for another organization 17ms
+     × re-pointing an existing link is checked too (UPDATE of gl_account_id), and an unrelated edit of a legacy row is not blocked 470ms
+     × the legacy cash box on 1130 does NOT make 1130 a deposit account: the rule refuses it at receipt time 943ms
+     × invalid account: a LEGACY bank account whose GL account is the receivables account (1130), a liability (2250) or a group (1100) — refused, no trace 1297ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 1. who may link an account, and to what > …but not the receivables account 1130, another ordinary asset (1210), a liability (2250), a group (1100) or an inactive account — by insert AND by create_cashbox
+AssertionError: cashbox on 1130: expected ':' to match /GL_ACCOUNT_NOT_CASH_OR_BANK/
+
+- Expected:
+/GL_ACCOUNT_NOT_CASH_OR_BANK/
+
++ Received:
+":"
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:105:73
+    103|     for (const code of ["1130", "1210", "2250", "1100", "1220"]) {
+    104|       const a = await box(owner, acct(code));
+    105|       expect(err({ data: null, error: a.error }), `cashbox on ${code}`…
+       |                                                                         ^
+    106|       const b = await bank(owner, acct(code));
+    107|       expect(err({ data: null, error: b.error }), `bank account on ${c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 1. who may link an account, and to what > …and not an account of ANOTHER organization, nor a row written for another organization
+AssertionError: expected ':' to match /GL_ACCOUNT_NOT_CASH_OR_BANK/
+
+- Expected:
+/GL_ACCOUNT_NOT_CASH_OR_BANK/
+
++ Received:
+":"
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:115:90
+    113|   });
+    114|   it("…and not an account of ANOTHER organization, nor a row written f…
+    115|     expect(err({ data: null, error: (await box(owner, other.accounts["…
+       |                                                                                          ^
+    116|     expect((await box(owner, other.accounts["1110"], other.orgId)).err…
+    117|     expect(q(`select count(*) from public.cashboxes where gl_account_i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 1. who may link an account, and to what > re-pointing an existing link is checked too (UPDATE of gl_account_id), and an unrelated edit of a legacy row is not blocked
+AssertionError: expected ':' to match /GL_ACCOUNT_NOT_CASH_OR_BANK/
+
+- Expected:
+/GL_ACCOUNT_NOT_CASH_OR_BANK/
+
++ Received:
+":"
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:122:49
+    120|     const id = q(`select id from public.cashboxes where organization_i…
+    121|     const r = await owner.from("cashboxes").update({ gl_account_id: ac…
+    122|     expect(err({ data: null, error: r.error })).toMatch(/GL_ACCOUNT_NO…
+       |                                                 ^
+    123|     expect(q(`select gl_account_id from public.cashboxes where id='${i…
+    124|     // a legacy bad row (written with the triggers bypassed) can still…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 1. who may link an account, and to what > the legacy cash box on 1130 does NOT make 1130 a deposit account: the rule refuses it at receipt time
+AssertionError: expected ':' to match /DEPOSIT_ACCOUNT_INVALID/
+
+- Expected:
+/DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+":"
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:135:20
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 2. clear_incoming_cheque against the deposit rule > invalid account: a LEGACY bank account whose GL account is the receivables account (1130), a liability (2250) or a group (1100) — refused, no trace
+AssertionError: bank account on 1130: expected a refusal: expected null not to be null
+ ❯ refusedClear tests/treasury-link-and-cheque.integration.test.ts:55:55
+     53|   const before = trace(id);
+     54|   const r = await clear(id);
+     55|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     56|   expect(err(r), label).toMatch(/DEPOSIT_ACCOUNT_INVALID/);
+     57|   expect(trace(id), `${label}: a refused clearing left a partial trace…
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:171:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 7 passed (12)
+   Start at  09:20:28
+   Duration  19.20s (transform 156ms, setup 139ms, import 149ms, tests 18.43s, environment 0ms)
+

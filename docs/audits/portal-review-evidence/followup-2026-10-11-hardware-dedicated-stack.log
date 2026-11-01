@@ -1,0 +1,12 @@
+# Hardware outbox file on its DEDICATED stack (project aqarbooks_hw, API 55431) - final run 2026-10-11T08:36:53Z
+# command: node scripts/demo-local/hardware-stack.mjs run --no-file-parallelism tests/gate-hardware-outbox-migration.test.ts
+ledger 72 / files 72 → MATCH
+db diff (public): no schema changes
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+ RUN  v4.1.10 D:/Web/AqarBooks
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  11:38:11
+   Duration  41.20s (transform 83ms, setup 98ms, import 556ms, tests 40.28s, environment 0ms)

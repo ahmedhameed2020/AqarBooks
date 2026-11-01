@@ -1,0 +1,17 @@
+$ tests/e2e/accounting-duplicates.spec.ts
+label=b3-ui-accounting-duplicates
+exit=1
+elapsed_ms=319967
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\accounting-duplicates.spec.ts:69:5 › D1 a second opening balance for the same client and unit is refused and changes nothing (1.8m)
+  ok 2 tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one (58.3s)
+  ok 3 tests\e2e\accounting-duplicates.spec.ts:111:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt (42.1s)
+(node:40728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28068) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

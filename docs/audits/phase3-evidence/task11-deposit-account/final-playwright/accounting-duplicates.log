@@ -1,0 +1,12 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+[1/5] tests\e2e\accounting-duplicates.spec.ts:69:5 › D1 a second opening balance for the same client and unit is refused and changes nothing
+[2/5] tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one
+[3/5] tests\e2e\accounting-duplicates.spec.ts:111:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt
+[4/5] tests\e2e\accounting-duplicates.spec.ts:134:5 › D4 a reversed receipt cannot be reversed twice
+[5/5] tests\e2e\accounting-duplicates.spec.ts:153:5 › D5 replaying a payment call with the same idempotency key returns the same payment and posts nothing new
+  5 passed (1.1m)

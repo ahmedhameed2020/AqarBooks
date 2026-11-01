@@ -1,0 +1,36 @@
+--- docs/progress/evidence-r6-run10/results/dispose-fixed-asset-before.sql	2026-10-31 02:08:55.766081200 +0300
++++ docs/progress/evidence-r6-run10/results/dispose-fixed-asset-after.sql	2026-10-31 02:18:59.754584800 +0300
+@@ -19,6 +19,7 @@
+   v_currency text;
+   v_lines jsonb;
+   v_entry_id uuid;
++  v_proceeds_account_id uuid;
+ begin
+   select * into v_asset from public.fixed_assets where id = p_asset_id;
+   if not found then
+@@ -57,6 +58,25 @@
+       using errcode = 'P0001';
+   end if;
+ 
++  if p_proceeds > 0 then
++    select a.id into v_proceeds_account_id
++    from public.chart_of_accounts a
++    where a.id = p_proceeds_account_id
++      and a.organization_id = v_asset.organization_id
++      and a.category = 'ASSET'
++      and a.is_active
++      and not a.is_group
++      and a.is_cash_equivalent
++      and not a.requires_cost_center
++      and a.id <> v_asset.asset_account_id
++      and a.id <> v_asset.accumulated_depreciation_account_id;
++
++    if not found then
++      raise exception 'DISPOSAL_PROCEEDS_ACCOUNT_INVALID: حساب الحصيلة يجب أن يكون نقدية أو بنكًا نشطًا داخل المؤسسة، ولا يجوز أن يكون حساب الأصل أو مجمع إهلاكه أو حسابًا يطلب مركز تكلفة'
++        using errcode = '22023';
++    end if;
++  end if;
++
+   select * into v_period from public.fiscal_periods fp
+   where fp.organization_id = v_asset.organization_id
+     and fp.status = 'OPEN'

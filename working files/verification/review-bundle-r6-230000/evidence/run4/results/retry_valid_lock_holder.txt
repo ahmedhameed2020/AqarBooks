@@ -1,0 +1,10 @@
+==== Concurrent holder: keep PA locked for five seconds
+BEGIN
+INSERT 0 1
+INSERT 0 2
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT

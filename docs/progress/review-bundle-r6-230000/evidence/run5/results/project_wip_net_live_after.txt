@@ -1,0 +1,24 @@
+CREATE OR REPLACE FUNCTION public.project_wip_net(p_project_id uuid)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_wip uuid;
+  v_net numeric;
+BEGIN
+  SELECT wip_account_id INTO v_wip FROM public.projects WHERE id = p_project_id;
+  IF v_wip IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT COALESCE(SUM(l.debit - l.credit), 0) INTO v_net
+  FROM public.journal_entry_lines l
+  WHERE l.project_id = p_project_id
+    AND l.account_id = v_wip;
+
+  RETURN v_net;
+END;
+$function$
+

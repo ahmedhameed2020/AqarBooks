@@ -1,15 +1,27 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
+import { assertKnownLocalSupabaseUrl } from "./helpers/local-target";
+import { assertIsolatedStack } from "./helpers/isolated-target";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 config({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-const localConfigured = Boolean(
-  url?.startsWith("http://127.0.0.1:54321") && serviceKey && publishableKey,
-);
+// Target = the ISOLATED stack only. This file used to require the development stack's fixed address (http://127.0.0.1:54321); it now uses the
+// repository's isolation guards instead: the URL must be a known local Supabase API AND assertIsolatedStack() must prove it is the isolated stack
+// (never development, API and SQL on the same database). Run it through scripts/demo-local/run-vitest-local.mjs.
+let localConfigured = false;
+let isolationProblem = "";
+try {
+  assertKnownLocalSupabaseUrl(url);
+  assertIsolatedStack();
+  localConfigured = Boolean(serviceKey && publishableKey);
+} catch (error) {
+  isolationProblem = error instanceof Error ? error.message : String(error);
+}
 
 describe("Final Hardening Sprint — local applied contracts", () => {
   let admin: SupabaseClient;
@@ -17,9 +29,9 @@ describe("Final Hardening Sprint — local applied contracts", () => {
   beforeAll(() => {
     if (!localConfigured) {
       throw new Error(
-        "Local Supabase integration requires NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321, " +
-          "SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY), and " +
-          "NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).",
+        "This suite runs on the ISOLATED local stack only (scripts/demo-local/run-vitest-local.mjs): it needs a known local " +
+          "NEXT_PUBLIC_SUPABASE_URL that assertIsolatedStack() accepts, SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
+          `Refused: ${isolationProblem || "keys missing"}`,
       );
     }
     admin = createClient(url!, serviceKey!, { auth: { persistSession: false } });
@@ -67,42 +79,31 @@ describe("Final Hardening Sprint — local applied contracts", () => {
       const cashAccount = await insertAccount(`LH-${stamp}-1`, "ASSET", "DEBIT");
       const revenueAccount = await insertAccount(`LH-${stamp}-4`, "REVENUE", "CREDIT");
 
-      const { data: fiscalYear, error: fiscalYearError } = await admin.from("fiscal_years").insert({
-        organization_id: orgId,
-        name: String(year),
-        start_date: `${year}-01-01`,
-        end_date: `${year}-12-31`,
-        status: "OPEN",
-      }).select("id").single();
-      expect(fiscalYearError, fiscalYearError?.message).toBeNull();
-      const { data: period, error: periodError } = await admin.from("fiscal_periods").insert({
-        organization_id: orgId,
-        fiscal_year_id: fiscalYear!.id,
-        period_number: 1,
-        name: `${year} — Full Year`,
-        start_date: `${year}-01-01`,
-        end_date: `${year}-12-31`,
-        status: "OPEN",
-      }).select("id").single();
-      expect(periodError, periodError?.message).toBeNull();
-      const { data: oldYear, error: oldYearError } = await admin.from("fiscal_years").insert({
-        organization_id: orgId,
-        name: String(year - 1),
-        start_date: `${year - 1}-01-01`,
-        end_date: `${year - 1}-12-31`,
-        status: "OPEN",
-      }).select("id").single();
-      expect(oldYearError, oldYearError?.message).toBeNull();
-      const { data: oldPeriod, error: oldPeriodError } = await admin.from("fiscal_periods").insert({
-        organization_id: orgId,
-        fiscal_year_id: oldYear!.id,
-        period_number: 1,
-        name: `${year - 1} — Full Year`,
-        start_date: `${year - 1}-01-01`,
-        end_date: `${year - 1}-12-31`,
-        status: "OPEN",
-      }).select("id").single();
-      expect(oldPeriodError, oldPeriodError?.message).toBeNull();
+      const { error: cloneError } = await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
+      expect(cloneError, cloneError?.message).toBeNull();
+      const { data: ownerRole, error: ownerRoleError } = await admin.from("roles").select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
+      expect(ownerRoleError, ownerRoleError?.message).toBeNull();
+      const { data: ownerUser, error: ownerCreateError } = await admin.auth.admin.createUser({ email: ownerEmail, password, email_confirm: true });
+      expect(ownerCreateError, ownerCreateError?.message).toBeNull();
+      ownerId = ownerUser!.user!.id;
+      expect((await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: ownerId, status: "active" })).error).toBeNull();
+      expect((await admin.from("user_role_assignments").insert({ user_id: ownerId, role_id: ownerRole!.id, organization_id: orgId })).error).toBeNull();
+      ownerClient = createClient(url!, publishableKey!, { auth: { persistSession: false } });
+      expect((await ownerClient.auth.signInWithPassword({ email: ownerEmail, password })).error).toBeNull();
+
+      // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+      // The entries are dated today and the previous year's last day, so the periods under test are the
+      // monthly periods that contain those dates.
+      await createOpenFiscalYear(admin, ownerClient, { orgId: orgId!, name: String(year), startDate: `${year}-01-01`, endDate: `${year}-12-31` });
+      await createOpenFiscalYear(admin, ownerClient, { orgId: orgId!, name: String(year - 1), startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31` });
+      const periodContaining = async (date: string) => {
+        const { data, error } = await admin.from("fiscal_periods").select("id")
+          .eq("organization_id", orgId!).lte("start_date", date).gte("end_date", date).single();
+        expect(error, error?.message).toBeNull();
+        return data!.id as string;
+      };
+      const periodId = await periodContaining(today);
+      const oldPeriodId = await periodContaining(previousYear);
 
       const createEntry = (entryDate: string, periodId: string, description: string, amount: number) =>
         admin.rpc("create_journal_entry_internal", {
@@ -119,12 +120,12 @@ describe("Final Hardening Sprint — local applied contracts", () => {
           p_idempotency_key: `final-hardening-${stamp}-${description}`,
         });
 
-      const { data: draftId, error: draftError } = await createEntry(today, period!.id, "draft-50", 50);
+      const { data: draftId, error: draftError } = await createEntry(today, periodId, "draft-50", 50);
       expect(draftError, draftError?.message).toBeNull();
       expect(draftId).toBeTruthy();
-      const { data: outOfPeriodId, error: outOfPeriodError } = await createEntry(previousYear, oldPeriod!.id, "out-of-period-70", 70);
+      const { data: outOfPeriodId, error: outOfPeriodError } = await createEntry(previousYear, oldPeriodId, "out-of-period-70", 70);
       expect(outOfPeriodError, outOfPeriodError?.message).toBeNull();
-      const { data: validId, error: validError } = await createEntry(today, period!.id, "valid-posted-100", 100);
+      const { data: validId, error: validError } = await createEntry(today, periodId, "valid-posted-100", 100);
       expect(validError, validError?.message).toBeNull();
       const { error: postOutError } = await admin.rpc("post_journal_entry_internal", { p_journal_entry_id: outOfPeriodId });
       expect(postOutError, postOutError?.message).toBeNull();
@@ -140,18 +141,6 @@ describe("Final Hardening Sprint — local applied contracts", () => {
       expect(Number(cashRow.total_debit)).toBe(100);
       expect(Number(cashRow.total_credit)).toBe(0);
 
-      const { error: cloneError } = await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
-      expect(cloneError, cloneError?.message).toBeNull();
-      const { data: ownerRole, error: ownerRoleError } = await admin.from("roles").select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
-      expect(ownerRoleError, ownerRoleError?.message).toBeNull();
-      const { data: ownerUser, error: ownerCreateError } = await admin.auth.admin.createUser({ email: ownerEmail, password, email_confirm: true });
-      expect(ownerCreateError, ownerCreateError?.message).toBeNull();
-      ownerId = ownerUser!.user!.id;
-      expect((await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: ownerId, status: "active" })).error).toBeNull();
-      expect((await admin.from("user_role_assignments").insert({ user_id: ownerId, role_id: ownerRole!.id, organization_id: orgId })).error).toBeNull();
-      ownerClient = createClient(url!, publishableKey!, { auth: { persistSession: false } });
-      expect((await ownerClient.auth.signInWithPassword({ email: ownerEmail, password })).error).toBeNull();
-
       const { data: resort, error: resortError } = await admin.from("resorts").insert({ organization_id: orgId, name: "Hardening Property", code: `LH-${stamp}` }).select("id").single();
       expect(resortError, resortError?.message).toBeNull();
       const { data: unit, error: unitError } = await admin.from("units").insert({ organization_id: orgId, property_id: resort!.id, code: `LH-U-${stamp}` }).select("id").single();
@@ -166,7 +155,7 @@ describe("Final Hardening Sprint — local applied contracts", () => {
       const { data: originalEntry, error: originalEntryError } = await admin.rpc("create_journal_entry_internal", {
         p_organization_id: orgId,
         p_resort_id: resort!.id,
-        p_fiscal_period_id: period!.id,
+        p_fiscal_period_id: periodId,
         p_entry_date: today,
         p_description: "Payment original",
         p_source_type: "PAYMENT_VOUCHER",
@@ -228,7 +217,7 @@ describe("Final Hardening Sprint — local applied contracts", () => {
       const { data: validPermission, error: permissionError } = await admin.from("permissions").select("id").eq("key", "finance.reports.read").single();
       expect(permissionError, permissionError?.message).toBeNull();
       expect((await admin.from("role_permissions").insert({ role_id: customRole!.id, permission_id: validPermission!.id })).error).toBeNull();
-      const atomicFailure = await admin.rpc("replace_role_permissions_atomic", { p_organization_id: orgId, p_role_id: customRole!.id, p_permission_ids: ["00000000-0000-0000-0000-000000000000"] });
+      const atomicFailure = await admin.rpc("replace_role_permissions_atomic", { p_organization_id: orgId, p_role_id: customRole!.id, p_permission_ids: ["00000000-0000-0000-0000-000000000000"], p_actor_user_id: ownerId! });
       expect(atomicFailure.error).toBeTruthy();
       expect((await admin.from("role_permissions").select("permission_id").eq("role_id", customRole!.id)).data?.map((row) => row.permission_id)).toContain(validPermission!.id);
     } finally {

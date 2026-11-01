@@ -1,0 +1,21 @@
+PASS  tests/deposit-account-validation.integration.test.ts  |  files: 1 passed (1)  |  tests: 21 passed (21)
+PASS  tests/customer-advances-actions.test.ts  |  files: 1 passed (1)  |  tests: 85 passed (85)
+PASS  tests/customer-advances-actions.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/customer-advances-integrity.integration.test.ts  |  files: 1 passed (1)  |  tests: 16 passed (16)
+PASS  tests/customer-advances-review2.integration.test.ts  |  files: 1 passed (1)  |  tests: 12 passed (12)
+PASS  tests/customer-advances-review3.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/customer-advances-schema.integration.test.ts  |  files: 1 passed (1)  |  tests: 16 passed (16)
+PASS  tests/customer-advances.integration.test.ts  |  files: 1 passed (1)  |  tests: 39 passed (39)
+PASS  tests/owner-statement-settlement.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/payment-allocation-readers.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/portal-statement-history.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/receipt-methods-contract.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/payment-permission-key-guard.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+PASS  tests/deposit-accounts.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/security-function-grants.integration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/migration-directory-guard.test.ts  |  files: 1 passed (1)  |  tests: 105 passed (105)
+FAIL  tests/finance-read-permissions.integration.test.ts  |  files: 1 failed (1)  |  tests: 1 failed | 34 passed (35)
+       FAIL  tests/finance-read-permissions.integration.test.ts > policy structure: multiple policies cannot reopen membership-only access > every one of the 16 tables has only its *_manage policy and one permission-keyed SELE
+      AssertionError: chart_of_accounts: expected '(( SELECT ((auth.uid() IS NOT NULL) A…' to match /has_any_permission/
+PASS  tests/page-read-guard.test.ts  |  files: 1 passed (1)  |  tests: 19 passed (19)
+done-exit=1

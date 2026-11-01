@@ -1,0 +1,26 @@
+diff --git a/docs/progress/evidence-r6-run10/results/batch2-live-post-before.sql b/docs/progress/evidence-r6-run10/results/batch2-live-post-after.sql
+index 65d7a9e..a823a4a 100644
+--- a/docs/progress/evidence-r6-run10/results/batch2-live-post-before.sql
++++ b/docs/progress/evidence-r6-run10/results/batch2-live-post-after.sql
+@@ -28,7 +28,7 @@ begin
+ 
+   select * into v_period from public.fiscal_periods where id = v_entry.fiscal_period_id for share;
+   if v_period.status <> 'OPEN' then
+-    raise exception 'fiscal period is not open';
++    raise exception 'FISCAL_PERIOD_NOT_OPEN: fiscal period is not open' using errcode = 'P0001';
+   end if;
+   if v_entry.entry_date < v_period.start_date or v_entry.entry_date > v_period.end_date then
+     raise exception 'entry date does not belong to the selected period';
+diff --git a/docs/progress/evidence-r6-run10/results/batch2-live-reverse-before.sql b/docs/progress/evidence-r6-run10/results/batch2-live-reverse-after.sql
+index a46197b..676e2c7 100644
+--- a/docs/progress/evidence-r6-run10/results/batch2-live-reverse-before.sql
++++ b/docs/progress/evidence-r6-run10/results/batch2-live-reverse-after.sql
+@@ -48,7 +48,7 @@ begin
+     raise exception 'reversal fiscal period does not belong to this organization';
+   end if;
+   if v_period.status <> 'OPEN' then
+-    raise exception 'reversal fiscal period is not open';
++    raise exception 'FISCAL_PERIOD_NOT_OPEN: reversal fiscal period is not open' using errcode = 'P0001';
+   end if;
+ 
+   insert into public.journal_entries (

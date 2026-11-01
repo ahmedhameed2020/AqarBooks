@@ -1,0 +1,4 @@
+$ node node_modules/typescript/bin/tsc --noEmit
+exit=0
+diagnostics=none
+raw_output=batch2-typescript.txt (empty)

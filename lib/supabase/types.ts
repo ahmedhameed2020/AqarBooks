@@ -288,6 +288,8 @@ export type Database = {
           security_deposit_liability_account_id: string | null;
           commission_expense_account_id: string | null;
           commission_payable_account_id: string | null;
+          receivable_account_id: string | null;
+          customer_advance_account_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -423,6 +425,7 @@ export type Database = {
           is_active: boolean;
           is_used: boolean;
           is_cash_equivalent: boolean;
+          is_retained_earnings: boolean;
           cash_flow_section: "OPERATING" | "INVESTING" | "FINANCING" | null;
         };
         Insert: {
@@ -497,7 +500,7 @@ export type Database = {
           entry_number: number | null;
           entry_date: string;
           description: string;
-          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER";
+          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER" | "YEAR_END_CLOSING";
           source_id: string | null;
           status: "DRAFT" | "UNDER_REVIEW" | "POSTED" | "REVERSED";
           idempotency_key: string | null;
@@ -526,7 +529,15 @@ export type Database = {
         };
         Insert: never;
         Update: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey";
+            columns: ["journal_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "journal_entries";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       zones: {
         Row: { id: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
@@ -2768,8 +2779,10 @@ export type Database = {
           reversed_at: string | null;
           reversed_by: string | null;
           reversal_reason: string | null;
-
-                   };
+          advance_amount: number;
+          advance_account_id: string | null;
+          request_hash: string | null;
+        };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -2782,6 +2795,14 @@ export type Database = {
           amount: number;
           reversed_at: string | null;
           reversed_by: string | null;
+          applied_on: string;
+          reversed_on: string | null;
+          kind: "RECEIPT" | "CREDIT_APPLICATION";
+          journal_entry_id: string | null;
+          reversal_journal_entry_id: string | null;
+          credit_account_id: string | null;
+          created_at: string;
+          created_by: string | null;
         };
         Insert: never;
         Update: never;
@@ -3398,8 +3419,118 @@ export type Database = {
         };
         Relationships: [];
       };
+      /** allocations that count NOW: not reversed, receipt POSTED (migration 20261017100000) */
+      effective_payment_allocations: {
+        Row: {
+          id: string;
+          payment_id: string;
+          organization_id: string;
+          property_id: string;
+          due_id: string;
+          amount: number;
+          applied_on: string;
+          kind: "RECEIPT" | "CREDIT_APPLICATION";
+          journal_entry_id: string | null;
+          credit_account_id: string | null;
+          created_at: string;
+        };
+        Relationships: [];
+      };
+      payment_credit_balances: {
+        Row: {
+          payment_id: string;
+          organization_id: string;
+          property_id: string;
+          member_id: string | null;
+          unit_id: string | null;
+          payment_date: string;
+          advance_amount: number;
+          advance_account_id: string | null;
+          applied_amount: number;
+          remaining_amount: number;
+          is_stranded: boolean;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
+      close_fiscal_year: {
+        Args: {
+          p_organization_id: string;
+          p_fiscal_year_id: string;
+          p_retained_earnings_account_id: string;
+          p_reason: string;
+          p_operation_key: string;
+        };
+        Returns: {
+          ok: boolean;
+          error_code?: string;
+          already_closed?: boolean;
+          closing_entry_id?: string;
+          line_count?: number;
+          net_income?: string | number;
+        };
+      };
+      payment_allocations_as_of: {
+        Args: { p_org: string; p_as_of: string };
+        Returns: {
+          allocation_id: string;
+          payment_id: string;
+          due_id: string;
+          amount: number;
+          applied_on: string;
+          kind: "RECEIPT" | "CREDIT_APPLICATION";
+        }[];
+      };
+      payment_credit_balances_as_of: {
+        Args: { p_org: string; p_as_of: string };
+        Returns: {
+          payment_id: string;
+          member_id: string | null;
+          unit_id: string | null;
+          advance_account_id: string | null;
+          advance_amount: number;
+          remaining_amount: number;
+        }[];
+      };
+      customer_advance_account_configured: { Args: { p_organization_id: string; p_property_id: string }; Returns: boolean };
+      list_deposit_accounts: {
+        Args: { p_organization_id: string; p_resort_id?: string | null };
+        Returns: { account_id: string; code: string; name_ar: string; name_en: string; source: string }[];
+      };
+      own_statement_dues: {
+        Args: { p_org: string; p_as_of: string };
+        Returns: { due_id: string; unit_id: string; unit_code: string | null; amount: number; issue_date: string; due_date: string; description: string | null; status: string; settled_amount: number }[];
+      };
+      own_due_settlement_lines: {
+        Args: { p_org: string };
+        Returns: { allocation_id: string; due_id: string; amount: number; applied_on: string; reversed_on: string | null }[];
+      };
+      own_statement_receipts: {
+        Args: { p_org: string };
+        Returns: {
+          payment_id: string;
+          unit_id: string | null;
+          receipt_no: string | null;
+          receipt_number: number | null;
+          payment_date: string;
+          amount: number;
+          advance_amount: number;
+          status: string;
+          reversed_on: string | null;
+        }[];
+      };
+      own_credit_application_lines: {
+        Args: { p_org: string };
+        Returns: {
+          allocation_id: string;
+          payment_id: string;
+          due_id: string;
+          amount: number;
+          applied_on: string;
+          reversed_on: string | null;
+        }[];
+      };
       gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
       release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
       export_gate_current_visitors: {
@@ -4533,6 +4664,57 @@ export type Database = {
         };
         Returns: string;
       };
+      get_default_receivable_account: {
+        Args: { p_organization_id: string; p_property_id: string };
+        Returns: string | null;
+      };
+      set_default_receivable_account: {
+        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
+        Returns: undefined;
+      };
+      set_default_customer_advance_account: {
+        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
+        Returns: undefined;
+      };
+      record_advance_payment: {
+        Args: {
+          p_organization_id: string;
+          p_resort_id: string;
+          p_member_id: string;
+          p_unit_id: string;
+          p_amount: number;
+          p_method: string;
+          p_payment_date: string;
+          p_deposit_account_id: string;
+          p_fiscal_period_id: string;
+          p_allocations: { due_id: string; amount: number }[];
+          p_idempotency_key: string;
+          p_cashier_session_id?: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      apply_payment_credit: {
+        Args: {
+          p_organization_id: string;
+          p_payment_id: string;
+          p_allocations: { due_id: string; amount: number }[];
+          p_application_date: string;
+          p_fiscal_period_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      reverse_credit_application: {
+        Args: {
+          p_organization_id: string;
+          p_allocation_id: string;
+          p_reason: string;
+          p_reversal_date: string;
+          p_fiscal_period_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: Record<string, unknown>;
+      };
       record_payment: {
         Args: {
           p_organization_id: string;
@@ -4832,6 +5014,31 @@ export type Database = {
           balance: number;
         }[];
       };
+      get_audit_actor_names: {
+        Args: { p_organization_id: string; p_actor_ids: string[] };
+        Returns: { id: string; full_name: string | null }[];
+      };
+      get_trial_balance_with_opening: {
+        Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
+        Returns: {
+          account_id: string | null;
+          code: string;
+          name_ar: string;
+          name_en: string;
+          category: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+          normal_balance: "DEBIT" | "CREDIT";
+          opening_debit: number;
+          opening_credit: number;
+          period_debit: number;
+          period_credit: number;
+          closing_debit: number;
+          closing_credit: number;
+          opening_balance: number;
+          closing_balance: number;
+          is_synthetic: boolean;
+          fiscal_year_known: boolean;
+        }[];
+      };
       void_payment: {
         Args: {
           p_organization_id: string;
@@ -4843,7 +5050,7 @@ export type Database = {
         Returns: Record<string, unknown>;
       };
       replace_role_permissions_atomic: {
-        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[] };
+        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[]; p_actor_user_id: string };
         Returns: undefined;
       };
       verify_financial_audit_chain: {

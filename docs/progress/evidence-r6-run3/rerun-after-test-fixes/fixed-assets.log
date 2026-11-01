@@ -1,0 +1,51 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (57.5s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 2 tests\e2e\fixed-assets.spec.ts:190:5 › a reader sees the register without the controls, and someone with neither permission is told so (18.1s)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('row').filter({ hasText: 'FA-22509328' })
+    Expected: visible
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'FA-22509328' })
+
+
+      142 |
+      143 |     const row = page.getByRole("row").filter({ hasText: code });
+    > 144 |     await expect(row).toBeVisible({ timeout: 40_000 });
+          |                       ^
+      145 |     await expect(row, "a new asset carries its full cost").toHaveAttribute("data-nbv", "12000");
+      146 |     await expect(row).toHaveAttribute("data-status", "ACTIVE");
+      147 |
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:144:23
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-test-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-test-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-test-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+  1 passed (1.6m)
+

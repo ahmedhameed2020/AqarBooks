@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import { PortalPaymentsClient, type OnlineTxnItem, type PortalPaymentItem } from "./portal-payments-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 type PaymentRow = {
   id: string;
@@ -60,9 +61,9 @@ export default async function PortalPaymentsPage({
 
   if (sweepError) console.error("[PortalPaymentsPage] sweepError:", sweepError.message);
   if (orgError) console.error("[PortalPaymentsPage] orgError:", orgError.message);
-  if (paymentsError) console.error("[PortalPaymentsPage] paymentsError:", paymentsError.message);
-  if (onlineTxnError) console.error("[PortalPaymentsPage] onlineTxnError:", onlineTxnError.message);
-  if (unitsError) console.error("[PortalPaymentsPage] unitsError:", unitsError.message);
+  assertRead(paymentsError, "portal/payments: payments");
+  assertRead(onlineTxnError, "portal/payments: online transactions");
+  assertRead(unitsError, "portal/payments: units_with_financials");
 
   const unitCodeById = new Map<string, string>(
     ((unitsData ?? []) as { id: string; code: string }[]).map((u) => [u.id, u.code]),

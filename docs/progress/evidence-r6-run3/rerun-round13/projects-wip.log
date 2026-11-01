@@ -1,0 +1,18 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 7 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (47.5s)
+  ok 2 tests\e2e\projects-wip.spec.ts:245:5 › a member without finance.accounts.manage sees the projects but no controls (14.6s)
+  ok 3 tests\e2e\projects-wip.spec.ts:282:5 › a project form that names another organization is refused and writes nothing (14.7s)
+  ok 4 tests\e2e\projects-wip.spec.ts:327:5 › a duplicate project code is refused, and the existing project is left unchanged (16.7s)
+  ok 5 tests\e2e\projects-wip.spec.ts:369:5 › an explicit edit by a manager changes the name, budget and accounts of a project without postings (14.0s)
+  ok 6 tests\e2e\projects-wip.spec.ts:415:5 › a project with posted entries refuses a locked change, and a name change still goes through (16.4s)
+  ok 7 tests\e2e\projects-wip.spec.ts:480:5 › a member without the accounts permission sees no edit control and cannot change a project (8.2s)
+
+  7 passed (2.3m)
+

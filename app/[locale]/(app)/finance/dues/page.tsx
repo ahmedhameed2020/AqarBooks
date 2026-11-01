@@ -112,7 +112,7 @@ export default async function DuesPage({
       .order("due_date", { ascending: false })
       .limit(300),
     supabase
-      .from("payment_allocations")
+      .from("effective_payment_allocations")
       .select("due_id, amount, payment_id"),
     supabase
       .from("payments")
@@ -176,6 +176,18 @@ export default async function DuesPage({
     id: a.id,
     label: `${a.code} — ${isAr ? a.name_ar : a.name_en}`,
   }));
+
+  // The organization's approved receivable account for this property (null = not configured: the dialog then
+  // asks for an explicit choice instead of guessing). Read through a narrow RPC because the settings table
+  // itself needs finance.accounts.manage.
+  let defaultReceivableAccountId: string | null = null;
+  if (resort && canIssueDue) {
+    const { data: def } = await supabase.rpc("get_default_receivable_account", {
+      p_organization_id: organization.id,
+      p_property_id: resort.id,
+    });
+    defaultReceivableAccountId = def ?? null;
+  }
 
   const preselectedUnitId = unitParam && (units ?? []).some((u) => u.id === unitParam) ? unitParam : undefined;
 
@@ -284,6 +296,8 @@ export default async function DuesPage({
           dueTypes={dueTypeOptions}
           revenueAccounts={revenueAccounts}
           receivableAccounts={receivableAccountOptions}
+          defaultReceivableAccountId={defaultReceivableAccountId}
+          canSaveReceivableDefault={canManageDueTypes}
           periods={periodOptions}
           organizationId={organization.id}
           resortId={resort.id}

@@ -1,0 +1,9 @@
+                  id                  |                description                |  status  |          reversed_entry_id           | has_posted_at | has_reversal_entry 
+--------------------------------------+-------------------------------------------+----------+--------------------------------------+---------------+--------------------
+ 8d9c9461-6695-451a-9276-4c83fb6bf315 | WIP — CONC-R — wip seq2 capitalise        | REVERSED |                                      | t             | t
+ abea6168-b53c-4760-a711-c66064ae594b | Cost of sales — CONC-R — wip seq2 release | REVERSED |                                      | t             | t
+ 0ecbc9e8-90a8-4544-bf0b-b6a18135129a | wip seq2 reverse release                  | POSTED   | abea6168-b53c-4760-a711-c66064ae594b | t             | f
+ 3e0a6d91-8f48-4148-ab24-91354302d68e | wip seq2 reverse cap                      | POSTED   | 8d9c9461-6695-451a-9276-4c83fb6bf315 | t             | f
+ dddddddd-0000-4000-8000-0000000000a2 | E draft 300 to be cancelled               | REVERSED |                                      | f             | f
+(5 rows)
+

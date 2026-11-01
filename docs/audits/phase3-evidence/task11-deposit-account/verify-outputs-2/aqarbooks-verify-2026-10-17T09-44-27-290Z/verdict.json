@@ -1,0 +1,15 @@
+{
+  "verdict": "CLEAN",
+  "exit": 0,
+  "reason": "the first two observations were clean",
+  "decidedBy": 2,
+  "tally": {
+    "clean": 2,
+    "differing": 0,
+    "error": 0
+  },
+  "observations": [
+    "clean",
+    "clean"
+  ]
+}

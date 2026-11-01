@@ -1,0 +1,4 @@
+ZIP CRC: PASS
+Manifest payload hashes verified after extraction: 28/28
+Extracted file set matches bundle (including manifest.txt): 29 files
+ZIP SHA-256: 6e1d822acd1d5d805aac38899148542991efbba0180cc708936131568a6f56a0

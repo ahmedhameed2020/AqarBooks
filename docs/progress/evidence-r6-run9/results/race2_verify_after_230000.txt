@@ -1,0 +1,7 @@
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+      0.0000 |   0.0000 |      0.0000
+(1 row)
+
+psql:/tmp/race2_verify.sql:23: NOTICE:  ASSERT_RACE_ORDER2_PASS: reversal committed; later release refused without writing; cap=0 rel=0 wip=0 ledger=0 unbalanced=0
+DO

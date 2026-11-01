@@ -1,0 +1,5 @@
+# single-organization scaling (scratch clone, 1 org, dues replicated) -- staff session under RLS; min..max of 3 runs, ms
+dues in the organization: 13 | Q2 member row: 39..91 | Q1 units of member: 75..108 | Q5 org-wide balances: 87..146
+dues in the organization: 1001 | Q2 member row: 567..1034 | Q1 units of member: 999..2338 | Q5 org-wide balances: 598..1123
+dues in the organization: 5005 | Q2 member row: 1954..2726 | Q1 units of member: 3068..3616 | Q5 org-wide balances: 2141..2867
+dues in the organization: 20007 | Q2 member row: 3689..6947 | Q1 units of member: 4069..5915 | Q5 org-wide balances: 4403..12640

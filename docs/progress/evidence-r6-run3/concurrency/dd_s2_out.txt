@@ -1,0 +1,8 @@
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+psql:/tmp/dd_s2.sql:6: ERROR:  PROJECT_WIP_NEGATIVE: الرصيد سالب أصلًا والحركة لا تحسّنه (قبل -400.0000, بعد -450.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 17 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM

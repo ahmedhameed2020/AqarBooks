@@ -1,0 +1,10 @@
+025ecc6497b42c02d6d3ebd6dc6897b850a2a2965e790d16b904af905c18acc2   supabase_network_EduEdara               bridge    local
+2c4f52632a3798bd76953d5c5a6228948d700aa1bb045ed10919b332173c672d   supabase_network_harrik                 bridge    local
+2f37bece5a6ffef92aba7ff52ad5871ddb991cef8ef222183cdf4d27756f2095   supabase_network_pmttjxfvvyyorujkkrsa   bridge    local
+4ac3be3db5df436ad24cfe9bacf8ce4d65a38629861c05ef4909c27cca1eb337   supabase_network_aqarbooks              bridge    local
+702343050d2d56f66a183adea864bebee68825fa47719ce9f08994d6bd260cea   supabase_network_aqarbooks_clean        bridge    local
+7d72505ba6cef82bdf38b26b7ae4d3a43f71d903ea8ed78b86dd7e383566132d   host                                    host      local
+NETWORK ID                                                         NAME                                    DRIVER    SCOPE
+aec305e1e742a1ac450bc987df566bace091b78f74388d6e12b71bf045d4a4d3   bridge                                  bridge    local
+b18cde2ce6c5422f06c0d512a191a6010990eb41676e6749a8adaef3120b22d5   supabase_network_Al-Kadi                bridge    local
+d176588f7c2a5a2a65f77128eceac8c764f1f39382448db0cb8ff7fd1606a1b0   none                                    null      local

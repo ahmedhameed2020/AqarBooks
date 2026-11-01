@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import { PortalMaintenanceClient, type PortalMaintenanceRequestItem } from "./portal-maintenance-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 type RequestRow = {
   id: string;
@@ -34,18 +35,18 @@ export default async function PortalMaintenancePage({
     .select("id, request_no, title, status, priority, submitted_at, unit_id, category_id")
     .order("created_at", { ascending: false });
 
-  if (error) console.error("[PortalMaintenancePage] requests query failed:", error.message);
+  assertRead(error, "portal/maintenance: maintenance_requests");
 
   const requests = (requestsData ?? []) as RequestRow[];
   const unitIds = [...new Set(requests.map((r) => r.unit_id))];
   const categoryIds = [...new Set(requests.map((r) => r.category_id))];
   const requestIds = requests.map((r) => r.id);
 
-  const [{ data: units }, { data: categories }, { data: updates }] = await Promise.all([
-    unitIds.length ? supabase.from("units").select("id, code").in("id", unitIds) : { data: [] },
+  const [{ data: units, error: unitsError }, { data: categories, error: categoriesError }, { data: updates, error: updatesError }] = await Promise.all([
+    unitIds.length ? supabase.from("units").select("id, code").in("id", unitIds) : { data: [], error: null },
     categoryIds.length
       ? supabase.from("maintenance_categories").select("id, name_ar, name_en").in("id", categoryIds)
-      : { data: [] },
+      : { data: [], error: null },
     requestIds.length
       ? supabase
           .from("maintenance_request_updates")
@@ -53,8 +54,11 @@ export default async function PortalMaintenancePage({
           .eq("visibility", "MEMBER_VISIBLE")
           .in("maintenance_request_id", requestIds)
           .order("created_at", { ascending: false })
-      : { data: [] },
+      : { data: [], error: null },
   ]);
+  assertRead(unitsError, "portal/maintenance: units");
+  assertRead(categoriesError, "portal/maintenance: maintenance_categories");
+  assertRead(updatesError, "portal/maintenance: request updates");
 
   const unitById = new Map((units ?? []).map((u) => [u.id, u.code]));
   const categoryById = new Map((categories ?? []).map((c) => [c.id, isAr ? c.name_ar : c.name_en]));

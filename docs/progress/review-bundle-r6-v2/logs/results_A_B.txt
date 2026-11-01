@@ -1,0 +1,4 @@
+A project wip now: aaaaaaa1-0000-4000-8000-000000000001
+A posted WIP debit account: aaaaaaa1-0000-4000-8000-000000000001 amount 1000.0000
+B project wip: aaaaaaa1-0000-4000-8000-000000000001
+B posted lines: 2

@@ -1,0 +1,26 @@
+2026-10-30T22:52:26.264Z info 	[WEB-CONTENT] Registering app://
+2026-10-30T22:52:26.314Z info 	[WINDOW] Open app://dd/error-dialog - source: error-dialog-from-backend {
+  windowOptions: {
+    minimizable: false,
+    maximizable: false,
+    resizable: false,
+    alwaysOnTop: true,
+    width: 600,
+    height: 500,
+    trafficLightPosition: { x: 10, y: 12 }
+  }
+}
+2026-10-30T22:52:26.782Z info 	[WEB-CONTENT] Serving page HTML (0 feature flags)
+2026-10-30T22:55:51.968Z info 	[WEB-CONTENT] Registering app://
+2026-10-30T22:55:51.998Z info 	[WINDOW] Open app://dd/error-dialog - source: error-dialog-from-backend {
+  windowOptions: {
+    minimizable: false,
+    maximizable: false,
+    resizable: false,
+    alwaysOnTop: true,
+    width: 600,
+    height: 500,
+    trafficLightPosition: { x: 10, y: 12 }
+  }
+}
+2026-10-30T22:55:52.751Z info 	[WEB-CONTENT] Serving page HTML (0 feature flags)

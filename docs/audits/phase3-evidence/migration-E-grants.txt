@@ -1,0 +1,5 @@
+# Migration E - ACLs
+is_trusted_backend | f | postgres:EXECUTE, service_role:EXECUTE
+payment_allocations_as_of | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_credit_balances_as_of | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_receipt_entry_status | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE

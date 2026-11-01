@@ -37,6 +37,7 @@ import {
 import { createBankStatement } from "@/lib/actions/bank-reconciliation";
 import { useToast } from "@/components/ui/toast";
 import { getCurrencyLabel } from "@/lib/currency";
+import { ltrIsolate } from "./[statementId]/candidate-label";
 
 export type BankAccountOption = {
   id: string;
@@ -98,7 +99,7 @@ export function CreateStatementDialog({
           type: "success",
           title: isAr ? "تم إنشاء كشف الحساب البنكي" : "Bank Statement Created",
           description: isAr
-            ? `تم فتح جلسة تسوية جديدة للفترة من ${periodStart} إلى ${periodEnd}`
+            ? `تم فتح جلسة تسوية جديدة للفترة من ${ltrIsolate(periodStart, true)} إلى ${ltrIsolate(periodEnd, true)}`
             : `Opened reconciliation statement for period ${periodStart} to ${periodEnd}`,
         });
         onOpenChange(false);

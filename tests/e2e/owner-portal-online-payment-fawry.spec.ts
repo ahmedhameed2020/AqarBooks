@@ -70,6 +70,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { test, expect } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
@@ -233,27 +234,22 @@ async function provisionOrg(admin: SupabaseClient, label: string) {
   expect(staffSignInErr, `staff sign-in failed: ${staffSignInErr?.message}`).toBeNull();
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: fiscalYear, error: yearErr } = await admin
-    .from("fiscal_years")
-    .insert({ organization_id: orgId, name: `${new Date().getFullYear()}`, start_date: `${new Date().getFullYear()}-01-01`, end_date: `${new Date().getFullYear()}-12-31`, status: "OPEN" })
-    .select("id")
-    .single();
-  expect(yearErr, `fiscal year insert failed: ${yearErr?.message}`).toBeNull();
-
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // The period under test is the monthly period containing today, which is the date the payment posts to.
+  await createOpenFiscalYear(admin, staffClient, {
+    orgId,
+    name: `${new Date().getFullYear()}`,
+    startDate: `${new Date().getFullYear()}-01-01`,
+    endDate: `${new Date().getFullYear()}-12-31`,
+  });
   const { data: fiscalPeriod, error: periodErr } = await admin
     .from("fiscal_periods")
-    .insert({
-      organization_id: orgId,
-      fiscal_year_id: fiscalYear!.id,
-      period_number: 1,
-      name: "Full Year",
-      start_date: `${new Date().getFullYear()}-01-01`,
-      end_date: `${new Date().getFullYear()}-12-31`,
-      status: "OPEN",
-    })
     .select("id")
+    .eq("organization_id", orgId)
+    .lte("start_date", today)
+    .gte("end_date", today)
     .single();
-  expect(periodErr, `fiscal period insert failed: ${periodErr?.message}`).toBeNull();
+  expect(periodErr, `fiscal period lookup failed: ${periodErr?.message}`).toBeNull();
 
   const ownerEmail = `owner-${suffix}@example.com`.toLowerCase();
   const { data: ownerCreated, error: ownerCreateErr } = await admin.auth.admin.createUser({

@@ -1,0 +1,507 @@
+# plans clone-1-org (database scratch_ref)
+principals: staff 2c63a9fa-3d09-49be-81a2-d446bf6f9dd0 org 20f692bb-1721-446d-8a33-871cd57d0f4e | owner e97083ee-e3a2-45c1-8072-856325a78f43
+
+## Q1 member page: units of one member (id = ANY)  [staff]
+execution time, 3 runs: 252.961 ms | 270.666 ms | 286.304 ms
+Nested Loop Left Join  (cost=317.06..337.56 rows=1 width=415) (actual rows=2 loops=1)
+  Join Filter: (uo.unit_id = u.id)
+  Rows Removed by Join Filter: 1
+  Buffers: shared hit=3804
+  ->  Nested Loop Left Join  (cost=275.54..295.99 rows=1 width=345) (actual rows=2 loops=1)
+        Join Filter: (d_1.unit_id = u.id)
+        Rows Removed by Join Filter: 1
+        Buffers: shared hit=3733
+        ->  Nested Loop Left Join  (cost=78.28..98.57 rows=1 width=313) (actual rows=2 loops=1)
+              Join Filter: (d.unit_id = u.id)
+              Rows Removed by Join Filter: 1
+              Buffers: shared hit=1160
+              ->  Nested Loop Left Join  (cost=13.95..34.11 rows=1 width=281) (actual rows=2 loops=1)
+                    Join Filter: (z.id = u.zone_id)
+                    Buffers: shared hit=335
+                    ->  Nested Loop Left Join  (cost=13.95..33.09 rows=1 width=217) (actual rows=2 loops=1)
+                          Join Filter: (b.id = u.building_id)
+                          Buffers: shared hit=333
+                          ->  Index Scan using idx_units_building on units u  (cost=13.95..32.08 rows=1 width=153) (actual rows=2 loops=1)
+                                Filter: ((id = ANY ('{7316bfb0-00db-44b4-8a65-46b8fc193c16,5cb42a46-5106-4ed2-8f6c-84062f17804e}'::uuid[])) AND ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id))))
+                                Buffers: shared hit=331
+                                SubPlan 1
+                                  ->  Index Scan using idx_unit_ownerships_member on unit_ownerships  (cost=0.50..13.82 rows=1 width=16) (actual rows=0 loops=1)
+                                        Index Cond: (member_id = current_member_id())
+                                        Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                          ->  Seq Scan on buildings b  (cost=0.00..1.00 rows=1 width=80) (actual rows=0 loops=2)
+                                Filter: (is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                Buffers: shared hit=2
+                    ->  Seq Scan on zones z  (cost=0.00..1.00 rows=1 width=80) (actual rows=0 loops=2)
+                          Filter: (is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                          Buffers: shared hit=2
+              ->  GroupAggregate  (cost=64.33..64.41 rows=2 width=48) (actual rows=2 loops=2)
+                    Group Key: d.unit_id
+                    Buffers: shared hit=825
+                    ->  Sort  (cost=64.33..64.35 rows=8 width=21) (actual rows=7 loops=2)
+                          Sort Key: d.unit_id
+                          Sort Method: quicksort  Memory: 25kB
+                          Buffers: shared hit=825
+                          ->  Seq Scan on dues d  (cost=13.84..64.21 rows=8 width=21) (actual rows=12 loops=1)
+                                Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                Rows Removed by Filter: 1
+                                Buffers: shared hit=822
+                                SubPlan 2
+                                  ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                        Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                SubPlan 7
+                                  ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (never executed)
+                                        Join Filter: (pi.plan_id = p_3.id)
+                                        ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (never executed)
+                                              Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                              SubPlan 3
+                                                ->  Seq Scan on installment_plans p_1  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                      Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                              SubPlan 5
+                                                ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                      Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                        ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                              Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (buyer_member_id = current_member_id()))
+                                SubPlan 8
+                                  ->  Index Scan using idx_unit_ownerships_member on unit_ownerships unit_ownerships_1  (cost=0.50..13.82 rows=1 width=16) (never executed)
+
+## Q2 member page: the member row  [staff]
+execution time, 3 runs: 172.665 ms | 256.998 ms | 244.288 ms
+Nested Loop Left Join  (cost=153.22..182.29 rows=1 width=152) (actual rows=1 loops=1)
+  Buffers: shared hit=6956
+  ->  Nested Loop Left Join  (cost=132.31..161.36 rows=1 width=154) (actual rows=1 loops=1)
+        Buffers: shared hit=6109
+        ->  Seq Scan on members m  (cost=0.00..12.94 rows=1 width=114) (actual rows=1 loops=1)
+              Filter: ((id = '839fff18-ae8e-4a92-b0ab-116274a545fc'::uuid) AND (organization_id = '20f692bb-1721-446d-8a33-871cd57d0f4e'::uuid) AND (((id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+              Rows Removed by Filter: 2
+              Buffers: shared hit=348
+        ->  GroupAggregate  (cost=132.31..148.40 rows=1 width=56) (actual rows=1 loops=1)
+              Buffers: shared hit=5761
+              ->  Nested Loop  (cost=132.31..148.38 rows=1 width=36) (actual rows=1 loops=1)
+                    Join Filter: (uo.unit_id = u.id)
+                    Rows Removed by Join Filter: 1
+                    Buffers: shared hit=5761
+                    ->  Seq Scan on unit_ownerships uo  (cost=0.00..7.63 rows=1 width=32) (actual rows=1 loops=1)
+                          Filter: ((member_id = '839fff18-ae8e-4a92-b0ab-116274a545fc'::uuid) AND ((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                          Rows Removed by Filter: 1
+                          Buffers: shared hit=33
+                    ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=506) (actual rows=2 loops=1)
+                          Join Filter: (d_1.unit_id = u.id)
+                          Rows Removed by Join Filter: 1
+                          Buffers: shared hit=5728
+                          ->  Nested Loop Left Join  (cost=34.77..43.01 rows=1 width=48) (actual rows=2 loops=1)
+                                Join Filter: (d.unit_id = u.id)
+                                Rows Removed by Join Filter: 1
+                                Buffers: shared hit=1364
+                                ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=48) (actual rows=2 loops=1)
+                                      Filter: ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                      Buffers: shared hit=121
+                                      SubPlan 1
+                                        ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=0 loops=1)
+                                              Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                              Rows Removed by Filter: 2
+                                              Buffers: shared hit=78
+                                ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=2 loops=2)
+                                      Group Key: d.unit_id
+                                      Buffers: shared hit=1243
+                                      ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=7 loops=2)
+                                            Sort Key: d.unit_id
+                                            Sort Method: quicksort  Memory: 25kB
+                                            Buffers: shared hit=1243
+                                            ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=12 loops=1)
+                                                  Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                                  Rows Removed by Filter: 1
+                                                  Buffers: shared hit=1240
+                                                  SubPlan 2
+                                                    ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                                          Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                                  SubPlan 7
+                                                    ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (never executed)
+                                                          Join Filter: (pi.plan_id = p_4.id)
+                                                          ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (never executed)
+                                                                Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                                                SubPlan 3
+                                                                  ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                                        Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                                                SubPlan 5
+                                                                  ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                                        Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                                          ->  Seq Scan on installment_plans p_4  (cost=0.00..0.00 rows=1 width=16) (never executed)
+
+## Q3 property list page: first 25 units + exact count  [staff]
+execution time, 3 runs: 287.544 ms | 151.475 ms | 162.039 ms
+Limit  (cost=163.38..163.38 rows=1 width=415) (actual rows=2 loops=1)
+  Buffers: shared hit=6191
+  ->  Sort  (cost=163.38..163.38 rows=1 width=415) (actual rows=2 loops=1)
+        Sort Key: u.code
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=6191
+        ->  Nested Loop Left Join  (cost=152.88..163.37 rows=1 width=415) (actual rows=2 loops=1)
+              Join Filter: (uo.unit_id = u.id)
+              Rows Removed by Join Filter: 1
+              Buffers: shared hit=6188
+              ->  Nested Loop Left Join  (cost=132.31..142.75 rows=1 width=345) (actual rows=2 loops=1)
+                    Join Filter: (d_1.unit_id = u.id)
+                    Rows Removed by Join Filter: 1
+                    Buffers: shared hit=5990
+                    ->  Nested Loop Left Join  (cost=34.77..45.04 rows=1 width=313) (actual rows=2 loops=1)
+                          Join Filter: (d.unit_id = u.id)
+                          Rows Removed by Join Filter: 1
+                          Buffers: shared hit=1626
+                          ->  Nested Loop Left Join  (cost=8.13..18.28 rows=1 width=281) (actual rows=2 loops=1)
+                                Join Filter: (z.id = u.zone_id)
+                                Buffers: shared hit=386
+                                ->  Nested Loop Left Join  (cost=8.13..17.26 rows=1 width=217) (actual rows=2 loops=1)
+                                      Join Filter: (b.id = u.building_id)
+                                      Buffers: shared hit=384
+                                      ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=153) (actual rows=2 loops=1)
+                                            Filter: ((archived_at IS NULL) AND (property_id = '53c2b669-c92e-4401-83ba-595158543a96'::uuid) AND ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id))))
+                                            Buffers: shared hit=382
+                                            SubPlan 1
+                                              ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=0 loops=1)
+                                                    Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                                    Rows Removed by Filter: 2
+                                                    Buffers: shared hit=168
+                                      ->  Seq Scan on buildings b  (cost=0.00..1.00 rows=1 width=80) (actual rows=0 loops=2)
+                                            Filter: (is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                            Buffers: shared hit=2
+                                ->  Seq Scan on zones z  (cost=0.00..1.00 rows=1 width=80) (actual rows=0 loops=2)
+                                      Filter: (is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                      Buffers: shared hit=2
+                          ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=2 loops=2)
+                                Group Key: d.unit_id
+                                Buffers: shared hit=1240
+                                ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=7 loops=2)
+                                      Sort Key: d.unit_id
+                                      Sort Method: quicksort  Memory: 25kB
+                                      Buffers: shared hit=1240
+                                      ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=12 loops=1)
+                                            Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                            Rows Removed by Filter: 1
+                                            Buffers: shared hit=1237
+                                            SubPlan 2
+                                              ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                                    Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                            SubPlan 7
+                                              ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (never executed)
+                                                    Join Filter: (pi.plan_id = p_3.id)
+                                                    ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (never executed)
+                                                          Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                                          SubPlan 3
+                                                            ->  Seq Scan on installment_plans p_1  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                                  Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+
+## Q4 property KPI strip: every unit's status and balance  [staff]
+execution time, 3 runs: 267.470 ms | 144.084 ms | 268.857 ms
+Subquery Scan on units_with_financials  (cost=152.88..161.34 rows=1 width=52) (actual rows=2 loops=1)
+  Buffers: shared hit=6237
+  ->  Nested Loop Left Join  (cost=152.88..161.33 rows=1 width=506) (actual rows=2 loops=1)
+        Join Filter: (uo.unit_id = u.id)
+        Rows Removed by Join Filter: 1
+        Buffers: shared hit=6237
+        ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=80) (actual rows=2 loops=1)
+              Join Filter: (d_1.unit_id = u.id)
+              Rows Removed by Join Filter: 1
+              Buffers: shared hit=6039
+              ->  Nested Loop Left Join  (cost=34.77..43.02 rows=1 width=48) (actual rows=2 loops=1)
+                    Join Filter: (d.unit_id = u.id)
+                    Rows Removed by Join Filter: 1
+                    Buffers: shared hit=1675
+                    ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=48) (actual rows=2 loops=1)
+                          Filter: ((archived_at IS NULL) AND (property_id = '53c2b669-c92e-4401-83ba-595158543a96'::uuid) AND ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id))))
+                          Buffers: shared hit=432
+                          SubPlan 1
+                            ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=0 loops=1)
+                                  Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                  Rows Removed by Filter: 2
+                                  Buffers: shared hit=168
+                    ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=2 loops=2)
+                          Group Key: d.unit_id
+                          Buffers: shared hit=1243
+                          ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=7 loops=2)
+                                Sort Key: d.unit_id
+                                Sort Method: quicksort  Memory: 25kB
+                                Buffers: shared hit=1243
+                                ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=12 loops=1)
+                                      Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                      Rows Removed by Filter: 1
+                                      Buffers: shared hit=1240
+                                      SubPlan 2
+                                        ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                              Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                      SubPlan 7
+                                        ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (never executed)
+                                              Join Filter: (pi.plan_id = p_3.id)
+                                              ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (never executed)
+                                                    Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                                    SubPlan 3
+                                                      ->  Seq Scan on installment_plans p_1  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                            Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                                    SubPlan 5
+                                                      ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                            Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                              ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                                    Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (buyer_member_id = current_member_id()))
+                                      SubPlan 8
+                                        ->  Seq Scan on unit_ownerships unit_ownerships_1  (cost=0.00..8.13 rows=1 width=16) (never executed)
+                                              Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+              ->  GroupAggregate  (cost=97.54..97.66 rows=2 width=48) (actual rows=1 loops=2)
+                    Group Key: d_1.unit_id
+                    Buffers: shared hit=4364
+                    ->  Sort  (cost=97.54..97.57 rows=13 width=21) (actual rows=8 loops=2)
+                          Sort Key: d_1.unit_id
+                          Sort Method: quicksort  Memory: 25kB
+                          Buffers: shared hit=4364
+                          ->  Hash Join  (cost=55.25..97.30 rows=13 width=21) (actual rows=8 loops=1)
+
+## Q5 members page KPI: every unit balance of the organization  [staff]
+execution time, 3 runs: 224.277 ms | 267.572 ms | 133.876 ms
+Subquery Scan on units_with_financials  (cost=132.31..140.74 rows=1 width=20) (actual rows=2 loops=1)
+  Buffers: shared hit=6039
+  ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=506) (actual rows=2 loops=1)
+        Join Filter: (d_1.unit_id = u.id)
+        Rows Removed by Join Filter: 1
+        Buffers: shared hit=6039
+        ->  Nested Loop Left Join  (cost=34.77..43.02 rows=1 width=48) (actual rows=2 loops=1)
+              Join Filter: (d.unit_id = u.id)
+              Rows Removed by Join Filter: 1
+              Buffers: shared hit=1675
+              ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=48) (actual rows=2 loops=1)
+                    Filter: ((organization_id = '20f692bb-1721-446d-8a33-871cd57d0f4e'::uuid) AND ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id))))
+                    Buffers: shared hit=432
+                    SubPlan 1
+                      ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=0 loops=1)
+                            Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                            Rows Removed by Filter: 2
+                            Buffers: shared hit=168
+              ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=2 loops=2)
+                    Group Key: d.unit_id
+                    Buffers: shared hit=1243
+                    ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=7 loops=2)
+                          Sort Key: d.unit_id
+                          Sort Method: quicksort  Memory: 25kB
+                          Buffers: shared hit=1243
+                          ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=12 loops=1)
+                                Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                Rows Removed by Filter: 1
+                                Buffers: shared hit=1240
+                                SubPlan 2
+                                  ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                        Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                SubPlan 7
+                                  ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (never executed)
+                                        Join Filter: (pi.plan_id = p_3.id)
+                                        ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (never executed)
+                                              Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                              SubPlan 3
+                                                ->  Seq Scan on installment_plans p_1  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                      Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                              SubPlan 5
+                                                ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                      Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                        ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                              Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (buyer_member_id = current_member_id()))
+                                SubPlan 8
+                                  ->  Seq Scan on unit_ownerships unit_ownerships_1  (cost=0.00..8.13 rows=1 width=16) (never executed)
+                                        Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+        ->  GroupAggregate  (cost=97.54..97.66 rows=2 width=48) (actual rows=1 loops=2)
+              Group Key: d_1.unit_id
+              Buffers: shared hit=4364
+              ->  Sort  (cost=97.54..97.57 rows=13 width=21) (actual rows=8 loops=2)
+                    Sort Key: d_1.unit_id
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=4364
+                    ->  Hash Join  (cost=55.25..97.30 rows=13 width=21) (actual rows=8 loops=1)
+                          Hash Cond: (pa.due_id = d_1.id)
+                          Buffers: shared hit=4364
+                          ->  Nested Loop  (cost=28.66..70.66 rows=21 width=21) (actual rows=8 loops=1)
+                                Buffers: shared hit=3376
+
+## Q6 members list: first 25 members  [staff]
+execution time, 3 runs: 171.161 ms | 290.272 ms | 188.255 ms
+Limit  (cost=182.31..182.32 rows=1 width=152) (actual rows=3 loops=1)
+  Buffers: shared hit=7029
+  ->  Sort  (cost=182.31..182.32 rows=1 width=152) (actual rows=3 loops=1)
+        Sort Key: m.full_name
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=7029
+        ->  Nested Loop Left Join  (cost=169.28..182.30 rows=1 width=152) (actual rows=3 loops=1)
+              Join Filter: (p_1.member_id = m.id)
+              Rows Removed by Join Filter: 2
+              Buffers: shared hit=7026
+              ->  Nested Loop Left Join  (cost=148.39..161.36 rows=1 width=154) (actual rows=3 loops=1)
+                    Join Filter: (uo.member_id = m.id)
+                    Rows Removed by Join Filter: 3
+                    Buffers: shared hit=6179
+                    ->  Seq Scan on members m  (cost=0.00..12.93 rows=1 width=114) (actual rows=3 loops=1)
+                          Filter: ((organization_id = '20f692bb-1721-446d-8a33-871cd57d0f4e'::uuid) AND (((id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                          Buffers: shared hit=352
+                    ->  GroupAggregate  (cost=148.39..148.41 rows=1 width=56) (actual rows=2 loops=3)
+                          Group Key: uo.member_id
+                          Buffers: shared hit=5827
+                          ->  Sort  (cost=148.39..148.39 rows=1 width=36) (actual rows=2 loops=3)
+                                Sort Key: uo.member_id
+                                Sort Method: quicksort  Memory: 25kB
+                                Buffers: shared hit=5827
+                                ->  Nested Loop  (cost=132.31..148.38 rows=1 width=36) (actual rows=2 loops=1)
+                                      Join Filter: (uo.unit_id = u.id)
+                                      Rows Removed by Join Filter: 2
+                                      Buffers: shared hit=5824
+                                      ->  Seq Scan on unit_ownerships uo  (cost=0.00..7.62 rows=1 width=32) (actual rows=2 loops=1)
+                                            Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                                            Buffers: shared hit=60
+                                      ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=506) (actual rows=2 loops=2)
+                                            Join Filter: (d_1.unit_id = u.id)
+                                            Rows Removed by Join Filter: 1
+                                            Buffers: shared hit=5764
+                                            ->  Nested Loop Left Join  (cost=34.77..43.01 rows=1 width=48) (actual rows=2 loops=2)
+                                                  Join Filter: (d.unit_id = u.id)
+                                                  Rows Removed by Join Filter: 1
+                                                  Buffers: shared hit=1400
+                                                  ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=48) (actual rows=2 loops=2)
+                                                        Filter: ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                                        Buffers: shared hit=163
+                                                        SubPlan 1
+                                                          ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=0 loops=1)
+                                                                Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                                                Rows Removed by Filter: 2
+                                                                Buffers: shared hit=78
+                                                  ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=2 loops=4)
+                                                        Group Key: d.unit_id
+                                                        Buffers: shared hit=1237
+                                                        ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=7 loops=4)
+                                                              Sort Key: d.unit_id
+                                                              Sort Method: quicksort  Memory: 25kB
+                                                              Buffers: shared hit=1237
+                                                              ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=12 loops=1)
+                                                                    Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                                                    Rows Removed by Filter: 1
+                                                                    Buffers: shared hit=1237
+                                                                    SubPlan 2
+                                                                      ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (never executed)
+
+## Q7 portal units page: the owner's units (RLS only, no filter)  [owner]
+execution time, 3 runs: 345.208 ms | 571.064 ms | 476.262 ms
+Sort  (cost=140.75..140.76 rows=1 width=48) (actual rows=1 loops=1)
+  Sort Key: units_with_financials.code
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=5576
+  ->  Subquery Scan on units_with_financials  (cost=132.31..140.74 rows=1 width=48) (actual rows=1 loops=1)
+        Buffers: shared hit=5573
+        ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=454) (actual rows=1 loops=1)
+              Join Filter: (d_1.unit_id = u.id)
+              Buffers: shared hit=5573
+              ->  Nested Loop Left Join  (cost=34.77..43.01 rows=1 width=60) (actual rows=1 loops=1)
+                    Join Filter: (d.unit_id = u.id)
+                    Buffers: shared hit=2266
+                    ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=60) (actual rows=1 loops=1)
+                          Filter: ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                          Rows Removed by Filter: 1
+                          Buffers: shared hit=764
+                          SubPlan 1
+                            ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=1 loops=1)
+                                  Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                  Rows Removed by Filter: 1
+                                  Buffers: shared hit=514
+                    ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=1 loops=1)
+                          Group Key: d.unit_id
+                          Buffers: shared hit=1502
+                          ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=11 loops=1)
+                                Sort Key: d.unit_id
+                                Sort Method: quicksort  Memory: 25kB
+                                Buffers: shared hit=1502
+                                ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=11 loops=1)
+                                      Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                      Rows Removed by Filter: 2
+                                      Buffers: shared hit=1499
+                                      SubPlan 2
+                                        ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (actual rows=0 loops=1)
+                                              Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                      SubPlan 7
+                                        ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (actual rows=0 loops=1)
+                                              Join Filter: (pi.plan_id = p_3.id)
+                                              ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (actual rows=0 loops=1)
+                                                    Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                                    SubPlan 3
+                                                      ->  Seq Scan on installment_plans p_1  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                            Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                                    SubPlan 5
+                                                      ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                            Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                              ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=16) (never executed)
+                                                    Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (buyer_member_id = current_member_id()))
+                                      SubPlan 8
+                                        ->  Seq Scan on unit_ownerships unit_ownerships_1  (cost=0.00..8.13 rows=1 width=16) (actual rows=1 loops=1)
+                                              Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                              Rows Removed by Filter: 1
+                                              Buffers: shared hit=101
+              ->  GroupAggregate  (cost=97.54..97.67 rows=2 width=48) (actual rows=1 loops=1)
+                    Group Key: d_1.unit_id
+                    Buffers: shared hit=3307
+                    ->  Sort  (cost=97.54..97.58 rows=13 width=21) (actual rows=8 loops=1)
+                          Sort Key: d_1.unit_id
+                          Sort Method: quicksort  Memory: 25kB
+                          Buffers: shared hit=3307
+
+## Q8 portal home: the owner's member row  [owner]
+execution time, 3 runs: 322.146 ms | 521.688 ms | 584.010 ms
+Subquery Scan on members_with_financials  (cost=153.23..182.30 rows=1 width=37) (actual rows=1 loops=1)
+  Buffers: shared hit=6117
+  ->  Nested Loop Left Join  (cost=153.23..182.29 rows=1 width=191) (actual rows=1 loops=1)
+        Buffers: shared hit=6117
+        ->  Nested Loop Left Join  (cost=132.31..161.35 rows=1 width=56) (actual rows=1 loops=1)
+              Buffers: shared hit=5676
+              ->  Seq Scan on members m  (cost=0.00..12.93 rows=1 width=16) (actual rows=1 loops=1)
+                    Filter: ((id = '839fff18-ae8e-4a92-b0ab-116274a545fc'::uuid) AND (((id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                    Rows Removed by Filter: 2
+                    Buffers: shared hit=248
+              ->  GroupAggregate  (cost=132.31..148.40 rows=1 width=56) (actual rows=1 loops=1)
+                    Buffers: shared hit=5428
+                    ->  Nested Loop  (cost=132.31..148.38 rows=1 width=36) (actual rows=1 loops=1)
+                          Join Filter: (uo.unit_id = u.id)
+                          Buffers: shared hit=5428
+                          ->  Seq Scan on unit_ownerships uo  (cost=0.00..7.63 rows=1 width=32) (actual rows=1 loops=1)
+                                Filter: ((member_id = '839fff18-ae8e-4a92-b0ab-116274a545fc'::uuid) AND ((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))))
+                                Rows Removed by Filter: 1
+                                Buffers: shared hit=23
+                          ->  Nested Loop Left Join  (cost=132.31..140.73 rows=1 width=506) (actual rows=1 loops=1)
+                                Join Filter: (d_1.unit_id = u.id)
+                                Buffers: shared hit=5405
+                                ->  Nested Loop Left Join  (cost=34.77..43.01 rows=1 width=48) (actual rows=1 loops=1)
+                                      Join Filter: (d.unit_id = u.id)
+                                      Buffers: shared hit=2098
+                                      ->  Seq Scan on units u  (cost=8.13..16.25 rows=1 width=48) (actual rows=1 loops=1)
+                                            Filter: ((organization_is_active(organization_id) AND (ANY (id = (hashed SubPlan 1).col1))) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.units.manage'::text) AND organization_is_active(organization_id)))
+                                            Rows Removed by Filter: 1
+                                            Buffers: shared hit=596
+                                            SubPlan 1
+                                              ->  Seq Scan on unit_ownerships  (cost=0.00..8.13 rows=1 width=16) (actual rows=1 loops=1)
+                                                    Filter: (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((member_id = current_member_id()) AND organization_is_active(organization_id)) OR is_org_member((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id) OR (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.members.manage'::text) AND organization_is_active(organization_id))) AND (member_id = current_member_id()))
+                                                    Rows Removed by Filter: 1
+                                                    Buffers: shared hit=517
+                                      ->  GroupAggregate  (cost=26.64..26.72 rows=2 width=48) (actual rows=1 loops=1)
+                                            Group Key: d.unit_id
+                                            Buffers: shared hit=1502
+                                            ->  Sort  (cost=26.64..26.66 rows=8 width=21) (actual rows=11 loops=1)
+                                                  Sort Key: d.unit_id
+                                                  Sort Method: quicksort  Memory: 25kB
+                                                  Buffers: shared hit=1502
+                                                  ->  Seq Scan on dues d  (cost=8.15..26.52 rows=8 width=21) (actual rows=11 loops=1)
+                                                        Filter: ((status <> 'VOID'::text) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'finance.dues.read'::text) OR work_order_cost_member_can_read_due(d.*) OR ((source_type = 'LEASE_RENT'::text) AND (ANY (source_id = (hashed SubPlan 2).col1))) OR ((source_type = 'INSTALLMENT_PLAN'::text) AND (ANY (source_id = (hashed SubPlan 7).col1))) OR (organization_is_active(organization_id) AND (ANY (unit_id = (hashed SubPlan 8).col1)))))
+                                                        Rows Removed by Filter: 2
+                                                        Buffers: shared hit=1499
+                                                        SubPlan 2
+                                                          ->  Seq Scan on unit_leases  (cost=0.00..0.00 rows=1 width=16) (actual rows=0 loops=1)
+                                                                Filter: ((has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.leases.manage'::text) OR ((tenant_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (tenant_member_id = current_member_id()))
+                                                        SubPlan 7
+                                                          ->  Nested Loop  (cost=0.00..0.01 rows=1 width=16) (actual rows=0 loops=1)
+                                                                Join Filter: (pi.plan_id = p_4.id)
+                                                                ->  Seq Scan on plan_installments pi  (cost=0.00..0.00 rows=1 width=32) (actual rows=0 loops=1)
+                                                                      Filter: (EXISTS(SubPlan 3) OR EXISTS(SubPlan 5))
+                                                                      SubPlan 3
+                                                                        ->  Seq Scan on installment_plans p_2  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                                              Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text)))
+                                                                      SubPlan 5
+                                                                        ->  Seq Scan on installment_plans p_3  (cost=0.00..0.00 rows=1 width=0) (never executed)
+                                                                              Filter: ((id = pi.plan_id) AND (has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.view'::text) OR has_permission((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid, organization_id, 'property.installments.manage'::text) OR ((buyer_member_id = current_member_id()) AND organization_is_active(organization_id))) AND organization_is_active(organization_id) AND (buyer_member_id = current_member_id()))
+                                                                ->  Seq Scan on installment_plans p_4  (cost=0.00..0.00 rows=1 width=16) (never executed)
+

@@ -167,16 +167,27 @@ export async function updateRolePermissionsAction(
     return { ok: false, error: scopeCheck.error };
   }
 
-  // The database function performs delete + insert in one transaction. Calling it
-  // through the service client is intentional: all user/tenant/ceiling checks
-  // above run with the signed-in user's identity before this narrow DB operation.
+  // The database function performs delete + insert in one transaction. The service
+  // client only carries the call: the function re-proves the REQUESTER (p_actor_user_id)
+  // inside the transaction -- active membership, tenant.roles.manage, role ownership,
+  // owner-role rules and the no-amplification ceiling -- so a compromised or mistaken
+  // server path cannot turn service_role into an authorization bypass.
   const { error: replaceErr } = await adminClient.rpc("replace_role_permissions_atomic", {
     p_organization_id: organizationId,
     p_role_id: roleId,
     p_permission_ids: permissionIds,
+    p_actor_user_id: currentUser.id,
   });
 
-  if (replaceErr) return { ok: false, error: replaceErr.message };
+  if (replaceErr) {
+    // The 4-argument function is not installed yet (application deployed ahead of the migration).
+    // Fail closed: never fall back to the retired 3-argument signature, which has no actor check.
+    // See docs/runbooks/role-permissions-signature-rollout.md.
+    if (replaceErr.code === "PGRST202" || replaceErr.code === "42883") {
+      return { ok: false, error: "role_service_upgrading" };
+    }
+    return { ok: false, error: replaceErr.message };
+  }
 
   // Write audit trail
   await logAuditTrail(adminClient, {

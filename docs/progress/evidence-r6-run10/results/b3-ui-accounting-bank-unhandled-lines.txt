@@ -1,0 +1,20 @@
+$ tests/e2e/accounting-bank-unhandled-lines.spec.ts
+label=b3-ui-accounting-bank-unhandled-lines
+exit=0
+elapsed_ms=144933
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\accounting-bank-unhandled-lines.spec.ts:67:5 › X1 a zero difference with an unbooked bank line is refused by the database and the screen (28.7s)
+  ok 2 tests\e2e\accounting-bank-unhandled-lines.spec.ts:83:5 › X2 there is no explain / defer exception anywhere: not on the screen, not in the database (11.2s)
+  ok 3 tests\e2e\accounting-bank-unhandled-lines.spec.ts:100:5 › X3 deferring the fee to April is rejected in every form: waving it through, deleting it, falsifying the statement (942ms)
+  ok 4 tests\e2e\accounting-bank-unhandled-lines.spec.ts:131:5 › X4 the only way through: book the fee, post it, match the line, then finalize (55.8s)
+
+  4 passed (1.9m)
+(node:16704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

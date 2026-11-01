@@ -1,0 +1,15 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (24.2s)
+  ok 2 tests\e2e\fixed-assets.spec.ts:190:5 › a reader sees the register without the controls, and someone with neither permission is told so (13.0s)
+  ok 3 tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing (10.7s)
+  ok 4 tests\e2e\fixed-assets.spec.ts:276:5 › a run-depreciation form that names another organization is refused and posts nothing (8.8s)
+
+  4 passed (59.9s)
+

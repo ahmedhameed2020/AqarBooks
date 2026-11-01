@@ -1,0 +1,19 @@
+$ tests/e2e/einvoice-flow.spec.ts
+label=b3-ui-einvoice-flow
+exit=0
+elapsed_ms=67274
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register (42.3s)
+
+  1 passed (49.0s)
+(node:29544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

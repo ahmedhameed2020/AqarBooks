@@ -1,0 +1,40 @@
+
+> aqarbooks@0.1.0 demo:e2e
+> node scripts/demo-local/e2e.mjs tests/e2e/accounting-journey.spec.ts tests/e2e/accounting-void-permission.spec.ts tests/e2e/accounting-receivable-default.spec.ts tests/e2e/accounting-duplicates.spec.ts
+
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 29 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok  1 tests\e2e\accounting-duplicates.spec.ts:65:5 › D1 a second opening balance for the same client and unit is refused and changes nothing (20.2s)
+  ok  2 tests\e2e\accounting-duplicates.spec.ts:80:5 › D2 issuing the identical due twice creates only one (19.7s)
+  ok  3 tests\e2e\accounting-duplicates.spec.ts:107:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt (14.0s)
+  ok  4 tests\e2e\accounting-duplicates.spec.ts:129:5 › D4 a reversed receipt cannot be reversed twice (12.9s)
+  ok  5 tests\e2e\accounting-duplicates.spec.ts:148:5 › D5 replaying a payment call with the same idempotency key returns the same payment and posts nothing new (881ms)
+  ok  6 tests\e2e\accounting-journey.spec.ts:73:5 › S1 opening balance 10,000 dated before the report period (12.1s)
+  ok  7 tests\e2e\accounting-journey.spec.ts:94:5 › S2 new due 2,000 inside the period (11.5s)
+  ok  8 tests\e2e\accounting-journey.spec.ts:139:5 › S3 receipt #1: 1,500 on 2026-02-10 (16.4s)
+  ok  9 tests\e2e\accounting-journey.spec.ts:149:5 › S4 receipt #2: 500 on 2026-02-12 (16.6s)
+  ok 10 tests\e2e\accounting-journey.spec.ts:159:5 › S5 reverse receipt #2 in full (12.9s)
+  ok 11 tests\e2e\accounting-journey.spec.ts:180:5 › V1 dues list: remaining 10,500 = opening due 10,000 + new due 500 (8.6s)
+  ok 12 tests\e2e\accounting-journey.spec.ts:198:5 › V2 receipts: #1 posted 1,500, #2 reversed 500 and still visible; collections KPI 1,500 (12.1s)
+  ok 13 tests\e2e\accounting-journey.spec.ts:211:5 › V3 owner statement: collected 1,500, outstanding 10,500 (7.9s)
+  ok 14 tests\e2e\accounting-journey.spec.ts:223:5 › V4 general ledger shows the reversed original AND its mirror: 1130 closes at 10,500, 1110 at 1,500 (18.2s)
+  ok 15 tests\e2e\accounting-journey.spec.ts:241:5 › V5 trial balance 2026: opening + movement = closing, balanced in all three, prior balance carried in (8.4s)
+  ok 16 tests\e2e\accounting-journey.spec.ts:262:5 › V5b trial balance for a period that starts mid-year: balance-sheet accounts carry, income accounts open year-to-date (7.2s)
+  ok 17 tests\e2e\accounting-journey.spec.ts:274:5 › V5c trial balance starting in a fiscal year the organization has not defined: earlier result on an explicit unclosed line (8.8s)
+  ok 18 tests\e2e\accounting-journey.spec.ts:291:5 › V6 income statement, balance sheet, cash flow and aging agree with the ledger (23.6s)
+  ok 19 tests\e2e\accounting-journey.spec.ts:322:5 › V7 ledger integrity: balanced entries, reversal mirrors the original, sub-ledger = ledger, audit chain intact (249ms)
+  ok 20 tests\e2e\accounting-journey.spec.ts:383:5 › V8 audit trail screen: the auditor sees the journey's events; the accountant sees the financial chain only (19.3s)
+  ok 21 tests\e2e\accounting-receivable-default.spec.ts:78:5 › R1 issue_dues refuses a missing, foreign, non-asset, group or inactive receivable account (413ms)
+  ok 22 tests\e2e\accounting-receivable-default.spec.ts:103:5 › R2 with no approved setting the receivable field is empty, a notice is shown, and an unchosen submit creates nothing (8.3s)
+  ok 23 tests\e2e\accounting-receivable-default.spec.ts:121:5 › R3 the owner chooses 1130 explicitly and approves it as the default; the due posts to 1130 (14.0s)
+  ok 24 tests\e2e\accounting-receivable-default.spec.ts:141:5 › R4 afterwards the accountant gets 1130 preselected and issues without touching the field (11.8s)
+  ok 25 tests\e2e\accounting-receivable-default.spec.ts:161:5 › R5 who may read and who may set the approved account (1.4s)
+  ok 26 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (47ms)
+  ok 27 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (8.4s)
+  ok 28 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (13.5s)
+  ok 29 tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous (1.2s)
+
+  29 passed (5.5m)

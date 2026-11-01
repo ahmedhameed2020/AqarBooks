@@ -1,0 +1,3 @@
+INSERT 0 2
+psql:/tmp/retry_seed.sql:7: ERROR:  duplicate key value violates unique constraint "journal_entries_pkey"
+DETAIL:  Key (id)=(cccccccc-0000-4000-8000-00000000f118) already exists.

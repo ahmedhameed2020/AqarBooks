@@ -1,0 +1,3 @@
+@echo off
+start "" /wait /b "%KIMI_DESKTOP_RUNTIME_NODE%" "%KIMI_DESKTOP_PROCESS_RUNNER%" "2b046181-abed-4010-a54b-c82db1325750" "%~n0" %*
+exit /b %errorlevel%

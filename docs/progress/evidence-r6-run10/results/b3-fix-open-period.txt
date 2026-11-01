@@ -1,0 +1,61 @@
+$ tests/e2e/accounting-open-period-required.spec.ts
+label=b3-fix-open-period
+exit=1
+elapsed_ms=258050
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\accounting-open-period-required.spec.ts:82:5 › O0 the FIRST opening balance of an organization, refused: the due type and the equity account it would create are rolled back too (2.6s)
+  ok 2 tests\e2e\accounting-open-period-required.spec.ts:90:5 › O1 control: with an OPEN period both operations post their journal entry (1.4s)
+  ok 3 tests\e2e\accounting-open-period-required.spec.ts:110:5 › O2/O3 an opening balance is refused atomically for a missing, planned and closed period (2.3s)
+  ok 4 tests\e2e\accounting-open-period-required.spec.ts:120:5 › O2/O3 a due is refused atomically for a missing, planned and closed period; a batch creates none (3.2s)
+  x  5 tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing (3.0m)
+  -  6 tests\e2e\accounting-open-period-required.spec.ts:167:5 › O4 once the period is opened the same operation succeeds and posts
+
+
+  1) tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-slot="dialog-content"][data-open]').getByRole('alert')
+    Expected pattern: /No fiscal period covers the issue date/
+    Received string:  "The data could not be loaded. Please try again."
+    Timeout: 60000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 60000ms
+      - waiting for locator('[data-slot="dialog-content"][data-open]').getByRole('alert')
+        95 × locator resolved to <div role="alert" class="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-300">…</div>
+           - unexpected value "The data could not be loaded. Please try again."
+
+
+      148 |   await dialog.getByRole("button", { name: /Issue Due & Post/i }).click();
+      149 |   // the dialog maps the RPC code to an actionable bilingual message (raw DB codes never reach the UI)
+    > 150 |   await expect(dialog.getByRole("alert")).toContainText(/No fiscal period covers the issue date/, { timeout: 60_000 });
+          |                                           ^
+      151 |   await page.screenshot({ path: "docs/audits/phase2-evidence/screens/70-issue-due-no-fiscal-period.png" });
+      152 |   expect(await snapshot()).toEqual(before);
+      153 |
+        at D:\Web\AqarBooks\tests\e2e\accounting-open-period-required.spec.ts:150:43
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fix-open-period-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fix-open-period-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fix-open-period-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+  1 did not run
+  4 passed (3.8m)
+(node:36812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

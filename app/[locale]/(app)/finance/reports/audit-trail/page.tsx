@@ -59,27 +59,88 @@ export default async function AuditTrailPage({
   }
 
   const supabase = await createClient();
+  const canAudit = await hasPermission(organization.id, "finance.audit.read");
 
-  // Fetch audit logs
-  const { data: auditData } = await supabase
-    .from("platform_audit_logs")
-    .select("id, actor_id, action, entity_type, entity_id, reason, safe_change_summary, created_at, profiles(full_name)")
-    .eq("organization_id", organization.id)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  // Two sources, each readable only by the people its own policy allows:
+  //  * financial_audit_logs  - the hash-chained financial events (opening balances, dues, reversals):
+  //                            finance.audit.read OR finance.reports.read
+  //  * platform_audit_logs   - administrative events of this organization (roles, users, periods...):
+  //                            finance.audit.read only
+  const [financial, platform] = await Promise.all([
+    supabase
+      .from("financial_audit_logs")
+      .select("id, actor_user_id, action, entity_type, entity_id, metadata, occurred_at")
+      .eq("organization_id", organization.id)
+      .order("occurred_at", { ascending: false })
+      .limit(100),
+    canAudit
+      ? supabase
+          .from("platform_audit_logs")
+          .select("id, actor_id, action, entity_type, entity_id, reason, safe_change_summary, created_at")
+          .eq("organization_id", organization.id)
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
-  const items: AuditTrailItem[] = (auditData || []).map((log) => {
-    const profile = log.profiles as unknown as { full_name?: string } | null;
-    return {
-      id: log.id,
+  // A failed read must not look like "no events": say so instead of rendering an empty table.
+  if (financial.error || platform.error) {
+    return (
+      <div role="alert" data-testid="audit-error" className="p-8 text-center space-y-2">
+        <AlertCircle className="mx-auto size-8 text-rose-600" />
+        <p className="text-sm font-bold text-slate-900 dark:text-white">
+          {isAr ? "تعذّر تحميل سجل التدقيق" : "The audit trail could not be loaded"}
+        </p>
+        <p className="text-xs text-slate-500">{isAr ? "لم يُعرض أي سجل." : "No records are shown."}</p>
+      </div>
+    );
+  }
+
+  const actorIds = [
+    ...new Set([
+      ...(financial.data ?? []).map((l) => l.actor_user_id),
+      ...(platform.data ?? []).map((l) => l.actor_id),
+    ].filter((v): v is string => Boolean(v))),
+  ];
+  const names = new Map<string, string>();
+  if (actorIds.length) {
+    const { data: actors } = await supabase.rpc("get_audit_actor_names", {
+      p_organization_id: organization.id,
+      p_actor_ids: actorIds,
+    });
+    for (const a of actors ?? []) if (a.full_name) names.set(a.id, a.full_name);
+  }
+  const actorName = (id: string | null) =>
+    id ? names.get(id) ?? (isAr ? "مستخدم آخر" : "Another user") : isAr ? "النظام الآلي (System)" : "System";
+
+  // Financial-chain actions are UPPER_SNAKE_CASE (PAYMENT_REVERSED); the report's filters and badges match
+  // dotted lower-case verbs (payment.reversed), so normalise them.
+  const normaliseAction = (a: string) => a.toLowerCase().replace(/_([a-z]+)$/, ".$1").replace(/_/g, ".");
+  const reasonOf = (meta: unknown) => {
+    const m = (meta ?? {}) as { reason?: string };
+    return m.reason?.trim() || "";
+  };
+
+  const items: AuditTrailItem[] = [
+    ...(financial.data ?? []).map((log) => ({
+      id: `fin-${log.id}`,
+      action: normaliseAction(log.action),
+      entityType: String(log.entity_type).toLowerCase(),
+      entityId: log.entity_id || "—",
+      actorName: actorName(log.actor_user_id),
+      reason: reasonOf(log.metadata) || (isAr ? "حدث مالي مسجّل في السلسلة المحمية" : "Financial event on the protected chain"),
+      timestamp: log.occurred_at ? log.occurred_at.replace("T", " ").slice(0, 19) : "—",
+    })),
+    ...(platform.data ?? []).map((log) => ({
+      id: `plat-${log.id}`,
       action: log.action,
       entityType: log.entity_type,
       entityId: log.entity_id || "—",
-      actorName: profile?.full_name || "النظام الآلي (System)",
+      actorName: actorName(log.actor_id),
       reason: log.reason || (isAr ? "إجراء إداري معتمد" : "Standard operational update"),
       timestamp: log.created_at ? log.created_at.replace("T", " ").slice(0, 19) : "—",
-    };
-  });
+    })),
+  ].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   return (
     <AuditTrailClient

@@ -1,0 +1,37 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/gate-hardware-outbox-migration.test.ts (11 tests | 1 failed) 53105ms
+     × enqueues once for the original allow; DENY and manual evidence cannot enqueue 16927ms
+(node:17372) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gate-hardware-outbox-migration.test.ts > hardware outbox database > enqueues once for the original allow; DENY and manual evidence cannot enqueue
+AssertionError: expected '' to be 'DEAD|NOT_CONFIGURED' // Object.is equality
+
+- Expected
++ Received
+
+- DEAD|NOT_CONFIGURED
+
+ ❯ tests/gate-hardware-outbox-migration.test.ts:66:117
+     64|     expect(sql(`select row_to_json(c) from public.gate_hardware_comman…
+     65|     const rows = claim(); for (const row of rows) complete(row.id, row…
+     66|     expect(sql(`select status||'|'||result_code from public.gate_hardw…
+       |                                                                                                                     ^
+     67|   });
+     68|   it("concurrent workers cannot claim the same event and stale leases …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 20 passed (21)
+      Tests  1 failed | 254 passed (255)
+   Start at  08:26:30
+   Duration  344.68s (transform 808ms, setup 681ms, import 5.13s, tests 333.06s, environment 9ms)
+

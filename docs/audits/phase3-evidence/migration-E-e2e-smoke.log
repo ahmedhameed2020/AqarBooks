@@ -1,0 +1,22 @@
+
+> aqarbooks@0.1.0 demo:e2e
+> node scripts/demo-local/e2e.mjs tests/e2e/portal-refusals.spec.ts tests/e2e/accounting-void-permission.spec.ts tests/e2e/negative-probes/client-url-attempt.spec.ts
+
+◇ injected env (6) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 10 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok  1 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (265ms)
+  ok  2 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (11.4s)
+  ok  3 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (13.2s)
+  ok  4 tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous (931ms)
+  -   5 tests\e2e\negative-probes\client-url-attempt.spec.ts:11:5 › builds a client for a URL that differs from the verified target
+  ok  6 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (20.1s)
+  ok  7 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (25.3s)
+  ok  8 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (19.0s)
+  ok  9 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3) (12.2s)
+  ok 10 tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (5.0s)
+
+  1 skipped
+  9 passed (2.2m)

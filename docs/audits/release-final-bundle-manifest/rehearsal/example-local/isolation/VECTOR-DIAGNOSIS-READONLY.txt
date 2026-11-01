@@ -1,0 +1,13 @@
+supabase_vector_aqarbooks: read-only diagnosis (no restart, no change). 2026-10-23.
+State: restarting, RestartCount 262, RestartPolicy unless-stopped, exit code 0 at each exit, no OOM, no mounts, not on the project's published ports.
+Probable cause (strong evidence, not a live reproduction of Docker's side):
+  - Config env DOCKER_HOST=http://host.docker.internal:2375 (Docker's unauthenticated TCP API).
+  - Log: the docker_logs source repeatedly fails "Listing currently running containers failed ... ConnectionRefused (111)";
+    then "All sources have finished" and "Vector has stopped"; the restart policy starts it again. 41,710 such failures in the log.
+  - First log line 2026-09-14 (the loop started with a configuration that expects the TCP API).
+  - A read-only probe from the host to 127.0.0.1:2375 is closed; the Docker engine does not expose that TCP API.
+Probable fix (for the owner to decide; NOT applied):
+  - Either enable the Docker TCP API on this engine (a Docker Desktop setting; affects every container's Docker host access; needs a decision),
+  - or change the vector config to read logs from the mounted socket (/var/run/docker.sock), which the container does not have today,
+  - or stop/disable this container (it is not part of AqarBooks' database path; its only job is log shipping).
+Impact on AqarBooks database and tests: none observed (the DB, auth, rest, kong containers are healthy; vector is a log-shipper).

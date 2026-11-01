@@ -1,0 +1,5 @@
+# waits/locks while 24 page queries ran on the stack (143s wall), 124 samples of pg_stat_activity (active view queries) and pg_locks
+wait_event samples of active view queries (CPU/none = running on CPU, no wait):
+  CPU/none:-: 109
+samples by number of NOT GRANTED locks (key = count):
+  0: 124

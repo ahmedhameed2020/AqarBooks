@@ -1,0 +1,22 @@
+JSON columns review (16 json/jsonb columns of the public schema), TEST data only: rule used, allowlisted paths, and a row-by-row check source vs restored
+check = for every row the restored value contains ONLY entries that are identical in the source, and (kept + dropped) = source entries, where dropped is reported in "_redacted". Violations must be 0.
+
+credit_notes.decision_snapshot | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+due_schedules.amount_by_unit_type | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+due_schedules.scope | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+einvoice_submission_attempts.request_summary | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+einvoice_submission_attempts.response_summary | rule BLOB | exported as {} (nullness kept); nothing from the source value survives
+financial_audit_logs.metadata | rule JSONALLOW | allowlisted paths 15 | rows 1708/1708 | entries kept 10385, dropped 1102 (rows with drops 370) | violations 0
+input_tax_decisions.decision_snapshot | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+member_saved_filters.query | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+onboarding_request_events.metadata | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+online_payment_events.redacted_payload | rule BLOB | exported as {} (nullness kept); nothing from the source value survives
+online_payment_transactions.provider_payload | rule BLOB | exported as {} (nullness kept); nothing from the source value survives
+payment_credit_requests.result | rule JSONALLOW | allowlisted paths 10 | rows 2076/2076 | entries kept 9480, dropped 747 (rows with drops 747) | violations 0
+plan_entitlements.value | rule JSONALLOW | allowlisted paths 2 | rows 57/57 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+platform_audit_logs.safe_change_summary | rule JSONALLOW | allowlisted paths 49 | rows 58276/58276 | entries kept 54160, dropped 27187 (rows with drops 26893) | violations 0
+property_import_logs.failures | rule JSONALLOW | allowlisted paths 2 | rows 8/8 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+tax_decisions.tax_decision_snapshot | rule JSONALLOW | allowlisted paths 0 | rows 0/0 | entries kept 0, dropped 0 (rows with drops 0) | violations 0
+
+Columns with 0 rows in the test data cannot be shown by data; they are covered by the rule and by the trap test (json-trap-test.txt).
+TOTAL violations: 0

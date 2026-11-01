@@ -1,0 +1,56 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (15.9s)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 2 tests\e2e\fixed-assets.spec.ts:190:5 › a reader sees the register without the controls, and someone with neither permission is told so (15.1s)
+  ok 3 tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing (10.3s)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Error: a new asset carries its full cost
+
+    expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('row').filter({ hasText: 'FA-25897647' })
+    Expected: "12000"
+    Received: ""
+    Timeout:  5000ms
+
+    Call log:
+      - a new asset carries its full cost with timeout 5000ms
+      - waiting for getByRole('row').filter({ hasText: 'FA-25897647' })
+        13 × locator resolved to <tr class="group transition-colors hover:bg-slate-50/90 ">…</tr>
+           - unexpected value "null"
+
+
+      143 |     const row = page.getByRole("row").filter({ hasText: code });
+      144 |     await expect(row).toBeVisible({ timeout: 40_000 });
+    > 145 |     await expect(row, "a new asset carries its full cost").toHaveAttribute("data-nbv", "12000");
+          |                                                            ^
+      146 |     await expect(row).toHaveAttribute("data-status", "ACTIVE");
+      147 |
+      148 |     // Post one period. The book value must fall by exactly one instalment.
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:145:60
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-rebuild\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-rebuild\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-rebuild\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+  2 passed (48.8s)
+

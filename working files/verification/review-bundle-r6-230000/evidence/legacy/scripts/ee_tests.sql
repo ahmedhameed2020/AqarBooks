@@ -1,0 +1,18 @@
+\set ON_ERROR_STOP 0
+begin;
+insert into journal_entries(id,organization_id,fiscal_period_id,entry_date,description,source_type,status) values ('dddddddd-0000-4000-8000-0000000000a1','11111111-1111-4111-8111-111111111111','57c9ef44-56e4-491c-b3a8-2402a3b8d185','2026-03-07','E draft 600','JOURNAL_VOUCHER','DRAFT');
+insert into journal_entry_lines(journal_entry_id,line_number,account_id,debit,credit,project_id) values ('dddddddd-0000-4000-8000-0000000000a1',1,'aaaaaaa1-0000-4000-8000-000000000001',0,600,'bbbbbbb1-0000-4000-8000-000000000208'),('dddddddd-0000-4000-8000-0000000000a1',2,'aaaaaaa1-0000-4000-8000-000000000003',600,0,null);
+commit;
+select 'P5-after-draft600 net='||(wip_balance+coalesce((select sum(l.debit-l.credit) from journal_entry_lines l join journal_entries je on je.id=l.journal_entry_id where l.project_id='bbbbbbb1-0000-4000-8000-000000000208' and l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and je.status not in ('POSTED','REVERSED')),0)) from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');
+update journal_entries set status='UNDER_REVIEW' where id='dddddddd-0000-4000-8000-0000000000a1';
+select 'P5-after-UNDER_REVIEW net='||(wip_balance+coalesce((select sum(l.debit-l.credit) from journal_entry_lines l join journal_entries je on je.id=l.journal_entry_id where l.project_id='bbbbbbb1-0000-4000-8000-000000000208' and l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and je.status not in ('POSTED','REVERSED')),0)) from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');
+update journal_entries set status='POSTED' where id='dddddddd-0000-4000-8000-0000000000a1';
+select 'P5-after-POSTED net='||(wip_balance+coalesce((select sum(l.debit-l.credit) from journal_entry_lines l join journal_entries je on je.id=l.journal_entry_id where l.project_id='bbbbbbb1-0000-4000-8000-000000000208' and l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and je.status not in ('POSTED','REVERSED')),0)) from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');
+begin;
+insert into journal_entries(id,organization_id,fiscal_period_id,entry_date,description,source_type,status) values ('dddddddd-0000-4000-8000-0000000000a2','11111111-1111-4111-8111-111111111111','57c9ef44-56e4-491c-b3a8-2402a3b8d185','2026-03-08','E draft 300 to be cancelled','JOURNAL_VOUCHER','DRAFT');
+insert into journal_entry_lines(journal_entry_id,line_number,account_id,debit,credit,project_id) values ('dddddddd-0000-4000-8000-0000000000a2',1,'aaaaaaa1-0000-4000-8000-000000000001',0,300,'bbbbbbb1-0000-4000-8000-000000000208'),('dddddddd-0000-4000-8000-0000000000a2',2,'aaaaaaa1-0000-4000-8000-000000000003',300,0,null);
+commit;
+select 'P5-after-draft300 net='||(wip_balance+coalesce((select sum(l.debit-l.credit) from journal_entry_lines l join journal_entries je on je.id=l.journal_entry_id where l.project_id='bbbbbbb1-0000-4000-8000-000000000208' and l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and je.status not in ('POSTED','REVERSED')),0)) from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');
+update journal_entries set status='REVERSED' where id='dddddddd-0000-4000-8000-0000000000a2';
+select 'P5 report after cancelling draft300 by status=REVERSED (no reversal line): cap='||capitalised||' rel='||released||' wip='||wip_balance from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');
+select 'P5-after-cancel-by-status net='||(wip_balance+coalesce((select sum(l.debit-l.credit) from journal_entry_lines l join journal_entries je on je.id=l.journal_entry_id where l.project_id='bbbbbbb1-0000-4000-8000-000000000208' and l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and je.status not in ('POSTED','REVERSED')),0)) from project_wip_summary('bbbbbbb1-0000-4000-8000-000000000208');

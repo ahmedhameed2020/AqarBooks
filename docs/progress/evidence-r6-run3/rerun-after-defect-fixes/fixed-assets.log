@@ -1,0 +1,81 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (54.6s)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 2 tests\e2e\fixed-assets.spec.ts:190:5 › a reader sees the register without the controls, and someone with neither permission is told so (17.7s)
+  x  3 tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing (3.0m)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('row').filter({ hasText: 'FA-24772673' })
+    Expected: visible
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'FA-24772673' })
+
+
+      142 |
+      143 |     const row = page.getByRole("row").filter({ hasText: code });
+    > 144 |     await expect(row).toBeVisible({ timeout: 40_000 });
+          |                       ^
+      145 |     await expect(row, "a new asset carries its full cost").toHaveAttribute("data-nbv", "12000");
+      146 |     await expect(row).toHaveAttribute("data-status", "ACTIVE");
+      147 |
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:144:23
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing 
+
+    Test timeout of 180000ms exceeded.
+
+    Error: locator.evaluate: Test ended.
+    Call log:
+      - waiting for locator('input[name="organizationId"]')
+
+
+      259 |
+      260 |     // Tamper: the hidden field now names the foreign organization.
+    > 261 |     await page.locator('input[name="organizationId"]').evaluate((el, v) => {
+          |                                                        ^
+      262 |       (el as HTMLInputElement).value = v;
+      263 |     }, other!.id as string);
+      264 |     await page.getByRole("button", { name: /Register asset/i }).click();
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:261:56
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-a-register-fo-094a3--refused-and-writes-nothing\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-a-register-fo-094a3--refused-and-writes-nothing\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-defect-fixes\fixed-assets-artifacts\fixed-assets-a-register-fo-094a3--refused-and-writes-nothing\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+    tests\e2e\fixed-assets.spec.ts:229:5 › a register form that names another organization is refused and writes nothing 
+  1 passed (4.6m)
+

@@ -1,0 +1,19 @@
+$ tests/year-closing-wizard-honesty.test.ts
+label=batch3-closing-journey-green
+exit=0
+elapsed_ms=5529
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ✓ tests/year-closing-wizard-honesty.test.ts (9 tests) 21ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  15:01:32
+   Duration  1.00s (transform 223ms, setup 346ms, import 72ms, tests 21ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch3-closing-journey-green.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

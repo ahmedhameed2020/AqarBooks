@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 config({ path: ".env.local" });
 
@@ -74,42 +75,38 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
       .single();
     expect(revErr).toBeNull();
 
-    // NOTE: fiscal year / period fixture provisioning does NOT use the
-    // create_fiscal_year / set_fiscal_period_status RPCs here. Those RPCs
-    // check has_permission(auth.uid(), ...), and auth.uid() is always null
-    // under a service-role JWT (no `sub` claim), so they raise 42501 "not
-    // authorized" every time under this test's `admin` client. Inserting
-    // directly into fiscal_years/fiscal_periods with status: 'OPEN' bypasses
-    // that RPC-level permission check the way a service-role client
-    // legitimately can (RLS/function auth checks don't apply to a
-    // service-role client's own direct table writes) -- same pattern used by
-    // tests/record-online-payment-concurrency.integration.test.ts's beforeAll.
-    const { data: fiscalYear, error: yearErr } = await admin
-      .from("fiscal_years")
-      .insert({
-        organization_id: orgId,
-        name: "2026",
-        start_date: "2026-01-01",
-        end_date: "2026-12-31",
-        status: "OPEN",
-      })
-      .select("id")
-      .single();
-    expect(yearErr).toBeNull();
+    // Fiscal calendar through the product RPCs. create_fiscal_year / set_fiscal_period_status check
+    // has_permission(auth.uid(), ...), and auth.uid() is null under a service-role JWT (42501), so the
+    // calendar is created by a real TENANT_OWNER session (same pattern as test 12). Direct writes to
+    // fiscal_years/fiscal_periods are refused by the status guard.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
+    expect(cloneErr).toBeNull();
+    const { data: ownerRole } = await admin
+      .from("roles").select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
+    expect(ownerRole?.id).toBeDefined();
+    const ownerPassword = "PgTAP_Test_P@ssw0rd_2026!";
+    const ownerEmail = `pgtap-phase3-owner-${Date.now()}@aqarbooks-test.local`;
+    const { data: ownerUser, error: createOwnerErr } = await admin.auth.admin.createUser({
+      email: ownerEmail, password: ownerPassword, email_confirm: true,
+    });
+    expect(createOwnerErr).toBeNull();
+    const ownerId = ownerUser!.user!.id;
+    expect((await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: ownerId, status: "active" })).error).toBeNull();
+    expect((await admin.from("user_role_assignments").insert({ user_id: ownerId, role_id: ownerRole!.id, organization_id: orgId })).error).toBeNull();
+    const ownerClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    expect((await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: ownerPassword })).error).toBeNull();
 
+    await createOpenFiscalYear(admin, ownerClient, {
+      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
+    });
+    // The entry below is dated 2026-01-15, so the period under test is the monthly period containing it.
     const { data: period, error: periodErr } = await admin
-      .from("fiscal_periods")
-      .insert({
-        organization_id: orgId,
-        fiscal_year_id: fiscalYear!.id,
-        period_number: 1,
-        name: "2026 — Full Year",
-        start_date: "2026-01-01",
-        end_date: "2026-12-31",
-        status: "OPEN",
-      })
-      .select("id")
-      .single();
+      .from("fiscal_periods").select("id")
+      .eq("organization_id", orgId).lte("start_date", "2026-01-15").gte("end_date", "2026-01-15").single();
     expect(periodErr).toBeNull();
 
     // NOTE: this calls create_journal_entry_internal / post_journal_entry_internal
@@ -990,6 +987,8 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
         name_en: "Test Cashbox GL Account",
         category: "ASSET",
         normal_balance: "DEBIT",
+        // a cash box GL account must be cash-like (migration 20261018100000 validates the link)
+        is_cash_equivalent: true,
       })
       .select("id")
       .single();
@@ -2441,11 +2440,31 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
     // real signed-in session: proves substitution 1 (both the v_due.property_id
     // -> v_due.property_id reassignment/comparison, and the online_payment_
     // transactions INSERT column list).
+    // Current contract (migration 20260924072325, 5 parameters): the checkout needs an ENABLED, verified provider-settings row of the same
+    // organization (and property or organization-wide) with a merchant identifier, an environment, and a client request id.
+    const { data: providerSettings, error: providerSettingsErr } = await admin
+      .from("payment_provider_settings")
+      .insert({
+        organization_id: orgId,
+        property_id: resortId,
+        provider: "FAWRY",
+        environment: "SANDBOX",
+        merchant_identifier: "pgtap-merchant",
+        status: "ENABLED",
+        enabled: true,
+        verified_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    expect(providerSettingsErr).toBeNull();
     const { data: checkoutData, error: checkoutErr } = await memberClient.rpc(
       "create_online_payment_checkout_transaction",
       {
         p_due_ids: [dueId],
         p_provider: "FAWRY",
+        p_environment: "SANDBOX",
+        p_provider_settings_id: providerSettings!.id,
+        p_client_request_id: `pgtap-${Date.now()}`,
       },
     );
     expect(checkoutErr).toBeNull();
@@ -2569,30 +2588,34 @@ describe("Supabase pgTAP & Database SQL Integrity Suite", () => {
       p_payment_id: paymentId,
       p_reason: "pgTAP payments-dues-core-cluster void test",
     });
-    expect(voidResult).toBeNull();
-    expect(voidErr).not.toBeNull();
-    expect(voidErr?.code).toBe("23514");
-    expect(voidErr?.message).toMatch(/check_audit_action/);
+    // CURRENT CONTRACT (migration 20261009130000 re-added PAYMENT_REVERSED to check_audit_action and 20261017100100 rewrote void_payment): the
+    // void SUCCEEDS. This test used to assert the old defect (23514 on check_audit_action, everything rolled back); that defect is fixed, so the
+    // property_id proof now runs to the end: the payment is REVERSED, its reversal entry exists, and exactly one PAYMENT_REVERSED audit row is added.
+    expect(voidErr).toBeNull();
+    expect(voidResult).toMatchObject({ success: true, payment_id: paymentId });
+    expect((voidResult as { reversal_journal_entry_id?: string }).reversal_journal_entry_id).toBeTruthy();
 
-    const { data: paymentAfterVoidAttempt, error: paymentAfterVoidAttemptErr } = await admin
+    const { data: paymentAfterVoid, error: paymentAfterVoidErr } = await admin
       .from("payments")
-      .select("status")
+      .select("status, reversal_journal_entry_id")
       .eq("id", paymentId)
       .single();
-    expect(paymentAfterVoidAttemptErr).toBeNull();
-    expect(paymentAfterVoidAttempt?.status).toBe("POSTED");
+    expect(paymentAfterVoidErr).toBeNull();
+    expect(paymentAfterVoid?.status).toBe("REVERSED");
+    expect(paymentAfterVoid?.reversal_journal_entry_id).toBeTruthy();
 
-    // Confirms the rollback claim directly rather than just asserting it in
-    // prose: if void_payment's transaction had actually committed anything
-    // before hitting the check constraint, the count would have increased by
-    // one (the PAYMENT_REVERSED row). It didn't -- the whole call, including
-    // the audit INSERT that failed, rolled back as one unit.
-    const { count: auditLogCountAfterVoidAttempt, error: auditLogCountAfterErr } = await admin
+    const { count: auditLogCountAfterVoid, error: auditLogCountAfterErr } = await admin
       .from("financial_audit_logs")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId);
     expect(auditLogCountAfterErr).toBeNull();
-    expect(auditLogCountAfterVoidAttempt).toBe(auditLogCountBeforeVoidAttempt);
+    expect(auditLogCountAfterVoid).toBe((auditLogCountBeforeVoidAttempt ?? 0) + 1);
+    const { count: reversedAuditRows } = await admin
+      .from("financial_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("action", "PAYMENT_REVERSED");
+    expect(reversedAuditRows).toBe(1);
 
     // Cleanup. This test creates more interlinked rows than any prior test
     // in this file. platform_audit_logs.property_id FKs to the resort (and

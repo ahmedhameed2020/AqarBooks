@@ -1,0 +1,23 @@
+$ tests/fixed-asset-disposal.integration.test.ts
+label=rel03-green-integration
+exit=0
+elapsed_ms=6928
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/fixed-asset-disposal.integration.test.ts
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+ ✓ tests/fixed-asset-disposal.integration.test.ts (8 tests) 2525ms
+     ✓ refuses a CASHIER  580ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  02:13:48
+   Duration  4.53s (transform 171ms, setup 234ms, import 1.43s, tests 2.53s, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/rel03-green-integration.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

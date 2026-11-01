@@ -55,12 +55,15 @@ export function JournalEntryForm({
   periods,
   currency = "EGP",
   locale,
+  aiAvailable = false,
 }: {
   organizationId: string;
   accounts: Account[];
   periods: Period[];
   currency?: string;
   locale: string;
+  /** the journal copilot is offered only when an AI provider is configured (lib/ai/availability.ts) */
+  aiAvailable?: boolean;
 }) {
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
@@ -130,11 +133,13 @@ export function JournalEntryForm({
       {/* ──────────────────────────────────────────────────────────────────────────
           0. AI JOURNAL COPILOT CARD (SMART RECOMMENDATIONS & POLICY MEMORY)
           ────────────────────────────────────────────────────────────────────────── */}
-      <JournalCopilotCard
-        organizationId={organizationId}
-        locale={locale}
-        onApplyProposal={handleApplyCopilotProposal}
-      />
+      {aiAvailable && (
+        <JournalCopilotCard
+          organizationId={organizationId}
+          locale={locale}
+          onApplyProposal={handleApplyCopilotProposal}
+        />
+      )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
           1. HEADER & META CARD

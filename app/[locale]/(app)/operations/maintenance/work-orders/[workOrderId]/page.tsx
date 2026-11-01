@@ -112,12 +112,12 @@ export default async function WorkOrderDetailPage({
     Boolean(canViewCosts)
       ? supabase.from("work_order_costs").select("id, cost_type, description, quantity, unit_cost, total_cost, currency, supplier_id, source_reference, financial_status, owner_charge_status, expense_id, supplier_invoice_id, owner_due_id, created_at").eq("work_order_id", wo.id).order("created_at", { ascending: false })
       : { data: [] },
-    supabase.from("expense_categories").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100),
-    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "EXPENSE").eq("is_active", true).order("code").limit(100),
-    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100),
-    supabase.from("fiscal_periods").select("id, name, start_date, end_date").eq("organization_id", organization.id).eq("status", "OPEN").order("start_date", { ascending: false }).limit(24),
-    supabase.from("due_types").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100),
-    supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100),
+    (Boolean(canManageCosts) || Boolean(canPostCosts)) ? supabase.from("expense_categories").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100) : { data: [] },
+    (Boolean(canManageCosts) || Boolean(canPostCosts)) ? supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "EXPENSE").eq("is_active", true).order("code").limit(100) : { data: [] },
+    (Boolean(canPostCosts)) ? supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100) : { data: [] },
+    (Boolean(canPostCosts)) ? supabase.from("fiscal_periods").select("id, name, start_date, end_date").eq("organization_id", organization.id).eq("status", "OPEN").order("start_date", { ascending: false }).limit(24) : { data: [] },
+    (Boolean(canChargeOwner)) ? supabase.from("due_types").select("id, name_ar, name_en").eq("organization_id", organization.id).eq("is_active", true).order("name_en").limit(100) : { data: [] },
+    (Boolean(canChargeOwner)) ? supabase.from("chart_of_accounts").select("id, code, name_ar, name_en").eq("organization_id", organization.id).eq("category", "ASSET").eq("is_active", true).order("code").limit(100) : { data: [] },
   ]);
 
   const userIds = (memberships ?? []).map((m) => m.user_id).filter(Boolean) as string[];

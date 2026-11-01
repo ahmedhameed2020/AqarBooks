@@ -1,0 +1,15 @@
+BEGIN
+INSERT 0 2
+INSERT 0 2
+INSERT 0 4
+COMMIT
+       ?column?       
+----------------------
+ PA initial=1000.0000
+(1 row)
+
+       ?column?       
+----------------------
+ PB initial=1000.0000
+(1 row)
+

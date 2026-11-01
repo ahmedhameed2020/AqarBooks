@@ -1,0 +1,23 @@
+▲ Next.js 16.3.0 (webpack)
+- Environments: .env.local, .env.production
+✓ Running next.config.ts took 2.4s
+Using secrets defined in .dev.vars
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 108s
+  Running TypeScript ...
+  Finished TypeScript in 2.5min ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/225) ...
+  Generating static pages using 7 workers (56/225) 
+  Generating static pages using 7 workers (112/225) 
+  Generating static pages using 7 workers (168/225) 
+✓ Generating static pages using 7 workers (225/225) in 13.9s
+  Finalizing page optimization ...
+  Collecting build traces ...

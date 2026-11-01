@@ -1,0 +1,96 @@
+PASS  tests/ai-journal-propose-route.test.ts  |  files: 1 passed (1)  |  tests: 15 passed (15)
+PASS  tests/amenity-bookings-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/backup-table-classification.test.ts  |  files: 1 passed (1)  |  tests: 15 passed (15)
+PASS  tests/bank-reconciliation-upgrade.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/buyer-identity.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/chart-of-accounts-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 2 passed (2)
+PASS  tests/credit-notes.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+FAIL  tests/demo-principal-capability.integration.test.ts  |  files: 1 failed (1)  |  tests: 13 skipped (13)
+       FAIL  tests/demo-principal-capability.integration.test.ts [ tests/demo-principal-capability.integration.test.ts ]
+      AssertionError: exactly one organization must carry is_demo = true: expected +0 to be 1 // Object.is equality
+PASS  tests/dunning.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/einvoice-emission.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/einvoice-pipeline.integration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/einvoice-tax-identity.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/exchange-rates.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/final-hardening-migration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+FAIL  tests/final-hardening.integration.test.ts  |  files: 1 failed (1)  |  tests: 1 skipped (1)
+       FAIL  tests/final-hardening.integration.test.ts > Final Hardening Sprint — local applied contracts
+      Error: Local Supabase integration requires NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321, SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY), and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE
+PASS  tests/finance-functions-authz.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/finance-report-authz.integration.test.ts  |  files: 1 passed (1)  |  tests: 30 passed (30)
+PASS  tests/financial-audit-actions.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+PASS  tests/financial-audit-constraint.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/fixed-asset-disposal.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/fixed-assets.integration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/fx-difference.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-completion-concurrency.integration.test.ts  |  files: 1 passed (1)  |  tests: 1 passed (1)
+PASS  tests/gate-completion-rollout.integration.test.ts  |  files: 1 passed (1)  |  tests: 1 passed (1)
+PASS  tests/gate-connectivity-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/gate-device-trust-migration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/gate-device-trust-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-evidence-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-final-contracts.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+FAIL  tests/gate-hardware-outbox-migration.test.ts  |  files: 1 failed (1)  |  tests: 12 skipped (12)
+       FAIL  tests/gate-hardware-outbox-migration.test.ts > hardware outbox database
+      Error: Refusing to run: 95 claimable hardware command(s) of other runs share this database's global queue. Run this file through scripts/demo-local/hardware-stack.mjs (dedicated stack); nothing was claimed or changed.
+PASS  tests/gate-long-stay-policy.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-notifications-cron.test.ts  |  files: 1 passed (1)  |  tests: 20 passed (20)
+PASS  tests/gate-notifications-workflow.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-notifications.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/gate-operations-migration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/gate-operations-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/gate-rollout-fencing.integration.test.ts  |  files: 1 passed (1)  |  tests: 1 passed (1)
+PASS  tests/gate-service-worker.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/gate-supervision-migration.test.ts  |  files: 1 passed (1)  |  tests: 1 passed (1)
+PASS  tests/gate-supervision-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/input-tax.integration.test.ts  |  files: 1 passed (1)  |  tests: 13 passed (13)
+PASS  tests/isolated-target-negative-runs.test.ts  |  files: 1 passed (1)  |  tests: 14 passed (14)
+PASS  tests/lease-expiry-alerts-migration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/lease-expiry-alerts-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/lease-renewals-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/legacy-receipt-compat.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/maintenance-accounting-bridge-migration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/maintenance-accounting-bridge.integration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/maintenance-request-attachments-migration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/maintenance-request-attachments-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/maintenance-request-core-migration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/maintenance-request-core-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/notification-source-types.integration.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+FAIL  tests/onboarding.integration.test.ts  |  files: 1 failed (1)  |  tests: 1 failed | 1 passed (2)
+       FAIL  tests/onboarding.integration.test.ts > public tenant provisioning is closed > service_role can still provision, so Release B's approval flow has a core to call
+      AssertionError: expected '42501' not to be '42501' // Object.is equality
+PASS  tests/operations-dashboard.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/output-vat.integration.test.ts  |  files: 1 passed (1)  |  tests: 9 passed (9)
+PASS  tests/payment-allocation-readers-guard.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/payments/payment-provider-settings-reverify.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+PASS  tests/payments/payment-provider-verification-race.test.ts  |  files: 1 passed (1)  |  tests: 2 passed (2)
+PASS  tests/payments/resolve-credentials.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+FAIL  tests/pgtap.integration.test.ts  |  files: 1 failed (1)  |  tests: 2 failed | 16 passed (18)
+       FAIL  tests/pgtap.integration.test.ts > Supabase pgTAP & Database SQL Integrity Suite > 11. Phase 2c Treasury Cluster Property-ID Rename Integrity (create_cashbox/open_cashier_session/close_cashier_session end-to-end vi
+      AssertionError: expected { code: '22023', details: null, …(2) } to be null
+       FAIL  tests/pgtap.integration.test.ts > Supabase pgTAP & Database SQL Integrity Suite > 15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_tra
+      AssertionError: expected { code: 'PGRST202', …(3) } to be null
+PASS  tests/platform-tenant-authorization.test.ts  |  files: 1 passed (1)  |  tests: 50 passed (50)
+PASS  tests/project-wip.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/purchasing-invoice-vat-wht.integration.test.ts  |  files: 1 passed (1)  |  tests: 3 passed (3)
+PASS  tests/record-online-payment-concurrency.integration.test.ts  |  files: 1 passed (1)  |  tests: 1 passed (1)
+PASS  tests/revenue-classification.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/revoked-function-matrix.integration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/role-permissions-authz.integration.test.ts  |  files: 1 passed (1)  |  tests: 24 passed (24)
+FAIL  tests/role-permissions-rollout.local-sql.test.ts  |  files: 1 failed (1)  |  tests: 4 skipped (4)
+       FAIL  tests/role-permissions-rollout.local-sql.test.ts > replace_role_permissions_atomic rollout order (scratch PostgreSQL)
+      AssertionError: expected '1' to be '0' // Object.is equality
+PASS  tests/security/w0-sec-postgres-invariants.test.ts  |  files: 1 passed (1)  |  tests: 14 passed (14)
+PASS  tests/supplier-invoice-fx.integration.test.ts  |  files: 1 passed (1)  |  tests: 8 passed (8)
+PASS  tests/tax-decision-contract.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/tax-enforcement.integration.test.ts  |  files: 1 passed (1)  |  tests: 11 passed (11)
+PASS  tests/tax-mapping-review.integration.test.ts  |  files: 1 passed (1)  |  tests: 10 passed (10)
+PASS  tests/unit-command-center.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/unit-experience-migration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/unit-experience-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 6 passed (6)
+PASS  tests/visitor-passes-migration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/visitor-passes-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 7 passed (7)
+PASS  tests/work-orders-migration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+PASS  tests/work-orders-rls.integration.test.ts  |  files: 1 passed (1)  |  tests: 5 passed (5)
+done-exit=1

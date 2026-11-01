@@ -213,7 +213,6 @@ void main() {
         overrides: [
           duesProvider.overrideWith((ref) async => const <DueItem>[]),
           paymentsProvider.overrideWith((ref) async => const <PaymentItem>[]),
-          fawrySettingsProvider.overrideWith((ref) async => null),
         ],
         child: const MaterialApp(
           locale: Locale('en'),

@@ -1,0 +1,22 @@
+==== S1 first attempt: lock PA, then request PB
+BEGIN
+INSERT 0 1
+INSERT 0 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+psql:/tmp/retry_valid_deadlock_s1.sql:7: ERROR:  deadlock detected
+DETAIL:  Process 61314 waits for ShareLock on transaction 12373; blocked by process 61315.
+Process 61315 waits for ShareLock on transaction 12372; blocked by process 61314.
+HINT:  See server log for query details.
+CONTEXT:  while locking tuple (1,8) in relation "projects"
+SQL statement "SELECT 1 FROM public.projects WHERE id = NEW.project_id FOR UPDATE"
+PL/pgSQL function guard_project_line_insert() line 9 at PERFORM
+ROLLBACK
+         ?column?         
+--------------------------
+ S1 entry persisted=false
+(1 row)
+

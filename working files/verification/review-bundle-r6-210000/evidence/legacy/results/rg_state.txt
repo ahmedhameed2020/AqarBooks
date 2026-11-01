@@ -1,0 +1,3 @@
+Q1 report: cap=1000.0000 rel=600.0000 wip=400.0000
+Q2 report: cap=0.0000 rel=0.0000 wip=0.0000
+unbalanced org entries: 0

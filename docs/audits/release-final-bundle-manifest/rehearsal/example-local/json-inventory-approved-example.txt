@@ -1,0 +1,8 @@
+# EXAMPLE approved list (table|column|key, entries separated by ';' when passed with -v allow=...). Built only to test the script on TEST data.
+# The owner must write the real list from real key names; nothing here is approved.
+financial_audit_logs|metadata|total_amount
+financial_audit_logs|metadata|conflict_key
+financial_audit_logs|metadata|outer
+financial_audit_logs|metadata|amount
+financial_audit_logs|metadata|due_date
+property_import_logs|failures|row

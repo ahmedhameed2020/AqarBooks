@@ -1,0 +1,1 @@
+label=idle1 duration=283s cli=clean catalog_compare=0 differing lines; live=4500 shadow=4500 lines 

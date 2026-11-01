@@ -1,0 +1,33 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/owner-portal-access.local-sql.test.ts (40 tests | 1 failed) 60964ms
+       × authorizes sign-out for the identity but never writes to managed Auth tables 162ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/owner-portal-access.local-sql.test.ts > owner portal access (local PostgreSQL) > suspend, reactivate, sign out everywhere > authorizes sign-out for the identity but never writes to managed Auth tables
+Error: Command failed: C:\Users\Lenovo\scoop\apps\postgresql\current\bin\psql -h 127.0.0.1 -p 55322 -U postgres -d aqar_portal_1792007715871 -X -q -At -v ON_ERROR_STOP=1 -f -
+psql:<stdin>:1: ERROR:  null value in column "id" of relation "sessions" violates not-null constraint
+DETAIL:  Failing row contains (null, 00000000-0000-4000-8000-000000000080, null, null, null, null, null, null, null, null, null, null, null, null, null).
+
+ ❯ run tests/owner-portal-access.local-sql.test.ts:29:10
+     27|     ? `set role ${who.role};\nset request.jwt.claims to '${JSON.string…
+     28|     : "";
+     29|   return execFileSync(
+       |          ^
+     30|     PSQL,
+     31|     ["-h", "127.0.0.1", "-p", PORT!, "-U", "postgres", "-d", database,…
+ ❯ tests/owner-portal-access.local-sql.test.ts:585:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 39 passed (40)
+   Start at  22:55:13
+   Duration  63.20s (transform 905ms, setup 697ms, import 343ms, tests 60.96s, environment 0ms)
+

@@ -1,0 +1,21 @@
+{
+  "container": "supabase_db_aqarbooks_clean",
+  "takenAt": "2026-10-11T12:34:23.229Z",
+  "counts": {
+    "organizations": 278,
+    "units": 303,
+    "dues": 161,
+    "payments": 59,
+    "payment_allocations": 21,
+    "journal_entries": 83,
+    "journal_entry_lines": 166
+  },
+  "digests": {
+    "units_with_financials": "a355043158d9cce16112b4d8b05c1403d6f94931831ccd4b9021731b3dfc1304",
+    "members_with_financials": "45e75ac44328f05c429f389968c7df1b99737610b8c2adc8345025c0abef2e85",
+    "due_outstanding": "0e28b0deee50888b927f03dac16307a366a7b7fbe273344223ceb9b32f2b9ffc",
+    "payments": "e3ee6596ce11d0fb489f4c19cb5afc005606e96170c9c3f282f798688492df46",
+    "payment_allocations": "7d89a303b56ffc76f83a6f532093a28067bd9f7bda430fc002016b6c9993b2eb"
+  },
+  "fullDump": "C:/Users/Lenovo/AppData/Local/Temp/aqarbooks-advances-baseline/snapshot-2026-10-11T12-34-23-220Z.json"
+}

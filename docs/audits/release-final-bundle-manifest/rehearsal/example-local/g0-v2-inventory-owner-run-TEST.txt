@@ -1,0 +1,17 @@
+INV|financial_audit_logs|metadata|<15 paths not on the approved list: names withheld>|-|-|WITHHELD
+INV|financial_audit_logs|metadata|<non-identifier keys>|count only|371|DROPPED
+INV|financial_audit_logs|metadata|amount|number|79|NUM
+INV|financial_audit_logs|metadata|conflict_key|number,string|6|REVIEW
+INV|financial_audit_logs|metadata|due_date|string|1258|TS
+INV|financial_audit_logs|metadata|outer|object|4|REVIEW
+INV|financial_audit_logs|metadata|total_amount|number|1258|NUM
+INV|payment_credit_requests|result|<10 paths not on the approved list: names withheld>|-|-|WITHHELD
+INV|payment_credit_requests|result|<non-identifier keys>|count only|747|DROPPED
+INV|plan_entitlements|value|<1 paths not on the approved list: names withheld>|-|-|WITHHELD
+INV|platform_audit_logs|safe_change_summary|<DYNAMIC: 252 paths, nothing listed>|-|-|WITHHELD
+INV|property_import_logs|failures|<1 paths not on the approved list: names withheld>|-|-|WITHHELD
+===
+# approved paths that occur in at least 3 distinct rows and have one shape. Lines starting #? are NUM and need a deliberate uncomment. Paste into reviewed-columns.sql only after the owner signs off.
+#?JSONKEEP|financial_audit_logs|metadata|amount|NUM
+#?JSONKEEP|financial_audit_logs|metadata|total_amount|NUM
+JSONKEEP|financial_audit_logs|metadata|due_date|TS

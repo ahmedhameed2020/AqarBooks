@@ -1,0 +1,62 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 2 failed) 194254ms
+     × an active member of ANOTHER organization sees none of org A's rows 19884ms
+     × activation through the real updateUserStatusAction grants access immediately; suspension removes it 16996ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active member of ANOTHER organization sees none of org A's rows
+AssertionError: journal_entry_lines: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:126:103
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > invitation path is preserved > activation through the real updateUserStatusAction grants access immediately; suspension removes it
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:178:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  2 failed | 70 passed (72)
+   Start at  18:33:42
+   Duration  254.59s (transform 972ms, setup 488ms, import 8.11s, tests 535.32s, environment 3ms)
+

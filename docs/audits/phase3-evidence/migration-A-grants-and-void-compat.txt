@@ -1,0 +1,25 @@
+# Migration A - function ACLs (proacl exploded)
+payment_allocations_as_of | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_allocations_before_insert | postgres:EXECUTE, service_role:EXECUTE
+payment_allocations_guard_update | postgres:EXECUTE, service_role:EXECUTE
+payment_allocations_reversal_consistency | postgres:EXECUTE, service_role:EXECUTE
+payment_credit_balances_as_of | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payments_fill_allocation_reversal_dates | postgres:EXECUTE, service_role:EXECUTE
+payments_guard_advance_columns | postgres:EXECUTE, service_role:EXECUTE
+validate_customer_advance_account_setting | postgres:EXECUTE, service_role:EXECUTE
+void_payment | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+
+# relation privileges (anon / authenticated select)
+effective_payment_allocations | f | t
+payment_credit_balances | f | t
+payment_credit_requests | f | f
+units_with_financials | t | t
+
+# old void_payment path: reversed_on vs actual reversal entry date (latest 5 voids)
+2a76f8e8-4b4a-443c-8d94-415c57d89081 | 2026-10-11 | 2026-10-11 | 2026-10-11 | t
+f009ab9b-544e-4ed5-a635-6d130e4187a5 | 2026-10-11 | 2026-10-11 | 2026-10-11 | t
+ca14f6a8-527a-486d-816b-a0c061dc98d8 | 2026-10-11 | 2026-10-11 | 2026-10-11 | t
+c4fe1e90-dc22-4c61-b846-825d7005e46d | 2026-10-11 | 2026-10-11 | 2026-10-11 | t
+5038a317-3b3f-4b5d-a046-cabfa7050269 | 2026-10-11 | 2026-10-11 | 2026-10-11 | t
+
+ledger/drift: see stack-verify

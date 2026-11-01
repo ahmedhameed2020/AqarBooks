@@ -1,0 +1,17 @@
+$ tests/e2e/dashboard-bi1.spec.ts
+label=b3-ui-dashboard-bi1
+exit=0
+elapsed_ms=35878
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 1 tests\e2e\dashboard-bi1.spec.ts:21:5 › BI-1 dashboard uses precise accrual and collection semantics in English and Arabic (18.0s)
+
+  1 passed (24.7s)
+(node:20052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22008) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

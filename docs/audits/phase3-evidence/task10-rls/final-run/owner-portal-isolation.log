@@ -1,0 +1,41 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+[1/1] tests\e2e\owner-portal-isolation.spec.ts:138:5 › two owners in a browser each see only their own unit
+  1) tests\e2e\owner-portal-isolation.spec.ts:138:5 › two owners in a browser each see only their own unit 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.fill: Test ended.
+    Call log:
+      - waiting for getByLabel(/كلمة المرور|Password/)
+
+
+      146 |   await pageA.goto("/ar/portal/login");
+      147 |   await pageA.getByLabel(/البريد الإلكتروني|Email/).fill(ownerA.email);
+    > 148 |   await pageA.getByLabel(/كلمة المرور|Password/).fill(ownerA.password);
+          |                                                  ^
+      149 |   await pageA.getByRole("button", { name: /تسجيل الدخول|Sign in/ }).click();
+      150 |   await pageA.waitForURL(/\/portal$/);
+      151 |   await pageA.goto("/ar/portal/units");
+        at D:\Web\AqarBooks\tests\e2e\owner-portal-isolation.spec.ts:148:50
+
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\trace.zip
+    Usage:
+
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    tests\e2e\owner-portal-isolation.spec.ts:138:5 › two owners in a browser each see only their own unit 

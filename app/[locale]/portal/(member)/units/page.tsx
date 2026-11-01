@@ -5,6 +5,7 @@ import { getPortalMemberContext } from "@/lib/auth/portal-member";
 import type { Locale } from "@/i18n/routing";
 import type { UnitType } from "@/lib/units/unit-type-labels";
 import { PortalUnitsClient, type PortalUnitItem, type PortalPlanItem } from "./portal-units-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 type UnitRow = {
   id: string;
@@ -82,10 +83,10 @@ export default async function PortalUnitsPage({
       .eq("buyer_member_id", member.id),
   ]);
 
-  if (unitsError) console.error("[PortalUnitsPage] units query failed:", unitsError.message);
-  if (ownershipError)
-    console.error("[PortalUnitsPage] ownerships query failed:", ownershipError.message);
-  if (planError) console.error("[PortalUnitsPage] plans query failed:", planError.message);
+  // a failed read must show the error boundary, not "no units" (statement timeouts on units_with_financials were measured on 2026-10-12)
+  assertRead(unitsError, "portal/units: units_with_financials");
+  assertRead(ownershipError, "portal/units: unit_ownerships");
+  assertRead(planError, "portal/units: installment_plans");
 
   const today = new Date().toISOString().slice(0, 10);
   const ownershipByUnit = new Map<string, OwnershipRow>();

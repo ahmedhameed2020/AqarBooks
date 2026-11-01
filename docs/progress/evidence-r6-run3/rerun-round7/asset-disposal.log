@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (22.1s)
+
+  1 passed (24.6s)
+

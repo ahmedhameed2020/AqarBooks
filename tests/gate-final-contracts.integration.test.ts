@@ -1,3 +1,4 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFile } from "node:child_process";
 import { randomUUID, randomBytes } from "node:crypto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -9,7 +10,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => actionDb.cli
 import { redeemGateDeviceEnrollmentAction } from "@/lib/actions/gate-devices";
 
 function peer(query: string): Promise<string> {
-  return new Promise((resolve,reject) => execFile("docker", ["exec","supabase_db_aqarbooks","psql","-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-tA","-c",query],
+  return new Promise((resolve,reject) => execFile("docker", ["exec",isolatedDbContainer(),"psql","-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-tA","-c",query],
     {timeout:30_000}, (error,stdout,stderr) => error ? reject(new Error(stderr || error.message)) : resolve(stdout)));
 }
 async function waitFor(query: string, value: string) {

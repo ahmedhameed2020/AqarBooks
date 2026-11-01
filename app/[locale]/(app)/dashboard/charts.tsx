@@ -204,13 +204,14 @@ export function AgingChart({
 
 export function CollectionTargetGauge({
   rate,
+  target,
   isAr,
 }: {
   rate: number | null;
+  target: number;
   isAr: boolean;
 }) {
   const val = rate ?? 0;
-  const target = 90;
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (val / 100) * circumference;
 
@@ -244,7 +245,7 @@ export function CollectionTargetGauge({
         </div>
       </div>
       <div className="mt-3 text-center text-xs text-muted-foreground">
-        {isAr ? `الهدف الشهري: ${target}%` : `Monthly Goal: ${target}%`}
+        {isAr ? `هدف التحصيل الإجمالي: ${target}%` : `Cumulative collection target: ${target}%`}
         {val >= target ? (
           <span className="ms-1 font-semibold text-emerald-500">🎉 {isAr ? "تم تحقيق الهدف!" : "Target met!"}</span>
         ) : (

@@ -48,6 +48,7 @@ const n = (v: number | string) => Number(v ?? 0);
 interface AssetsClientProps {
   assets: AssetRow[];
   assetAccounts: Option[];
+  proceedsAccounts: Option[];
   deprAccounts: Option[];
   expenseAccounts: Option[];
   gainAccounts: Option[];
@@ -56,12 +57,14 @@ interface AssetsClientProps {
   canManage: boolean;
   locale: string;
   currency: string;
+  organizationId: string;
   organizationName?: string;
 }
 
 export function AssetsClient({
   assets,
   assetAccounts,
+  proceedsAccounts,
   deprAccounts,
   expenseAccounts,
   gainAccounts,
@@ -70,6 +73,7 @@ export function AssetsClient({
   canManage,
   locale,
   currency,
+  organizationId,
   organizationName,
 }: AssetsClientProps) {
   const isAr = locale === "ar";
@@ -582,6 +586,7 @@ export function AssetsClient({
       {/* Modal Dialogs */}
       {registerOpen && (
         <RegisterAssetForm
+          organizationId={organizationId}
           open={registerOpen}
           onOpenChange={setRegisterOpen}
           assetAccounts={assetAccounts}
@@ -593,6 +598,7 @@ export function AssetsClient({
 
       {depreciateOpen && (
         <RunDepreciationForm
+          organizationId={organizationId}
           open={depreciateOpen}
           onOpenChange={setDepreciateOpen}
           periods={periods}
@@ -611,6 +617,7 @@ export function AssetsClient({
           assetName={isAr ? disposeAsset.name_ar : disposeAsset.name_en}
           gainAccounts={gainAccounts}
           lossAccounts={lossAccounts}
+          proceedsAccounts={proceedsAccounts}
           periods={periods}
           locale={locale}
         />

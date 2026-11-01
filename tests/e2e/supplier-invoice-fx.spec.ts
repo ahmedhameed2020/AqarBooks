@@ -11,10 +11,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
 type Fixture = { orgId: string; email: string; userIds: string[] };
@@ -56,15 +58,6 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
     organization_id: f.orgId, name: "Euro Supplier", payable_account_id: payable,
   });
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  });
-
   await admin.from("exchange_rates").insert({
     organization_id: f.orgId, foreign_currency: "EUR", base_currency: "EGP",
     rate_date: "2026-01-01", base_per_unit: 50, source: "seed",
@@ -84,6 +77,14 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
   await admin.from("user_role_assignments")
     .insert({ user_id: created!.user!.id, role_id: role!.id, organization_id: f.orgId });
   f.email = email;
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email, password: STAFF_PASSWORD });
+  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
+  await createOpenFiscalYear(admin, ownerClient, {
+    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
   return f;
 }
 
@@ -96,8 +97,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", id);
-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
-  await admin.from("fiscal_years").delete().eq("organization_id", id);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("exchange_rates").delete().eq("organization_id", id);
   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
   await admin.from("resorts").delete().eq("organization_id", id);
@@ -162,7 +162,9 @@ test("a euro invoice is entered from the dialog, lands in the books in EGP, and 
     }
     await pick(0, "Euro Supplier");
     await pick(1);
-    await pick(2);
+    // The fiscal period must contain the invoice date (2026-06-01). The calendar is monthly now,
+    // so the first option (January) would be refused; pick the June period by its YYYY-MM label.
+    await pick(2, "2026-06");
 
     await dialog.getByRole("button", { name: /Post Invoice/i }).click();
     await expect(dialog).toBeHidden({ timeout: 40_000 });

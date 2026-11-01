@@ -1,0 +1,33 @@
+==== CASE 3: cancelling a DRAFT WIP debit by status must not change the floor net
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 2
+INSERT 0 4
+ net_before_cancellation | floor_net_before_cancellation 
+-------------------------+-------------------------------
+                100.0000 |                      100.0000
+(1 row)
+
+COMMIT
+BEGIN
+UPDATE 1
+ net_after_cancellation | floor_net_after_cancellation 
+------------------------+------------------------------
+               100.0000 |                    -200.0000
+(1 row)
+
+SET CONSTRAINTS
+ROLLBACK
+BEGIN
+psql:/tmp/cancelled_debit_status_guard.sql:44: ERROR:  ASSERT_CANCELLED_DEBIT_FLOOR_FAILED: expected net=100 floor_net=100 ledger=100, actual net=100.0000 floor_net=-200.0000 ledger=100.0000
+CONTEXT:  PL/pgSQL function inline_code_block line 14 at RAISE
+DELETE 4
+DELETE 1
+COMMIT

@@ -1,0 +1,8 @@
+base commit : 5d2804f3ac2979872e8f657da645ad5ef4c8852a
+branch      : fix/phase1-financial-report-authz
+author      : ahmedhameed2020 <Adamahmed@00>
+committer date: 2026-10-08T15:11:06+03:00
+subject     : fix(marketing): remove placeholder support phone
+tracked files modified vs the base commit: 117
+untracked (new) files: 903
+nothing is committed, staged or pushed by this work; the bundle describes the working tree on top of the base commit.

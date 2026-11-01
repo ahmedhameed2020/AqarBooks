@@ -1,0 +1,7 @@
+# Migration D - function ACLs
+due_effective_paid | t | postgres:EXECUTE, service_role:EXECUTE
+payment_allocations_as_of | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+payment_credit_balances_as_of | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+post_advance_payment_internal | t | postgres:EXECUTE, service_role:EXECUTE
+recompute_due_payment_status | t | postgres:EXECUTE, service_role:EXECUTE
+void_payment | t | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE

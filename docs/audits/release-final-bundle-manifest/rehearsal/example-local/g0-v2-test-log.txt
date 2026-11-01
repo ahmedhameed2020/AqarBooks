@@ -1,0 +1,13 @@
+G0 review, v2 of json-key-inventory.sql -- TEST data only (container supabase_db_aqarbooks_clean, throwaway copy rh_inv_test of rh_trial). Nothing run on production.
+
+[T1] owner-bypass role, approved list given: exit 0. Leak scan for customer_phone (repeated, unapproved, 3 rows), Ahmed_rare (3 elements in 1 row), Nested_Secret_Key, SENS-VALUE-*, ahmed, 0500123456, 966500000000: NONE.
+     Output: g0-v2-inventory-owner-run-TEST.txt. Approved names shown only if on the list; everything else counted as "paths not on the approved list".
+[T2] no approved list: exit 0, 7 lines, no approved name written.
+[T3] approved entry 'اسم' (not a plain identifier): ignored and reported ("IGNORED approved entry ... : 1"); never written.
+[T4] distinct rows: one row with two elements under 'row' plus 3 rows with one element each -> rows=4 (not 5 elements). Output: g0-v2-distinct-rows-TEST.txt.
+[T5] role WITHOUT bypassrls (SELECT only, not owner): exit 3, "RLS-GUARD: row security applies to this role on: ...". No output file written.
+[T6] same role WITH bypassrls (SELECT only, not owner): exit 0, output identical to the owner run (sorted diff empty).
+[R1-R6] json-inventory-role.sql on TEST: verification passed; role attributes all false except canlogin; reads blocked by RLS function permission (fails closed); writes blocked (read-only default; no CREATE); inventory as that role stops at RLS-GUARD; planted membership makes verification fail ("membership"); cleanup: role and test table removed.
+[D1-D2] export on TEST, deep paths:
+     A. outer not allowlisted: export exit 0, 147 files, 0 files contain the nested key or its value. Paths deeper than one level are dropped by the export.
+     B. outer allowlisted as KEEP: export exit 0, nested key AND its value appear in the export (1 file). KEEP attests the whole value, so KEEP on object/array paths can export nested secrets. See G0 report, risk R-KEEP.

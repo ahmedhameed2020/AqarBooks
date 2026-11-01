@@ -1,0 +1,29 @@
+
+> aqarbooks@0.1.0 demo:e2e
+> node scripts/demo-local/e2e.mjs tests/e2e/portal-visitor-gate-journey.spec.ts tests/e2e/portal-refusals.spec.ts tests/e2e/portal-journey.spec.ts
+
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 18 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok  1 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (8.8s)
+  ok  2 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (7.6s)
+  ok  3 tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's (7.5s)
+  ok  4 tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit (9.9s)
+  ok  5 tests\e2e\portal-journey.spec.ts:97:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note (8.8s)
+  ok  6 tests\e2e\portal-journey.spec.ts:122:5 › J6 the owner follows the status and sees only the member-visible note (5.9s)
+  ok  7 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (12.8s)
+  ok  8 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (13.9s)
+  ok  9 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (13.2s)
+  ok 10 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; what happens to a pass issued earlier is OBSERVED, not assumed (6.0s)
+  ok 11 tests\e2e\portal-refusals.spec.ts:202:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (4.3s)
+  ok 12 tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device (13.1s)
+  ok 13 tests\e2e\portal-visitor-gate-journey.spec.ts:108:5 › with the guard's enrolled device › V2 owner creates a SINGLE_USE pass (QR shown once, only its hash is stored); the guard admits, lets out, then refuses a second use (32.8s)
+  ok 14 tests\e2e\portal-visitor-gate-journey.spec.ts:134:5 › with the guard's enrolled device › V3 a MULTI_USE pass admits repeatedly but never twice in a row without an exit (34.3s)
+  ok 15 tests\e2e\portal-visitor-gate-journey.spec.ts:150:5 › with the guard's enrolled device › V4 the owner revokes a pass in the portal; the guard is then refused; another owner cannot revoke it (17.4s)
+  ok 16 tests\e2e\portal-visitor-gate-journey.spec.ts:171:5 › with the guard's enrolled device › V5 expired and not-yet-valid passes are refused; a tampered or foreign QR is refused as an invalid pass (34.3s)
+  ok 17 tests\e2e\portal-visitor-gate-journey.spec.ts:206:5 › with the guard's enrolled device › V6 a pass of another organization is refused at this organization's gate and writes nothing to its ledger (1.1s)
+  ok 18 tests\e2e\portal-visitor-gate-journey.spec.ts:226:5 › with the guard's enrolled device › V6b organization B's enrolled device scanning A's genuine pass is a generic DENY / INVALID_PASS recorded in B only (2.6s)
+
+  18 passed (4.7m)

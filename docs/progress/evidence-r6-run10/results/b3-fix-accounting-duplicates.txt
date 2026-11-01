@@ -1,0 +1,55 @@
+$ tests/e2e/accounting-duplicates.spec.ts
+label=b3-fix-accounting-duplicates
+exit=1
+elapsed_ms=227081
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\accounting-duplicates.spec.ts:69:5 › D1 a second opening balance for the same client and unit is refused and changes nothing (34.0s)
+  x  2 tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one (2.5m)
+  -  3 tests\e2e\accounting-duplicates.spec.ts:111:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt
+  -  4 tests\e2e\accounting-duplicates.spec.ts:134:5 › D4 a reversed receipt cannot be reversed twice
+  -  5 tests\e2e\accounting-duplicates.spec.ts:156:5 › D5 replaying a payment call with the same idempotency key returns the same payment and posts nothing new
+
+
+  1) tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one 
+
+    Test timeout of 120000ms exceeded.
+
+    Error: page.goto: Test timeout of 120000ms exceeded.
+    Call log:
+      - navigating to "http://127.0.0.1:3176/en/finance/dues", waiting until "load"
+
+
+      25 | async function go(page: Page, url: string) {
+      26 |   try {
+    > 27 |     await page.goto(url);
+         |                ^
+      28 |   } catch (error) {
+      29 |     if (!/ERR_ABORTED|detached/.test(String(error))) throw error;
+      30 |     await page.goto(url);
+        at go (D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:27:16)
+        at issue (D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:87:11)
+        at D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:103:9
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fix-accounting-duplicates-artifacts\accounting-duplicates-D2-i-ee125--due-twice-creates-only-one\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-fix-accounting-duplicates-artifacts\accounting-duplicates-D2-i-ee125--due-twice-creates-only-one\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-fix-accounting-duplicates-artifacts\accounting-duplicates-D2-i-ee125--due-twice-creates-only-one\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one 
+  3 did not run
+  1 passed (3.4m)
+(node:33900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

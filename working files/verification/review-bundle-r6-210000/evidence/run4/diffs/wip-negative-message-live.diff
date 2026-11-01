@@ -1,0 +1,11 @@
+--- docs/progress/evidence-r6-run4/results/check_project_wip_floor_live.txt	2026-10-29 22:49:49.274201100 +0300
++++ docs/progress/evidence-r6-run4/results/check_project_wip_floor_live_after.txt	2026-10-29 23:00:42.653376400 +0300
+@@ -15,7 +15,7 @@
+   END IF;
+   v_before := COALESCE(NULLIF(v_text, '')::numeric, v_after);
+   IF v_before >= 0 THEN
+-    RAISE EXCEPTION 'PROJECT_WIP_NEGATIVE: الحركة تجعل رصيد WIP سالبًا (قبل %, بعد %)', v_before, v_after
++    RAISE EXCEPTION 'PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة %, الصافي المتوقع بعد الحركة %)', v_before, v_after
+       USING ERRCODE = 'P0001';
+   END IF;
+   IF v_after <= v_before THEN

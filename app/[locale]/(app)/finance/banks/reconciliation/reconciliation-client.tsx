@@ -161,7 +161,8 @@ export function ReconciliationClient({
                           <div>
                             <div className="text-xs font-extrabold">{stmt.bank_account_name || (isAr ? "حساب بنكي" : "Bank Account")}</div>
                             <div className="text-[11px] font-mono text-slate-400 font-normal">
-                              {stmt.bank_account_number || ""} {stmt.bank_name ? `(${stmt.bank_name})` : ""}
+                              <span dir="ltr">{stmt.bank_account_number || ""}</span>{" "}
+                              {stmt.bank_name ? `(${stmt.bank_name})` : ""}
                             </div>
                           </div>
                         </div>
@@ -170,20 +171,22 @@ export function ReconciliationClient({
                       <td className="p-3 font-mono text-[11px]">
                         <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-bold">
                           <Calendar className="size-3 text-slate-400" />
-                          <span>{stmt.period_start}</span>
-                          <span className="text-slate-400">→</span>
-                          <span>{stmt.period_end}</span>
+                          <span dir="ltr" className="inline-flex items-center gap-1.5">
+                            <span>{stmt.period_start}</span>
+                            <span className="text-slate-400">–</span>
+                            <span>{stmt.period_end}</span>
+                          </span>
                         </div>
                         {stmt.note && <div className="text-[10px] text-slate-400 font-sans mt-0.5 line-clamp-1">{stmt.note}</div>}
                       </td>
 
                       <td className="p-3 text-end font-mono font-semibold text-slate-700 dark:text-slate-300">
-                        {stmt.opening_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
+                        <span dir="ltr">{stmt.opening_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>{" "}
                         <span className="text-[10px] text-slate-400">{currencyLabel}</span>
                       </td>
 
                       <td className="p-3 text-end font-mono font-black text-sm text-blue-700 dark:text-blue-400">
-                        {stmt.closing_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
+                        <span dir="ltr">{stmt.closing_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>{" "}
                         <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
                       </td>
 

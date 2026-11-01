@@ -1,0 +1,13 @@
+D1 run 1:   1 passed (30.6s) 
+D1 run 2:   1 failed 
+D1 run 3:   1 passed (37.2s) 
+D1 run 4:   1 passed (35.9s) 
+D1 run 5:   1 passed (32.8s) 
+D1 run 6:   1 passed (33.6s) 
+D1 run 7:   1 passed (32.1s) 
+D1 run 8:   1 passed (33.2s) 
+J1-J4 run 1:   1 failed   1 passed (1.4m) 
+J1-J4 run 2:   1 failed   1 passed (1.7m) 
+J1-J4 run 3:   4 passed (1.9m) 
+J1-J4 run 4:   4 passed (1.9m) 
+DONE

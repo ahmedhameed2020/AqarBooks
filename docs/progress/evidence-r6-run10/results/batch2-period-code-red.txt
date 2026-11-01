@@ -1,0 +1,41 @@
+$ tests/fiscal-period-not-open.integration.test.ts
+label=batch2-period-code-red
+exit=1
+elapsed_ms=2963
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/fiscal-period-not-open.integration.test.ts (0 test)
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  12:55:19
+   Duration  1.20s (transform 179ms, setup 239ms, import 0ms, tests 0ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch2-period-code-red.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/fiscal-period-not-open.integration.test.ts [ tests/fiscal-period-not-open.integration.test.ts ]
+Error: Command failed: docker inspect g0r6-db --format {{json .State.Running}}|{{json .NetworkSettings.Networks}}|{{json .NetworkSettings.Ports}}
+failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+
+ ❯ realR6Inspect tests/helpers/isolated-target-r6.ts:100:15
+     98| /** Real inspection: docker inspect, read-only. */
+     99| export const realR6Inspect = (container: string): ContainerFacts => {
+    100|   const out = execFileSync(
+       |               ^
+    101|     "docker",
+    102|     ["inspect", container, "--format", "{{json .State.Running}}|{{json…
+ ❯ evaluateR6Contract tests/helpers/isolated-target-r6.ts:61:14
+ ❯ assertIsolatedStack tests/helpers/isolated-target.ts:125:14
+ ❯ assertClientUrlIsVerifiedTarget tests/helpers/isolated-target.ts:171:20
+ ❯ tests/setup/guarded-create-client.ts:10:5
+ ❯ adminClient tests/e2e/helpers/accounting-fixture.ts:28:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

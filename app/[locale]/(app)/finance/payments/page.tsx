@@ -1,3 +1,4 @@
+import { sortDepositAccounts } from "@/lib/finance/deposit-accounts";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -7,6 +8,7 @@ import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
 import { PaymentsClient, type PaymentItem } from "./payments-client";
+import type { CreditApplication } from "./payment-credit-dialog";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 import { hasPermission } from "@/lib/auth/authorize";
 import {
@@ -65,9 +67,11 @@ export default async function PaymentsPage({
   // same six role templates, so today the two are behaviourally identical --
   // but gating the button on the key the RPC does not check would silently
   // become wrong the moment those grants diverge. Match the enforcement point.
-  const [canRecordPayment, canVoidPayment] = await Promise.all([
+  const [canRecordPayment, canVoidPayment, canApplyCredit, canManageAdvanceAccount] = await Promise.all([
     hasPermission(organization.id, "receivables.payments.create"),
     hasPermission(organization.id, "finance.payments.void"),
+    hasPermission(organization.id, "receivables.allocations.manage"),
+    hasPermission(organization.id, "finance.accounts.manage"),
   ]);
 
   const supabase = await createClient();
@@ -83,12 +87,16 @@ export default async function PaymentsPage({
     { data: members },
     { data: units },
     { data: openDues },
-    { data: accounts },
+    { data: depositRows },
     { data: periods },
     { data: paymentsRaw },
     { data: allocationsRaw },
     { data: duesRaw },
     { data: orgData },
+    { data: creditRows },
+    { data: advanceSetting },
+    { data: liabilityAccounts },
+    { data: ownerships },
   ] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("organization_id", organization.id).order("full_name"),
     supabase.from("units").select("id, code").eq("organization_id", organization.id),
@@ -97,30 +105,40 @@ export default async function PaymentsPage({
       .select("id, unit_id, amount, status")
       .eq("organization_id", organization.id)
       .in("status", ["ISSUED", "PARTIALLY_PAID", "OVERDUE"]),
-    supabase
-      .from("chart_of_accounts")
-      .select("id, code, name_ar, name_en, category")
-      .eq("organization_id", organization.id)
-      .eq("is_group", false)
-      .eq("category", "ASSET"),
+    // Only accounts the server will accept as a deposit account: the GL account of an active cash box or bank account of this organization
+    // (the same rule record_payment / record_advance_payment enforce; the screen list is a convenience, the server is the guard).
+    supabase.rpc("list_deposit_accounts", { p_organization_id: organization.id, p_resort_id: resort?.id ?? null }),
     supabase
       .from("fiscal_periods")
-      .select("id, name")
+      .select("id, name, start_date, end_date")
       .eq("organization_id", organization.id)
       .eq("status", "OPEN"),
     supabase
       .from("payments")
-      .select("id, receipt_number, amount, unallocated_amount, method, payment_date, status, member_id, receipt_no, memo")
+      .select("id, receipt_number, amount, unallocated_amount, advance_amount, unit_id, method, payment_date, status, member_id, receipt_no, memo")
       .eq("organization_id", organization.id)
       .order("payment_date", { ascending: false })
       .limit(300),
-    supabase.from("payment_allocations").select("due_id, amount, payment_id"),
+    supabase.from("effective_payment_allocations").select("id, due_id, amount, payment_id, kind, applied_on"),
     supabase.from("dues").select("id, unit_id, description, due_date").eq("organization_id", organization.id),
     supabase
       .from("organizations")
       .select("default_currency")
       .eq("id", organization.id)
       .maybeSingle(),
+    supabase.from("payment_credit_balances").select("payment_id, remaining_amount, is_stranded").eq("organization_id", organization.id),
+    resort
+      ? supabase.rpc("customer_advance_account_configured", { p_organization_id: organization.id, p_property_id: resort.id })
+      : Promise.resolve({ data: false }),
+    supabase
+      .from("chart_of_accounts")
+      .select("id, code, name_ar, name_en")
+      .eq("organization_id", organization.id)
+      .eq("is_group", false)
+      .eq("is_active", true)
+      .eq("category", "LIABILITY")
+      .order("code"),
+    supabase.from("unit_ownerships").select("unit_id, member_id, start_date, end_date").eq("organization_id", organization.id),
   ]);
 
   const currency = orgData?.default_currency || "EGP";
@@ -129,6 +147,20 @@ export default async function PaymentsPage({
   const memberMap = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const unitMap = new Map((units ?? []).map((u) => [u.id, u.code]));
   const dueMap = new Map((duesRaw ?? []).map((d) => [d.id, d]));
+
+  const creditByPayment = new Map((creditRows ?? []).map((c) => [c.payment_id, c]));
+  const applicationsByPayment = new Map<string, CreditApplication[]>();
+  (allocationsRaw ?? []).filter((a) => a.kind === "CREDIT_APPLICATION").forEach((a) => {
+    const due = dueMap.get(a.due_id);
+    const list = applicationsByPayment.get(a.payment_id) ?? [];
+    list.push({
+      allocationId: a.id,
+      dueLabel: `${due ? unitMap.get(due.unit_id) ?? "—" : "—"} — ${due?.description ?? (isAr ? "مطالبة" : "Due")}`,
+      amount: Number(a.amount),
+      appliedOn: a.applied_on,
+    });
+    applicationsByPayment.set(a.payment_id, list);
+  });
 
   // Build allocations map per payment
   const allocationsByPayment = new Map<string, { unitCode: string; description: string; dueDate: string; allocatedAmount: number }[]>();
@@ -173,6 +205,12 @@ export default async function PaymentsPage({
     reference: p.receipt_no,
     memo: p.memo,
     allocations: allocationsByPayment.get(p.id) || [],
+    unit_id: p.unit_id,
+    unit_code: p.unit_id ? unitMap.get(p.unit_id) : undefined,
+    advance_amount: Number(p.advance_amount ?? 0),
+    credit_remaining: creditByPayment.has(p.id) ? Number(creditByPayment.get(p.id)!.remaining_amount) : 0,
+    credit_stranded: creditByPayment.get(p.id)?.is_stranded ?? false,
+    applications: applicationsByPayment.get(p.id) ?? [],
   }));
 
   // KPI Calculations
@@ -188,11 +226,17 @@ export default async function PaymentsPage({
     .reduce((sum, p) => sum + p.amount, 0);
 
   const memberOptions = (members ?? []).map((m) => ({ id: m.id, label: m.full_name }));
-  const depositAccountOptions = (accounts ?? []).map((a) => ({
+  const depositAccountOptions = sortDepositAccounts((depositRows ?? []).map((r) => ({ id: r.account_id, code: r.code, name_ar: r.name_ar, name_en: r.name_en }))).map((a) => ({
     id: a.id,
     label: `${a.code} — ${isAr ? a.name_ar : a.name_en}`,
   }));
-  const periodOptions = (periods ?? []).map((p) => ({ id: p.id, label: p.name }));
+  const periodOptions = (periods ?? []).map((p) => ({ id: p.id, label: p.name, start: p.start_date, end: p.end_date }));
+  const today = new Date().toISOString().slice(0, 10);
+  const unitOptions = (units ?? []).map((u) => {
+    const owners = (ownerships ?? []).filter((o) => o.unit_id === u.id).filter((o) => (!o.start_date || o.start_date <= today) && (!o.end_date || o.end_date >= today));
+    return { id: u.id, code: u.code, ownerId: owners.length === 1 ? owners[0].member_id : null };
+  });
+  const liabilityOptions = (liabilityAccounts ?? []).map((a) => ({ id: a.id, label: `${a.code} — ${isAr ? a.name_ar : a.name_en}` }));
   const preselectedUnitId = unitParam && (units ?? []).some((u) => u.id === unitParam) ? unitParam : undefined;
 
   return (
@@ -300,6 +344,11 @@ export default async function PaymentsPage({
           resortName={resort.name}
           canRecordPayment={canRecordPayment}
            canVoidPayment={canVoidPayment}
+          canApplyCredit={canApplyCredit}
+          canManageAdvanceAccount={canManageAdvanceAccount}
+          units={unitOptions}
+          liabilityAccounts={liabilityOptions}
+          advanceAccountConfigured={advanceSetting === true}
           currency={currency}
           locale={locale}
           preselectedUnitId={preselectedUnitId}

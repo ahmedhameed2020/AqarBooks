@@ -1,0 +1,27 @@
+G0 Simplified -- R1 to R4 (TEST only). rh_trial was only READ (checksums before and after: UNCHANGED).
+New test copy: rh_rls_test (created from rh_trial; checksums equal to rh_trial; exports did not change its checksums).
+
+Guards added to the export (export-run.psql, inside the read-only transaction, before the first \copy):
+  RLS-GUARD  role without BYPASSRLS, not owner of a public table with row security (or table forces RLS) -> stop.
+  SEQ-GUARD  role without SELECT on a public sequence -> stop (pg_sequences would show NULL, state silently lost).
+  KEEP-GUARD (earlier) object/array values or mixed types -> stop.
+
+R1  role g0r1 (no BYPASSRLS, SELECT on all tables): export-exit=3, data files written = 0.
+    message: RLS-GUARD (export): row security applies to this role on: gate_hardware_settings member_activation_tokens members ...
+R2b role g0r2 (BYPASSRLS, SELECT on tables, NO sequence privilege): export-exit=3, data files = 0.
+    message: SEQ-GUARD (export): no SELECT on sequence(s): public.member_client_id_seq public.onboarding_request_events_id_seq public.public_action_rate_limits_id_seq
+    (This finding came from the first R2 run, which was NOT refused: 147 files, _sequences.csv lacked member_client_id_seq; diff vs owner export showed it. Now refused.)
+R2  role g0r2 after SELECT on sequences granted (BYPASSRLS, SELECT only, not owner): export-exit=0, 147 files.
+    Owner export (postgres, bypass): export-exit=0, 147 files.
+    diff -r r2/data own/data: IDENTICAL (every file).
+R3  every table count in _counts.csv (143 tables) equals the owner's independent count(*) for that table. Sum of rows in the export: 703368. Mismatches: 0.
+R4  gate: R1 refused with no data AND R2 identical to owner AND R3 clean -> PASSED (on the TEST copy only).
+
+Temporary roles g0r1, g0r2: revoked and dropped; roles left 0; shared-dependency rows left 0.
+
+Outbound and external services (requested check):
+  - network extensions present in rh_rls_test (pg_net, http, dblink, postgres_fdw, pg_cron): none.
+  - public functions whose source matches http|net|dblink: 1 = record_einvoice_attempt, a FALSE POSITIVE (matches the column names http_status and request names; no outbound call). Not changed.
+  - FINDING: the test container CAN open outbound TCP to 1.1.1.1:443 (bash /dev/tcp test). The database itself cannot call out, but the container network is not isolated. Fixing this needs a change to the container network (not done; needs approval).
+
+Checksum set compared before/after on rh_trial and rh_rls_test (tables, constraints, policies, functions, triggers, ledger, and md5 of plans, plan_entitlements, permissions, organization_finance_settings, payment_provider_settings, chart_of_accounts, role_permissions): unchanged.

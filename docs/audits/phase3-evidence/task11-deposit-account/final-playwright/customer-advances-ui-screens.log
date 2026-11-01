@@ -1,0 +1,13 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+[1/6] tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (ar)
+[2/6] tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (en)
+[3/6] tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (ar)
+[4/6] tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (en)
+[5/6] tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (ar)
+[6/6] tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (en)
+  6 passed (3.5m)

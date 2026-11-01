@@ -1,0 +1,6 @@
+F9 report: cap=1000.0000 rel=600.0000 wip=400.0000
+F9 ledger WIP net: 400.0000
+F9 cost of sales debit: 600.0000
+F10 report: cap=0.0000 rel=0.0000 wip=0.0000
+F10 ledger WIP net: 0.0000
+unbalanced entries (org): 0

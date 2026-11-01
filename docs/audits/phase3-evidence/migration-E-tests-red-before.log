@@ -1,0 +1,82 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances-review3.integration.test.ts (9 tests | 3 failed) 32320ms
+     × is_trusted_backend(): service_role and an administrative connection yes; authenticated (with or without a subject) and anon no 788ms
+     × helper -> NULL; both as-of functions -> no rows; both views -> no rows (for a receipt that exists and is POSTED) 731ms
+     × no function body (new or old) still contains the identity-less trust in the as-of/helper functions 270ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-review3.integration.test.ts > 1. who is trusted: an explicit server role, never the lack of an identity > is_trusted_backend(): service_role and an administrative connection yes; authenticated (with or without a subject) and anon no
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select public.is_trusted_backend()::text
+ERROR:  function public.is_trusted_backend() does not exist
+LINE 1: select public.is_trusted_backend()::text
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-review3.integration.test.ts:12:30
+ ❯ tests/customer-advances-review3.integration.test.ts:72:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/customer-advances-review3.integration.test.ts > 2. an authenticated request with no identity gets nothing, from every new reader > helper -> NULL; both as-of functions -> no rows; both views -> no rows (for a receipt that exists and is POSTED)
+AssertionError: expected 'POSTED' to be 'NULL' // Object.is equality
+
+Expected: "NULL"
+Received: "POSTED"
+
+ ❯ tests/customer-advances-review3.integration.test.ts:89:132
+     87|   it("helper -> NULL; both as-of functions -> no rows; both views -> n…
+     88|     const noId = { role: "authenticated" };
+     89|     expect(lastValue(asRole("authenticated", noId, `select coalesce(pu…
+       |                                                                                                                                    ^
+     90|     expect(lastValue(asRole("authenticated", noId, `select count(*) fr…
+     91|     expect(lastValue(asRole("authenticated", noId, `select count(*) fr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/customer-advances-review3.integration.test.ts > 4. static: no other function treats a missing uid as authority > no function body (new or old) still contains the identity-less trust in the as-of/helper functions
+AssertionError: payment_receipt_entry_status: expected 'CREATE OR REPLACE FUNCTION public.pay…' not to match /auth\.uid\(\)\s+IS\s+NULL/i
+
+- Expected:
+/auth\.uid\(\)\s+IS\s+NULL/i
+
++ Received:
+"CREATE OR REPLACE FUNCTION public.payment_receipt_entry_status(p_payment_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT je.status
+  FROM public.payments p
+  JOIN public.journal_entries je ON je.id = p.journal_entry_id
+  WHERE p.id = p_payment_id
+    -- same audience as the payments RLS policies; a backend caller without an end user (service role, SQL) is trusted
+    AND (auth.uid() IS NULL
+         OR public.has_permission(auth.uid(), p.organization_id, 'finance.payments.read')
+         OR p.member_id = public.current_member_id());
+$function$"
+
+ ❯ tests/customer-advances-review3.integration.test.ts:156:27
+    154|     for (const f of ["payment_receipt_entry_status", "payment_allocati…
+    155|       const body = q(`select pg_get_functiondef('public.${f}'::regproc…
+    156|       expect(body, f).not.toMatch(/auth\.uid\(\)\s+IS\s+NULL/i);
+       |                           ^
+    157|       expect(body, f).toContain("is_trusted_backend()");
+    158|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 6 passed (9)
+   Start at  23:35:47
+   Duration  33.38s (transform 169ms, setup 150ms, import 244ms, tests 32.32s, environment 0ms)
+

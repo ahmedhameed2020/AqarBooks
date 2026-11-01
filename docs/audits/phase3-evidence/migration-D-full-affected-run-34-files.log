@@ -1,0 +1,94 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 4 failed) 88398ms
+     × an active, permitted member reads their organization's rows (and only theirs) 8109ms
+     × suspended sees no financial/property rows in any affected table or view 8058ms
+     × stranger sees no financial/property rows in any affected table or view 8068ms
+     × activation through the real updateUserStatusAction grants access immediately; suspension removes it 14707ms
+(node:22276) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_inbucket_aqarbooks_clean supabase_realtime_aqarbooks_clean supabase_imgproxy_aqarbooks_clean supabase_pg_meta_aqarbooks_clean supabase_studio_aqarbooks_clean supabase_edge_runtime_aqarbooks_clean supabase_analytics_aqarbooks_clean supabase_vector_aqarbooks_clean supabase_pooler_aqarbooks_clean]
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active, permitted member reads their organization's rows (and only theirs)
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:114:51
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > suspended sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > stranger sees no financial/property rows in any affected table or view
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:120:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > invitation path is preserved > activation through the real updateUserStatusAction grants access immediately; suspension removes it
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:178:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed | 33 passed (34)
+      Tests  4 failed | 518 passed (522)
+   Start at  22:38:22
+   Duration  607.92s (transform 1.92s, setup 1.31s, import 15.17s, tests 581.33s, environment 11ms)
+
+done

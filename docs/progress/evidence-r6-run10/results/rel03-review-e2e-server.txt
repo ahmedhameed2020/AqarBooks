@@ -1,0 +1,31 @@
+▲ Next.js 16.3.0
+- Local:         http://localhost:3100
+- Network:       http://192.168.0.106:3100
+✓ Ready in 1450ms
+✓ Running next.config.ts took 8.7s
+Using secrets defined in .dev.vars
+⨯ Error [ChunkLoadError]: Failed to load chunk server/chunks/ssr/_1ekur_v._.js from module 299108
+    at Context.loadChunkAsync [as l] (D:\Web\AqarBooks\.next\server\chunks\ssr\[turbopack]_runtime.js:702:27) {
+  digest: '330392676',
+  [cause]: Error: Cannot find module 'D:\Web\AqarBooks\.next\server\chunks\ssr\_1ekur_v._.js'
+  Require stack:
+  - D:\Web\AqarBooks\.next\server\chunks\ssr\[turbopack]_runtime.js
+  - D:\Web\AqarBooks\.next\server\app\[locale]\(app)\account\page.js
+  - D:\Web\AqarBooks\node_modules\next\dist\server\require.js
+  - D:\Web\AqarBooks\node_modules\next\dist\server\next-server.js
+  - D:\Web\AqarBooks\node_modules\next\dist\server\next.js
+  - D:\Web\AqarBooks\node_modules\next\dist\server\lib\start-server.js
+  - D:\Web\AqarBooks\node_modules\next\dist\cli\next-start.js
+      at Context.loadChunkAsync [as l] (D:\Web\AqarBooks\.next\server\chunks\ssr\[turbopack]_runtime.js:697:34) {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [
+      'D:\\Web\\AqarBooks\\.next\\server\\chunks\\ssr\\[turbopack]_runtime.js',
+      'D:\\Web\\AqarBooks\\.next\\server\\app\\[locale]\\(app)\\account\\page.js',
+      'D:\\Web\\AqarBooks\\node_modules\\next\\dist\\server\\require.js',
+      'D:\\Web\\AqarBooks\\node_modules\\next\\dist\\server\\next-server.js',
+      'D:\\Web\\AqarBooks\\node_modules\\next\\dist\\server\\next.js',
+      'D:\\Web\\AqarBooks\\node_modules\\next\\dist\\server\\lib\\start-server.js',
+      'D:\\Web\\AqarBooks\\node_modules\\next\\dist\\cli\\next-start.js'
+    ]
+  }
+}

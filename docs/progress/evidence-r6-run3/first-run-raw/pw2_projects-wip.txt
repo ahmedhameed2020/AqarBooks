@@ -1,0 +1,44 @@
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (3.7m)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 2 tests\e2e\projects-wip.spec.ts:213:5 › a member without finance.accounts.manage sees the projects but no controls (18.9s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+
+    Test timeout of 220000ms exceeded.
+
+    Error: locator.fill: Test ended.
+    Call log:
+      - waiting for locator('#prj-code')
+
+
+      118 |
+      119 |     // 1. Saved WITHOUT accounts: allowed, but marked and not capitalisable.
+    > 120 |     await page.locator("#prj-code").fill(code);
+          |                                     ^
+      121 |     await page.locator("#prj-ar").fill("برج الاختبار");
+      122 |     await page.locator("#prj-en").fill("Test Tower");
+      123 |     await page.locator("#prj-budget").fill("1000000");
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:120:37
+
+    Error Context: test-results\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+  1 passed (4.5m)

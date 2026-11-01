@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "generated_note": "Hand-maintained from the session reports listed in each phase's evidence. Statuses describe only what those reports established. This file is not a production readiness score.",
+  "production_readiness": "not_assessed",
+  "production_readiness_note": "Production readiness has not been assessed. No percentage or score in this file measures it.",
+  "phases": [
+    {
+      "id": "ux-sprint-1",
+      "name_ar": "السبرينت 1 لتجربة المستخدم (المالية)",
+      "name_en": "UX Sprint 1 (finance UX)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/finance-error-message.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-ux.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/receipt-void-ux.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-currency.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-rtl.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/treasury-error-codes.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/db-error-code.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/einvoice-receivable-account.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        }
+      ],
+      "blockers": [
+        "No browser verification",
+        "No Playwright run",
+        "No integration verification",
+        "Arabic copy not reviewed by a translator",
+        "Ownership of treasury error mapping in receivables.ts is not settled",
+        "English string in the Arabic branch of statement-forms.tsx not fixed"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "Combined unit test run: 113/113 passing, tsc exit 0 (session report)",
+        "tests/finance-error-message.test.ts",
+        "tests/bank-reconciliation-ux.test.ts",
+        "tests/receipt-void-ux.test.ts",
+        "tests/bank-reconciliation-currency.test.ts",
+        "tests/bank-reconciliation-rtl.test.ts",
+        "tests/treasury-error-codes.test.ts",
+        "tests/db-error-code.test.ts",
+        "tests/einvoice-receivable-account.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-0",
+      "name_ar": "السبرينت 2 - الدفعة 0 (صدق معالج الإقفال)",
+      "name_en": "Sprint 2 Batch 0 (closing wizard honesty)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/year-closing-wizard-honesty.test.ts",
+          "result_text": "6/6 passing"
+        }
+      ],
+      "blockers": [
+        "None in code",
+        "Per-period close button still has no pre-checks (by design in this batch)"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "tests/year-closing-wizard-honesty.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-1a",
+      "name_ar": "السبرينت 2 - الدفعة 1A (حساب الإقفال النقي)",
+      "name_en": "Sprint 2 Batch 1A (pure closing calculation)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/fiscal-year-closing.test.ts",
+          "result_text": "38/38 passing"
+        },
+        {
+          "file": "tests/year-closing-wizard-honesty.test.ts",
+          "result_text": "6/6 passing; 44 total with fiscal-year-closing (reported)"
+        }
+      ],
+      "blockers": [
+        "No database side yet"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "lib/accounting/fiscal-year-closing.ts",
+        "tests/fiscal-year-closing.test.ts",
+        "tests/year-closing-wizard-honesty.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-1b",
+      "name_ar": "السبرينت 2 - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير)",
+      "name_en": "Sprint 2 Batch 1B (closing SQL, guards, permission, reports)",
+      "status": "blocked",
+      "tests": [
+        {
+          "file": "tests/projects-wip.spec.ts",
+          "result_text": "8/8 passing on r6 after proposal 200000; the cancelled-draft case failed before the fix with released=900.00 instead of 600.00."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_after.txt",
+          "result_text": "PASS on r6: status-only cancelled draft excluded; capitalised=1000, released=600, wip_balance=400, ledger=400. Transaction rolled back."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run5/results/posted_reversal_after.txt",
+          "result_text": "PASS on r6: reversed release gives 1000/0/1000; reversing the capitalisation then gives 0/0/0, with ledger agreement. Transaction rolled back."
+        },
+        {
+          "file": "tests/reports-suite-flow.spec.ts",
+          "result_text": "passing; 1 skipped (fixed-asset check, DEFERRED)"
+        },
+        {
+          "file": "tests/reports-lease-expirations.spec.ts",
+          "result_text": "1/1 passing"
+        },
+        {
+          "file": "tests/reports-lease-read-failure.spec.ts",
+          "result_text": "1/1 passing (read error shown, no rows)"
+        },
+        {
+          "file": "tests/reports-unbuilt-sections.spec.ts",
+          "result_text": "2 skipped: CAM and CAPEX/OPEX DEFERRED (test.fixme, never passed)"
+        },
+        {
+          "file": "tests/accounting-journey.spec.ts",
+          "result_text": "15/15 passing (manual journal path under option A)"
+        },
+        {
+          "file": "tests/vitest (20 files)",
+          "result_text": "4 re-run passing; 15 first-run results kept; sandbox-pilot.manual 3/9 (tax rules blocked, decision 0008)"
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/verify_reverse_negative_message.txt",
+          "result_text": "PASS on r6: refused reversal kept the original entry POSTED; proposal 190000 now labels 400 as the balance before the movement and -600 as the projected net, not a persisted balance."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/retry_valid_missing_attempt.txt",
+          "result_text": "PASS on r6: S1 rolled back on deadlock; its retry waited 3.907 s under a concurrent project lock, then committed. Both entries POSTED; PA=750, PB=800; 0 unbalanced retry entries."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/retry_seed.txt",
+          "result_text": "SETUP FAILED: a fixed UUID already existed in accumulated r6 data. Diagnosed as fixture collision, not a product regression; no data deleted. The atomic random-UUID fixture and subsequent deadlock/retry run passed."
+        },
+        {
+          "file": "tests/progress-status.test.ts",
+          "result_text": "7/7 passing after the proposal 200000 status update (docs/progress/evidence-r6-run5/results/progress-status-test.txt)."
+        }
+      ],
+      "blockers": [
+        "External: sandbox-pilot.manual 6 assertions failing; blocked on missing approved tax rules (decision 0008 unsigned).",
+        "External: owner-portal-online-payment-fawry not run (Fawry keys absent).",
+        "Deferred by explicit owner decision (2026-10-29, decisions/2026-10-29-report-deferrals.md): asset report, CAM, CAPEX/OPEX. Links hidden; tests test.fixme (skipped, not passed).",
+        "Open owner decision: the pre-existing-negative policy currently allows improvement only and still needs explicit confirmation.",
+        "UPDATE/DELETE floor coverage remains limited to RLS-bypassing roles (owner and service_role); authenticated and anon have no journal_entry_lines UPDATE/DELETE policy.",
+        "Multi-line update ordering across two projects was not tested beyond the existing T4/T5 evidence.",
+        "Proposal 190000 changes only the PROJECT_WIP_NEGATIVE wording and is applied to r6 only; review is required. Its guard logic and assertions were unaffected.",
+        "Proposal 200000 changes only cancelled-draft classification in project_wip_summary and is applied to r6 only; review is required. Genuine POSTED-then-REVERSED classification and reversal effects passed the focused SQL and WIP UI checks.",
+        "Audit constraint check_audit_action keeps PROJECT_UPDATED after rollback: changes the accepted-value set (superset).",
+        "Not applied outside r6. No production readiness claim. Review required before any environment."
+      ],
+      "last_updated": "2026-10-29",
+      "evidence": [
+        "docs/progress/review-bundle-r6-200000.zip",
+        "docs/progress/review-bundle-r6-200000/manifest.txt",
+        "docs/progress/evidence-r6-run5/",
+        "docs/progress/review-bundle-r6-190000.zip",
+        "docs/progress/review-bundle-r6-190000/manifest.txt",
+        "docs/progress/evidence-r6-run4/",
+        "docs/progress/decisions/"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-2",
+      "name_ar": "السبرينت 2 - الدفعة 2 (رموز أخطاء الترحيل)",
+      "name_en": "Sprint 2 Batch 2 (posting error codes)",
+      "status": "not_started",
+      "tests": [],
+      "blockers": [
+        "Depends on Batch 1B",
+        "Requires isolated rehearsal",
+        "Scope: FISCAL_PERIOD_NOT_OPEN as a stable code across manual, dues, payments, reversal, and bank posting paths, with integration tests"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-3",
+      "name_ar": "السبرينت 2 - الدفعة 3 (واجهة رحلة الإقفال)",
+      "name_en": "Sprint 2 Batch 3 (closing journey UI)",
+      "status": "not_started",
+      "tests": [],
+      "blockers": [
+        "Depends on Batch 1B and Batch 2",
+        "Scope: pre-check, preview, typed confirmation, result screen"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "g0-local-rehearsal",
+      "name_ar": "بوابة G0 للتدريب المحلي",
+      "name_en": "Local rehearsal gate G0",
+      "status": "code_complete",
+      "tests": [],
+      "blockers": [
+        "Covers the LOCAL scope only (conditional approval recorded in APPROVAL-RECORD.md)",
+        "Blocked for production: production identity and any production action need separate approval"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "APPROVAL-RECORD.md (session report: G0 conditional local approval)"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "production",
+      "name_ar": "الإنتاج",
+      "name_en": "Production",
+      "status": "not_started",
+      "tests": [],
+      "blockers": [
+        "Owner approval required",
+        "Production is not connected",
+        "G0 approval covers local scope only"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { JournalEntryForm } from "./journal-entry-form";
+import { isAiAvailable } from "@/lib/ai/availability";
 import { FileText, ArrowRight, ArrowLeft } from "lucide-react";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
 
@@ -110,6 +111,7 @@ export default async function NewJournalEntryPage({
         periods={periods ?? []}
         currency={currency}
         locale={locale}
+        aiAvailable={isAiAvailable()}
       />
     </div>
   );

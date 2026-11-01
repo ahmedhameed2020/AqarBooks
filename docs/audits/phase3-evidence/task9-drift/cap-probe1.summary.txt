@@ -1,0 +1,1 @@
+label=probe1 duration=155s cli=DIFFERS catalog_compare=7 differing lines; live=4507 shadow=4500 lines 

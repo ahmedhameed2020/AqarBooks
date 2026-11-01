@@ -8,6 +8,12 @@ import crypto from "node:crypto";
 // the adapter (and the env validation it depends on) without a Next.js
 // bundler in the loop.
 vi.mock("server-only", () => ({}));
+// Retain the pre-existing wire-contract tests behind a mocked initiation
+// gate. The real, non-mocked V1 deny is exercised in fawry-initiation.test.ts.
+// This mock exists only in this unit-test file, never in runtime code.
+vi.mock("@/lib/payments/fawry-initiation-policy", () => ({
+  assertFawryInitiationAllowed: vi.fn(),
+}));
 
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
 import type { ProviderCredentials } from "@/lib/payments/providers/types";

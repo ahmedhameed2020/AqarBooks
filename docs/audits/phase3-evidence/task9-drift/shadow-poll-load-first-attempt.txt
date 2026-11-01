@@ -1,0 +1,127 @@
+22:27:21 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:27:27 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:27:36 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:27:47 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:27:54 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:00 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:09 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:28:15 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:28:21 elegant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:28:27 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:33 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:38 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:43 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:49 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:54 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:28:59 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:29:05 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:29:11 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 3
+22:29:16 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 22
+22:29:22 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 81
+22:29:27 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:29:32 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:29:37 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:29:41 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:29:46 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:29:51 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 58 101
+22:29:56 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:01 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:06 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:10 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:15 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:20 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:25 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:30 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:35 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:40 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:30:45 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+22:30:50 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 185 114
+22:30:56 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 202 141
+22:31:02 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:09 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:14 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:20 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:25 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:31 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:36 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:42 elegant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:31:47 elegant_elbakyan Error response from daemon: container fe4096370f177d18a6f1feb66598aacbbfd869afa9934015b629c8c7bb2833a7 is not running
+22:32:02 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:07 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:12 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:20 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:31 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:37 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:43 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:32:49 elegant_mcnulty "$user", public NULL 0 0
+22:32:56 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:02 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:08 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:33:14 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:33:20 elegant_mcnulty psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:33:27 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:33 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:40 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:46 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:50 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:33:55 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:34:01 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:34:12 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 1
+22:34:20 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 2
+22:34:28 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 15
+22:34:37 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 64
+22:34:42 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:34:48 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:34:54 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:35:00 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:35:04 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:35:09 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+22:35:14 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 89 101
+22:35:19 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:35:23 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:35:30 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:35:44 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:36:24 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:36:34 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:36:48 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:37:09 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:37:38 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:38:41 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:39:10 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+22:39:28 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 171 104
+22:39:43 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 181 111
+22:39:57 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 195 126
+22:40:13 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:40:29 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:40:52 elegant_mcnulty "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+22:41:10 elegant_mcnulty Error response from daemon: container ded5983072859cd2d319df7785fef42cea32cbd1f7a40af0b4f674a0e268ee1b is not running
+22:42:34 epic_maxwell psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:42:54 epic_maxwell psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:43:09 epic_maxwell psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:43:26 epic_maxwell "$user", public NULL 0 0
+22:43:47 epic_maxwell "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:44:09 epic_maxwell psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:44:26 epic_maxwell psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:44:49 epic_maxwell Error response from daemon: No such container: epic_maxwell
+22:45:25 friendly_hellman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:45:43 friendly_hellman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:47:01 friendly_hellman "$user", public NULL 0 0
+22:47:37 friendly_hellman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:48:23 friendly_hellman Error response from daemon: No such container: friendly_hellman
+22:49:22 zen_antonelli psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:49:51 zen_antonelli psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:50:14 zen_antonelli "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:50:43 zen_antonelli psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:51:11 zen_antonelli "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:51:41 zen_antonelli Error response from daemon: No such container: zen_antonelli
+22:53:16 focused_poincare psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:53:36 focused_poincare psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:53:56 focused_poincare "$user", public NULL 0 0
+22:54:23 focused_poincare psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:55:01 focused_poincare psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:55:32 focused_poincare Error response from daemon: container c3cdf288ea46154b0f6b5f51abf3e596656678f7d353dcbae07208fb3cc94fd8 is not running
+22:56:31 loving_driscoll psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:56:52 loving_driscoll psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+22:57:35 loving_driscoll "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+22:57:54 loving_driscoll psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+22:58:11 loving_driscoll psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down

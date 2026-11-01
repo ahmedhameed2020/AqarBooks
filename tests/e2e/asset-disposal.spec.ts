@@ -8,10 +8,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
 type Fixture = { orgId: string; email: string; userIds: string[]; assetCode: string };
@@ -27,10 +29,11 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
 
   await admin.rpc("clone_tenant_role_templates", { p_organization_id: f.orgId });
 
-  const acc = async (code: string, nameEn: string, cat: string, bal: string) => {
+  const acc = async (code: string, nameEn: string, cat: string, bal: string, cashEquivalent = false) => {
     const { data, error: e } = await admin.from("chart_of_accounts").insert({
       organization_id: f.orgId, code, name_ar: nameEn, name_en: nameEn,
       category: cat, normal_balance: bal, is_group: false, is_active: true,
+      is_cash_equivalent: cashEquivalent,
     }).select("id").single();
     expect(e, e?.message).toBeNull();
     return data!.id as string;
@@ -38,7 +41,10 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
   const assetAcc = await acc("1210", "Buildings", "ASSET", "DEBIT");
   const accumAcc = await acc("1220", "Accumulated Depreciation", "ASSET", "DEBIT");
   const expenseAcc = await acc("5500", "Depreciation Expense", "EXPENSE", "DEBIT");
-  await acc("1010", "Cash", "ASSET", "DEBIT");
+  await acc("1010", "Cash", "ASSET", "DEBIT", true);
+  // Independent of every fixed-asset field: its absence must be caused by the
+  // cash-equivalent filter, not by the asset/accumulated-account exclusions.
+  await acc("1230", "Other Non-Cash Assets", "ASSET", "DEBIT");
   await acc("5910", "Loss on Disposal", "EXPENSE", "DEBIT");
   await acc("4910", "Gain on Disposal", "REVENUE", "CREDIT");
 
@@ -46,15 +52,6 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
     organization_id: f.orgId, name: "P", code: `DU-${stamp}`,
     timezone: "Africa/Cairo", property_type: "building",
   }).select("id").single();
-
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: f.orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: f.orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  });
 
   await admin.from("fixed_assets").insert({
     organization_id: f.orgId, property_id: property!.id, code: f.assetCode,
@@ -78,6 +75,14 @@ async function setUp(admin: SupabaseClient): Promise<Fixture> {
   await admin.from("user_role_assignments")
     .insert({ user_id: created!.user!.id, role_id: role!.id, organization_id: f.orgId });
   f.email = email;
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { error: signInErr } = await ownerClient.auth.signInWithPassword({ email, password: STAFF_PASSWORD });
+  expect(signInErr, `owner sign-in failed: ${signInErr?.message}`).toBeNull();
+  await createOpenFiscalYear(admin, ownerClient, {
+    orgId: f.orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
   return f;
 }
 
@@ -90,8 +95,7 @@ async function cleanUp(admin: SupabaseClient, f: Fixture) {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", id);
-  await admin.from("fiscal_periods").delete().eq("organization_id", id);
-  await admin.from("fiscal_years").delete().eq("organization_id", id);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("platform_audit_logs").delete().eq("organization_id", id);
   await admin.from("properties").delete().eq("organization_id", id);
   await admin.from("organizations").update({
@@ -128,12 +132,17 @@ test("disposal is refused until the accounts are designated, then succeeds and c
 
     // 1. Try to dispose with nothing designated.
     await page.goto("/en/finance/assets");
-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toBeVisible();
+    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
 
     await page.locator("#dispose-proceeds").fill("7000");
+    await expect(page.locator("#dispose-account")).toContainText("1010 — Cash");
+    await expect(page.locator("#dispose-account")).not.toContainText("1230 — Other Non-Cash Assets");
+    await expect(page.locator("#dispose-account")).not.toContainText("1210 — Buildings");
+    await expect(page.locator("#dispose-account")).not.toContainText("1220 — Accumulated Depreciation");
     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
     await page.locator("#dispose-date").fill("2026-06-01");
-    await page.getByRole("button", { name: /^Dispose$/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Confirm Disposal$/i }).click();
 
     // The refusal must say where to fix it, not merely that it failed.
     const refusal = page.locator("form").getByRole("alert");
@@ -149,7 +158,7 @@ test("disposal is refused until the accounts are designated, then succeeds and c
 
     await disposal.locator("#disposal-gain").selectOption({ label: "4910 — Gain on Disposal" });
     await disposal.locator("#disposal-loss").selectOption({ label: "5910 — Loss on Disposal" });
-    await disposal.getByRole("button", { name: /^Save$/i }).click();
+    await disposal.getByRole("button", { name: /^Save Designation$/i }).click();
 
     await expect(page.locator('[data-designation="disposal"]')).toHaveAttribute(
       "data-ready", "yes", { timeout: 40_000 },
@@ -157,15 +166,14 @@ test("disposal is refused until the accounts are designated, then succeeds and c
 
     // 3. Now the disposal goes through.
     await page.goto("/en/finance/assets");
+    await page.getByRole("row").filter({ hasText: f.assetCode }).getByRole("button", { name: /^Dispose$/i }).click();
     await page.locator("#dispose-proceeds").fill("7000");
     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
     await page.locator("#dispose-date").fill("2026-06-01");
     await page.locator("#dispose-reason").fill("sold");
-    await page.getByRole("button", { name: /^Dispose$/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Confirm Disposal$/i }).click();
 
-    await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toHaveAttribute(
-      "data-status", "DISPOSED", { timeout: 40_000 },
-    );
+    await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toContainText("Disposed", { timeout: 40_000 });
 
     // 4. The ledger agrees: cost out in full, loss = book value - proceeds.
     // No depreciation was posted, so book value is the full 10,000 and selling

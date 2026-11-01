@@ -1,0 +1,15 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+psql:/tmp/conc_s1_edit_first_E.sql:5: ERROR:  المنتجع المحدّد لا ينتمي للمنظمة
+CONTEXT:  PL/pgSQL function append_financial_audit_event(uuid,text,text,uuid,uuid,text,inet,text,jsonb) line 20 at RAISE
+SQL statement "SELECT public.append_financial_audit_event(
+      NEW.organization_id, 'PROJECT_UPDATED', 'PROJECT', NEW.id, NULL, NULL, NULL, NULL,
+      jsonb_build_object('project_id', NEW.id, 'changed_fields', to_jsonb(v_changed),
+                         'has_postings', public.project_has_postings(OLD.id))
+    )"
+PL/pgSQL function audit_project_update() line 16 at PERFORM

@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -42,10 +43,11 @@ beforeAll(async () => {
   orgId = org!.id as string;
   await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
 
-  const acc = async (code: string, cat: string, bal: string) => {
+  const acc = async (code: string, cat: string, bal: string, cashEquivalent = false) => {
     const { data, error: e } = await admin.from("chart_of_accounts").insert({
       organization_id: orgId, code, name_ar: code, name_en: code,
       category: cat, normal_balance: bal, is_group: false, is_active: true,
+      is_cash_equivalent: cashEquivalent,
     }).select("id").single();
     expect(e, e?.message).toBeNull();
     return data!.id as string;
@@ -55,23 +57,13 @@ beforeAll(async () => {
   expenseAcc = await acc("5500", "EXPENSE", "DEBIT");
   lossAcc = await acc("5910", "EXPENSE", "DEBIT");
   gainAcc = await acc("4910", "REVENUE", "CREDIT");
-  cashAcc = await acc("1010", "ASSET", "DEBIT");
+  cashAcc = await acc("1010", "ASSET", "DEBIT", true);
 
   const { data: property } = await admin.from("properties").insert({
     organization_id: orgId, name: "D P", code: `DSP-${stamp}`,
     timezone: "Africa/Cairo", property_type: "building",
   }).select("id").single();
   propertyId = property!.id as string;
-
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  const { data: period } = await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  periodId = period!.id as string;
 
   const email = `e2e-disposal-${stamp}@aqarbooks-test.local`;
   const { data: created } = await admin.auth.admin.createUser({
@@ -88,6 +80,17 @@ beforeAll(async () => {
   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, signInErr?.message).toBeNull();
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // The test posts into the first monthly period; the other eleven stay open and unused.
+  await createOpenFiscalYear(admin, asUser, {
+    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
+  const { data: period, error: periodErr } = await admin
+    .from("fiscal_periods").select("id")
+    .eq("organization_id", orgId).eq("period_number", 1).single();
+  expect(periodErr, periodErr?.message).toBeNull();
+  periodId = period!.id as string;
 });
 
 afterAll(async () => {
@@ -99,8 +102,7 @@ afterAll(async () => {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
   await admin.from("properties").delete().eq("organization_id", orgId);
   await admin.from("organizations").update({
@@ -169,6 +171,34 @@ describe("fixed asset disposal", () => {
       p_organization_id: orgId, p_gain_account_id: gainAcc, p_loss_account_id: lossAcc,
     });
     expect(ok.error, ok.error?.message).toBeNull();
+  });
+
+  it("refuses a non-cash proceeds account without posting or disposing the asset", async () => {
+    const id = await makeAsset(`D-NONCASH-${Date.now()}`);
+    // This account is unrelated to the disposed asset: the refusal must come
+    // from its non-cash classification, not from the asset-account exclusion.
+    const { data: nonCashAccount, error: nonCashAccountError } = await admin
+      .from("chart_of_accounts").insert({
+        organization_id: orgId, code: "1230", name_ar: "أصول غير نقدية",
+        name_en: "Non-cash assets", category: "ASSET", normal_balance: "DEBIT",
+        is_group: false, is_active: true, is_cash_equivalent: false,
+      }).select("id").single();
+    expect(nonCashAccountError, nonCashAccountError?.message).toBeNull();
+    const { count: before } = await admin.from("journal_entries")
+      .select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+
+    const { error } = await asUser.rpc("dispose_fixed_asset", {
+      p_asset_id: id, p_disposal_date: "2026-06-01",
+      p_proceeds: 100, p_proceeds_account_id: nonCashAccount!.id,
+    });
+    expect(error?.message).toMatch(/DISPOSAL_PROCEEDS_ACCOUNT_INVALID/);
+
+    const { data: asset } = await admin.from("fixed_assets")
+      .select("status").eq("id", id).single();
+    expect(asset!.status).toBe("ACTIVE");
+    const { count: after } = await admin.from("journal_entries")
+      .select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+    expect(after).toBe(before);
   });
 
   it("closes cost and accumulated depreciation and books the gain, line by line", async () => {

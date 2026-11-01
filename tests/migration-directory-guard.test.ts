@@ -151,6 +151,54 @@ export const MIGRATION_FILES: readonly MigrationDescriptor[] = [
   { file: "20261001122000_gate_export_snapshot_contract.sql", bytes: 4190, sha256: "9d6232ee0980f8d47c1e311208337c330cf5f40fda4005218c35210ea028bdf7", provenance: "new_authorized_migration" },
   { file: "20261001123000_final_hardening_sprint.sql", bytes: 14237, sha256: "219396927bd82f97a9e00c1090be0706c6dd17c2cd5a639229c6983800a5436d", provenance: "new_authorized_migration" },
   { file: "20261004120000_owner_portal_access.sql", bytes: 48776, sha256: "88e761aa8be2a61b0045df07af0ba0dedf1cd6b724a13da8fd1337f079d48d4b", provenance: "new_authorized_migration" },
+  { file: "20261009120000_phase1_financial_report_authz.sql", bytes: 8269, sha256: "cde5086b5bbcaafbedc73fd68e465d35021a106c9442a82677d1167a929d7a81", provenance: "new_authorized_migration" },
+  { file: "20261009130000_phase1_1_membership_roles_audit.sql", bytes: 9350, sha256: "436d441b23af755db17dcba0f012a00feecbc3bf2fbe64ac608deec48810443a", provenance: "new_authorized_migration" },
+  { file: "20261009140000_phase1_2_finance_read_permissions.sql", bytes: 21259, sha256: "340ec5e2e7e6fa014d8a0bc762ecfb0d876957c4edd5d454bd6c61a4d077142a", provenance: "new_authorized_migration" },
+  { file: "20261010120000_phase2_ledger_reversals_and_trial_balance_opening.sql", bytes: 23899, sha256: "4ad58ff2cd12584c721d97947155d1daf94094f9039832d720af16b5cb0b25f9", provenance: "new_authorized_migration" },
+  { file: "20261011100000_phase2b_receivable_account_setting.sql", bytes: 7133, sha256: "3309fff87e444904e5694e0733651e3626061f93ccb9525ee29dc9eb1c90300b", provenance: "new_authorized_migration" },
+  { file: "20261011100100_phase2b_default_receivable_account_rpcs.sql", bytes: 3572, sha256: "7e4e6fbb8c40bee353e000ca9da60b0520d88f480f8428fd7d1f5c6849fdf506", provenance: "new_authorized_migration" },
+  { file: "20261012100000_phase2c_bank_reconciliation_unhandled_lines.sql", bytes: 3227, sha256: "f66608d14afbcb9232bdf73188b8eb223e84b0d0737ef17a7869a69d6476ccf2", provenance: "new_authorized_migration" },
+  { file: "20261013100000_phase2d_dues_require_open_period.sql", bytes: 16590, sha256: "0463e6103ae4bbb2c8215004cb4ea7278f59739cc6000a573a1556e0f151ee92", provenance: "new_authorized_migration" },
+  { file: "20261014100000_phase2e_bank_reconciliation_strict_upgrade.sql", bytes: 5856, sha256: "18178d28b862075be082b9fc69cc1e5790ed517c3deb3acef18be8a690468965", provenance: "new_authorized_migration" },
+  { file: "20261015100000_phase2f_notifications_amenity_source_type.sql", bytes: 2049, sha256: "81976d7d5853d28574624842f54a08bf65528e697db527693465fb57a55192ee", provenance: "new_authorized_migration" },
+  { file: "20261015100100_phase2f_notifications_amenity_types.sql", bytes: 2159, sha256: "d329459408f91acf7668bfd64c22ab701b26b92832a4193b490e29c2d7e40dc6", provenance: "new_authorized_migration" },
+  { file: "20261015100200_phase2f_visitor_gate_scan_foreign_pass.sql", bytes: 10415, sha256: "a40a5e06cacaeac1381a9c7b627711b20eba1d2ce2530e8476031f3cd0b00d03", provenance: "new_authorized_migration" },
+  { file: "20261016100000_phase2g_owner_suspended_pass_denial.sql", bytes: 12129, sha256: "71767eceb5f8c02b9f190bee792eea777a932d9e3de9e85ab3b63cee51f2b5f4", provenance: "new_authorized_migration" },
+  { file: "20261017100000_phase3a_customer_advances_schema.sql", bytes: 20330, sha256: "0767cae32db5778dab07eaf2bb507daf2ce79f600300d9b4d0206f6aed11d3c2", provenance: "new_authorized_migration" },
+  { file: "20261017100100_phase3b_customer_advances_functions.sql", bytes: 43003, sha256: "a2a75bb0ccb45884acc83b9c3a5c7d4f0ac1513147651393cecd1ae23b9c3b3f", provenance: "new_authorized_migration" },
+  { file: "20261017100200_phase3c_customer_advances_integrity.sql", bytes: 37921, sha256: "3aa9e43cfd0065b48af07de0b074a56578dae350a43b887cadf430dd88cfe776", provenance: "new_authorized_migration" },
+  { file: "20261017100300_phase3d_customer_advances_review2.sql", bytes: 35022, sha256: "3c9cda50b8ffbf93fe3699c28e8172481b390984cc78e4f31b5e9d9ef6c9b271", provenance: "new_authorized_migration" },
+  { file: "20261017100400_phase3e_customer_advances_trusted_backend.sql", bytes: 4539, sha256: "5d0be4a8fd41e1f202f9a4b3d01c6bf4c2a6819b264dc1bb93883f02701613fd", provenance: "new_authorized_migration" },
+  { file: "20261017100500_phase3f_portal_statement_history.sql", bytes: 2964, sha256: "b7159c55058f38a0d04d533b288ee6a93fb0868b43ee0c454062973c67cc2183", provenance: "new_authorized_migration" },
+  { file: "20261017100600_phase3g_advance_account_configured.sql", bytes: 1530, sha256: "c07cc94370d6b627e283a5dc3cc2142e6b2c57d3b0c452bcdef9b39d7bd9d40d", provenance: "new_authorized_migration" },
+  { file: "20261017100700_phase3h_owner_statement_settlement.sql", bytes: 5634, sha256: "0df397509563cfb28a017d2113652c8ebaab7209144b8132ec0f2052c596dcff", provenance: "new_authorized_migration" },
+  // Phase 3i (20261017100800). Reviewed: units_with_financials / members_with_financials recomputed with LATERAL totals keyed on the returned row
+  // (same columns, types, arithmetic, RLS, grants); plus idx_payments_member_posted. Evidence: docs/audits/phase3-evidence/task8-views/.
+  { file: "20261017100800_phase3i_view_lateral_aggregates.sql", bytes: 5288, sha256: "579e3591d08b65a57c0a2959ed531cbed09b84bef79f5f5d0acaf39ffc1f2565", provenance: "new_authorized_migration" },
+  // Task 10 (20261017100900). Reviewed and approved: the permission check of five policies (chart_of_accounts select + manage, fiscal_periods select + manage,
+  // dues_select_permission) is evaluated once per statement through orgs_with_permission_keys instead of once per row; same rows, same grants. Evidence: docs/audits/phase3-evidence/task10-rls/.
+  { file: "20261017100900_rls_set_based_permission_policies.sql", bytes: 6822, sha256: "ddee18f634275e21d332424252154bab53912715cbeb783684f873093986c19b", provenance: "new_authorized_migration" },
+  // Task 10 follow-up (20261017101000). Reviewed and approved: the platform-admin check of the same five policies is an uncorrelated InitPlan (once per statement) instead of a per-row call;
+  // same rows. Evidence: docs/audits/phase3-evidence/task10-rls/ (equivalence + plan assertions, red before / green after).
+  { file: "20261017101000_rls_admin_check_once.sql", bytes: 5355, sha256: "ec14382329dbcdc3adc2eca0bd80c62c78f1322d3d627abf726ae9f90f322330", provenance: "new_authorized_migration" },
+  // Task 10 follow-up (20261017101100). Reviewed and approved: journal_entries + journal_entry_lines select policies evaluate the permission checks once per statement (both tables together,
+  // because the lines policy alone does not help); same rows, no write policy touched. Evidence: docs/audits/phase3-evidence/task10-rls/.
+  { file: "20261017101100_rls_journal_entries_and_lines.sql", bytes: 2780, sha256: "acddadb100368b30f31a8241fafbfe6c1c23b283ff3904530d64d75f90f9bafb", provenance: "new_authorized_migration" },
+  // Task 10 closing (20261017101200). Reviewed and approved: fiscal_years select + manage (ALL) policies evaluate the permission checks once per statement; same rows for read / insert /
+  // update / delete / WITH CHECK; no policy added or removed. Evidence: docs/audits/phase3-evidence/task10-rls/.
+  { file: "20261017101200_rls_fiscal_years.sql", bytes: 2367, sha256: "703554ff3f723b09436ce4aa0f1beddb5edb73cd931098d9d908e978e23e731d", provenance: "new_authorized_migration" },
+  // Task 11 (20261018100000). Proposed, local only, awaiting approval: the deposit account of a receipt must be the GL account of an ACTIVE cash box or bank account of the same organization
+  // (record_payment / record_advance_payment refuse anything else with DEPOSIT_ACCOUNT_INVALID; list_deposit_accounts feeds the screen); the link itself is validated by two triggers on cashboxes / bank_accounts; a third trigger audits changes of chart_of_accounts.is_cash_equivalent. Functions and three triggers: no DML, no backfill.
+  // Evidence: docs/audits/phase3-evidence/task11-deposit-account/.
+  { file: "20261018100000_deposit_account_cash_or_bank.sql", bytes: 12701, sha256: "add8a244a189b58f548db0d9a6ed6061556504f4326f1b8276349f7b443c1b99", provenance: "new_authorized_migration" },
+  // Fiscal year closing set (20261019100000-200). Pinned as present in the repository; not applied to any database.
+  { file: "20261019100000_fiscal_year_closing_core.sql", bytes: 28546, sha256: "b752b582604fa36975478bb40aaf0c551fc375ed10d19b8f5edf1cbc38d43ae4", provenance: "new_authorized_migration" },
+  { file: "20261019100100_fiscal_year_close_guards.sql", bytes: 25251, sha256: "0e81549e882b8327fb103514f203b12cfe5f794e3c4a8bde0221854e629dc091", provenance: "new_authorized_migration" },
+  { file: "20261019100200_fiscal_year_close_permission_and_reports.sql", bytes: 5588, sha256: "3886669724cfd575619b7377dfa4480c7decb12e447fe88bc638c35a14c1c676", provenance: "new_authorized_migration" },
+  { file: "20261019100300_fiscal_calendar_truncate_revoke.sql", bytes: 1582, sha256: "a53b4b09f1e9e7e12b20f53ca34c50eac2cd3819fa37fb243f79b5bb7f4114d3", provenance: "new_authorized_migration" },
+  { file: "20261019100400_fiscal_calendar_draft_and_open_transition.sql", bytes: 15324, sha256: "93ddb081410ba1e1a51501365e85144d80be6cf94e77f69f1532e5ba2a4103c2", provenance: "new_authorized_migration" },
+  // Fiscal year opened audit (20261019100500). Adds FISCAL_YEAR_OPENED to check_audit_action; written by open_fiscal_year (20261019100400). Not applied.
+  { file: "20261019100500_fiscal_year_opened_audit.sql", bytes: 1707, sha256: "94baf15575b94612814b8fdd2cc815b5f90e57932257f82a015a9246ab082a7f", provenance: "new_authorized_migration" },
 ] as const;
 
 /**
@@ -408,7 +456,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
       expect(reconciledRemote).toEqual([...RECONCILED_REMOTE_MIGRATIONS]);
 
       const authorized = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(authorized).toHaveLength(27);
+      expect(authorized).toHaveLength(60);
       expect(authorized[0].file).toBe("20260913165500_w0_sec_authorization_containment.sql");
       expect(authorized[1].file).toBe("20260914131953_maintenance_request_core.sql");
       expect(authorized[2].file).toBe("20260914200226_maintenance_request_attachments.sql");
@@ -484,7 +532,7 @@ describe("migrations directory holds exactly the approved baseline", () => {
 
       // 9. new authorized migrations strictly forward: version > RECONCILIATION_LEDGER_TIP
       const newMigrations = MIGRATION_FILES.filter((m) => m.provenance === "new_authorized_migration");
-      expect(newMigrations).toHaveLength(27);
+      expect(newMigrations).toHaveLength(60);
       for (const m of newMigrations) {
         const v = m.file.match(CLI_MIGRATION_PATTERN)![1];
         expect(BigInt(v) > BigInt(RECONCILIATION_LEDGER_TIP)).toBe(true);

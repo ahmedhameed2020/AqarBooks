@@ -1,0 +1,207 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/treasury-link-and-cheque.integration.test.ts (12 tests | 1 failed) 35742ms
+     × deactivated bank account: refused with DEPOSIT_ACCOUNT_INVALID, nothing written, the cheque stays DEPOSITED; reactivating is the remedy 2750ms
+ ❯ tests/deposit-account-validation.integration.test.ts (21 tests | 1 failed) 69892ms
+     × changes functions only: no DML, no table or column change, no backfill, so no stored receipt or account is touched 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 6. the migration itself > changes functions only: no DML, no table or column change, no backfill, so no stored receipt or account is touched
+AssertionError: expected '\r\nCREATE OR REPLACE FUNCTION public…' not to match /\b(INSERT\s+INTO|UPDATE\s+public|DEL…/i
+
+- Expected:
+/\b(INSERT\s+INTO|UPDATE\s+public|DELETE\s+FROM|ALTER\s+TABLE|CREATE\s+TABLE|CREATE\s+(UNIQUE\s+)?INDEX|DROP\s+)/i
+
++ Received:
+"
+CREATE OR REPLACE FUNCTION public.treasury_gl_account_is_valid(p_organization_id uuid, p_account_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.chart_of_accounts a
+    WHERE a.id = p_account_id
+      AND a.organization_id = p_organization_id
+      AND a.is_active
+      AND NOT a.is_group
+      AND a.category = 'ASSET'
+      AND a.is_cash_equivalent
+  );
+$$;
+REVOKE ALL ON FUNCTION public.treasury_gl_account_is_valid(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.treasury_gl_account_is_valid(uuid, uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.validate_treasury_gl_account()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NOT public.treasury_gl_account_is_valid(NEW.organization_id, NEW.gl_account_id) THEN
+    RAISE EXCEPTION 'GL_ACCOUNT_NOT_CASH_OR_BANK: حساب الأستاذ يجب أن يكون حساب نقدية أو بنك فعّالًا (أصول، غير مجمّع، نقدية/ما في حكمها) داخل نفس الكيان'
+      USING errcode = '22023';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.validate_treasury_gl_account() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_cashboxes_validate_gl_account ON public.cashboxes;
+CREATE TRIGGER trg_cashboxes_validate_gl_account
+  BEFORE INSERT OR UPDATE OF organization_id, gl_account_id ON public.cashboxes
+  FOR EACH ROW EXECUTE FUNCTION public.validate_treasury_gl_account();
+DROP TRIGGER IF EXISTS trg_bank_accounts_validate_gl_account ON public.bank_accounts;
+CREATE TRIGGER trg_bank_accounts_validate_gl_account
+  BEFORE INSERT OR UPDATE OF organization_id, gl_account_id ON public.bank_accounts
+  FOR EACH ROW EXECUTE FUNCTION public.validate_treasury_gl_account();
+
+CREATE OR REPLACE FUNCTION public.deposit_account_is_valid(p_organization_id uuid, p_account_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT public.treasury_gl_account_is_valid(p_organization_id, p_account_id)
+    AND (
+      EXISTS (SELECT 1 FROM public.cashboxes c
+              WHERE c.organization_id = p_organization_id AND c.gl_account_id = p_account_id AND c.is_active)
+      OR EXISTS (SELECT 1 FROM public.bank_accounts b
+              WHERE b.organization_id = p_organization_id AND b.gl_account_id = p_account_id AND b.is_active)
+    );
+$$;
+REVOKE ALL ON FUNCTION public.deposit_account_is_valid(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.deposit_account_is_valid(uuid, uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.list_deposit_accounts(p_organization_id uuid, p_resort_id uuid DEFAULT NULL)
+RETURNS TABLE(account_id uuid, code text, name_ar text, name_en text, source text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  WITH src AS (
+    SELECT c.gl_account_id AS account_id, 'CASHBOX'::text AS source
+    FROM public.cashboxes c WHERE c.organization_id = p_organization_id AND c.is_active
+    UNION ALL
+    SELECT b.gl_account_id, 'BANK'::text
+    FROM public.bank_accounts b WHERE b.organization_id = p_organization_id AND b.is_active
+  )
+  SELECT a.id, a.code, a.name_ar, a.name_en, max(s.source)
+  FROM src s
+  JOIN public.chart_of_accounts a ON a.id = s.account_id AND a.organization_id = p_organization_id
+  WHERE a.is_active AND NOT a.is_group AND a.category = 'ASSET' AND a.is_cash_equivalent
+    AND auth.uid() IS NOT NULL
+    AND public.has_financial_permission(p_organization_id, 'receivables.payments.create', p_resort_id)
+  GROUP BY a.id, a.code, a.name_ar, a.name_en
+  ORDER BY a.code, a.id;
+$$;
+REVOKE ALL ON FUNCTION public.list_deposit_accounts(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_deposit_accounts(uuid, uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.record_payment(
+  p_organization_id uuid, p_resort_id uuid, p_member_id uuid, p_unit_id uuid, p_amount numeric, p_method text, p_payment_date date,
+  p_deposit_account_id uuid, p_fiscal_period_id uuid, p_allocations jsonb, p_idempotency_key text, p_cashier_session_id uuid DEFAULT NULL::uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+declare
+  v_result record;
+begin
+  if not public.has_financial_permission(
+       p_organization_id, 'receivables.payments.create', p_resort_id) then
+    raise exception 'FORBIDDEN_FINANCE_PERMISSION: لا تملك صلاحية تسجيل دفعات'
+      using errcode = '42501';
+  end if;
+
+  if not public.deposit_account_is_valid(p_organization_id, p_deposit_account_id)
+     and not (p_idempotency_key is not null and exists (
+       select 1 from public.payments where organization_id = p_organization_id and idempotency_key = p_idempotency_key)) then
+    raise exception 'DEPOSIT_ACCOUNT_INVALID: حساب الإيداع يجب أن يكون مرتبطًا بخزينة أو بحساب بنكي فعّال في هذا الكيان'
+      using errcode = '22023';
+  end if;
+
+  select * into v_result from public.post_payment_internal(
+    p_organization_id => p_organization_id,
+    p_resort_id => p_resort_id,
+    p_member_id => p_member_id,
+    p_unit_id => p_unit_id,
+    p_amount => p_amount,
+    p_method => p_method,
+    p_payment_date => p_payment_date,
+    p_deposit_account_id => p_deposit_account_id,
+    p_fiscal_period_id => p_fiscal_period_id,
+    p_allocations => p_allocations,
+    p_idempotency_key => p_idempotency_key,
+    p_cashier_session_id => p_cashier_session_id,
+    p_actor_id => auth.uid()
+  );
+
+  return v_result.payment_id;
+end;
+$$;
+
+CREATE OR REPLACE FUNCTION public.record_advance_payment(
+  p_organization_id uuid, p_resort_id uuid, p_member_id uuid, p_unit_id uuid, p_amount numeric, p_method text,
+  p_payment_date date, p_deposit_account_id uuid, p_fiscal_period_id uuid, p_allocations jsonb,
+  p_idempotency_key text, p_cashier_session_id uuid DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_financial_permission(p_organization_id, 'receivables.payments.create', p_resort_id) THEN
+    RAISE EXCEPTION 'FORBIDDEN_FINANCE_PERMISSION: لا تملك صلاحية تسجيل دفعات' USING errcode = '42501';
+  END IF;
+  IF NOT public.deposit_account_is_valid(p_organization_id, p_deposit_account_id)
+     AND NOT (p_idempotency_key IS NOT NULL AND EXISTS (
+       SELECT 1 FROM public.payments WHERE organization_id = p_organization_id AND idempotency_key = p_idempotency_key)) THEN
+    RAISE EXCEPTION 'DEPOSIT_ACCOUNT_INVALID: حساب الإيداع يجب أن يكون مرتبطًا بخزينة أو بحساب بنكي فعّال في هذا الكيان' USING errcode = '22023';
+  END IF;
+  RETURN public.post_advance_payment_internal(p_organization_id, p_resort_id, p_member_id, p_unit_id, p_amount, p_method, p_payment_date,
+    p_deposit_account_id, p_fiscal_period_id, p_allocations, p_idempotency_key, p_cashier_session_id, auth.uid());
+END;
+$$;
+"
+
+ ❯ tests/deposit-account-validation.integration.test.ts:184:22
+    182|   const text = readFileSync("supabase/migrations/20261018100000_deposi…
+    183|   it("changes functions only: no DML, no table or column change, no ba…
+    184|     expect(text).not.toMatch(/\b(INSERT\s+INTO|UPDATE\s+public|DELETE\…
+       |                      ^
+    185|   });
+    186|   it("keeps the signatures and grants of the two receipt functions (an…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/treasury-link-and-cheque.integration.test.ts > 2. clear_incoming_cheque against the deposit rule > deactivated bank account: refused with DEPOSIT_ACCOUNT_INVALID, nothing written, the cheque stays DEPOSITED; reactivating is the remedy
+AssertionError: deactivated bank: expected a refusal: expected null not to be null
+ ❯ refusedClear tests/treasury-link-and-cheque.integration.test.ts:55:55
+     53|   const before = trace(id);
+     54|   const r = await clear(id);
+     55|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     56|   expect(err(r), label).toMatch(/DEPOSIT_ACCOUNT_INVALID/);
+     57|   expect(trace(id), `${label}: a refused clearing left a partial trace…
+ ❯ tests/treasury-link-and-cheque.integration.test.ts:157:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 31 passed (33)
+   Start at  09:15:14
+   Duration  71.05s (transform 491ms, setup 472ms, import 762ms, tests 105.63s, environment 1ms)
+

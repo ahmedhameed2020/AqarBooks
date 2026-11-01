@@ -1,0 +1,47 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\reports-lease-expirations.spec.ts:91:5 › lease expirations loads real leases, shows only this organization's, and never another's (26.8s)
+
+
+  1) tests\e2e\reports-lease-expirations.spec.ts:91:5 › lease expirations loads real leases, shows only this organization's, and never another's 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('h1')
+    Expected substring: "تقرير جداول انتهاء العقود ومعدل دوران الإشغال"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('h1')
+
+
+       99 |     await page.goto(`${baseURL}/ar/finance/reports/lease-expirations`);
+      100 |     await page.waitForLoadState("domcontentloaded");
+    > 101 |     await expect(page.locator("h1")).toContainText("تقرير جداول انتهاء العقود ومعدل دوران الإشغال");
+          |                                      ^
+      102 |     await expect(page.getByText(alpha.leaseNames[0]).first()).toBeVisible({ timeout: 40_000 });
+      103 |     await expect(page.getByText(`ALPHA-${stamp}`).first()).toBeVisible();
+      104 |     await expect(page.getByText(`Foreign Tenant ${stamp}`), "another organization's tenant must not appear").toHaveCount(0);
+        at D:\Web\AqarBooks\tests\e2e\reports-lease-expirations.spec.ts:101:38
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round17\reports-lease-expirations-artifacts\reports-lease-expirations--af0cf-ation-s-and-never-another-s\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round17\reports-lease-expirations-artifacts\reports-lease-expirations--af0cf-ation-s-and-never-another-s\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round17\reports-lease-expirations-artifacts\reports-lease-expirations--af0cf-ation-s-and-never-another-s\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-lease-expirations.spec.ts:91:5 › lease expirations loads real leases, shows only this organization's, and never another's 
+

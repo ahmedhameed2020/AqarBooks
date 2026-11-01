@@ -85,7 +85,7 @@ export default async function OwnerStatementPage({
   // posted payments.
   const [{ data: dueAllocations, error: allocationsError }, { data: postedPayments, error: paymentsError }] = await Promise.all([
     supabase
-      .from("payment_allocations")
+      .from("effective_payment_allocations")
       .select("due_id, amount, payment_id")
       .in("due_id", (duesData ?? []).map((d) => d.id)),
     supabase

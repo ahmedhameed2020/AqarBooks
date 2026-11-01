@@ -45,13 +45,38 @@ export default async function BalanceSheetPage({
 
   const asOfDate = asOf || new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
-  const { data: rowsData } = await supabase.rpc("get_trial_balance", {
+  // The statement is cut at the fiscal year that contains the as-of date, using the same rules as the trial balance
+  // (get_trial_balance_with_opening): balance-sheet accounts carry their cumulative balance, income-statement
+  // accounts count from the start of that fiscal year, and the results of EARLIER years that were never closed are
+  // shown on their own line (RE-PRIOR) instead of being folded into "current period" earnings.
+  const { data: fy } = await supabase
+    .from("fiscal_years")
+    .select("start_date")
+    .eq("organization_id", organization.id)
+    .lte("start_date", asOfDate)
+    .gte("end_date", asOfDate)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const periodStart = fy?.start_date ?? `${asOfDate.slice(0, 4)}-01-01`;
+  const { data: rowsData } = await supabase.rpc("get_trial_balance_with_opening", {
     p_organization_id: organization.id,
-    p_start_date: "1900-01-01",
+    p_start_date: periodStart,
     p_end_date: asOfDate,
   });
 
-  const rawRows = (rowsData ?? []) as unknown as BalanceSheetAccountRow[];
+  type TbRow = { account_id: string; code: string; name_ar: string; name_en: string; category: string; closing_balance: number | string; is_synthetic: boolean };
+  const tb = ((rowsData ?? []) as unknown as TbRow[]).map((r) => ({
+    account_id: r.account_id,
+    code: r.code,
+    name_ar: r.name_ar,
+    name_en: r.name_en,
+    category: r.category,
+    balance: Number(r.closing_balance),
+    is_synthetic: r.is_synthetic,
+  }));
+  const rawRows = tb.filter((r) => !r.is_synthetic) as unknown as BalanceSheetAccountRow[];
+  const priorResults = tb.filter((r) => r.is_synthetic).reduce((s, r) => s + r.balance, 0);
   const assetRows = rawRows.filter((r) => r.category === "ASSET" && r.balance !== 0);
   const liabilityRows = rawRows.filter((r) => r.category === "LIABILITY" && r.balance !== 0);
   const equityRows = rawRows.filter((r) => r.category === "EQUITY" && r.balance !== 0);
@@ -89,6 +114,7 @@ export default async function BalanceSheetPage({
         liabilityRows={liabilityRows}
         equityRows={equityRows}
         currentEarnings={currentEarnings}
+        priorResults={priorResults}
         asOfDate={asOfDate}
         organizationName={organization.name}
         taxNumber={organization.tax_id}

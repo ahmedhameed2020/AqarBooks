@@ -1,0 +1,49 @@
+==== CANCELLED WIP CREDIT 800: valid release 600 must use posted balance 1000 only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+                 cap                  
+--------------------------------------
+ eec5a27d-4254-4359-a56b-dabf702b214b
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+  status  | reversed_entry_id | has_reversal_entry 
+----------+-------------------+--------------------
+ REVERSED |                   | f
+(1 row)
+
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+ all_status_floor_net 
+----------------------
+             200.0000
+(1 row)
+
+SET
+psql:/tmp/cancelled_credit_release_regression.sql:36: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_ACCEPTED: release_id=baf80835-5951-4a51-9df2-d7b1a00b23ea
+DO
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+ id | status | debit | credit | net | wip_credit_lines | cost_debit_lines 
+----+--------+-------+--------+-----+------------------+------------------
+(0 rows)
+
+psql:/tmp/cancelled_credit_release_regression.sql:75: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_PASS: accepted release gives cap=1000 rel=600 wip=400 ledger=400; entry POSTED and balanced 600/600
+DO
+ROLLBACK

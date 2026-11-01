@@ -1,0 +1,49 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register (34.9s)
+
+
+  1) tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('h1')
+    Expected substring: "سجل الأصول الثابتة والإهلاك المحاسبي"
+    Received string:    "سجل الأصول الثابتة"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('h1')
+        12 × locator resolved to <h1 class="text-lg font-bold">سجل الأصول الثابتة</h1>
+           - unexpected value "سجل الأصول الثابتة"
+
+
+      146 |     await page.goto(`${baseURL}/ar/finance/reports/fixed-assets`);
+      147 |     await page.waitForLoadState("domcontentloaded");
+    > 148 |     await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة والإهلاك المحاسبي");
+          |                                      ^
+      149 |     await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
+      150 |
+      151 |     // 13. Test Audit Trail Page
+        at D:\Web\AqarBooks\tests\e2e\reports-suite-flow.spec.ts:148:38
+
+    Error Context: docs\progress\evidence-r6-run3\reports-suite-flow\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\reports-suite-flow\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\reports-suite-flow\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register 
+

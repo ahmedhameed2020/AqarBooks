@@ -54,6 +54,7 @@ const REASON_LABELS: Record<string, { ar: string; en: string }> = {
   EXPIRED: { ar: "التصريح منتهي", en: "Pass expired" },
   NOT_YET_VALID: { ar: "التصريح لم يبدأ بعد", en: "Not yet valid" },
   REVOKED: { ar: "التصريح ملغي", en: "Pass revoked" },
+  OWNER_SUSPENDED: { ar: "التصريح موقوف مؤقتًا — راجع الإدارة", en: "Pass on hold — contact management" },
   INVALID_PASS: { ar: "تصريح غير صالح", en: "Invalid pass" },
   PROPERTY_MISMATCH: { ar: "التصريح لعقار آخر", en: "Wrong property" },
   GATE_INACTIVE: { ar: "البوابة غير مفعلة", en: "Gate inactive" },

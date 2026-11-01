@@ -1,0 +1,20 @@
+$ tests/e2e/accounting-void-permission.spec.ts
+label=b3-fix-accounting-void-permission
+exit=0
+elapsed_ms=168830
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (964ms)
+  ok 2 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (39.9s)
+  ok 3 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (39.6s)
+  ok 4 tests\e2e\accounting-void-permission.spec.ts:142:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous (3.1s)
+
+  4 passed (2.3m)
+(node:40628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

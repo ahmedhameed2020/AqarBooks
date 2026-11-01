@@ -1,0 +1,58 @@
+$ tests/e2e/accounting-duplicates.spec.ts
+label=b3-ui-accounting-duplicates-retry1
+exit=1
+elapsed_ms=247171
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\accounting-duplicates.spec.ts:69:5 › D1 a second opening balance for the same client and unit is refused and changes nothing (48.5s)
+  ok 2 tests\e2e\accounting-duplicates.spec.ts:84:5 › D2 issuing the identical due twice creates only one (36.0s)
+  ok 3 tests\e2e\accounting-duplicates.spec.ts:111:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt (21.6s)
+  x  4 tests\e2e\accounting-duplicates.spec.ts:134:5 › D4 a reversed receipt cannot be reversed twice (1.4m)
+  -  5 tests\e2e\accounting-duplicates.spec.ts:153:5 › D5 replaying a payment call with the same idempotency key returns the same payment and posts nothing new
+
+
+  1) tests\e2e\accounting-duplicates.spec.ts:134:5 › D4 a reversed receipt cannot be reversed twice 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('row', { name: /#1\b/ })
+    Expected pattern: /Reversed/i
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 60000ms
+      - waiting for getByRole('row', { name: /#1\b/ })
+
+
+      137 |   page.on("dialog", (d) => (d.type() === "confirm" ? d.accept() : d.accept("Duplicate receipt test")));
+      138 |   await page.getByRole("row", { name: /#1\b/ }).getByRole("button", { name: /Reverse/i }).click();
+    > 139 |   await expect(page.getByRole("row", { name: /#1\b/ })).toContainText(/Reversed/i, { timeout: 60_000 });
+          |                                                         ^
+      140 |   await expect(page.getByRole("row", { name: /#1\b/ }).getByRole("button", { name: /Reverse/i })).toHaveCount(0);
+      141 |
+      142 |   const admin = adminClient();
+        at D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:139:57
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-ui-accounting-duplicates-retry1-artifacts\accounting-duplicates-D4-a-9224a-pt-cannot-be-reversed-twice\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-ui-accounting-duplicates-retry1-artifacts\accounting-duplicates-D4-a-9224a-pt-cannot-be-reversed-twice\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-ui-accounting-duplicates-retry1-artifacts\accounting-duplicates-D4-a-9224a-pt-cannot-be-reversed-twice\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\accounting-duplicates.spec.ts:134:5 › D4 a reversed receipt cannot be reversed twice ─
+  1 did not run
+  3 passed (3.6m)
+(node:19980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,11 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 2 tests using 1 worker
+
+  -  1 tests\e2e\reports-unbuilt-sections.spec.ts:56:6 › DEFERRED to a separate batch (owner decision 2026-10-29): CAM allocation report is not built
+  -  2 tests\e2e\reports-unbuilt-sections.spec.ts:70:6 › DEFERRED to a separate batch (owner decision 2026-10-29): CAPEX vs OPEX report is not built
+
+  2 skipped
+

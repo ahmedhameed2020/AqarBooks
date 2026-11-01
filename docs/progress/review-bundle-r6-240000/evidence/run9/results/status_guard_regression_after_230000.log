@@ -1,0 +1,232 @@
+R6 STATUS-CANCELLATION AND REVERSAL REGRESSION AFTER 230000
+Only affected cancellation, release, genuine reversal and race paths were rerun. No UI suite.
+
+===== cancelled_debit_status_after.txt =====
+==== CASE 3: cancelling a DRAFT WIP debit by status must not change the floor net
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 2
+INSERT 0 4
+ net_before_cancellation | floor_net_before_cancellation 
+-------------------------+-------------------------------
+                100.0000 |                      100.0000
+(1 row)
+
+COMMIT
+BEGIN
+UPDATE 1
+ net_after_cancellation | floor_net_after_cancellation 
+------------------------+------------------------------
+               100.0000 |                    -200.0000
+(1 row)
+
+psql:/tmp/cancelled_debit_status_guard.sql:27: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 100.0000, الصافي المتوقع بعد الحركة -200.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(v_project_id)"
+PL/pgSQL function guard_project_status_cancel_after() line 13 at PERFORM
+psql:/tmp/cancelled_debit_status_guard.sql:28: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ net_after_rollback | floor_net_after_rollback | draft_status_after_rollback 
+--------------------+--------------------------+-----------------------------
+           100.0000 |                 100.0000 | DRAFT
+(1 row)
+
+psql:/tmp/cancelled_debit_status_guard.sql:49: NOTICE:  ASSERT_CANCELLED_DEBIT_STATUS_GUARD_PASS: invalid cancellation refused at deferred constraints; committed net=100 floor=100 ledger=100 status=DRAFT
+DO
+BEGIN
+DELETE 4
+DELETE 1
+COMMIT
+
+===== cancelled_credit_release_after_230000.txt =====
+==== CANCELLED WIP CREDIT 800: valid release 600 must use posted balance 1000 only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+                 cap                  
+--------------------------------------
+ dec40e1a-28ec-4553-b055-5b9d78d4880f
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+  status  | reversed_entry_id | has_reversal_entry 
+----------+-------------------+--------------------
+ REVERSED |                   | f
+(1 row)
+
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+ all_status_floor_net 
+----------------------
+             200.0000
+(1 row)
+
+CREATE TABLE
+GRANT
+SET
+psql:/tmp/cancelled_credit_release_regression.sql:39: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_ACCEPTED: release_id=c648f515-5bab-47aa-87ec-5d02a040ec96
+DO
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+                  id                  | status |  debit   |  credit  |  net   | wip_credit_lines | cost_debit_lines 
+--------------------------------------+--------+----------+----------+--------+------------------+------------------
+ c648f515-5bab-47aa-87ec-5d02a040ec96 | POSTED | 600.0000 | 600.0000 | 0.0000 |                1 |                1
+(1 row)
+
+psql:/tmp/cancelled_credit_release_regression.sql:78: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_PASS: accepted release gives cap=1000 rel=600 wip=400 ledger=400; entry POSTED and balanced 600/600
+DO
+==== FORCE DEFERRED WIP FLOOR GUARDS BEFORE ROLLBACK
+SET CONSTRAINTS
+psql:/tmp/cancelled_credit_release_regression.sql:81: NOTICE:  ASSERT_IMMEDIATE_CONSTRAINTS_PASS: deferred WIP floor guards accepted the final state
+DO
+ROLLBACK
+
+===== posted_reversal_after_230000.txt =====
+==== CASE 2: genuine POSTED-then-REVERSED entries retain classification and reversal effect
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+DO
+SET
+psql:/tmp/posted_reversal_regression.sql:24: NOTICE:  ASSERT_REVERSED_RELEASE_PASS: cap=1000 rel=0 wip=1000 ledger=1000
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+      0.0000 |   0.0000 |      0.0000
+(1 row)
+
+DO
+psql:/tmp/posted_reversal_regression.sql:41: NOTICE:  ASSERT_REVERSED_CAP_PASS: cap=0 rel=0 wip=0 ledger=0
+                   description                   |  status  |          reversed_entry_id           | has_reversal_entry 
+-------------------------------------------------+----------+--------------------------------------+--------------------
+ WIP — R5-REVERSE — R5 reverse cap               | REVERSED |                                      | t
+ Cost of sales — R5-REVERSE — R5 reverse release | REVERSED |                                      | t
+ R5 reverse release first                        | POSTED   | 3dbe7666-9b33-49d2-91ca-b441457f844c | f
+ R5 reverse cap second                           | POSTED   | 319e11fc-6cfd-4fef-a00a-dcda24b3aefd | f
+(4 rows)
+
+ROLLBACK
+
+===== race1_release_hold_after_230000.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+              release_id              
+--------------------------------------
+ cc1fde5a-615f-4828-832c-f13f7da86c52
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+
+===== race1_reverse_wait_after_230000.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/race1_reverse_wait.sql:4: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 400.0000, الصافي المتوقع بعد الحركة -600.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+
+===== race1_verify_after_230000.txt =====
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+psql:/tmp/race1_verify.sql:20: NOTICE:  ASSERT_RACE_ORDER1_PASS: release committed; later reversal refused; cap=1000 rel=600 wip=400 ledger=400 unbalanced=0
+DO
+
+===== race2_reverse_hold_after_230000.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+             reversal_id              
+--------------------------------------
+ 7a35590b-b1f5-4b26-a0ed-1047bb63f1b8
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+
+===== race2_release_wait_after_230000.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/race2_release_wait.sql:4: ERROR:  PROJECT_RELEASE_EXCEEDS_WIP: التحرير (600) يتجاوز رصيد الأعمال تحت التنفيذ (0.0000)
+CONTEXT:  PL/pgSQL function release_project_wip(uuid,numeric,date,text) line 32 at RAISE
+
+===== race2_verify_after_230000.txt =====
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+      0.0000 |   0.0000 |      0.0000
+(1 row)
+
+psql:/tmp/race2_verify.sql:23: NOTICE:  ASSERT_RACE_ORDER2_PASS: reversal committed; later release refused without writing; cap=0 rel=0 wip=0 ledger=0 unbalanced=0
+DO
+
+===== race_cleanup_after_230000.txt =====
+BEGIN
+DELETE 4
+DELETE 2
+COMMIT

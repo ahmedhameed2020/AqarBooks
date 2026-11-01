@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100";
 
@@ -78,29 +80,13 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
       role_id: ownerRole!.id,
     });
 
-    // 4. Create Fiscal Year & Period
-    await admin.from("fiscal_years").insert({
-      organization_id: orgId,
-      name: "2026",
-      start_date: "2026-01-01",
-      end_date: "2026-12-31",
-      status: "OPEN",
-    });
-
-    const { data: insertedYear } = await admin
-      .from("fiscal_years")
-      .select("id")
-      .eq("organization_id", orgId)
-      .single();
-
-    await admin.from("fiscal_periods").insert({
-      organization_id: orgId,
-      fiscal_year_id: insertedYear!.id,
-      period_number: 1,
-      name: "2026-01",
-      start_date: "2026-01-01",
-      end_date: "2026-01-31",
-      status: "OPEN",
+    // 4. Create Fiscal Year & Periods through the product RPCs as the owner (the guard refuses direct writes).
+    //    The year creates its monthly periods and all of them are opened, so January is open as before.
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: STAFF_PASSWORD });
+    expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
+    await createOpenFiscalYear(admin, ownerClient, {
+      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
     });
 
     // 5. Create Resort, Unit, Due Type, and Receivable Account
@@ -184,15 +170,19 @@ test.describe("E-Invoicing & Statutory Tax Compliance E2E Flow", () => {
     await page.goto(`${baseURL}/ar/finance/einvoice`);
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("h1")).toContainText("الفوترة والإقرارات الضريبية الإلكترونية");
-    await expect(page.locator("text=إنشاء فاتورة إلكترونية جديدة")).toBeVisible();
+    await expect(page.locator("text=إصدار فاتورة ضريبية جديدة")).toBeVisible();
 
     // 8. Open Create E-Invoice Modal
-    await page.click("text=إنشاء فاتورة إلكترونية جديدة");
+    await page.click("text=إصدار فاتورة ضريبية جديدة");
     await expect(page.locator("text=إنشاء وإصدار فاتورة ضريبية إلكترونية")).toBeVisible();
 
     // Fill amount and check real-time calculation
     await page.fill('input[type="number"]', "10000");
     await expect(page.getByText("11,400")).toBeVisible(); // Gross total (10,000 + 14% VAT)
+
+    // The receivable account is never selected automatically: choose the fixture's 1201 explicitly.
+    await page.locator('[data-testid="einvoice-receivable-account"]').click();
+    await page.getByRole("option", { name: /1201/ }).click();
 
     // Submit invoice
     await page.click('button[type="submit"]:has-text("إصدار وختم الفاتورة فوراً")');

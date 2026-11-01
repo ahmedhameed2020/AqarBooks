@@ -1,0 +1,10 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/race1_reverse_wait.sql:4: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 400.0000, الصافي المتوقع بعد الحركة -600.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM

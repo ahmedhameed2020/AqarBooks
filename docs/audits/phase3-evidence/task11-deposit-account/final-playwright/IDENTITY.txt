@@ -1,0 +1,10 @@
+build_id=_fHhDXa2gWpG2rqiIY7rD
+build_time=2026-10-16 11:19:02.132755800 +0300
+app_sources_newer_than_build=0 (app, lib, components, i18n, messages, public, package.json, package-lock.json, next.config)
+node_modules_installed=2026-10-04 14:45:41.197533600 +0300
+migration=20261018100000_deposit_account_cash_or_bank.sql sha256=add8a244a189b58f548db0d9a6ed6061556504f4326f1b8276349f7b443c1b99 bytes=12701
+ledger=87 latest 20261018100000
+live_audit_function_md5=361db5de2b217e539c158440b19d4ba0
+stack=aqarbooks_clean api=55321 db=55322
+playwright.config.ts: timeout 120000, workers 1, unchanged
+started=Sat Oct 17 12:55:10 AST 2026

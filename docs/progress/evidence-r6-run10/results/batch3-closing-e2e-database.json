@@ -1,0 +1,32 @@
+{
+  "organizationId": "8d306880-47ce-49d5-a13e-9271679467c9",
+  "fiscalYearId": "747d47ca-da4a-4451-b51d-b2295581ec24",
+  "closingEntryId": "5c0f4d9b-cba1-40ed-abc0-af8fb1f525d5",
+  "yearStatus": "CLOSED",
+  "closing": {
+    "closing_entry_id": "5c0f4d9b-cba1-40ed-abc0-af8fb1f525d5",
+    "line_count": 2,
+    "net_income": 100,
+    "reason": "Annual result reviewed in isolated r6 fixture"
+  },
+  "entry": {
+    "id": "5c0f4d9b-cba1-40ed-abc0-af8fb1f525d5",
+    "source_type": "YEAR_END_CLOSING",
+    "status": "POSTED",
+    "entry_date": "2026-12-31"
+  },
+  "lines": [
+    {
+      "account_id": "c9ca39ea-5aef-4509-af08-ac168016a06a",
+      "debit": 100,
+      "credit": 0
+    },
+    {
+      "account_id": "96df15f0-66f8-4b21-b06e-3baad209f71b",
+      "debit": 0,
+      "credit": 100
+    }
+  ],
+  "fiscalYearClosedAuditCount": 1,
+  "pageErrors": []
+}

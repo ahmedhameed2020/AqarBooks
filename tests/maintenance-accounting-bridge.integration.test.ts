@@ -1,8 +1,10 @@
+import { assertIsolatedStack, isolatedDbContainer } from "./helpers/isolated-target";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 type Client = SupabaseClient<Database>;
 
@@ -44,36 +46,29 @@ type OrgFixture = {
   propertyManager: Actor;
   accountant: Actor;
   viewer: Actor;
+  fiscalOwner: Actor;
 };
 
 function readLocalSupabaseEnv(): LocalSupabaseEnv {
-  const output = execFileSync("supabase", ["status", "-o", "env"], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  const env: Record<string, string> = {};
-  for (const line of output.split(/\r?\n/)) {
-    const match = line.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
-    if (match) env[match[1]] = match[2];
+  // No `supabase status`: that resolves the DEVELOPMENT stack from the repository. The isolated stack is verified by the
+  // gate (ISOLATED_CONTRACT=r6 or the configured clean stack) and its keys/URL are declared explicitly; any missing setting stops.
+  assertIsolatedStack();
+  const API_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const ANON_KEY = process.env.R6_ANON_KEY ?? "";
+  const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (!API_URL || !ANON_KEY || !SERVICE_ROLE_KEY) {
+    throw new Error("Maintenance accounting bridge needs NEXT_PUBLIC_SUPABASE_URL, R6_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY declared explicitly for the isolated stack.");
   }
-
-  if (!env.API_URL?.startsWith("http://127.0.0.1:") && !env.API_URL?.startsWith("http://localhost:")) {
-    throw new Error("Maintenance accounting bridge gate must run against local Supabase.");
+  if (!API_URL.startsWith("http://127.0.0.1:")) {
+    throw new Error("Maintenance accounting bridge gate must run against the loopback isolated stack.");
   }
-
-  return {
-    API_URL: env.API_URL,
-    ANON_KEY: env.ANON_KEY,
-    SERVICE_ROLE_KEY: env.SERVICE_ROLE_KEY,
-  };
+  return { API_URL, ANON_KEY, SERVICE_ROLE_KEY };
 }
 
 function runLocalDbQuery(sql: string): string {
   return execFileSync(
     "docker",
-    ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-F", "|", "-c", sql],
+    ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-F", "|", "-c", sql],
     { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   ).trim();
 }
@@ -103,7 +98,7 @@ async function createAuthUser(admin: Client, label: string) {
   return { userId: data.user!.id, email };
 }
 
-async function createStaffActor(admin: Client, local: LocalSupabaseEnv, orgId: string, roleKey: "PROPERTY_MANAGER" | "ACCOUNTANT" | "VIEWER", label: string): Promise<Actor> {
+async function createStaffActor(admin: Client, local: LocalSupabaseEnv, orgId: string, roleKey: "PROPERTY_MANAGER" | "ACCOUNTANT" | "VIEWER" | "TENANT_OWNER", label: string): Promise<Actor> {
   const actor = await createAuthUser(admin, label);
   const { error: membershipError } = await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: actor.userId, status: "active" });
   expect(membershipError, `staff membership failed: ${membershipError?.message}`).toBeNull();
@@ -212,19 +207,20 @@ async function createOrgFixture(admin: Client, local: LocalSupabaseEnv, label: s
     .single();
   expect(supplierError, `supplier insert failed: ${supplierError?.message}`).toBeNull();
 
-  const { data: fiscalYear, error: fiscalYearError } = await admin
-    .from("fiscal_years")
-    .insert({ organization_id: orgId, name: `FY ${label}`, start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN" })
-    .select("id")
-    .single();
-  expect(fiscalYearError, `fiscal year insert failed: ${fiscalYearError?.message}`).toBeNull();
+  // The fiscal RPCs need a signed-in user with finance.periods.manage; ACCOUNTANT does not hold it,
+  // so the calendar is created by a dedicated TENANT_OWNER session (the guard refuses direct writes).
+  const fiscalOwner = await createStaffActor(admin, local, orgId, "TENANT_OWNER", `${label}-fiscal-owner`);
+  await createOpenFiscalYear(admin, fiscalOwner.client, { orgId, name: `FY ${label}`, startDate: "2026-01-01", endDate: "2026-12-31" });
 
+  // Expenses and invoices are dated 2026-09-15, so the period under test is the monthly period containing it.
   const { data: fiscalPeriod, error: fiscalPeriodError } = await admin
     .from("fiscal_periods")
-    .insert({ organization_id: orgId, fiscal_year_id: fiscalYear!.id, period_number: 1, name: `P1 ${label}`, start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN" })
     .select("id")
+    .eq("organization_id", orgId)
+    .lte("start_date", "2026-09-15")
+    .gte("end_date", "2026-09-15")
     .single();
-  expect(fiscalPeriodError, `fiscal period insert failed: ${fiscalPeriodError?.message}`).toBeNull();
+  expect(fiscalPeriodError, `fiscal period lookup failed: ${fiscalPeriodError?.message}`).toBeNull();
 
   const { data: categories, error: categoryError } = await admin.from("maintenance_categories").select("id").eq("organization_id", orgId).limit(1);
   expect(categoryError, `maintenance category lookup failed: ${categoryError?.message}`).toBeNull();
@@ -250,6 +246,7 @@ async function createOrgFixture(admin: Client, local: LocalSupabaseEnv, label: s
     propertyManager: await createStaffActor(admin, local, orgId, "PROPERTY_MANAGER", `${label}-pm`),
     accountant: await createStaffActor(admin, local, orgId, "ACCOUNTANT", `${label}-acct`),
     viewer: await createStaffActor(admin, local, orgId, "VIEWER", `${label}-viewer`),
+    fiscalOwner,
   };
 }
 
@@ -331,6 +328,8 @@ describe.sequential("maintenance accounting bridge runtime gate", () => {
       orgB.propertyManager.userId,
       orgB.accountant.userId,
       orgB.viewer.userId,
+      orgA.fiscalOwner.userId,
+      orgB.fiscalOwner.userId,
     );
   }, 120_000);
 
@@ -353,8 +352,7 @@ describe.sequential("maintenance accounting bridge runtime gate", () => {
       await admin.from("suppliers").delete().eq("organization_id", orgId);
       await admin.from("expense_categories").delete().eq("organization_id", orgId);
       await admin.from("due_types").delete().eq("organization_id", orgId);
-      await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-      await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+      // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
       await admin.from("chart_of_accounts").delete().eq("organization_id", orgId);
       await admin.from("unit_ownerships").delete().eq("organization_id", orgId);
       await admin.from("members").delete().eq("organization_id", orgId);

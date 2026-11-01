@@ -1,0 +1,375 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/deposit-account-validation.integration.test.ts (21 tests | 19 failed) 27168ms
+     × the receipts screen's list is empty 260ms
+     × record_payment and record_advance_payment to the standard cash account 1110 are refused (linking is the remedy; nothing is linked automatically) 861ms
+     × after the till is linked to 1110, the list offers exactly 1110 and both receipts are accepted 99ms
+     × a bank account's GL account is accepted too (1120), listed as BANK 92ms
+     × the rule is the link, not the code: an unrelated leaf asset account (1140) becomes valid once a cash box points at it, and invalid again when that box is deactivated 954ms
+     × record_payment: the receivables control account 1130 (linked to nothing) 761ms
+     × record_payment: another unlinked leaf asset account (1210) 1232ms
+     × record_payment: a group account (1100), a liability account (2250), a random id, null 882ms
+     × record_payment: a valid account of ANOTHER organization 712ms
+     × record_payment: a cash box on a liability / inactive / group account does not make it valid 1423ms
+     × record_advance_payment: the receivables control account 1130 (linked to nothing) 766ms
+     × record_advance_payment: another unlinked leaf asset account (1210) 676ms
+     × record_advance_payment: a group account (1100), a liability account (2250), a random id, null 704ms
+     × record_advance_payment: a valid account of ANOTHER organization 828ms
+     × record_advance_payment: a cash box on a liability / inactive / group account does not make it valid 1017ms
+     × list_deposit_accounts equals the set of accounts deposit_account_is_valid accepts 27ms
+     × a user without the receipt permission, a member of another organization and anon get nothing; the validity function is not callable by users 69ms
+     × the same idempotency key returns the stored receipt after the cash box was deactivated, and posts nothing 5265ms
+     × keeps the signatures and grants of the two receipt functions (anon cannot execute them; authenticated can) 1552ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 1. legacy organization: the cash account was never linked to a cash box > the receipts screen's list is empty
+AssertionError: Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.list_deposit_accounts with parameters p_organization_id, p_resort_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache",
+}
+
+ ❯ ok tests/deposit-account-validation.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19| const DATE = "2026-08-10";
+ ❯ tests/deposit-account-validation.integration.test.ts:78:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 1. legacy organization: the cash account was never linked to a cash box > record_payment and record_advance_payment to the standard cash account 1110 are refused (linking is the remedy; nothing is linked automatically)
+AssertionError: record_payment 1110 (unlinked): expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:82:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 2. linked accounts are accepted, whatever their code > after the till is linked to 1110, the list offers exactly 1110 and both receipts are accepted
+AssertionError: Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.list_deposit_accounts with parameters p_organization_id, p_resort_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache",
+}
+
+ ❯ ok tests/deposit-account-validation.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19| const DATE = "2026-08-10";
+ ❯ tests/deposit-account-validation.integration.test.ts:91:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 2. linked accounts are accepted, whatever their code > a bank account's GL account is accepted too (1120), listed as BANK
+AssertionError: Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.list_deposit_accounts with parameters p_organization_id, p_resort_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache",
+}
+
+ ❯ ok tests/deposit-account-validation.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19| const DATE = "2026-08-10";
+ ❯ tests/deposit-account-validation.integration.test.ts:101:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 2. linked accounts are accepted, whatever their code > the rule is the link, not the code: an unrelated leaf asset account (1140) becomes valid once a cash box points at it, and invalid again when that box is deactivated
+AssertionError: expected '1\nUPDATE 1' to be '1' // Object.is equality
+
+- Expected
++ Received
+
+  1
++ UPDATE 1
+
+ ❯ tests/deposit-account-validation.integration.test.ts:108:101
+    106|     expect(box.error).toBeNull();
+    107|     ok(await advance(accountant, fx, acct("1140")));
+    108|     expect(q(`update public.cashboxes set is_active=false where id='${…
+       |                                                                                                     ^
+    109|     await refused(advance, acct("1140"), "1140 after its cash box was …
+    110|     await refused(pay, acct("1140"), "1140 after its cash box was deac…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: the receivables control account 1130 (linked to nothing)
+AssertionError: record_payment 1130: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:116:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: another unlinked leaf asset account (1210)
+AssertionError: record_payment 1210: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:117:77
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a group account (1100), a liability account (2250), a random id, null
+AssertionError: record_payment group: expected 'P0001:entry contains lines posted to …' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:entry contains lines posted to a group, inactive, or cross-tenant account"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:119:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a valid account of ANOTHER organization
+AssertionError: record_payment foreign 1110: expected 'P0001:account does not belong to this…' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:account does not belong to this organization"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:124:74
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a cash box on a liability / inactive / group account does not make it valid
+AssertionError: record_payment cash box on 2250: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:134:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: the receivables control account 1130 (linked to nothing)
+AssertionError: record_advance_payment 1130: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:116:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: another unlinked leaf asset account (1210)
+AssertionError: record_advance_payment 1210: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:117:77
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a group account (1100), a liability account (2250), a random id, null
+AssertionError: record_advance_payment group: expected 'P0001:entry contains lines posted to …' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:entry contains lines posted to a group, inactive, or cross-tenant account"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:119:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a valid account of ANOTHER organization
+AssertionError: record_advance_payment foreign 1110: expected 'P0001:account does not belong to this…' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:account does not belong to this organization"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:124:74
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a cash box on a liability / inactive / group account does not make it valid
+AssertionError: record_advance_payment cash box on 2250: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:134:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 4. the screen's list and the server rule are the same relation; who may call what > list_deposit_accounts equals the set of accounts deposit_account_is_valid accepts
+AssertionError: Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.list_deposit_accounts with parameters p_organization_id, p_resort_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache",
+}
+
+ ❯ ok tests/deposit-account-validation.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19| const DATE = "2026-08-10";
+ ❯ tests/deposit-account-validation.integration.test.ts:146:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 4. the screen's list and the server rule are the same relation; who may call what > a user without the receipt permission, a member of another organization and anon get nothing; the validity function is not callable by users
+AssertionError: Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.list_deposit_accounts with parameters p_organization_id, p_resort_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.list_deposit_accounts(p_organization_id, p_resort_id) in the schema cache",
+}
+
+ ❯ ok tests/deposit-account-validation.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19| const DATE = "2026-08-10";
+ ❯ tests/deposit-account-validation.integration.test.ts:152:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 5. a retry of an already-posted receipt is not re-validated > the same idempotency key returns the stored receipt after the cash box was deactivated, and posts nothing
+AssertionError: a NEW receipt to the deactivated till: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:173:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/19]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 6. the migration itself > keeps the signatures and grants of the two receipt functions (anon cannot execute them; authenticated can)
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select has_function_privilege('anon', 'public.deposit_account_is_valid(uuid,uuid)', 'execute')::text||'/'||has_function_privilege('authenticated', 'public.deposit_account_is_valid(uuid,uuid)', 'execute')::text
+ERROR:  function "public.deposit_account_is_valid(uuid,uuid)" does not exist
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/deposit-account-validation.integration.test.ts:14:30
+ ❯ acl tests/deposit-account-validation.integration.test.ts:186:33
+ ❯ tests/deposit-account-validation.integration.test.ts:189:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/19]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  19 failed | 2 passed (21)
+   Start at  21:44:01
+   Duration  28.22s (transform 251ms, setup 224ms, import 273ms, tests 27.17s, environment 1ms)
+

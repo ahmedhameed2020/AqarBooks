@@ -1,0 +1,7 @@
+F5 wip account=aaaaaaa1-0000-4000-8000-000000000002
+F5 report: wip=300.0000
+F6 report: wip=300.0000
+F7 report: cap=1000.0000 rel=600.0000 wip=400.0000
+F8 report: cap=1000.0000 rel=600.0000 wip=400.0000
+unbalanced entries (org): 0
+audit PROJECT_UPDATED for F5/F6: 1

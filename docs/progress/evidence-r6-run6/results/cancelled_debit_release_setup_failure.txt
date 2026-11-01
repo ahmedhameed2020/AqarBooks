@@ -1,0 +1,24 @@
+==== CANCELLED WIP DEBIT: release must use posted balance only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+SET
+psql:/tmp/cancelled_debit_release_regression.sql:56: ERROR:  permission denied for function project_wip_summary
+CONTEXT:  SQL statement "select *        from public.project_wip_summary('e74266d2-7047-4f0b-bf87-8d57cb6f5021')"
+PL/pgSQL function inline_code_block line 28 at SQL statement
+psql:/tmp/cancelled_debit_release_regression.sql:57: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK

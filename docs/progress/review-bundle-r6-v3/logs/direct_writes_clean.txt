@@ -1,0 +1,6 @@
+UPDATE 1
+UPDATE 1
+psql:/tmp/t_direct_a4.sql:9: ERROR:  permission denied for table projects
+UPDATE 0
+ wip=aaaaaaa1-0000-4000-8000-000000000001 name=F renamed directly
+ audit rows (PROJECT_UPDATED for F): 1

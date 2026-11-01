@@ -1,0 +1,23 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 8 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (41.3s)
+  ok 2 tests\e2e\projects-wip.spec.ts:245:5 › a member without finance.accounts.manage sees the projects but no controls (9.4s)
+  ok 3 tests\e2e\projects-wip.spec.ts:282:5 › a project form that names another organization is refused and writes nothing (12.4s)
+  ok 4 tests\e2e\projects-wip.spec.ts:327:5 › a duplicate project code is refused, and the existing project is left unchanged (19.1s)
+  ok 5 tests\e2e\projects-wip.spec.ts:369:5 › an explicit edit by a manager changes the name, budget and accounts of a project without postings (15.4s)
+  ok 6 tests\e2e\projects-wip.spec.ts:415:5 › a project with posted entries refuses a locked change, and a name change still goes through (16.4s)
+  ok 7 tests\e2e\projects-wip.spec.ts:480:5 › a member without the accounts permission sees no edit control and cannot change a project (11.1s)
+  ok 8 tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report (11.4s)
+
+  8 passed (2.3m)
+(node:6960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+

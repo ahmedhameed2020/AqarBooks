@@ -1,0 +1,7 @@
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+psql:/tmp/race1_verify.sql:19: ERROR:  ASSERT_RACE_ORDER1_FAILED: cap=1000.0000 rel=600.0000 wip=400.0000 ledger=400.0000 unbalanced=1
+CONTEXT:  PL/pgSQL function inline_code_block line 11 at RAISE

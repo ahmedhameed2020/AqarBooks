@@ -1,20 +1,98 @@
-// Dev-only visual QA gallery — renders the 16 approved Figma screens with
-// canned data for pixel comparison. Never imported by lib/main.dart and
-// never shipped: run with  flutter run -t lib/preview_main.dart -d chrome
+// Dev-only visual QA harness. Never imported by lib/main.dart and never
+// shipped. Two modes:
+//
+//   flutter run -t lib/preview_main.dart -d chrome
+//       the horizontal gallery of the approved Figma screens (default);
+//
+//   flutter run -t lib/preview_main.dart -d <android-device> \
+//       --dart-define=STORE_SCREEN=resident-home
+//       one genuine production screen, full-screen, for Google Play store
+//       screenshots. All eight keys are listed in `storeScreenshotKeys`; the
+//       key `cycle` walks all eight in one run, so a single install (no rebuild
+//       between shots, no camera permission) yields every capture.
+//
+// Both modes run on `PreviewRepository` overrides only: no backend, no
+// Supabase credentials, synthetic data.
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show User;
 
 import 'core/app_core.dart';
+import 'core/shell_nav.dart';
 import 'data/gate_device_store.dart';
 import 'data/repository.dart';
+import 'data/visitor_pass_store.dart';
 import 'screens/app_screens.dart';
+import 'screens/feature_screens.dart' show MaintenanceDetailScreen;
 import 'widgets/aqar_icons.dart';
 import 'widgets/gate_scanner_view.dart';
 import 'widgets/ui_kit.dart';
 
-void main() => runApp(const PreviewGalleryApp());
+/// The Play store screenshot keys, in listing order. The first value is the
+/// `--dart-define=STORE_SCREEN=` key, the second the file name stem written to
+/// `store-assets/screenshots/ar/`.
+const storeScreenshotKeys = <(String, String)>[
+  ('resident-home', '01-resident-home'),
+  ('payments-dues', '02-payments-dues'),
+  ('fawry-payment', '03-fawry-payment'),
+  ('visitor-qr-pass', '04-visitor-qr-pass'),
+  ('maintenance-request', '05-maintenance-request'),
+  ('technician-dashboard', '06-technician-dashboard'),
+  ('gate-scanner', '07-gate-scanner'),
+  ('manager-dashboard', '08-manager-dashboard'),
+];
+
+/// `--dart-define=STORE_SCREEN=<key>` — empty in gallery mode.
+const _storeScreenDefine = String.fromEnvironment('STORE_SCREEN');
+
+/// Optional override of the auto-advance, for a single manual capture:
+/// `--dart-define=STORE_SCREEN_AT=<seconds>`.
+const _storeScreenAt = int.fromEnvironment('STORE_SCREEN_AT', defaultValue: -1);
+
+/// How long each screen is left on the device before the harness advances to
+/// the next one (override with `--dart-define=STORE_DWELL_SECONDS=<n>`). Long
+/// enough for the synthetic futures to settle, so no skeleton is ever on screen
+/// when `adb exec-out screencap` fires.
+const storeScreenDwell = Duration(
+  seconds: int.fromEnvironment('STORE_DWELL_SECONDS', defaultValue: 6),
+);
+
+/// Extra settle time before announcing a screen to the capture runner. The
+/// Android window goes blank for a moment while a new subtree is laid out, and
+/// a shot taken during that window lands either on a blank frame or on the
+/// app's own fade-in (a washed-out screenshot). Neither is usable, so the
+/// marker — and therefore the shot — waits until the screen has fully settled.
+const storeScreenSettle = Duration(milliseconds: 2500);
+
+void main() {
+  final entries = storeScreenshotEntries();
+  if (entries == null) {
+    runApp(const PreviewGalleryApp());
+    return;
+  }
+  runApp(PreviewCaptureApp(entries: entries));
+}
+
+/// Null in gallery mode; otherwise the screens to drive. An unknown value fails
+/// loudly instead of silently capturing the wrong screen.
+List<(StoreScreenshot, String)>? storeScreenshotEntries() {
+  if (_storeScreenDefine.isEmpty) return null;
+  if (_storeScreenDefine == 'all' || _storeScreenDefine == 'cycle') {
+    return [for (final e in storeScreenshotKeys) (storeScreenshot(e.$1), e.$2)];
+  }
+  for (final e in storeScreenshotKeys) {
+    if (e.$1 == _storeScreenDefine) return [(storeScreenshot(e.$1), e.$2)];
+  }
+  stderr.writeln(
+    'STORE_SCREEN="$_storeScreenDefine" is not a known key. '
+    'Known keys: ${storeScreenshotKeys.map((e) => e.$1).join(', ')}, all',
+  );
+  exit(2);
+}
 
 User _mockUser(String name) => User.fromJson({
       'id': name,
@@ -56,6 +134,126 @@ final gateSession = _session('gate1', {
 
 String _iso(DateTime d) => d.toIso8601String();
 final _now = DateTime.now();
+
+// ── store-capture fixtures ────────────────────────────────────────────────
+// Everything below is synthetic and unmistakably marked as such: the fictional
+// compound/units, a placeholder guest name, and a visitor credential that is
+// deliberately not a valid pass payload, so no capture can leak a usable one.
+
+/// Stored visitor-pass payload for previews. Shape-valid (the parser accepts
+/// the `AQP1.v1.<secret>` form) but the secret is a fixed, documented
+/// placeholder that no server ever issued — it cannot scan through.
+const syntheticVisitorPassPayload =
+    'AQP1.v1.NOT-A-REAL-PASS-STORE-SCREENSHOT-SAMPLE';
+
+/// Placeholder guest name for previews and captures. Deliberately not a real
+/// name: the pass screen must never look like it holds a live invitation.
+const syntheticGuestName = 'ضيف تجريبي';
+
+/// What the on-device pass store gets in preview/capture mode, so no capture
+/// depends on age encryption or a real signed-in user.
+class _PreviewPassStore implements VisitorPassStore {
+  List<SavedPass> _passes = const [];
+  @override
+  Future<List<SavedPass>> read(String userId) async => _passes;
+  @override
+  Future<void> save(String userId, SavedPass pass) async => _passes = [pass];
+}
+
+/// The screen a capture should show, with the session and overrides it needs.
+class StoreScreenshot {
+  final String key;
+  final AppSession session;
+  final Widget Function() build;
+
+  /// Shell tab to select for shell-based screens (resident/technician/manager).
+  final int? shellTab;
+  const StoreScreenshot({
+    required this.key,
+    required this.session,
+    required this.build,
+    this.shellTab,
+  });
+}
+
+StoreScreenshot storeScreenshot(String key) => switch (key) {
+      // Resident shell · tab 0 — the real ResidentHomeScreen, unmodified.
+      'resident-home' => StoreScreenshot(
+          key: key,
+          session: residentSession,
+          shellTab: 0,
+          build: () => AppShell(session: residentSession),
+        ),
+      // Resident shell · tab 2 — the real PaymentsTabScreen (dues/paid).
+      'payments-dues' => StoreScreenshot(
+          key: key,
+          session: residentSession,
+          shellTab: 2,
+          build: () => AppShell(session: residentSession),
+        ),
+      // Pushed route, exactly as the dues card opens it. `createFawryCheckout`
+      // is the PreviewRepository override, so the reference code is synthetic.
+      'fawry-payment' => StoreScreenshot(
+          key: key,
+          session: residentSession,
+          build: () => FawryCodeScreen(
+            due: DueItem(
+              id: 'd1',
+              description: 'قسط صيانة أكتوبر',
+              amount: 3500,
+              paid: 0,
+              outstanding: 3500,
+              dueDate: _iso(_now.add(const Duration(days: 11))),
+              unitCode: 'A-12',
+              memberId: 'm1',
+            ),
+            settings: const {'id': 'ps1', 'provider': 'FAWRY', 'environment': 'TEST'},
+          ),
+        ),
+      // Pushed route with the deliberate placeholder payload above.
+      'visitor-qr-pass' => StoreScreenshot(
+          key: key,
+          session: residentSession,
+          build: () => VisitorPassScreen(
+            guestName: syntheticGuestName,
+            unitCode: 'A-12',
+            validUntil: _iso(_now.add(const Duration(hours: 8))),
+            payload: syntheticVisitorPassPayload,
+            invitationId: 'preview-invitation',
+            alreadySaved: true,
+          ),
+        ),
+      // Pushed route over the synthetic maintenance request in
+      // PreviewRepository.maintenanceDetail.
+      'maintenance-request' => StoreScreenshot(
+          key: key,
+          session: residentSession,
+          build: () => const MaintenanceDetailScreen(id: 'mr1'),
+        ),
+      // Technician shell · tab 0.
+      'technician-dashboard' => StoreScreenshot(
+          key: key,
+          session: technicianSession,
+          shellTab: 0,
+          build: () => AppShell(session: technicianSession),
+        ),
+      // Gate shell · tab 0, live camera off: the approved idle scanner UI
+      // renders and no camera permission dialog can appear.
+      'gate-scanner' => StoreScreenshot(
+          key: key,
+          session: gateSession,
+          shellTab: 0,
+          build: () => AppShell(session: gateSession),
+        ),
+      // Manager shell · tab 0.
+      'manager-dashboard' => StoreScreenshot(
+          key: key,
+          session: managerSession,
+          shellTab: 0,
+          build: () => AppShell(session: managerSession),
+        ),
+      _ => throw ArgumentError('unknown store screenshot key: $key'),
+    };
 
 class _PreviewDeviceStore implements GateDeviceStore {
   GateDevice? _device = const GateDevice(
@@ -198,7 +396,8 @@ class PreviewRepository extends AqarRepository {
     required String clientRequestId,
   }) async =>
       const FawryCheckout(
-        transactionId: 'txn-1',
+        // Synthetic TEST-environment reference — never a live Fawry code.
+        transactionId: 'preview-transaction',
         amount: 3500,
         reference: '928451736',
       );
@@ -408,6 +607,57 @@ class PreviewRepository extends AqarRepository {
       ];
 
   @override
+  Future<MaintenanceDetail> maintenanceDetail(String id) async {
+    if (id != 'mr1') {
+      throw const AppRepositoryException('preview_unknown_maintenance_request');
+    }
+    return MaintenanceDetail(
+      request: MaintenanceItem(
+        id: 'mr1',
+        requestNo: 'MR-118',
+        title: 'تسريب مياه — مطبخ',
+        status: 'IN_PROGRESS',
+        priority: 'HIGH',
+        submittedAt: _iso(_now.subtract(const Duration(days: 2))),
+        unitCode: 'A-12',
+      ),
+      description:
+          'تسريب من وصلة الحوض أسفل المطبخ — المياه تتجمع على الأرضية عند الاستخدام.',
+      categoryId: 'c1',
+      updates: [
+        {
+          'resulting_status': '',
+          'note': 'جارٍ تغيير وصلة الحوض',
+          'visibility': 'MEMBER_VISIBLE',
+          'created_at': _iso(_now.subtract(const Duration(hours: 1))),
+        },
+        {
+          'resulting_status': 'IN_PROGRESS',
+          'note': '',
+          'visibility': 'MEMBER_VISIBLE',
+          'created_at': _iso(_now.subtract(const Duration(hours: 5))),
+        },
+        {
+          'resulting_status': 'TRIAGED',
+          'note': 'تم التصنيف وإسناد الطلب لفريق السباكة',
+          'visibility': 'MEMBER_VISIBLE',
+          'created_at': _iso(_now.subtract(const Duration(days: 1))),
+        },
+        {
+          'resulting_status': 'SUBMITTED',
+          'note': '',
+          'visibility': 'MEMBER_VISIBLE',
+          'created_at': _iso(_now.subtract(const Duration(days: 2))),
+        },
+      ],
+      attachments: const [
+        {'original_file_name': 'صورة-التسريب.jpg', 'kind': 'ISSUE'},
+      ],
+      workOrders: const [],
+    );
+  }
+
+  @override
   Future<List<WorkOrderItem>> workOrders() async => [
         WorkOrderItem(
           id: 'wo0',
@@ -518,21 +768,24 @@ class PreviewRepository extends AqarRepository {
       ];
 }
 
-List<Override> _overrides(AppSession session) => [
+List<Override> _overrides(AppSession session, {int? shellTab}) => [
       repositoryProvider.overrideWithValue(const PreviewRepository()),
       sessionProvider.overrideWith((ref) async => session),
       savedPassesProvider.overrideWith((ref) async => [
             SavedPass(
               id: 'v1',
-              guestName: 'محمد سامي',
+              guestName: syntheticGuestName,
               validUntil:
                   _iso(DateTime(_now.year, _now.month, _now.day, 23, 59)),
-              payload: 'AQP1.v1.preview-secret',
+              payload: syntheticVisitorPassPayload,
               unitCode: 'A-12',
             ),
           ]),
+      visitorPassStoreProvider.overrideWithValue(_PreviewPassStore()),
       gateDeviceStoreProvider.overrideWithValue(_PreviewDeviceStore()),
       gateCameraEnabledProvider.overrideWithValue(false),
+      if (shellTab != null)
+        shellTabProvider.overrideWith((ref) => shellTab),
     ];
 
 class PreviewGalleryApp extends StatelessWidget {
@@ -579,11 +832,11 @@ class PreviewGalleryApp extends StatelessWidget {
         '06 تصريح زائر QR',
         residentSession,
         () => VisitorPassScreen(
-              guestName: 'محمد سامي',
+              guestName: syntheticGuestName,
               unitCode: 'A-12',
               validUntil:
                   _iso(DateTime(_now.year, _now.month, _now.day, 23, 59)),
-              payload: 'AQP1.v1.preview-secret',
+              payload: syntheticVisitorPassPayload,
               invitationId: 'v1',
             )
       ),
@@ -680,7 +933,7 @@ class PreviewGalleryApp extends StatelessWidget {
         gateSession,
         () => const GateResultScreen(
               decision: 'ALLOW',
-              guestName: 'محمد سامي',
+              guestName: syntheticGuestName,
               unitCode: 'A-12',
               direction: 'ENTRY',
               gateName: 'بوابة ١',
@@ -810,4 +1063,127 @@ class PreviewGalleryApp extends StatelessWidget {
       ),
     );
   }
+}
+
+// ───────────────────────── store-screenshot capture host ─────────────────────
+
+/// Drives one genuine production screen at a time, full-screen, for Play store
+/// captures. No chrome of its own: what lands in the screenshot is the screen
+/// the app actually shows, at the device's real resolution.
+class PreviewCaptureApp extends StatelessWidget {
+  final List<(StoreScreenshot, String)> entries;
+  const PreviewCaptureApp({super.key, required this.entries});
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: _CaptureRoot(entries: entries),
+      );
+}
+
+class _CaptureRoot extends StatefulWidget {
+  final List<(StoreScreenshot, String)> entries;
+  const _CaptureRoot({required this.entries});
+
+  @override
+  State<_CaptureRoot> createState() => _CaptureRootState();
+}
+
+class _CaptureRootState extends State<_CaptureRoot> {
+  late final List<(StoreScreenshot, String)> _entries;
+  Timer? _timer;
+  int _index = 0;
+  int _shot = 0;
+  bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = widget.entries;
+    if (_storeScreenAt >= 0) {
+      _index = _storeScreenAt < _entries.length ? _storeScreenAt : 0;
+      _started = true; // single manual capture — leave it on screen
+      return;
+    }
+  }
+
+  /// Waits until the screen is actually on the surface before starting the
+  /// dwell, so capture 1 is never the still-blank engine window.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started || _entries.length < 2) return;
+    _started = true;
+    final binding = WidgetsBinding.instance;
+    binding.waitUntilFirstFrameRasterized.then((_) {
+      if (mounted) _cycle();
+    });
+  }
+
+  /// Advances on a timer so the whole set is captured from one install: no
+  /// rebuild between shots and no camera permission dialog involved.
+  void _cycle() {
+    _timer?.cancel();
+    _timer = Timer(storeScreenDwell, () {
+      if (!mounted) return;
+      setState(_next);
+      _cycle();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (story, stem) = _entries[_index];
+    final shot = _shot;
+    // The capture runner (store-assets/capture_play_screenshots.ps1) takes a
+    // shot only after this line appears, so it is emitted once the screen is
+    // mounted *and* the blank window blink is over.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || shot != _shot) return;
+      Future<void>.delayed(storeScreenSettle, () {
+        if (!mounted || shot != _shot) return;
+        debugPrint('STORE_CYCLE $shot ${story.key} $stem');
+      });
+    });
+    return _CaptureSurface(
+      key: ValueKey('shot-$_shot'),
+      story: story,
+    );
+  }
+
+  void _next() {
+    _shot++;
+    _index = (_index + 1) % _entries.length;
+  }
+}
+
+/// The production screen plus the synthetic repository/session overrides it
+/// needs. The screen widget itself is imported unchanged from `lib/screens`.
+class _CaptureSurface extends StatelessWidget {
+  final StoreScreenshot story;
+  const _CaptureSurface({super.key, required this.story});
+
+  @override
+  Widget build(BuildContext context) => ProviderScope(
+        overrides: _overrides(story.session, shellTab: story.shellTab),
+        child: story.build(),
+      );
 }

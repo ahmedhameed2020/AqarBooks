@@ -60,7 +60,7 @@ export default async function DunningPage({
   }
 
   const supabase = await createClient();
-  const [{ data: policiesRaw, error: policiesError }, { data: candidatesRaw, error: candidatesError }, { data: noticesRaw, error: noticesError }] = await Promise.all([
+  const [{ data: policiesRaw, error: policiesError }, { data: candidatesRaw, error: candidatesError }, { data: noticesRaw, error: noticesError }, { data: creditRows }] = await Promise.all([
     supabase
       .from("dunning_policies")
       .select("stage, name_ar, name_en, days_overdue, minimum_amount, is_active")
@@ -68,6 +68,7 @@ export default async function DunningPage({
       .order("stage"),
     supabase.rpc("list_dunning_candidates", { p_organization_id: organization.id }),
     supabase.rpc("list_dunning_notices", { p_organization_id: organization.id }),
+    supabase.from("payment_credit_balances").select("member_id, remaining_amount").eq("organization_id", organization.id).gt("remaining_amount", 0),
   ]);
 
   if (policiesError || candidatesError || noticesError) {
@@ -78,6 +79,8 @@ export default async function DunningPage({
   const notices = (noticesRaw ?? []) as unknown as NoticeRow[];
   const policies = (policiesRaw ?? []) as unknown as Policy[];
   const currency = organization.default_currency ?? "EGP";
+  const creditByMember: Record<string, number> = {};
+  for (const r of creditRows ?? []) if (r.member_id) creditByMember[r.member_id] = (creditByMember[r.member_id] ?? 0) + Number(r.remaining_amount);
 
   return (
     <div className="space-y-6">
@@ -110,6 +113,7 @@ export default async function DunningPage({
         currency={currency}
         organizationId={organization.id}
         organizationName={organization.name}
+        creditByMember={creditByMember}
       />
     </div>
   );

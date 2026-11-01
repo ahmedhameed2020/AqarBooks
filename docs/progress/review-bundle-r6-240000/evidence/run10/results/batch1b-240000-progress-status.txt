@@ -1,0 +1,19 @@
+$ tests/progress-status.test.ts
+label=batch1b-240000-progress-status
+exit=0
+elapsed_ms=10861
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ✓ tests/progress-status.test.ts (7 tests) 37ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  12:18:48
+   Duration  2.48s (transform 896ms, setup 1.22s, import 149ms, tests 37ms, environment 1ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch1b-240000-progress-status.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

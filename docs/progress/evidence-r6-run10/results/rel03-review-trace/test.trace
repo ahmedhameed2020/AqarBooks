@@ -1,0 +1,119 @@
+{"version":8,"type":"context-options","origin":"testRunner","browserName":"","playwrightVersion":"1.62.1","options":{},"platform":"win32","wallTime":1793434385675,"monotonicTime":8139.141,"sdkLanguage":"javascript","testTimeout":180000}
+{"type":"before","callId":"hook@1","stepId":"hook@1","startTime":8180.561,"class":"Test","method":"hook","title":"Before Hooks","params":{},"stack":[]}
+{"type":"before","callId":"fixture@32","stepId":"fixture@32","parentId":"hook@1","startTime":8213.541,"class":"Test","method":"fixture","title":"Fixture \"browser\"","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@33","stepId":"pw:api@33","parentId":"fixture@32","startTime":8221.004,"class":"Test","method":"pw:api","title":"Launch browser","params":{"handleSIGINT":"false","tracesDir":"D:\\Web\\AqarBooks\\docs\\progress\\evidence-r6-run10\\results\\rel03-review-e2e-artifacts\\.playwright-artifacts-0\\traces","artifactsDir":"D:\\Web\\AqarBooks\\docs\\progress\\evidence-r6-run10\\results\\rel03-review-e2e-artifacts\\.playwright-artifacts-0","headless":"true","ignoreDefaultArgs":"undefined","ignoreAllDefaultArgs":"false","env":"undefined"},"stack":[]}
+{"type":"after","callId":"pw:api@33","endTime":12971.36,"annotations":[]}
+{"type":"after","callId":"fixture@32","endTime":12972.005,"annotations":[]}
+{"type":"after","callId":"hook@1","endTime":12972.228,"annotations":[]}
+{"type":"before","callId":"expect@34","stepId":"expect@34","startTime":13420.054,"class":"Test","method":"expect","title":"org insert failed: undefined","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":27,"column":57,"function":"setUp"}]}
+{"type":"after","callId":"expect@34","endTime":13421.213,"annotations":[]}
+{"type":"before","callId":"expect@35","stepId":"expect@35","startTime":13691.589,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@35","endTime":13691.834,"annotations":[]}
+{"type":"before","callId":"expect@36","stepId":"expect@36","startTime":13719.85,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@36","endTime":13720.045,"annotations":[]}
+{"type":"before","callId":"expect@37","stepId":"expect@37","startTime":13751.421,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@37","endTime":13751.596,"annotations":[]}
+{"type":"before","callId":"expect@38","stepId":"expect@38","startTime":13788.115,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@38","endTime":13788.298,"annotations":[]}
+{"type":"before","callId":"expect@39","stepId":"expect@39","startTime":13818.008,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@39","endTime":13818.367,"annotations":[]}
+{"type":"before","callId":"expect@40","stepId":"expect@40","startTime":13869.76,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":38,"column":27,"function":"acc"}]}
+{"type":"after","callId":"expect@40","endTime":13870.169,"annotations":[]}
+{"type":"before","callId":"expect@41","stepId":"expect@41","startTime":14956.612,"class":"Test","method":"expect","title":"owner sign-in failed: undefined","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":79,"column":68,"function":"setUp"}]}
+{"type":"after","callId":"expect@41","endTime":14957.24,"annotations":[]}
+{"type":"before","callId":"pw:api@42","stepId":"pw:api@42","startTime":15359.216,"class":"Test","method":"pw:api","title":"Create context","params":{"selectorEngines":"[]","testIdAttributeName":"data-testid","acceptDownloads":"accept","bypassCSP":"false","colorScheme":"light","hasTouch":"false","ignoreHTTPSErrors":"false","isMobile":"false","javaScriptEnabled":"true","locale":"en-US","offline":"false","viewport":"Object","baseURL":"http://127.0.0.1:3100","serviceWorkers":"allow","noDefaultViewport":"false","extraHTTPHeaders":"undefined","storageState":"undefined","reducedMotion":"undefined","forcedColors":"undefined","contrast":"undefined","clientCertificates":"undefined"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":126,"column":17}]}
+{"type":"after","callId":"pw:api@42","endTime":15389.665,"annotations":[]}
+{"type":"before","callId":"pw:api@43","stepId":"pw:api@43","startTime":15412.291,"class":"Test","method":"pw:api","title":"Create page","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":127,"column":28}]}
+{"type":"after","callId":"pw:api@43","endTime":15885.704,"annotations":[]}
+{"type":"before","callId":"pw:api@44","stepId":"pw:api@44","startTime":15892.634,"class":"Test","method":"pw:api","title":"Navigate to \"/en/login\"","params":{"url":"/en/login","waitUntil":"load"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":111,"column":14,"function":"signIn"}]}
+{"type":"after","callId":"pw:api@44","endTime":17745.63,"annotations":[]}
+{"type":"before","callId":"pw:api@45","stepId":"pw:api@45","startTime":17854.86,"class":"Test","method":"pw:api","title":"Fill \"e2e-disp-owner-1793434390561@aqarbooks-test.local\" locator('#email')","params":{"selector":"#email","value":"e2e-disp-owner-1793434390561@aqarbooks-test.local","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":112,"column":32,"function":"signIn"}]}
+{"type":"after","callId":"pw:api@45","endTime":18193.278,"annotations":[]}
+{"type":"before","callId":"pw:api@46","stepId":"pw:api@46","startTime":18205.716,"class":"Test","method":"pw:api","title":"Fill \"E2E_Test_P@ssw0rd_2026!\" locator('#password')","params":{"selector":"#password","value":"E2E_Test_P@ssw0rd_2026!","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":113,"column":35,"function":"signIn"}]}
+{"type":"after","callId":"pw:api@46","endTime":18379.351,"annotations":[]}
+{"type":"before","callId":"pw:api@47","stepId":"pw:api@47","startTime":18400.167,"class":"Test","method":"pw:api","title":"Click getByRole('button', { name: /Sign In/i })","params":{"selector":"internal:role=button[name=/Sign In/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":114,"column":56,"function":"signIn"}]}
+{"type":"after","callId":"pw:api@47","endTime":18907.944,"annotations":[]}
+{"type":"before","callId":"pw:api@48","stepId":"pw:api@48","startTime":18959.918,"class":"Test","method":"pw:api","title":"Wait for navigation","params":{"waitId":"88448be7977cae80c9b5f88ae2f91eb7","phase":"before","event":""},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":115,"column":14,"function":"signIn"}]}
+{"type":"after","callId":"pw:api@48","endTime":34968.479,"annotations":[]}
+{"type":"before","callId":"pw:api@49","stepId":"pw:api@49","startTime":34974.683,"class":"Test","method":"pw:api","title":"Navigate to \"/en/finance/assets\"","params":{"url":"/en/finance/assets","waitUntil":"load"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":131,"column":16}]}
+{"type":"after","callId":"pw:api@49","endTime":55687.945,"annotations":[]}
+{"type":"before","callId":"expect@50","stepId":"expect@50","startTime":55701.668,"class":"Test","method":"expect","title":"Expect \"toBeVisible\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":132,"column":74}]}
+{"type":"after","callId":"expect@50","endTime":56419.862,"annotations":[]}
+{"type":"before","callId":"pw:api@51","stepId":"pw:api@51","startTime":56463.216,"class":"Test","method":"pw:api","title":"Click getByRole('row').filter({ hasText: 'FA-34390561' }).getByRole('button', { name: /^Dispose$/i })","params":{"selector":"internal:role=row >> internal:has-text=\"FA-34390561\"i >> internal:role=button[name=/^Dispose$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":133,"column":110}]}
+{"type":"after","callId":"pw:api@51","endTime":57990.903,"annotations":[]}
+{"type":"before","callId":"pw:api@52","stepId":"pw:api@52","startTime":58339.231,"class":"Test","method":"pw:api","title":"Fill \"7000\" locator('#dispose-proceeds')","params":{"selector":"#dispose-proceeds","value":"7000","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":135,"column":45}]}
+{"type":"after","callId":"pw:api@52","endTime":60058.334,"annotations":[]}
+{"type":"before","callId":"expect@53","stepId":"expect@53","startTime":60429.598,"class":"Test","method":"expect","title":"Expect \"toBeNull\"","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":143,"column":49}]}
+{"type":"after","callId":"expect@53","endTime":60430.307,"annotations":[]}
+{"type":"before","callId":"pw:api@54","stepId":"pw:api@54","startTime":60433.298,"class":"Test","method":"pw:api","title":"Reload","params":{"waitUntil":"load"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":144,"column":16}]}
+{"type":"after","callId":"pw:api@54","endTime":72267.985,"annotations":[]}
+{"type":"before","callId":"pw:api@55","stepId":"pw:api@55","startTime":72314.235,"class":"Test","method":"pw:api","title":"Click getByRole('row').filter({ hasText: 'FA-34390561' }).getByRole('button', { name: /^Dispose$/i })","params":{"selector":"internal:role=row >> internal:has-text=\"FA-34390561\"i >> internal:role=button[name=/^Dispose$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":145,"column":110}]}
+{"type":"after","callId":"pw:api@55","endTime":74633,"annotations":[]}
+{"type":"before","callId":"pw:api@56","stepId":"pw:api@56","startTime":74636.643,"class":"Test","method":"pw:api","title":"Fill \"7000\" locator('#dispose-proceeds')","params":{"selector":"#dispose-proceeds","value":"7000","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":146,"column":45}]}
+{"type":"after","callId":"pw:api@56","endTime":75702.724,"annotations":[]}
+{"type":"before","callId":"expect@57","stepId":"expect@57","startTime":75788.924,"class":"Test","method":"expect","title":"Expect \"toContainText\"","params":{"expected":"1010 — Cash"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":147,"column":52}]}
+{"type":"after","callId":"expect@57","endTime":76300.529,"annotations":[]}
+{"type":"before","callId":"expect@58","stepId":"expect@58","startTime":76310.527,"class":"Test","method":"expect","title":"Expect \"not toContainText\"","params":{"expected":"1230 — Other Non-Cash Assets"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":148,"column":56}]}
+{"type":"after","callId":"expect@58","endTime":76566.909,"annotations":[]}
+{"type":"before","callId":"expect@59","stepId":"expect@59","startTime":76569.646,"class":"Test","method":"expect","title":"Expect \"not toContainText\"","params":{"expected":"1210 — Buildings"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":149,"column":56}]}
+{"type":"after","callId":"expect@59","endTime":76834.344,"annotations":[]}
+{"type":"before","callId":"expect@60","stepId":"expect@60","startTime":76885.696,"class":"Test","method":"expect","title":"Expect \"not toContainText\"","params":{"expected":"1220 — Accumulated Depreciation"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":150,"column":56}]}
+{"type":"after","callId":"expect@60","endTime":77669.038,"annotations":[]}
+{"type":"before","callId":"pw:api@61","stepId":"pw:api@61","startTime":77685.087,"class":"Test","method":"pw:api","title":"Select option locator('#dispose-account')","params":{"selector":"#dispose-account","options":"[Object]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":151,"column":44}]}
+{"type":"after","callId":"pw:api@61","endTime":78577.837,"annotations":[]}
+{"type":"before","callId":"pw:api@62","stepId":"pw:api@62","startTime":78603.54,"class":"Test","method":"pw:api","title":"Fill \"2026-06-01\" locator('#dispose-date')","params":{"selector":"#dispose-date","value":"2026-06-01","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":152,"column":41}]}
+{"type":"after","callId":"pw:api@62","endTime":80267.965,"annotations":[]}
+{"type":"before","callId":"pw:api@63","stepId":"pw:api@63","startTime":80271.568,"class":"Test","method":"pw:api","title":"Click getByRole('dialog').getByRole('button', { name: /^Confirm Disposal$/i })","params":{"selector":"internal:role=dialog >> internal:role=button[name=/^Confirm Disposal$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":153,"column":89}]}
+{"type":"after","callId":"pw:api@63","endTime":82069.899,"annotations":[]}
+{"type":"before","callId":"expect@64","stepId":"expect@64","startTime":82095.841,"class":"Test","method":"expect","title":"Expect \"toContainText\"","params":{"expected":"Object"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":157,"column":27}]}
+{"type":"after","callId":"expect@64","endTime":86662.173,"annotations":[]}
+{"type":"before","callId":"expect@65","stepId":"expect@65","startTime":86719.431,"class":"Test","method":"expect","title":"Expect \"toContainText\"","params":{"expected":"Object"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":160,"column":27}]}
+{"type":"after","callId":"expect@65","endTime":87102.152,"annotations":[]}
+{"type":"before","callId":"pw:api@66","stepId":"pw:api@66","startTime":87149.214,"class":"Test","method":"pw:api","title":"Navigate to \"/en/admin/finance/accounting-accounts\"","params":{"url":"/en/admin/finance/accounting-accounts","waitUntil":"load"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":163,"column":16}]}
+{"type":"after","callId":"pw:api@66","endTime":91462.432,"annotations":[]}
+{"type":"before","callId":"expect@67","stepId":"expect@67","startTime":91465.976,"class":"Test","method":"expect","title":"Expect \"toHaveAttribute\"","params":{"expected":"data-ready"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":165,"column":28}]}
+{"type":"after","callId":"expect@67","endTime":92062.811,"annotations":[]}
+{"type":"before","callId":"pw:api@68","stepId":"pw:api@68","startTime":92065.143,"class":"Test","method":"pw:api","title":"Select option locator('[data-designation=\"disposal\"]').locator('#disposal-gain')","params":{"selector":"[data-designation=\"disposal\"] >> #disposal-gain","options":"[Object]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":167,"column":46}]}
+{"type":"after","callId":"pw:api@68","endTime":92723.192,"annotations":[]}
+{"type":"before","callId":"pw:api@69","stepId":"pw:api@69","startTime":92733.014,"class":"Test","method":"pw:api","title":"Select option locator('[data-designation=\"disposal\"]').locator('#disposal-loss')","params":{"selector":"[data-designation=\"disposal\"] >> #disposal-loss","options":"[Object]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":168,"column":46}]}
+{"type":"after","callId":"pw:api@69","endTime":94050.846,"annotations":[]}
+{"type":"before","callId":"pw:api@70","stepId":"pw:api@70","startTime":94066.405,"class":"Test","method":"pw:api","title":"Click locator('[data-designation=\"disposal\"]').getByRole('button', { name: /^Save Designation$/i })","params":{"selector":"[data-designation=\"disposal\"] >> internal:role=button[name=/^Save Designation$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":169,"column":73}]}
+{"type":"after","callId":"pw:api@70","endTime":96326.416,"annotations":[]}
+{"type":"before","callId":"expect@71","stepId":"expect@71","startTime":96352.247,"class":"Test","method":"expect","title":"Expect \"toHaveAttribute\"","params":{"expected":"data-ready"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":171,"column":65}]}
+{"type":"after","callId":"expect@71","endTime":99394.818,"annotations":[]}
+{"type":"before","callId":"pw:api@72","stepId":"pw:api@72","startTime":99414.715,"class":"Test","method":"pw:api","title":"Navigate to \"/en/finance/assets\"","params":{"url":"/en/finance/assets","waitUntil":"load"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":176,"column":16}]}
+{"type":"after","callId":"pw:api@72","endTime":104764.39,"annotations":[]}
+{"type":"before","callId":"pw:api@73","stepId":"pw:api@73","startTime":104770.239,"class":"Test","method":"pw:api","title":"Click getByRole('row').filter({ hasText: 'FA-34390561' }).getByRole('button', { name: /^Dispose$/i })","params":{"selector":"internal:role=row >> internal:has-text=\"FA-34390561\"i >> internal:role=button[name=/^Dispose$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":177,"column":110}]}
+{"type":"after","callId":"pw:api@73","endTime":105714.529,"annotations":[]}
+{"type":"before","callId":"pw:api@74","stepId":"pw:api@74","startTime":105778.787,"class":"Test","method":"pw:api","title":"Fill \"7000\" locator('#dispose-proceeds')","params":{"selector":"#dispose-proceeds","value":"7000","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":178,"column":45}]}
+{"type":"after","callId":"pw:api@74","endTime":108719.468,"annotations":[]}
+{"type":"before","callId":"pw:api@75","stepId":"pw:api@75","startTime":108723.676,"class":"Test","method":"pw:api","title":"Select option locator('#dispose-account')","params":{"selector":"#dispose-account","options":"[Object]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":179,"column":44}]}
+{"type":"after","callId":"pw:api@75","endTime":109733.286,"annotations":[]}
+{"type":"before","callId":"pw:api@76","stepId":"pw:api@76","startTime":109800.189,"class":"Test","method":"pw:api","title":"Fill \"2026-06-01\" locator('#dispose-date')","params":{"selector":"#dispose-date","value":"2026-06-01","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":180,"column":41}]}
+{"type":"after","callId":"pw:api@76","endTime":110945.526,"annotations":[]}
+{"type":"before","callId":"pw:api@77","stepId":"pw:api@77","startTime":110980.036,"class":"Test","method":"pw:api","title":"Fill \"sold\" locator('#dispose-reason')","params":{"selector":"#dispose-reason","value":"sold","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":181,"column":43}]}
+{"type":"after","callId":"pw:api@77","endTime":112098.789,"annotations":[]}
+{"type":"before","callId":"pw:api@78","stepId":"pw:api@78","startTime":112212.892,"class":"Test","method":"pw:api","title":"Click getByRole('dialog').getByRole('button', { name: /^Confirm Disposal$/i })","params":{"selector":"internal:role=dialog >> internal:role=button[name=/^Confirm Disposal$/i]","strict":"true"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":182,"column":89}]}
+{"type":"after","callId":"pw:api@78","endTime":113611.576,"annotations":[]}
+{"type":"before","callId":"expect@79","stepId":"expect@79","startTime":114016.395,"class":"Test","method":"expect","title":"Expect \"toContainText\"","params":{"expected":"Disposed"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":184,"column":74}]}
+{"type":"after","callId":"expect@79","endTime":134356.924,"annotations":[]}
+{"type":"before","callId":"expect@80","stepId":"expect@80","startTime":134742.724,"class":"Test","method":"expect","title":"the disposal entry balances","params":{"expected":"10000"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":198,"column":50}]}
+{"type":"after","callId":"expect@80","endTime":134745.858,"annotations":[]}
+{"type":"before","callId":"expect@81","stepId":"expect@81","startTime":134751.315,"class":"Test","method":"expect","title":"the asset leaves at its full original cost","params":{"expected":"10000"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":199,"column":66}]}
+{"type":"after","callId":"expect@81","endTime":134751.512,"annotations":[]}
+{"type":"before","callId":"expect@82","stepId":"expect@82","startTime":135639.191,"class":"Test","method":"expect","title":"loss = 10,000 book value - 7,000 proceeds","params":{"expected":"3000"},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":204,"column":82}]}
+{"type":"after","callId":"expect@82","endTime":135639.632,"annotations":[]}
+{"type":"error","message":"\u001b[31mTest timeout of 180000ms exceeded.\u001b[39m","stack":[]}
+{"type":"before","callId":"hook@83","stepId":"hook@83","startTime":193021.816,"class":"Test","method":"hook","title":"After Hooks","params":{},"stack":[]}
+{"type":"before","callId":"attach@b14dafb5af3df7ceabdc0dac28e7c833","stepId":"attach@b14dafb5af3df7ceabdc0dac28e7c833","startTime":193653.877,"class":"Test","method":"test.attach","title":"Attach \"error-context\"","params":{},"stack":[]}
+{"type":"after","callId":"attach@b14dafb5af3df7ceabdc0dac28e7c833","endTime":193654.102,"attachments":[{"name":"error-context","contentType":"text/markdown","sha1":"a854f77da3cc9ee0e7c56414d5632478fecccb55"}]}
+{"type":"before","callId":"fixture@91","stepId":"fixture@91","parentId":"hook@83","startTime":193688.357,"class":"Test","method":"fixture","title":"Fixture \"baseURL\"","params":{},"stack":[{"file":"project#","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@91","endTime":193690.416,"annotations":[]}
+{"type":"after","callId":"hook@83","endTime":193904.048,"annotations":[]}
+{"type":"before","callId":"hook@113","stepId":"hook@113","startTime":193919.986,"class":"Test","method":"hook","title":"Worker Cleanup","params":{},"stack":[]}
+{"type":"before","callId":"fixture@114","stepId":"fixture@114","parentId":"hook@113","startTime":193948.789,"class":"Test","method":"fixture","title":"Fixture \"browser\"","params":{},"stack":[]}
+{"type":"before","callId":"expect@115","stepId":"expect@115","parentId":"fixture@114","startTime":206535.133,"class":"Test","method":"expect","title":"fixture org left behind: undefined","params":{},"stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":106,"column":63,"function":"cleanUp"}]}
+{"type":"after","callId":"expect@115","endTime":206535.294,"annotations":[]}
+{"type":"error","message":"Error: browserContext.close: Target page, context or browser has been closed","stack":[{"file":"D:\\Web\\AqarBooks\\tests\\e2e\\asset-disposal.spec.ts","line":206,"column":5}]}
+{"type":"after","callId":"fixture@114","endTime":251288.767,"annotations":[]}
+{"type":"after","callId":"hook@113","endTime":251304.837,"annotations":[]}

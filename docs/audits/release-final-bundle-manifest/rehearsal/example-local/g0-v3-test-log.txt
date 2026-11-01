@@ -1,0 +1,54 @@
+G0 v3 test log -- TEST data only (container supabase_db_aqarbooks_clean; throwaway copies rh_inv_test and rh_trial). Nothing run on production. No production role created. No BYPASSRLS granted to any production role.
+
+== A. KEEP guard (export-generate.sql v5; guard rows are generated into export-run.psql before the first \copy)
+N1  KEEP on an object (financial_audit_logs.metadata.outer)        export-exit=3  files=0   "KEEP-GUARD ... holds object or array values"
+N2  KEEP on a mixed-type scalar (metadata.conflict_key: number+string) export-exit=3 files=0  "KEEP-GUARD ... mixes value types"
+N3  KEEP on an array value (platform_audit_logs.safe_change_summary.allocations) export-exit=3 files=0 "KEEP-GUARD ... holds object or array values"
+N4  KEEP on mixed types inside an array (property_import_logs.failures[].row: number+string) export-exit=3 files=0 "KEEP-GUARD ... mixes value types. Nothing was exported."
+P1  KEEP on a uniform number (metadata.total_amount)               export-exit=0  files=147
+    exact check vs source: 1258 values exact, 0 mismatches; 0 rows with nested secrets
+P2  KEEP on a uniform string (metadata.due_date)                   export-exit=0  files=147
+    exact check vs source: 1258 values exact, 0 mismatches
+P3  no KEEP at all                                                 export-exit=0  files=147
+P4  control: no extra line, array-valued path present in data (platform_audit_logs.safe_change_summary.allocations)       export-exit=0  files=147
+
+Earlier run (before the guard, for reference): KEEP on metadata.outer exported the nested key and its value (1 file). That behaviour is now blocked.
+
+== B. Unaffected check (UUID / TS / BOOL / NUM and every other rule)
+Same catalog (rh_trial), same allowlist (json-allowlist.txt: no KEEP lines), generator v4 vs v5:
+    export-exit=0 for both, 147 files each, 86,431,247 bytes each
+    diff -r u_old/data u_new/data : IDENTICAL
+    rule-report.txt identical; reviewed-columns.sql identical.
+
+== C. Negative leak checks
+N1-N4 export folders contain 0 data files: nothing was written before the refusal.
+P1-P2 exports contain no nested key name (Nested_Secret_Key) and no SENS-VALUE-9/11.
+
+== D. Permission review of the inventory role (role created from json-inventory-role.sql on the TEST copy, then dropped)
+P1 attributes: superuser=f, inherit=f, createrole=f, createdb=f, login=t, replication=f, bypassrls=f
+P2 memberships: 0
+P3 tables writable (INSERT/UPDATE/DELETE/TRUNCATE): 0
+P4 tables readable: 14 (= the 14 public tables that have a json/jsonb column)
+P5 tables readable through PUBLIC grants: 0
+P6 functions executable by the role: 191 (default PUBLIC EXECUTE) = 188 non-definer + 3 definer
+P7 SECURITY DEFINER functions executable by the role: 3, all TRIGGER functions (guard_role_permissions_scope, guard_roles_security, guard_user_role_assignments_security). A trigger function cannot be called directly.
+     accept_member_invitation (definer, writes): NOT executable by the role. Of 391 definer functions in public, the app has removed PUBLIC execute from the writing ones.
+P8 schema public: CREATE false, USAGE true; PUBLIC has no schema privilege listed.
+P9 default privileges (pg_default_acl): 24 entries exist in this database; not inspected per entry (see report).
+P10 role settings: default_transaction_read_only=on, statement_timeout=600000, search_path=pg_catalog, public.
+
+== E. The read-only default is NOT a control (proved)
+Role aqar_json_inventory (SELECT only, no ownership, no bypassrls), with a probe SECURITY DEFINER function that inserts into a probe table (created and dropped in TEST):
+    step 1: plain call under the read-only default -> ERROR cannot execute INSERT in a read-only transaction; rows 0
+    step 2: caller runs "set default_transaction_read_only = off", same call -> exit 0; rows 1
+So the default can be switched off by the caller. The real control is the privilege set: no write grant and no executable definer that writes.
+Residual risk: any FUTURE SECURITY DEFINER write function that is granted to PUBLIC would be reachable by this role. Fix requires REVOKE EXECUTE ... FROM PUBLIC on such functions, a global change: owner decision.
+
+== F. RLS (evidence reused from G0 v2, unchanged)
+T5: role without bypassrls -> RLS-GUARD stops before reading any JSON (exit 3, no file).
+T6: same role with bypassrls (SELECT only) -> completes; output identical to the owner run.
+R3: role without bypass reading public.members -> "permission denied for function current_member_id" (fails closed).
+
+== G. Cleanup
+Test roles removed (g0_ro, g0_inv, inv_probe, aqar_json_inventory); probe table and probe function removed. Counts after cleanup: 0 roles, 0 probes.
+Test copies rh_inv_test and rh_trial were NOT deleted.

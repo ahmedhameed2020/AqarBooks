@@ -20,7 +20,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import {
-  saveProject,
+  createProject,
+  updateProject,
   capitaliseProjectCost,
   releaseProjectWip,
 } from "@/lib/actions/projects";
@@ -47,6 +48,19 @@ function message(error: string, isAr: boolean) {
   if (error.includes("NO_OPEN_FISCAL_PERIOD")) {
     return isAr ? "لا توجد فترة مالية مفتوحة تغطي هذا التاريخ." : "No open fiscal period covers that date.";
   }
+  if (error === "PROJECT_CODE_EXISTS") {
+    return isAr
+      ? "كود المشروع مستخدم بالفعل في هذه المؤسسة، فلم يُنشأ مشروع جديد ولم يُعدَّل المشروع القائم. اختر كودًا آخر."
+      : "That project code is already in use in this organization. Nothing was created or changed. Choose another code.";
+  }
+  if (error === "PROJECT_HAS_POSTINGS") {
+    return isAr
+      ? "للمشروع حركات مرحّلة، فلا يمكن تغيير كوده أو عقاره أو حسابيه. الاسم والميزانية متاحان للتعديل."
+      : "This project already has posted entries, so its code, property and ledger accounts cannot change. Name and budget can still be edited.";
+  }
+  if (error === "FORBIDDEN_ACCOUNTS_PERMISSION" || error === "PROJECT_NOT_FOUND") {
+    return isAr ? "لا تملك صلاحية تعديل هذا المشروع أو لم يعد موجودًا." : "You cannot edit this project, or it no longer exists.";
+  }
   if (error.includes("projects_organization_id_code_key") || error.includes("projects_code")) {
     return isAr ? "كود المشروع مستخدم بالفعل." : "That project code is already in use.";
   }
@@ -57,10 +71,22 @@ function message(error: string, isAr: boolean) {
   return error;
 }
 
+export type EditableProject = {
+  id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  property_id: string | null;
+  wip_account_id: string | null;
+  cost_of_sales_account_id: string | null;
+  budget_amount: number | string | null;
+};
+
 export function ProjectForm({
   open = true,
   onOpenChange,
   organizationId,
+  project = null,
   assetAccounts,
   expenseAccounts,
   properties,
@@ -68,7 +94,8 @@ export function ProjectForm({
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  organizationId?: string;
+  organizationId: string;
+  project?: EditableProject | null;
   assetAccounts: Option[];
   expenseAccounts: Option[];
   properties: Option[];
@@ -76,7 +103,7 @@ export function ProjectForm({
 }) {
   const isAr = locale === "ar";
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
-    saveProject,
+    project ? updateProject : createProject,
     { ok: true }
   );
 
@@ -110,7 +137,8 @@ export function ProjectForm({
 
         <form action={formAction}>
           <DialogBody className="space-y-4">
-            {organizationId && <input type="hidden" name="organizationId" value={organizationId} />}
+            <input type="hidden" name="organizationId" value={organizationId} />
+            {project && <input type="hidden" name="projectId" value={project.id} />}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="space-y-1.5">
@@ -120,6 +148,7 @@ export function ProjectForm({
                 <Input
                   id="prj-code"
                   name="code"
+                  defaultValue={project?.code ?? ""}
                   required
                   placeholder="PRJ-01"
                   dir="ltr"
@@ -134,6 +163,7 @@ export function ProjectForm({
                 <Input
                   id="prj-ar"
                   name="nameAr"
+                  defaultValue={project?.name_ar ?? ""}
                   required
                   placeholder={isAr ? "مثال: برج الواحة السكني" : "Oasis Tower"}
                   className="text-xs font-bold h-10 rounded-xl bg-background border-border"
@@ -147,6 +177,7 @@ export function ProjectForm({
                 <Input
                   id="prj-en"
                   name="nameEn"
+                  defaultValue={project?.name_en ?? ""}
                   required
                   placeholder="Oasis Residential Tower"
                   dir="ltr"
@@ -155,15 +186,20 @@ export function ProjectForm({
               </div>
             </div>
 
+            <p className="text-[11px] text-muted-foreground">
+              {isAr
+                ? "الحسابان اختياريان عند الإنشاء، ويلزم تعيينهما قبل رسملة أي تكلفة على المشروع."
+                : "Both accounts are optional at creation. They are required before any cost can be capitalised."}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="space-y-1.5">
                 <Label htmlFor="prj-wip" className="text-xs font-bold text-foreground">
-                  {isAr ? "حساب الأعمال تحت التنفيذ (أصل)" : "WIP Account (Asset)"} <span className="text-rose-500">*</span>
+                  {isAr ? "حساب الأعمال تحت التنفيذ (أصل)" : "WIP Account (Asset)"}
                 </Label>
                 <select
                   id="prj-wip"
                   name="wipAccountId"
-                  required
+                  defaultValue={project?.wip_account_id ?? ""}
                   className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer motion-control"
                 >
                   <option value="">{isAr ? "— اختر حساب الأصل —" : "— Select WIP account —"}</option>
@@ -177,12 +213,12 @@ export function ProjectForm({
 
               <div className="space-y-1.5">
                 <Label htmlFor="prj-cos" className="text-xs font-bold text-foreground">
-                  {isAr ? "حساب تكلفة المبيعات (مصروف)" : "Cost of Sales (Expense)"} <span className="text-rose-500">*</span>
+                  {isAr ? "حساب تكلفة المبيعات (مصروف)" : "Cost of Sales (Expense)"}
                 </Label>
                 <select
                   id="prj-cos"
                   name="costOfSalesAccountId"
-                  required
+                  defaultValue={project?.cost_of_sales_account_id ?? ""}
                   className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer motion-control"
                 >
                   <option value="">{isAr ? "— اختر حساب التكلفة —" : "— Select Cost account —"}</option>
@@ -201,6 +237,7 @@ export function ProjectForm({
                 <Input
                   id="prj-budget"
                   name="budgetAmount"
+                  defaultValue={project?.budget_amount ?? ""}
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -219,6 +256,7 @@ export function ProjectForm({
                 <select
                   id="prj-property"
                   name="propertyId"
+                  defaultValue={project?.property_id ?? ""}
                   className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer motion-control"
                 >
                   <option value="">{isAr ? "— بلا ربط عقاري محدد —" : "— None —"}</option>

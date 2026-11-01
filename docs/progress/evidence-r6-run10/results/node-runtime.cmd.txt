@@ -1,0 +1,3 @@
+@echo off
+"%KIMI_DESKTOP_RUNTIME_NODE%" %*
+exit /b %errorlevel%

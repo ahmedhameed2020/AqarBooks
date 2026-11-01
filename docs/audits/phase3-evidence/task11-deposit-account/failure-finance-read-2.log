@@ -1,0 +1,135 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/finance-read-permissions.integration.test.ts (35 tests | 7 failed) 247370ms
+     × due_types: readable only by accountant, collector, cashier, propertyManager 8154ms
+     × collector reads the cashbox GL account, the open period, asset accounts, due types and its own open session 9199ms
+     × guard reads no finance table and no finance RPC 12260ms
+     × guard still reads the operational data it needs (units, properties, members) 8124ms
+     × technician reads no finance table and no finance RPC 13443ms
+     × technician still reads the operational data it needs (units, properties, members) 8074ms
+     × reads only their own dues and unit, and none of the finance reference tables 16049ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/finance-read-permissions.integration.test.ts > table reads by persona (real sessions) > due_types: readable only by accountant, collector, cashier, propertyManager
+AssertionError: due_types: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ rows tests/finance-read-permissions.integration.test.ts:154:48
+    152| const rows = async (c: SupabaseClient, table: string) => {
+    153|   const { count, error } = await c.from(table).select("*", { count: "e…
+    154|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    155|   return count ?? 0;
+    156| };
+ ❯ tests/finance-read-permissions.integration.test.ts:177:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/finance-read-permissions.integration.test.ts > collection cycle (collector sees what it needs, no more) > collector reads the cashbox GL account, the open period, asset accounts, due types and its own open session
+AssertionError: due_types: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ rows tests/finance-read-permissions.integration.test.ts:154:48
+    152| const rows = async (c: SupabaseClient, table: string) => {
+    153|   const { count, error } = await c.from(table).select("*", { count: "e…
+    154|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    155|   return count ?? 0;
+    156| };
+ ❯ tests/finance-read-permissions.integration.test.ts:220:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/finance-read-permissions.integration.test.ts > guard and technician (non-finance operational roles) > guard reads no finance table and no finance RPC
+ FAIL  tests/finance-read-permissions.integration.test.ts > guard and technician (non-finance operational roles) > technician reads no finance table and no finance RPC
+AssertionError: due_types: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ rows tests/finance-read-permissions.integration.test.ts:154:48
+    152| const rows = async (c: SupabaseClient, table: string) => {
+    153|   const { count, error } = await c.from(table).select("*", { count: "e…
+    154|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    155|   return count ?? 0;
+    156| };
+ ❯ tests/finance-read-permissions.integration.test.ts:242:38
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/finance-read-permissions.integration.test.ts > guard and technician (non-finance operational roles) > guard still reads the operational data it needs (units, properties, members)
+ FAIL  tests/finance-read-permissions.integration.test.ts > guard and technician (non-finance operational roles) > technician still reads the operational data it needs (units, properties, members)
+AssertionError: properties: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ rows tests/finance-read-permissions.integration.test.ts:154:48
+    152| const rows = async (c: SupabaseClient, table: string) => {
+    153|   const { count, error } = await c.from(table).select("*", { count: "e…
+    154|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    155|   return count ?? 0;
+    156| };
+ ❯ tests/finance-read-permissions.integration.test.ts:252:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/finance-read-permissions.integration.test.ts > owner (portal member, not an organization member) > reads only their own dues and unit, and none of the finance reference tables
+AssertionError: units: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ rows tests/finance-read-permissions.integration.test.ts:154:48
+    152| const rows = async (c: SupabaseClient, table: string) => {
+    153|   const { count, error } = await c.from(table).select("*", { count: "e…
+    154|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    155|   return count ?? 0;
+    156| };
+ ❯ tests/finance-read-permissions.integration.test.ts:262:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 28 passed (35)
+   Start at  11:36:22
+   Duration  259.34s (transform 829ms, setup 826ms, import 9.93s, tests 247.37s, environment 1ms)
+

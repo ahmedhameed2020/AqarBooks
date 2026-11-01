@@ -14,6 +14,7 @@ import { StaffMaintenanceUpdateForm } from "./staff-maintenance-update-form";
 import { CreateWorkOrderForm } from "./create-work-order-form";
 import { WORK_ORDER_STATUS_LABELS, type WorkOrderStatus } from "../work-orders/work-orders-client";
 import type { Option } from "../work-orders/[workOrderId]/work-order-controls";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export default async function StaffMaintenanceDetailPage({
   params,
@@ -53,7 +54,7 @@ export default async function StaffMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: property }, { data: member }, { data: categories }, { data: updates }, { data: attachments }, { data: workOrders }, { data: memberships }, { data: suppliers }] = await Promise.all([
+  const [{ data: unit }, { data: property }, { data: member }, { data: categories, error: categoriesError }, { data: updates }, { data: attachments }, { data: workOrders }, { data: memberships }, { data: suppliers }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("properties").select("name").eq("id", request.property_id).maybeSingle(),
     supabase.from("members").select("full_name, email, phone").eq("id", request.requester_member_id).maybeSingle(),
@@ -73,6 +74,7 @@ export default async function StaffMaintenanceDetailPage({
     supabase.from("organization_memberships").select("user_id").eq("organization_id", organization.id).eq("status", "active").limit(100),
     supabase.from("suppliers").select("id, name").eq("organization_id", organization.id).eq("is_active", true).order("name").limit(100),
   ]);
+  assertRead(categoriesError, "operations/maintenance/[id]: maintenance_categories");
 
   const categoryOptions = (categories ?? []).map((c) => ({ id: c.id, label: isAr ? c.name_ar : c.name_en }));
   const category = categoryOptions.find((c) => c.id === request.category_id);

@@ -1,0 +1,39 @@
+# Raw measurements behind the diagnosis of tests/membership-status-access (collected 2026-10-11T20:42:54Z)
+
+## data volume on the shared throwaway stack
+organizations | 527
+chart_of_accounts | 5032
+units | 601
+payments | 679
+payment_allocations | 598
+journal_entry_lines | 3323
+
+## role limits
+anon|{statement_timeout=3s}
+authenticated|{statement_timeout=8s}
+authenticator|{"session_preload_libraries=supautils, safeupdate",statement_timeout=8s,lock_timeout=8s}
+service_role|
+
+## statement timeouts logged by the database (last 3 h)
+10
+172.22.0.5 2026-10-11 18:17:12.145 UTC [52919] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 18:36:21.091 UTC [66426] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:17:08.820 UTC [14176] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:17:08.862 UTC [14162] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:17:09.285 UTC [14174] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:17:09.286 UTC [14173] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:41:07.365 UTC [35186] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:41:33.925 UTC [35195] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:41:41.992 UTC [35203] authenticator@postgres ERROR:  canceling statement due to statement timeout
+172.22.0.5 2026-10-11 19:42:08.817 UTC [35186] authenticator@postgres ERROR:  canceling statement due to statement timeout
+
+## the file alone: shared stack vs fresh stack
+C:\Users\Lenovo\AppData\Local\Temp/d-mem-alone.log:   Duration  128.08s (transform 236ms, setup 106ms, import 6.80s, tests 120.86s, environment 0ms)
+C:\Users\Lenovo\AppData\Local\Temp/d-mem-fresh.log:   Duration  19.15s (transform 257ms, setup 156ms, import 6.16s, tests 12.40s, environment 0ms)
+
+## EXPLAIN ANALYZE of the readers, owner session (3 runs: old definition of units_with_financials vs the current one)
+ Execution Time: 864.337 ms  Execution Time: 438.937 ms 
+ Execution Time: 976.939 ms  Execution Time: 453.030 ms 
+ Execution Time: 668.099 ms  Execution Time: 594.605 ms 
+(first number = old definition, second = current view; effective_payment_allocations:)
+ Execution Time: 417.272 ms

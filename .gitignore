@@ -66,3 +66,6 @@ test-results/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Playwright run artifacts — transient traces/videos, regenerable; logs and screenshots stay committed.
+docs/progress/**/*-artifacts/

@@ -1,0 +1,4 @@
+binding snapshot: snapshot-2026-10-11T14-55-30-119Z.json (taken immediately before applying 20261017100100)
+IDENTICAL: every legacy figure matches the snapshot
+ledger 75 / files 75 -> MATCH
+db diff (public): no schema changes

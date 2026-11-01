@@ -1,0 +1,13 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+psql:/tmp/conc_s1_edit_first.sql:5: ERROR:  malformed array literal: "wip_account_id"
+LINE 1: v_changed := v_changed || 'wip_account_id'
+                                  ^
+DETAIL:  Array value must start with "{" or dimension information.
+QUERY:  v_changed := v_changed || 'wip_account_id'
+CONTEXT:  PL/pgSQL function audit_project_update() line 9 at assignment

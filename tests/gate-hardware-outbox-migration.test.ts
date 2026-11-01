@@ -1,9 +1,10 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFile, execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { promisify } from "node:util";
-import { beforeAll, describe, expect, it } from "vitest";
-const args = ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c"];
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+const args = ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c"];
 const sql = (query: string) => execFileSync("docker", [...args, query], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30_000 }).trim();
 const org = randomUUID(), property = randomUUID(), gate = randomUUID(), operator = randomUUID(), endpoint = randomUUID();
 const unit = randomUUID(), member = randomUUID(), device = randomUUID();
@@ -21,10 +22,23 @@ function event(decision = "ALLOW", reason = "VALID_ENTRY") {
   return id;
 }
 const commandFor = (eventId: string) => sql(`select id from public.gate_hardware_commands where access_event_id='${eventId}'`);
-const claim = () => JSON.parse(sql("select coalesce(json_agg(c),'[]') from public.claim_gate_hardware_commands(50) c"));
+/**
+ * The production claim is a GLOBAL queue (`order by next_attempt_at, id limit p_limit`, no organization filter), so this file
+ * must be the only user of its database: run it through `node scripts/demo-local/hardware-stack.mjs run tests/gate-hardware-outbox-migration.test.ts`
+ * (a stack dedicated to it). The worker contract is untouched and no other suite's command is read, claimed or changed.
+ */
+const lastJson = (out: string) => JSON.parse(out.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.startsWith("[")).pop() ?? "[]");
+const claim = () => lastJson(sql("select coalesce(json_agg(c),'[]') from public.claim_gate_hardware_commands(50) c"));
 const complete = (id: string, token: string, result: string) => sql(`select public.complete_gate_hardware_command('${id}','${token}','${result}')`);
 describe.sequential("hardware outbox database", () => {
+  afterAll(() => {
+    // only this run's own commands: leave nothing claimable behind for the next run on the same stack
+    sql(`update public.gate_hardware_commands set status='DEAD',claim_token=null,claimed_at=null,result_code=coalesce(result_code,'TEST_DONE') where organization_id='${org}' and status in ('PENDING','FAILED','DISPATCHING')`);
+  });
   beforeAll(() => {
+    // refuse BEFORE creating anything or claiming anything: on a shared queue a claim would touch other suites' commands
+    const foreign = sql("select count(*) from public.gate_hardware_commands where status in ('PENDING','FAILED','DISPATCHING')");
+    if (foreign !== "0") throw new Error(`Refusing to run: ${foreign} claimable hardware command(s) of other runs share this database's global queue. Run this file through scripts/demo-local/hardware-stack.mjs (dedicated stack); nothing was claimed or changed.`);
     sql(`insert into auth.users(id,email) values('${operator}','${operator}@test.local');
       insert into public.organizations(id,name,slug,default_currency,status) values('${org}','Hardware','${org}','QAR','ACTIVE');
       insert into public.subscriptions(organization_id,plan_id,status) select '${org}',id,'ACTIVE' from public.plans where key='PROFESSIONAL';
@@ -67,7 +81,7 @@ describe.sequential("hardware outbox database", () => {
   it("concurrent workers cannot claim the same event and stale leases cannot complete", async () => {
     const id = commandFor(event());
     const responses = await Promise.all([1, 2].map(() => promisify(execFile)("docker", [...args, "select coalesce(json_agg(c),'[]') from public.claim_gate_hardware_commands(50) c"], { timeout: 30_000 })));
-    const jobs = responses.flatMap((response) => JSON.parse(response.stdout)); expect(jobs.filter((job) => job.id === id)).toHaveLength(1);
+    const jobs = responses.flatMap((response) => lastJson(response.stdout)); expect(jobs.filter((job) => job.id === id)).toHaveLength(1);
     const first = jobs.find((job) => job.id === id);
     sql(`update public.gate_hardware_commands set claimed_at=now()-interval '11 minutes' where id='${id}'`);
     const second = claim().find((job: { id: string }) => job.id === id); expect(second.claim_token).not.toBe(first.claim_token);
@@ -145,5 +159,21 @@ describe.sequential("hardware outbox database", () => {
     expect(sql("select count(*) from pg_proc p where proname in ('enqueue_gate_hardware_command','claim_gate_hardware_commands','complete_gate_hardware_command','validate_gate_hardware_command') and (has_function_privilege('authenticated',p.oid,'execute') or has_function_privilege('anon',p.oid,'execute'))")).toBe("0");
     for (const limit of [0, 51]) expect(() => sql(`select public.claim_gate_hardware_commands(${limit})`)).toThrow(/INVALID_BATCH_LIMIT/);
     expect(() => sql(`update public.gate_hardware_endpoints set adapter='VENDOR' where id='${endpoint}'`)).toThrow();
+  });
+  it("shared queue (why this file needs its own stack): 50 older commands from anyone fill the global batch, so a plain claim misses a newer command (rolled back)", () => {
+    const target = randomUUID(), fillerGate = randomUUID();
+    const ins = (id: string, g: string, n: number) => `insert into public.access_events(id,organization_id,property_id,gate_id,direction,decision,reason_code,client_scan_id,operator_user_id,guest_name)
+      select ${id},'${org}','${property}','${g}','ENTRY','ALLOW','VALID_ENTRY',gen_random_uuid(),'${operator}','f' from generate_series(1,${n});`;
+    const out = sql(`begin;
+      insert into public.gates(id,organization_id,property_id,code,name_ar,name_en,created_by) values('${fillerGate}','${org}','${property}','HWF','Filler','Filler','${operator}');
+      insert into public.gate_hardware_endpoints(organization_id,gate_id,adapter,is_active) values('${org}','${fillerGate}','NOOP',true);
+      ${ins("gen_random_uuid()", fillerGate, 50)}
+      ${ins(`'${target}'::uuid`, gate, 1)}
+      select json_build_object('probe','plain','claimed',count(*),'own_returned',coalesce(bool_or(r.access_event_id='${target}'),false)) from public.claim_gate_hardware_commands(50) r;
+      rollback;`);
+    const plain = JSON.parse(out.split(/\r?\n/).find((l) => l.includes('"plain"'))!);
+    expect(plain.claimed).toBe(50);         // the batch is filled by the older commands ...
+    expect(plain.own_returned).toBe(false); // ... and the newer one is not returned: the failure seen when other suites shared the queue
+    expect(sql(`select count(*) from public.access_events where id='${target}'`)).toBe("0"); // rolled back: nothing left behind
   });
 });

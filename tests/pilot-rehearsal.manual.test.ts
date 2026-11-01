@@ -36,6 +36,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -148,15 +149,6 @@ beforeAll(async () => {
     name_ar: "رسوم إدارة", name_en: "Management Fee", is_active: true,
   } as never).select("id").single();
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "PILOT FY", start_date: "2025-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  } as never).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "PILOT Period", start_date: "2025-01-01", end_date: "2026-12-31", status: "OPEN",
-  } as never);
-
   owner = await makeUser("Owner");
   await admin.from("organization_memberships")
     .insert({ organization_id: orgId, user_id: owner.userId, status: "active" });
@@ -164,6 +156,11 @@ beforeAll(async () => {
     .select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
   await admin.from("user_role_assignments")
     .insert({ user_id: owner.userId, role_id: role!.id, organization_id: orgId });
+
+  // Fiscal calendar through the product RPCs as the owner (the guard refuses direct writes).
+  await createOpenFiscalYear(admin, owner.client, {
+    orgId, name: "PILOT FY", startDate: "2025-01-01", endDate: "2026-12-31",
+  });
 
   org = {
     id: orgId,
@@ -188,8 +185,7 @@ afterAll(async () => {
       await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
     }
     await admin.from("journal_entries").delete().eq("organization_id", orgId);
-    await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-    await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+    // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
     await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
     await admin.from("units").delete().eq("organization_id", orgId);
     await admin.from("properties").delete().eq("organization_id", orgId);

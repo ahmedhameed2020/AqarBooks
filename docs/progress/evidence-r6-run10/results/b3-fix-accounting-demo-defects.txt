@@ -1,0 +1,22 @@
+$ tests/e2e/accounting-demo-defects.spec.ts
+label=b3-fix-accounting-demo-defects
+exit=0
+elapsed_ms=395733
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\accounting-demo-defects.spec.ts:62:5 › F1 members page: header count equals the rows shown (42.0s)
+  ok 2 tests\e2e\accounting-demo-defects.spec.ts:72:5 › F2 unit counts agree between dashboard and property page (owner); accountant gets an honest 'not available' (1.7m)
+  ok 3 tests\e2e\accounting-demo-defects.spec.ts:93:5 › F3 dashboard carries no invented figures or AI insight (37.1s)
+  ok 4 tests\e2e\accounting-demo-defects.spec.ts:106:5 › F4 cash-flow forecast shows its status, not invented results (54.3s)
+  ok 5 tests\e2e\accounting-demo-defects.spec.ts:114:5 › F5 /api/ai/journal-propose refuses before any provider call (19.5s)
+  ok 6 tests\e2e\accounting-demo-defects.spec.ts:131:5 › F6 the auditor sees the audit trail with actor names (43.6s)
+
+  6 passed (6.0m)
+(node:3868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

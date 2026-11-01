@@ -1,0 +1,132 @@
+-------------------------------------------------------------------------------->8
+-------------------------------------------------------------------------------->8
+[2025-12-06T12:29:24.020750400Z] (node:38108) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2025-12-06T12:29:24.020750400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-05-26T19:37:17.784171200Z] (node:43504) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+[2026-05-26T19:37:17.784683200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+[2026-05-26T19:37:20.449281000Z] (node:43504) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-05-26T19:50:23.418395600Z] [43504:0526/225023.416:ERROR:content\browser\gpu\gpu_process_host.cc:1004] GPU process exited unexpectedly: exit_code=34
+[2026-05-26T19:50:26.801716200Z] [43504:0526/225026.800:ERROR:content\browser\gpu\gpu_process_host.cc:1004] GPU process exited unexpectedly: exit_code=34
+[2026-05-26T21:35:17.843473400Z] (node:45032) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+[2026-05-26T21:35:17.844472400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-05-27T14:23:37.146262000Z] (node:6528) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+[2026-05-27T14:23:37.146262000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+[2026-05-27T14:23:38.316126200Z] (node:6528) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+-------------------------------------------------------------------------------->8
+[2026-08-20T22:28:37.573300700Z] (node:20960) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-08-20T22:28:37.573300700Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-08-27T17:37:49.796415200Z] (node:5352) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-08-27T17:37:49.796728100Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-08-28T11:41:01.452910200Z] (node:23548) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-08-28T11:41:01.452910200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-01T20:38:41.793313500Z] (node:9416) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-01T20:38:41.796960300Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-04T20:46:14.586604200Z] (node:26612) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-04T20:46:14.586604200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-05T16:41:27.479492600Z] (node:44692) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-05T16:41:27.479492600Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-14T17:52:44.641100500Z] (node:7680) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-14T17:52:44.641100500Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-15T10:57:05.887351000Z] (node:14480) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-15T10:57:05.887351000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-15T11:43:17.592522000Z] (node:18960) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-15T11:43:17.592522000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-16T05:28:19.344669600Z] (node:23336) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-16T05:28:19.344669600Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+[2026-09-17T04:39:31.122817200Z] Error sending from webFrameMain:  Error: Render frame was disposed before WebFrameMain could be accessed
+[2026-09-17T04:39:31.126901100Z]     at WebFrameMain.send (node:electron/js2c/browser_init:2:107951)
+[2026-09-17T04:39:31.126901100Z]     at WebContents.send (node:electron/js2c/browser_init:2:93999)
+[2026-09-17T04:39:31.126901100Z]     at Object.windowClosed$ (C:\Users\Lenovo\AppData\Local\Programs\DockerDesktop\frontend\resources\app.asar\build\entry-main.main.js:1:60597)
+[2026-09-17T04:39:31.126901100Z]     at BrowserWindow.<anonymous> (C:\Users\Lenovo\AppData\Local\Programs\DockerDesktop\frontend\resources\app.asar\build\createWindowManager.main.js:142:51270)
+[2026-09-17T04:39:31.126901100Z]     at BrowserWindow.emit (node:events:521:24)
+-------------------------------------------------------------------------------->8
+[2026-09-17T11:44:38.203453700Z] (node:29984) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-17T11:44:38.203453700Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-21T13:02:05.122845300Z] (node:15344) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-21T13:02:05.122845300Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-25T07:29:35.852178400Z] (node:31144) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-25T07:29:35.852178400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-25T17:44:48.934883000Z] (node:19212) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-25T17:44:48.935391100Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-25T17:53:45.213624400Z] (node:12032) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-25T17:53:45.214585000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-25T21:49:54.026061000Z] (node:19360) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-25T21:49:54.026061000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-28T21:40:08.547491400Z] (node:4128) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-28T21:40:08.548468400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-29T05:42:44.994643200Z] (node:35532) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-29T05:42:44.995151000Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-29T16:36:38.879506900Z] (node:7984) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-29T16:36:38.880508200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-29T16:40:42.526266300Z] (node:23960) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-29T16:40:42.526266300Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-09-30T08:32:40.709997700Z] (node:25112) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-09-30T08:32:40.709997700Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-01T04:39:06.787899500Z] (node:23600) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-01T04:39:06.787899500Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-03T15:29:54.938690900Z] (node:14544) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-03T15:29:54.938690900Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-04T22:10:32.522546900Z] (node:23792) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-04T22:10:32.523135500Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-06T04:44:05.002043800Z] (node:17588) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-06T04:44:05.002043800Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+[2026-10-08T10:11:22.514834800Z] (node:2880) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-08T10:11:22.571059300Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-08T10:13:49.616836400Z] (node:12608) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-08T10:13:49.616836400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-09T19:41:37.095034400Z] (node:37352) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-09T19:41:37.095034400Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-10T08:10:16.074067800Z] (node:22328) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-10T08:10:16.074067800Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-13T04:52:14.802747200Z] (node:22056) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-13T04:52:14.802747200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-14T04:18:31.690455300Z] (node:9064) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-14T04:18:31.690455300Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-15T18:31:47.194596200Z] (node:33064) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-15T18:31:47.194596200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-16T21:12:17.735939700Z] (node:5348) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-16T21:12:17.736589200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-17T09:21:56.447725800Z] (node:17852) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-17T09:21:56.447725800Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-22T15:18:20.883537500Z] (node:26636) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-22T15:18:20.883537500Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-23T07:26:36.931821600Z] (node:7352) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-23T07:26:36.931821600Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)
+-------------------------------------------------------------------------------->8
+[2026-10-28T19:21:40.705442200Z] (node:32644) [DEP0044] DeprecationWarning: The `util.isArray` API is deprecated. Please use `Array.isArray()` instead.
+[2026-10-28T19:21:40.705442200Z] (Use `Docker Desktop --trace-deprecation ...` to show where the warning was created)

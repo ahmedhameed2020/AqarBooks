@@ -1,0 +1,256 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances-schema.integration.test.ts (16 tests | 16 failed) 12301ms
+     × adds the columns, views, functions and the request table 384ms
+     × the shipped chart template carries 2250 Customer Advances (LIABILITY, credit-normal, leaf) and a cloned organization gets it 313ms
+     × a receipt recorded by the unchanged record_payment gets applied_on = payment_date, kind RECEIPT, advance_amount 0 449ms
+     × an allocation inserted WITHOUT the new columns (the record_online_payment / Accsys path) is filled by the insert trigger 707ms
+     × an Accsys-style imported receipt (unallocated_amount > 0, no advance) is accepted and is NOT a customer advance 1230ms
+     × an advance needs its account, cannot leave more unallocated than advanced, and needs member and unit 334ms
+     × advance_amount and advance_account_id cannot change after creation 379ms
+     × the advance-account setting must be a leaf, active LIABILITY account of the same organization 683ms
+     × voiding a receipt with the existing function works; reversed_on is the date of the actual reversal entry (and that is today) 411ms
+     × a reversal date saved earlier is never changed when the receipt is voided later (synthetic reversed application) 1685ms
+     × the deferred consistency trigger rejects reversed_at without reversed_on and a wrong reversal date 357ms
+     × an allocation counts at a date only between its applied_on and (exclusive) reversed_on; a receipt without a posted entry never counts 423ms
+     × units_with_financials counts only effective allocations (a reversed application of a POSTED receipt is excluded) 592ms
+     × payment_credit_balances reports remaining credit and flags a stranded one after the owner changes (synthetic advance) 301ms
+     × views and the request table are not readable by anon; the request table is not readable by authenticated 326ms
+     × as-of functions: authenticated and service_role only; trigger functions: not executable by client roles 298ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > structure > adds the columns, views, functions and the request table
+AssertionError: expected 'amount,created_at,created_by,deposit_…' to contain 'advance_amount'
+
+Expected: "advance_amount"
+Received: "amount,created_at,created_by,deposit_account_id,id,idempotency_key,journal_entry_id,member_id,memo,method,organization_id,payment_date,property_id,receipt_no,receipt_number,reversal_journal_entry_id,reversal_reason,reversed_at,reversed_by,status,unallocated_amount,unit_id"
+
+ ❯ tests/customer-advances-schema.integration.test.ts:51:104
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > structure > the shipped chart template carries 2250 Customer Advances (LIABILITY, credit-normal, leaf) and a cloned organization gets it
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select category||'/'||normal_balance||'/'||is_group from public.chart_of_accounts where id='undefined'
+ERROR:  invalid input syntax for type uuid: "undefined"
+LINE 1: ...||is_group from public.chart_of_accounts where id='undefined...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:58:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > legacy behaviour is unchanged (backfill + insert defaults) > a receipt recorded by the unchanged record_payment gets applied_on = payment_date, kind RECEIPT, advance_amount 0
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select applied_on::text||'/'||kind||'/'||coalesce(reversed_on::text,'-') from public.payment_allocations where payment_id='2fef8a2b-03ba-49c1-887c-d99027ea7c72'
+ERROR:  column "applied_on" does not exist
+LINE 1: select applied_on::text||'/'||kind||'/'||coalesce(reversed_o...
+               ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:65:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > legacy behaviour is unchanged (backfill + insert defaults) > an allocation inserted WITHOUT the new columns (the record_online_payment / Accsys path) is filled by the insert trigger
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c with x as (insert into public.payment_allocations(payment_id, due_id, amount) values('2fef8a2b-03ba-49c1-887c-d99027ea7c72','86280723-691b-49fc-825c-cb76de7cb24e', 1) returning id, applied_on, kind) select applied_on::text||'/'||kind from x
+ERROR:  column "applied_on" does not exist
+LINE 1: ...23-691b-49fc-825c-cb76de7cb24e', 1) returning id, applied_on...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:70:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > legacy behaviour is unchanged (backfill + insert defaults) > an Accsys-style imported receipt (unallocated_amount > 0, no advance) is accepted and is NOT a customer advance
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select count(*) from public.payment_credit_balances where payment_id='c3c8f436-c21e-4731-91a2-a080229a935a'
+ERROR:  relation "public.payment_credit_balances" does not exist
+LINE 1: select count(*) from public.payment_credit_balances where pa...
+                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:77:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > constraints and immutability > an advance needs its account, cannot leave more unallocated than advanced, and needs member and unit
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select journal_entry_id from public.payments where organization_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_amount=0 limit 1
+ERROR:  column "advance_amount" does not exist
+LINE 1: ...ion_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_am...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ entry tests/customer-advances-schema.integration.test.ts:84:23
+ ❯ insertPayment tests/customer-advances-schema.integration.test.ts:86:280
+ ❯ tests/customer-advances-schema.integration.test.ts:88:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > constraints and immutability > advance_amount and advance_account_id cannot change after creation
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select journal_entry_id from public.payments where organization_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_amount=0 limit 1
+ERROR:  column "advance_amount" does not exist
+LINE 1: ...ion_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_am...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ entry tests/customer-advances-schema.integration.test.ts:84:23
+ ❯ insertPayment tests/customer-advances-schema.integration.test.ts:86:280
+ ❯ tests/customer-advances-schema.integration.test.ts:93:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > constraints and immutability > the advance-account setting must be a leaf, active LIABILITY account of the same organization
+AssertionError: expected a failure matching /CUSTOMER_ADVANCE_ACCOUNT_INVALID/: expected 'ERROR:  column "customer_advance_acco…' to match /CUSTOMER_ADVANCE_ACCOUNT_INVALID/
+
+- Expected:
+/CUSTOMER_ADVANCE_ACCOUNT_INVALID/
+
++ Received:
+"ERROR:  column \"customer_advance_account_id\" of relation \"organization_finance_settings\" does not exist
+LINE 1: update public.organization_finance_settings set customer_adv...
+                                                        ^
+"
+
+ ❯ fails tests/customer-advances-schema.integration.test.ts:16:61
+     14|   let message = "";
+     15|   try { sql(query); } catch (e) { message = String((e as { stderr?: st…
+     16|   expect(message, `expected a failure matching ${pattern}`).toMatch(pa…
+       |                                                             ^
+     17| };
+     18|
+ ❯ tests/customer-advances-schema.integration.test.ts:101:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > compatibility of migration A with the CURRENT void_payment (no migration B yet) > voiding a receipt with the existing function works; reversed_on is the date of the actual reversal entry (and that is today)
+TypeError: Cannot read properties of null (reading 'reversed_at')
+ ❯ tests/customer-advances-schema.integration.test.ts:117:16
+    115|     const row = (await admin.from("payment_allocations").select("rever…
+    116|     const entryDate = q(`select je.entry_date::text from public.paymen…
+    117|     expect(row.reversed_at).not.toBeNull();
+       |                ^
+    118|     expect(row.reversed_on).toBe(entryDate);                       // …
+    119|     expect(entryDate).toBe(q("select current_date::text"));        // …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > compatibility of migration A with the CURRENT void_payment (no migration B yet) > a reversal date saved earlier is never changed when the receipt is voided later (synthetic reversed application)
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c with x as (insert into public.payment_allocations(payment_id, due_id, amount, kind, journal_entry_id, credit_account_id, applied_on, reversed_at, reversed_on, reversal_journal_entry_id) values('f6c4d6bf-5767-4985-8589-b35e6c64b266','86280723-691b-49fc-825c-cb76de7cb24e', 5, 'CREDIT_APPLICATION', '9a0a6a98-319d-455d-b02f-bf28ec81e672', 'undefined', '2026-02-10', now(), '2026-02-10', 'ffda47b5-8f35-4bf5-ad3d-1ef6faaeb248') returning id) select id from x
+ERROR:  column "kind" of relation "payment_allocations" does not exist
+LINE 1: ...c.payment_allocations(payment_id, due_id, amount, kind, jour...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:128:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > compatibility of migration A with the CURRENT void_payment (no migration B yet) > the deferred consistency trigger rejects reversed_at without reversed_on and a wrong reversal date
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select id from public.payments where organization_id='c8faaada-87d2-4571-9f16-7d5284195be8' and status='POSTED' and advance_amount=0 limit 1
+ERROR:  column "advance_amount" does not exist
+LINE 1: ...2-4571-9f16-7d5284195be8' and status='POSTED' and advance_am...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:135:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > as-of function and effective view > an allocation counts at a date only between its applied_on and (exclusive) reversed_on; a receipt without a posted entry never counts
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select coalesce(sum(amount),0)::text from public.payment_allocations_as_of('c8faaada-87d2-4571-9f16-7d5284195be8','2026-02-10') where payment_id='01a0e2af-aaf7-4449-a7d4-c711d7ee8d88'
+ERROR:  function public.payment_allocations_as_of(unknown, unknown) does not exist
+LINE 1: select coalesce(sum(amount),0)::text from public.payment_all...
+                                                  ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ asOf tests/customer-advances-schema.integration.test.ts:143:33
+ ❯ tests/customer-advances-schema.integration.test.ts:144:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > as-of function and effective view > units_with_financials counts only effective allocations (a reversed application of a POSTED receipt is excluded)
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select id from public.payments where organization_id='c8faaada-87d2-4571-9f16-7d5284195be8' and status='POSTED' and advance_amount=0 order by created_at limit 1
+ERROR:  column "advance_amount" does not exist
+LINE 1: ...2-4571-9f16-7d5284195be8' and status='POSTED' and advance_am...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:160:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > as-of function and effective view > payment_credit_balances reports remaining credit and flags a stranded one after the owner changes (synthetic advance)
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select journal_entry_id from public.payments where organization_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_amount=0 and status='POSTED' limit 1
+ERROR:  column "advance_amount" does not exist
+LINE 1: ...ion_id='c8faaada-87d2-4571-9f16-7d5284195be8' and advance_am...
+                                                             ^
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:168:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > grants > views and the request table are not readable by anon; the request table is not readable by authenticated
+Error: Command failed: docker exec supabase_db_aqarbooks_clean psql -U postgres -d postgres -v ON_ERROR_STOP=1 -tA -c select has_table_privilege('anon','public.effective_payment_allocations','select')::text||'/'||has_table_privilege('authenticated','public.effective_payment_allocations','select')::text
+ERROR:  relation "public.effective_payment_allocations" does not exist
+
+ ❯ sql tests/helpers/gate-release.ts:10:10
+
+ ❯ q tests/customer-advances-schema.integration.test.ts:12:30
+ ❯ tests/customer-advances-schema.integration.test.ts:181:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯
+
+ FAIL  tests/customer-advances-schema.integration.test.ts > grants > as-of functions: authenticated and service_role only; trigger functions: not executable by client roles
+AssertionError: payment_allocations_as_of: expected '' to contain 'authenticated'
+
+- Expected
++ Received
+
+- authenticated
+
+ ❯ tests/customer-advances-schema.integration.test.ts:190:20
+    188|     for (const f of ["payment_allocations_as_of", "payment_credit_bala…
+    189|       const a = acl(f);
+    190|       expect(a, f).toContain("authenticated");
+       |                    ^
+    191|       expect(a, f).not.toMatch(/anon|PUBLIC/);
+    192|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed (16)
+   Start at  15:32:47
+   Duration  12.77s (transform 110ms, setup 95ms, import 118ms, tests 12.30s, environment 0ms)
+

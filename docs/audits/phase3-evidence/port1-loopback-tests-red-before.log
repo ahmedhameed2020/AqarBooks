@@ -1,0 +1,46 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/client-guard-port1.test.ts (24 tests | 6 failed) 1192ms
+     × refuses http://example-project.supabase.co:1 28ms
+     × refuses http://10.1.2.3:1 4ms
+     × refuses http://192.168.0.10:1 4ms
+     × refuses http://0.0.0.0:1 5ms
+     × refuses http://127.0.0.1.evil.example:1 2ms
+     × refuses http://user:pw@127.0.0.1:1 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://example-project.supabase.co:1
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://10.1.2.3:1
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://192.168.0.10:1
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://0.0.0.0:1
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://127.0.0.1.evil.example:1
+ FAIL  tests/client-guard-port1.test.ts > assertClientUrlIsVerifiedTarget (the real function) > refuses http://user:pw@127.0.0.1:1
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ tests/client-guard-port1.test.ts:34:56
+     32| describe("assertClientUrlIsVerifiedTarget (the real function)", () => {
+     33|   it.each(REFUSED_PORT_1)("refuses %s", (url) => {
+     34|     expect(() => assertClientUrlIsVerifiedTarget(url)).toThrow(/Refusi…
+       |                                                        ^
+     35|   });
+     36|   it.each(ACCEPTED_PORT_1)("accepts the loopback dummy %s", (url) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 18 passed (24)
+   Start at  23:37:23
+   Duration  2.11s (transform 172ms, setup 213ms, import 38ms, tests 1.19s, environment 0ms)
+

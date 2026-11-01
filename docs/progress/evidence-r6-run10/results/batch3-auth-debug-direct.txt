@@ -1,0 +1,27 @@
+$ tests/batch3-auth-debug.integration.test.ts
+label=batch3-auth-debug-direct
+exit=1
+elapsed_ms=46287
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/batch3-auth-debug.integration.test.ts (0 test)
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  15:49:52
+   Duration  29.70s (transform 8.41s, setup 7.75s, import 0ms, tests 0ms, environment 1ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch3-auth-debug-direct.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/batch3-auth-debug.integration.test.ts [ tests/batch3-auth-debug.integration.test.ts ]
+Error: Cannot find module 'D:\Web\AqarBooks\node_modules\next\navigation' imported from D:\Web\AqarBooks\node_modules\next-intl\dist\esm\development\navigation\react-client\createNavigation.js
+Did you mean to import "next/navigation.js"?
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

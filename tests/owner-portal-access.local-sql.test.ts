@@ -582,7 +582,7 @@ describe.skipIf(!enabled)("owner portal access (local PostgreSQL)", () => {
     });
 
     it("authorizes sign-out for the identity but never writes to managed Auth tables", () => {
-      run(`insert into auth.sessions (user_id) values ('${uid}'), ('${uid}');`);
+      run(`insert into auth.sessions (id, user_id) values (gen_random_uuid(), '${uid}'), (gen_random_uuid(), '${uid}');`); // the id is supplied: the real GoTrue schema has no default for it (the throwaway stub schema had one)
       const r = json<{ auth_user_id: string; is_banned: boolean }>(
         `select to_jsonb(t) from public.begin_member_signout('${M_LOGOUT}') t;`,
         authz(STAFF_A),

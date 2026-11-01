@@ -1,0 +1,10 @@
+BEGIN
+INSERT 0 2
+INSERT 0 2
+INSERT 0 4
+COMMIT
+     result      
+-----------------
+ RACE_SETUP_PASS
+(1 row)
+

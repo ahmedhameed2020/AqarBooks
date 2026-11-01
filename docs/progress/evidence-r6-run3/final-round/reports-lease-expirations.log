@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\reports-lease-expirations.spec.ts:91:5 › lease expirations loads real leases, shows only this organization's, and never another's (17.8s)
+
+  1 passed (21.2s)
+

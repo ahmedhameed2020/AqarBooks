@@ -1,0 +1,3 @@
+BUILD_EXIT=0
+projects-wip runner_exit=0
+DONE

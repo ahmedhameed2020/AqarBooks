@@ -1,0 +1,7 @@
+NOTICE:  V0: 242 row(s) touched (all rows of the referencing tables); 240 reference(s) actually removed
+NOTICE:  V0: payment_provider_settings: 121 row(s), none enabled
+NOTICE:  V1: 143 tables, every row count matches
+NOTICE:  V2: 506 foreign keys checked, no orphan row
+NOTICE:  V3: 2 owned sequences checked, none behind
+NOTICE:  V5: ledger loaded and identical: 87 migrations (first 20260821105505, last 20261018100000)
+NOTICE:  V6: session_replication_role = origin, stored nowhere, no disabled user trigger

@@ -1,0 +1,19 @@
+$ tests/e2e/asset-disposal.spec.ts
+label=b3-ui-asset-disposal
+exit=0
+elapsed_ms=51484
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\asset-disposal.spec.ts:121:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (35.8s)
+
+  1 passed (40.9s)
+(node:1052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

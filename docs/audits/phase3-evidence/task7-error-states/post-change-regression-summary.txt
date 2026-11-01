@@ -1,0 +1,8 @@
+accounting-duplicates:   5 passed (1.6m) 
+accounting-journey:   15 passed (5.2m) 
+portal-journey:   6 passed (2.6m) 
+portal-statement:   8 passed (3.9m) 
+customer-advances:   10 passed (6.1m) 
+customer-advances-ui-screens:   6 passed (4.4m) 
+page-error-states:   1 failed   1 did not run 
+DONE

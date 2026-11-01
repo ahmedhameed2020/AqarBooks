@@ -1,0 +1,21 @@
+$ tests/e2e/reports-suite-flow.spec.ts
+label=b3-ui-reports-suite-flow
+exit=0
+elapsed_ms=53893
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register (42.5s)
+  -  2 tests\e2e\reports-suite-flow.spec.ts:203:8 › Financial & Real Estate Reports Suite E2E Flow › DEFERRED (Batch 1B excluded): fixed-asset schedule shows the NBV table
+
+  1 skipped
+  1 passed (44.9s)
+(node:3856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

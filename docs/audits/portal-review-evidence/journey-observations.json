@@ -1,0 +1,31 @@
+{
+  "world": {
+    "orgA": "363c888a-5a6e-4c94-a584-187a7013b368",
+    "orgB": "834e24de-9cb7-424b-9ee1-b55b2f5e4327",
+    "owner1": "gate-release-owner-9d66d157-2d26-4eb4-97bf-dcdc635f1425@test.local",
+    "owner2": "portal-a2-56a3ebc8-eec8-4f40-bc6a-830fd5a37a70@test.local",
+    "ownerB": "gate-release-owner-e4b26310-4af9-4bf8-95ce-24263703991d@test.local"
+  },
+  "J1": {
+    "text": "AqarBooks PORTAL Gate Release R Release host Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Payment receipts PORTFOLIO Units & Properties Assets & ownership Leases & Renewals Terms & renewal status Documents Files & reports SERVICES Maintenance Requests & updates Visitors Invites & QR pass"
+  },
+  "J2": {
+    "unitsText": "AqarBooks PORTAL Gate Release R Release host Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Payment receipts PORTFOLIO Units & Properties Assets & ownership Leases & Renewals Terms & renewal status Documents Files & reports SERVICES Maintenance Requests & updates Visitors Invites & QR pass"
+  },
+  "J3": {
+    "statementText": "AqarBooks PORTAL Gate Release R Release host Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Payment receipts PORTFOLIO Units & Properties Assets & ownership Leases & Renewals Terms & renewal status Documents Files & reports SERVICES Maintenance Requests & updates Visitors Invites & QR passes Vehicles Unit vehicle records Amenities Facilities & bookings Notifications Unit activity alerts ACCOUNT My Profile Details & password Sign out Account Statement Every charge raised against you and every receipt posted from you, in chronological order with the running balance after each movement. Export Excel Print statement Position to date: net = open dues minus the available credit. Applying credit to a charge, or reversing it, does not change the net. Arrears 4,500.00 Past due and not yet"
+  },
+  "J4": {
+    "requestNo": "MR-73FDFB1DF9",
+    "updateRows": "1",
+    "staffNotifications": "0",
+    "platformAuditRows": "1"
+  },
+  "J5": {
+    "updates": "SUBMITTED>TRIAGED:STAFF_ONLY:f33abf06-33f1-4790-a02d-6f8ae9020e53 ; TRIAGED>IN_PROGRESS:MEMBER_VISIBLE:f33abf06-33f1-4790-a02d-6f8ae9020e53",
+    "ownerNotifications": "REQUEST_RECEIVED:maintenance_request"
+  },
+  "J6": {
+    "notificationsText": "AqarBooks PORTAL Gate Release R Release host Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Payment receipts PORTFOLIO Units & Properties Assets & ownership Leases & Renewals Terms & renewal status Documents Files & reports SERVICES Maintenance Requests & updates Visitors Invites & QR passes Vehicles Unit vehicle records Amenities Facilities & bookings Notifications Unit activity alerts ACCOUNT My Profile Details & password Sign out Notifications Unit-linked alerts for maintenance, visitors, vehicles, and dues. Mark all read All notifications 6 Unread 6 High priority 0 All(6) Unread("
+  }
+}

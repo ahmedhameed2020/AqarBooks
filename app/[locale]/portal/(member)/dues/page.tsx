@@ -10,7 +10,6 @@ import { DuesCheckout } from "./dues-checkout";
 type AllocationRow = {
   due_id: string;
   amount: number;
-  reversed_at: string | null;
 };
 
 export default async function PortalDuesPage({
@@ -43,14 +42,15 @@ export default async function PortalDuesPage({
   // `dues.amount` is what was originally charged and is never reduced when a
   // payment lands, so a PARTIALLY_PAID due would otherwise be presented to the
   // owner at its gross value. What it still costs is the charge minus every
-  // non-reversed allocation against it. payment_allocations RLS already limits
-  // this read to the member's own POSTED payments; the reversed_at filter
-  // covers allocations unwound after the fact.
+  // allocation that is still in force against it. effective_payment_allocations
+  // is a security-invoker view over payment_allocations: RLS still limits it to
+  // the member's own POSTED payments, and it leaves out allocations that were
+  // reversed (an unwound credit application, a voided receipt).
   const paidByDue = new Map<string, number>();
   if (dues.length > 0) {
     const { data: allocationData, error: allocationError } = await supabase
-      .from("payment_allocations")
-      .select("due_id, amount, reversed_at")
+      .from("effective_payment_allocations")
+      .select("due_id, amount")
       .in(
         "due_id",
         dues.map((d) => d.id),
@@ -61,7 +61,6 @@ export default async function PortalDuesPage({
     }
 
     for (const a of (allocationData ?? []) as unknown as AllocationRow[]) {
-      if (a.reversed_at) continue;
       paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + Number(a.amount));
     }
   }

@@ -10,6 +10,7 @@ import { PortalPageHeader } from "../../portal-ui";
 import { MaintenanceAttachmentsPanel, type MaintenanceAttachmentItem } from "../maintenance-attachments-client";
 import { STATUS_LABELS_FOR_DETAIL } from "./status-labels";
 import { WORK_ORDER_STATUS_LABELS, type WorkOrderStatus } from "@/app/[locale]/(app)/operations/maintenance/work-orders/work-orders-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export default async function PortalMaintenanceDetailPage({
   params,
@@ -35,7 +36,7 @@ export default async function PortalMaintenanceDetailPage({
 
   if (!request) notFound();
 
-  const [{ data: unit }, { data: category }, { data: updates }, { data: attachments }, { data: workOrders }] = await Promise.all([
+  const [{ data: unit, error: unitError }, { data: category, error: categoryError }, { data: updates }, { data: attachments }, { data: workOrders }] = await Promise.all([
     supabase.from("units").select("code").eq("id", request.unit_id).maybeSingle(),
     supabase.from("maintenance_categories").select("name_ar, name_en").eq("id", request.category_id).maybeSingle(),
     supabase
@@ -55,6 +56,8 @@ export default async function PortalMaintenanceDetailPage({
       .eq("maintenance_request_id", request.id)
       .order("created_at", { ascending: false }),
   ]);
+  assertRead(unitError, "portal/maintenance/[id]: units");
+  assertRead(categoryError, "portal/maintenance/[id]: maintenance_categories");
 
   const workOrderIds = (workOrders ?? []).map((wo) => wo.id);
   const { data: workOrderUpdates } = workOrderIds.length

@@ -120,26 +120,26 @@ export async function proveTenantPermission(
 
   const validRoleIds = validOrgRoles.map((r) => r.id);
 
-  // 4. Verify permission is granted through that tenant-scoped role
-  const { data: grants, error: grantErr } = await adminClient
-    .from("role_permissions")
-    .select("permission_id")
-    .in("role_id", validRoleIds);
-
-  if (grantErr || !grants || grants.length === 0) {
-    return { ok: false, error: "forbidden" };
-  }
-
-  const permissionIds = grants.map((g) => g.permission_id);
-
-  const { data: permMatch, error: permErr } = await adminClient
+  // 4. Resolve only the requested permission, then prove a valid role grants it.
+  // Avoid sending every granted permission ID in one lookup for heavily privileged roles.
+  const { data: permission, error: permErr } = await adminClient
     .from("permissions")
     .select("id")
-    .in("id", permissionIds)
     .eq("key", permissionKey)
     .maybeSingle();
 
-  if (permErr || !permMatch) {
+  if (permErr || !permission) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const { data: grant, error: grantErr } = await adminClient
+    .from("role_permissions")
+    .select("role_id")
+    .eq("permission_id", permission.id)
+    .in("role_id", validRoleIds)
+    .maybeSingle();
+
+  if (grantErr || !grant) {
     return { ok: false, error: "forbidden" };
   }
 

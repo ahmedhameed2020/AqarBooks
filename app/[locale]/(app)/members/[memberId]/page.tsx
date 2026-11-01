@@ -48,6 +48,7 @@ import { LinkUnitDialog, type UnitOption } from "./link-unit-dialog";
 import { OpeningBalanceDialog } from "./opening-balance-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { MemberDossierRail } from "./member-dossier-rail";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export async function generateMetadata({
   params,
@@ -103,16 +104,19 @@ export default async function MemberDetailPage({
   const currency = organization.default_currency;
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: ownerships } = await supabase
+  const { data: ownerships, error: ownershipsError } = await supabase
     .from("unit_ownerships")
     .select("unit_id, share_percentage, start_date, end_date")
     .eq("organization_id", organization.id)
     .eq("member_id", memberId);
+  assertRead(ownershipsError, "members/[id]: unit_ownerships");
 
   const unitIds = [...new Set((ownerships ?? []).map((o) => o.unit_id))];
-  const { data: units } = unitIds.length
+  const { data: units, error: unitsError } = unitIds.length
     ? await supabase.from("units_with_financials").select("*").in("id", unitIds)
-    : { data: [] };
+    : { data: [], error: null };
+  // a failed read here used to render "Units owned 0" for a member who owns units (statement timeout on the view)
+  assertRead(unitsError, "members/[id]: units_with_financials");
   const unitById = new Map((units ?? []).map((u) => [u.id, u]));
 
   const ownedUnits = (ownerships ?? [])
@@ -130,21 +134,23 @@ export default async function MemberDetailPage({
   const activeUnits = ownedUnits.filter((o) => o.isActive);
   const totalBalance = activeUnits.reduce((s, o) => s + (o.unit?.balance ?? 0), 0);
 
-  const { data: payments } = await supabase
+  const { data: payments, error: paymentsError } = await supabase
     .from("payments")
     .select("amount, payment_date")
     .eq("organization_id", organization.id)
     .eq("member_id", memberId)
     .eq("status", "POSTED")
     .order("payment_date", { ascending: false });
+  assertRead(paymentsError, "members/[id]: payments");
   const totalPaid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const lastPayment = (payments ?? [])[0] ?? null;
 
-  const { data: allOrgUnits } = await supabase
+  const { data: allOrgUnits, error: allOrgUnitsError } = await supabase
     .from("units_with_financials")
     .select("id, code, building_name_ar, building_name_en")
     .eq("organization_id", organization.id)
     .order("code");
+  assertRead(allOrgUnitsError, "members/[id]: units list");
 
   // Leaf asset accounts the operator may book the opening balance to. Left
   // empty in the dialog, the server falls back to the account this

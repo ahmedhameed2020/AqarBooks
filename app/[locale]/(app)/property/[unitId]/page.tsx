@@ -17,6 +17,7 @@ import { TabLease } from "./tab-lease";
 import { TabInstallments } from "./tab-installments";
 import { TabActivity } from "./tab-activity";
 import { denyIfMissingPermission } from "@/lib/auth/page-guard";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 export default async function UnitDetailPage({
   params,
@@ -40,12 +41,14 @@ export default async function UnitDetailPage({
   // Explicit organization_id scoping here (not relying on RLS alone, per
   // the phase-2 brief): a unitId from another tenant must 404, never leak
   // through as a silent empty page.
-  const { data: unit } = await supabase
+  const { data: unit, error: unitError } = await supabase
     .from("units_with_financials")
     .select("*")
     .eq("id", unitId)
     .eq("organization_id", organization.id)
     .maybeSingle();
+  // a failed read is an error, not "this unit does not exist"
+  assertRead(unitError, "property/[unitId]: units_with_financials");
 
   if (!unit) notFound();
 
@@ -78,7 +81,7 @@ export default async function UnitDetailPage({
   // (payments.unit_id is always null in production).
   const dueIds = (dueRows ?? []).map((d) => d.id);
   const { data: allocRows } = dueIds.length
-    ? await supabase.from("payment_allocations").select("due_id, payment_id, amount").in("due_id", dueIds)
+    ? await supabase.from("effective_payment_allocations").select("due_id, payment_id, amount").in("due_id", dueIds)
     : { data: [] };
   const allocPaymentIds = [...new Set((allocRows ?? []).map((a) => a.payment_id))];
   const { data: postedPayRows } = allocPaymentIds.length

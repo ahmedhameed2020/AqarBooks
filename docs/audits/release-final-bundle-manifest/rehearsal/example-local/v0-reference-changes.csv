@@ -1,0 +1,4 @@
+child,columns,parent_schema,rows_touched,references_removed
+payment_provider_settings,api_key_secret_id,vault,121,120
+payment_provider_settings,hmac_secret_id,vault,121,120
+public.payment_provider_settings,"enabled,status (set to false / DISABLED)","(provider switch, not a reference)",121,73

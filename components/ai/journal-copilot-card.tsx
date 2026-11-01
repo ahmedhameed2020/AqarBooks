@@ -67,6 +67,16 @@ export function JournalCopilotCard({
         if (json.success && json.proposal) {
           setProposal(json.proposal);
         }
+      } else {
+        // The route refuses before any provider call when the assistant is switched off (503) or the
+        // caller is not allowed to draft journals for this organization (401/403): say so, do not stay silent.
+        toast.add({
+          type: "error",
+          title:
+            res.status === 503
+              ? isAr ? "مساعد الذكاء الاصطناعي غير متاح حاليًا" : "The AI assistant is not available right now"
+              : isAr ? "لا تملك صلاحية استخدام مساعد القيود" : "You are not allowed to use the journal assistant",
+        });
       }
     } catch {
       // ignore

@@ -1,3 +1,4 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -64,7 +65,7 @@ function readLocalSupabaseEnv(): LocalSupabaseEnv {
 function runLocalDbQuery(sql: string): string {
   return execFileSync(
     "docker",
-    ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-F", "|", "-c", sql],
+    ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-F", "|", "-c", sql],
     { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   ).trim();
 }

@@ -107,6 +107,7 @@ export default async function BanksPage({
       .eq("organization_id", organization.id)
       .eq("is_group", false)
       .eq("is_active", true)
+      .eq("is_cash_equivalent", true) // the database refuses any other account for a cash box / bank account (20261018100000)
       .in("category", ["ASSET"])
       .order("code"),
     supabase

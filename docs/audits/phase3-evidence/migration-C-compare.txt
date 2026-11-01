@@ -1,0 +1,12 @@
+units_with_financials: 416 rows in the snapshot, 1 changed, 0 gone, 61 new since
+members_with_financials: 410 rows in the snapshot, 1 changed, 0 gone, 63 new since
+due_outstanding: 328 rows in the snapshot, 0 changed, 0 gone, 100 new since
+payments: 287 rows in the snapshot, 0 changed, 0 gone, 140 new since
+payment_allocations: 236 rows in the snapshot, 0 changed, 0 gone, 125 new since
+DIFFERENT (2): units_with_financials:0b883461-01f4-407e-9dbe-47d1763833d5, members_with_financials:d0bc3b56-0c32-475d-82d9-69c143ac93e9
+
+Explanation of the single difference (1 unit + its member, +20): two POSTED stand-in receipts created by the RED run of
+tests/customer-advances-integrity.integration.test.ts (one without a journal entry, one pointing at a DRAFT entry, 10 allocated each)
+were left behind because that run failed before its cleanup. Before migration C the readers counted them; after it they are
+excluded, as the specification requires: 3770 -> 3790 = +20. due_outstanding / payments / payment_allocations: 0 rows changed.
+ledger 76 / files 76 -> MATCH ; db diff (public): no schema changes

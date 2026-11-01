@@ -1,0 +1,19 @@
+$ tests/e2e/accounting-issue-partial-success.spec.ts
+label=b3-ui-accounting-issue-partial-success
+exit=0
+elapsed_ms=93548
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 1 tests\e2e\accounting-issue-partial-success.spec.ts:61:5 › I1 issue succeeds, saving the default fails: success + separate warning, due listed, nothing rolled back (24.3s)
+  ok 2 tests\e2e\accounting-issue-partial-success.spec.ts:96:5 › I2 'Retry saving' saves only the setting; the due is not issued again (19.3s)
+  ok 3 tests\e2e\accounting-issue-partial-success.spec.ts:137:5 › I3 afterwards the dialog preselects 1130 and no extra due or entry exists (12.5s)
+
+  3 passed (1.2m)
+(node:13500) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

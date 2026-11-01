@@ -1,0 +1,20 @@
+BEGIN
+INSERT 0 1
+                                 set_config                                 
+----------------------------------------------------------------------------
+ {"sub" : "22a1363a-134f-494a-9ada-c978878737e7", "role" : "authenticated"}
+(1 row)
+
+SAVEPOINT
+ERROR:  not authorized
+CONTEXT:  PL/pgSQL function create_fiscal_year(uuid,text,date,date) line 20 at RAISE
+ROLLBACK
+SAVEPOINT
+ERROR:  FORBIDDEN_CLOSE_PERMISSION
+CONTEXT:  PL/pgSQL function designate_retained_earnings_account(uuid,uuid) line 22 at RAISE
+ROLLBACK
+SAVEPOINT
+ERROR:  not authorized
+CONTEXT:  PL/pgSQL function reverse_journal_entry(uuid,uuid,date,text) line 29 at RAISE
+ROLLBACK
+ROLLBACK

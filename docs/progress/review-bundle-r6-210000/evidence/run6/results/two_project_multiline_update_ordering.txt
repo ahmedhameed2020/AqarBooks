@@ -1,0 +1,39 @@
+==== TWO-PROJECT MULTILINE UPDATE: both orders must depend on final net, not row order
+BEGIN
+INSERT 0 2
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+COMMIT
+==== ORDER 1: move A debit to B first (A is temporarily -600), then B debit to A
+BEGIN
+UPDATE 1
+UPDATE 1
+ net_a_order1 | net_b_order1 
+--------------+--------------
+     400.0000 |     400.0000
+(1 row)
+
+DO
+psql:/tmp/two_project_multiline_update_ordering.sql:33: NOTICE:  ASSERT_MULTILINE_ORDER1_PASS: final A=400 B=400 despite temporary A=-600
+ROLLBACK
+==== ORDER 2: move B debit to A first (B is temporarily -600), then A debit to B
+BEGIN
+UPDATE 1
+UPDATE 1
+ net_a_order2 | net_b_order2 
+--------------+--------------
+     400.0000 |     400.0000
+(1 row)
+
+psql:/tmp/two_project_multiline_update_ordering.sql:53: NOTICE:  ASSERT_MULTILINE_ORDER2_PASS: final A=400 B=400 despite temporary B=-600
+DO
+ROLLBACK
+BEGIN
+DELETE 4
+DELETE 2
+COMMIT

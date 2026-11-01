@@ -1,0 +1,86 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (49.7s)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 2 tests\e2e\projects-wip.spec.ts:214:5 › a member without finance.accounts.manage sees the projects but no controls (8.1s)
+  x  3 tests\e2e\projects-wip.spec.ts:251:5 › a project form that names another organization is refused and writes nothing (48.7s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('row').filter({ hasText: 'TWR-25948603' })
+    Expected: visible
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'TWR-25948603' })
+
+
+      126 |
+      127 |     const row = page.getByRole("row").filter({ hasText: code });
+    > 128 |     await expect(row).toBeVisible({ timeout: 40_000 });
+          |                       ^
+      129 |     await expect(row).toHaveAttribute("data-accounts-set", "no");
+      130 |     await expect(row).toContainText(/cannot capitalise/i);
+      131 |     await expect(
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:128:23
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\projects-wip.spec.ts:251:5 › a project form that names another organization is refused and writes nothing 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog').getByRole('alert')
+    Expected: visible
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 40000ms
+      - waiting for getByRole('dialog').getByRole('alert')
+
+
+      281 |     await page.getByRole("button", { name: /Save project/i }).click();
+      282 |
+    > 283 |     await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible({ timeout: 40_000 });
+          |                                                               ^
+      284 |     const { data: written } = await admin.from("projects").select("id").eq("code", code);
+      285 |     expect(written, "a refused request must leave no project row behind").toHaveLength(0);
+      286 |     await ctx.close();
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:283:63
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-for-c6df7--refused-and-writes-nothing\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-for-c6df7--refused-and-writes-nothing\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-rebuild\projects-wip-artifacts\projects-wip-a-project-for-c6df7--refused-and-writes-nothing\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+    tests\e2e\projects-wip.spec.ts:251:5 › a project form that names another organization is refused and writes nothing 
+  1 passed (2.0m)
+

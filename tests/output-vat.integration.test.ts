@@ -16,6 +16,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -311,14 +312,10 @@ describe("مبلغ ضريبة المخرجات", () => {
 
   it("القيد الثلاثي: الذمم بالإجمالي، الإيراد بالصافي، والضريبة التزام", async () => {
     // فترة مالية مفتوحة حتى يُرحَّل فعلًا؛ بدونها لا قيد ولا شيء يُفحص.
-    const { data: fy } = await admin.from("fiscal_years").insert({
-      organization_id: egp.id, name: "E2E FY", start_date: "2026-01-01",
-      end_date: "2026-12-31", status: "OPEN",
-    } as never).select("id").single();
-    await admin.from("fiscal_periods").insert({
-      organization_id: egp.id, fiscal_year_id: fy!.id, period_number: 1,
-      name: "E2E Period", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-    } as never);
+    // Through the product RPCs as the owner (the guard refuses direct writes).
+    await createOpenFiscalYear(admin, egp.owner.client, {
+      orgId: egp.id, name: "E2E FY", startDate: "2026-01-01", endDate: "2026-12-31",
+    });
 
     await mapApprove(egp, egp.taxableTypeId, TAXABLE_NATURE, "GROSS");
 

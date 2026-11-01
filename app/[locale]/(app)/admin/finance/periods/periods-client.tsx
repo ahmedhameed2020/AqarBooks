@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { setFiscalPeriodStatusAction, recognizePendingDuesAction } from "@/lib/actions/accounting";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
 import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
+import { YearEndClosingDialog } from "./year-end-closing-dialog";
 import {
   Calendar,
   Clock,
@@ -24,16 +26,10 @@ import {
   Lock,
   Unlock,
   AlertTriangle,
-  Layers,
-  Sparkles,
   RefreshCw,
   FileSpreadsheet,
   FileText,
-  Plus,
-  ArrowRightLeft,
-  ShieldCheck,
   Zap,
-  TrendingUp,
   FolderLock,
 } from "lucide-react";
 
@@ -55,6 +51,14 @@ export interface FiscalYearItem {
   status: string;
 }
 
+// Preset reasons offered for CLOSED/LOCKED changes. OPEN never starts from a preset.
+const PRESET_STATUS_REASONS = [
+  "إغلاق دوري للفترة",
+  "Periodic closure",
+  "إقفال نهائي للفترة المحاسبية ومراجعة الميزان",
+  "Final period lockdown",
+];
+
 export interface PendingDuesSummary {
   pending_count: number;
   pending_total: number;
@@ -71,6 +75,7 @@ export function PeriodsClient({
   initialYears,
   initialPeriods,
   pendingDues,
+  canClose,
 }: {
   organizationId: string;
   organizationName: string;
@@ -80,6 +85,7 @@ export function PeriodsClient({
   initialYears: FiscalYearItem[];
   initialPeriods: FiscalPeriodItem[];
   pendingDues?: PendingDuesSummary | null;
+  canClose: boolean;
 }) {
   const isAr = locale === "ar";
   const { toast } = useToast();
@@ -94,9 +100,7 @@ export function PeriodsClient({
   const [targetStatus, setTargetStatus] = useState<"PLANNED" | "OPEN" | "CLOSED" | "LOCKED">("OPEN");
   const [statusReason, setStatusReason] = useState("");
 
-  // Year-End Closing Wizard Modal
   const [closingYear, setClosingYear] = useState<FiscalYearItem | null>(null);
-  const [closingStep, setClosingStep] = useState<1 | 2 | 3>(1);
 
   // Statistics
   const openCount = periods.filter((p) => p.status === "OPEN").length;
@@ -108,13 +112,20 @@ export function PeriodsClient({
     return years.filter((y) => y.id === selectedYearId);
   }, [years, selectedYearId]);
 
+  // Reopening (target OPEN) always needs a reason typed by the user, so no preset text is offered for it.
+  const isReopenTarget = targetStatus === "OPEN";
+  const reasonMissing = isReopenTarget && !statusReason.trim();
+
   // Handle Quick Status Change
   const handleStatusChange = (period: FiscalPeriodItem, newStatus: "PLANNED" | "OPEN" | "CLOSED" | "LOCKED") => {
+    const owningYear = years.find((y) => y.id === period.fiscal_year_id);
+    // A closed fiscal year is never reopened from this screen (the database guard is authoritative).
+    if (newStatus === "OPEN" && owningYear?.status === "CLOSED") return;
     setStatusModalPeriod(period);
     setTargetStatus(newStatus);
     setStatusReason(
       newStatus === "OPEN"
-        ? isAr ? "فتح الفترة لقبول القيود والاعتراف بالإيرادات" : "Open period for entry posting"
+        ? ""
         : newStatus === "LOCKED"
         ? isAr ? "إقفال نهائي للفترة المحاسبية ومراجعة الميزان" : "Final period lockdown"
         : isAr ? "إغلاق دوري للفترة" : "Periodic closure"
@@ -124,10 +135,16 @@ export function PeriodsClient({
   const handleConfirmStatusChange = () => {
     if (!statusModalPeriod) return;
 
+    const trimmedReason = statusReason.trim();
+    // Guard: a reopen never runs without a reason (the inline message is already shown).
+    if (isReopenTarget && !trimmedReason) return;
+    const owningYear = years.find((y) => y.id === statusModalPeriod.fiscal_year_id);
+    if (isReopenTarget && owningYear?.status === "CLOSED") return;
+
     const formData = new FormData();
     formData.append("fiscalPeriodId", statusModalPeriod.id);
     formData.append("status", targetStatus);
-    formData.append("reason", statusReason.trim() || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
+    formData.append("reason", trimmedReason || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
 
     startTransition(async () => {
       const res = await setFiscalPeriodStatusAction({ ok: true }, formData);
@@ -304,8 +321,8 @@ export function PeriodsClient({
             </h1>
             <p className="text-xs text-slate-500 max-w-2xl font-medium">
               {isAr
-                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، فحص قيود الإقفال ونقل الأرصدة الافتتاحية مع حماية قيود دفتر الأستاذ."
-                : "Manage monthly accounting periods, lock/open cycles, review closing journals, and rollover opening balances."}
+                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، ومراجعة قيد إقفال السنة مع حماية قيود دفتر الأستاذ."
+                : "Manage monthly accounting periods, lock/open cycles, and review the year-end closing entry with ledger protection."}
             </p>
           </div>
 
@@ -433,6 +450,7 @@ export function PeriodsClient({
       <div className="space-y-6">
         {filteredYears.map((year) => {
           const yearPeriods = periods.filter((p) => p.fiscal_year_id === year.id);
+          const yearClosed = year.status === "CLOSED";
 
           return (
             <div
@@ -462,23 +480,33 @@ export function PeriodsClient({
 
                 {/* YEAR ACTIONS */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => {
-                      setClosingYear(year);
-                      setClosingStep(1);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
-                  >
-                    <FolderLock className="size-3.5" />
-                    <span>{isAr ? "مساعد الإقفال السنوي وترحيل الأرصدة" : "Year-End Closing Wizard"}</span>
-                  </Button>
+                  {canClose && !yearClosed && (
+                    <Button
+                      onClick={() => setClosingYear(year)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
+                      data-testid={`open-year-closing-${year.name}`}
+                    >
+                      <FolderLock className="size-3.5" />
+                      <span>{isAr ? "إقفال السنة المالية" : "Close Fiscal Year"}</span>
+                    </Button>
+                  )}
                 </div>
               </div>
 
               {/* MONTHLY GRID TILES */}
               <div className="p-5">
+                {yearClosed && (
+                  <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
+                    <Lock className="size-4 shrink-0 mt-0.5 text-slate-500" />
+                    <span>
+                      {isAr
+                        ? "هذه السنة المالية مغلقة. لا يمكن إعادة فتح فتراتها من هذه الشاشة، وقاعدة البيانات تمنع ذلك."
+                        : "This fiscal year is closed. Its periods cannot be reopened from this screen; the database enforces this."}
+                    </span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
                   {yearPeriods.map((period) => (
                     <div
@@ -531,15 +559,17 @@ export function PeriodsClient({
                           </>
                         ) : period.status === "CLOSED" ? (
                           <>
-                            <Button
-                              onClick={() => handleStatusChange(period, "OPEN")}
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
-                            >
-                              <Unlock className="size-3 me-1" />
-                              <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
-                            </Button>
+                            {!yearClosed && (
+                              <Button
+                                onClick={() => handleStatusChange(period, "OPEN")}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
+                              >
+                                <Unlock className="size-3 me-1" />
+                                <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
+                              </Button>
+                            )}
                             <Button
                               onClick={() => handleStatusChange(period, "LOCKED")}
                               variant="ghost"
@@ -550,25 +580,29 @@ export function PeriodsClient({
                             </Button>
                           </>
                         ) : period.status === "LOCKED" ? (
-                          <Button
-                            onClick={() => handleStatusChange(period, "OPEN")}
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
-                          >
-                            <Unlock className="size-3 me-1" />
-                            <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
-                          </Button>
+                          !yearClosed && (
+                            <Button
+                              onClick={() => handleStatusChange(period, "OPEN")}
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
+                            >
+                              <Unlock className="size-3 me-1" />
+                              <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
+                            </Button>
+                          )
                         ) : (
-                          <Button
-                            onClick={() => handleStatusChange(period, "OPEN")}
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
-                          >
-                            <Unlock className="size-3 me-1" />
-                            <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
-                          </Button>
+                          !yearClosed && (
+                            <Button
+                              onClick={() => handleStatusChange(period, "OPEN")}
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
+                            >
+                              <Unlock className="size-3 me-1" />
+                              <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>
@@ -602,7 +636,12 @@ export function PeriodsClient({
               <Label className="text-xs font-bold">{isAr ? "الحالة الجديدة المستهدفة" : "Target Status"}</Label>
               <select
                 value={targetStatus}
-                onChange={(e) => setTargetStatus(e.target.value as FiscalPeriodItem["status"])}
+                onChange={(e) => {
+                  const next = e.target.value as FiscalPeriodItem["status"];
+                  setTargetStatus(next);
+                  // Drop a preset close/lock text when switching to OPEN, so the reason is typed explicitly.
+                  if (next === "OPEN") setStatusReason((r) => (PRESET_STATUS_REASONS.includes(r) ? "" : r));
+                }}
                 className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
               >
                 <option value="OPEN">{isAr ? "مفتوحة للقيود (OPEN)" : "Open"}</option>
@@ -619,9 +658,16 @@ export function PeriodsClient({
                 required
                 value={statusReason}
                 onChange={(e) => setStatusReason(e.target.value)}
+                aria-invalid={reasonMissing}
+                aria-describedby={reasonMissing ? "period-status-reason-error" : undefined}
                 placeholder={isAr ? "مثال: مراجعة القيود الشهرية واعتماد الميزان" : "Reason for audit log"}
                 className="text-xs h-9 bg-slate-50 dark:bg-slate-800"
               />
+              {reasonMissing && (
+                <p id="period-status-reason-error" role="alert" className="text-[11px] font-bold text-rose-600">
+                  {financeErrorMessage("reason_required", isAr)}
+                </p>
+              )}
             </div>
 
             <DialogFooter className="pt-3 flex items-center justify-between">
@@ -647,128 +693,15 @@ export function PeriodsClient({
         </DialogContent>
       </Dialog>
 
-      {/* ──────────────────────────────────────────────────────────────────────────
-          YEAR-END CLOSING & OPENING BALANCES ROLLOVER WIZARD
-          ────────────────────────────────────────────────────────────────────────── */}
-      <Dialog open={Boolean(closingYear)} onOpenChange={(open) => !open && setClosingYear(null)}>
-        <DialogContent className="max-w-xl rounded-3xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center gap-2">
-              <FolderLock className="size-5 text-indigo-600" />
-              <span>{isAr ? `مساعد الإقفال المحاسبي للسنة: ${closingYear?.name}` : `Year-End Closing Wizard: ${closingYear?.name}`}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              {isAr
-                ? "إجراءات إقفال السنة المالية، التحقق من توازن الأرصدة، وترحيل الأرصدة الافتتاحية للسنة التالية."
-                : "Step-by-step fiscal year closing, trial balance audit, and opening balance rollover."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-3">
-            {/* STEP PROGRESS */}
-            <div className="grid grid-cols-1 gap-2 pb-2 sm:grid-cols-3">
-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 1 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
-                <span>1. {isAr ? "فحص الفترات والقيود" : "Audit Periods"}</span>
-              </div>
-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 2 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
-                <span>2. {isAr ? "قيد إقفال الأرباح/الخسائر" : "P&L Closing Entry"}</span>
-              </div>
-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 3 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
-                <span>3. {isAr ? "ترحيل الأرصدة الافتتاحية" : "Rollover Balances"}</span>
-              </div>
-            </div>
-
-            {closingStep === 1 && (
-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold">
-                  <ShieldCheck className="size-4" />
-                  <span>{isAr ? "اكتمال الفحص المحاسبي الأولي" : "Audit Check Completed"}</span>
-                </div>
-                <p className="text-slate-600 dark:text-slate-300">
-                  {isAr
-                    ? `تم فحص جميع شهور السنة المالية «${closingYear?.name}». سيتم التأكد من ترحيل كافة القيود اليومية وفحص مطابقة الإيرادات والمصروفات مع ميزان المراجعة.`
-                    : `Audited all periods for ${closingYear?.name}. Verifying all journal entries.`}
-                </p>
-              </div>
-            )}
-
-            {closingStep === 2 && (
-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
-                <div className="flex items-center gap-2 text-indigo-600 font-bold">
-                  <ArrowRightLeft className="size-4" />
-                  <span>{isAr ? "توليد قيد إقفال حسابات النتيجة (الأرباح المبقاة)" : "Closing Revenue & Expense Accounts"}</span>
-                </div>
-                <p className="text-slate-600 dark:text-slate-300">
-                  {isAr
-                    ? "يقوم النظام آلياً بتصفير حسابات الإيرادات والمصروفات ونقل صافي الربح/الخسارة إلى حساب (الأرباح المحتجزة / Retained Earnings) في حقوق الملكية."
-                    : "Automatically clears temporary revenue and expense accounts into Retained Earnings."}
-                </p>
-              </div>
-            )}
-
-            {closingStep === 3 && (
-              <div className="space-y-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 p-4 border border-emerald-200 text-xs">
-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
-                  <CheckCircle2 className="size-4" />
-                  <span>{isAr ? "جاهز لترحيل الأرصدة الافتتاحية للسنة الجديدة" : "Ready for Opening Balance Rollover"}</span>
-                </div>
-                <p className="text-emerald-800 dark:text-emerald-300">
-                  {isAr
-                    ? "سيتم نقل أرصدة الأصول والالتزامات وحقوق الملكية المنتهية كأرصدة افتتاحية معتمدة في بداية السنة المالية القادمة."
-                    : "Assets, liabilities, and equity balances will be carried forward as opening balances."}
-                </p>
-              </div>
-            )}
-
-            <DialogFooter className="pt-3 flex items-center justify-between">
-              {closingStep > 1 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setClosingStep((s) => (s - 1) as 1 | 2 | 3)}
-                  className="text-xs font-bold h-9"
-                >
-                  {isAr ? "السابق" : "Back"}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setClosingYear(null)}
-                  className="text-xs font-bold h-9"
-                >
-                  {isAr ? "إلغاء" : "Cancel"}
-                </Button>
-              )}
-
-              {closingStep < 3 ? (
-                <Button
-                  onClick={() => setClosingStep((s) => (s + 1) as 1 | 2 | 3)}
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-5"
-                >
-                  {isAr ? "المتابعة للخطوة التالية" : "Next Step"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => {
-                    toast({
-                      type: "info",
-                      title: isAr ? "إقفال السنة غير متاح في نسخة MVP" : "Year-end closing unavailable in MVP",
-                      description: isAr ? "هذا المعالج للعرض فقط؛ لم يتم تنفيذ محرك الإقفال أو ترحيل الأرصدة." : "This wizard is display-only; no closing engine or opening-balance rollover has been executed.",
-                    });
-                  }}
-                  size="sm"
-                  variant="outline"
-                  className="text-amber-700 border-amber-300 text-xs font-bold h-9 px-5"
-                >
-                  {isAr ? "غير متاح في MVP" : "Unavailable in MVP"}
-                </Button>
-              )}
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <YearEndClosingDialog
+        open={Boolean(closingYear)}
+        onOpenChange={(open) => !open && setClosingYear(null)}
+        organizationId={organizationId}
+        year={closingYear}
+        locale={locale}
+        currencyLabel={currencyLabel}
+        onClosed={(yearId) => setYears((current) => current.map((item) => item.id === yearId ? { ...item, status: "CLOSED" } : item))}
+      />
     </div>
   );
 }

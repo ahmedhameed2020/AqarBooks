@@ -202,7 +202,7 @@ describe("dunning", () => {
     await mkPayment("POSTED", 300);
     await mkPayment("REVERSED", 500);
 
-    const { data: outstanding } = await asUser.rpc("due_outstanding", { p_due_id: partly });
+    const { data: outstanding } = await admin.rpc("due_outstanding", { p_due_id: partly });
     expect(Number(outstanding), "only the posted 300 reduces the debt").toBe(700);
   });
 
@@ -233,9 +233,57 @@ describe("dunning", () => {
       .toMatch(/dunning_notices_delivery_consistent/);
 
     const { error: ok } = await admin.from("dunning_notices").update({
-      status: "DELIVERED", delivered_at: new Date().toISOString(), delivery_channel: "EMAIL",
+      status: "DELIVERED", delivered_at: new Date().toISOString(), delivery_channel: "EMAIL_EXTERNAL",
     }).eq("id", notice!.id);
-    expect(ok, "with a real time and channel it is accepted").toBeNull();
+    expect(ok, "with a real time and a channel from the allowed set it is accepted").toBeNull();
+  });
+
+  it("rejects a delivery channel outside the allowed set (a bare 'EMAIL' is not one)", async () => {
+    // The database allows PRINTED, HAND_DELIVERED, PHONE, EMAIL_EXTERNAL, WHATSAPP_EXTERNAL, POST
+    // (dunning_notices_channel_check) and the UI offers the same values. This test used to send
+    // "EMAIL", which has never been valid; that was a wrong expectation, not a product defect.
+    const { data: raised } = await admin.from("dunning_notices")
+      .select("id").eq("organization_id", orgId).eq("status", "RAISED").limit(1);
+    let noticeId = raised?.[0]?.id as string | undefined;
+    if (!noticeId) {
+      await asUser.rpc("raise_dunning_notices", { p_organization_id: orgId, p_stage: 2, p_as_of: AS_OF });
+      const { data: again } = await admin.from("dunning_notices")
+        .select("id").eq("organization_id", orgId).eq("status", "RAISED").limit(1);
+      noticeId = again?.[0]?.id as string | undefined;
+    }
+    expect(noticeId, "a RAISED notice is needed to exercise delivery").toBeTruthy();
+    const bad = await asUser.rpc("record_dunning_delivery", { p_notice_id: noticeId!, p_channel: "EMAIL" });
+    expect(bad.error?.message).toMatch(/dunning_notices_channel_check/);
+    const { data: still } = await admin.from("dunning_notices").select("status").eq("id", noticeId!).single();
+    expect(still!.status).toBe("RAISED");
+  });
+
+  it("records delivery through record_dunning_delivery as an authorized user: state, audit row, no ledger effect, not repeatable", async () => {
+    const { data: raised } = await admin.from("dunning_notices")
+      .select("id").eq("organization_id", orgId).eq("status", "RAISED").limit(1);
+    const noticeId = raised?.[0]?.id as string;
+    expect(noticeId).toBeTruthy();
+    const entriesBefore = await admin.from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+
+    const ok = await asUser.rpc("record_dunning_delivery", { p_notice_id: noticeId, p_channel: "EMAIL_EXTERNAL", p_reference: "msg-123" });
+    expect(ok.error, ok.error?.message).toBeNull();
+
+    const { data: notice } = await admin.from("dunning_notices")
+      .select("status, delivered_at, delivery_channel, delivery_reference").eq("id", noticeId).single();
+    expect(notice).toMatchObject({ status: "DELIVERED", delivery_channel: "EMAIL_EXTERNAL", delivery_reference: "msg-123" });
+    expect(notice!.delivered_at).not.toBeNull();
+
+    // Delivery is audited in platform_audit_logs (it is not a financial-ledger event), by the acting user.
+    const { data: audit } = await admin.from("platform_audit_logs")
+      .select("actor_id, organization_id, action").eq("entity_id", noticeId).eq("action", "dunning_notice.delivered");
+    expect(audit).toEqual([{ actor_id: userId, organization_id: orgId, action: "dunning_notice.delivered" }]);
+
+    // A reminder moves no money: no journal entry and no financial-audit-chain row is produced.
+    const entriesAfter = await admin.from("journal_entries").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+    expect(entriesAfter.count).toBe(entriesBefore.count);
+
+    const again = await asUser.rpc("record_dunning_delivery", { p_notice_id: noticeId, p_channel: "EMAIL_EXTERNAL" });
+    expect(again.error?.message).toContain("DUNNING_NOTICE_ALREADY_DELIVERED");
   });
 
   it("does not raise the same stage twice for the same due", async () => {

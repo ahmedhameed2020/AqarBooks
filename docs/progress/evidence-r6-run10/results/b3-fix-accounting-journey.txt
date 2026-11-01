@@ -1,0 +1,31 @@
+$ tests/e2e/accounting-journey.spec.ts
+label=b3-fix-accounting-journey
+exit=0
+elapsed_ms=315519
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 15 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok  1 tests\e2e\accounting-journey.spec.ts:73:5 › S1 opening balance 10,000 dated before the report period (34.9s)
+  ok  2 tests\e2e\accounting-journey.spec.ts:97:5 › S2 new due 2,000 inside the period (14.6s)
+  ok  3 tests\e2e\accounting-journey.spec.ts:143:5 › S3 receipt #1: 1,500 on 2026-02-10 (28.4s)
+  ok  4 tests\e2e\accounting-journey.spec.ts:153:5 › S4 receipt #2: 500 on 2026-02-12 (46.1s)
+  ok  5 tests\e2e\accounting-journey.spec.ts:163:5 › S5 reverse receipt #2 in full (29.5s)
+  ok  6 tests\e2e\accounting-journey.spec.ts:187:5 › V1 dues list: remaining 10,500 = opening due 10,000 + new due 500 (14.3s)
+  ok  7 tests\e2e\accounting-journey.spec.ts:205:5 › V2 receipts: #1 posted 1,500, #2 reversed 500 and still visible; collections KPI 1,500 (13.6s)
+  ok  8 tests\e2e\accounting-journey.spec.ts:218:5 › V3 owner statement: collected 1,500, outstanding 10,500 (11.6s)
+  ok  9 tests\e2e\accounting-journey.spec.ts:230:5 › V4 general ledger shows the reversed original AND its mirror: 1130 closes at 10,500, 1110 at 1,500 (14.2s)
+  ok 10 tests\e2e\accounting-journey.spec.ts:248:5 › V5 trial balance 2026: opening + movement = closing, balanced in all three, prior balance carried in (10.5s)
+  ok 11 tests\e2e\accounting-journey.spec.ts:269:5 › V5b trial balance for a period that starts mid-year: balance-sheet accounts carry, income accounts open year-to-date (8.2s)
+  ok 12 tests\e2e\accounting-journey.spec.ts:281:5 › V5c trial balance starting in a fiscal year the organization has not defined: earlier result on an explicit unclosed line (7.5s)
+  ok 13 tests\e2e\accounting-journey.spec.ts:298:5 › V6 income statement, balance sheet, cash flow and aging agree with the ledger (27.4s)
+  ok 14 tests\e2e\accounting-journey.spec.ts:329:5 › V7 ledger integrity: balanced entries, reversal mirrors the original, sub-ledger = ledger, audit chain intact (270ms)
+  ok 15 tests\e2e\accounting-journey.spec.ts:390:5 › V8 audit trail screen: the auditor sees the journey's events; the accountant sees the financial chain only (21.7s)
+
+  15 passed (4.9m)
+(node:34404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

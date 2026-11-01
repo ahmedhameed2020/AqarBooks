@@ -119,6 +119,7 @@ export default async function CashierPage({
       .eq("organization_id", organization.id)
       .eq("is_group", false)
       .eq("is_active", true)
+      .eq("is_cash_equivalent", true) // the database refuses any other account for a cash box / bank account (20261018100000)
       .in("category", ["ASSET"])
       .order("code"),
     supabase
@@ -138,7 +139,7 @@ export default async function CashierPage({
       .select("id, code")
       .eq("organization_id", organization.id),
     supabase
-      .from("payment_allocations")
+      .from("effective_payment_allocations")
       .select("due_id, amount, payment_id"),
     supabase
       .from("payments")

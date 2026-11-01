@@ -1,0 +1,42 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  x  1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (3.0m)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Test timeout of 180000ms exceeded.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for locator('[data-designation="disposal"]').getByRole('button', { name: /^Save$/i })
+
+
+      151 |     await disposal.locator("#disposal-gain").selectOption({ label: "4910 — Gain on Disposal" });
+      152 |     await disposal.locator("#disposal-loss").selectOption({ label: "5910 — Loss on Disposal" });
+    > 153 |     await disposal.getByRole("button", { name: /^Save$/i }).click();
+          |                                                             ^
+      154 |
+      155 |     await expect(page.locator('[data-designation="disposal"]')).toHaveAttribute(
+      156 |       "data-ready", "yes", { timeout: 40_000 },
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:153:61
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-rebuild\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-rebuild\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-rebuild\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+

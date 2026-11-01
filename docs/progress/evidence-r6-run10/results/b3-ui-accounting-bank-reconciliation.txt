@@ -1,0 +1,25 @@
+$ tests/e2e/accounting-bank-reconciliation.spec.ts
+label=b3-ui-accounting-bank-reconciliation
+exit=0
+elapsed_ms=224346
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 9 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  ok 1 tests\e2e\accounting-bank-reconciliation.spec.ts:87:5 › B1 due 2,000 issued on 2026-03-01 (18.0s)
+  ok 2 tests\e2e\accounting-bank-reconciliation.spec.ts:104:5 › B2 bank transfer 2,000 on 2026-03-10, created in the receipt dialog, into the bank GL account (26.4s)
+  ok 3 tests\e2e\accounting-bank-reconciliation.spec.ts:144:5 › B3 create the statement (closing 1,985.00) and import only the deposit line (43.0s)
+  ok 4 tests\e2e\accounting-bank-reconciliation.spec.ts:169:5 › B4 auto-match links the deposit to the receipt's journal line; an unexplained difference of -15 blocks finalizing (19.7s)
+  ok 5 tests\e2e\accounting-bank-reconciliation.spec.ts:196:5 › B5 a second auto-match changes nothing; one journal line cannot back two statement lines (30.9s)
+  ok 6 tests\e2e\accounting-bank-reconciliation.spec.ts:222:5 › B5b importing the fee line makes the arithmetic zero but does not book the expense: books 2,000 vs bank 1,985 (676ms)
+  ok 7 tests\e2e\accounting-bank-reconciliation.spec.ts:241:5 › B6 the fee is booked through the journal UI: accountant creates + submits, the owner posts; 1120 becomes 1,985 (26.4s)
+  ok 8 tests\e2e\accounting-bank-reconciliation.spec.ts:279:5 › B7 auto-match links the fee line to the fee entry; book = bank = 1,985; nothing unmatched; finalize reconciles (23.2s)
+  ok 9 tests\e2e\accounting-bank-reconciliation.spec.ts:315:5 › B8 the books agree: 1120 = 1,985, bank charges 15, receivables 0, revenue 2,000, balanced; trial balance closes 1120 at 1,985 (711ms)
+
+  9 passed (3.4m)
+(node:40276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

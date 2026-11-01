@@ -1,0 +1,10 @@
+14/Oct/2026:09:01:22 +0000: {"code":"57014","details":null,"hint":null,"message":"canceling statement due to statement timeout"}
+172.22.0.2 - authenticated [14/Oct/2026:09:01:22 +0000] "HEAD /chart_of_accounts?select=* HTTP/1.1" 500 100 "" "node"
+14/Oct/2026:09:01:30 +0000: {"code":"57014","details":null,"hint":null,"message":"canceling statement due to statement timeout"}
+172.22.0.2 - authenticated [14/Oct/2026:09:01:30 +0000] "HEAD /chart_of_accounts?select=* HTTP/1.1" 500 100 "" "node"
+172.22.0.2 - authenticated [14/Oct/2026:09:01:38 +0000] "HEAD /chart_of_accounts?select=* HTTP/1.1" 500 100 "" "node"
+14/Oct/2026:09:01:38 +0000: {"code":"57014","details":null,"hint":null,"message":"canceling statement due to statement timeout"}
+172.22.0.2 - authenticated [14/Oct/2026:09:01:46 +0000] "HEAD /chart_of_accounts?select=* HTTP/1.1" 500 100 "" "node"
+14/Oct/2026:09:01:46 +0000: {"code":"57014","details":null,"hint":null,"message":"canceling statement due to statement timeout"}
+14/Oct/2026:09:02:10 +0000: {"code":"57014","details":null,"hint":null,"message":"canceling statement due to statement timeout"}
+172.22.0.2 - authenticated [14/Oct/2026:09:02:10 +0000] "HEAD /chart_of_accounts?select=* HTTP/1.1" 500 100 "" "node"

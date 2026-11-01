@@ -1,0 +1,28 @@
+BEGIN
+                                 set_config                                 
+----------------------------------------------------------------------------
+ {"sub" : "0c824fec-eb80-47c8-854d-ca6ae6a1367f", "role" : "authenticated"}
+(1 row)
+
+SAVEPOINT
+         probe          |                result                
+------------------------+--------------------------------------
+ REG create_fiscal_year | b3a66f02-4bc8-46d3-b8fd-e29829c46fb1
+(1 row)
+
+ROLLBACK
+SAVEPOINT
+      probe       |                               result                               
+------------------+--------------------------------------------------------------------
+ REG designate_re | {"ok": true, "account_id": "4f7fac43-cd1a-4bd0-8dc7-d765c64f7cb8"}
+(1 row)
+
+ROLLBACK
+SAVEPOINT
+       probe       |                result                
+-------------------+--------------------------------------
+ REG reverse_entry | 9238e3fb-0700-4615-8e86-c23d6a233197
+(1 row)
+
+ROLLBACK
+ROLLBACK

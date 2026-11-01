@@ -1,0 +1,69 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/pgtap.integration.test.ts
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+ ❯ tests/pgtap.integration.test.ts (18 tests | 2 failed) 12844ms
+     × 11. Phase 2c Treasury Cluster Property-ID Rename Integrity (create_cashbox/open_cashier_session/close_cashier_session end-to-end via RPC) 484ms
+     × 15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_transaction/record_online_payment/void_payment end-to-end, completing the record_online_payment + validate_online_payments_clearing_account Phase 2e partial edits) 1091ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/pgtap.integration.test.ts > Supabase pgTAP & Database SQL Integrity Suite > 11. Phase 2c Treasury Cluster Property-ID Rename Integrity (create_cashbox/open_cashier_session/close_cashier_session end-to-end via RPC)
+AssertionError: expected { code: '22023', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "22023",
+  "details": null,
+  "hint": null,
+  "message": "GL_ACCOUNT_NOT_CASH_OR_BANK: حساب الأستاذ يجب أن يكون حساب نقدية أو بنك فعّالًا (أصول، غير مجمّع، نقدية/ما في حكمها) داخل نفس الكيان",
+}
+
+ ❯ tests/pgtap.integration.test.ts:1071:30
+    1069|     );
+    1070|
+    1071|     expect(createCashboxErr).toBeNull();
+       |                              ^
+    1072|     expect(cashboxId).toBeTruthy();
+    1073|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/pgtap.integration.test.ts > Supabase pgTAP & Database SQL Integrity Suite > 15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_transaction/record_online_payment/void_payment end-to-end, completing the record_online_payment + validate_online_payments_clearing_account Phase 2e partial edits)
+AssertionError: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.create_online_payment_checkout_transaction with parameters p_due_ids, p_provider or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.create_online_payment_checkout_transaction(p_due_ids, p_provider) in the schema cache",
+}
+
+ ❯ tests/pgtap.integration.test.ts:2451:25
+    2449|       },
+    2450|     );
+    2451|     expect(checkoutErr).toBeNull();
+       |                         ^
+    2452|     const checkoutRow = Array.isArray(checkoutData) ? checkoutData[0] …
+    2453|     expect(checkoutRow?.transaction_id).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 16 passed (18)
+   Start at  09:42:41
+   Duration  13.50s (transform 188ms, setup 120ms, import 203ms, tests 12.84s, environment 0ms)
+

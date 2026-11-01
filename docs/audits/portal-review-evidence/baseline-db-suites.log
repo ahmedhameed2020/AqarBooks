@@ -1,0 +1,175 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/amenity-bookings-rls.integration.test.ts (9 tests | 5 failed) 17805ms
+     × enforces current unit ownership and serializes overlapping slots 46ms
+     × does not reveal whether amenity resources exist across authorization boundaries 152ms
+     × lets only managing staff decide and emits an owner-scoped lifecycle notification 13ms
+     × serializes amenity deactivation against booking creation 54ms
+     × blocks owner cancellation while the organization is inactive 963ms
+stdout | tests/member-portal-invitation.integration.test.ts
+◇ injected env (6) from .env.local // tip: ⌘ override existing { override: true }
+
+ ❯ tests/member-portal-invitation.integration.test.ts (5 tests | 3 failed) 1252ms
+     × create_member_invitation revokes a prior pending invitation on re-invite 48ms
+     × expire_stale_member_invitations flips only expired pending rows 41ms
+     × end-to-end: a genuinely authenticated staff user creates an invitation and the invited owner accepts it, linking members.user_id 670ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/amenity-bookings-rls.integration.test.ts > amenity booking runtime Supabase/PostgreSQL RLS gate > enforces current unit ownership and serializes overlapping slots
+AssertionError: new row for relation "notifications" violates check constraint "notifications_source_type_check": expected { code: '23514', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "23514",
+  "details": "Failing row contains (b965a503-4cc1-4c86-adc5-1fc8c52bef21, 798562db-181a-4882-bb6f-d82f6092c3e9, c5aa68ad-4a00-445a-999a-d449a23bcccc, 8be0bba4-83aa-4b96-b0bf-2a1e0188c782, AMENITY_BOOKING_REQUESTED, تم استلام طلب حجز المرفق, Amenity booking received, حمام السباحة · 2026-10-12 10:00, Swimming Pool · 2026-10-12 10:00, amenity_booking, b7772050-c675-4d19-b389-b1a6280c1df9, /portal/amenities, NORMAL, f, null, 2026-10-10 19:22:45.502886+00).",
+  "hint": null,
+  "message": "new row for relation \"notifications\" violates check constraint \"notifications_source_type_check\"",
+}
+
+ ❯ tests/amenity-bookings-rls.integration.test.ts:136:51
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/amenity-bookings-rls.integration.test.ts > amenity booking runtime Supabase/PostgreSQL RLS gate > does not reveal whether amenity resources exist across authorization boundaries
+AssertionError: expected 'Could not find the function public.de…' to be 'AMENITY_BOOKING_NOT_AUTHORIZED' // Object.is equality
+
+Expected: "AMENITY_BOOKING_NOT_AUTHORIZED"
+Received: "Could not find the function public.decide_amenity_booking(p_decision, p_staff_note) in the schema cache"
+
+ ❯ tests/amenity-bookings-rls.integration.test.ts:200:43
+    198|     const decideExisting = await disabled.manager.client.rpc("decide_a…
+    199|     const decideMissing = await disabled.manager.client.rpc("decide_am…
+    200|     expect(decideExisting.error?.message).toBe("AMENITY_BOOKING_NOT_AU…
+       |                                           ^
+    201|     expect(decideMissing.error?.message).toBe(decideExisting.error?.me…
+    202|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/amenity-bookings-rls.integration.test.ts > amenity booking runtime Supabase/PostgreSQL RLS gate > lets only managing staff decide and emits an owner-scoped lifecycle notification
+AssertionError: expected 'Could not find the function public.de…' to match /row-level security|permission denied…/i
+
+- Expected:
+/row-level security|permission denied|not authorized|not_authenticated|forbidden|not_entitled|not_found|unavailable|invalid/i
+
++ Received:
+"Could not find the function public.decide_amenity_booking(p_decision, p_staff_note) in the schema cache"
+
+ ❯ expectRejected tests/amenity-bookings-rls.integration.test.ts:32:26
+     30|   expect(error, context).not.toBeNull();
+     31|   if (["AMENITY_NOT_AUTHORIZED", "UNIT_NOT_AUTHORIZED", "AMENITY_BOOKI…
+     32|   expect(error!.message).toMatch(/row-level security|permission denied…
+       |                          ^
+     33| }
+     34|
+ ❯ tests/amenity-bookings-rls.integration.test.ts:205:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/amenity-bookings-rls.integration.test.ts > amenity booking runtime Supabase/PostgreSQL RLS gate > serializes amenity deactivation against booking creation
+AssertionError: expected 'new row for relation "notifications" …' to be 'AMENITY_BOOKING_NOT_AUTHORIZED' // Object.is equality
+
+Expected: "AMENITY_BOOKING_NOT_AUTHORIZED"
+Received: "new row for relation "notifications" violates check constraint "notifications_source_type_check""
+
+ ❯ tests/amenity-bookings-rls.integration.test.ts:243:37
+    241|     expect(disabledAmenity.error, disabledAmenity.error?.message).toBe…
+    242|     if (booking.error) {
+    243|       expect(booking.error.message).toBe("AMENITY_BOOKING_NOT_AUTHORIZ…
+       |                                     ^
+    244|     } else {
+    245|       expect(booking.data).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/amenity-bookings-rls.integration.test.ts > amenity booking runtime Supabase/PostgreSQL RLS gate > blocks owner cancellation while the organization is inactive
+AssertionError: expected 'Could not find the function public.ca…' to be 'AMENITY_BOOKING_NOT_FOUND' // Object.is equality
+
+Expected: "AMENITY_BOOKING_NOT_FOUND"
+Received: "Could not find the function public.cancel_own_amenity_booking without parameters in the schema cache"
+
+ ❯ tests/amenity-bookings-rls.integration.test.ts:264:37
+    262|         p_booking_id: bookingId,
+    263|       });
+    264|       expect(result.error?.message).toBe("AMENITY_BOOKING_NOT_FOUND");
+       |                                     ^
+    265|       expect(dbQuery(`select status from public.amenity_bookings where…
+    266|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  tests/member-portal-invitation.integration.test.ts > Member portal invitation lifecycle > create_member_invitation revokes a prior pending invitation on re-invite
+AssertionError: expected { code: '23503', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "23503",
+  "details": "Key (invited_by)=(11d45b6f-1162-433e-8324-ebaf7cd0e618) is not present in table \"users\".",
+  "hint": null,
+  "message": "insert or update on table \"member_invitations\" violates foreign key constraint \"member_invitations_invited_by_fkey\"",
+}
+
+ ❯ tests/member-portal-invitation.integration.test.ts:104:25
+    102|       invited_by: staffUserId,
+    103|     });
+    104|     expect(firstInsert).toBeNull();
+       |                         ^
+    105|
+    106|     const { error: secondInsert } = await admin.from("member_invitatio…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/member-portal-invitation.integration.test.ts > Member portal invitation lifecycle > expire_stale_member_invitations flips only expired pending rows
+AssertionError: expected 0 to be greater than or equal to 1
+ ❯ tests/member-portal-invitation.integration.test.ts:136:26
+    134|
+    135|     const { data: expiredCount } = await admin.rpc("expire_stale_membe…
+    136|     expect(expiredCount).toBeGreaterThanOrEqual(1);
+       |                          ^
+    137|
+    138|     const { data: row } = await admin
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/member-portal-invitation.integration.test.ts > Member portal invitation lifecycle > end-to-end: a genuinely authenticated staff user creates an invitation and the invited owner accepts it, linking members.user_id
+AssertionError: create_member_invitation failed: FORBIDDEN_PORTAL_INVITE: لا تملك صلاحية دعوة الأعضاء للبوابة: expected { code: '42501', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "42501",
+  "details": null,
+  "hint": null,
+  "message": "FORBIDDEN_PORTAL_INVITE: لا تملك صلاحية دعوة الأعضاء للبوابة",
+}
+
+ ❯ tests/member-portal-invitation.integration.test.ts:231:85
+    229|         member_phone: string | null;
+    230|       }>();
+    231|     expect(createError, `create_member_invitation failed: ${createErro…
+       |                                                                                     ^
+    232|     expect(invitation!.invitation_id).toBeTruthy();
+    233|     expect(invitation!.raw_token).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  2 failed | 18 passed (20)
+      Tests  8 failed | 114 passed (122)
+   Start at  22:21:25
+   Duration  407.05s (transform 1.20s, setup 858ms, import 3.28s, tests 392.31s, environment 11ms)
+

@@ -1,0 +1,60 @@
+generator diff, v4 (bdeb387d...) -> FINAL v6 (95f633c2...). Builder: scratchpad only.
+28a29,34
+> --   GUARDS (export-run.psql, checked inside the same read-only transaction BEFORE the first \copy; a failed guard writes no data file):
+> --     KEEP-GUARD  a KEEP path that holds object/array values, or mixes value types, stops the export.
+> --     SEQ-GUARD   a role without SELECT on a public sequence stops the export: pg_sequences would show no value for it and the sequence state would be lost silently.
+> --     RLS-GUARD   a role without BYPASSRLS that is not the owner of a public table with row security (or whose table forces RLS) stops the export:
+> --                 a row-filtered export would be partial and its _counts.csv would agree with it. Tested: refused with no data files; passes for a SELECT-only BYPASSRLS role with counts equal to the owner's.
+> --   Known limit: the guards read only the role's own privileges and policies; they do not judge which keys or values are sensitive (that is the reviewed file).
+135c141
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+142a149,159
+>   union all select 4, 'do $rlsguard$ declare bad text := ''''; bypass_flag boolean := (select rolbypassrls from pg_roles where rolname = current_user); r record; begin if bypass_flag then return; end if; for r in select c.relname, c.relforcerowsecurity as frc, (c.relowner = (select oid from pg_roles where rolname = current_user)) as own from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = ''public'' where c.relkind in (''r'', ''p'') and c.relrowsecurity loop if r.frc or not r.own then bad := bad || '' '' || r.relname; end if; end loop; if bad <> '''' then raise exception ''RLS-GUARD (export): row security applies to this role on:%. The export would be partial. Nothing was exported.'', bad; end if; end $rlsguard$;' from rh_blocked where not blocked
+>   union all select 5, 'do $seqguard$ declare bad text := ''''; r record; begin for r in select n.nspname || ''.'' || c.relname as s, c.oid from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = ''public'' and c.relkind = ''S'' loop if not has_sequence_privilege(r.oid, ''SELECT'') then bad := bad || '' '' || r.s; end if; end loop; if bad <> '''' then raise exception ''SEQ-GUARD (export): no SELECT on sequence(s):%. Their values would be lost (pg_sequences shows NULL without the privilege). Nothing was exported.'', bad; end if; end $seqguard$;' from rh_blocked where not blocked
+>   union all select 3, 'do $guard$ declare bad bigint; kinds bigint; begin select count(*) filter (where jsonb_typeof(g.v) in (''object'', ''array'')), count(distinct jsonb_typeof(g.v)) into bad, kinds from (' || kg.kpath || ') g(v) where jsonb_typeof(g.v) <> ''null''; if bad > 0 then raise exception ''KEEP-GUARD: ' || kg.t || '.' || kg.col || ' ' || kg.path || ' is KEEP but holds object or array values; KEEP is for scalar values only. Nothing was exported.''; end if; if kinds > 1 then raise exception ''KEEP-GUARD: ' || kg.t || '.' || kg.col || ' ' || kg.path || ' is KEEP but mixes value types. Nothing was exported.''; end if; end $guard$;' from (
+>     select j.t, j.col, j.path,
+>       case when j.path = '.' then 'select x.' || quote_ident(j.col) || '::jsonb as v from public.' || quote_ident(j.t) || ' x'
+>            when j.path like '[].%' then 'select v from public.' || quote_ident(j.t) || ' x, jsonb_path_query(case when jsonb_typeof(x.' || quote_ident(j.col) || '::jsonb) = ''array'' then x.' || quote_ident(j.col) || '::jsonb else ''[]''::jsonb end, ''$[*]."' || substr(j.path, 4) || '"'') v'
+>            else 'select v from public.' || quote_ident(j.t) || ' x, jsonb_path_query(case when jsonb_typeof(x.' || quote_ident(j.col) || '::jsonb) = ''object'' then x.' || quote_ident(j.col) || '::jsonb else ''{}''::jsonb end, ''$."' || j.path || '"'') v'
+>       end as kpath
+>     from revj j
+>     where j.kind = 'KEEP' and exists (select 1 from rh_eff e where e.t = j.t and e.col = j.col and e.eff = 'JSONALLOW')
+>   ) kg, rh_blocked where not blocked
+245c262
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+363c380
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+467c484
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+567c584
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+661c678
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+756c773
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+850c867
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+944c961
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+1038c1055
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'

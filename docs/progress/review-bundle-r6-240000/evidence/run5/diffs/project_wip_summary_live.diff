@@ -1,0 +1,21 @@
+--- docs/progress/evidence-r6-run5/results/project_wip_summary_live_before.txt	2026-10-29 23:39:42.263406400 +0300
++++ docs/progress/evidence-r6-run5/results/project_wip_summary_live_after.txt	2026-10-29 23:40:37.529975800 +0300
+@@ -28,7 +28,17 @@
+     JOIN public.journal_entries je ON je.id = l.journal_entry_id
+     WHERE l.project_id = p_project_id
+       AND l.account_id = v_wip
+-      AND je.status IN ('POSTED', 'REVERSED')
++      AND (
++        je.status = 'POSTED'
++        OR (
++          je.status = 'REVERSED'
++          AND EXISTS (
++            SELECT 1
++            FROM public.journal_entries r
++            WHERE r.reversed_entry_id = je.id
++          )
++        )
++      )
+   )
+   SELECT
+     COALESCE(SUM(CASE

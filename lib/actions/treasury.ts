@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/platform";
+import { dbErrorCode } from "@/lib/actions/db-error-code";
 
 const createCashboxSchema = z.object({
   organizationId: z.string().uuid(),
@@ -33,7 +34,7 @@ export async function createCashboxAction(
     gl_account_id: parsed.data.glAccountId,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/cashier", "page");
   return { ok: true };
 }
@@ -65,7 +66,7 @@ export async function openCashierSessionAction(
     p_opening_balance: parsed.data.openingBalance,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/cashier", "page");
   return { ok: true };
 }
@@ -91,7 +92,7 @@ export async function closeCashierSessionAction(
     p_actual_closing_balance: parsed.data.actualClosingBalance,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/cashier", "page");
   return { ok: true };
 }
@@ -152,7 +153,7 @@ export async function payDueFromCashierAction(
     p_cashier_session_id: parsed.data.sessionId,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/cashier", "page");
   revalidatePath("/[locale]/finance/dues", "page");
   revalidatePath("/[locale]/finance/payments", "page");
@@ -194,7 +195,7 @@ export async function createBankAccountAction(
     gl_account_id: parsed.data.glAccountId,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/banks", "page");
   return { ok: true };
 }
@@ -223,7 +224,7 @@ export async function createBankAction(
     name_en: parsed.data.nameEn,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/banks", "page");
   return { ok: true };
 }
@@ -267,7 +268,7 @@ export async function recordIncomingChequeAction(
     p_due_date: parsed.data.dueDate,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/banks", "page");
   return { ok: true };
 }
@@ -296,7 +297,7 @@ export async function setChequeStatusAction(
     p_note: parsed.data.note ?? null,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/banks", "page");
   return { ok: true };
 }
@@ -330,7 +331,7 @@ export async function clearIncomingChequeAction(
     p_allocations: [{ due_id: parsed.data.dueId, amount: parsed.data.amount }],
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbErrorCode(error.message) };
   revalidatePath("/[locale]/finance/banks", "page");
   revalidatePath("/[locale]/finance/dues", "page");
   return { ok: true };

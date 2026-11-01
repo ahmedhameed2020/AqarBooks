@@ -1,0 +1,10 @@
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+psql:/tmp/20261029230000_project_status_cancellation_floor.sql:61: NOTICE:  trigger "trg_je_status_cancel_lock" for relation "public.journal_entries" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+psql:/tmp/20261029230000_project_status_cancellation_floor.sql:66: NOTICE:  trigger "trg_je_status_cancel_floor" for relation "public.journal_entries" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER

@@ -1,0 +1,7 @@
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+DO
+psql:/tmp/race1_verify.sql:20: NOTICE:  ASSERT_RACE_ORDER1_PASS: release committed; later reversal refused; cap=1000 rel=600 wip=400 ledger=400 unbalanced=0

@@ -1,0 +1,48 @@
+$ tests/e2e/accounting-open-period-required.spec.ts
+label=b3-fix-accounting-open-period-required
+exit=1
+elapsed_ms=363830
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 6 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\accounting-open-period-required.spec.ts:82:5 › O0 the FIRST opening balance of an organization, refused: the due type and the equity account it would create are rolled back too (1.8s)
+  ok 2 tests\e2e\accounting-open-period-required.spec.ts:90:5 › O1 control: with an OPEN period both operations post their journal entry (984ms)
+  ok 3 tests\e2e\accounting-open-period-required.spec.ts:110:5 › O2/O3 an opening balance is refused atomically for a missing, planned and closed period (4.1s)
+  ok 4 tests\e2e\accounting-open-period-required.spec.ts:120:5 › O2/O3 a due is refused atomically for a missing, planned and closed period; a batch creates none (2.4s)
+  x  5 tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing (4.0m)
+  -  6 tests\e2e\accounting-open-period-required.spec.ts:167:5 › O4 once the period is opened the same operation succeeds and posts
+
+
+  1) tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+
+    Test timeout of 120000ms exceeded.
+
+    Tearing down "context" exceeded the test timeout of 120000ms.
+
+    Error: page.goto: Target page, context or browser has been closed
+
+      33 |   } catch (error) {
+      34 |     if (!/ERR_ABORTED|detached/.test(String(error))) throw error;
+    > 35 |     await page.goto(url);
+         |                ^
+      36 |   }
+      37 | }
+      38 | async function signIn(page: Page, email: string) {
+        at go (D:\Web\AqarBooks\tests\e2e\accounting-open-period-required.spec.ts:35:16)
+        at D:\Web\AqarBooks\tests\e2e\accounting-open-period-required.spec.ts:155:3
+
+    Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-fix-accounting-open-period-required-artifacts\accounting-open-period-req-09c31-he-cause-and-create-nothing\error-context.md
+
+  1 failed
+    tests\e2e\accounting-open-period-required.spec.ts:132:5 › O2 through the UI: the dialogs show the cause and create nothing 
+  1 did not run
+  4 passed (5.2m)
+(node:36984) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -62,6 +62,8 @@ interface DunningClientProps {
   currency: string;
   organizationId: string;
   organizationName?: string;
+  /** member id -> unapplied customer-advance credit; a debtor holding credit is flagged so it is considered before a notice goes out. */
+  creditByMember?: Record<string, number>;
 }
 
 export function DunningClient({
@@ -73,6 +75,7 @@ export function DunningClient({
   currency,
   organizationId,
   organizationName,
+  creditByMember = {},
 }: DunningClientProps) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<"candidates" | "notices" | "policies">("candidates");
@@ -521,6 +524,11 @@ export function DunningClient({
                             <span className="block">{c.member_name}</span>
                           ) : (
                             <span className="text-slate-400 italic">{isAr ? "غير مربوط بعضو" : "No member"}</span>
+                          )}
+                          {c.member_id && (creditByMember[c.member_id] ?? 0) > 0 && (
+                            <span className="mt-0.5 inline-block rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-800" data-testid="has-credit-badge">
+                              {isAr ? "لديه رصيد دائن" : "Holds credit"}: {(creditByMember[c.member_id] ?? 0).toLocaleString(isAr ? "ar-EG" : "en-US", { minimumFractionDigits: 2 })}
+                            </span>
                           )}
                         </td>
 

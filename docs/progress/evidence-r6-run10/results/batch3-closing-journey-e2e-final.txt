@@ -1,0 +1,17 @@
+$ tests/e2e/year-end-closing-journey.spec.ts
+label=batch3-closing-journey-e2e-final
+exit=0
+elapsed_ms=48447
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\year-end-closing-journey.spec.ts:102:5 › Batch 3 closes a real year through Arabic and English UI and persists one balanced result (29.2s)
+
+  1 passed (38.5s)
+(node:2296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42144) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

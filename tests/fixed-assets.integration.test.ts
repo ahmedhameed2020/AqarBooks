@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -75,26 +76,6 @@ beforeAll(async () => {
   }).select("id").single();
   propertyId = property!.id as string;
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-
-  // Eight monthly periods: seven to exhaust the asset, one to prove the eighth
-  // run posts nothing at all.
-  for (let m = 1; m <= 8; m++) {
-    const end = new Date(Date.UTC(2026, m, 0)).toISOString().slice(0, 10);
-    const { data: p, error } = await admin.from("fiscal_periods").insert({
-      organization_id: orgId, fiscal_year_id: fy!.id, period_number: m,
-      name: `P${m}`,
-      start_date: `2026-${String(m).padStart(2, "0")}-01`,
-      end_date: end,
-      status: "OPEN",
-    }).select("id").single();
-    expect(error, error?.message).toBeNull();
-    periodIds.push(p!.id as string);
-  }
-
   const email = `e2e-fa-${stamp}@aqarbooks-test.local`;
   const { data: created, error: userErr } = await admin.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
@@ -111,6 +92,19 @@ beforeAll(async () => {
   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, signInErr?.message).toBeNull();
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // create_fiscal_year makes twelve monthly periods; the test uses the first eight: seven to exhaust
+  // the asset, one to prove the eighth run posts nothing at all.
+  await createOpenFiscalYear(admin, asUser, {
+    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
+  const { data: periods, error: periodsErr } = await admin
+    .from("fiscal_periods").select("id, period_number")
+    .eq("organization_id", orgId).order("period_number");
+  expect(periodsErr, periodsErr?.message).toBeNull();
+  for (const p of (periods ?? []).slice(0, 8)) periodIds.push(p.id as string);
+  expect(periodIds).toHaveLength(8);
 });
 
 afterAll(async () => {
@@ -122,8 +116,7 @@ afterAll(async () => {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("platform_audit_logs").delete().eq("organization_id", orgId);
   await admin.from("properties").delete().eq("organization_id", orgId);
   await admin.from("chart_of_accounts").update({ is_used: false }).eq("organization_id", orgId);
@@ -224,12 +217,31 @@ describe("fixed assets and depreciation", () => {
   });
 
   it("refuses to post into a period that is not OPEN", async () => {
-    await admin.from("fiscal_periods").update({ status: "CLOSED" }).eq("id", periodIds[7]);
-    const { error } = await asUser.rpc("post_depreciation_for_period", {
-      p_organization_id: orgId, p_fiscal_period_id: periodIds[7],
-    });
-    expect(error?.message).toMatch(/FISCAL_PERIOD_NOT_OPEN/);
-    await admin.from("fiscal_periods").update({ status: "OPEN" }).eq("id", periodIds[7]);
+    // A direct write to the status is refused by the guard, and the row must stay as it was.
+    const { error: directErr } = await admin
+      .from("fiscal_periods").update({ status: "CLOSED" }).eq("id", periodIds[7]);
+    expect(directErr?.message, "direct status write must be refused").toMatch(/FISCAL_STATUS_DIRECT_WRITE_BLOCKED/);
+    expect(directErr?.code).toBe("42501");
+    const { data: unchanged } = await admin
+      .from("fiscal_periods").select("status").eq("id", periodIds[7]).single();
+    expect(unchanged!.status).toBe("OPEN");
+
+    // The transition goes through the owning function, then posting must be refused.
+    const { error: closeErr } = await asUser.rpc("set_fiscal_period_status", {
+      p_fiscal_period_id: periodIds[7], p_status: "CLOSED", p_reason: "test: closed period refuses posting",
+    } as never);
+    expect(closeErr, `close period: ${closeErr?.message}`).toBeNull();
+    try {
+      const { error } = await asUser.rpc("post_depreciation_for_period", {
+        p_organization_id: orgId, p_fiscal_period_id: periodIds[7],
+      });
+      expect(error?.message).toMatch(/FISCAL_PERIOD_NOT_OPEN/);
+    } finally {
+      const { error: reopenErr } = await asUser.rpc("set_fiscal_period_status", {
+        p_fiscal_period_id: periodIds[7], p_status: "OPEN", p_reason: "test: reopen after refusal check",
+      } as never);
+      expect(reopenErr, `reopen period: ${reopenErr?.message}`).toBeNull();
+    }
   });
 
   it("posts a balanced entry that debits the expense and credits accumulated depreciation", async () => {

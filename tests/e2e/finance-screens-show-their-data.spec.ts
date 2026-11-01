@@ -14,10 +14,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "../helpers/fiscal-calendar";
 loadEnv({ path: ".env.local" });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const STAFF_PASSWORD = "E2E_Test_P@ssw0rd_2026!";
 
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
@@ -59,14 +61,14 @@ test.beforeAll(async () => {
   await admin.from("user_role_assignments")
     .insert({ user_id: userId, role_id: role!.id, organization_id: orgId });
 
-  const acc = async (code: string, cat: string, bal: string) => {
+  const acc = async (code: string, cat: string, bal: string, cashEquivalent = false) => {
     const { data } = await admin.from("chart_of_accounts").insert({
       organization_id: orgId, code, name_ar: code, name_en: code,
-      category: cat, normal_balance: bal,
+      category: cat, normal_balance: bal, is_cash_equivalent: cashEquivalent,
     }).select("id").single();
     return data!.id as string;
   };
-  const cashAccount = await acc("1010", "ASSET", "DEBIT");
+  const cashAccount = await acc("1010", "ASSET", "DEBIT", true);
   const receivable = await acc("1200", "ASSET", "DEBIT");
   const revenue = await acc("4100", "REVENUE", "CREDIT");
 
@@ -84,14 +86,17 @@ test.beforeAll(async () => {
     organization_id: orgId, full_name: "دافع الاختبار", is_company: false,
   }).select("id").single();
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  const { data: period } = await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "P1", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // The journal entry below is dated 2026-06-15, so its period is the monthly period containing that date.
+  const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { error: ownerSignErr } = await ownerClient.auth.signInWithPassword({ email: staffEmail, password: STAFF_PASSWORD });
+  expect(ownerSignErr, `owner sign-in failed: ${ownerSignErr?.message}`).toBeNull();
+  await createOpenFiscalYear(admin, ownerClient, {
+    orgId, name: "FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
+  const { data: period, error: periodErr } = await admin.from("fiscal_periods").select("id")
+    .eq("organization_id", orgId).lte("start_date", "2026-06-15").gte("end_date", "2026-06-15").single();
+  expect(periodErr, `period lookup failed: ${periodErr?.message}`).toBeNull();
 
   // --- the four markers ---
 
@@ -131,7 +136,7 @@ test.beforeAll(async () => {
   expect(paymentErr, `payment seed failed: ${paymentErr?.message}`).toBeNull();
 
   const { data: entry, error: entryErr } = await admin.from("journal_entries").insert({
-    organization_id: orgId, property_id: propertyId, fiscal_period_id: period!.id,
+    organization_id: orgId, property_id: propertyId, fiscal_period_id: period!.id as string,
     entry_date: "2026-06-15", description: ENTRY_DESCRIPTION,
     source_type: "JOURNAL_VOUCHER", status: "POSTED",
   }).select("id").single();
@@ -162,8 +167,6 @@ test.afterAll(async () => {
   await del("payments");
   await del("dues");
   await del("journal_entries");
-  await del("fiscal_periods");
-  await del("fiscal_years");
   await del("bank_accounts");
   await del("banks");
   await del("members");

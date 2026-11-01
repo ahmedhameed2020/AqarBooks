@@ -1,0 +1,12 @@
+﻿BEFORE clean: C: free 6.28 GB  (2026-10-14T10:40:07)
+node.exe : npm warn using --force Recommended protections disabled.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn using ...tions disabled.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+AFTER clean: C: free 23.56 GB  (2026-10-14T10:44:41); took 202s
+npm-cache folder after: 5.83 GB
+node_modules still present: True

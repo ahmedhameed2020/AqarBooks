@@ -1,0 +1,5 @@
+ledger 82 / files 82 → MATCH
+db diff observation 1: differs (70 lines)
+db diff observation 2: differs (70 lines)
+db diff: DRIFT_REPRODUCED -- two consecutive observations reported the same difference (the tool repeated its report; not an independent proof); 2 observations: 0 clean, 2 differing, 0 tool errors; all outputs kept in D:\Web\AqarBooks\docs\audits\phase3-evidence\task9-drift\verify-outputs\aqarbooks-verify-2026-10-14T04-57-01-472Z
+exit 1

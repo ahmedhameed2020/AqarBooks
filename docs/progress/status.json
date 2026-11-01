@@ -1,0 +1,422 @@
+{
+  "schema_version": 1,
+  "generated_note": "Hand-maintained from the session reports listed in each phase's evidence. Statuses describe only what those reports established. This file is not a production readiness score.",
+  "production_readiness": "not_assessed",
+  "production_readiness_note": "Production readiness has not been assessed. No percentage or score in this file measures it.",
+  "phases": [
+    {
+      "id": "ux-sprint-1",
+      "name_ar": "السبرينت 1 لتجربة المستخدم (المالية)",
+      "name_en": "UX Sprint 1 (finance UX)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/finance-error-message.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-ux.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/receipt-void-ux.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-currency.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/bank-reconciliation-rtl.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/treasury-error-codes.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/db-error-code.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        },
+        {
+          "file": "tests/einvoice-receivable-account.test.ts",
+          "result_text": "Part of combined run: 113/113 passing (reported)"
+        }
+      ],
+      "blockers": [
+        "No browser verification",
+        "No Playwright run",
+        "No integration verification",
+        "Arabic copy not reviewed by a translator",
+        "Ownership of treasury error mapping in receivables.ts is not settled",
+        "English string in the Arabic branch of statement-forms.tsx not fixed"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "Combined unit test run: 113/113 passing, tsc exit 0 (session report)",
+        "tests/finance-error-message.test.ts",
+        "tests/bank-reconciliation-ux.test.ts",
+        "tests/receipt-void-ux.test.ts",
+        "tests/bank-reconciliation-currency.test.ts",
+        "tests/bank-reconciliation-rtl.test.ts",
+        "tests/treasury-error-codes.test.ts",
+        "tests/db-error-code.test.ts",
+        "tests/einvoice-receivable-account.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-0",
+      "name_ar": "السبرينت 2 - الدفعة 0 (صدق معالج الإقفال)",
+      "name_en": "Sprint 2 Batch 0 (closing wizard honesty)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/year-closing-wizard-honesty.test.ts",
+          "result_text": "6/6 passing"
+        }
+      ],
+      "blockers": [
+        "None in code",
+        "Per-period close button still has no pre-checks (by design in this batch)"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "tests/year-closing-wizard-honesty.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-1a",
+      "name_ar": "السبرينت 2 - الدفعة 1A (حساب الإقفال النقي)",
+      "name_en": "Sprint 2 Batch 1A (pure closing calculation)",
+      "status": "code_complete",
+      "tests": [
+        {
+          "file": "tests/fiscal-year-closing.test.ts",
+          "result_text": "38/38 passing"
+        },
+        {
+          "file": "tests/year-closing-wizard-honesty.test.ts",
+          "result_text": "6/6 passing; 44 total with fiscal-year-closing (reported)"
+        }
+      ],
+      "blockers": [
+        "No database side yet"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "lib/accounting/fiscal-year-closing.ts",
+        "tests/fiscal-year-closing.test.ts",
+        "tests/year-closing-wizard-honesty.test.ts"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-1b",
+      "name_ar": "السبرينت 2 - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير)",
+      "name_en": "Sprint 2 Batch 1B (closing SQL, guards, permission, reports)",
+      "status": "verified",
+      "tests": [
+        {
+          "file": "tests/projects-wip.spec.ts",
+          "result_text": "8/8 passing on r6 after proposal 200000; the cancelled-draft case failed before the fix with released=900.00 instead of 600.00."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_after_210000.txt",
+          "result_text": "PASS on r6 after proposal 210000: status-only cancelled draft remains excluded; capitalised=1000, released=600, wip_balance=400, ledger=400. Transaction rolled back."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_floor_after.txt",
+          "result_text": "PASS on r6 after proposal 210000: cancelling a DRAFT WIP debit by status alone leaves guard net=100 and ledger=100; the pre-fix run reproduced net=-200 with ledger=100."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run7/results/cancelled_credit_release_immediate_after.txt",
+          "result_text": "PASS on r6 after proposal 220000: cancelled credit is excluded from the enforceable floor; valid release=600 and SET CONSTRAINTS ALL IMMEDIATE pass with WIP=400 and ledger=400."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run8/results/guard_tests_after_220000.log",
+          "result_text": "PASS on r6 after proposal 220000: non-negative to negative refused without writing; old negative improves -500 to -400; both release/reversal race orders pass; cancelled debit status-neutral net remains 100."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run9/results/cancelled_debit_status_guard_recheck.txt",
+          "result_text": "PASS on focused r6 recheck after proposal 230000: floor_net printed 100 before and -200 after attempted status-only debit cancellation; SET CONSTRAINTS ALL IMMEDIATE refused it before ROLLBACK; after rollback net=100, floor_net=100, ledger=100 and status=DRAFT. No SQL change was needed."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run9/results/status_guard_regression_after_230000.log",
+          "result_text": "PASS on r6 after proposal 230000: valid cancelled-credit release and deferred constraints pass; genuine posted reversals retain classification; both release/reversal race orders remain balanced and consistent."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run6/results/two_project_multiline_update_ordering.txt",
+          "result_text": "PASS on r6: both two-project update orders finish at A=400 and B=400 despite a temporary -600 in either direction. Test rows rolled back; setup rows cleaned up."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run6/results/cancelled_debit_release_regression.txt",
+          "result_text": "PASS on r6: with a cancelled WIP debit draft, release=1500 is refused against posted balance=1000 without writing; valid release=600 gives cap=1000, released=600, WIP=400, ledger=400. Transaction rolled back."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run5/results/posted_reversal_after.txt",
+          "result_text": "PASS on r6: reversed release gives 1000/0/1000; reversing the capitalisation then gives 0/0/0, with ledger agreement. Transaction rolled back."
+        },
+        {
+          "file": "tests/reports-suite-flow.spec.ts",
+          "result_text": "passing; 1 skipped (fixed-asset check, DEFERRED)"
+        },
+        {
+          "file": "tests/reports-lease-expirations.spec.ts",
+          "result_text": "1/1 passing"
+        },
+        {
+          "file": "tests/reports-lease-read-failure.spec.ts",
+          "result_text": "1/1 passing (read error shown, no rows)"
+        },
+        {
+          "file": "tests/reports-unbuilt-sections.spec.ts",
+          "result_text": "2 skipped: CAM and CAPEX/OPEX DEFERRED (test.fixme, never passed)"
+        },
+        {
+          "file": "tests/accounting-journey.spec.ts",
+          "result_text": "15/15 passing (manual journal path under option A)"
+        },
+        {
+          "file": "tests/vitest (20 files)",
+          "result_text": "4 re-run passing; 15 first-run results kept; sandbox-pilot.manual 3/9 (tax rules blocked, decision 0008)"
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/verify_reverse_negative_message.txt",
+          "result_text": "PASS on r6: refused reversal kept the original entry POSTED; proposal 190000 now labels 400 as the balance before the movement and -600 as the projected net, not a persisted balance."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/retry_valid_missing_attempt.txt",
+          "result_text": "PASS on r6: S1 rolled back on deadlock; its retry waited 3.907 s under a concurrent project lock, then committed. Both entries POSTED; PA=750, PB=800; 0 unbalanced retry entries."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run4/results/retry_seed.txt",
+          "result_text": "SETUP FAILED: a fixed UUID already existed in accumulated r6 data. Diagnosed as fixture collision, not a product regression; no data deleted. The atomic random-UUID fixture and subsequent deadlock/retry run passed."
+        },
+        {
+          "file": "tests/progress-status.test.ts",
+          "result_text": "7/7 passing after the Batch 1B 240000 handoff tracker update; runner elapsed 10.861 s, Vitest duration 2.48 s, exit 0 (docs/progress/evidence-r6-run10/results/batch1b-240000-progress-status.txt)."
+        },
+        {
+          "file": "tests/fixed-asset-disposal.integration.test.ts",
+          "result_text": "RED before REL-03: non-cash proceeds account accepted; final focused review on r6 after proposal 240000: 8/8 passing in 16.152 s. The corrected fixture uses independent ASSET account 1230 with is_cash_equivalent=false; refusal writes no entry and leaves the asset ACTIVE (rel03-review-integration.txt)."
+        },
+        {
+          "file": "tests/e2e/asset-disposal.spec.ts",
+          "result_text": "Final focused review on r6: 1/1 passing in 62.277 s; independent non-cash ASSET account 1230 is absent, cash is available and disposal balances (rel03-review-e2e-optimized.txt). The earlier review run timed out during context close after its assertions; its trace is retained."
+        }
+      ],
+      "blockers": [
+        "External, does not stop independent work: sandbox-pilot.manual 6 assertions remain unverified until approved tax rules exist (decision 0008 unsigned).",
+        "External, does not stop independent work: owner-portal-online-payment-fawry not run (Fawry keys absent).",
+        "Deferred by explicit owner decision (2026-10-29, decisions/2026-10-29-report-deferrals.md): asset report, CAM, CAPEX/OPEX. Links hidden; tests test.fixme (skipped, not passed).",
+        "REL-03 closed on r6 on 2026-10-31: WIP legacy negative balances may improve only; positive disposal proceeds are limited to active non-group same-organization ASSET cash/bank accounts with is_cash_equivalent=true; asset, accumulated-depreciation and cost-centre-required accounts are rejected; receivables and in-kind disposal are excluded; zero-proceeds account remains required but is not used. Proposal 240000 applied only to r6; local review review-240000-sql.md closed the test-isolation finding without SQL changes; integration 8/8, Playwright 1/1, TypeScript and the earlier build passed. No independent human sign-off or production approval is implied.",
+        "Decided by owner on 2026-10-30: authenticated and anon remain without journal_entry_lines UPDATE/DELETE policies; no expansion is required to close Batch 1B. Any future expansion requires separate approval and focused tests.",
+        "Local multi-line update ordering is complete: both two-project orders passed at final net 400/400. No remaining local test task blocks review handoff.",
+        "REL-02 accepted and closed on 2026-10-31 based on the owner's explicit message 'قبول' reporting the SQL/DBA review outcome for proposals 120000-230000, including rollback notes and existing behavior. Recorded in docs/progress/review-signoff-120000-230000.md; no separate independent report was attached and no production approval is implied.",
+        "Batch 1B review accepted and closed on 2026-10-31 at 12:27 based on the owner's explicit message 'قبول' for review closure only. Accepted archive: docs/progress/review-bundle-r6-240000.zip, SHA-256 6c70aac3f9be4622bf13fb52409cd9957f94eb0094cc7636eaa742c986897753; recorded in review-signoff-batch-1b.md. The archive remains unchanged as the reviewed pre-signoff snapshot. Not applied outside r6; no production approval or readiness claim."
+      ],
+      "last_updated": "2026-10-31",
+      "evidence": [
+        "docs/progress/review-bundle-r6-240000.zip",
+        "docs/progress/review-bundle-r6-240000/manifest.txt",
+        "docs/progress/review-signoff-batch-1b.md",
+        "docs/progress/review-bundle-r6-230000.zip",
+        "docs/progress/review-bundle-r6-230000/manifest.txt",
+        "docs/progress/ROADMAP.md",
+        "docs/progress/review-230000-sql.md",
+        "docs/progress/review-240000-sql.md",
+        "docs/progress/review-signoff-120000-230000.md",
+        "docs/progress/disposal-proceeds-account-recommendation.md",
+        "docs/progress/proposals/20261029240000_disposal_proceeds_cash_only.sql",
+        "docs/progress/evidence-r6-run10/results/rel03-review-integration.txt",
+        "docs/progress/evidence-r6-run10/",
+        "docs/progress/evidence-r6-run9/",
+        "docs/progress/evidence-r6-run8/",
+        "docs/progress/evidence-r6-run7/",
+        "docs/progress/proposals/20261029220000_project_wip_floor_ignore_cancelled_drafts.sql",
+        "docs/progress/proposals/20261029230000_project_status_cancellation_floor.sql",
+        "docs/progress/evidence-r6-run6/",
+        "docs/progress/evidence-r6-run5/",
+        "docs/progress/evidence-r6-run4/",
+        "docs/progress/decisions/"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-2",
+      "name_ar": "السبرينت 2 - الدفعة 2 (رموز أخطاء الترحيل)",
+      "name_en": "Sprint 2 Batch 2 (posting error codes)",
+      "status": "verified",
+      "tests": [
+        {
+          "file": "tests/fiscal-period-not-open.integration.test.ts",
+          "result_text": "RED on r6 before proposal 250000: 2 failed (manual posting and reversal lacked FISCAL_PERIOD_NOT_OPEN) and 3 passed (dues, payments, bank expense), elapsed 19.403 s. GREEN on r6 after proposal 250000: 5/5 passing, exit 0, elapsed 10.980 s; refused operations preserved the pre-attempt counts and manual/original entry states."
+        },
+        {
+          "file": "tests/fiscal-calendar-transition.test.ts",
+          "result_text": "12 passed, 6 declared todo, exit 0, elapsed 2.396 s. The todo entries were not executed or counted as passes."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run10/results/batch2-typescript-result.txt",
+          "result_text": "node node_modules/typescript/bin/tsc --noEmit exited 0 with no diagnostics."
+        }
+      ],
+      "blockers": [
+        "None within Batch 2. The owner explicitly accepted review closure with 'قبول' on 2026-10-31 at 13:55; recorded in docs/progress/review-signoff-batch-2.md. Verified on r6 only; Batch 3 has not started.",
+        "The live before/after diff contains exactly two changed raise statements in post_journal_entry_internal and reverse_journal_entry. Existing FOR SHARE locks, grants, and ENTRY_IN_CLOSED_PERIOD semantics are unchanged.",
+        "Full UI and Batch 1B suites were intentionally not rerun; this was a focused Batch 2 change. No deployment, commit, push, or connection to development/production occurred.",
+        "External tax-rule and Fawry-key decisions remain outside Batch 2 and do not block independent work."
+      ],
+      "last_updated": "2026-10-31",
+      "evidence": [
+        "tests/fiscal-period-not-open.integration.test.ts",
+        "docs/progress/review-signoff-batch-2.md",
+        "docs/progress/proposals/20261031125000_fiscal_period_not_open_stable.sql",
+        "docs/progress/proposals/20261031125000_fiscal_period_not_open_stable_rollback.sql (not applied)",
+        "docs/progress/evidence-r6-run10/results/batch2-250000-live.diff",
+        "docs/progress/evidence-r6-run10/results/batch2-period-code-red-r6.txt",
+        "docs/progress/evidence-r6-run10/results/batch2-period-code-green-r6.txt",
+        "docs/progress/evidence-r6-run10/results/batch2-fiscal-calendar-transition.txt",
+        "docs/progress/evidence-r6-run10/results/batch2-typescript-result.txt",
+        "docs/progress/evidence-r6-run10/results/batch2-250000-apply-r6-retry.txt"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "sprint-2-batch-3",
+      "name_ar": "السبرينت 2 - الدفعة 3 (واجهة رحلة الإقفال)",
+      "name_en": "Sprint 2 Batch 3 (closing journey UI)",
+      "status": "verified",
+      "tests": [
+        {
+          "file": "tests/year-closing-wizard-honesty.test.ts",
+          "result_text": "Initial RED: 8 failed and 1 passed of 9 in 9.778 s. GREEN after implementation: 9/9 passing; after the authorization fix: 9/9 passing, runner elapsed 3.723 s."
+        },
+        {
+          "file": "tests/platform-tenant-authorization.test.ts",
+          "result_text": "53/53 passing after the bounded permission lookup fix, including a 102-grant regression, wrong-role denial, PLATFORM_SUPER_ADMIN denial, and fail-closed errors; runner elapsed 7.159 s."
+        },
+        {
+          "file": "tests/batch3-auth-debug.integration.test.ts",
+          "result_text": "1/1 passing on isolated r6: finance.years.close resolved by key and matched to the fixture owner's valid tenant role; runner elapsed 8.894 s."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run10/results/batch3-typescript-after-auth-fix.txt",
+          "result_text": "node node_modules/typescript/bin/tsc --noEmit exited 0 with no diagnostics; tool wall time 73.323 s."
+        },
+        {
+          "file": "docs/progress/evidence-r6-run10/results/batch3-build-webpack-final-retry.txt",
+          "result_text": "Next.js r6 Webpack build exited 0 in 197.237 s after cache warm-up; TypeScript and 225/225 static pages passed. Earlier Turbopack attempts failed in the CSS Node worker and timed-out Webpack attempts are retained, not counted as passes."
+        },
+        {
+          "file": "tests/e2e/year-end-closing-journey.spec.ts",
+          "result_text": "1/1 passing on isolated r6; Playwright 38.5 s, managed runner 49.872 s. Verified CLOSED year, one posted YEAR_END_CLOSING entry, two balanced lines, net income 100, one FISCAL_YEAR_CLOSED audit row, typed-phrase rejection, Arabic/English/mobile views, and zero page errors."
+        }
+      ],
+      "blockers": [
+        "Owner acceptance recorded on 2026-11-01 (explicit acceptance message; review-signoff-batch-3.md). Verified on r6 only; not a production approval. F1 remediation is kept as an r6-only proposal (20261101090000_platform_admin_membership_guard.sql) pending conversion to a production migration.",
+        "Turbopack build remains blocked by its local CSS Node pooled-process error; the scoped Webpack build passed and all failed/timed-out attempts are preserved in evidence.",
+        "External tax-rule and Fawry-key decisions remain outside Batch 3 and do not block independent work.",
+        "No development or production connection, deployment, commit, or push occurred. Closed fixture organizations were not deleted."
+      ],
+      "last_updated": "2026-11-01",
+      "evidence": [
+        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-red.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-after-auth-fix.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-tenant-auth-regression.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-auth-fixed.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-typescript-after-auth-fix.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-build-webpack-final-retry.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-e2e-final.txt",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-e2e-database.json",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-ar-precheck.png",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-ar-preview.png",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-en-preview.png",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-en-result.png",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-en-confirm-mobile.png",
+        "docs/progress/review-signoff-batch-3.md",
+        "docs/progress/evidence-r6-run10/results/b3-ui-core-suite-report.md",
+        "docs/progress/security-review-anon-authenticated-2026-10-31.md",
+        "docs/progress/proposals/20261101090000_platform_admin_membership_guard.sql",
+        "docs/progress/proposals/20261101090000_platform_admin_membership_guard_rollback.sql"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported. Local code completion is not production readiness."
+    },
+    {
+      "id": "bi-1",
+      "name_ar": "BI-1 - صدق مؤشرات لوحات المعلومات",
+      "name_en": "BI-1 (dashboard indicator honesty)",
+      "status": "verified",
+      "tests": [
+        {
+          "file": "tests/tenant-dashboard-access.test.tsx + tests/insights-card.test.tsx + tests/platform-dashboard.test.tsx + focused related suites",
+          "result_text": "7 files, 45/45 passing after fixes; 9 RED failures reproduced before remediation."
+        },
+        {
+          "file": "tests/e2e/dashboard-bi1.spec.ts",
+          "result_text": "1/1 passing on isolated r6 in English and Arabic; zero unhandled page errors asserted."
+        },
+        {
+          "file": "docs/progress/review-bundle-r6-bi1/logs/build-r6.txt (inside ZIP)",
+          "result_text": "r6 build passed; 225/225 pages generated; TypeScript passed; build exit 0."
+        }
+      ],
+      "blockers": [
+        "None within BI-1 scope after independent final review.",
+        "Full UI suite was not run; six documented unused-vars warnings remain outside the closure gate.",
+        "This local verified status is not a production readiness assessment or deployment approval."
+      ],
+      "last_updated": "2026-10-30",
+      "evidence": [
+        "docs/progress/review-bundle-r6-bi1.zip",
+        "docs/progress/review-bundle-r6-bi1.zip.sha256",
+        "docs/progress/review-bundle-r6-bi1.verify.txt",
+        "Independent final review inside the ZIP: PASS; no BLOCKER, IMPORTANT or MINOR findings within BI-1.",
+        "Isolated r6 E2E evidence and final English/Arabic screenshots inside the ZIP."
+      ],
+      "percent_defined": null,
+      "percent_note": "Single scoped BI item; no percentage is reported and production readiness remains unassessed."
+    },
+    {
+      "id": "g0-local-rehearsal",
+      "name_ar": "بوابة G0 للتدريب المحلي",
+      "name_en": "Local rehearsal gate G0",
+      "status": "code_complete",
+      "tests": [],
+      "blockers": [
+        "Covers the LOCAL scope only (conditional approval recorded in APPROVAL-RECORD.md)",
+        "Blocked for production: production identity and any production action need separate approval"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [
+        "APPROVAL-RECORD.md (session report: G0 conditional local approval)"
+      ],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    },
+    {
+      "id": "production",
+      "name_ar": "الإنتاج",
+      "name_en": "Production",
+      "status": "not_started",
+      "tests": [],
+      "blockers": [
+        "Owner approval required",
+        "Production is not connected",
+        "G0 approval covers local scope only"
+      ],
+      "last_updated": "2026-10-23",
+      "evidence": [],
+      "percent_defined": null,
+      "percent_note": "No defined set of sub-items; no percentage is reported."
+    }
+  ]
+}

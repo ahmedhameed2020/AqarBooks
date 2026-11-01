@@ -1,0 +1,5 @@
+einvoice-flow exit 0
+finance-screens-show-their-data exit 0
+fixed-assets exit 0
+projects-wip exit 0
+reports-suite-flow exit 0

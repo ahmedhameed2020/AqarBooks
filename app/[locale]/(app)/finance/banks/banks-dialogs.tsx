@@ -47,6 +47,7 @@ import {
 } from "@/lib/actions/treasury";
 import { useToast } from "@/components/ui/toast";
 import { getCurrencyLabel } from "@/lib/currency";
+import { financeErrorMessage } from "@/lib/actions/error-messages";
 
 export type Option = { id: string; label: string };
 
@@ -101,7 +102,7 @@ export function CreateBankDialog({
         setNameEn("");
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل إضافة البنك" : "Failed to add bank"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل إضافة البنك" : "Failed to add bank"));
       }
     });
   };
@@ -235,7 +236,7 @@ export function CreateBankAccountDialog({
         setAccountNumber("");
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل إنشاء الحساب البنكي" : "Failed to create bank account"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل إنشاء الحساب البنكي" : "Failed to create bank account"));
       }
     });
   };
@@ -329,6 +330,13 @@ export function CreateBankAccountDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {assetAccounts.length === 0 ? (
+                <p className="text-[11px] text-destructive" data-testid="gl-accounts-empty">
+                  {isAr
+                    ? "لا يوجد حساب أستاذ نقدي أو بنكي فعّال. فعّل علامة «نقدية / ما في حكمها» على الحساب المناسب في دليل الحسابات أولًا."
+                    : "No active cash or bank GL account exists. Mark the right account as cash / cash-equivalent in the chart of accounts first."}
+                </p>
+              ) : null}
             </div>
           </DialogBody>
 
@@ -336,7 +344,7 @@ export function CreateBankAccountDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {isAr ? "إلغاء" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isPending || !accountName.trim() || !accountNumber.trim() || !bankId} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
+            <Button type="submit" disabled={isPending || !accountName.trim() || !accountNumber.trim() || !bankId || !glAccountId} className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5">
               {isPending ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
               <span>{isAr ? "حفظ الحساب البنكي" : "Save Bank Account"}</span>
             </Button>
@@ -418,7 +426,7 @@ export function RecordChequeDialog({
         setAmount("");
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل تسجيل الشيك" : "Failed to record cheque"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل تسجيل الشيك" : "Failed to record cheque"));
       }
     });
   };
@@ -636,7 +644,7 @@ export function ClearChequeDialog({
         onOpenChange(false);
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل تحصيل الشيك" : "Failed to clear cheque"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل تحصيل الشيك" : "Failed to clear cheque"));
       }
     });
   };
@@ -785,7 +793,7 @@ export function UpdateChequeStatusDialog({
         onOpenChange(false);
         router.refresh();
       } else {
-        setErrorMsg(res.error || (isAr ? "فشل تحديث الحالة" : "Failed to update status"));
+        setErrorMsg(res.error ? financeErrorMessage(res.error, isAr) : (isAr ? "فشل تحديث الحالة" : "Failed to update status"));
       }
     });
   };

@@ -53,7 +53,7 @@ let mockOwnerCheckTargetAssignmentError: { message: string } | null = null;
 // Admin-client RPC fixture: records calls so tests can assert the atomic
 // role-permission replacement, and lets tests force an error response.
 let mockAdminRpcCalls: Array<{ fnName: string; args: Record<string, unknown> }> = [];
-let mockAdminRpcError: { message: string } | null = null;
+let mockAdminRpcError: { message: string; code?: string } | null = null;
 
 // Mock dependencies
 vi.mock("@/lib/auth/session", () => ({
@@ -323,11 +323,20 @@ vi.mock("@/lib/supabase/admin", () => ({
               if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && val === roleNewId) {
                 return Promise.resolve({ data: null, error: mockRolePermissionsSelectError });
               }
-              if (field === "role_id") {
-                const matched = mockRolePermissions.filter((rp) => !rp.role_id || rp.role_id === val);
-                return Promise.resolve({ data: matched, error: null });
-              }
-              return Promise.resolve({ data: mockRolePermissions, error: null });
+              const matched = mockRolePermissions.filter((rp) => {
+                if (rp.role_id && field === "role_id") return rp.role_id === val;
+                if (field === "permission_id") return rp.permission_id === val;
+                return true;
+              });
+              return {
+                in: vi.fn().mockImplementation((nextField: string, vals: string[]) => {
+                  const nextMatches = matched.filter((rp) => nextField !== "role_id" || !rp.role_id || vals.includes(rp.role_id));
+                  return {
+                    maybeSingle: vi.fn().mockResolvedValue({ data: nextMatches[0] || null, error: null }),
+                  };
+                }),
+                then: (resolve: unknown) => resolve({ data: matched, error: null }),
+              };
             }),
           };
           return chain;
@@ -346,11 +355,21 @@ vi.mock("@/lib/supabase/admin", () => ({
       if (table === "permissions") {
         queryBuilder.select.mockImplementation(() => {
           if (mockPermissionsSelectError && !mockPermissionsTargetOnly) {
+            const errorResult = { data: null, error: mockPermissionsSelectError };
             return {
-              in: vi.fn().mockResolvedValue({ data: null, error: mockPermissionsSelectError }),
+              in: vi.fn().mockResolvedValue(errorResult),
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue(errorResult),
+              }),
             };
           }
           return {
+            eq: vi.fn().mockImplementation((field: string, value: string) => ({
+              maybeSingle: vi.fn().mockImplementation(() => {
+                const found = mockPermissions.find((p) => (p as Record<string, unknown>)[field] === value);
+                return Promise.resolve({ data: found || null, error: null });
+              }),
+            })),
             in: vi.fn().mockImplementation((field: string, vals: string[]) => {
               if (mockPermissionsSelectError && mockPermissionsTargetOnly && vals.some((v) => v !== permUsersId && v !== permRolesId)) {
                 return Promise.resolve({ data: null, error: mockPermissionsSelectError });
@@ -513,6 +532,30 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
       const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
       expect(proof.ok).toBe(false);
       if (!proof.ok) expect(proof.error).toBe("forbidden");
+    });
+
+    it("resolves a heavily granted role without an oversized permission-ID lookup", async () => {
+      mockRolePermissions = Array.from({ length: 102 }, (_, index) => ({
+        role_id: roleAdminId,
+        permission_id: index === 101 ? permUsersId : `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      }));
+      mockPermissionsSelectError = { message: "upstream rejected the permission-ID list" };
+      mockPermissionsTargetOnly = true;
+
+      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
+      expect(proof).toEqual({ ok: true, userId: callerUserId });
+    });
+
+    it("rejects a permission held only by another role", async () => {
+      mockRolePermissions = [{ role_id: roleNewId, permission_id: permUsersId }];
+      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
+      expect(proof).toEqual({ ok: false, error: "forbidden" });
+    });
+
+    it("fails closed when the requested permission lookup errors", async () => {
+      mockPermissionsSelectError = { message: "upstream unavailable" };
+      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
+      expect(proof).toEqual({ ok: false, error: "forbidden" });
     });
 
     it("SEC-01: does NOT short-circuit or grant access via PLATFORM_SUPER_ADMIN role key", async () => {
@@ -725,6 +768,33 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
 
       const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
       expect(res).toEqual({ ok: false, error: "cannot_modify_system_role" });
+    });
+
+    it("Rollout: the database call carries the acting user, and an authorized update goes to the 4-argument signature only", async () => {
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
+      ];
+      const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
+      expect(res).toEqual({ ok: true });
+      const calls = mockAdminRpcCalls.filter((c) => c.fnName === "replace_role_permissions_atomic");
+      expect(calls).toHaveLength(1);
+      expect(Object.keys(calls[0].args).sort()).toEqual(["p_actor_user_id", "p_organization_id", "p_permission_ids", "p_role_id"]);
+      expect(typeof calls[0].args.p_actor_user_id).toBe("string");
+      expect(calls[0].args.p_actor_user_id).toBeTruthy();
+    });
+
+    it.each(["PGRST202", "42883"])("Rollout: if the 4-argument function is not installed yet (%s) the action fails closed and never retries another signature", async (code) => {
+      mockRoles = [
+        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
+        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
+      ];
+      mockAdminRpcError = { message: "Could not find the function public.replace_role_permissions_atomic", code };
+      const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
+      expect(res).toEqual({ ok: false, error: "role_service_upgrading" });
+      const calls = mockAdminRpcCalls.filter((c) => c.fnName === "replace_role_permissions_atomic");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].args).toHaveProperty("p_actor_user_id");
     });
 
     it("SEC-04: denyIfDemo blocks role creation and permission updates", async () => {

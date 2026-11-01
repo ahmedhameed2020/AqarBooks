@@ -1,0 +1,207 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances-integrity.integration.test.ts (16 tests | 12 failed) 45447ms
+     × the reviewer's case: apply 600 on 09-05, reverse it on 09-09, then apply 800 on 09-07 — today's balance would allow it, the 7th would be -400 => refused 2055ms
+     × reversal side: reversing an application never creates a negative anywhere 1ms
+     × the due side: a receipt that covered the due on 09-10 and was voided later does not let a credit application pay it twice on that date 1693ms
+     × an application cannot be dated before the due was issued 803ms
+     × a POSTED receipt whose entry is missing or DRAFT is invisible to the effective view, the credit view and the unit balance; with a posted entry it is counted 5565ms
+     × a key used by one operation is refused by the other two, in every direction, and each operation still replays itself 3177ms
+     × a key that already identifies a receipt (recorded by the legacy record_payment) is refused by all three 3644ms
+     × every advance receipt recorded before the registry took over has its registry row (backfill), in every organization 389ms
+     × M sees exactly the right figures at each date, equal to the staff view for M's receipt; the ledger stays closed to M 103ms
+     × another member of the same organization, the other organization's owner and an anonymous caller see none of M's figures 57ms
+     × grants: the helper is executable by authenticated and service_role only; the minimum helpers by nobody but the owner 624ms
+     × the 2250 ledger equals the credit left on POSTED advance receipts; every entry balances; the other organization is untouched 616ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 1. a back-dated application can never overdraw a later date > the reviewer's case: apply 600 on 09-05, reverse it on 09-09, then apply 800 on 09-07 — today's balance would allow it, the 7th would be -400 => refused
+AssertionError: expected a refusal matching /CREDIT_EXCEEDED_ON_DATE/: expected null not to be null
+ ❯ refused tests/customer-advances-integrity.integration.test.ts:36:65
+     34|   const before = await snap(orgId);
+     35|   const r = await call();
+     36|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     37|   expect(err(r)).toMatch(pattern);
+     38|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-integrity.integration.test.ts:93:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 1. a back-dated application can never overdraw a later date > reversal side: reversing an application never creates a negative anywhere
+TypeError: Cannot read properties of undefined (reading 'alloc')
+ ❯ tests/customer-advances-integrity.integration.test.ts:102:14
+    100|   });
+    101|   it("reversal side: reversing an application never creates a negative…
+    102|     const [{ alloc }] = applied;
+       |              ^
+    103|     ok(await reverse(accountant, fx, alloc, "2026-09-12"));
+    104|     assertNoNegativeHistory(fx.orgId, [RA], [E1, E2, E3]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 1. a back-dated application can never overdraw a later date > the due side: a receipt that covered the due on 09-10 and was voided later does not let a credit application pay it twice on that date
+AssertionError: expected a refusal matching /ALLOCATION_EXCEEDS_REMAINING_ON_DATE/: expected null not to be null
+ ❯ refused tests/customer-advances-integrity.integration.test.ts:36:65
+     34|   const before = await snap(orgId);
+     35|   const r = await call();
+     36|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     37|   expect(err(r)).toMatch(pattern);
+     38|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-integrity.integration.test.ts:110:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 1. a back-dated application can never overdraw a later date > an application cannot be dated before the due was issued
+AssertionError: expected a refusal matching /APPLICATION_BEFORE_DUE/: expected null not to be null
+ ❯ refused tests/customer-advances-integrity.integration.test.ts:36:65
+     34|   const before = await snap(orgId);
+     35|   const r = await call();
+     36|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     37|   expect(err(r)).toMatch(pattern);
+     38|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-integrity.integration.test.ts:116:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 2. readers require a POSTED receipt entry (views as well as as-of) > a POSTED receipt whose entry is missing or DRAFT is invisible to the effective view, the credit view and the unit balance; with a posted entry it is counted
+AssertionError: expected [ 1, 1, 1 ] to deeply equal [ +0, +0, 1 ]
+
+- Expected
++ Received
+
+  [
+-   0,
+-   0,
++   1,
++   1,
+    1,
+  ]
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:152:65
+    150|     for (const p of [noEntry, inDraft, good]) q(`insert into public.pa…
+    151|     const visible = (p: string) => Number(q(`select count(*) from publ…
+    152|     expect([visible(noEntry), visible(inDraft), visible(good)]).toEqua…
+       |                                                                 ^
+    153|     const credit = (p: string) => Number(q(`select count(*) from publi…
+    154|     expect([credit(advNoEntry), credit(advDraft), credit(advGood)]).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 3. one idempotency registry for record / apply / reverse > a key used by one operation is refused by the other two, in every direction, and each operation still replays itself
+AssertionError: expected a refusal matching /IDEMPOTENCY_KEY_REUSED/: expected null not to be null
+ ❯ refused tests/customer-advances-integrity.integration.test.ts:36:65
+     34|   const before = await snap(orgId);
+     35|   const r = await call();
+     36|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     37|   expect(err(r)).toMatch(pattern);
+     38|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-integrity.integration.test.ts:182:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 3. one idempotency registry for record / apply / reverse > a key that already identifies a receipt (recorded by the legacy record_payment) is refused by all three
+AssertionError: expected a refusal matching /IDEMPOTENCY_KEY_REUSED/: expected null not to be null
+ ❯ refused tests/customer-advances-integrity.integration.test.ts:36:65
+     34|   const before = await snap(orgId);
+     35|   const r = await call();
+     36|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     37|   expect(err(r)).toMatch(pattern);
+     38|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-integrity.integration.test.ts:206:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 3. one idempotency registry for record / apply / reverse > every advance receipt recorded before the registry took over has its registry row (backfill), in every organization
+AssertionError: expected '106' to be '0' // Object.is equality
+
+Expected: "0"
+Received: "106"
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:210:270
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > M sees exactly the right figures at each date, equal to the staff view for M's receipt; the ledger stays closed to M
+AssertionError: M on 2026-09-03: expected undefined to be 700 // Object.is equality
+
+- Expected:
+700
+
++ Received:
+undefined
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:241:77
+    239|     for (const [date, expected] of [["2026-09-01", undefined], ["2026-…
+    240|       const mine = (await asOf(mPortal, date)).find((r) => r.payment_i…
+    241|       expect(mine === undefined ? undefined : Number(mine), `M on ${da…
+       |                                                                             ^
+    242|       const viaStaff = await staff(date);
+    243|       expect(mine === undefined ? undefined : Number(mine), `staff on …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > another member of the same organization, the other organization's owner and an anonymous caller see none of M's figures
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "76ef6749-abc4-4ce8-ad6e-0e233e97bfa3",
+- ]
++ []
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:258:19
+    256|   it("another member of the same organization, the other organization'…
+    257|     const m2Ids = ((await m2Portal.rpc("payment_credit_balances_as_of"…
+    258|     expect(m2Ids).toEqual([m2Receipt]);
+       |                   ^
+    259|     expect(((await m2Portal.rpc("payment_allocations_as_of", { p_org: …
+    260|     expect(((await otherOwner.rpc("payment_credit_balances_as_of", { p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 4. the as-of readers under an owner's own portal session (no wider access to the ledger) > grants: the helper is executable by authenticated and service_role only; the minimum helpers by nobody but the owner
+AssertionError: expected '' to contain 'authenticated'
+
+- Expected
++ Received
+
+- authenticated
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:273:49
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  tests/customer-advances-integrity.integration.test.ts > 5. the books still agree after all of the above > the 2250 ledger equals the credit left on POSTED advance receipts; every entry balances; the other organization is untouched
+AssertionError: expected 2160 to be 2360 // Object.is equality
+
+- Expected
++ Received
+
+- 2360
++ 2160
+
+ ❯ tests/customer-advances-integrity.integration.test.ts:282:28
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 4 passed (16)
+   Start at  21:05:14
+   Duration  46.00s (transform 137ms, setup 118ms, import 144ms, tests 45.45s, environment 0ms)
+

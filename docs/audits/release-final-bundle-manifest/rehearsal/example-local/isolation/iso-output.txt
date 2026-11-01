@@ -1,0 +1,24 @@
+== routes (expect only lo and eth0 on 172.24.0.0/16)
+eth0 000018AC 00000000
+== DNS: name resolution of external names (expect failure)
+   example.com not resolved
+   one.one.one.one not resolved
+   dns.google not resolved
+== DNS over UDP to public resolvers (expect no answer)
+   UDP 53 1.1.1.1 no answer
+   UDP 53 8.8.8.8 no answer
+== DNS over TCP 53
+   TCP 53 8.8.8.8 blocked
+== TCP to the Internet
+   TCP 1.1.1.1:443 blocked
+   TCP 8.8.8.8:443 blocked
+   TCP 93.184.216.34:80 blocked
+== TCP to host and to the Docker gateway (expect blocked)
+   TCP host.docker.internal:5432 blocked
+   TCP 172.17.0.1:5432 blocked
+   TCP 172.17.0.1:54322 blocked
+== TCP to other projects' containers on other networks (expect blocked)
+   TCP 172.22.0.6:5432 blocked
+   TCP 172.19.0.12:5432 blocked
+== own network reachability (expect the container itself only; a second container would be needed for a positive control)
+   loopback 5432 open (local postgres)

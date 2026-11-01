@@ -62,7 +62,19 @@ export default async function AccountPage({
       .maybeSingle();
 
     if (membership?.status === "active") {
-      userRole = isAr ? "مدير المنشأة / مالك" : "Organization Owner";
+      // Show the role(s) actually assigned, not a fixed "Organization Owner".
+      const { data: assignments } = await supabase
+        .from("user_role_assignments")
+        .select("roles(name_ar, name_en)")
+        .eq("organization_id", organization.id)
+        .eq("user_id", user!.id);
+      const names = (assignments ?? [])
+        .map((a) => {
+          const r = a.roles as unknown as { name_ar?: string | null; name_en?: string | null } | null;
+          return isAr ? r?.name_ar ?? r?.name_en : r?.name_en ?? r?.name_ar;
+        })
+        .filter((n): n is string => Boolean(n));
+      if (names.length) userRole = names.join(isAr ? "، " : ", ");
     }
   }
 

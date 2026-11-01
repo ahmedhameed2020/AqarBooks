@@ -81,9 +81,10 @@ describe("Final Hardening Sprint migration", () => {
     const dialog = read("app/[locale]/(app)/finance/payments/payments-dialog.tsx");
     const paymentsPage = read("app/[locale]/(app)/finance/payments/page.tsx");
     const ai = read("app/[locale]/(app)/admin/ai-governance/ai-governance-client.tsx");
-    expect(receivables).toContain('method: z.enum(["CASH", "CHEQUE", "ONLINE"])');
-    expect(receivables).not.toContain('method: z.enum(["CASH", "BANK_TRANSFER"');
-    expect(dialog).not.toContain("BANK_TRANSFER");
+    // Receipt methods are exercised as behaviour in tests/receipt-methods-contract.test.ts (the server action) and in
+    // tests/e2e/accounting-bank-reconciliation.spec.ts (the dialog); BANK_TRANSFER is part of the contract now.
+    expect(receivables).toContain('"BANK_TRANSFER"');
+    expect(dialog).toContain("BANK_TRANSFER");
     expect(paymentsPage).not.toContain("Cash & POS");
     expect(paymentsPage).not.toContain("Cash & POS Receipts");
     expect(ai).toContain("Unavailable / Not operational in MVP");

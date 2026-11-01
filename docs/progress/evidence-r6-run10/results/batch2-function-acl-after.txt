@@ -1,0 +1,2 @@
+post_journal_entry_internal|postgres|{postgres=X/postgres,service_role=X/postgres}
+reverse_journal_entry|postgres|{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}

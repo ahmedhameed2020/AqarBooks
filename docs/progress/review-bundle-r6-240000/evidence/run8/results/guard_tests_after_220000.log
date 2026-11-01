@@ -1,0 +1,160 @@
+R6 FOCUSED GUARD REGRESSION AFTER 220000
+Scope: negative floor, negative improvement, release/reversal race orders, cancelled debit draft.
+No UI suite. Final successful logs only; corrected test setup/query attempts remain as separate files.
+
+===== negative_and_improvement.txt =====
+==== SETUP: isolated positive project M=1000 and pre-existing negative project N=-500
+BEGIN
+INSERT 0 2
+INSERT 0 3
+SET
+INSERT 0 6
+COMMIT
+SET
+ positive_baseline | negative_baseline 
+-------------------+-------------------
+         1000.0000 |         -500.0000
+(1 row)
+
+==== NONNEGATIVE 1000 -> -500: credit 1500 must be refused atomically
+BEGIN
+INSERT 0 1
+INSERT 0 2
+psql:/tmp/negative_and_improvement.sql:31: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 1000.0000, الصافي المتوقع بعد الحركة -500.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+ROLLBACK
+psql:/tmp/negative_and_improvement.sql:40: NOTICE:  ASSERT_NONNEGATIVE_TO_NEGATIVE_REFUSED_PASS: net remains 1000 and rejected entry wrote nothing
+DO
+==== PRE-EXISTING NEGATIVE -500 -> -400: debit 100 must be accepted
+BEGIN
+INSERT 0 1
+INSERT 0 2
+COMMIT
+psql:/tmp/negative_and_improvement.sql:57: NOTICE:  ASSERT_NEGATIVE_IMPROVEMENT_ACCEPTED_PASS: old negative improved from -500 to -400
+DO
+BEGIN
+DELETE 4
+DELETE 2
+COMMIT
+
+===== race1_release_hold.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+              release_id              
+--------------------------------------
+ 45a61fb8-ce73-4d07-8a8d-9dbdb30d08ec
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+
+===== race1_reverse_wait.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/race1_reverse_wait.sql:4: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 400.0000, الصافي المتوقع بعد الحركة -600.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+
+===== race1_verify.txt =====
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+DO
+psql:/tmp/race1_verify.sql:20: NOTICE:  ASSERT_RACE_ORDER1_PASS: release committed; later reversal refused; cap=1000 rel=600 wip=400 ledger=400 unbalanced=0
+
+===== race2_reverse_hold.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+BEGIN
+             reversal_id              
+--------------------------------------
+ 47797882-d915-4c69-b1d0-9aebb4a3aae3
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+
+===== race2_release_wait.txt =====
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/race2_release_wait.sql:4: ERROR:  PROJECT_RELEASE_EXCEEDS_WIP: التحرير (600) يتجاوز رصيد الأعمال تحت التنفيذ (0.0000)
+CONTEXT:  PL/pgSQL function release_project_wip(uuid,numeric,date,text) line 32 at RAISE
+
+===== race2_verify.txt =====
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+      0.0000 |   0.0000 |      0.0000
+(1 row)
+
+psql:/tmp/race2_verify.sql:23: NOTICE:  ASSERT_RACE_ORDER2_PASS: reversal committed; later release refused without writing; cap=0 rel=0 wip=0 ledger=0 unbalanced=0
+DO
+
+===== cancelled_draft_floor_after_220000.txt =====
+==== CASE 3: cancelling a DRAFT WIP debit by status must not change the floor net
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 2
+INSERT 0 4
+ net_before_cancellation 
+-------------------------
+                100.0000
+(1 row)
+
+COMMIT
+BEGIN
+UPDATE 1
+ net_after_cancellation 
+------------------------
+               100.0000
+(1 row)
+
+DO
+psql:/tmp/cancelled_draft_floor_regression.sql:39: NOTICE:  ASSERT_CANCELLED_DEBIT_FLOOR_PASS: net=100 ledger=100 before and after status-only cancellation
+ROLLBACK
+BEGIN
+DELETE 4
+DELETE 1
+COMMIT
+
+===== race_cleanup.txt =====
+BEGIN
+DELETE 4
+DELETE 2
+COMMIT

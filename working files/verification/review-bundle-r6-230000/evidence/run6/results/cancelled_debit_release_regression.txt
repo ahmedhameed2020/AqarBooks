@@ -1,0 +1,30 @@
+==== CANCELLED WIP DEBIT: release must use posted balance only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+SET
+psql:/tmp/cancelled_debit_release_regression.sql:44: NOTICE:  ASSERT_RELEASE_ATTEMPTS_PASS: over-posted release refused without writing; valid posted-only release executed
+DO
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+DO
+psql:/tmp/cancelled_debit_release_regression.sql:63: NOTICE:  ASSERT_CANCELLED_DEBIT_RELEASE_PASS: over-posted release refused without writing; valid release gives cap=1000 rel=600 wip=400 ledger=400
+ROLLBACK

@@ -1,0 +1,17 @@
+=== accounting-journey 12:55:26
+exit 0 ;  15 passed (3.6m);
+=== accounting-duplicates 12:59:08
+exit 0 ;  5 passed (1.1m);
+=== accounting-void-permission 13:00:24
+exit 0 ;  4 passed (30.1s);
+=== customer-advances 13:01:01
+exit 0 ;  10 passed (5.1m);
+=== customer-advances-ui-screens 13:06:12
+exit 0 ;  6 passed (3.5m);
+=== portal-statement 13:09:53
+exit 0 ;  8 passed (3.0m);
+=== page-error-states 13:13:05
+exit 0 ;  2 passed (1.1m);
+=== treasury-account-filter 13:14:20
+exit 0 ;  3 passed (57.8s);
+ALL-DONE

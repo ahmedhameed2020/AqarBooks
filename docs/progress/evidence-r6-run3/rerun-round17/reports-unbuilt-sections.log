@@ -1,0 +1,88 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\reports-unbuilt-sections.spec.ts:56:5 › CAM allocation report (NOT BUILT: placeholder; this check is expected to fail) (16.6s)
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  2 tests\e2e\reports-unbuilt-sections.spec.ts:70:5 › CAPEX vs OPEX report (NOT BUILT: placeholder; this check is expected to fail) (18.7s)
+
+
+  1) tests\e2e\reports-unbuilt-sections.spec.ts:56:5 › CAM allocation report (NOT BUILT: placeholder; this check is expected to fail) 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('h1')
+    Expected substring: "تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM)"
+    Received string:    "توزيع CAM"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('h1')
+        11 × locator resolved to <h1 class="text-lg font-bold">توزيع CAM</h1>
+           - unexpected value "توزيع CAM"
+
+
+      61 |     await page.goto(`${baseURL}/ar/finance/reports/cam-allocation`);
+      62 |     await page.waitForLoadState("domcontentloaded");
+    > 63 |     await expect(page.locator("h1")).toContainText("تقرير توزيع تكاليف الخدمات المشتركة والصيانة (CAM)");
+         |                                      ^
+      64 |     await expect(page.locator("text=معدل تكلفة المتر المربع").first()).toBeVisible();
+      65 |   } finally {
+      66 |     await owner.cleanUp();
+        at D:\Web\AqarBooks\tests\e2e\reports-unbuilt-sections.spec.ts:63:38
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-0f9d2--check-is-expected-to-fail-\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-0f9d2--check-is-expected-to-fail-\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-0f9d2--check-is-expected-to-fail-\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\reports-unbuilt-sections.spec.ts:70:5 › CAPEX vs OPEX report (NOT BUILT: placeholder; this check is expected to fail) 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('h1')
+    Expected substring: "تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX)"
+    Received string:    "تقرير CAPEX / OPEX"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('h1')
+        13 × locator resolved to <h1 class="text-lg font-bold">تقرير CAPEX / OPEX</h1>
+           - unexpected value "تقرير CAPEX / OPEX"
+
+
+      75 |     await page.goto(`${baseURL}/ar/finance/reports/capex-opex`);
+      76 |     await page.waitForLoadState("domcontentloaded");
+    > 77 |     await expect(page.locator("h1")).toContainText("تقرير مصاريف الصيانة الرأسمالية والتشغيلية (CAPEX vs OPEX)");
+         |                                      ^
+      78 |     await expect(page.locator("text=إنفاق رأسمالي (CAPEX)").first()).toBeVisible();
+      79 |   } finally {
+      80 |     await owner.cleanUp();
+        at D:\Web\AqarBooks\tests\e2e\reports-unbuilt-sections.spec.ts:77:38
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-75746--check-is-expected-to-fail-\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-75746--check-is-expected-to-fail-\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round17\reports-unbuilt-sections-artifacts\reports-unbuilt-sections-C-75746--check-is-expected-to-fail-\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\reports-unbuilt-sections.spec.ts:56:5 › CAM allocation report (NOT BUILT: placeholder; this check is expected to fail) 
+    tests\e2e\reports-unbuilt-sections.spec.ts:70:5 › CAPEX vs OPEX report (NOT BUILT: placeholder; this check is expected to fail) 
+

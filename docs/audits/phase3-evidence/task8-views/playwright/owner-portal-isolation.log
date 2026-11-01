@@ -1,0 +1,41 @@
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+[1/1] tests\e2e\owner-portal-isolation.spec.ts:131:5 › two owners in a browser each see only their own unit
+  1) tests\e2e\owner-portal-isolation.spec.ts:131:5 › two owners in a browser each see only their own unit 
+
+    Error: create_resort failed: not authorized
+
+    expect(received).toBeNull()
+
+    Received: {"code": "42501", "details": null, "hint": null, "message": "not authorized"}
+
+      104 |     p_email: null,
+      105 |   });
+    > 106 |   expect(resortError, `create_resort failed: ${resortError?.message}`).toBeNull();
+          |                                                                        ^
+      107 |
+      108 |   const unitCode = `UNIT-${label}`;
+      109 |   const { data: unit, error: unitError } = await admin
+        at setUpOwnerWithData (D:\Web\AqarBooks\tests\e2e\owner-portal-isolation.spec.ts:106:72)
+        at D:\Web\AqarBooks\tests\e2e\owner-portal-isolation.spec.ts:134:18
+
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\trace.zip
+    Usage:
+
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\owner-portal-isolation-two-ca6a6-ach-see-only-their-own-unit\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    tests\e2e\owner-portal-isolation.spec.ts:131:5 › two owners in a browser each see only their own unit 

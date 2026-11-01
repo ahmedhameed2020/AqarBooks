@@ -1,6 +1,9 @@
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
+import { buildPermissionChecker } from "@/lib/auth/nav-permissions";
+import { isAiAvailable } from "@/lib/ai/availability";
+import { ALL_DASHBOARD_KEYS, resolveDashboardAccess, sectionState, type SectionState } from "@/lib/dashboard/finance-visibility";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -52,6 +55,28 @@ function bucketFor(daysOverdue: number): (typeof AGING_BUCKETS)[number]["key"] {
   return "d90plus";
 }
 
+/**
+ * Shown instead of a number when the viewer may not read a section, or when reading it failed.
+ * A denied or failed query must never render as 0: zero reads as a real financial result.
+ */
+function StatePanel({ state, isAr, ar, en }: { state: Exclude<SectionState, "ok">; isAr: boolean; ar: string; en: string }) {
+  const denied = state === "denied";
+  return (
+    <div
+      data-state={state}
+      role={denied ? "note" : "alert"}
+      className="flex h-full min-h-24 items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+    >
+      <ShieldAlert className={denied ? "size-5 shrink-0 text-slate-400" : "size-5 shrink-0 text-rose-600"} />
+      <span>
+        {denied
+          ? isAr ? `${ar}: غير متاح لصلاحياتك` : `${en}: not available for your permissions`
+          : isAr ? `تعذّر تحميل ${ar}` : `Could not load ${en}`}
+      </span>
+    </div>
+  );
+}
+
 export async function TenantDashboard({
   organization,
   locale,
@@ -60,6 +85,7 @@ export async function TenantDashboard({
   locale: Locale;
 }) {
   const isAr = locale === "ar";
+  const collectionTarget = 90;
   const supabase = await createClient();
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
@@ -67,85 +93,147 @@ export async function TenantDashboard({
 
   // Last 6 calendar months, oldest first, for the trend chart.
   const monthRanges = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    const start = new Date(d.getFullYear(), d.getMonth(), 1);
-    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1));
+    const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
     return {
-      label: new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", { month: "short" }).format(d),
+      label: new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", { month: "short", timeZone: "UTC" }).format(d),
       start: start.toISOString().slice(0, 10),
       end: end.toISOString().slice(0, 10),
     };
   });
 
-  const { data: currentPeriod } = await supabase
-    .from("fiscal_periods")
-    .select("id, name, start_date, end_date")
-    .eq("organization_id", organization.id)
-    .eq("status", "OPEN")
-    .order("start_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const has = await buildPermissionChecker(organization.id, ALL_DASHBOARD_KEYS, user?.id);
+  const access = resolveDashboardAccess(has);
+  // Receivables need dues AND payments: outstanding = dues minus allocations of POSTED payments, and the
+  // payment tables are permission-gated separately. With only one of them the figure would be wrong.
+  const wantReceivables = access.dues && access.payments;
+  const skipped = { data: null, count: null, error: null } as const;
+
+  const currentPeriodRes = access.periods
+    ? await supabase
+        .from("fiscal_periods")
+        .select("id, name, start_date, end_date")
+        .eq("organization_id", organization.id)
+        .eq("status", "OPEN")
+        .lte("start_date", today)
+        .gte("end_date", today)
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null, error: null };
+  const currentPeriod = currentPeriodRes.data;
 
   const [
-    { data: periodBalance },
-    { data: dues },
-    { data: allocations },
-    { data: payments },
-    { count: openSessions },
-    { count: unpostedEntries },
-    { count: outstandingCheques },
-    { count: unitsCount },
-    { count: membersCount },
-    monthlyBalances,
+    periodRes,
+    duesRes,
+    allocRes,
+    paymentsRes,
+    sessionsRes,
+    entriesRes,
+    chequesRes,
+    unitsRes,
+    ownedRes,
+    membersRes,
+    monthlyRes,
   ] = await Promise.all([
-    currentPeriod
+    access.reports && currentPeriod
       ? supabase.rpc("get_trial_balance", {
           p_organization_id: organization.id,
           p_start_date: currentPeriod.start_date,
           p_end_date: currentPeriod.end_date,
         })
-      : Promise.resolve({ data: null }),
-    supabase.from("dues").select("id, amount, due_date, status, unit_id").eq("organization_id", organization.id),
-    supabase.from("payment_allocations").select("due_id, amount, payment_id"),
-    supabase
-      .from("payments")
-      .select("id, receipt_number, amount, method, payment_date, status, created_at")
-      .eq("organization_id", organization.id)
-      .eq("status", "POSTED")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("cashier_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organization.id)
-      .eq("status", "OPEN"),
-    supabase
-      .from("journal_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organization.id)
-      .in("status", ["DRAFT", "UNDER_REVIEW"]),
-    supabase
-      .from("cheques")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organization.id)
-      .in("status", ["RECEIVED", "DEPOSITED"]),
-    supabase
-      .from("units")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organization.id),
-    supabase
-      .from("members")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organization.id),
-    Promise.all(
-      monthRanges.map((m) =>
-        supabase.rpc("get_trial_balance", {
-          p_organization_id: organization.id,
-          p_start_date: m.start,
-          p_end_date: m.end,
-        }),
-      ),
-    ),
+      : Promise.resolve(skipped),
+    wantReceivables
+      ? supabase.from("dues").select("id, amount, due_date, status, unit_id").eq("organization_id", organization.id)
+      : Promise.resolve(skipped),
+    access.payments
+      ? supabase.from("effective_payment_allocations").select("due_id, amount, payment_id")
+      : Promise.resolve(skipped),
+    access.payments
+      ? supabase
+          .from("payments")
+          .select("id, receipt_number, amount, method, payment_date, status, created_at")
+          .eq("organization_id", organization.id)
+          .eq("status", "POSTED")
+          .order("created_at", { ascending: false })
+      : Promise.resolve(skipped),
+    access.cashier
+      ? supabase
+          .from("cashier_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .eq("status", "OPEN")
+      : Promise.resolve(skipped),
+    access.entries
+      ? supabase
+          .from("journal_entries")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .in("status", ["DRAFT", "UNDER_REVIEW"])
+      : Promise.resolve(skipped),
+    access.cheques
+      ? supabase
+          .from("cheques")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .in("status", ["RECEIVED", "DEPOSITED"])
+      : Promise.resolve(skipped),
+    // Units are counted the same way everywhere (property page, dashboard): ACTIVE units, i.e. not archived.
+    access.property
+      ? supabase
+          .from("units_with_financials")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .is("archived_at", null)
+      : Promise.resolve(skipped),
+    access.property
+      ? supabase
+          .from("units_with_financials")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .is("archived_at", null)
+          .eq("occupancy_status", "OCCUPIED")
+      : Promise.resolve(skipped),
+    access.property
+      ? supabase.from("members").select("id", { count: "exact", head: true }).eq("organization_id", organization.id)
+      : Promise.resolve(skipped),
+    access.reports
+      ? Promise.all(
+          monthRanges.map((m) =>
+            supabase.rpc("get_trial_balance", {
+              p_organization_id: organization.id,
+              p_start_date: m.start,
+              p_end_date: m.end,
+            }),
+          ),
+        )
+      : Promise.resolve([] as (typeof skipped)[]),
   ]);
+
+  const periodBalance = periodRes.data;
+  const dues = duesRes.data;
+  const allocations = allocRes.data;
+  const payments = paymentsRes.data;
+  const openSessions = sessionsRes.count;
+  const unpostedEntries = entriesRes.count;
+  const outstandingCheques = chequesRes.count;
+  const unitsCount = unitsRes.count;
+  const ownedCount = ownedRes.count;
+  const membersCount = membersRes.count;
+  const monthlyBalances = monthlyRes;
+
+  // One state per section: denied (not queried), error (a query failed), or ok. Only "ok" renders figures.
+  const reportsState = sectionState(access.reports, [currentPeriodRes, periodRes, ...monthlyRes]);
+  const receivablesState = sectionState(wantReceivables, [duesRes, allocRes, paymentsRes]);
+  const collectionsState = sectionState(access.payments, [paymentsRes]);
+  const entriesState = sectionState(access.entries, [entriesRes]);
+  const cashierState = sectionState(access.cashier, [sessionsRes]);
+  const chequesState = sectionState(access.cheques, [chequesRes]);
+  const propertyState = sectionState(access.property, [unitsRes, ownedRes, membersRes]);
 
   const revenue = (periodBalance ?? []).filter((r) => r.category === "REVENUE").reduce((s, r) => s + r.balance, 0);
   const expenses = (periodBalance ?? []).filter((r) => r.category === "EXPENSE").reduce((s, r) => s + r.balance, 0);
@@ -220,91 +308,112 @@ export async function TenantDashboard({
     <>
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {reportsState === "ok" ? (
+          <>
+            <div>
+              <KpiCard
+                label={isAr ? `إجمالي الإيرادات الاستحقاقية (${currency})` : `Total Revenue — accrual (${currency})`}
+                value={currentPeriod ? <CountUp value={revenue} locale={locale} /> : "—"}
+                hint={currentPeriod ? currentPeriod.name : isAr ? "لا توجد فترة مفتوحة تشمل تاريخ اليوم" : "No open period contains today"}
+                icon={<TrendingUp className="size-5.5" />}
+                tone="positive"
+              />
+            </div>
+            <div>
+              <KpiCard
+                label={isAr ? `إجمالي المصروفات الاستحقاقية (${currency})` : `Total Expenses — accrual (${currency})`}
+                value={currentPeriod ? <CountUp value={expenses} locale={locale} /> : "—"}
+                hint={currentPeriod ? currentPeriod.name : undefined}
+                icon={<TrendingDown className="size-5.5" />}
+                tone="warning"
+              />
+            </div>
+            <div>
+              <KpiCard
+                label={isAr ? "صافي الفائض / العجز المالي" : "Net Surplus / Deficit"}
+                value={currentPeriod ? <CountUp value={surplus} locale={locale} /> : "—"}
+                icon={<Scale className="size-5.5" />}
+                tone={currentPeriod ? (surplus >= 0 ? "positive" : "negative") : "info"}
+                changeLabel={
+                  currentPeriod
+                    ? isAr ? (surplus >= 0 ? "فائض تشغيلي إيجابي" : "عجز مالي") : surplus >= 0 ? "Healthy Margin" : "Deficit Alert"
+                    : undefined
+                }
+              />
+            </div>
+          </>
+        ) : (
+          <div className="sm:col-span-2 xl:col-span-3">
+            <StatePanel state={reportsState} isAr={isAr} ar="الإيرادات والمصروفات" en="Revenue and expenses" />
+          </div>
+        )}
         <div>
-          <KpiCard
-            label={isAr ? `إجمالي الإيرادات المحصلة (${currency})` : `Total Revenue (${currency})`}
-            value={<CountUp value={revenue} locale={locale} />}
-            hint={currentPeriod ? currentPeriod.name : undefined}
-            icon={<TrendingUp className="size-5.5" />}
-            tone="positive"
-            change={8.4}
-            changeLabel={isAr ? "مقارنة بالشهر السابق" : "vs last month"}
-          />
-        </div>
-        <div>
-          <KpiCard
-            label={isAr ? `إجمالي المصروفات (${currency})` : `Total Expenses (${currency})`}
-            value={<CountUp value={expenses} locale={locale} />}
-            hint={currentPeriod ? currentPeriod.name : undefined}
-            icon={<TrendingDown className="size-5.5" />}
-            tone="warning"
-          />
-        </div>
-        <div>
-          <KpiCard
-            label={isAr ? "صافي الفائض / العجز المالي" : "Net Surplus / Deficit"}
-            value={<CountUp value={surplus} locale={locale} />}
-            icon={<Scale className="size-5.5" />}
-            tone={surplus >= 0 ? "positive" : "negative"}
-            changeLabel={isAr ? (surplus >= 0 ? "فائض تشغيلي إيجابي" : "عجز مالي") : surplus >= 0 ? "Healthy Margin" : "Deficit Alert"}
-          />
-        </div>
-        <div>
-          <KpiCard
-            label={isAr ? "الذمم والاستحقاقات القائمة" : "Outstanding Receivables"}
-            value={<CountUp value={outstanding} locale={locale} />}
-            hint={
-              collectionRate !== null
-                ? isAr
-                  ? `نسبة التحصيل ${collectionRate}%`
-                  : `Collection rate ${collectionRate}%`
-                : undefined
-            }
-            icon={<Receipt className="size-5.5" />}
-            tone={overdueAmount > 0 ? "negative" : "info"}
-          />
+          {receivablesState === "ok" ? (
+            <KpiCard
+              label={isAr ? "الذمم والاستحقاقات القائمة" : "Outstanding Receivables"}
+              value={<CountUp value={outstanding} locale={locale} />}
+              hint={
+                collectionRate !== null
+                  ? isAr
+                    ? `نسبة التحصيل ${collectionRate}%`
+                    : `Collection rate ${collectionRate}%`
+                  : undefined
+              }
+              icon={<Receipt className="size-5.5" />}
+              tone={overdueAmount > 0 ? "negative" : "info"}
+            />
+          ) : (
+            <StatePanel state={receivablesState} isAr={isAr} ar="الذمم والاستحقاقات" en="Receivables" />
+          )}
         </div>
       </div>
 
-      {/* AI Smart Executive Financial Insights */}
-      <ExecutiveFinancialInsightsCard
-        metrics={{
-          currency,
-          totalDues: totalIssued,
-          totalCollected: totalCollected,
-          totalArrears: outstanding,
-          collectionRatePct: collectionRate ?? 0,
-          totalUnits: unitsCount ?? 0,
-          occupancyRatePct: 88.5,
-          topOverdueBucket: overdueAmount > 0 ? { label: isAr ? "+30 يوم" : "+30 days", amount: overdueAmount } : undefined,
-          previousMonthCollectionRatePct: 78.0,
-          periodLabel: currentPeriod?.name || (isAr ? "الفترة المالية الحالية" : "Current Fiscal Period"),
-        }}
-        locale={locale}
-      />
+      {reportsState === "ok" && receivablesState === "ok" && (
+        <>
+        {/* Offered only when an AI provider is configured. Only figures computed above are passed: the card used to
+            receive an invented 88.5% occupancy and a 78% "previous month" collection rate. */}
+        {isAiAvailable() && (
+          <ExecutiveFinancialInsightsCard
+            metrics={{
+              currency,
+              totalDues: totalIssued,
+              totalCollected: totalCollected,
+              totalArrears: outstanding,
+              collectionRatePct: collectionRate ?? 0,
+              totalUnits: unitsCount ?? 0,
+              topOverdueBucket: overdueAmount > 0 ? { label: isAr ? "+30 يوم" : "+30 days", amount: overdueAmount } : undefined,
+              periodLabel: currentPeriod?.name || (isAr ? "الفترة المالية الحالية" : "Current Fiscal Period"),
+            }}
+            locale={locale}
+          />
+        )}
 
-      {/* AI Smart Financial Insights Card */}
-      <InsightsCard
-        collectionRate={collectionRate}
-        overdueCount={overdue.length}
-        overdueAmount={overdueAmount}
-        unpostedCount={unpostedEntries ?? 0}
-        outstandingCheques={outstandingCheques ?? 0}
-        surplus={surplus}
-        currency={currency}
-        locale={locale}
-      />
+        {/* AI Smart Financial Insights Card */}
+        <InsightsCard
+          collectionRate={collectionRate}
+          target={collectionTarget}
+          overdueCount={overdue.length}
+          overdueAmount={overdueAmount}
+          unpostedCount={unpostedEntries}
+          outstandingCheques={outstandingCheques}
+          surplus={surplus}
+          currency={currency}
+          locale={locale}
+        />
+        </>
+      )}
 
       {/* Trend + Aging charts */}
       <div className="grid gap-6 lg:grid-cols-3">
+        {reportsState === "ok" ? (
         <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs lg:col-span-2 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
               <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                {isAr ? "الاتجاه المالي — إيرادات ومصروفات آخر 6 أشهر" : "Financial Trend — Revenue vs. Expenses"}
+                {isAr ? "الاتجاه الاستحقاقي — إيرادات ومصروفات آخر 6 أشهر" : "Accrual Trend — Revenue vs. Expenses"}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isAr ? "مقارنة شهرية شاملة للتدفقات النقدية والميزانية" : "Monthly budget and cashflow comparison"}
+                {isAr ? "مقارنة شهرية للإيرادات والمصروفات الاستحقاقية" : "Monthly accrual revenue and expense comparison"}
               </p>
             </div>
             <span className="flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">
@@ -316,16 +425,21 @@ export async function TenantDashboard({
             <RevenueExpenseTrend data={trend} isAr={isAr} currency={currency} />
           </div>
         </section>
+        ) : (
+          <div className="lg:col-span-2">
+            <StatePanel state={reportsState} isAr={isAr} ar="الاتجاه المالي" en="Financial trend" />
+          </div>
+        )}
 
-        {/* Collection Target & Aging Breakdown */}
+        {receivablesState === "ok" ? (
         <section className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              {isAr ? "مؤشر هدف التحصيل الشهري" : "Collection Target Meter"}
+              {isAr ? "مؤشر التحصيل الإجمالي" : "Cumulative Collection Target"}
             </h2>
           </div>
           <div className="p-4">
-            <CollectionTargetGauge rate={collectionRate} isAr={isAr} />
+            <CollectionTargetGauge rate={collectionRate} target={collectionTarget} isAr={isAr} />
           </div>
           <div className="border-t border-slate-200/80 p-4 dark:border-slate-800">
             <h3 className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -334,40 +448,61 @@ export async function TenantDashboard({
             <AgingChart data={agingData} isAr={isAr} currency={currency} />
           </div>
         </section>
+        ) : (
+          <StatePanel state={receivablesState} isAr={isAr} ar="مؤشر التحصيل وأعمار الذمم" en="Collection and receivables aging" />
+        )}
       </div>
 
       {/* Secondary Stats Grid */}
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 xl:grid-cols-6">
-        <div>
-          <MiniStat label={isAr ? "تحصيلات اليوم" : "Collected today"} value={fmt(collectionsToday)} />
-        </div>
-        <div>
-          <MiniStat label={isAr ? "تحصيلات الشهر" : "Collected this month"} value={fmt(collectionsMonth)} />
-        </div>
-        <div>
-          <MiniStat
-            label={isAr ? "مستحقات متأخرة" : "Overdue dues"}
-            value={String(overdue.length)}
-            tone={overdue.length > 0 ? "negative" : undefined}
-          />
-        </div>
-        <div>
-          <MiniStat
-            label={isAr ? "قيود غير مرحّلة" : "Unposted entries"}
-            value={String(unpostedEntries ?? 0)}
-            tone={(unpostedEntries ?? 0) > 0 ? "warning" : undefined}
-          />
-        </div>
-        <div>
-          <MiniStat label={isAr ? "جلسات كاشير مفتوحة" : "Open sessions"} value={String(openSessions ?? 0)} />
-        </div>
-        <div>
-          <MiniStat label={isAr ? "شيكات قيد التحصيل" : "Pending cheques"} value={String(outstandingCheques ?? 0)} />
-        </div>
+        {collectionsState === "ok" && (
+          <>
+            <div>
+              <MiniStat label={isAr ? "تحصيلات اليوم" : "Collected today"} value={fmt(collectionsToday)} />
+            </div>
+            <div>
+              <MiniStat label={isAr ? "تحصيلات الشهر" : "Collected this month"} value={fmt(collectionsMonth)} />
+            </div>
+          </>
+        )}
+        {receivablesState === "ok" && (
+          <div>
+            <MiniStat
+              label={isAr ? "مستحقات متأخرة" : "Overdue dues"}
+              value={String(overdue.length)}
+              tone={overdue.length > 0 ? "negative" : undefined}
+            />
+          </div>
+        )}
+        {entriesState === "ok" && (
+          <div>
+            <MiniStat
+              label={isAr ? "قيود غير مرحّلة" : "Unposted entries"}
+              value={String(unpostedEntries ?? 0)}
+              tone={(unpostedEntries ?? 0) > 0 ? "warning" : undefined}
+            />
+          </div>
+        )}
+        {cashierState === "ok" && (
+          <div>
+            <MiniStat label={isAr ? "جلسات كاشير مفتوحة" : "Open sessions"} value={String(openSessions ?? 0)} />
+          </div>
+        )}
+        {chequesState === "ok" && (
+          <div>
+            <MiniStat label={isAr ? "شيكات قيد التحصيل" : "Pending cheques"} value={String(outstandingCheques ?? 0)} />
+          </div>
+        )}
+        {([collectionsState, receivablesState, entriesState, cashierState, chequesState] as SectionState[]).some((st) => st === "error") && (
+          <div className="col-span-2 lg:col-span-4 xl:col-span-6">
+            <StatePanel state="error" isAr={isAr} ar="بعض المؤشرات" en="some indicators" />
+          </div>
+        )}
       </div>
 
       {/* Tables Section */}
       <div className="grid gap-6 lg:grid-cols-2">
+        {collectionsState === "ok" ? (
         <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
@@ -420,7 +555,11 @@ export async function TenantDashboard({
             </TableBody>
           </Table>
         </section>
+        ) : (
+          <StatePanel state={collectionsState} isAr={isAr} ar="آخر المقبوضات" en="Recent collections" />
+        )}
 
+        {receivablesState === "ok" ? (
         <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-800">
             <div>
@@ -478,6 +617,9 @@ export async function TenantDashboard({
             </TableBody>
           </Table>
         </section>
+        ) : (
+          <StatePanel state={receivablesState} isAr={isAr} ar="المستحقات المتأخرة" en="Overdue dues" />
+        )}
       </div>
     </>
   );
@@ -499,6 +641,7 @@ export async function TenantDashboard({
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Unposted Journal Entries */}
+        {entriesState === "ok" ? (
         <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -524,8 +667,12 @@ export async function TenantDashboard({
             </Link>
           </div>
         </div>
+        ) : (
+          <StatePanel state={entriesState} isAr={isAr} ar="القيود المحاسبية المعلقة" en="Unposted journal entries" />
+        )}
 
         {/* Pending Cheques Portfolio */}
+        {chequesState === "ok" ? (
         <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -551,6 +698,9 @@ export async function TenantDashboard({
             </Link>
           </div>
         </div>
+        ) : (
+          <StatePanel state={chequesState} isAr={isAr} ar="الشيكات قيد التحصيل" en="Pending cheques" />
+        )}
       </div>
     </div>
   );
@@ -558,12 +708,16 @@ export async function TenantDashboard({
   // Content 3: Operations & Units Tab
   const operationsContent = (
     <div className="space-y-6">
-      <OccupancyWidget
-        unitsCount={unitsCount ?? 0}
-        membersCount={membersCount ?? 0}
-        openDuesCount={openDues.length}
-        locale={locale}
-      />
+      {propertyState === "ok" ? (
+        <OccupancyWidget
+          unitsCount={unitsCount ?? 0}
+          ownedCount={ownedCount ?? 0}
+          membersCount={membersCount ?? 0}
+          locale={locale}
+        />
+      ) : (
+        <StatePanel state={propertyState} isAr={isAr} ar="الوحدات والأعضاء" en="Units and members" />
+      )}
     </div>
   );
 
@@ -604,13 +758,20 @@ export async function TenantDashboard({
         </div>
       </div>
 
-      {!currentPeriod && (
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+      {access.periods && (currentPeriodRes.error || !currentPeriod) && (
+        <div
+          role={currentPeriodRes.error ? "alert" : undefined}
+          className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs font-bold text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+        >
           <Clock className="size-5 shrink-0 text-amber-600" />
           <span>
-            {isAr
-              ? "تنبيه: لا توجد فترة مالية مفتوحة حالياً. يرجى فتح سنة/فترة مالية من (المحاسبة ← الفترات المالية) لبدء الترحيل."
-              : "No open fiscal period. Please activate a period from (Finance → Fiscal Periods)."}
+            {currentPeriodRes.error
+              ? isAr
+                ? "تعذر تحميل الفترة المالية"
+                : "Unable to load fiscal period"
+              : isAr
+                ? "تنبيه: لا توجد فترة مالية مفتوحة تشمل تاريخ اليوم. راجع السنة والفترات المالية من (المحاسبة ← الفترات المالية)."
+                : "No open fiscal period contains today. Review the calendar from (Finance → Fiscal Periods)."}
           </span>
         </div>
       )}
@@ -621,8 +782,8 @@ export async function TenantDashboard({
         tasksContent={tasksContent}
         operationsContent={operationsContent}
         isAr={isAr}
-        unpostedCount={unpostedEntries ?? 0}
-        overdueCount={overdue.length}
+        unpostedCount={entriesState === "ok" ? (unpostedEntries ?? 0) : 0}
+        overdueCount={receivablesState === "ok" ? overdue.length : 0}
       />
     </div>
   );

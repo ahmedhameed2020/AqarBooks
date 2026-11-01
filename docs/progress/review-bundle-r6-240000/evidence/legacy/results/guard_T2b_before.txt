@@ -1,0 +1,3 @@
+==== T2b same net as T2 (final 300) but the credit 1200 comes FIRST, debit 500 second
+psql:/tmp/guard_T2b.sql:9: ERROR:  PROJECT_WIP_NEGATIVE: العكس أو التحرير يجعل رصيد WIP سالبًا (الرصيد 1000.0000, المطلوب 1200.0000)
+ W4 balance=1000.0000

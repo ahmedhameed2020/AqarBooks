@@ -65,6 +65,14 @@ import { issueDueAction } from "@/lib/actions/receivables";
 import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
 import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
 import { getCurrencyLabel } from "@/lib/currency";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { resolveReceivableAccountForSubmit } from "./receivable-account";
 
 export type TaxDecisionItem = {
   id: string;
@@ -234,7 +242,8 @@ export function EInvoiceClient({
   const [selectedResortId, setSelectedResortId] = useState(resorts[0]?.id || "");
   const [selectedUnitId, setSelectedUnitId] = useState(units[0]?.id || "");
   const [selectedDueTypeId, setSelectedDueTypeId] = useState(dueTypes[0]?.id || "");
-  const [selectedReceivableAccountId, setSelectedReceivableAccountId] = useState(receivableAccounts[0]?.id || "");
+  // No default: the receivable account must be chosen explicitly by the user.
+  const [selectedReceivableAccountId, setSelectedReceivableAccountId] = useState("");
   const [selectedPeriodId, setSelectedPeriodId] = useState(periods[0]?.id || "");
   const [invoiceAmount, setInvoiceAmount] = useState<number | "">("");
   const [invoiceDescription, setInvoiceDescription] = useState("");
@@ -243,6 +252,12 @@ export function EInvoiceClient({
     // The initial form value is intentionally based on the current date.
     // eslint-disable-next-line react-hooks/purity
     new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  );
+
+  // Receivable account resolution for the issue form (no automatic selection).
+  const receivableAccountResolution = resolveReceivableAccountForSubmit(
+    selectedReceivableAccountId,
+    receivableAccounts.map((a) => a.id)
   );
 
   // View / Print Tax Invoice Modal state
@@ -370,12 +385,23 @@ export function EInvoiceClient({
       return;
     }
 
+    if (!receivableAccountResolution.ok) {
+      toast?.add({
+        type: "error",
+        title: isAr ? "يرجى اختيار حساب الذمم المدينة" : "Receivable Account Required",
+        description: isAr
+          ? "اختر حساب الذمم المدينة (الأصول) قبل إصدار الفاتورة."
+          : "Choose the receivable asset account before issuing the invoice.",
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append("organizationId", organizationId);
     formData.append("resortId", effectiveResortId);
     formData.append("unitId", effectiveUnitId);
     formData.append("dueTypeId", effectiveDueTypeId);
-    formData.append("receivableAccountId", selectedReceivableAccountId || (receivableAccounts[0]?.id || ""));
+    formData.append("receivableAccountId", receivableAccountResolution.id);
     formData.append("fiscalPeriodId", effectivePeriodId);
     formData.append("amount", String(invoiceAmount));
     formData.append("issueDate", issueDate);
@@ -1335,6 +1361,36 @@ export function EInvoiceClient({
                 </select>
               </div>
 
+              {/* RECEIVABLE ASSET ACCOUNT (explicit selection, no default) */}
+              <div className="space-y-1.5 text-start">
+                <Label className="font-bold">
+                  {isAr ? "حساب الذمم المدينة (أصول)" : "Receivable Asset Account"} <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={selectedReceivableAccountId}
+                  onValueChange={(val) => setSelectedReceivableAccountId(val ?? "")}
+                  items={receivableAccounts.map((a) => ({ value: a.id, label: a.label }))}
+                >
+                  <SelectTrigger data-testid="einvoice-receivable-account" className="h-9.5 w-full text-xs font-bold bg-slate-50/80 dark:bg-slate-800">
+                    <SelectValue placeholder={isAr ? "اختر الحساب..." : "Select account..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {receivableAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id} className="text-xs font-bold">
+                        {a.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!receivableAccountResolution.ok && (
+                  <p data-testid="einvoice-receivable-required" className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                    {isAr
+                      ? "يجب اختيار حساب الذمم المدينة قبل إصدار الفاتورة. لن يتم اختياره تلقائياً."
+                      : "Choose the receivable account before issuing. It is not selected automatically."}
+                  </p>
+                )}
+              </div>
+
               {/* FISCAL PERIOD */}
               <div className="space-y-1.5">
                 <Label className="font-bold">{isAr ? "الفترة المالية المحاسبية *" : "Fiscal Period *"}</Label>
@@ -1423,7 +1479,7 @@ export function EInvoiceClient({
 
               <Button
                 type="submit"
-                disabled={isPending || !invoiceAmount}
+                disabled={isPending || !invoiceAmount || !receivableAccountResolution.ok}
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold h-9 px-5 gap-1.5 rounded-xl shadow-xs cursor-pointer press-feedback motion-control"
               >

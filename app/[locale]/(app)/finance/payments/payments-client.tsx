@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import {
   CreditCard,
@@ -17,6 +18,8 @@ import {
   DollarSign,
   Landmark,
   AlertTriangle,
+  PiggyBank,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +32,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getCurrencyLabel } from "@/lib/currency";
-import { RecordPaymentDialog, type Option, type DueOption } from "./payments-dialog";
+import { RecordPaymentDialog, type Option, type DueOption, type UnitOption } from "./payments-dialog";
+import { PaymentCreditDialog, type CreditApplication, type PeriodOption } from "./payment-credit-dialog";
+import { setCustomerAdvanceAccountAction } from "@/lib/actions/customer-advances";
+import { advanceErrorMessage } from "@/lib/finance/customer-advances";
 import { generatePaymentReceiptPdf } from "@/lib/reports/payment-receipt-pdf";
-import { voidPaymentAction } from "@/lib/actions/receivables";
+import { VoidReceiptDialog } from "./void-receipt-dialog";
 import { useToast } from "@/components/ui/toast";
 
 export type PaymentItem = {
@@ -51,6 +57,12 @@ export type PaymentItem = {
     dueDate: string;
     allocatedAmount: number;
   }[];
+  unit_id?: string | null;
+  unit_code?: string;
+  advance_amount?: number;
+  credit_remaining?: number;
+  credit_stranded?: boolean;
+  applications?: CreditApplication[];
 };
 
 export function PaymentsClient({
@@ -59,6 +71,11 @@ export function PaymentsClient({
   dues,
   depositAccounts,
   periods,
+  units = [],
+  liabilityAccounts = [],
+  advanceAccountConfigured = false,
+  canApplyCredit = false,
+  canManageAdvanceAccount = false,
   organizationId,
   organizationName,
   resortId,
@@ -73,7 +90,12 @@ export function PaymentsClient({
   members: Option[];
   dues: DueOption[];
   depositAccounts: Option[];
-  periods: Option[];
+  periods: PeriodOption[];
+  units?: UnitOption[];
+  liabilityAccounts?: Option[];
+  advanceAccountConfigured?: boolean;
+  canApplyCredit?: boolean;
+  canManageAdvanceAccount?: boolean;
   organizationId: string;
   organizationName: string;
   resortId: string;
@@ -87,12 +109,35 @@ export function PaymentsClient({
   const isAr = locale === "ar";
   const currencyLabel = getCurrencyLabel(currency, isAr);
   const toast = useToast();
+  const router = useRouter();
+
+  const [creditPaymentId, setCreditPaymentId] = useState<string | null>(null);
+  const [accountChoice, setAccountChoice] = useState<string>("");
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  const saveAdvanceAccount = async () => {
+    if (savingAccount || !accountChoice) return;
+    setSavingAccount(true);
+    try {
+      const result = await setCustomerAdvanceAccountAction({ organizationId, resortId, accountId: accountChoice });
+      if (result.ok) {
+        toast.add({ type: "success", title: isAr ? "تم اعتماد حساب سلف العملاء" : "Customer advance account approved" });
+        router.refresh();
+      } else {
+        toast.add({ type: "error", title: isAr ? "تعذر اعتماد الحساب" : "Could not approve the account", description: advanceErrorMessage(result.error, isAr ? "ar" : "en") });
+      }
+    } finally {
+      setSavingAccount(false);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "POSTED" | "REVERSED">("ALL");
 
   const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
+  const [voidTarget, setVoidTarget] = useState<PaymentItem | null>(null);
+  const creditPayment = payments.find((p) => p.id === creditPaymentId) ?? null;
 
   // Filtered Payments
   const filteredPayments = useMemo(() => {
@@ -128,6 +173,7 @@ export function PaymentsClient({
         paymentDate: payment.payment_date,
         amount: payment.amount,
         unallocatedAmount: payment.unallocated_amount ?? 0,
+        advanceAmount: payment.advance_amount ?? 0,
         memberName: payment.member_name || (isAr ? "عميل نقدي" : "Customer"),
         method: payment.method,
         memo: payment.reference || payment.memo || null,
@@ -139,23 +185,9 @@ export function PaymentsClient({
     );
   };
 
-  const handleVoid = async (payment: PaymentItem) => {
+  const handleVoid = (payment: PaymentItem) => {
     if (!canVoidPayment || payment.status !== "POSTED") return;
-    const confirmed = window.confirm(
-      isAr
-        ? `سيتم عكس القيد المحاسبي لسند القبض #${payment.receipt_number} وإعادة فتح الاستحقاقات المرتبطة. هل تريد المتابعة؟`
-        : `This reverses the journal entry for receipt #${payment.receipt_number} and reopens its dues. Continue?`,
-    );
-    if (!confirmed) return;
-    const reason = window.prompt(isAr ? "أدخل سبب العكس الإلزامي:" : "Enter the required reversal reason:");
-    if (!reason?.trim()) return;
-    const result = await voidPaymentAction({ organizationId, paymentId: payment.id, reason });
-    if (!result.ok) {
-      toast.add({ type: "error", title: isAr ? "تعذر عكس الدفعة" : "Payment reversal failed", description: result.error });
-      return;
-    }
-    toast.add({ type: "success", title: isAr ? "تم عكس الدفعة" : "Payment reversed" });
-    window.location.reload();
+    setVoidTarget(payment);
   };
 
   const getMethodBadge = (m: string) => {
@@ -173,6 +205,41 @@ export function PaymentsClient({
 
   return (
     <div className="space-y-6">
+      {!advanceAccountConfigured && (canManageAdvanceAccount || canRecordPayment) && (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-xs dark:border-sky-900/50 dark:bg-sky-950/30" data-testid="advance-account-card">
+          <div className="flex items-start gap-2 font-bold text-sky-900 dark:text-sky-200">
+            <PiggyBank className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p>{isAr ? "حساب سلف العملاء غير معتمد" : "Customer advance account not approved"}</p>
+              <p className="font-medium">
+                {isAr
+                  ? "لا يمكن تسجيل دفعة مقدمة قبل اعتماد حساب التزامات يُرحَّل إليه رصيد العملاء. الإيصالات العادية غير متأثرة."
+                  : "An advance cannot be recorded until a liability account that holds customer credit is approved. Ordinary receipts are not affected."}
+              </p>
+            </div>
+          </div>
+          {canManageAdvanceAccount ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Select value={accountChoice} onValueChange={(v) => setAccountChoice(v ?? "")} items={liabilityAccounts.map((a) => ({ value: a.id, label: a.label }))}>
+                <SelectTrigger className="h-9 w-72 text-xs" data-testid="advance-account-select">
+                  <SelectValue placeholder={isAr ? "اختر حساب الالتزامات..." : "Select a liability account..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {liabilityAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id} className="text-xs">{a.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={saveAdvanceAccount} disabled={savingAccount || !accountChoice} size="sm" className="h-9 text-xs font-bold" data-testid="advance-account-save">
+                {isAr ? "اعتماد الحساب" : "Approve account"}
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-2 font-semibold">{isAr ? "اطلب من المالك أو المدير المالي اعتماد الحساب." : "Ask the owner or a finance manager to approve it."}</p>
+          )}
+        </div>
+      )}
+
       {/* ──────────────────────────────────────────────────────────────────────────
           MAIN ACTION TOOLBAR & FILTERS
           ────────────────────────────────────────────────────────────────────────── */}
@@ -290,6 +357,21 @@ export function PaymentsClient({
                       <td className="p-3.5 text-end font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
                         {payment.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
                         <span className="text-[10px] text-slate-400 font-normal">{currencyLabel}</span>
+                        {isPosted && (payment.advance_amount ?? 0) > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center justify-end gap-1 font-sans">
+                            <Badge className="border-sky-200 bg-sky-100 text-[10px] font-bold text-sky-800 dark:bg-sky-950 dark:text-sky-300" data-testid="advance-badge">
+                              {isAr ? "دفعة مقدمة" : "Advance"} · {payment.unit_code ?? "—"}
+                            </Badge>
+                            <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400" data-testid="credit-left">
+                              {isAr ? "المتبقي" : "Left"}: {(payment.credit_remaining ?? 0).toLocaleString(isAr ? "ar-EG" : "en-US", { minimumFractionDigits: 2 })}
+                            </span>
+                            {payment.credit_stranded && (
+                              <Badge className="border-amber-300 bg-amber-100 text-[10px] font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-300" data-testid="stranded-badge">
+                                {isAr ? "رصيد معلّق" : "Stranded credit"}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-3.5 text-center">
@@ -308,6 +390,18 @@ export function PaymentsClient({
 
                       <td className="p-3.5 text-end">
                         <div className="flex items-center justify-end gap-1.5">
+                          {isPosted && (payment.advance_amount ?? 0) > 0 && (
+                            <Button
+                              onClick={() => setCreditPaymentId(payment.id)}
+                              size="sm"
+                              variant="outline"
+                              className="h-7 gap-1 px-2.5 text-xs font-bold text-sky-800 border-sky-200 hover:bg-sky-50"
+                              data-testid={`credit-open-${payment.receipt_number}`}
+                            >
+                              <Wallet className="size-3.5" />
+                              <span>{isAr ? "الرصيد" : "Credit"}</span>
+                            </Button>
+                          )}
                           {canVoidPayment && isPosted && (
                             <Button
                               onClick={() => handleVoid(payment)}
@@ -357,9 +451,43 @@ export function PaymentsClient({
         dues={dues}
         depositAccounts={depositAccounts}
         periods={periods}
+        units={units}
+        advanceAccountConfigured={advanceAccountConfigured}
+        canManageAdvanceAccount={canManageAdvanceAccount}
         currency={currency}
         locale={locale}
         preselectedUnitId={preselectedUnitId}
+      />
+
+      <VoidReceiptDialog
+        target={voidTarget}
+        onOpenChange={(o) => { if (!o) setVoidTarget(null); }}
+        organizationId={organizationId}
+        currency={currency}
+        locale={locale}
+      />
+
+      <PaymentCreditDialog
+        open={!!creditPayment}
+        onOpenChange={(o) => { if (!o) setCreditPaymentId(null); }}
+        payment={creditPayment && creditPayment.unit_id ? {
+          id: creditPayment.id,
+          receiptNumber: creditPayment.receipt_number,
+          memberName: creditPayment.member_name ?? "—",
+          unitId: creditPayment.unit_id,
+          unitCode: creditPayment.unit_code ?? "—",
+          paymentDate: creditPayment.payment_date,
+          advanceAmount: creditPayment.advance_amount ?? 0,
+          remaining: creditPayment.credit_remaining ?? 0,
+          isStranded: creditPayment.credit_stranded ?? false,
+          applications: creditPayment.applications ?? [],
+        } : null}
+        dues={dues}
+        periods={periods}
+        canApply={canApplyCredit}
+        organizationId={organizationId}
+        currency={currency}
+        locale={locale}
       />
     </div>
   );

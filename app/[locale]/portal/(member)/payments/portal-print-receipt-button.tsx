@@ -44,6 +44,7 @@ export function PortalPrintReceiptButton({
           paymentDate: res.details.paymentDate,
           amount: res.details.amount,
           unallocatedAmount: res.details.unallocatedAmount,
+          advanceAmount: res.details.advanceAmount,
           memberName: res.details.memberName,
           method: res.details.method,
           memo: res.details.memo,

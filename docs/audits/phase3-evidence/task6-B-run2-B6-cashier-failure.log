@@ -1,0 +1,48 @@
+Running 10 tests using 1 worker
+  ok  1 tests\e2e\customer-advances.spec.ts:105:7 › B1–B7: advances on the staff screens and the owner's portal › B1 — an advance receipt with explicit confirmation (R1), and one without a due (R2) (28.3s)
+  ok  2 tests\e2e\customer-advances.spec.ts:147:7 › B1–B7: advances on the staff screens and the owner's portal › B2 — applying credit from the receipts page: 600 on 5 Sep, then 200 on 7 Sep (1.0m)
+  ok  3 tests\e2e\customer-advances.spec.ts:182:7 › B1–B7: advances on the staff screens and the owner's portal › B3 — reversing only the 600 application, with a reason: dated 9 Sep, the 200 stays (35.3s)
+  ok  4 tests\e2e\customer-advances.spec.ts:223:7 › B1–B7: advances on the staff screens and the owner's portal › B4 — the portal statement with a window ending 31 Aug, 4 Sep, 6 Sep, 8 Sep and 30 Sep (33.0s)
+  ok  5 tests\e2e\customer-advances.spec.ts:251:7 › B1–B7: advances on the staff screens and the owner's portal › B5 — the same numbers in the ledger, the trial balance, the balance sheet, the unit page, the owner statement and the receipt PDF (36.9s)
+  x   6 tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an advance but sees no apply / reverse controls (5.2m)
+  -   7 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (en)
+  -   8 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (ar)
+  ok  9 tests\e2e\customer-advances.spec.ts:352:5 › B7 — no approved advance account: the screen says why and the database agrees (17.3s)
+  ok 10 tests\e2e\customer-advances.spec.ts:372:5 › B8 — after the unit changes hands the new owner sees nothing of the old owner's credit; the original member sees it on hold (1.2m)
+  1) tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an advance but sees no apply / reverse controls 
+    Test timeout of 300000ms exceeded.
+    Error: locator.click: Test timeout of 300000ms exceeded.
+    Call log:
+      - waiting for getByTestId('record-submit')
+        - locator resolved to <button disabled tabindex="0" type="submit" data-disabled="" data-slot="button" data-testid="record-submit" class="group/button inline-flex shrink-0 items-center justify-center rounded-lg touch:min-h-11 touch:min-w-11 border border-transparent bg-clip-padding text-sm whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.985] disabled…>…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        542 × waiting for element to be visible, enabled and stable
+            - element is not enabled
+          - retrying click action
+            - waiting 500ms
+      315 |     await dlg(page).locator('input[type="date"]').fill("2026-08-14");
+      316 |     await page.getByTestId("amount-input").fill("50");
+    > 317 |     await page.getByTestId("record-submit").click();
+          |                                             ^
+      318 |     await expect(dlg(page)).toHaveCount(0, { timeout: 60_000 });
+      319 |     expect(q(`select count(*) from public.payments where organization_id='${fx.orgId}' and payment_date='2026-08-14' and advance_amount=50`)).toBe("1");
+      320 |     // the database refuses the same people when they bypass the screen
+        at D:\Web\AqarBooks\tests\e2e\customer-advances.spec.ts:317:45
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\customer-advances-B1–B7-ad-b1c11-s-no-apply-reverse-controls\error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\customer-advances-B1–B7-ad-b1c11-s-no-apply-reverse-controls\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\customer-advances-B1–B7-ad-b1c11-s-no-apply-reverse-controls\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an advance but sees no apply / reverse controls 
+  2 did not run
+  7 passed (10.3m)

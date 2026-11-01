@@ -1,0 +1,6 @@
+ P5-after-draft600 net=400.0000
+ P5-after-UNDER_REVIEW net=400.0000
+ P5-after-POSTED net=400.0000
+ P5-after-draft300 net=100.0000
+ P5 report after cancelling draft300 by status=REVERSED (no reversal line): cap=1000.0000 rel=900.0000 wip=100.0000
+ P5-after-cancel-by-status net=100.0000

@@ -13,6 +13,8 @@ import {
   ImportLinesForm,
   MatchLineForm,
 } from "./reconciliation-actions";
+import { formatMatchCandidateLabel } from "./candidate-label";
+import { formatBankAmount } from "./candidate-label";
 import { BankReconciliationAiPanel } from "@/components/ai/bank-reconciliation-ai-panel";
 import { Scale, CheckCircle2, AlertTriangle, ArrowLeft, ArrowRight, Landmark } from "lucide-react";
 
@@ -76,6 +78,13 @@ export default async function ReconciliationDetailPage({
   const statementLines = lines ?? [];
   const isDraft = statement.status === "DRAFT";
 
+  // Currency comes from the organization row already loaded above (organizations.default_currency).
+  // bank_accounts and bank_statements have no currency column.
+  // This is the organization's DISPLAY currency for matches and proof-table balances,
+  // not evidence of each bank account's currency.
+  const currency = organization.default_currency;
+  const fmt = (n: number) => formatBankAmount(n, locale, currency);
+
   const candidatesByLine = new Map<string, { id: string; label: string }[]>();
   if (canManage && isDraft) {
     const unmatched = statementLines.filter((l) => !l.matched_journal_entry_line_id);
@@ -93,15 +102,13 @@ export default async function ReconciliationDetailPage({
         l.id,
         rows.map((c) => ({
           id: c.journal_entry_line_id,
-          label: `#${c.entry_number ?? "—"} · ${c.entry_date} · ${c.description ?? ""}`.trim(),
+          label: formatMatchCandidateLabel(c, fmt, isAr),
         })),
       );
     });
   }
-
-  const fmt = (n: number) =>
-    n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const balanced = summary ? Math.abs(summary.difference) < 0.005 : false;
+  const unhandled = statementLines.filter((l) => !l.matched_journal_entry_line_id).length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -124,8 +131,10 @@ export default async function ReconciliationDetailPage({
                 {account ? account.account_name : isAr ? "حساب بنكي" : "Bank account"}
               </h1>
               <p className="text-xs text-slate-500 font-mono">
-                {statement.period_start} → {statement.period_end}
-                {account ? ` · ${account.account_number}` : ""}
+                <span dir="ltr">
+                  {statement.period_start} – {statement.period_end}
+                  {account ? ` · ${account.account_number}` : ""}
+                </span>
               </p>
             </div>
           </div>
@@ -154,26 +163,26 @@ export default async function ReconciliationDetailPage({
           <dl className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/60">
               <dt className="text-slate-500 mb-1">{isAr ? "الرصيد الختامي حسب البنك" : "Closing balance per bank"}</dt>
-              <dd className="font-mono text-base font-black text-slate-900 dark:text-white">{fmt(summary.closing_balance)}</dd>
+              <dd dir="ltr" className="font-mono text-base font-black text-slate-900 dark:text-white">{fmt(summary.closing_balance)}</dd>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/60">
               <dt className="text-slate-500 mb-1">
                 {isAr ? `+ بالدفاتر لم تظهر بالبنك (${summary.unmatched_gl_count})` : `+ In books, not in bank (${summary.unmatched_gl_count})`}
               </dt>
-              <dd className="font-mono text-base font-bold text-blue-600">{fmt(summary.unmatched_gl_total)}</dd>
+              <dd dir="ltr" className="font-mono text-base font-bold text-blue-600">{fmt(summary.unmatched_gl_total)}</dd>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/60">
               <dt className="text-slate-500 mb-1">
                 {isAr ? `− بالبنك لم تُقيَّد بالدفاتر (${summary.unmatched_statement_count})` : `− In bank, not in books (${summary.unmatched_statement_count})`}
               </dt>
-              <dd className="font-mono text-base font-bold text-amber-600">{fmt(summary.unmatched_statement_total)}</dd>
+              <dd dir="ltr" className="font-mono text-base font-bold text-amber-600">{fmt(summary.unmatched_statement_total)}</dd>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/60">
               <dt className="text-slate-500 mb-1">{isAr ? "الرصيد حسب دفاتر الأستاذ" : "Balance per ledger books"}</dt>
-              <dd className="font-mono text-base font-black text-slate-900 dark:text-white">{fmt(summary.book_balance)}</dd>
+              <dd dir="ltr" className="font-mono text-base font-black text-slate-900 dark:text-white">{fmt(summary.book_balance)}</dd>
             </div>
           </dl>
 
@@ -192,7 +201,7 @@ export default async function ReconciliationDetailPage({
                   : isAr ? "الفرق غير المفسَّر بين البنك والدفاتر:" : "Unexplained Difference:"}
               </span>
             </span>
-            <span className="font-mono text-sm font-black">{fmt(summary.difference)}</span>
+            <span dir="ltr" className="font-mono text-sm font-black">{fmt(summary.difference)}</span>
           </div>
 
           {!balanced && (
@@ -209,6 +218,7 @@ export default async function ReconciliationDetailPage({
                 statementId={statement.id}
                 status={statement.status}
                 balanced={balanced}
+                unhandled={unhandled}
                 locale={locale}
               />
             </div>
@@ -260,7 +270,9 @@ export default async function ReconciliationDetailPage({
                     <td className="p-3">
                       <div className="font-semibold text-slate-900 dark:text-white">{l.description}</div>
                       {l.reference && (
-                        <span className="text-[10px] font-mono text-slate-400">Ref: {l.reference}</span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {isAr ? "المرجع:" : "Ref:"} <span dir="ltr">{l.reference}</span>
+                        </span>
                       )}
                     </td>
                     <td
@@ -268,7 +280,10 @@ export default async function ReconciliationDetailPage({
                         l.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                       }`}
                     >
-                      {l.amount >= 0 ? "+" : ""}{fmt(l.amount)}
+                      <span dir="ltr" className="whitespace-nowrap">
+                        {l.amount >= 0 ? "+" : ""}
+                        {fmt(l.amount)}
+                      </span>
                     </td>
                     <td className="p-3">
                       {l.matched_journal_entry_line_id ? (

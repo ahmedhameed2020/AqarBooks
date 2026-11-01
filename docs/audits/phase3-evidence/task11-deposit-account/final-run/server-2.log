@@ -1,0 +1,9 @@
+production build → http://localhost:3100  (Supabase http://127.0.0.1:55321)
+(node:34476) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▲ Next.js 16.3.0
+- Local:         http://localhost:3100
+- Network:       http://172.19.176.1:3100
+✓ Ready in 1665ms
+✓ Running next.config.ts took 11.2s
+Using secrets defined in .dev.vars

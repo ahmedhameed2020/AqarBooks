@@ -1,0 +1,1760 @@
+{
+ "generated_at": "2026-10-11T05:24:51.127235Z",
+ "read_only": true,
+ "container": "supabase_db_aqarbooks",
+ "window": [
+  "2026-10-10 19:00:00+00",
+  "2026-10-10 19:30:00+00"
+ ],
+ "totals": {
+  "organizations_total_now": 456,
+  "organizations_in_window": 43
+ },
+ "organizations": [
+  {
+   "id": "425621f8-bd4a-424d-b935-22011d95c194",
+   "name": "Notify",
+   "slug": "425621f8-bd4a-424d-b935-22011d95c194",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:01:43.050669+00"
+  },
+  {
+   "id": "147d1ebb-9c47-4d43-9cc7-48052eec8274",
+   "name": "Supervision",
+   "slug": "147d1ebb-9c47-4d43-9cc7-48052eec8274",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:02:35.093716+00"
+  },
+  {
+   "id": "82f40048-cefa-401e-83ce-3ef4cb5cb23e",
+   "name": "Other",
+   "slug": "82f40048-cefa-401e-83ce-3ef4cb5cb23e",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:02:35.093716+00"
+  },
+  {
+   "id": "7aec8248-4ea0-4d4a-a84a-9de1015db059",
+   "name": "Maintenance PR3 A",
+   "slug": "maintenance-pr3-a-25bcb998",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:04:42.17946+00"
+  },
+  {
+   "id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "name": "Gate RLS A",
+   "slug": "gate-rls-a-184bb62e",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:04:54.714405+00"
+  },
+  {
+   "id": "19dbc6dc-ff80-40ad-a9b0-9c5a6e6d45b3",
+   "name": "Gate RLS B",
+   "slug": "gate-rls-b-ebeda9b0",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:04:57.059063+00"
+  },
+  {
+   "id": "da66b6c6-b787-4c50-994f-9aad549bdb89",
+   "name": "Gate RLS Disabled",
+   "slug": "gate-rls-disabled-c473f9cf",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:01.918412+00"
+  },
+  {
+   "id": "43f71ce1-1b69-472d-a741-66da008b07a0",
+   "name": "Visitor RLS A",
+   "slug": "visitor-rls-a-88f3d545",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:29.918101+00"
+  },
+  {
+   "id": "4c38cdd8-154a-439e-83ef-da0bb37d3a09",
+   "name": "Visitor RLS B",
+   "slug": "visitor-rls-b-47279657",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:32.030746+00"
+  },
+  {
+   "id": "12e4c01e-92b7-4127-b57e-9af53680263b",
+   "name": "Visitor RLS Disabled",
+   "slug": "visitor-rls-disabled-99112e48",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:34.244948+00"
+  },
+  {
+   "id": "589415ff-aede-4b1e-b19f-521447d437e6",
+   "name": "Evidence Org",
+   "slug": "589415ff-aede-4b1e-b19f-521447d437e6",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:39.324986+00"
+  },
+  {
+   "id": "b6d52ecb-8763-4751-8b59-50be77d7ecc8",
+   "name": "Other Evidence Org",
+   "slug": "b6d52ecb-8763-4751-8b59-50be77d7ecc8",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:39.324986+00"
+  },
+  {
+   "id": "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5",
+   "name": "Gate Device A",
+   "slug": "gate-device-a-a243d4af",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:52.828828+00"
+  },
+  {
+   "id": "818e60a8-4264-476e-9012-2f21de11097f",
+   "name": "Gate Device B",
+   "slug": "gate-device-b-8dbe144e",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:54.33404+00"
+  },
+  {
+   "id": "5236917b-7069-4dca-852f-6875394bb448",
+   "name": "Gate Connectivity Runtime",
+   "slug": "gate-connectivity-e7a212f5",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:06:35.436653+00"
+  },
+  {
+   "id": "2d88f8ae-b8b8-4c0a-9354-d38d6a684b50",
+   "name": "Renewal Enabled",
+   "slug": "renewal-enabled-edfa5f4a",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:09:46.398245+00"
+  },
+  {
+   "id": "00af06b0-5d09-4fe6-95b9-a547d082c5b6",
+   "name": "Renewal Other",
+   "slug": "renewal-other-125b1b52",
+   "status": "SUSPENDED",
+   "created_at": "2026-10-10 19:09:50.068984+00"
+  },
+  {
+   "id": "4340e3c9-adc5-4b74-b3ab-0effec4e1ec5",
+   "name": "Renewal Conflict",
+   "slug": "renewal-conflict-5fc0fb66",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:09:52.823818+00"
+  },
+  {
+   "id": "46358126-bdff-4419-9183-2e0b9cd14a06",
+   "name": "Renewal Starter",
+   "slug": "renewal-starter-932bae62",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:09:55.951609+00"
+  },
+  {
+   "id": "38d432eb-84e5-4d8f-8294-43ad772b9fe9",
+   "name": "Unit Experience A",
+   "slug": "unit-experience-a-feca031f",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:10:13.083776+00"
+  },
+  {
+   "id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "name": "Gate RLS A",
+   "slug": "gate-rls-a-fd8ac4bc",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:06.09963+00"
+  },
+  {
+   "id": "a508fd66-e998-4337-b98d-48a2c8d959fa",
+   "name": "Gate RLS B",
+   "slug": "gate-rls-b-5aa3d545",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:07.542638+00"
+  },
+  {
+   "id": "5a02dd7e-89c7-47d0-9c59-b1e51cfda48b",
+   "name": "Gate RLS Disabled",
+   "slug": "gate-rls-disabled-cc708510",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:09.740381+00"
+  },
+  {
+   "id": "61e1d742-9ef2-4099-86c5-c69ff2db1bf1",
+   "name": "Visitor RLS A",
+   "slug": "visitor-rls-a-5e478a2d",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:37.821812+00"
+  },
+  {
+   "id": "c64a0a0c-01b8-45be-9baa-b11f08c28b68",
+   "name": "Visitor RLS B",
+   "slug": "visitor-rls-b-cd922a7e",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:39.969723+00"
+  },
+  {
+   "id": "7cb86931-410d-47b7-a0c3-43fc69589bb6",
+   "name": "Visitor RLS Disabled",
+   "slug": "visitor-rls-disabled-3175ee13",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:41.611561+00"
+  },
+  {
+   "id": "5d0e93b6-7ba8-403a-a159-0d63bbbcf8f1",
+   "name": "Maintenance PR3 A",
+   "slug": "maintenance-pr3-a-77029d14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:50.692497+00"
+  },
+  {
+   "id": "a32c6290-2fb8-4951-92f0-e4e38e4c4c19",
+   "name": "Gate Device A",
+   "slug": "gate-device-a-fe88bfaa",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:14:16.213204+00"
+  },
+  {
+   "id": "063b6099-47ef-4a1b-99b9-7962c0a9c5ac",
+   "name": "Gate Device B",
+   "slug": "gate-device-b-5860f970",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:14:17.684286+00"
+  },
+  {
+   "id": "7af6b466-e90b-4a0b-87e6-a81443f4df89",
+   "name": "Renewal Enabled",
+   "slug": "renewal-enabled-bdd66dfd",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:15:32.976422+00"
+  },
+  {
+   "id": "a356f156-d58f-4132-97d2-e1b4091ad3f0",
+   "name": "Renewal Other",
+   "slug": "renewal-other-3e1c95d5",
+   "status": "SUSPENDED",
+   "created_at": "2026-10-10 19:15:35.939158+00"
+  },
+  {
+   "id": "636e8d79-dcdc-4831-9b68-632a4f146a3f",
+   "name": "Renewal Conflict",
+   "slug": "renewal-conflict-d094ae3d",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:15:38.661215+00"
+  },
+  {
+   "id": "6ddd1c3f-1149-4ffd-b400-6dba245fdfff",
+   "name": "Renewal Starter",
+   "slug": "renewal-starter-1741ce84",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:15:41.392671+00"
+  },
+  {
+   "id": "c3b26f6f-01db-4949-9f33-b7bb13e8c6c6",
+   "name": "Unit Experience A",
+   "slug": "unit-experience-a-c51e5b49",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:15:56.997454+00"
+  },
+  {
+   "id": "ec3eb617-2aec-425d-90af-4f466d0b3efb",
+   "name": "Maintenance PR3 A",
+   "slug": "maintenance-pr3-a-3e3ecc9c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:18:57.599184+00"
+  },
+  {
+   "id": "56553e77-b716-4874-95de-c2d5e736b0db",
+   "name": "Visitor RLS A",
+   "slug": "visitor-rls-a-503cbc77",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:30.542869+00"
+  },
+  {
+   "id": "2c1c7302-5086-49ea-80c8-fbf0121ebb54",
+   "name": "Visitor RLS B",
+   "slug": "visitor-rls-b-891b6679",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:31.913602+00"
+  },
+  {
+   "id": "f89aa7df-ac0d-4be6-944f-bd2aec53de14",
+   "name": "Visitor RLS Disabled",
+   "slug": "visitor-rls-disabled-87faedf5",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:33.496831+00"
+  },
+  {
+   "id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "name": "Gate RLS A",
+   "slug": "gate-rls-a-1407e0f7",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:39.137611+00"
+  },
+  {
+   "id": "87bc5852-9c5f-4cd4-b05a-61c73e2d6963",
+   "name": "Gate RLS B",
+   "slug": "gate-rls-b-8a119405",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:40.588874+00"
+  },
+  {
+   "id": "5c93121f-0723-4277-90ea-619642a9ac34",
+   "name": "Gate RLS Disabled",
+   "slug": "gate-rls-disabled-1cbfb26c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:41.94465+00"
+  },
+  {
+   "id": "72360ee5-d9ac-47c5-88bb-ce5d7548751f",
+   "name": "Gate Device A",
+   "slug": "gate-device-a-3d6a0660",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:57.539267+00"
+  },
+  {
+   "id": "85e147f1-a5ad-4c48-90f0-40a9ea9c30b8",
+   "name": "Gate Device B",
+   "slug": "gate-device-b-ef60518d",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:59.148115+00"
+  }
+ ],
+ "adjacent_ambiguous": [
+  {
+   "id": "cf6ae3b5-9d3a-4211-9e02-1daf7c0d8954",
+   "name": "Hardware",
+   "slug": "cf6ae3b5-9d3a-4211-9e02-1daf7c0d8954",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 10:38:04.003103+00"
+  },
+  {
+   "id": "253cfb17-c593-4da4-b28e-00bb2ae16876",
+   "name": "Hardware",
+   "slug": "253cfb17-c593-4da4-b28e-00bb2ae16876",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 10:58:12.501628+00"
+  },
+  {
+   "id": "f4025dae-0520-4055-ac87-e762dcba4393",
+   "name": "Hardware",
+   "slug": "f4025dae-0520-4055-ac87-e762dcba4393",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 13:34:26.791086+00"
+  },
+  {
+   "id": "05cd70c4-9aaf-41a2-beec-87bc3b44cd7a",
+   "name": "Hardware",
+   "slug": "05cd70c4-9aaf-41a2-beec-87bc3b44cd7a",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 14:05:13.644837+00"
+  },
+  {
+   "id": "6fc198e3-855c-4eac-981c-81a5a97bd8a7",
+   "name": "Hardware",
+   "slug": "6fc198e3-855c-4eac-981c-81a5a97bd8a7",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 16:52:26.526784+00"
+  },
+  {
+   "id": "61c24891-d349-4d10-a5f2-3a3f6beb3272",
+   "name": "Hardware",
+   "slug": "61c24891-d349-4d10-a5f2-3a3f6beb3272",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 18:13:10.936466+00"
+  }
+ ],
+ "row_counts_by_table": {
+  "access_events": 200,
+  "chart_of_accounts": 15,
+  "document_sequences": 6,
+  "gate_access_reconciliations": 4,
+  "gate_completion_policy": 15,
+  "gate_connectivity_incidents": 1,
+  "gate_device_enrollments": 42,
+  "gate_devices": 39,
+  "gate_long_stay_policy": 1,
+  "gate_manual_exceptions": 17,
+  "gate_notification_outbox": 48,
+  "gate_scan_devices": 85,
+  "gates": 50,
+  "maintenance_categories": 190,
+  "members": 44,
+  "notifications": 1123,
+  "organization_memberships": 64,
+  "platform_audit_logs": 235,
+  "properties": 39,
+  "roles": 315,
+  "subscriptions": 28,
+  "unit_ownerships": 54,
+  "units": 59,
+  "user_role_assignments": 63,
+  "visitor_access_state": 124,
+  "visitor_invitation_secrets": 69,
+  "visitor_invitations": 1171
+ },
+ "row_total": 4101,
+ "per_org": {
+  "425621f8-bd4a-424d-b935-22011d95c194": {
+   "properties": 2,
+   "units": 2,
+   "gates": 1,
+   "gate_devices": 1,
+   "visitor_invitations": 111,
+   "access_events": 118,
+   "notifications": 28,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 8
+  },
+  "147d1ebb-9c47-4d43-9cc7-48052eec8274": {
+   "properties": 2,
+   "units": 2,
+   "gates": 1,
+   "gate_devices": 1,
+   "visitor_invitations": 7,
+   "access_events": 8,
+   "notifications": 12,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 7
+  },
+  "82f40048-cefa-401e-83ce-3ef4cb5cb23e": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "7aec8248-4ea0-4d4a-a84a-9de1015db059": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "5afac2a0-4c0c-4ff8-9342-f691a387dc78": {
+   "properties": 2,
+   "units": 3,
+   "gates": 9,
+   "gate_devices": 7,
+   "visitor_invitations": 9,
+   "access_events": 22,
+   "notifications": 18,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 41
+  },
+  "19dbc6dc-ff80-40ad-a9b0-9c5a6e6d45b3": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 1,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 3
+  },
+  "da66b6c6-b787-4c50-994f-9aad549bdb89": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 0,
+   "visitor_invitations": 1,
+   "access_events": 1,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "43f71ce1-1b69-472d-a741-66da008b07a0": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 7,
+   "access_events": 0,
+   "notifications": 9,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 9
+  },
+  "4c38cdd8-154a-439e-83ef-da0bb37d3a09": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "12e4c01e-92b7-4127-b57e-9af53680263b": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "589415ff-aede-4b1e-b19f-521447d437e6": {
+   "properties": 1,
+   "units": 1,
+   "gates": 1,
+   "gate_devices": 0,
+   "visitor_invitations": 1002,
+   "access_events": 5,
+   "notifications": 1002,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "b6d52ecb-8763-4751-8b59-50be77d7ecc8": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 4,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 13
+  },
+  "818e60a8-4264-476e-9012-2f21de11097f": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "5236917b-7069-4dca-852f-6875394bb448": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 1,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "2d88f8ae-b8b8-4c0a-9354-d38d6a684b50": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "00af06b0-5d09-4fe6-95b9-a547d082c5b6": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "4340e3c9-adc5-4b74-b3ab-0effec4e1ec5": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "46358126-bdff-4419-9183-2e0b9cd14a06": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "38d432eb-84e5-4d8f-8294-43ad772b9fe9": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c": {
+   "properties": 2,
+   "units": 3,
+   "gates": 9,
+   "gate_devices": 7,
+   "visitor_invitations": 9,
+   "access_events": 22,
+   "notifications": 18,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 41
+  },
+  "a508fd66-e998-4337-b98d-48a2c8d959fa": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 1,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 3
+  },
+  "5a02dd7e-89c7-47d0-9c59-b1e51cfda48b": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 0,
+   "visitor_invitations": 1,
+   "access_events": 1,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "61e1d742-9ef2-4099-86c5-c69ff2db1bf1": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 7,
+   "access_events": 0,
+   "notifications": 9,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 9
+  },
+  "c64a0a0c-01b8-45be-9baa-b11f08c28b68": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "7cb86931-410d-47b7-a0c3-43fc69589bb6": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "5d0e93b6-7ba8-403a-a159-0d63bbbcf8f1": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "a32c6290-2fb8-4951-92f0-e4e38e4c4c19": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 4,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 13
+  },
+  "063b6099-47ef-4a1b-99b9-7962c0a9c5ac": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "7af6b466-e90b-4a0b-87e6-a81443f4df89": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "a356f156-d58f-4132-97d2-e1b4091ad3f0": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "636e8d79-dcdc-4831-9b68-632a4f146a3f": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "6ddd1c3f-1149-4ffd-b400-6dba245fdfff": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  },
+  "c3b26f6f-01db-4949-9f33-b7bb13e8c6c6": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "ec3eb617-2aec-425d-90af-4f466d0b3efb": {
+   "properties": 0,
+   "units": 0,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "56553e77-b716-4874-95de-c2d5e736b0db": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 7,
+   "access_events": 0,
+   "notifications": 9,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 9
+  },
+  "2c1c7302-5086-49ea-80c8-fbf0121ebb54": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "f89aa7df-ac0d-4be6-944f-bd2aec53de14": {
+   "properties": 1,
+   "units": 3,
+   "gates": 0,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14": {
+   "properties": 2,
+   "units": 3,
+   "gates": 9,
+   "gate_devices": 7,
+   "visitor_invitations": 9,
+   "access_events": 22,
+   "notifications": 18,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 41
+  },
+  "87bc5852-9c5f-4cd4-b05a-61c73e2d6963": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 1,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 3
+  },
+  "5c93121f-0723-4277-90ea-619642a9ac34": {
+   "properties": 2,
+   "units": 3,
+   "gates": 1,
+   "gate_devices": 0,
+   "visitor_invitations": 1,
+   "access_events": 1,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 0
+  },
+  "72360ee5-d9ac-47c5-88bb-ce5d7548751f": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 4,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 13
+  },
+  "85e147f1-a5ad-4c48-90f0-40a9ea9c30b8": {
+   "properties": 1,
+   "units": 0,
+   "gates": 2,
+   "gate_devices": 0,
+   "visitor_invitations": 0,
+   "access_events": 0,
+   "notifications": 0,
+   "maintenance_requests": 0,
+   "work_orders": 0,
+   "platform_audit_logs": 2
+  }
+ },
+ "auth_users_created_in_window": [
+  {
+   "id": "b8f1f781-ee0d-4084-85eb-51cb5c3a9fe2",
+   "email": "gate-ops-a-a-27ca916f-d553-44f1-957c-8fc7e512c1e3@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:55.048841+00"
+  },
+  {
+   "id": "8cc7a177-a736-4f5f-a30c-9c7a91e23493",
+   "email": "gate-ops-a-b-b63fbe78-2e13-487d-ae1c-10cba3af033a@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:55.534527+00"
+  },
+  {
+   "id": "0618b261-dab1-49b5-9bef-16287192c753",
+   "email": "gate-ops-a-manager-02ed81ca-bffe-4eb2-8d3f-d36110fcd5e1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:56.191886+00"
+  },
+  {
+   "id": "145c3cab-1139-46d0-9645-c18dcb4c64d2",
+   "email": "gate-ops-a-viewer-c82d0407-6d60-4635-9dfe-e9861648e1dd@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:56.661281+00"
+  },
+  {
+   "id": "6a0833eb-c1b0-4b59-971f-a6b0c2dc8bc3",
+   "email": "gate-ops-b-a-1d52f06f-18fd-4a93-95f9-de310a41619f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:58.067563+00"
+  },
+  {
+   "id": "f75c9788-0c38-40b3-aede-224ad0321df5",
+   "email": "gate-ops-b-b-91c45f7b-dc94-4ad3-814d-7109ce216e4f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:04:59.317159+00"
+  },
+  {
+   "id": "f1902a19-7aec-41a4-9a15-3c46eab7e29a",
+   "email": "gate-ops-b-manager-ddf8a141-0b4e-4aee-823b-8f5619fc4e43@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:00.492435+00"
+  },
+  {
+   "id": "09b7cb0f-1224-4c83-bb29-39e904d1274f",
+   "email": "gate-ops-b-viewer-3ad38075-0846-46bd-8527-303e5533f63c@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:01.612451+00"
+  },
+  {
+   "id": "6cb1f85d-bd63-4a26-bf32-d7ef8c353117",
+   "email": "gate-ops-disabled-a-05507004-2c5f-4213-ac1e-ff52b96d4a3f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:02.663029+00"
+  },
+  {
+   "id": "f9551b26-c681-44fe-8155-941e66a4d57d",
+   "email": "gate-ops-disabled-b-61e447da-b681-42fa-913d-cb0ca11056cc@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:03.619062+00"
+  },
+  {
+   "id": "fbe3dd1a-d442-4bc1-9d8a-758f8fa5ae5b",
+   "email": "gate-ops-disabled-manager-1ded3e85-00d3-4ddf-bb4c-bf03c028e434@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:04.313154+00"
+  },
+  {
+   "id": "0f06e9cc-0068-4219-a987-131a07b0ab89",
+   "email": "gate-ops-disabled-viewer-3180ceb0-ffb8-4528-9eff-2e902f079e0f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:04.82006+00"
+  },
+  {
+   "id": "702cc880-9856-46eb-983a-2738239770d4",
+   "email": "visitor-passes-a-a-75516a49-0e39-43de-a96e-3c1cb0f5a5e6@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:30.305233+00"
+  },
+  {
+   "id": "81fe7984-0807-4950-aa6e-404699f8ff6e",
+   "email": "visitor-passes-a-b-321cce0f-ddca-43f7-aa03-18b0036c134d@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:30.693945+00"
+  },
+  {
+   "id": "3b0e41b1-e373-4fee-8a13-b4b953f751e4",
+   "email": "visitor-passes-a-manager-40ee8858-0eda-4f3a-8ce6-72b02a12ca4b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:31.269954+00"
+  },
+  {
+   "id": "dbf05309-26d7-43fa-a317-fc27753e42cf",
+   "email": "visitor-passes-a-viewer-37bd3993-036b-4d16-8bca-d98ed2f555a1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:31.757236+00"
+  },
+  {
+   "id": "e55bf181-e869-4d35-bf9f-7ba5e569df4c",
+   "email": "visitor-passes-b-a-7f6ccb5b-80c4-4135-9ace-44f386018726@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:32.379316+00"
+  },
+  {
+   "id": "7deabd27-7e13-41b0-9753-fb0e8c8d7275",
+   "email": "visitor-passes-b-b-6b84c24c-4aa0-4178-a58d-45fb31db568d@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:33.041475+00"
+  },
+  {
+   "id": "7b1ddbb2-9c53-41d7-8758-9b3d6d867bea",
+   "email": "visitor-passes-b-manager-82a88002-9d7e-4e7d-bb08-a59526877939@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:33.538526+00"
+  },
+  {
+   "id": "562b16dd-230b-4082-8f70-ae78e281c9b5",
+   "email": "visitor-passes-b-viewer-ad851b42-02a8-4147-9080-4190dbc5f41b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:33.95761+00"
+  },
+  {
+   "id": "c412edd8-b450-4579-bf8e-8ab0d2d1802e",
+   "email": "visitor-passes-disabled-a-884a75d2-f8f5-463b-8831-b5d18fb49bf8@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:34.556672+00"
+  },
+  {
+   "id": "b54723af-09bb-4f48-bbfa-2830d01d4c6f",
+   "email": "visitor-passes-disabled-b-43acdfc8-7476-4066-a073-866ed4d41f72@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:35.066393+00"
+  },
+  {
+   "id": "f16e338c-da13-4cf2-ad4e-91838800d306",
+   "email": "visitor-passes-disabled-manager-11252b94-415f-46cc-843e-d4c85174a0fc@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:35.562389+00"
+  },
+  {
+   "id": "411c95b9-0b81-405f-b28f-f62bdbd24855",
+   "email": "visitor-passes-disabled-viewer-640c2e8a-6170-43eb-bf72-cde66e4758c7@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:35.96813+00"
+  },
+  {
+   "id": "6cce3471-6a5e-4290-ade2-9c182adc57cc",
+   "email": "gate-device-a-manager-976e1617-d851-4d86-afa0-da263d0c302c@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:53.131877+00"
+  },
+  {
+   "id": "e2beeb6b-d516-4a55-965c-490b03ec954c",
+   "email": "gate-device-a-guard-4560b11f-8e4d-4b40-abb2-a11f248b33cd@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:53.606615+00"
+  },
+  {
+   "id": "70dfdc45-78a7-4599-955d-e897c55a0cc9",
+   "email": "gate-device-a-viewer-d53bfa5f-9261-40ec-8ffd-61d25543de74@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:54.077679+00"
+  },
+  {
+   "id": "ec8ca064-10df-43b7-86ed-52be271a9626",
+   "email": "gate-device-b-manager-7cb5cf53-0241-46a8-9913-e42dbac62e81@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:54.542799+00"
+  },
+  {
+   "id": "9939d6d7-b0be-4d19-8ce2-86a642536b1c",
+   "email": "gate-device-b-guard-fbf96e40-59ed-4e3e-b11e-0d80e4ed432e@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:54.985953+00"
+  },
+  {
+   "id": "ab84373b-816e-40f0-86a7-afd0a2b69f90",
+   "email": "gate-device-b-viewer-5cc4df02-4b38-4302-9ded-cae0ebb82fb2@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:05:55.3915+00"
+  },
+  {
+   "id": "b17d6dde-74da-4a88-a8a2-da1c05379379",
+   "email": "gate-connectivity-guard-7bbd9de1-f6d7-491e-89d2-acb45e1e71d1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:06:33.301344+00"
+  },
+  {
+   "id": "3b44097f-625e-4cf8-b62b-1230be0dd762",
+   "email": "gate-connectivity-viewer-a7defc48-d6bb-47f6-b937-055d6e8f9597@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:06:34.644609+00"
+  },
+  {
+   "id": "1654e901-cf11-4c1d-9672-2ffbea70a6af",
+   "email": "unit-experience-a-a-541e2e08-c786-4b85-aa09-c54a486a4cc9@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:10:13.431096+00"
+  },
+  {
+   "id": "ccc2d847-f6ce-42f0-b96e-1b5123c824a2",
+   "email": "unit-experience-a-b-cf10d803-33d8-4839-86a7-aee2269caf67@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:10:14.048095+00"
+  },
+  {
+   "id": "8215aeca-935b-4316-84e9-11e4f43072e1",
+   "email": "gate-ops-a-a-09f247cf-5566-4276-b6a8-3d0d3adf0bc8@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:06.34204+00"
+  },
+  {
+   "id": "0f1dfdd6-7683-44fd-89ae-91fb9e09559c",
+   "email": "gate-ops-a-b-00a4a6b6-196d-4bfd-8e81-5cdda4173478@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:06.650954+00"
+  },
+  {
+   "id": "7b23b879-24c6-483f-8457-7483dd63ea58",
+   "email": "gate-ops-a-manager-e096a988-4657-4993-8d45-85417258b9e1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:06.994201+00"
+  },
+  {
+   "id": "7657a7d2-828c-47c8-b602-20feb5e1b63c",
+   "email": "gate-ops-a-viewer-071afd23-cbb0-493d-9d73-be2905428b33@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:07.342796+00"
+  },
+  {
+   "id": "75652790-ba27-4e76-8902-6aaf09fc5186",
+   "email": "gate-ops-b-a-3a77ae41-27f5-455e-976b-6142d2534d64@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:07.813012+00"
+  },
+  {
+   "id": "91a73c46-4b01-4efc-af07-ddd9fedf84b5",
+   "email": "gate-ops-b-b-8591a4b8-2371-48a8-b239-bc30da38c340@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:08.345986+00"
+  },
+  {
+   "id": "98c360c6-4873-4277-8c4c-58b67a557a85",
+   "email": "gate-ops-b-manager-ce28acb0-1f0c-4dbf-9d60-ee8175654cc2@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:08.934217+00"
+  },
+  {
+   "id": "21fb83e5-04aa-45dc-9ad5-c8a83d714221",
+   "email": "gate-ops-b-viewer-f5911258-c6ee-477e-9844-de18d2e00a45@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:09.445127+00"
+  },
+  {
+   "id": "d9786940-d13f-44b8-abd6-8667bb87a1b4",
+   "email": "gate-ops-disabled-a-ebf4c8ae-4ee1-4a39-b4f4-38b6f92b1028@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:10.042117+00"
+  },
+  {
+   "id": "06f78f0b-2449-423d-a5c0-84e6d6b6da3b",
+   "email": "gate-ops-disabled-b-24d74ec9-4c5e-4666-99fd-7b3f56a73fce@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:10.698501+00"
+  },
+  {
+   "id": "fcf0d8f6-c325-400a-aa9f-458e838fadef",
+   "email": "gate-ops-disabled-manager-a0148315-010f-435f-bf9a-ffe828eb6cea@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:11.302747+00"
+  },
+  {
+   "id": "e34d7803-0c09-4e81-8a77-808fe928ab6a",
+   "email": "gate-ops-disabled-viewer-030399d6-d2ad-4ebc-be3e-36d730bed06b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:11.713695+00"
+  },
+  {
+   "id": "cfe22152-7714-4e4a-888c-1cbd095ded90",
+   "email": "visitor-passes-a-a-0292329f-27b2-4a55-b600-cedba81aa7f1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:38.311531+00"
+  },
+  {
+   "id": "2f854b8c-cfbc-48ce-8cc8-37e43422f176",
+   "email": "visitor-passes-a-b-b9582f69-abd1-4c3e-bda5-9fb14b6c8057@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:38.915741+00"
+  },
+  {
+   "id": "6da90952-9a32-4103-9d7c-63a83b06afbe",
+   "email": "visitor-passes-a-manager-11de8baa-2ea1-404b-b066-c157beb927c1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:39.348568+00"
+  },
+  {
+   "id": "2a9d11fd-3ed8-4e1f-b184-f7a9bd9e90ed",
+   "email": "visitor-passes-a-viewer-c142f60a-0c4f-4b15-9319-0a192be0f1e1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:39.743679+00"
+  },
+  {
+   "id": "3c1a76f3-9f37-4dad-aab1-487aa7a501a9",
+   "email": "visitor-passes-b-a-55a99880-5bf4-42d0-a2cb-15d7fd166167@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:40.201972+00"
+  },
+  {
+   "id": "51368eb8-f5dc-4e29-a354-26a63bc0a88b",
+   "email": "visitor-passes-b-b-45f29f02-4cf5-434b-b011-25f65e62fec8@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:40.568187+00"
+  },
+  {
+   "id": "84baa9bf-99bb-4f94-a92f-140052f41c43",
+   "email": "visitor-passes-b-manager-8a7c0ab9-7414-433a-830b-144848c0ccd9@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:40.928339+00"
+  },
+  {
+   "id": "47ae79eb-57a8-46c4-95c5-0a553fff020d",
+   "email": "visitor-passes-b-viewer-e47e6dc7-4c73-4899-a1bf-7c530fe2ab86@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:41.276896+00"
+  },
+  {
+   "id": "b8831acb-5963-4aff-bb58-9adeee8f0f75",
+   "email": "visitor-passes-disabled-a-64d536d5-32af-4dc4-994f-250ae58ce05b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:41.919127+00"
+  },
+  {
+   "id": "abb061ed-5e4a-48d0-962f-6e2197c04558",
+   "email": "visitor-passes-disabled-b-874e917b-67c9-4397-9222-eb4d9ed2c1c7@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:42.348732+00"
+  },
+  {
+   "id": "833c3860-87e2-4fa5-a938-d91492d78b29",
+   "email": "visitor-passes-disabled-manager-c0b5ba52-7819-48fb-ae24-5164b727d2ae@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:42.807986+00"
+  },
+  {
+   "id": "c1cf09ec-f078-48a5-89e0-c10a7a163760",
+   "email": "visitor-passes-disabled-viewer-e0a897ab-c9e1-4636-962f-dc8d8505ccf6@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:13:43.359906+00"
+  },
+  {
+   "id": "e4d43511-be85-45fd-aab2-fe0d649188f7",
+   "email": "gate-connectivity-guard-79109f15-78d4-40d2-bba9-e8631b60437c@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:11.317883+00"
+  },
+  {
+   "id": "529ed405-d493-4dc2-b811-3ebbb5e6fe2f",
+   "email": "gate-connectivity-viewer-c09b00c6-3aec-4cc0-8c25-9c013e0f20e6@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:12.03023+00"
+  },
+  {
+   "id": "bf4677ac-792f-4c7c-9fed-38cf8855a88c",
+   "email": "gate-device-a-manager-a929e5a2-f800-4b66-ad0a-98b946b17adc@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:16.503835+00"
+  },
+  {
+   "id": "2e82e630-1129-42a2-b1ba-8ef3f81c7b73",
+   "email": "gate-device-a-guard-d354c14b-a67d-432d-8f7e-1e10e3a6b37b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:16.979686+00"
+  },
+  {
+   "id": "24f71e7f-bcab-4dfb-9731-c04921d432ac",
+   "email": "gate-device-a-viewer-f8f89161-c517-4ed0-801a-96deffd8a7c1@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:17.406897+00"
+  },
+  {
+   "id": "6b32ddcd-8ca4-40d2-ae3e-4f5bce171b5c",
+   "email": "gate-device-b-manager-9e07779a-98ba-49b9-b397-8f12ba98633f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:17.922289+00"
+  },
+  {
+   "id": "f4154cb2-47b9-495b-a984-2a684483a75f",
+   "email": "gate-device-b-guard-777ae88e-5b7f-4f34-bb40-f4fb8aea90f9@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:18.41842+00"
+  },
+  {
+   "id": "056c02c4-cc83-4daa-b1aa-23e7ae5b2af3",
+   "email": "gate-device-b-viewer-dba8f6be-5149-4574-ac27-f4e016b2f6ac@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:14:19.000377+00"
+  },
+  {
+   "id": "b30e8bd0-c545-4653-8556-b4670354fd94",
+   "email": "unit-experience-a-a-dc28a5ba-49bf-4216-9d12-eb62544172f3@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:15:57.22667+00"
+  },
+  {
+   "id": "07a780c5-3755-4261-8ac8-257a7a4fde1c",
+   "email": "unit-experience-a-b-4eeebb30-48e4-4b29-b2be-af72607b9c4b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:15:57.61827+00"
+  },
+  {
+   "id": "8c34c351-4c82-444c-97a7-97ffbf407483",
+   "email": "gate-connectivity-guard-16122945-c2be-43d8-be9c-bf311528bc49@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:16:41.008307+00"
+  },
+  {
+   "id": "9fa53b6c-6157-437d-ad19-42a0722ea50f",
+   "email": "gate-connectivity-viewer-a0fde776-c0ff-4c11-a7d2-94d4ab00deb0@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:16:41.384144+00"
+  },
+  {
+   "id": "a08a1889-13ce-4941-bd86-b1387bd54582",
+   "email": "visitor-passes-a-a-ca123833-8bb7-4e99-bc56-b02893d2d8c3@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:30.789461+00"
+  },
+  {
+   "id": "f50034e5-4709-4e1f-a0c9-dfdcf57bb0fa",
+   "email": "visitor-passes-a-b-94120a55-da1e-495d-a271-27d421365e93@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:31.113712+00"
+  },
+  {
+   "id": "0779dd37-e26c-4aa7-ba17-1fe65103d4ad",
+   "email": "visitor-passes-a-manager-c1e419d6-5c32-444e-93a8-ee5e2295ddb4@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:31.405913+00"
+  },
+  {
+   "id": "b82f74c6-e432-452f-b561-06f832257193",
+   "email": "visitor-passes-a-viewer-590ce6aa-110e-46a3-8876-b951c7abe008@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:31.727273+00"
+  },
+  {
+   "id": "0edeaf52-f5f3-43fa-97d8-17581db6953d",
+   "email": "visitor-passes-b-a-cc691dae-6bf5-4a71-b452-1c877f08a215@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:32.122701+00"
+  },
+  {
+   "id": "1afea877-2463-4d00-83a0-a0bcd0c9406e",
+   "email": "visitor-passes-b-b-b838b706-af1c-4220-bde1-98d3a822fbf3@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:32.552446+00"
+  },
+  {
+   "id": "fb307322-35a5-4b82-90e2-f099174427da",
+   "email": "visitor-passes-b-manager-67b0a319-3678-4293-94f2-d2a19a6304b3@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:32.92667+00"
+  },
+  {
+   "id": "83502868-1d7c-4e6e-b727-91e800cf325b",
+   "email": "visitor-passes-b-viewer-8ebbad87-b689-4f69-b554-a9569c441b06@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:33.283396+00"
+  },
+  {
+   "id": "9842982f-899a-4532-82e6-cf217bd3af41",
+   "email": "visitor-passes-disabled-a-f442134f-7fd6-4f27-b0cf-c14789947e73@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:33.681636+00"
+  },
+  {
+   "id": "69b50d39-9d72-4b47-8dad-91ff287472ef",
+   "email": "visitor-passes-disabled-b-5ebb6be7-28b6-442d-bc70-4787f7f4e8dc@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:33.963719+00"
+  },
+  {
+   "id": "8f65ebdc-8c7b-443c-aa2b-50fc4c39e776",
+   "email": "visitor-passes-disabled-manager-79388f61-65d7-4410-8929-84ea4681812e@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:34.266992+00"
+  },
+  {
+   "id": "8c60e256-89f4-4704-9cd5-4e0aef325888",
+   "email": "visitor-passes-disabled-viewer-46103cb9-12b9-4529-8ebf-e3843bc92ba2@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:34.578464+00"
+  },
+  {
+   "id": "58bd80b5-15ed-4c2c-884a-73b55bb0f873",
+   "email": "gate-ops-a-a-a6885aa8-8ff4-46fd-9d63-7875cadeb9ec@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:39.411379+00"
+  },
+  {
+   "id": "7caaf7c4-ab69-4b2b-9536-221299f62167",
+   "email": "gate-ops-a-b-e12ecb4f-e392-45f3-ab50-b73dd9555b8f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:39.727654+00"
+  },
+  {
+   "id": "083cd388-84fd-436e-b605-eeba08e5d4b0",
+   "email": "gate-ops-a-manager-1341c450-ad42-4d93-b166-17f67b9f170b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:40.024544+00"
+  },
+  {
+   "id": "7d588f68-63f3-4156-ab19-1d2b5e09c6f3",
+   "email": "gate-ops-a-viewer-969be7a1-23f9-46e1-87ac-c372e1aa1fde@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:40.352161+00"
+  },
+  {
+   "id": "85566f5e-44c1-41be-a35e-c0f6531cf885",
+   "email": "gate-ops-b-a-879f28b6-9e4c-44b9-9544-5e9bb421a6c6@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:40.811469+00"
+  },
+  {
+   "id": "659b4af4-d6c0-4d84-b494-e0ac5db226da",
+   "email": "gate-ops-b-b-3ae71320-d1d7-425a-b2db-5bfe0cb2a5ed@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:41.10683+00"
+  },
+  {
+   "id": "7b483132-67fe-47dd-9eb8-01ca869416ad",
+   "email": "gate-ops-b-manager-2bbe23c7-4e8f-4c07-b1da-ca9b8c7ad8a4@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:41.394492+00"
+  },
+  {
+   "id": "f0c107a3-704c-441a-bf19-dee13134e008",
+   "email": "gate-ops-b-viewer-34e662dd-f5b8-4841-87ea-45e95ae59793@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:41.744942+00"
+  },
+  {
+   "id": "bd37df70-a112-4dca-8a70-14292446f79a",
+   "email": "gate-ops-disabled-a-c102857d-4693-4353-8017-eda7732c2ef5@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:42.140771+00"
+  },
+  {
+   "id": "b50d9beb-e103-4944-8e54-758a26249cba",
+   "email": "gate-ops-disabled-b-58b41b31-a1be-44da-bb88-21e6b59ee40f@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:42.427191+00"
+  },
+  {
+   "id": "9c80b90f-5c77-45af-944a-a54449a461b2",
+   "email": "gate-ops-disabled-manager-da235a25-4d43-4779-af87-bae6cba24b5b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:42.750933+00"
+  },
+  {
+   "id": "60689b75-f241-4630-b4c3-68e37a098215",
+   "email": "gate-ops-disabled-viewer-0552b5ff-9e2a-47d1-8dfe-83fe7487bf7a@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:43.092975+00"
+  },
+  {
+   "id": "e81e9210-8226-4f0f-bb18-7d1a76b791e7",
+   "email": "gate-device-a-manager-7431abde-b179-419b-ab3d-7e8f44b5e44b@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:57.779435+00"
+  },
+  {
+   "id": "36dca45e-9631-451e-86c4-d95ce00c82dd",
+   "email": "gate-device-a-guard-13dd286f-aabf-4746-8c59-54c64e5328c7@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:58.335172+00"
+  },
+  {
+   "id": "5c60f7ee-a44b-4461-b431-beff1b24930e",
+   "email": "gate-device-a-viewer-e77b0d01-665c-4de0-b3f5-f88eaa94e10d@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:58.846557+00"
+  },
+  {
+   "id": "6bf3e314-b0f4-47f3-a4c2-37ad16656302",
+   "email": "gate-device-b-manager-8dc78109-ff58-4069-a3a4-95dc6ab14621@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:59.378006+00"
+  },
+  {
+   "id": "35295283-be69-4de3-aaa8-1b7271a86e5c",
+   "email": "gate-device-b-guard-f43c6dad-d2d9-4f99-8f15-c8d46c0ec7d8@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:19:59.792084+00"
+  },
+  {
+   "id": "70caa8e2-23b9-4fd7-b7e1-c188a1c6df0f",
+   "email": "gate-device-b-viewer-edb46355-0a19-4f2c-9ecb-712e80414fd7@aqarbooks-test.local",
+   "created_at": "2026-10-10 19:20:00.124755+00"
+  }
+ ],
+ "non_cascading_dependants": {
+  "gate_access_reconciliations": 4,
+  "gate_completion_policy": 15,
+  "gate_hardware_commands": 0,
+  "gate_hardware_endpoints": 0,
+  "gate_hardware_settings": 0,
+  "gate_manual_exceptions": 17,
+  "gate_notification_outbox": 48,
+  "gate_notification_recovery": 0,
+  "gate_scan_devices": 85,
+  "onboarding_requests": 0,
+  "platform_audit_logs": 235
+ },
+ "storage_objects": 0,
+ "storage_buckets": [],
+ "gate_devices": [
+  {
+   "id": "55b6d4aa-67a4-4e3d-920e-09cf563c66f9",
+   "organization_id": "425621f8-bd4a-424d-b935-22011d95c194",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:01:43.050669+00"
+  },
+  {
+   "id": "5d81e50a-a6fc-4c6c-946f-8de4790df75e",
+   "organization_id": "147d1ebb-9c47-4d43-9cc7-48052eec8274",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:02:35.093716+00"
+  },
+  {
+   "id": "442a8419-2e3e-4a4e-9081-0e771c5568f8",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:05.529042+00"
+  },
+  {
+   "id": "8c7348cf-e48f-43fd-b6be-48811e06374e",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:05.785596+00"
+  },
+  {
+   "id": "2ae5e0e9-9d60-45f1-9407-d6b31c0a181a",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:06.050707+00"
+  },
+  {
+   "id": "57838795-250e-45a8-8096-1f495bf207bc",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:05:06.402277+00"
+  },
+  {
+   "id": "3c377a4c-cafc-4af5-a478-66293a3501c6",
+   "organization_id": "19dbc6dc-ff80-40ad-a9b0-9c5a6e6d45b3",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:06.441225+00"
+  },
+  {
+   "id": "a9a6613f-4da8-48a5-a433-8914bcb33f78",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:06.609177+00"
+  },
+  {
+   "id": "4644ec40-5acb-4052-8fb1-49dd71921dfa",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:06.645724+00"
+  },
+  {
+   "id": "04f8bf81-59a2-4dfd-928a-3f64240a0ffa",
+   "organization_id": "5afac2a0-4c0c-4ff8-9342-f691a387dc78",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:06.992213+00"
+  },
+  {
+   "id": "82d9a454-caf0-48d3-960a-2fc63f2715e6",
+   "organization_id": "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:55.810564+00"
+  },
+  {
+   "id": "86bbb7ef-9054-4b49-a0a7-45487504e6f6",
+   "organization_id": "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:05:55.919095+00"
+  },
+  {
+   "id": "b4e362ba-ea28-46ae-9fc1-ab5af1052f09",
+   "organization_id": "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:56.082544+00"
+  },
+  {
+   "id": "42cdaa37-2c60-4638-a96a-c2684fa3ad80",
+   "organization_id": "2b8f4b0c-d56b-4a36-b1e3-5b92efb646e5",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:05:56.127399+00"
+  },
+  {
+   "id": "2f73da38-69ea-46ed-ad6c-87390c7712da",
+   "organization_id": "5236917b-7069-4dca-852f-6875394bb448",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:06:37.172458+00"
+  },
+  {
+   "id": "2ebaf2ac-593c-4944-a290-73f25774386c",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:12.350679+00"
+  },
+  {
+   "id": "43fa883e-8458-449f-a5d2-c2c0a2f6add9",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:12.575956+00"
+  },
+  {
+   "id": "b503321a-5d81-4436-be47-610c7a7d9252",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:12.824202+00"
+  },
+  {
+   "id": "b1b53649-6d28-4d3e-b9d0-582ff6325f92",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:13:13.105167+00"
+  },
+  {
+   "id": "327cd3de-ba69-45f4-a5f8-9cd7f6b26894",
+   "organization_id": "a508fd66-e998-4337-b98d-48a2c8d959fa",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:13.142675+00"
+  },
+  {
+   "id": "e1f82651-593b-4831-a36f-c55f30e2a99a",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:13.312786+00"
+  },
+  {
+   "id": "0358c257-4bd5-4734-91f9-bc6b13914011",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:13.345359+00"
+  },
+  {
+   "id": "537d8b3e-9486-4c3e-b5dc-7817fcf7fe99",
+   "organization_id": "3e2c4c6d-bf7f-4b6a-b3ae-1d0aaa53a92c",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:13:13.605345+00"
+  },
+  {
+   "id": "17090abb-166f-45f5-8983-6d9731a3d557",
+   "organization_id": "a32c6290-2fb8-4951-92f0-e4e38e4c4c19",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:14:19.436245+00"
+  },
+  {
+   "id": "509df636-6f3c-4a59-a661-7d9588e0d899",
+   "organization_id": "a32c6290-2fb8-4951-92f0-e4e38e4c4c19",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:14:19.538152+00"
+  },
+  {
+   "id": "f00078a8-0657-4732-beae-d6eb22d7f90a",
+   "organization_id": "a32c6290-2fb8-4951-92f0-e4e38e4c4c19",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:14:19.701459+00"
+  },
+  {
+   "id": "759bfe95-3e29-40bf-a1aa-6136cf7e04f2",
+   "organization_id": "a32c6290-2fb8-4951-92f0-e4e38e4c4c19",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:14:19.744897+00"
+  },
+  {
+   "id": "b1f87dda-323b-48ac-8b32-7ac369714589",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:43.781344+00"
+  },
+  {
+   "id": "586e2f33-0ddb-4704-97f0-8d3c99bba8fa",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.005504+00"
+  },
+  {
+   "id": "acb8fa94-b072-4635-8f59-665adc03a5ef",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.214152+00"
+  },
+  {
+   "id": "a629c3b2-fdff-454e-882a-4ff39e29896e",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:19:44.465726+00"
+  },
+  {
+   "id": "498ce0fe-e7d3-4964-b8b1-787c927831ef",
+   "organization_id": "87bc5852-9c5f-4cd4-b05a-61c73e2d6963",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.499225+00"
+  },
+  {
+   "id": "d72a5bc6-ca1b-4d01-92b7-21314d766f92",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.649075+00"
+  },
+  {
+   "id": "6ba61837-3234-464e-a6c1-5caa93a3bdeb",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.680579+00"
+  },
+  {
+   "id": "8fa99422-ee52-444f-aedb-263fb21efc36",
+   "organization_id": "ce63c20a-c348-4aa0-bcd8-c4cc60b42b14",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:19:44.953618+00"
+  },
+  {
+   "id": "551543d1-241e-410a-9978-50e7244d8428",
+   "organization_id": "72360ee5-d9ac-47c5-88bb-ce5d7548751f",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:20:00.421501+00"
+  },
+  {
+   "id": "6f7d2760-94b8-4bab-9aa1-209f25cc03a9",
+   "organization_id": "72360ee5-d9ac-47c5-88bb-ce5d7548751f",
+   "status": "REVOKED",
+   "created_at": "2026-10-10 19:20:00.537554+00"
+  },
+  {
+   "id": "c066d664-9c65-4c75-93df-f416981a8579",
+   "organization_id": "72360ee5-d9ac-47c5-88bb-ce5d7548751f",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:20:00.812968+00"
+  },
+  {
+   "id": "30266ff3-07ed-40cb-868e-b8f4f09947ac",
+   "organization_id": "72360ee5-d9ac-47c5-88bb-ce5d7548751f",
+   "status": "ACTIVE",
+   "created_at": "2026-10-10 19:20:00.866534+00"
+  }
+ ],
+ "access_event_outcomes": [
+  [
+   "ALLOW",
+   "VALID_ENTRY",
+   "127"
+  ],
+  [
+   "DENY",
+   "PASS_ALREADY_USED",
+   "24"
+  ],
+  [
+   "DENY",
+   "INVALID_PASS",
+   "9"
+  ],
+  [
+   "ALLOW",
+   "VALID_EXIT",
+   "8"
+  ],
+  [
+   "DENY",
+   "REVOKED",
+   "5"
+  ],
+  [
+   "DENY",
+   "EXPIRED",
+   "5"
+  ],
+  [
+   "DENY",
+   "ALREADY_INSIDE",
+   "5"
+  ],
+  [
+   "DENY",
+   "PROPERTY_MISMATCH",
+   "4"
+  ],
+  [
+   "RECONCILE",
+   "RECONCILED_EXIT",
+   "3"
+  ],
+  [
+   "DENY",
+   "NOT_YET_VALID",
+   "3"
+  ],
+  [
+   "DENY",
+   "FEATURE_DISABLED",
+   "3"
+  ],
+  [
+   "DENY",
+   "NOT_INSIDE",
+   "3"
+  ],
+  [
+   "RECONCILE",
+   "RECONCILED_ENTRY",
+   "1"
+  ]
+ ],
+ "notification_types": [
+  [
+   "VISITOR_INVITATION_CREATED",
+   "1068"
+  ],
+  [
+   "VISITOR_ENTERED",
+   "26"
+  ],
+  [
+   "INVITATION_REVOKED",
+   "10"
+  ],
+  [
+   "VISITOR_SECURITY_ALERT",
+   "9"
+  ],
+  [
+   "VISITOR_EXITED",
+   "8"
+  ],
+  [
+   "VISITOR_MANUAL_EXCEPTION",
+   "2"
+  ]
+ ],
+ "users_linked_via_organization_memberships": 64,
+ "linked_users_also_members_outside_window": 0,
+ "users_created_in_window_without_membership": 44,
+ "users_in_window_test_domain": 100,
+ "auth_users_test_domain_total": 352,
+ "auth_users_total": 1008
+}

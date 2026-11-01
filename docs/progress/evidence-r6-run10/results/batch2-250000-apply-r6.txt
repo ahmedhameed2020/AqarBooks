@@ -1,0 +1,1 @@
+psql: error: C:/Users/Lenovo/AppData/Local/Temp/20261031125000_fiscal_period_not_open_stable.sql: No such file or directory

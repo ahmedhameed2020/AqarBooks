@@ -1,0 +1,51 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (49.0s)
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 2 tests\e2e\projects-wip.spec.ts:214:5 › a member without finance.accounts.manage sees the projects but no controls (8.5s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-project="TWR-22598304"]')
+    Expected: visible
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 40000ms
+      - waiting for locator('[data-project="TWR-22598304"]')
+
+
+      126 |
+      127 |     const row = page.locator(`[data-project="${code}"]`);
+    > 128 |     await expect(row).toBeVisible({ timeout: 40_000 });
+          |                       ^
+      129 |     await expect(row).toHaveAttribute("data-accounts-set", "no");
+      130 |     await expect(row).toContainText(/cannot capitalise/i);
+      131 |     await expect(
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:128:23
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-test-fixes\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-test-fixes\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-test-fixes\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+  1 passed (1.1m)
+

@@ -1,0 +1,52 @@
+diff: export-generate.sql v4 (bdeb387d12ecf5d91982af2b7406d747556acb0690bb9b02dbeedd3f755beb5f) -> v5 (42d37ce6c2c430250ece1df0ae61f2c9117b28295890da75d300a0dd055da6a7)
+Only two changes. Lines in the generated export-generate.sql are the builder's output; the builder is not shipped (it lives in the scratchpad).
+135c135
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+142a143,151
+>   union all select 3, 'do $guard$ declare bad bigint; kinds bigint; begin select count(*) filter (where jsonb_typeof(g.v) in (''object'', ''array'')), count(distinct jsonb_typeof(g.v)) into bad, kinds from (' || kg.kpath || ') g(v) where jsonb_typeof(g.v) <> ''null''; if bad > 0 then raise exception ''KEEP-GUARD: ' || kg.t || '.' || kg.col || ' ' || kg.path || ' is KEEP but holds object or array
+>     select j.t, j.col, j.path,
+>       case when j.path = '.' then 'select x.' || quote_ident(j.col) || '::jsonb as v from public.' || quote_ident(j.t) || ' x'
+>            when j.path like '[].%' then 'select v from public.' || quote_ident(j.t) || ' x, jsonb_path_query(case when jsonb_typeof(x.' || quote_ident(j.col) || '::jsonb) = ''array'' then x.' || quote_ident(j.col) || '::jsonb else ''[]''::jsonb end, ''$[*]."' || substr(j.path, 4) || '"'') v'
+>            else 'select v from public.' || quote_ident(j.t) || ' x, jsonb_path_query(case when jsonb_typeof(x.' || quote_ident(j.col) || '::jsonb) = ''object'' then x.' || quote_ident(j.col) || '::jsonb else ''{}''::jsonb end, ''$."' || j.path || '"'') v'
+>       end as kpath
+>     from revj j
+>     where j.kind = 'KEEP' and exists (select 1 from rh_eff e where e.t = j.t and e.col = j.col and e.eff = 'JSONALLOW')
+>   ) kg, rh_blocked where not blocked
+245c254
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+363c372
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+467c476
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+567c576
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+661c670
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+756c765
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+850c859
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+944c953
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'
+1038c1047
+<   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[^.|\[\]]+)$'
+---
+>   from revj j where j.kind !~ '^(KEEP|NUM|BOOL|UUID|TS|ENUM:[^|,]+(,[^|,]+)*)$' or j.path !~ '^([.]|([[][]][.])?[A-Za-z][A-Za-z0-9_]{0,40})$'

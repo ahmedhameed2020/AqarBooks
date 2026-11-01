@@ -1,0 +1,53 @@
+diff --git a/docs/progress/evidence-r6-run7/scripts/cancelled_credit_release_regression.initial.sql b/docs/progress/evidence-r6-run7/scripts/cancelled_credit_release_regression.sql
+index 3aa6907..cf37595 100644
+--- a/docs/progress/evidence-r6-run7/scripts/cancelled_credit_release_regression.initial.sql
++++ b/docs/progress/evidence-r6-run7/scripts/cancelled_credit_release_regression.sql
+@@ -18,6 +18,8 @@ select je.status,je.reversed_entry_id,
+ from public.journal_entries je where je.id='b28d41e5-33f5-4a6a-8d16-92183f1ea612';
+ select capitalised,released,wip_balance from public.project_wip_summary('a17c30d4-22e4-4f5f-9c95-81072e0df501');
+ select public.project_wip_net('a17c30d4-22e4-4f5f-9c95-81072e0df501') as all_status_floor_net;
++create temporary table r7_release_result(release_id uuid);
++grant insert on r7_release_result to authenticated;
+ set role authenticated;
+ do $$
+ declare
+@@ -32,6 +34,7 @@ begin
+   if v_release_id is null then
+     raise exception 'ASSERT_CANCELLED_CREDIT_RELEASE_FAILED: valid release 600 was rejected; error=%',v_error;
+   end if;
++  insert into r7_release_result values (v_release_id);
+   raise notice 'ASSERT_CANCELLED_CREDIT_RELEASE_ACCEPTED: release_id=%',v_release_id;
+ end $$;
+ reset role;
+@@ -39,10 +42,10 @@ select capitalised,released,wip_balance from public.project_wip_summary('a17c30d
+ select je.id,je.status,sum(l.debit) as debit,sum(l.credit) as credit,
+        sum(l.debit-l.credit) as net,
+        count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and l.credit=600 and l.project_id='a17c30d4-22e4-4f5f-9c95-81072e0df501') as wip_credit_lines,
+-       count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000004' and l.debit=600 and l.project_id is null) as cost_debit_lines
+-from public.journal_entries je
++       count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000004' and l.debit=600 and l.project_id='a17c30d4-22e4-4f5f-9c95-81072e0df501') as cost_debit_lines
++from r7_release_result x
++join public.journal_entries je on je.id=x.release_id
+ join public.journal_entry_lines l on l.journal_entry_id=je.id
+-where je.description='R7 valid release after cancelled credit'
+ group by je.id,je.status;
+ do $$
+ declare
+@@ -57,13 +60,13 @@ begin
+   where l.project_id='a17c30d4-22e4-4f5f-9c95-81072e0df501'
+     and l.account_id='aaaaaaa1-0000-4000-8000-000000000001'
+     and (je.status='POSTED' or (je.status='REVERSED' and exists(select 1 from public.journal_entries x where x.reversed_entry_id=je.id)));
+-  select je.status,sum(l.debit) as debit,sum(l.credit) as credit,
++  select je.id,je.status,sum(l.debit) as debit,sum(l.credit) as credit,
+          count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000001' and l.credit=600 and l.project_id='a17c30d4-22e4-4f5f-9c95-81072e0df501') as wip_credit_lines,
+-         count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000004' and l.debit=600 and l.project_id is null) as cost_debit_lines
++         count(*) filter (where l.account_id='aaaaaaa1-0000-4000-8000-000000000004' and l.debit=600 and l.project_id='a17c30d4-22e4-4f5f-9c95-81072e0df501') as cost_debit_lines
+   into r
+-  from public.journal_entries je
++  from r7_release_result x
++  join public.journal_entries je on je.id=x.release_id
+   join public.journal_entry_lines l on l.journal_entry_id=je.id
+-  where je.description='R7 valid release after cancelled credit'
+   group by je.id,je.status;
+   if s.capitalised<>1000 or s.released<>600 or s.wip_balance<>400 or v_ledger<>400 then
+     raise exception 'ASSERT_CANCELLED_CREDIT_RELEASE_FAILED: expected cap=1000 rel=600 wip=400 ledger=400; actual cap=% rel=% wip=% ledger=%',s.capitalised,s.released,s.wip_balance,v_ledger;

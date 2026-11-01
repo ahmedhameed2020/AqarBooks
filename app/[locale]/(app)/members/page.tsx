@@ -17,6 +17,7 @@ import { MemberDrawer, type MemberDrawerData } from "./member-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { assertRead } from "@/lib/supabase/assert-read";
 
 const PAGE_SIZE = 50;
 const SORT_COLUMN: Record<string, string> = { name: "full_name", units: "units_count", balance: "total_balance" };
@@ -45,12 +46,13 @@ async function getDrawerData(
   memberId: string,
   isAr: boolean,
 ): Promise<MemberDrawerData | null> {
-  const { data: member } = await supabase
+  const { data: member, error: memberError } = await supabase
     .from("members_with_financials")
     .select("*")
     .eq("id", memberId)
     .eq("organization_id", organizationId)
     .maybeSingle();
+  assertRead(memberError, "members/drawer: members_with_financials");
   if (!member) return null;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -61,9 +63,10 @@ async function getDrawerData(
     .eq("member_id", memberId);
   const activeUnitIds = (ownerships ?? []).filter((o) => !o.end_date || o.end_date >= today).map((o) => o.unit_id);
 
-  const { data: unitRows } = activeUnitIds.length
+  const { data: unitRows, error: unitRowsError } = activeUnitIds.length
     ? await supabase.from("units_with_financials").select("id, code, balance").in("id", activeUnitIds)
-    : { data: [] };
+    : { data: [], error: null };
+  assertRead(unitRowsError, "members/drawer: units_with_financials");
   const units = (unitRows ?? []).sort((a, b) => b.balance - a.balance);
 
   let dues: MemberDrawerData["dues"] = [];
@@ -157,14 +160,17 @@ export default async function MembersPage({
   const monthStart = today.slice(0, 8) + "01";
 
   const [
-    { count: membersCount },
-    { count: membersWithArrears },
-    { data: unitBalances },
-    { data: monthPayments },
-    { data: allMembers },
-    { data: allUnits },
+    { count: membersCount, error: membersCountError },
+    { count: membersWithArrears, error: arrearsCountError },
+    { data: unitBalances, error: unitBalancesError },
+    { data: monthPayments, error: monthPaymentsError },
+    { data: allMembers, error: allMembersError },
+    { data: allUnits, error: allUnitsError },
   ] = await Promise.all([
-    supabase.from("members").select("id", { count: "exact", head: true }).eq("organization_id", organization.id),
+    // The header count comes from the SAME relation as the table below (members_with_financials). It used to
+    // count the base `members` table while the rows came from the view, so a failing view produced a header
+    // reading 112 above an empty table.
+    supabase.from("members_with_financials").select("id", { count: "exact", head: true }).eq("organization_id", organization.id),
     supabase
       .from("members_with_financials")
       .select("id", { count: "exact", head: true })
@@ -185,6 +191,13 @@ export default async function MembersPage({
       .order("code"),
   ]);
 
+  // the KPI strip and the unit-code lookups come from the same failing-prone views as the table: error boundary, not zeros
+  assertRead(arrearsCountError, "members: arrears count");
+  assertRead(unitBalancesError, "members: units_with_financials balances");
+  assertRead(monthPaymentsError, "members: month payments");
+  assertRead(allMembersError, "members: members");
+  assertRead(allUnitsError, "members: units list");
+
   const totalArrears = (unitBalances ?? []).reduce((s, u) => s + (u.balance > 0 ? u.balance : 0), 0);
   const collectedThisMonth = (monthPayments ?? []).reduce((s, p) => s + p.amount, 0);
 
@@ -203,7 +216,8 @@ export default async function MembersPage({
 
   const sortColumn = (sp.sort && SORT_COLUMN[sp.sort]) || "full_name";
   const ascending = sp.dir !== "desc";
-  const { data: members, count } = await query.order(sortColumn, { ascending }).range(from, to);
+  const { data: members, count, error: listError } = await query.order(sortColumn, { ascending }).range(from, to);
+  const loadFailed = Boolean(membersCountError || listError);
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const memberIds = (members ?? []).map((m) => m.id);
@@ -243,7 +257,7 @@ export default async function MembersPage({
                   <span>{isAr ? "دليل الملاك والمستأجرين" : "Members & Tenants CRM"}</span>
                 </Badge>
                 <Badge variant="outline" className="text-[10px] font-bold">
-                  {membersCount ?? 0} {isAr ? "عضو مسجل" : "Registered Members"}
+                  {loadFailed ? "—" : (membersCount ?? 0)} {isAr ? "عضو مسجل" : "Registered Members"}
                 </Badge>
               </div>
 
@@ -284,7 +298,7 @@ export default async function MembersPage({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
             <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 dark:bg-slate-800/40 dark:border-slate-800">
               <p className="text-[11px] font-bold text-slate-500">{isAr ? "إجمالي الأعضاء والملاك" : "Total Members"}</p>
-              <p className="text-xl font-black text-slate-900 dark:text-white mt-1">{membersCount ?? 0}</p>
+              <p className="text-xl font-black text-slate-900 dark:text-white mt-1" data-testid="members-total">{loadFailed ? "—" : (membersCount ?? 0)}</p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40">
@@ -311,7 +325,16 @@ export default async function MembersPage({
         {/* ──────────────────────────────────────────────────────────────────────────
             2. FILTER STUDIO & DATA TABLE
             ────────────────────────────────────────────────────────────────────────── */}
-        {noMembersAtAll ? (
+        {loadFailed ? (
+          <div role="alert" data-testid="members-error" className="flex flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-rose-300 bg-rose-50/60 p-12 text-center dark:border-rose-900 dark:bg-rose-950/20">
+            <p className="text-base font-black text-rose-800 dark:text-rose-300">
+              {isAr ? "تعذّر تحميل قائمة الأعضاء" : "The members list could not be loaded"}
+            </p>
+            <p className="text-xs text-rose-700/80 dark:text-rose-300/80 max-w-md">
+              {isAr ? "حدث خطأ أثناء قراءة البيانات، لذلك لا نعرض عددًا ولا جدولًا. لا يعني هذا أنه لا يوجد أعضاء." : "An error occurred while reading the data, so no count or table is shown. This does not mean there are no members."}
+            </p>
+          </div>
+        ) : noMembersAtAll ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-white p-16 text-center dark:border-slate-800 dark:bg-slate-900">
             <div className="size-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <UserPlus className="size-7" />

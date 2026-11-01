@@ -1,0 +1,10 @@
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\enterprise-suite-pillars.spec.ts:13:7 › Enterprise Suite 3-Pillar Comprehensive Flow › Verify Fiscal Periods, Real Estate Entities & Platform Dashboard (19.3s)
+
+  1 passed (22.5s)

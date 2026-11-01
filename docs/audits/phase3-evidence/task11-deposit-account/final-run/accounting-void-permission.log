@@ -1,0 +1,11 @@
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+[1/4] tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not
+[2/4] tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes
+[3/4] tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC
+[4/4] tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous
+  4 passed (55.4s)

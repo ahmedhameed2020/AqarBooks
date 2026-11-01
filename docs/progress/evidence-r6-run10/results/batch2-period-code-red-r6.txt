@@ -1,0 +1,67 @@
+$ tests/fiscal-period-not-open.integration.test.ts
+label=batch2-period-code-red-r6
+exit=1
+elapsed_ms=19403
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/fiscal-period-not-open.integration.test.ts (5 tests | 2 failed) 10188ms
+     × manual journal posting returns the stable code and keeps the entry DRAFT 95ms
+     ✓ due issuance returns the stable code and creates no due or entry  3228ms
+     ✓ payment posting returns the stable code and creates no payment or entry 116ms
+     × reversal into a closed target period returns the stable code and preserves the original 64ms
+     ✓ bank-funded expense posting returns the stable code and creates no expense or entry 111ms
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  13:20:52
+   Duration  16.46s (transform 256ms, setup 355ms, import 5.50s, tests 10.19s, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch2-period-code-red-r6.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/fiscal-period-not-open.integration.test.ts > FISCAL_PERIOD_NOT_OPEN stable posting contract on r6 > manual journal posting returns the stable code and keeps the entry DRAFT
+AssertionError: expected 'fiscal period is not open' to match /FISCAL_PERIOD_NOT_OPEN/
+
+- Expected:
+/FISCAL_PERIOD_NOT_OPEN/
+
++ Received:
+"fiscal period is not open"
+
+ ❯ expectStableRefusal tests/fiscal-period-not-open.integration.test.ts:68:33
+     66| async function expectStableRefusal(result: RpcResult) {
+     67|   expect(result.error, "the posting must be refused").not.toBeNull();
+     68|   expect(result.error!.message).toMatch(STABLE_CODE);
+       |                                 ^
+     69|   expect(result.error!.message).not.toMatch(/NO_OPEN_FISCAL_PERIOD/);
+     70| }
+ ❯ tests/fiscal-period-not-open.integration.test.ts:182:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/fiscal-period-not-open.integration.test.ts > FISCAL_PERIOD_NOT_OPEN stable posting contract on r6 > reversal into a closed target period returns the stable code and preserves the original
+AssertionError: expected 'reversal fiscal period is not open' to match /FISCAL_PERIOD_NOT_OPEN/
+
+- Expected:
+/FISCAL_PERIOD_NOT_OPEN/
+
++ Received:
+"reversal fiscal period is not open"
+
+ ❯ expectStableRefusal tests/fiscal-period-not-open.integration.test.ts:68:33
+     66| async function expectStableRefusal(result: RpcResult) {
+     67|   expect(result.error, "the posting must be refused").not.toBeNull();
+     68|   expect(result.error!.message).toMatch(STABLE_CODE);
+       |                                 ^
+     69|   expect(result.error!.message).not.toMatch(/NO_OPEN_FISCAL_PERIOD/);
+     70| }
+ ❯ tests/fiscal-period-not-open.integration.test.ts:233:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+

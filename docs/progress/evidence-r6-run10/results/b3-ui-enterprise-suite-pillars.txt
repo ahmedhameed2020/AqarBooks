@@ -1,0 +1,54 @@
+$ tests/e2e/enterprise-suite-pillars.spec.ts
+label=b3-ui-enterprise-suite-pillars
+exit=1
+elapsed_ms=56361
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  x  1 tests\e2e\enterprise-suite-pillars.spec.ts:13:7 › Enterprise Suite 3-Pillar Comprehensive Flow › Verify Fiscal Periods, Real Estate Entities & Platform Dashboard (30.9s)
+
+
+  1) tests\e2e\enterprise-suite-pillars.spec.ts:13:7 › Enterprise Suite 3-Pillar Comprehensive Flow › Verify Fiscal Periods, Real Estate Entities & Platform Dashboard 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('text=مساعد الإقفال السنوي وترحيل الأرصدة').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('text=مساعد الإقفال السنوي وترحيل الأرصدة').first()
+
+
+      102 |     await page.goto(`${baseURL}/ar/admin/finance/periods`);
+      103 |     await expect(page.locator("h1")).toContainText("السنوات والفترات والإقفال المحاسبي");
+    > 104 |     await expect(page.locator("text=مساعد الإقفال السنوي وترحيل الأرصدة").first()).toBeVisible();
+          |                                                                                    ^
+      105 |
+      106 |     // Open Closing Wizard modal
+      107 |     await page.click("text=مساعد الإقفال السنوي وترحيل الأرصدة");
+        at D:\Web\AqarBooks\tests\e2e\enterprise-suite-pillars.spec.ts:104:84
+
+    Error Context: docs\progress\evidence-r6-run10\results\b3-ui-enterprise-suite-pillars-artifacts\enterprise-suite-pillars-E-cc77d-Entities-Platform-Dashboard\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\b3-ui-enterprise-suite-pillars-artifacts\enterprise-suite-pillars-E-cc77d-Entities-Platform-Dashboard\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\b3-ui-enterprise-suite-pillars-artifacts\enterprise-suite-pillars-E-cc77d-Entities-Platform-Dashboard\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\enterprise-suite-pillars.spec.ts:13:7 › Enterprise Suite 3-Pillar Comprehensive Flow › Verify Fiscal Periods, Real Estate Entities & Platform Dashboard 
+(node:40736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

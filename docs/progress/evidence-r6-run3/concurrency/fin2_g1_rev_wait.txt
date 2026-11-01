@@ -1,0 +1,13 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/g1_rev_wait.sql:3: ERROR:  PROJECT_WIP_NEGATIVE: العكس أو التحرير يجعل رصيد WIP سالبًا (الرصيد 400.0000, المطلوب 1000.0000)
+CONTEXT:  PL/pgSQL function guard_project_line_insert() line 16 at RAISE
+SQL statement "insert into public.journal_entry_lines (journal_entry_id, line_number, account_id, description, debit, credit, cost_center_id, project_id)
+  select v_new_entry_id, line_number, account_id, description, credit, debit, cost_center_id, project_id
+  from public.journal_entry_lines
+  where journal_entry_id = p_journal_entry_id"
+PL/pgSQL function reverse_journal_entry(uuid,uuid,date,text) line 62 at SQL statement

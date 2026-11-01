@@ -1,0 +1,32 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/role-permissions-rollout.local-sql.test.ts (4 tests | 4 skipped) 276ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/role-permissions-rollout.local-sql.test.ts > replace_role_permissions_atomic rollout order (scratch PostgreSQL)
+AssertionError: expected '1' to be '0' // Object.is equality
+
+Expected: "0"
+Received: "1"
+
+ ❯ tests/role-permissions-rollout.local-sql.test.ts:74:126
+     72|     duesPerm = run(`select id from public.permissions where key='finan…
+     73|     // The template must be the pre-migration state or the ordering be…
+     74|     expect(run(`select count(*) from pg_proc where proname='replace_ro…
+       |                                                                                                                              ^
+     75|     expect(run(`select count(*) from pg_proc where proname='replace_ro…
+     76|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 skipped (4)
+   Start at  09:43:42
+   Duration  639ms (transform 88ms, setup 101ms, import 20ms, tests 276ms, environment 0ms)
+

@@ -1,0 +1,51 @@
+diff --git a/docs/progress/evidence-r6-run5/results/status_before.json b/docs/progress/status.json
+index efbe867..e28ca85 100644
+--- a/docs/progress/evidence-r6-run5/results/status_before.json
++++ b/docs/progress/status.json
+@@ -123,7 +123,15 @@
+       "tests": [
+         {
+           "file": "tests/projects-wip.spec.ts",
+-          "result_text": "7/7 passing on r6 (final-round)"
++          "result_text": "8/8 passing on r6 after proposal 200000; the cancelled-draft case failed before the fix with released=900.00 instead of 600.00."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_after.txt",
++          "result_text": "PASS on r6: status-only cancelled draft excluded; capitalised=1000, released=600, wip_balance=400, ledger=400. Transaction rolled back."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run5/results/posted_reversal_after.txt",
++          "result_text": "PASS on r6: reversed release gives 1000/0/1000; reversing the capitalisation then gives 0/0/0, with ledger agreement. Transaction rolled back."
+         },
+         {
+           "file": "tests/reports-suite-flow.spec.ts",
+@@ -163,23 +171,26 @@
+         },
+         {
+           "file": "tests/progress-status.test.ts",
+-          "result_text": "7/7 passing after the Batch 1B status update (docs/progress/evidence-r6-run4/results/progress-status-test-final.txt)."
++          "result_text": "7/7 passing after the proposal 200000 status update (docs/progress/evidence-r6-run5/results/progress-status-test.txt)."
+         }
+       ],
+       "blockers": [
+         "External: sandbox-pilot.manual 6 assertions failing; blocked on missing approved tax rules (decision 0008 unsigned).",
+         "External: owner-portal-online-payment-fawry not run (Fawry keys absent).",
+         "Deferred by explicit owner decision (2026-10-29, decisions/2026-10-29-report-deferrals.md): asset report, CAM, CAPEX/OPEX. Links hidden; tests test.fixme (skipped, not passed).",
+-        "Open owner decision: a draft cancelled by changing its status to REVERSED is still classified as released in project_wip_summary. Options were presented; no classification migration was applied, so the post-classification WIP UI check was not rerun.",
+         "Open owner decision: the pre-existing-negative policy currently allows improvement only and still needs explicit confirmation.",
+         "UPDATE/DELETE floor coverage remains limited to RLS-bypassing roles (owner and service_role); authenticated and anon have no journal_entry_lines UPDATE/DELETE policy.",
+         "Multi-line update ordering across two projects was not tested beyond the existing T4/T5 evidence.",
+-        "Proposal 190000 changes only the PROJECT_WIP_NEGATIVE wording and is applied to r6 only; review is required. tests/projects-wip.spec.ts was not rerun because guard logic and its assertions were unaffected.",
++        "Proposal 190000 changes only the PROJECT_WIP_NEGATIVE wording and is applied to r6 only; review is required. Its guard logic and assertions were unaffected.",
++        "Proposal 200000 changes only cancelled-draft classification in project_wip_summary and is applied to r6 only; review is required. Genuine POSTED-then-REVERSED classification and reversal effects passed the focused SQL and WIP UI checks.",
+         "Audit constraint check_audit_action keeps PROJECT_UPDATED after rollback: changes the accepted-value set (superset).",
+         "Not applied outside r6. No production readiness claim. Review required before any environment."
+       ],
+       "last_updated": "2026-10-29",
+       "evidence": [
++        "docs/progress/review-bundle-r6-200000.zip",
++        "docs/progress/review-bundle-r6-200000/manifest.txt",
++        "docs/progress/evidence-r6-run5/",
+         "docs/progress/review-bundle-r6-190000.zip",
+         "docs/progress/review-bundle-r6-190000/manifest.txt",
+         "docs/progress/evidence-r6-run4/",

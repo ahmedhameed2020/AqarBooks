@@ -1,0 +1,44 @@
+==== CANCELLED WIP CREDIT 800: valid release 600 must use posted balance 1000 only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+                 cap                  
+--------------------------------------
+ fd24a821-183d-4be3-aeb1-0f4786228f99
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+  status  | reversed_entry_id | has_reversal_entry 
+----------+-------------------+--------------------
+ REVERSED |                   | f
+(1 row)
+
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+ all_status_floor_net 
+----------------------
+             200.0000
+(1 row)
+
+CREATE TABLE
+SET
+psql:/tmp/cancelled_credit_release_regression.sql:38: ERROR:  permission denied for table r7_release_result
+HINT:  Grant the required privileges to the current role with: GRANT INSERT ON pg_temp_13.r7_release_result TO authenticated;
+CONTEXT:  SQL statement "insert into r7_release_result values (v_release_id)"
+PL/pgSQL function inline_code_block line 14 at SQL statement
+psql:/tmp/cancelled_credit_release_regression.sql:39: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/tmp/cancelled_credit_release_regression.sql:40: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/tmp/cancelled_credit_release_regression.sql:48: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/tmp/cancelled_credit_release_regression.sql:77: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK

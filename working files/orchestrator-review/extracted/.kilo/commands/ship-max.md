@@ -1,0 +1,2 @@
+# Ship Max
+Run the current task through the complete Ahmed Orchestrator Max pipeline: task contract, AGENTS.md, git status, reconnaissance, two-pass plan, visible todo list, specialist delegation, small-batch implementation, evidence-first failure classification, relevant verification, adversarial final review, specialist security/performance review when applicable, remediation, rerun, and evidence-based closure. Never weaken a legitimate test. Never claim a check passed if it was not run.

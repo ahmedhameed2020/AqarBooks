@@ -1,0 +1,89 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 5 failed) 131301ms
+     × an active, permitted member reads their organization's rows (and only theirs) 25235ms
+     × invited sees no financial/property rows in any affected table or view 8623ms
+     × suspended sees no financial/property rows in any affected table or view 8764ms
+     × stranger sees no financial/property rows in any affected table or view 8393ms
+     × an active member of ANOTHER organization sees none of org A's rows 19159ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active, permitted member reads their organization's rows (and only theirs)
+AssertionError: journal_entry_lines: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:114:51
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > invited sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > suspended sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > stranger sees no financial/property rows in any affected table or view
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:120:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active member of ANOTHER organization sees none of org A's rows
+AssertionError: journal_entry_lines: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:126:103
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 12 passed (17)
+   Start at  17:59:16
+   Duration  145.13s (transform 823ms, setup 451ms, import 12.69s, tests 131.30s, environment 0ms)
+

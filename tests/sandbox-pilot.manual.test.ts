@@ -18,6 +18,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import type { Database } from "../lib/supabase/types";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -127,15 +128,6 @@ beforeAll(async () => {
   } as never).select("id").single();
   rentTypeId = rentType!.id as string;
 
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "SANDBOX FY", start_date: "2025-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  } as never).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "SANDBOX Period", start_date: "2025-01-01", end_date: "2026-12-31", status: "OPEN",
-  } as never);
-
   const email = `sandbox-owner-${STAMP}@aqarbooks-test.local`;
   const { data: created } = await admin.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
@@ -151,6 +143,12 @@ beforeAll(async () => {
   const { error: signInErr } = await client.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, `sign-in failed: ${signInErr?.message}`).toBeNull();
   owner = { userId: created!.user!.id, client };
+
+  // Fiscal calendar through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  // Creates monthly periods for 2025-2026, all opened.
+  await createOpenFiscalYear(admin, owner.client, {
+    orgId, name: "SANDBOX FY", startDate: "2025-01-01", endDate: "2026-12-31",
+  });
 
   step("٠", `مؤسسة الطيار: ${ORG_NAME} (${orgId})`);
 }, 180_000);

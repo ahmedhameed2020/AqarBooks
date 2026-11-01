@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\finance-screens-show-their-data.spec.ts:194:5 › the finance screens show the rows that exist, not an empty list (36.8s)
+
+  1 passed (56.9s)
+

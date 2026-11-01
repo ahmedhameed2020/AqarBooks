@@ -18,6 +18,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 loadEnv({ path: ".env.local" });
 
@@ -92,17 +93,6 @@ beforeAll(async () => {
     share_percentage: 100, is_primary_contact: true, start_date: "2020-01-01",
   });
 
-  // An open period covering the as-of date, so the insert trigger posts the
-  // due to the ledger and the test can read the journal it produced.
-  const { data: fy } = await admin.from("fiscal_years").insert({
-    organization_id: orgId, name: "OB FY", start_date: "2026-01-01",
-    end_date: "2026-12-31", status: "OPEN",
-  }).select("id").single();
-  await admin.from("fiscal_periods").insert({
-    organization_id: orgId, fiscal_year_id: fy!.id, period_number: 1,
-    name: "OB Period", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN",
-  });
-
   const email = `e2e-ob-${stamp}@aqarbooks-test.local`;
   const { data: created } = await admin.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
@@ -118,6 +108,13 @@ beforeAll(async () => {
   asUser = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: signInErr } = await asUser.auth.signInWithPassword({ email, password: PASSWORD });
   expect(signInErr, signInErr?.message).toBeNull();
+
+  // An open period covering the as-of date, so the insert trigger posts the
+  // due to the ledger and the test can read the journal it produced.
+  // Created through the product RPCs as the signed-in owner (the guard refuses direct writes).
+  await createOpenFiscalYear(admin, asUser, {
+    orgId, name: "OB FY", startDate: "2026-01-01", endDate: "2026-12-31",
+  });
 });
 
 afterAll(async () => {
@@ -134,8 +131,7 @@ afterAll(async () => {
     await admin.from("journal_entry_lines").delete().eq("journal_entry_id", e.id);
   }
   await admin.from("journal_entries").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_periods").delete().eq("organization_id", orgId);
-  await admin.from("fiscal_years").delete().eq("organization_id", orgId);
+  // fiscal_years / fiscal_periods are removed by the organization cascade (open rows only; see the guard).
   await admin.from("unit_ownerships").delete().eq("organization_id", orgId);
   await admin.from("members").delete().eq("organization_id", orgId);
   await admin.from("units").delete().eq("organization_id", orgId);
@@ -301,9 +297,15 @@ describe("member opening balance", () => {
     const res = await record({ unit: otherUnitId, member: strangerId, receivable: equityAccountId });
     // Linking is checked before the account, so use the linked member instead.
     expect(res.error).not.toBeNull();
+    // otherUnitId is already 100% owned by memberId (previous test). The ownership invariant
+    // (enforce_unit_ownership_total, 20261001123000) caps active shares at 100%, so the second
+    // owner is a genuine co-owner: split 50/50 instead of inserting a second 100% share.
+    const split = await admin.from("unit_ownerships").update({ share_percentage: 50 })
+      .eq("unit_id", otherUnitId).eq("member_id", memberId);
+    expect(split.error, split.error?.message).toBeNull();
     const linked = await admin.from("unit_ownerships").insert({
       organization_id: orgId, unit_id: otherUnitId, member_id: strangerId,
-      share_percentage: 100, is_primary_contact: false, start_date: "2020-01-01",
+      share_percentage: 50, is_primary_contact: false, start_date: "2020-01-01",
     });
     expect(linked.error, linked.error?.message).toBeNull();
     const res2 = await record({ unit: otherUnitId, member: strangerId, receivable: equityAccountId });

@@ -1,0 +1,39 @@
+
+> aqarbooks@0.1.0 demo:e2e
+> node scripts/demo-local/e2e.mjs tests/e2e/owner-portal-isolation.spec.ts tests/e2e/portal-statement.spec.ts tests/e2e/owner-portal-invite.spec.ts tests/e2e/gate-scanner-field.spec.ts tests/e2e/gate-device-enrollment.spec.ts tests/e2e/gate-supervision.spec.ts
+
+◇ injected env (6) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 20 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok  1 tests\e2e\gate-device-enrollment.spec.ts:7:5 › manager issues one-time enrollment; browser persists gate binding and rejects reuse (41.3s)
+  ok  2 tests\e2e\gate-device-enrollment.spec.ts:40:5 › manager revocation removes a loaded scanner binding and cannot issue access (28.6s)
+  ok  3 tests\e2e\gate-device-enrollment.spec.ts:61:5 › enrollment fields have accessible names and keyboard access (10.9s)
+  ok  4 tests\e2e\gate-device-enrollment.spec.ts:76:5 › occupancy navigation is available to guards only with ledger permission (10.4s)
+  ok  5 tests\e2e\gate-scanner-field.spec.ts:41:5 › camera and manual scans announce decisions, distinguish feedback and suppress cooldown duplicates (23.3s)
+  ok  6 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with missing browser capabilities (16.6s)
+  ok  7 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with denied browser capabilities (15.2s)
+  ok  8 tests\e2e\gate-scanner-field.spec.ts:66:7 › manual input remains usable with feedback-throws browser capabilities (18.3s)
+  ok  9 tests\e2e\gate-scanner-field.spec.ts:80:5 › a stationary camera QR remains one decision after multiple cooldown periods (18.2s)
+  ok 10 tests\e2e\gate-scanner-field.spec.ts:90:5 › offline after load never allows or records access; reconnect persists one safe incident (24.5s)
+  ok 11 tests\e2e\gate-supervision.spec.ts:8:5 › guard exception requires supervisor approval; corrected exit preserves scan evidence (27.0s)
+  ok 12 tests\e2e\gate-supervision.spec.ts:58:5 › supervisor looks up a missing entry, reconciles inside, and exports occupancy (16.7s)
+  ok 13 tests\e2e\gate-supervision.spec.ts:79:5 › ledger filters real evidence and exports formula-safe CSV; Arabic screens use RTL (18.9s)
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  x  14 tests\e2e\owner-portal-invite.spec.ts:28:5 › owner accepts an invite and reaches the portal dashboard (1.2s)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  15 tests\e2e\owner-portal-isolation.spec.ts:131:5 › two owners in a browser each see only their own unit (1.2s)
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  16 tests\e2e\portal-statement.spec.ts:193:5 › an owner's statement shows their own movements, and never another owner's (2.0m)
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  17 tests\e2e\portal-statement.spec.ts:230:5 › an owner with no activity gets an empty statement, not a crash or a wrong zero (1.5m)
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  18 tests\e2e\portal-statement.spec.ts:263:5 › the statement renders right-to-left in Arabic and left-to-right in English (0ms)

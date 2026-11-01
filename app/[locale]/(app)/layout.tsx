@@ -8,6 +8,7 @@ import {
 } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/toast";
 import { AskAqarBooksDrawer } from "@/components/ai/ask-aqarbooks-drawer";
+import { isAiAvailable } from "@/lib/ai/availability";
 import { getCurrentUser, isPlatformAdmin } from "@/lib/auth/session";
 import { getPrimaryOrganization } from "@/lib/auth/org-context";
 import { getOperationalAlerts } from "@/lib/alerts/operational-alerts";
@@ -217,7 +218,6 @@ export default async function AppShellLayout({
                 { href: "/finance/payments", permission: "finance.payments.read", labelAr: "سندات القبض والتحصيل", labelEn: "Receipt Vouchers" },
                 { href: "/finance/service-charges", permission: "finance.service_charges.manage", labelAr: "رسوم الخدمات والصيانة", labelEn: "Service Charges" },
                 { href: "/finance/dunning", permission: "finance.dunning.manage", labelAr: "التحصيل والمتأخرات", labelEn: "Collections" },
-                { href: "/finance/reports/cam-allocation", permission: "finance.reports.read", labelAr: "توزيع تكاليف الخدمات (CAM)", labelEn: "CAM Allocation" },
                 { href: "/finance/reports/aging", permission: "finance.dues.read", labelAr: "أعمار ديون العملاء (AR)", labelEn: "AR Aging" },
               ],
             },
@@ -243,7 +243,6 @@ export default async function AppShellLayout({
                 { href: "/finance/suppliers", permission: "finance.suppliers.read", labelAr: "الموردون والمقاولون", labelEn: "Vendors & Suppliers" },
                 { href: "/finance/expenses", permission: "finance.expenses.read", labelAr: "سندات الصرف والمصروفات", labelEn: "Expense Vouchers" },
                 { href: "/finance/reports/ap-aging", permission: "finance.reports.read", labelAr: "أعمار ديون الموردين (AP)", labelEn: "AP Aging" },
-                { href: "/finance/reports/capex-opex", permission: "finance.reports.read", labelAr: "مصاريف CAPEX / OPEX", labelEn: "CAPEX vs OPEX" },
                 { href: "/finance/commissions", permission: "finance.commissions.manage", labelAr: "عمولات الوسطاء والمسوقين", labelEn: "Broker Commissions" },
               ],
             },
@@ -265,7 +264,6 @@ export default async function AppShellLayout({
                 { href: "/finance/reports/balance-sheet", permission: "finance.reports.read", labelAr: "الميزانية والمركز المالي", labelEn: "Balance Sheet" },
                 { href: "/finance/reports/cash-flow", permission: "finance.reports.read", labelAr: "قائمة التدفقات النقدية", labelEn: "Cash Flow Statement" },
                 { href: "/finance/reports/property-pnl", permission: "finance.reports.read", labelAr: "أرباح وخسائر المشاريع", labelEn: "Property-Level P&L" },
-                { href: "/finance/reports/fixed-assets", permission: "finance.reports.read", labelAr: "الأصول الثابتة والإهلاك", labelEn: "Fixed Assets & NBV" },
                 { href: "/finance/reports/budget-vs-actual", permission: "finance.reports.read", labelAr: "الموازنة مقابل الفعلي", labelEn: "Budget vs Actual" },
                 { href: "/finance/reports/audit-trail", permission: "finance.reports.read", labelAr: "سجل التدقيق والحوكمة", labelEn: "Audit Trail & Logs" },
               ],
@@ -389,6 +387,24 @@ export default async function AppShellLayout({
   const boundSignOut = signOut.bind(null, loc);
   const isAr = loc === "ar";
 
+  // The sidebar used to label EVERY active member "Organization Owner". Show the role(s) the person is
+  // actually assigned in this organization instead (own assignments are readable under RLS).
+  let assignedRoleLabel: string | null = null;
+  if (organization && !platformAdmin) {
+    const { data: assignments } = await supabase
+      .from("user_role_assignments")
+      .select("roles(name_ar, name_en)")
+      .eq("organization_id", organization.id)
+      .eq("user_id", user!.id);
+    const names = (assignments ?? [])
+      .map((a) => {
+        const r = a.roles as unknown as { name_ar?: string | null; name_en?: string | null } | null;
+        return isAr ? r?.name_ar ?? r?.name_en : r?.name_en ?? r?.name_ar;
+      })
+      .filter((n): n is string => Boolean(n));
+    assignedRoleLabel = names.length ? names.join(isAr ? "، " : ", ") : null;
+  }
+
   const userProfile: UserSidebarProfile = {
     name: profile?.full_name || organization?.name || user!.email?.split("@")[0],
     email: user!.email ?? "",
@@ -396,9 +412,7 @@ export default async function AppShellLayout({
       ? isAr
         ? "مسؤول النظام العام"
         : "Platform Admin"
-      : isAr
-      ? "مالك المنشأة"
-      : "Organization Owner",
+      : assignedRoleLabel ?? (isAr ? "عضو" : "Member"),
     orgName: organization?.name,
     isSuperAdmin: platformAdmin,
   };
@@ -428,7 +442,7 @@ export default async function AppShellLayout({
             <DemoModeProvider isDemo={inDemo}>{children}</DemoModeProvider>
           </main>
         </div>
-        <AskAqarBooksDrawer locale={loc} />
+        {isAiAvailable() && <AskAqarBooksDrawer locale={loc} />}
       </div>
     </Toaster>
   );

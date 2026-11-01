@@ -1,0 +1,45 @@
+$ tests/fixed-asset-disposal.integration.test.ts
+label=rel03-red-integration-ready
+exit=1
+elapsed_ms=13955
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/fixed-asset-disposal.integration.test.ts
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+ ❯ tests/fixed-asset-disposal.integration.test.ts (8 tests | 1 failed) 6760ms
+     ✓ REFUSES to dispose before the gain/loss accounts are set 44ms
+     ✓ refuses a gain account that is not revenue and a loss account that is not an expense 41ms
+     × refuses a non-cash proceeds account without posting or disposing the asset 100ms
+     ✓ closes cost and accumulated depreciation and books the gain, line by line 197ms
+     ✓ books the whole net book value as a loss when an asset is scrapped for nothing 64ms
+     ✓ refuses to dispose the same asset twice 50ms
+     ✓ refuses a disposal dated before the asset was acquired, and negative proceeds 34ms
+     ✓ refuses a CASHIER  630ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  02:03:08
+   Duration  12.28s (transform 175ms, setup 237ms, import 4.95s, tests 6.76s, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/rel03-red-integration-ready.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/fixed-asset-disposal.integration.test.ts > fixed asset disposal > refuses a non-cash proceeds account without posting or disposing the asset
+TypeError: .toMatch() expects to receive a string, but got undefined
+ ❯ tests/fixed-asset-disposal.integration.test.ts:184:28
+    182|       p_proceeds: 100, p_proceeds_account_id: assetAcc,
+    183|     });
+    184|     expect(error?.message).toMatch(/DISPOSAL_PROCEEDS_ACCOUNT_INVALID/…
+       |                            ^
+    185|
+    186|     const { data: asset } = await admin.from("fixed_assets")
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

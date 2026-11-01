@@ -1,0 +1,2 @@
+rollback_matches_live_before=True
+comparison=exact function body; execution terminator excluded

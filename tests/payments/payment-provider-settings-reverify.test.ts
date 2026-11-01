@@ -58,6 +58,9 @@ describe("upsert_payment_provider_settings reverify-on-merchant-change (real Sup
     });
     expect(staffCreateErr, staffCreateErr?.message).toBeNull();
 
+    // A role assignment only grants access to an ACTIVE member of the organization (Phase 1.1).
+    const { error: memberErr } = await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: staffCreated!.user!.id, status: "active" });
+    expect(memberErr, memberErr?.message).toBeNull();
     const { error: assignErr } = await admin
       .from("user_role_assignments")
       .insert({ user_id: staffCreated!.user!.id, role_id: ownerRole!.id, organization_id: orgId });

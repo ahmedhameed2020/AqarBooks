@@ -1,0 +1,53 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+Running 4 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (1.0m)
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 2 tests\e2e\fixed-assets.spec.ts:187:5 › a reader sees the register without the controls, and someone with neither permission is told so (14.2s)
+  ok 3 tests\e2e\fixed-assets.spec.ts:226:5 › a register form that names another organization is refused and writes nothing (10.8s)
+  ok 4 tests\e2e\fixed-assets.spec.ts:273:5 › a run-depreciation form that names another organization is refused and posts nothing (10.7s)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('row').filter({ hasText: 'FA-39827942' })
+    Expected substring: "11,000.00 EGP"
+    Timeout: 40000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'FA-39827942' })
+
+
+      150 |     await page.getByRole("dialog").getByRole("button", { name: /^Run Depreciation$/i }).click();
+      151 |     await expect(page.getByText(/posted depreciation for 1 assets/i)).toBeVisible({ timeout: 40_000 });
+    > 152 |     await expect(page.getByRole("row").filter({ hasText: code })).toContainText("11,000.00 EGP", {
+          |                                                                   ^
+      153 |       timeout: 40_000,
+      154 |     });
+      155 |
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:152:67
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round7\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round7\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round7\fixed-assets-artifacts\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+  3 passed (1.9m)
+

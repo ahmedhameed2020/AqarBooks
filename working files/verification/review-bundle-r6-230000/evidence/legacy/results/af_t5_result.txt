@@ -1,0 +1,5 @@
+INSERT 0 1
+INSERT 0 1
+psql:/tmp/af_t5_s2.sql:6: ERROR:  deadlock detected
+W15=300.0000
+W16=300.0000

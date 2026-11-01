@@ -1,0 +1,1 @@
+label=obs1 duration=175s cli=clean catalog_compare=0 differing lines; live=4500 shadow=4500 lines 

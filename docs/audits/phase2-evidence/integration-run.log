@@ -1,0 +1,44 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/pgtap.integration.test.ts
+◇ injected env (6) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+ ❯ tests/pgtap.integration.test.ts (18 tests | 1 failed) 27918ms
+     × 15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_transaction/record_online_payment/void_payment end-to-end, completing the record_online_payment + validate_online_payments_clearing_account Phase 2e partial edits) 1615ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/pgtap.integration.test.ts > Supabase pgTAP & Database SQL Integrity Suite > 15. Phase 2g Group 1 Payments/Dues/Online-Payments Core Property-ID Rename Integrity (issue_dues/create_online_payment_checkout_transaction/record_online_payment/void_payment end-to-end, completing the record_online_payment + validate_online_payments_clearing_account Phase 2e partial edits)
+AssertionError: expected { code: 'PGRST202', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "PGRST202",
+  "details": "Searched for the function public.create_online_payment_checkout_transaction with parameters p_due_ids, p_provider or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.",
+  "hint": null,
+  "message": "Could not find the function public.create_online_payment_checkout_transaction(p_due_ids, p_provider) in the schema cache",
+}
+
+ ❯ tests/pgtap.integration.test.ts:2451:25
+    2449|       },
+    2450|     );
+    2451|     expect(checkoutErr).toBeNull();
+       |                         ^
+    2452|     const checkoutRow = Array.isArray(checkoutData) ? checkoutData[0] …
+    2453|     expect(checkoutRow?.transaction_id).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 19 passed (20)
+      Tests  1 failed | 308 passed (309)
+   Start at  21:50:47
+   Duration  256.81s (transform 2.09s, setup 810ms, import 26.43s, tests 220.87s, environment 7ms)
+

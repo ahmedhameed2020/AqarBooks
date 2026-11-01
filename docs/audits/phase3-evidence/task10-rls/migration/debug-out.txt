@@ -1,0 +1,262 @@
+BEGIN
+SET
+SET
+SET
+CREATE SCHEMA
+GRANT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+GRANT
+INSERT 0 1
+SELECT 23
+GRANT
+SELECT 59
+SELECT 786
+SELECT 786
+SELECT 740
+SELECT 740
+SELECT 51
+SELECT 51
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+GRANT
+INSERT 0 3
+INSERT 0 59
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+DO
+CREATE FUNCTION
+GRANT
+DO
+INSERT 0 0
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 5
+INSERT 0 1
+fn|true|s|{search_path=public}|{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+fn-priv|false|true|true
+insert|nonactive:invited|coa|other|false
+insert|nonactive:invited|coa|other|false
+insert|nonactive:invited|coa|own|false
+insert|nonactive:invited|coa|own|false
+insert|nonactive:invited|fp|other|false
+insert|nonactive:invited|fp|other|false
+insert|nonactive:invited|fp|own|false
+insert|nonactive:invited|fp|own|false
+insert|nonactive:suspended|coa|other|false
+insert|nonactive:suspended|coa|other|false
+insert|nonactive:suspended|coa|own|false
+insert|nonactive:suspended|coa|own|false
+insert|nonactive:suspended|fp|other|false
+insert|nonactive:suspended|fp|other|false
+insert|nonactive:suspended|fp|own|false
+insert|nonactive:suspended|fp|own|false
+insert|owner|coa|other|false
+insert|owner|coa|other|false
+insert|owner|coa|other|false
+insert|owner|coa|own|false
+insert|owner|coa|own|false
+insert|owner|coa|own|false
+insert|owner|fp|other|false
+insert|owner|fp|other|false
+insert|owner|fp|other|false
+insert|owner|fp|own|false
+insert|owner|fp|own|false
+insert|owner|fp|own|false
+insert|platform_admin|coa|other|false
+insert|platform_admin|fp|other|false
+insert|staff-without-keys:CONNECTIVITY_GUARD|coa|other|false
+insert|staff-without-keys:CONNECTIVITY_GUARD|coa|own|false
+insert|staff-without-keys:CONNECTIVITY_GUARD|fp|other|false
+insert|staff-without-keys:CONNECTIVITY_GUARD|fp|own|false
+insert|staff-without-keys:EVIDENCE_OPERATOR|coa|other|false
+insert|staff-without-keys:EVIDENCE_OPERATOR|coa|own|false
+insert|staff-without-keys:EVIDENCE_OPERATOR|fp|other|false
+insert|staff-without-keys:EVIDENCE_OPERATOR|fp|own|false
+insert|staff-without-keys:EVIDENCE_SUPERVISOR|coa|other|false
+insert|staff-without-keys:EVIDENCE_SUPERVISOR|coa|own|false
+insert|staff-without-keys:EVIDENCE_SUPERVISOR|fp|other|false
+insert|staff-without-keys:EVIDENCE_SUPERVISOR|fp|own|false
+insert|staff-without-keys:FRP_GATE|coa|other|false
+insert|staff-without-keys:FRP_GATE|coa|own|false
+insert|staff-without-keys:FRP_GATE|fp|other|false
+insert|staff-without-keys:FRP_GATE|fp|own|false
+insert|staff:ACCOUNTANT_WITH_VOID|coa|other|false
+insert|staff:ACCOUNTANT_WITH_VOID|coa|own|false
+insert|staff:ACCOUNTANT_WITH_VOID|fp|other|false
+insert|staff:ACCOUNTANT_WITH_VOID|fp|own|false
+insert|staff:ACCOUNTANT|coa|other|false
+insert|staff:ACCOUNTANT|coa|own|false
+insert|staff:ACCOUNTANT|fp|other|false
+insert|staff:ACCOUNTANT|fp|own|false
+insert|staff:AUDITOR|coa|other|false
+insert|staff:AUDITOR|coa|own|false
+insert|staff:AUDITOR|fp|other|false
+insert|staff:AUDITOR|fp|own|false
+insert|staff:CASHIER|coa|other|false
+insert|staff:CASHIER|coa|own|false
+insert|staff:CASHIER|fp|other|false
+insert|staff:CASHIER|fp|own|false
+insert|staff:COLLECTOR|coa|other|false
+insert|staff:COLLECTOR|coa|own|false
+insert|staff:COLLECTOR|fp|other|false
+insert|staff:COLLECTOR|fp|own|false
+insert|staff:DUES_ONLY|coa|other|false
+insert|staff:DUES_ONLY|coa|own|false
+insert|staff:DUES_ONLY|fp|other|false
+insert|staff:DUES_ONLY|fp|own|false
+insert|staff:FINANCE_MANAGER|coa|other|false
+insert|staff:FINANCE_MANAGER|coa|own|true
+insert|staff:FINANCE_MANAGER|fp|other|false
+insert|staff:FINANCE_MANAGER|fp|own|true
+insert|staff:FRA_OTHER|coa|other|false
+insert|staff:FRA_OTHER|coa|own|false
+insert|staff:FRA_OTHER|fp|other|false
+insert|staff:FRA_OTHER|fp|own|false
+insert|staff:FRA_READER|coa|other|false
+insert|staff:FRA_READER|coa|own|false
+insert|staff:FRA_READER|fp|other|false
+insert|staff:FRA_READER|fp|own|false
+insert|staff:MSA_READER|coa|other|false
+insert|staff:MSA_READER|coa|own|false
+insert|staff:MSA_READER|fp|other|false
+insert|staff:MSA_READER|fp|own|false
+insert|stranger|coa|other|false
+insert|stranger|fp|other|false
+policy|chart_of_accounts_manage|cmd=*|permissive=true|roles=PUBLIC|per_row_helper=true
+policy|chart_of_accounts_select_permission|cmd=r|permissive=true|roles=PUBLIC|per_row_helper=false
+policy|dues_select_permission|cmd=r|permissive=true|roles=PUBLIC|per_row_helper=false
+policy|fiscal_periods_manage|cmd=*|permissive=true|roles=PUBLIC|per_row_helper=true
+policy|fiscal_periods_select_permission|cmd=r|permissive=true|roles=PUBLIC|per_row_helper=true
+ref-acl|{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+seen|nonactive:invited|coa|0
+seen|nonactive:invited|coa|0
+seen|nonactive:invited|dues|0
+seen|nonactive:invited|dues|0
+seen|nonactive:invited|fp|0
+seen|nonactive:invited|fp|0
+seen|nonactive:suspended|coa|0
+seen|nonactive:suspended|coa|0
+seen|nonactive:suspended|dues|0
+seen|nonactive:suspended|dues|0
+seen|nonactive:suspended|fp|0
+seen|nonactive:suspended|fp|0
+seen|owner|coa|0
+seen|owner|coa|0
+seen|owner|coa|0
+seen|owner|dues|0
+seen|owner|dues|0
+seen|owner|dues|0
+seen|owner|fp|0
+seen|owner|fp|0
+seen|owner|fp|0
+seen|platform_admin|coa|786
+seen|platform_admin|dues|51
+seen|platform_admin|fp|740
+seen|staff-without-keys:CONNECTIVITY_GUARD|coa|0
+seen|staff-without-keys:CONNECTIVITY_GUARD|dues|0
+seen|staff-without-keys:CONNECTIVITY_GUARD|fp|0
+seen|staff-without-keys:EVIDENCE_OPERATOR|coa|0
+seen|staff-without-keys:EVIDENCE_OPERATOR|dues|0
+seen|staff-without-keys:EVIDENCE_OPERATOR|fp|0
+seen|staff-without-keys:EVIDENCE_SUPERVISOR|coa|0
+seen|staff-without-keys:EVIDENCE_SUPERVISOR|dues|0
+seen|staff-without-keys:EVIDENCE_SUPERVISOR|fp|0
+seen|staff-without-keys:FRP_GATE|coa|0
+seen|staff-without-keys:FRP_GATE|dues|0
+seen|staff-without-keys:FRP_GATE|fp|0
+seen|staff:ACCOUNTANT_WITH_VOID|coa|25
+seen|staff:ACCOUNTANT_WITH_VOID|dues|1
+seen|staff:ACCOUNTANT_WITH_VOID|fp|24
+seen|staff:ACCOUNTANT|coa|25
+seen|staff:ACCOUNTANT|dues|1
+seen|staff:ACCOUNTANT|fp|24
+seen|staff:AUDITOR|coa|25
+seen|staff:AUDITOR|dues|1
+seen|staff:AUDITOR|fp|24
+seen|staff:CASHIER|coa|25
+seen|staff:CASHIER|dues|0
+seen|staff:CASHIER|fp|24
+seen|staff:COLLECTOR|coa|3
+seen|staff:COLLECTOR|dues|0
+seen|staff:COLLECTOR|fp|1
+seen|staff:DUES_ONLY|coa|0
+seen|staff:DUES_ONLY|dues|0
+seen|staff:DUES_ONLY|fp|24
+seen|staff:FINANCE_MANAGER|coa|25
+seen|staff:FINANCE_MANAGER|dues|1
+seen|staff:FINANCE_MANAGER|fp|24
+seen|staff:FRA_OTHER|coa|0
+seen|staff:FRA_OTHER|dues|0
+seen|staff:FRA_OTHER|fp|2
+seen|staff:FRA_READER|coa|4
+seen|staff:FRA_READER|dues|0
+seen|staff:FRA_READER|fp|2
+seen|staff:MSA_READER|coa|1
+seen|staff:MSA_READER|dues|0
+seen|staff:MSA_READER|fp|0
+seen|stranger|coa|0
+seen|stranger|dues|0
+seen|stranger|fp|0
+select-differs|platform_admin|dues|only_new=0|only_old=51
+select-differs|staff:CASHIER|coa|only_new=0|only_old=25
+select-differs|staff:COLLECTOR|coa|only_new=0|only_old=3
+select-differs|staff:FRA_READER|coa|only_new=0|only_old=4
+select-differs|staff:MSA_READER|coa|only_new=0|only_old=1
+untouched|dues_select_own_via_maintenance_cost|public.work_order_cost_member_can_read_due(dues.*)
+updatable|nonactive:invited|coa|0
+updatable|nonactive:invited|coa|0
+updatable|nonactive:invited|fp|0
+updatable|nonactive:invited|fp|0
+updatable|nonactive:suspended|coa|0
+updatable|nonactive:suspended|coa|0
+updatable|nonactive:suspended|fp|0
+updatable|nonactive:suspended|fp|0
+updatable|owner|coa|0
+updatable|owner|coa|0
+updatable|owner|coa|0
+updatable|owner|fp|0
+updatable|owner|fp|0
+updatable|owner|fp|0
+updatable|platform_admin|coa|776
+updatable|platform_admin|fp|724
+updatable|staff-without-keys:CONNECTIVITY_GUARD|coa|0
+updatable|staff-without-keys:CONNECTIVITY_GUARD|fp|0
+updatable|staff-without-keys:EVIDENCE_OPERATOR|coa|0
+updatable|staff-without-keys:EVIDENCE_OPERATOR|fp|0
+updatable|staff-without-keys:EVIDENCE_SUPERVISOR|coa|0
+updatable|staff-without-keys:EVIDENCE_SUPERVISOR|fp|0
+updatable|staff-without-keys:FRP_GATE|coa|0
+updatable|staff-without-keys:FRP_GATE|fp|0
+updatable|staff:ACCOUNTANT_WITH_VOID|coa|0
+updatable|staff:ACCOUNTANT_WITH_VOID|fp|0
+updatable|staff:ACCOUNTANT|coa|0
+updatable|staff:ACCOUNTANT|fp|0
+updatable|staff:AUDITOR|coa|0
+updatable|staff:AUDITOR|fp|0
+updatable|staff:CASHIER|coa|0
+updatable|staff:CASHIER|fp|0
+updatable|staff:COLLECTOR|coa|0
+updatable|staff:COLLECTOR|fp|0
+updatable|staff:DUES_ONLY|coa|0
+updatable|staff:DUES_ONLY|fp|0
+updatable|staff:FINANCE_MANAGER|coa|25
+updatable|staff:FINANCE_MANAGER|fp|24
+updatable|staff:FRA_OTHER|coa|0
+updatable|staff:FRA_OTHER|fp|0
+updatable|staff:FRA_READER|coa|0
+updatable|staff:FRA_READER|fp|0
+updatable|staff:MSA_READER|coa|0
+updatable|staff:MSA_READER|fp|0
+updatable|stranger|coa|0
+updatable|stranger|fp|0
+ROLLBACK

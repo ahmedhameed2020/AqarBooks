@@ -34,7 +34,7 @@ config({ path: ".env.local" });
 
 function resolveSupabaseCredentials() {
   try {
-    const output = execFileSync("supabase", ["status", "-o", "env"], {
+    const output = execFileSync("supabase", ["status", "-o", "env", ...(process.env.LOCAL_SUPABASE_WORKDIR ? ["--workdir", process.env.LOCAL_SUPABASE_WORKDIR] : [])], {
       cwd: process.cwd(),
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
@@ -76,6 +76,20 @@ const INTERNAL_FUNCTIONS_NEVER_CLIENT_CALLABLE = [
   "detect_gate_long_stays", // service-only bounded detector
   "gate_supervision_context", // internal permission/context helper
   "gate_supervision_append_only", // trigger-only immutable evidence guard
+  // Phase 1 (20261009120000): unguarded finance helpers, reachable only from SECURITY DEFINER callers / service_role
+  "due_outstanding",
+  "creditable_remaining",
+  "depreciable_remaining",
+  "depreciation_for_period",
+  "resolve_due_buyer",
+  "project_wip_summary",
+  "check_fx_readiness",
+  "check_asset_disposal_readiness",
+  "resolve_input_tax_account",
+  "resolve_output_tax_account",
+  "get_exchange_rate",
+  "convert_to_base",
+  "compute_input_tax_split",
   "post_payment_internal", // wrapped by record_payment
   "post_journal_entry_internal", // wrapped by post_journal_entry
   "create_journal_entry_internal",
@@ -140,20 +154,20 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "approve_due_type_revenue_nature", "approve_expense_account_input_tax",
   "approve_onboarding_request", "approve_purchase_order", "approve_tax_rule", "archive_unit", "assign_subscription",
   "auto_match_bank_statement", "cancel_installment_plan", "cancel_supplier_invoice", "cancel_unit_lease",
-  "capitalise_project_cost", "check_asset_disposal_readiness", "check_einvoice_emission_readiness",
-  "check_fx_readiness", "check_input_tax_readiness", "check_installment_plan_completion",
+  "capitalise_project_cost", "check_einvoice_emission_readiness",
+  "check_input_tax_readiness", "check_installment_plan_completion",
   "cancel_own_maintenance_request", "check_tax_enforcement_readiness", "claim_einvoice_document", "clear_incoming_cheque",
   "clone_chart_of_accounts_template", "close_cashier_session",
-  "complete_unit_handover", "compute_input_tax_split", "compute_service_charge_allocations",
-  "convert_to_base", "create_cashbox", "create_fiscal_year", "create_installment_plan",
+  "complete_unit_handover", "compute_service_charge_allocations",
+  "create_cashbox", "create_fiscal_year", "create_installment_plan",
   "create_journal_entry", "create_member_invitation", "create_organization",
   "create_online_payment_checkout_transaction",
   "create_maintenance_request",
   "create_purchase_order", "create_purchase_request",
-  "create_resort", "create_tax_rule_draft", "create_unit_lease", "creditable_remaining",
-  "current_member_id", "decide_purchase_request", "delete_resort", "depreciable_remaining",
-  "depreciation_for_period", "disable_payment_provider", "dispose_fixed_asset",
-  "due_ids_have_pending_online_checkout", "due_outstanding", "enable_payment_provider",
+  "create_resort", "create_tax_rule_draft", "create_unit_lease", 
+  "current_member_id", "decide_purchase_request", "delete_resort", 
+  "disable_payment_provider", "dispose_fixed_asset",
+  "due_ids_have_pending_online_checkout", "enable_payment_provider",
   "begin_maintenance_attachment_upload",
   "guard_role_permissions_scope", "guard_roles_security", "guard_user_role_assignments_security",
   "is_demo_organization", "is_demo_principal",
@@ -162,12 +176,13 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "generate_recurring_dues", "get_account_ledger", "get_bank_match_candidates",
   "get_bank_reconciliation_summary", "get_cash_flow_statement", "get_cash_position",
   "get_einvoice_source_for_credit_note", "get_einvoice_source_for_due", "get_entitlement",
-  "get_exchange_rate", "get_journal_entry_for_view", "get_lease_deposit_summary",
+  "get_journal_entry_for_view", "get_lease_deposit_summary",
   "get_own_organization_display", "get_payment_provider_settings_credentials",
-  "get_service_charge_allocations", "get_tax_decision_coverage", "get_trial_balance",
-  "get_navigation_permissions", "get_unrecognized_dues_summary", "handle_new_user", "has_financial_permission", "has_permission",
+  "get_service_charge_allocations", "get_tax_decision_coverage", "get_trial_balance", "get_trial_balance_with_opening", "get_audit_actor_names",
+  "get_navigation_permissions", "get_unrecognized_dues_summary", "handle_new_user", "has_any_permission", "has_financial_permission", "has_permission",
+  "orgs_with_permission_keys", // RLS: the caller's own organizations holding any listed key (migration 20261017100900); same grants as has_permission
   "is_current_member_unit_owner",
-  "is_org_member", "is_platform_admin", "is_resort_member", "issue_credit_note", "issue_dues",
+  "is_org_member", "is_org_participant", "is_platform_admin", "is_resort_member", "issue_credit_note", "issue_dues",
   "issue_service_charge_levy", "link_unit_ownership", "list_catalogue_items", "list_credit_notes",
   "list_creditable_dues", "list_due_type_catalogue_links", "list_due_type_tax_mappings",
   "list_dunning_candidates", "list_dunning_notices", "list_exchange_rates", "list_fixed_assets",
@@ -206,15 +221,15 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "work_order_cost_staff_can_read",
   "open_cashier_session", "organization_is_active", "pay_commission", "post_depreciation_for_period",
   "post_fx_difference", "post_journal_entry", "post_supplier_invoice",
-  "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", "project_wip_summary",
+  "post_supplier_invoice_in_currency", "preview_generate_recurring_dues", 
   "raise_dunning_notices", "recognize_pending_dues", "reconcile_cashier_session",
   "record_dunning_delivery", "record_einvoice_attempt", "record_expense", "record_incoming_cheque",
   "record_input_tax_decision", "record_lease_deposit_event", "record_member_opening_balance", "record_payment",
   "record_payment_provider_verification", "record_supplier_payment", "record_tax_decision_for_due",
   "reject_onboarding_request", "release_project_wip", "reopen_bank_reconciliation",
-  "resolve_due_buyer", "resolve_input_tax_account", "resolve_output_tax_account", "resolve_tax_rule",
+  "resolve_tax_rule",
   "restore_unit", "reverse_journal_entry", "reverse_tax_decision",
-  "revoke_due_type_revenue_nature_approval", "run_due_schedules", "schedule_unit_handover",
+  "revoke_due_type_revenue_nature_approval", "schedule_unit_handover",
   "set_asset_disposal_accounts", "set_cheque_status", "set_due_type_catalogue_item",
   "set_due_type_revenue_nature", "set_einvoice_profile_enabled", "set_einvoice_profile_verification",
   "set_expense_account_input_tax", "set_fiscal_period_status", "set_fx_difference_accounts",
@@ -227,7 +242,66 @@ const AUTHENTICATED_SECDEF_ALLOWLIST = new Set<string>([
   "trg_organizations_tax_identity_changed", "update_maintenance_request_staff", "update_resort", "update_unit", "upsert_catalogue_item",
   "upsert_einvoice_profile", "upsert_payment_provider_settings", "verify_financial_audit_chain",
   "void_payment", "void_supplier_payment",
+  // Phase 2b: approved receivable account (read: finance.dues.issue | finance.accounts.manage; set: finance.accounts.manage)
+  "get_default_receivable_account", "set_default_receivable_account",
+  // Phase 3b (20261017100100) customer advances. Reviewed: each checks its own permission and organization scope inside
+  //   set_default_customer_advance_account  finance.accounts.manage
+  //   record_advance_payment                receivables.payments.create (property scoped)
+  //   apply_payment_credit / reverse_credit_application   receivables.allocations.manage (property scoped)
+  // The internal helpers (post_advance_payment_internal, recompute_due_payment_status, assert_posting_period,
+  // credit_request_hash, normalize_credit_allocations) are NOT executable by authenticated and stay off this list.
+  "set_default_customer_advance_account", "record_advance_payment", "apply_payment_credit", "reverse_credit_application",
+  // Phase 3c (20261017100200). Reviewed: payment_receipt_entry_status returns ONE status word for a receipt the caller may
+  // already read (finance.payments.read in its organization, or the receipt's own member; a backend caller with no end user is
+  // trusted). The security-invoker views and as-of functions need it so an owner's session can tell a posted receipt from a draft
+  // without any access to journal_entries. credit_min_available_from / due_min_outstanding_from stay internal.
+  "payment_receipt_entry_status",
+  // Phase 3d (20261017100300). Reviewed: the two as-of functions became DEFINER so that an owner's session can rebuild a past date
+  // that includes a receipt voided later (the payments RLS hides REVERSED receipts from the owner). They scope the rows themselves
+  // (finance.payments.read for the organization; otherwise the caller's own member and only while the organization is active) and
+  // return amounts only: no journal entry, line or account. due_effective_paid stays internal.
+  "payment_allocations_as_of", "payment_credit_balances_as_of",
+  // Phase 3f (20261017100500). Reviewed: the owner's statement needs receipts voided later and credit applications that owner RLS
+  // hides (payments_select_own / payment_allocations_select_own expose POSTED receipts only). Each returns ONLY the caller's own rows
+  // (p.member_id = current_member_id(), organization active, receipt entry POSTED/REVERSED): no staff and no trusted-backend branch, so
+  // staff, another organization's owner and a foreign organization id get nothing. Amounts, dates and ids; no entry, line, account or reason.
+  "own_statement_receipts", "own_credit_application_lines",
+  // Phase 3g (20261017100600). Reviewed: returns ONE boolean ("is an advance account approved for this site?") to people who already hold
+  // receivables.payments.create, finance.payments.read or finance.accounts.manage in an active organization; the setting itself (the
+  // account id, and every other organization_finance_settings column) stays readable only with finance.accounts.manage.
+  "customer_advance_account_configured",
+  // Phase 3h (20261017100700). Reviewed: the owner's statement needs the real remaining of each due whoever paid it, and the dues of a
+  // member whose ownership ended. own_statement_dues returns the caller's dues (every route owner RLS grants, plus dues charged while
+  // they owned the unit and dues their own receipts allocated to) with the settled AMOUNT only; own_due_settlement_lines returns dated
+  // amounts settled by other payers on those dues, never a receipt, payer or credit. Both: signed-in member only, active organization,
+  // no staff or trusted-backend branch.
+  "own_statement_dues", "own_due_settlement_lines",
+  // Task 11 (20261018100000). Reviewed: the receipts screen's deposit-account list. Returns id / code / names / source of the accounts of an
+  // active cash box or bank account of the requested organization, ONLY to a caller holding receivables.payments.create there (an empty set
+  // for anyone else, anon has no EXECUTE). deposit_account_is_valid, the rule itself, is NOT authenticated-executable (service_role only).
+  "list_deposit_accounts",
 ]);
+
+/**
+ * Owner portal (migration 20261004120000_owner_portal_access.sql). These ten are deliberately callable by
+ * `authenticated` because the app calls them with the signed-in user's own session; they are NOT on this list
+ * for convenience. Each was reviewed (signature, SECURITY DEFINER search_path, guard) and exercised with real
+ * sessions in tests/owner-portal-functions-authz.integration.test.ts:
+ *   staff, gated by the member's own organization + key (42501 otherwise, identical error for unknown ids):
+ *     members.portal.invite  -> get_member_portal_access, request_member_activation, revoke_member_activation,
+ *                               begin_member_temp_access, finish_member_temp_access
+ *     members.portal.manage  -> suspend_member_portal, reactivate_member_portal, begin_member_signout
+ *   self-service, acting only on members.user_id = auth.uid():  my_portal_access, complete_portal_first_login
+ * anon cannot execute any of them, and the tables behind them have RLS with no policies and no client grants.
+ * If one of these changes its guard, change that test first.
+ */
+const OWNER_PORTAL_FUNCTIONS = [
+  "get_member_portal_access", "request_member_activation", "revoke_member_activation",
+  "begin_member_temp_access", "finish_member_temp_access",
+  "suspend_member_portal", "reactivate_member_portal", "begin_member_signout",
+  "my_portal_access", "complete_portal_first_login",
+] as const;
+for (const fn of OWNER_PORTAL_FUNCTIONS) AUTHENTICATED_SECDEF_ALLOWLIST.add(fn);
 
 type InventoryRow = {
   function_name: string;

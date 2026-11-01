@@ -1,0 +1,7 @@
+DELETIONS AND RENAMES relative to the base commit (git diff --name-status -M HEAD, git ls-files --deleted)
+deleted tracked files : 0 []
+renamed tracked files : 0 []
+staged changes        : 0
+modified tracked files: 117; new untracked files: 903
+note: git cannot detect a rename of an UNTRACKED file; every untracked path is new in this working tree. No existing migration was edited or removed: the migration directory differs from the base commit only by new files (see candidate/supabase/migrations).
+tracked files under supabase/migrations changed vs base: 0 []

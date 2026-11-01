@@ -1,0 +1,7 @@
+==== Q2 (after fix) committed DRAFT credit 600 on W18, then UPDATE it to 1500 (net would be -500)
+psql:/tmp/q_after.sql:13: ERROR:  PROJECT_WIP_NEGATIVE: صافي الحركات يجعل رصيد WIP سالبًا (المرحّل 1000.0000, المعلّق -1500.0000)
+ W18 net after attempt (should be 400, the update must be refused): 400.0000
+==== Q3 pre-existing negative on W14 (net already -500 from the bypass before this fix)
+ W14 before: net=-500.0000
+psql:/tmp/q_after.sql:20: ERROR:  PROJECT_WIP_NEGATIVE: صافي الحركات يجعل رصيد WIP سالبًا (المرحّل 1100.0000, المعلّق -1500.0000)
+ W14 after both debits: net=100.0000

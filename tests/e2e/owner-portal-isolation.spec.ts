@@ -19,6 +19,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { portalLogin } from "./helpers/portal-ui";
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
@@ -69,6 +70,13 @@ async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
     .eq("key", "TENANT_OWNER")
     .single();
   expect(ownerRoleError, `TENANT_OWNER role lookup failed: ${ownerRoleError?.message}`).toBeNull();
+
+  // has_permission() (hardened in Phase 1) requires an ACTIVE organization membership in the exact organization in addition to the role
+  // assignment; this spec never created one, so create_resort answered 42501. Test data only -- no application permission is widened.
+  const { error: staffMembershipError } = await admin
+    .from("organization_memberships")
+    .insert({ organization_id: org!.id, user_id: staffCreated!.user!.id, status: "active" });
+  expect(staffMembershipError, `staff membership failed: ${staffMembershipError?.message}`).toBeNull();
 
   const { error: staffAssignError } = await admin
     .from("user_role_assignments")
@@ -129,29 +137,21 @@ async function setUpOwnerWithData(admin: SupabaseClient, label: string) {
 }
 
 test("two owners in a browser each see only their own unit", async ({ browser }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(240_000); // two organizations are set up and two owners log in through the real screens
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const ownerA = await setUpOwnerWithData(admin, "A");
   const ownerB = await setUpOwnerWithData(admin, "B");
 
   const contextA = await browser.newContext();
   const pageA = await contextA.newPage();
-  await pageA.goto("/ar/portal/login");
-  await pageA.getByLabel(/البريد الإلكتروني|Email/).fill(ownerA.email);
-  await pageA.getByLabel(/كلمة المرور|Password/).fill(ownerA.password);
-  await pageA.getByRole("button", { name: /تسجيل الدخول|Sign in/ }).click();
-  await pageA.waitForURL(/\/portal$/);
+  await portalLogin(pageA, ownerA.email); // the portal is passwordless (email -> code); same helper as the other portal specs
   await pageA.goto("/ar/portal/units");
   await expect(pageA.getByText(ownerA.unitCode)).toBeVisible();
   await expect(pageA.getByText(ownerB.unitCode)).not.toBeVisible();
 
   const contextB = await browser.newContext();
   const pageB = await contextB.newPage();
-  await pageB.goto("/ar/portal/login");
-  await pageB.getByLabel(/البريد الإلكتروني|Email/).fill(ownerB.email);
-  await pageB.getByLabel(/كلمة المرور|Password/).fill(ownerB.password);
-  await pageB.getByRole("button", { name: /تسجيل الدخول|Sign in/ }).click();
-  await pageB.waitForURL(/\/portal$/);
+  await portalLogin(pageB, ownerB.email); // the portal is passwordless (email -> code); same helper as the other portal specs
   await pageB.goto("/ar/portal/units");
   await expect(pageB.getByText(ownerB.unitCode)).toBeVisible();
   await expect(pageB.getByText(ownerA.unitCode)).not.toBeVisible();

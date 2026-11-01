@@ -1,0 +1,63 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 8 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (36.1s)
+  ok 2 tests\e2e\projects-wip.spec.ts:245:5 › a member without finance.accounts.manage sees the projects but no controls (10.9s)
+  ok 3 tests\e2e\projects-wip.spec.ts:282:5 › a project form that names another organization is refused and writes nothing (17.4s)
+  ok 4 tests\e2e\projects-wip.spec.ts:327:5 › a duplicate project code is refused, and the existing project is left unchanged (19.1s)
+  ok 5 tests\e2e\projects-wip.spec.ts:369:5 › an explicit edit by a manager changes the name, budget and accounts of a project without postings (29.2s)
+  ok 6 tests\e2e\projects-wip.spec.ts:415:5 › a project with posted entries refuses a locked change, and a name change still goes through (16.6s)
+  ok 7 tests\e2e\projects-wip.spec.ts:480:5 › a member without the accounts permission sees no edit control and cannot change a project (9.5s)
+  x  8 tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report (12.9s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report 
+
+    Error: a cancelled draft is not a cost release
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  getByRole('row').filter({ hasText: 'TWR-C323863' }).locator('td').nth(4)
+    Expected: "600.00"
+    Received: "900.00"
+    Timeout:  5000ms
+
+    Call log:
+      - a cancelled draft is not a cost release with timeout 5000ms
+      - waiting for getByRole('row').filter({ hasText: 'TWR-C323863' }).locator('td').nth(4)
+        13 × locator resolved to <td class="whitespace-nowrap px-4 py-3 font-mono font-semibold text-purple-700">900.00</td>
+           - unexpected value "900.00"
+
+
+      576 |     await expect(row).toBeVisible({ timeout: 40_000 });
+      577 |     await expect(row.locator("td").nth(3)).toHaveText("1,000.00");
+    > 578 |     await expect(row.locator("td").nth(4), "a cancelled draft is not a cost release").toHaveText("600.00");
+          |                                                                                       ^
+      579 |     await expect(row.locator("td").nth(5), "the cancelled draft must not reduce WIP").toContainText("400.00");
+      580 |     await ctx.close();
+      581 |   } finally {
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:578:87
+
+    Error Context: docs\progress\evidence-r6-run5\ui-before-regression\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run5\ui-before-regression\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run5\ui-before-regression\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report 
+  7 passed (2.6m)
+(node:29036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+

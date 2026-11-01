@@ -1,0 +1,54 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 3 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  x  1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (1.2m)
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+  ok 2 tests\e2e\projects-wip.spec.ts:233:5 › a member without finance.accounts.manage sees the projects but no controls (14.0s)
+  ok 3 tests\e2e\projects-wip.spec.ts:270:5 › a project form that names another organization is refused and writes nothing (15.4s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('row').filter({ hasText: 'TWR-58867561' })
+    Expected: "yes"
+    Received: ""
+    Timeout:  40000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'TWR-58867561' })
+        69 × locator resolved to <tr class="group transition-colors hover:bg-slate-50/90">…</tr>
+           - unexpected value "null"
+
+
+      163 |
+      164 |     await expect(page.getByRole("row").filter({ hasText: code }))
+    > 165 |       .toHaveAttribute("data-accounts-set", "yes", { timeout: 40_000 });
+          |        ^
+      166 |     await expect(page.locator("[data-project]"), "editing must not create a second project")
+      167 |       .toHaveCount(1);
+      168 |
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:165:8
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round10\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round10\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round10\projects-wip-artifacts\projects-wip-a-project-wit-92c41-o-WIP-then-to-cost-of-sales\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales 
+  2 passed (2.0m)
+

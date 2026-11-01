@@ -1,0 +1,75 @@
+Replaying into 127.0.0.1:54329/aqar_local
+  ok  supabase stubs
+  ok  20260821105505_baseline.sql
+  ok  20260823044325_member_invitation_access_codes.sql
+  ok  20260823071129_member_archiving.sql
+  ok  20260823075533_unit_archive_reason.sql
+  ok  20260823083604_revert_unit_archive_reason.sql
+  ok  20260823093809_operational_alerts.sql
+  ok  20260823100424_alert_digest_runs.sql
+  ok  20260823200624_property_reports_permission.sql
+  ok  20260823200722_property_reports_permission_widen.sql
+  ok  20260825084639_organizations_is_demo.sql
+  ok  20260825124312_generate_lease_rent_dues_authz.sql
+  ok  20260825124342_internal_helper_acls.sql
+  ok  20260825182109_rent_partial_period_guard.sql
+  ok  20260825231151_demo_readonly_hardening_and_cashier_read.sql
+  ok  20260826072010_public_action_rate_limits.sql
+  ok  20260826102930_assisted_onboarding_requests.sql
+  ok  20260826124013_onboarding_request_idempotency_and_self_read.sql
+  ok  20260829104638_legacy_access_migration_control_plane.sql
+  ok  20260829105948_legacy_migration_raw_staging_tables.sql
+  ok  20260829110027_legacy_migration_validation_views_v2.sql
+  ok  20260831194315_accsys_migration_staging_schema.sql
+  ok  20260831194442_accsys_stage_loader_casts.sql
+  ok  20260831194633_accsys_stage_compact_bulk_tables.sql
+  ok  20260831194850_accsys_stage_coa_shape.sql
+  ok  20260831195011_accsys_materialize_function.sql
+  ok  20260831195049_accsys_materialize_function_fix.sql
+  ok  20260831195824_accsys_materialize_no_demo_flag.sql
+  ok  20260831200103_accsys_materialize_operations.sql
+  ok  20260831200142_accsys_ops_unique_receipt_numbers.sql
+  ok  20260831201313_accsys_stage_verified_loader.sql
+  ok  20260831201513_accsys_stage_dictionary_and_reset.sql
+  ok  20260831205217_accsys_loader_strip_cr.sql
+  ok  20260903172101_member_opening_balance.sql
+  ok  20260913165500_w0_sec_authorization_containment.sql
+  ok  20260914131953_maintenance_request_core.sql
+  ok  20260914200226_maintenance_request_attachments.sql
+  ok  20260914203712_maintenance_work_orders.sql
+  ok  20260915050914_maintenance_cost_accounting_bridge.sql
+  ok  20260915073908_visitor_invitations_secure_qr_passes.sql
+  ok  20260915081839_gate_operations_access_ledger.sql
+  ok  20260915100016_vehicles_unit_timeline_notifications.sql
+  ok  20260917040349_amenity_bookings.sql
+  ok  20260917183206_lease_renewal_database_contract.sql
+  ok  20260917195950_lease_expiry_alerts.sql
+  ok  20260918010000_lease_renewal_successor_activation.sql
+  ok  20260919010000_batch_navigation_permissions.sql
+  ok  20260924072325_online_payment_production_foundation.sql
+  ok  20260925124947_gate_device_trust.sql
+  ok  20260925140133_gate_scan_device_binding.sql
+  ok  20260925152255_gate_connectivity_incidents.sql
+  ok  20260925160550_gate_supervision_evidence.sql
+  ok  20260925182911_gate_notifications.sql
+  ok  20260925184655_gate_hardware_outbox.sql
+  ok  20261001052203_gate_long_stay_policy.sql
+  ok  20261001070000_gate_completion_rollout.sql
+  ok  20261001120000_gate_final_contracts.sql
+  ok  20261001121000_gate_operational_cleanup.sql
+  ok  20261001122000_gate_export_snapshot_contract.sql
+  ok  20261001123000_final_hardening_sprint.sql
+  ok  20261004120000_owner_portal_access.sql
+Replay complete.
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:34:03
+   Duration  47.54s (transform 96ms, setup 118ms, import 20ms, tests 47.06s, environment 0ms)
+

@@ -1,0 +1,20 @@
+D1 run 1:   1 passed (27.1s) 
+D1 run 2:   1 passed (26.0s) 
+D1 run 3:   1 failed 
+D1 run 4:   1 passed (27.8s) 
+D1 run 5:   1 passed (31.1s) 
+D1 run 6:   1 failed 
+D1 run 7:   1 passed (25.1s) 
+D1 run 8:   1 passed (24.2s) 
+D1 run 9:   1 passed (25.9s) 
+D1 run 10:   1 failed 
+S1 run 1:   1 passed (15.9s) 
+S1 run 2:   1 passed (14.7s) 
+S1 run 3:   1 passed (16.2s) 
+S1 run 4:   1 passed (15.1s) 
+portal-journey J1-J6 run 1:   6 passed (1.3m) 
+portal-journey J1-J6 run 2:   6 passed (1.4m) 
+portal-journey J1-J6 run 3:   6 passed (1.5m) 
+portal-journey J1-J6 run 4:     Error: expect(locator).toBeVisible() failed   1 failed   2 did not run   3 passed (2.6m) 
+portal-journey J1-J6 run 5:   6 passed (1.5m) 
+DONE

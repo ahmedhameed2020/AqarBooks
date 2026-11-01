@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Locale } from "@/i18n/routing";
 import { KpiCard } from "@/app/[locale]/(app)/dashboard/kpi-card";
 import { getCurrencyLabel } from "@/lib/currency";
+import { ltrIsolate } from "./[statementId]/candidate-label";
 import {
   ReconciliationClient,
   type StatementRow,
@@ -102,6 +103,8 @@ export default async function ReconciliationIndexPage({
       .maybeSingle(),
   ]);
 
+  // organizations.default_currency is the organization's DISPLAY currency, not the currency
+  // of each bank account (the schema has no per-bank-account currency).
   const currency = orgData?.default_currency || "EGP";
   const currencyLabel = getCurrencyLabel(currency, isAr);
 
@@ -113,7 +116,8 @@ export default async function ReconciliationIndexPage({
     const bankName = bankMap.get(a.bank_id);
     return {
       id: a.id,
-      label: `${a.account_name} — ${a.account_number} ${bankName ? `(${bankName})` : ""}`,
+      // The account number is an LTR run; ltrIsolate keeps it readable inside Arabic option text.
+      label: `${a.account_name} — ${ltrIsolate(a.account_number, isAr)} ${bankName ? `(${bankName})` : ""}`,
     };
   });
 
@@ -207,7 +211,7 @@ export default async function ReconciliationIndexPage({
           label={isAr ? "إجمالي الأرصدة المطابقة" : "Reconciled Closing Balance"}
           value={
             <>
-              {totalReconciledVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span dir="ltr">{totalReconciledVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>{" "}
               <span className="text-xs font-bold text-slate-400">{currencyLabel}</span>
             </>
           }

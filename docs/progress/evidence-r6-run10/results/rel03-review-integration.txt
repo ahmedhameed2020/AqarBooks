@@ -1,0 +1,19 @@
+exit=0 elapsed_ms=16152 log=D:\Web\AqarBooks\docs\progress\evidence-r6-run10\results\rel03-review-integration.txt
+.1.10 D:/Web/AqarBooks
+
+stdout | tests/fixed-asset-disposal.integration.test.ts
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+ ✓ tests/fixed-asset-disposal.integration.test.ts (8 tests) 8127ms
+     ✓ closes cost and accumulated depreciation and books the gain, line by line  565ms
+     ✓ refuses a CASHIER  1862ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  11:11:48
+   Duration  11.82s (transform 355ms, setup 472ms, import 2.63s, tests 8.13s, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/rel03-review-integration.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

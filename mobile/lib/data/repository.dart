@@ -1362,40 +1362,18 @@ class AqarRepository {
 
   // ───────────────────────── Fawry (online payment) ─────────────────────────
 
-  /// Active Fawry provider settings for the organization, or null when the
-  /// org is outside the pilot — the UI must then hide online payment
-  /// entirely and show the "pay at the office/collector" card instead.
-  Future<Map<String, dynamic>?> fawrySettings() async {
-    final rows = await db
-        .from('payment_provider_settings')
-        .select('id, provider, environment, enabled, status')
-        .eq('provider', 'FAWRY')
-        .eq('enabled', true)
-        .limit(1);
-    return rows.isEmpty ? null : rows.first;
-  }
+  /// V1 has no commercially activated online payment service. Do not use
+  /// provider settings as permission to initiate a payment.
+  Future<Map<String, dynamic>?> fawrySettings() async => null;
 
+  /// Also denies direct callers and retries with an existing request ID.
+  /// The deployed backend needs its own guard to protect older clients.
   Future<FawryCheckout> createFawryCheckout({
     required List<String> dueIds,
     required Map<String, dynamic> settings,
     required String clientRequestId,
   }) async {
-    final data = await db.rpc(
-      'create_online_payment_checkout_transaction',
-      params: {
-        'p_due_ids': dueIds,
-        'p_provider': 'FAWRY',
-        'p_environment': settings['environment'],
-        'p_provider_settings_id': settings['id'],
-        'p_client_request_id': clientRequestId,
-      },
-    );
-    final row = (data as List).first as Map;
-    return FawryCheckout(
-      transactionId: row['transaction_id'] as String,
-      amount: double.tryParse('${row['amount'] ?? 0}') ?? 0,
-      reference: row['provider_reference'] as String? ?? '—',
-    );
+    throw const AppRepositoryException('online_payments_unavailable');
   }
 
   // ───────────────────────── Collector / cashier ─────────────────────────

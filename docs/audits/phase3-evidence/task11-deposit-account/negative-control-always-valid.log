@@ -1,0 +1,238 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/deposit-account-validation.integration.test.ts (21 tests | 14 failed) 30419ms
+     × record_payment and record_advance_payment to the standard cash account 1110 are refused (linking is the remedy; nothing is linked automatically) 965ms
+     × the rule is the link, not the code: an unrelated leaf asset account (1140) becomes valid once a cash box points at it, and invalid again when that box is deactivated 1572ms
+     × record_payment: the receivables control account 1130 (linked to nothing) 691ms
+     × record_payment: another unlinked leaf asset account (1210) 692ms
+     × record_payment: a group account (1100), a liability account (2250), a random id, null 697ms
+     × record_payment: a valid account of ANOTHER organization 638ms
+     × record_payment: a cash box on a liability / inactive / group account does not make it valid 1027ms
+     × record_advance_payment: the receivables control account 1130 (linked to nothing) 1085ms
+     × record_advance_payment: another unlinked leaf asset account (1210) 775ms
+     × record_advance_payment: a group account (1100), a liability account (2250), a random id, null 1238ms
+     × record_advance_payment: a valid account of ANOTHER organization 1282ms
+     × record_advance_payment: a cash box on a liability / inactive / group account does not make it valid 1326ms
+     × list_deposit_accounts equals the set of accounts deposit_account_is_valid accepts 339ms
+     × the same idempotency key returns the stored receipt after the cash box was deactivated, and posts nothing 3149ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 1. legacy organization: the cash account was never linked to a cash box > record_payment and record_advance_payment to the standard cash account 1110 are refused (linking is the remedy; nothing is linked automatically)
+AssertionError: record_payment 1110 (unlinked): expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:82:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 2. linked accounts are accepted, whatever their code > the rule is the link, not the code: an unrelated leaf asset account (1140) becomes valid once a cash box points at it, and invalid again when that box is deactivated
+AssertionError: 1140 after its cash box was deactivated: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:109:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: the receivables control account 1130 (linked to nothing)
+AssertionError: record_payment 1130: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:116:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: another unlinked leaf asset account (1210)
+AssertionError: record_payment 1210: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:117:77
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a group account (1100), a liability account (2250), a random id, null
+AssertionError: record_payment group: expected 'P0001:entry contains lines posted to …' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:entry contains lines posted to a group, inactive, or cross-tenant account"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:119:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a valid account of ANOTHER organization
+AssertionError: record_payment foreign 1110: expected 'P0001:account does not belong to this…' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:account does not belong to this organization"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:124:74
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_payment: a cash box on a liability / inactive / group account does not make it valid
+AssertionError: record_payment cash box on 2250: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:134:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: the receivables control account 1130 (linked to nothing)
+AssertionError: record_advance_payment 1130: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:116:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: another unlinked leaf asset account (1210)
+AssertionError: record_advance_payment 1210: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:117:77
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a group account (1100), a liability account (2250), a random id, null
+AssertionError: record_advance_payment group: expected 'P0001:entry contains lines posted to …' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:entry contains lines posted to a group, inactive, or cross-tenant account"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:119:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a valid account of ANOTHER organization
+AssertionError: record_advance_payment foreign 1110: expected 'P0001:account does not belong to this…' to match /22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…/
+
+- Expected:
+/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSIT_ACCOUNT_INVALID/
+
++ Received:
+"P0001:account does not belong to this organization"
+
+ ❯ refused tests/deposit-account-validation.integration.test.ts:54:25
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+       |                         ^
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+     56| }
+ ❯ tests/deposit-account-validation.integration.test.ts:124:74
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 3. direct invalid requests are refused by the server, with no trace (screen filtering is irrelevant) > record_advance_payment: a cash box on a liability / inactive / group account does not make it valid
+AssertionError: record_advance_payment cash box on 2250: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:134:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 4. the screen's list and the server rule are the same relation; who may call what > list_deposit_accounts equals the set of accounts deposit_account_is_valid accepts
+AssertionError: expected '1000,1100,1110,1120,1130,1140,1200,12…' to be '1110,1120' // Object.is equality
+
+Expected: "1110,1120"
+Received: "1000,1100,1110,1120,1130,1140,1200,1210,1220,2000,2100,2200,2250,2300,3000,3100,4000,4100,4200,4300,5000,5100,5200,5300,5400"
+
+ ❯ tests/deposit-account-validation.integration.test.ts:148:22
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/14]⎯
+
+ FAIL  tests/deposit-account-validation.integration.test.ts > 5. a retry of an already-posted receipt is not re-validated > the same idempotency key returns the stored receipt after the cash box was deactivated, and posts nothing
+AssertionError: a NEW receipt to the deactivated till: expected a refusal: expected null not to be null
+ ❯ refused tests/deposit-account-validation.integration.test.ts:53:55
+     51|   const before = await snap(fx.orgId);
+     52|   const r = await call(accountant, fx, account);
+     53|   expect(r.error, `${label}: expected a refusal`).not.toBeNull();
+       |                                                       ^
+     54|   expect(err(r), label).toMatch(/22023.*DEPOSIT_ACCOUNT_INVALID|DEPOSI…
+     55|   expect(await snap(fx.orgId), `${label}: a refused call left a trace`…
+ ❯ tests/deposit-account-validation.integration.test.ts:173:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  14 failed | 7 passed (21)
+   Start at  21:47:22
+   Duration  31.87s (transform 447ms, setup 387ms, import 323ms, tests 30.42s, environment 0ms)
+

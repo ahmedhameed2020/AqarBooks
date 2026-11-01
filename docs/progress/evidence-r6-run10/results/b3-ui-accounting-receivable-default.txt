@@ -1,0 +1,21 @@
+$ tests/e2e/accounting-receivable-default.spec.ts
+label=b3-ui-accounting-receivable-default
+exit=0
+elapsed_ms=145555
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 5 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+  ok 1 tests\e2e\accounting-receivable-default.spec.ts:78:5 › R1 issue_dues refuses a missing, foreign, non-asset, group or inactive receivable account (2.9s)
+  ok 2 tests\e2e\accounting-receivable-default.spec.ts:103:5 › R2 with no approved setting the receivable field is empty, a notice is shown, and an unchosen submit creates nothing (26.5s)
+  ok 3 tests\e2e\accounting-receivable-default.spec.ts:121:5 › R3 the owner chooses 1130 explicitly and approves it as the default; the due posts to 1130 (24.6s)
+  ok 4 tests\e2e\accounting-receivable-default.spec.ts:141:5 › R4 afterwards the accountant gets 1130 preselected and issues without touching the field (23.3s)
+  ok 5 tests\e2e\accounting-receivable-default.spec.ts:161:5 › R5 who may read and who may set the approved account (2.9s)
+
+  5 passed (1.8m)
+(node:416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10904) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

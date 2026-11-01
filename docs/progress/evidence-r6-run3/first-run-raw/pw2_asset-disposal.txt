@@ -1,0 +1,45 @@
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (14.8s)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-asset="FA-18919961"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-asset="FA-18919961"]')
+
+
+      129 |     // 1. Try to dispose with nothing designated.
+      130 |     await page.goto("/en/finance/assets");
+    > 131 |     await expect(page.locator(`[data-asset="${f.assetCode}"]`)).toBeVisible();
+          |                                                                 ^
+      132 |
+      133 |     await page.locator("#dispose-proceeds").fill("7000");
+      134 |     await page.locator("#dispose-account").selectOption({ label: "1010 — Cash" });
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:131:65
+
+    Error Context: test-results\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 

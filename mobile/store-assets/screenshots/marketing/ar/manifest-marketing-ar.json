@@ -1,0 +1,247 @@
+{
+  "template": "aqarbooks-marketing-screenshots-v1",
+  "generator": "store-assets/generate_marketing_screenshots.py",
+  "canvas": {
+    "width": 1080,
+    "height": 2400,
+    "device_scale_factor": 1
+  },
+  "layout": {
+    "pad_x": 96,
+    "brand_top": 88,
+    "brand_height": 84,
+    "brand_logo_height": 54,
+    "copy_top": 256,
+    "copy_height": 356,
+    "headline_size": 88,
+    "headline_line_height": 104,
+    "subtitle_size": 38,
+    "subtitle_line_height": 57,
+    "divider_y": 648,
+    "device_top": 678,
+    "device_width": 759,
+    "device_height": 1650,
+    "screen_width": 729,
+    "screen_height": 1620,
+    "screen_corner_radius": 40,
+    "safe_margin": 96
+  },
+  "palette": [
+    {
+      "name": "navy",
+      "value": "#07425D"
+    },
+    {
+      "name": "deep",
+      "value": "#042434"
+    },
+    {
+      "name": "petrol",
+      "value": "#1B60B9"
+    },
+    {
+      "name": "purple",
+      "value": "#7E1898"
+    },
+    {
+      "name": "gold",
+      "value": "#C5A880"
+    },
+    {
+      "name": "cloud",
+      "value": "#F4F6F9"
+    },
+    {
+      "name": "white",
+      "value": "#FFFFFF"
+    }
+  ],
+  "fawri_accent": {
+    "value": "#FFDD00",
+    "sampled_from": "03-fawry-payment.png"
+  },
+  "logo": {
+    "path": "assets/images/logo.png",
+    "sha256": "9cfb1ee28a13487913a10ba5dad623c85079d20b2ea4a6600f8497f9c8e2bcef",
+    "width": 977,
+    "height": 1024,
+    "bytes": 82459,
+    "colour_type": 6
+  },
+  "fonts": [
+    {
+      "file": "IBMPlexSansArabic-Regular.ttf",
+      "weight": 400,
+      "sha256": "6f611412270a132bbac838da9259d4c68569b4175f3b3b8fa3fa36a30b56dab9",
+      "bytes": 235924
+    },
+    {
+      "file": "IBMPlexSansArabic-Medium.ttf",
+      "weight": 500,
+      "sha256": "b8363ab9f733dfa4f8e96b8b2102c24b5cf4110fb96d1d3d9a9412f6fb49cf74",
+      "bytes": 242100
+    },
+    {
+      "file": "IBMPlexSansArabic-SemiBold.ttf",
+      "weight": 600,
+      "sha256": "597bd5502e5997be4414e4c9c88834b30ff3784250c84f20bce2b20e53ebd467",
+      "bytes": 244616
+    },
+    {
+      "file": "IBMPlexSansArabic-Bold.ttf",
+      "weight": 700,
+      "sha256": "691e0c891a38637ae6bbdb69700f8042cb0724a137bee615068ffdb92244f61f",
+      "bytes": 246992
+    }
+  ],
+  "wordmark": "AqarBooks",
+  "screens": [
+    {
+      "id": "01",
+      "source": "01-resident-home.png",
+      "source_sha256": "f81fd4d9b52ce7e3ff020695772dd33aeabd87e044643a08c59f747c25a12ecb",
+      "output": "01-resident-home-marketing.png",
+      "output_sha256": "d6cc1a856b32849368f047a9fa0c2b0d895ec48e1f523fe3806095506f814430",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 364481,
+      "variant": "welcoming — arches, warm gold wash",
+      "tone": "light",
+      "kicker": "#7E1898",
+      "headline": "كل ما يخص وحدتك في مكان واحد",
+      "subtitle": "تابع وحدتك ومستحقاتك وطلبات الصيانة بسهولة.",
+      "art": "Bright, welcoming opener: two concentric gold arches spring from the lower-left margin, a small gold window lattice sits in the left margin, and a wide, low-alpha gold wash warms the top-left corner. Navy headline, petrol subtitle, purple kicker rule.",
+      "document_sha256": "b40491f9365223bcf294109dae39d4bfa4fe5f36b49a015b26a6af7f45fc6243"
+    },
+    {
+      "id": "02",
+      "source": "02-payments-dues.png",
+      "source_sha256": "806d714f6f6cfda91f3efba6837161cd88be502aa04f0fa611479287143bb73c",
+      "output": "02-payments-marketing.png",
+      "output_sha256": "925058d87e2e4257d7066f100094fb121148221c4475038d70be835ef1a1b08c",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 362275,
+      "variant": "ledger — statement rules",
+      "tone": "light",
+      "kicker": "#7E1898",
+      "headline": "تابع مستحقاتك بكل سهولة",
+      "subtitle": "اطّلع على المستحقات والمدفوعات السابقة في أي وقت.",
+      "art": "Payments: a right-aligned column of statement rules of uneven length (gold and petrol) reads as a dues ledger, scored by a vertical spine and five gold ticks in the right margin. Cool petrol wash, purple kicker rule.",
+      "document_sha256": "6355acae4493e750b549bb68a1848a7367361dfe5cc5ffec2d69d06f992006e3"
+    },
+    {
+      "id": "03",
+      "source": "03-fawry-payment.png",
+      "source_sha256": "370b9c1fbf96b87392ff73917a331a86eddece60d8e8a12a4846753265afeb76",
+      "output": "03-fawry-marketing.png",
+      "output_sha256": "edb4199ea5b48730340385e95884461450012681cecef547b6f1e7f27d01f8d4",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 334257,
+      "variant": "payment — code card, authentic Fawry accent",
+      "tone": "light",
+      "kicker": "#FFDD00",
+      "headline": "ادفع مستحقاتك عبر فوري",
+      "subtitle": "احصل على كود الدفع وسدّد مستحقاتك بسهولة.",
+      "art": "Payment focus: a gold code-card outline with two inner rules and dotted keylines in both margins. The only yellow in the campaign is the authentic Fawry yellow #FFDD00 sampled from this screen's own source screenshot, used as the 96x6 kicker rule above the headline and one 184px footer hairline - no other yellow branding.",
+      "document_sha256": "e99257588cdc2dd4da675862117623d1491125cfc0f9f4ccb913d26c256cec0a"
+    },
+    {
+      "id": "04",
+      "source": "04-visitor-qr-pass.png",
+      "source_sha256": "2923da3072d8ac0d5363c1c95e252279a5b20cf0e94f9e2cb21850e0919018a9",
+      "output": "04-visitor-qr-marketing.png",
+      "output_sha256": "4621aac48efcd978cde57fac202139f1df851b0626a5759bbd8fc6c3b972f7b5",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 336555,
+      "variant": "entry — visitor gate portal",
+      "tone": "light",
+      "kicker": "#C5A880",
+      "headline": "تصاريح ذكية لزوارك",
+      "subtitle": "أنشئ تصاريح الزيارة وشاركها باستخدام رمز QR.",
+      "art": "Visitor entry: a gold gate portal with three bars and a petrol access frame, plus mirrored post markers down both margins and a threshold hairline just above the device. Light, open composition - entry is granted, not blocked.",
+      "document_sha256": "a05e3063f63fe65e63af15c22d080d736c5a55ae1812b6187e8f33d34bd10f17"
+    },
+    {
+      "id": "05",
+      "source": "05-maintenance-request.png",
+      "source_sha256": "56fac1d0f2d612dd535c7a98d40bf634796a0d709f9a958398cb53b5d67ee312",
+      "output": "05-maintenance-marketing.png",
+      "output_sha256": "273aa21a97bc7ec2b510b576ee5374d9dbec371aefe329e4d723534a2868c40b",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 376504,
+      "variant": "technical — dimension lines and hatch",
+      "tone": "light",
+      "kicker": "#7E1898",
+      "headline": "صيانة أسهل، ومتابعة أوضح",
+      "subtitle": "قدّم طلبات الصيانة وتابع مراحل تنفيذها.",
+      "art": "Technical maintenance: a petrol dimension line with end ticks and four station ticks, a small gold keyframe, two ruled margin traces with cross ticks, and a 72px 45-degree hatch band along the base - a drafting sheet, not a dashboard.",
+      "document_sha256": "b7831cbbe29a6e6ba70a0f2cde2bf3440c068d499e3c4ca4f19e1dec14d40e36"
+    },
+    {
+      "id": "06",
+      "source": "06-technician-dashboard.png",
+      "source_sha256": "319d499aac19942fdf8db1e91848be7187d507ac1ee9b3fa051259aa7891415f",
+      "output": "06-technician-marketing.png",
+      "output_sha256": "7085ecf57759ad0fcd4a4634a5f7792531f9ace1006a908a4c1eae9d56dff0b0",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 358933,
+      "variant": "workflow — task nodes and connectors",
+      "tone": "light",
+      "kicker": "#7E1898",
+      "headline": "مهامك اليومية بين يديك",
+      "subtitle": "نظّم أعمال الصيانة وتابع المهام المكلّف بها.",
+      "art": "Technician workflow: three gold task-node outlines chained by elbow connectors down the left edge, mirrored by an eight-point petrol task queue in the right margin. A restrained purple wash in the top-right corner ties it to the purple kicker rule.",
+      "document_sha256": "f15cff37a54a840671f6cd61804039661c80acf31ab92f86ce8aedd46027791c"
+    },
+    {
+      "id": "07",
+      "source": "07-gate-scanner.png",
+      "source_sha256": "0840d831f2856fd796ee95ff823fcea16b84bf012a2d96c485a1b47126f960fd",
+      "output": "07-gate-marketing.png",
+      "output_sha256": "99b0034c867ca35a00c77779bf78f8b8e9f6a76add2a2e9594059c8ba2a0c74e",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 432231,
+      "variant": "security — dark navy, scan brackets",
+      "tone": "dark",
+      "kicker": "#C5A880",
+      "headline": "دخول منظّم وآمن",
+      "subtitle": "تحقّق من تصاريح الزوار بسرعة عبر مسح رمز QR.",
+      "art": "Dark security: the source screen is itself dark navy, so the canvas goes near-black #042434 fading to #07425D and the device reads as a lighter #07425D shell. Gold scan brackets sit at all four canvas corners in echo of the scanner frame inside the screenshot, with three gold radar arcs bottom-right and a dotted petrol trust line.",
+      "document_sha256": "88fc78e58286bf5b4bb8abf09bc09c2e2993e8087380c92ddf031388347723cf"
+    },
+    {
+      "id": "08",
+      "source": "08-manager-dashboard.png",
+      "source_sha256": "803a07e472a4079f9a45aff014fe88c4b5a7c2f24aed5e6e3630dba90c26fa79",
+      "output": "08-manager-marketing.png",
+      "output_sha256": "9d0d6cbe84a4416328113eca9b898b51b92516c630465176f21243060f7956dc",
+      "output_width": 1080,
+      "output_height": 2400,
+      "output_bytes": 543071,
+      "variant": "executive — skyline and hierarchy",
+      "tone": "dark",
+      "kicker": "#C5A880",
+      "headline": "إدارة عقارية برؤية شاملة",
+      "subtitle": "تابع التحصيلات والصيانة والعمليات من مكان واحد.",
+      "art": "Executive oversight: a gold-hairline skyline silhouette rises from the base behind and beside the device (visible in the margins and the 72px footer strip), and a three-rule hierarchy sits top-left. Deep #042434 to #07425D gradient with a soft petrol glow - the calm, widest-view close.",
+      "document_sha256": "62481cc44cad32ad6287326cfeaad2ae3d19b7bdedf666be2abe719f19c3daaf"
+    }
+  ],
+  "contact_sheet": {
+    "output": "contact-sheet-marketing-ar.png",
+    "width": 1910,
+    "height": 2363,
+    "bytes": 719603,
+    "sha256": "64ab4a6c90beaef91d1ce8976a7ce48256d041faba66facd6e1406337a5a84b0",
+    "columns": 4,
+    "rows": 2,
+    "label_position": "outside the images"
+  },
+  "qa_report": "MARKETING_SCREENSHOTS_QA.md"
+}

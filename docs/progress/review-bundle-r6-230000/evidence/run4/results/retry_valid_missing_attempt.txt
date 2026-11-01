@@ -1,0 +1,38 @@
+Timing is on.
+Time: 3.540 ms
+==== Retry only the transaction whose first attempt rolled back
+BEGIN
+Time: 0.372 ms
+INSERT 0 1
+Time: 5.125 ms
+INSERT 0 1
+Time: 3906.660 ms (00:03.907)
+INSERT 0 2
+Time: 7.918 ms
+COMMIT
+Time: 33.495 ms
+                  id                  | status 
+--------------------------------------+--------
+ 10f1fec7-0ba5-403b-ae92-558017a6c818 | POSTED
+ 58173864-8d6c-4d04-82dd-4f11f6d56ab8 | POSTED
+(2 rows)
+
+Time: 8.548 ms
+     ?column?      
+-------------------
+ PA final=750.0000
+(1 row)
+
+Time: 2.206 ms
+     ?column?      
+-------------------
+ PB final=800.0000
+(1 row)
+
+Time: 2.095 ms
+          ?column?          
+----------------------------
+ unbalanced retry entries=0
+(1 row)
+
+Time: 1.495 ms

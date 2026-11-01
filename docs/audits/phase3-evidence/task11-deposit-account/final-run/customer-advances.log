@@ -1,0 +1,19 @@
+◇ injected env (6) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 10 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+[1/10] tests\e2e\customer-advances.spec.ts:105:7 › B1–B7: advances on the staff screens and the owner's portal › B1 — an advance receipt with explicit confirmation (R1), and one without a due (R2)
+[2/10] tests\e2e\customer-advances.spec.ts:147:7 › B1–B7: advances on the staff screens and the owner's portal › B2 — applying credit from the receipts page: 600 on 5 Sep, then 200 on 7 Sep
+[3/10] tests\e2e\customer-advances.spec.ts:182:7 › B1–B7: advances on the staff screens and the owner's portal › B3 — reversing only the 600 application, with a reason: dated 9 Sep, the 200 stays
+[4/10] tests\e2e\customer-advances.spec.ts:223:7 › B1–B7: advances on the staff screens and the owner's portal › B4 — the portal statement with a window ending 31 Aug, 4 Sep, 6 Sep, 8 Sep and 30 Sep
+[5/10] tests\e2e\customer-advances.spec.ts:251:7 › B1–B7: advances on the staff screens and the owner's portal › B5 — the same numbers in the ledger, the trial balance, the balance sheet, the unit page, the owner statement and the receipt PDF
+[6/10] tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an advance but sees no apply / reverse controls
+[7/10] tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (en)
+[8/10] tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (ar)
+[9/10] tests\e2e\customer-advances.spec.ts:352:5 › B7 — no approved advance account: the screen says why and the database agrees
+[10/10] tests\e2e\customer-advances.spec.ts:372:5 › B8 — after the unit changes hands the new owner sees nothing of the old owner's credit; the original member sees it on hold
+  Slow test file: tests\e2e\customer-advances.spec.ts (5.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  10 passed (5.2m)

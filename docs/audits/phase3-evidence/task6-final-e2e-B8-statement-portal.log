@@ -1,0 +1,63 @@
+Running 34 tests using 1 worker
+  ok  1 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (ar) (39.3s)
+  ok  2 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (en) (29.5s)
+  ok  3 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (ar) (27.6s)
+  ok  4 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (en) (28.7s)
+  ok  5 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (ar) (22.1s)
+  ok  6 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (en) (17.3s)
+  ok  7 tests\e2e\customer-advances.spec.ts:105:7 › B1–B7: advances on the staff screens and the owner's portal › B1 — an advance receipt with explicit confirmation (R1), and one without a due (R2) (20.9s)
+  ok  8 tests\e2e\customer-advances.spec.ts:147:7 › B1–B7: advances on the staff screens and the owner's portal › B2 — applying credit from the receipts page: 600 on 5 Sep, then 200 on 7 Sep (24.5s)
+  ok  9 tests\e2e\customer-advances.spec.ts:182:7 › B1–B7: advances on the staff screens and the owner's portal › B3 — reversing only the 600 application, with a reason: dated 9 Sep, the 200 stays (15.7s)
+  ok 10 tests\e2e\customer-advances.spec.ts:223:7 › B1–B7: advances on the staff screens and the owner's portal › B4 — the portal statement with a window ending 31 Aug, 4 Sep, 6 Sep, 8 Sep and 30 Sep (13.4s)
+  ok 11 tests\e2e\customer-advances.spec.ts:251:7 › B1–B7: advances on the staff screens and the owner's portal › B5 — the same numbers in the ledger, the trial balance, the balance sheet, the unit page, the owner statement and the receipt PDF (30.2s)
+  ok 12 tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an advance but sees no apply / reverse controls (11.0s)
+  ok 13 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (en) (9.2s)
+  ok 14 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application states its reason (ar) (11.8s)
+  ok 15 tests\e2e\customer-advances.spec.ts:352:5 › B7 — no approved advance account: the screen says why and the database agrees (14.1s)
+  ok 16 tests\e2e\customer-advances.spec.ts:372:5 › B8 — after the unit changes hands the new owner sees nothing of the old owner's credit; the original member sees it on hold (1.6m)
+  ok 17 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (11.6s)
+  ok 18 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (19.7s)
+  ok 19 tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's (23.3s)
+  x  20 tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit (1.5m)
+  -  21 tests\e2e\portal-journey.spec.ts:97:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note
+  -  22 tests\e2e\portal-journey.spec.ts:122:5 › J6 the owner follows the status and sees only the member-visible note
+  ok 23 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (17.6s)
+  ok 24 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (20.4s)
+  ok 25 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (17.6s)
+  ok 26 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3) (12.9s)
+  ok 27 tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (4.7s)
+  ok 28 tests\e2e\portal-statement.spec.ts:81:5 › an owner's statement shows their own movements, and never another owner's (17.4s)
+  ok 29 tests\e2e\portal-statement.spec.ts:101:5 › an owner with no activity gets an empty statement, not a crash or a wrong zero (13.1s)
+  ok 30 tests\e2e\portal-statement.spec.ts:113:5 › the statement renders right-to-left in Arabic and left-to-right in English (23.6s)
+  ok 31 tests\e2e\portal-statement.spec.ts:126:5 › the statement is unreachable without a portal session (671ms)
+  ok 32 tests\e2e\portal-statement.spec.ts:135:5 › a receipt voided later: visible before the void date, reversed at the actual reversal entry, and every figure agrees (ar) (17.4s)
+  ok 33 tests\e2e\portal-statement.spec.ts:135:5 › a receipt voided later: visible before the void date, reversed at the actual reversal entry, and every figure agrees (en) (20.0s)
+  ok 34 tests\e2e\portal-statement.spec.ts:180:5 › the dated position cards show an error with a retry when the request fails, instead of an endless placeholder (20.7s)
+  1) tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit 
+    Error: expect(locator).toBeVisible() failed
+    Locator: getByText('Short title')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Short title')
+      72 |   await portalLogin(page, owner1().email);
+      73 |   await go(page, "/en/portal/maintenance/new");
+    > 74 |   await expect(page.getByText("Short title")).toBeVisible({ timeout: 60_000 });
+         |                                               ^
+      75 |   await page.locator("select").nth(1).selectOption({ index: 0 }); // first category
+      76 |   await page.getByPlaceholder("Example: AC water leak").fill("Water leak in the kitchen");
+      77 |   await page.locator("textarea").fill("Water drips from the ceiling near the sink since this morning.");
+        at D:\Web\AqarBooks\tests\e2e\portal-journey.spec.ts:74:47
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J4-owner-1--4dba7-ance-request-for-their-unit\error-context.md
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J4-owner-1--4dba7-ance-request-for-their-unit\error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J4-owner-1--4dba7-ance-request-for-their-unit\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J4-owner-1--4dba7-ance-request-for-their-unit\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit 
+  2 did not run
+  31 passed (13.5m)

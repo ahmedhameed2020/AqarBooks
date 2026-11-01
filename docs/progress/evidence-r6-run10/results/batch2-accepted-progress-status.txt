@@ -1,0 +1,48 @@
+$ tests/progress-status.test.ts
+label=batch2-accepted-progress-status
+exit=1
+elapsed_ms=5418
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/progress-status.test.ts (7 tests | 1 failed) 74ms
+     ✓ parses as JSON with schema_version 1 7ms
+     ✓ has phases with the required keys and types 20ms
+     ✓ uses only the five allowed status values 5ms
+     × allows 'verified' only with integration/e2e/isolated evidence 31ms
+     ✓ keeps percent_defined null or 0-100, with a note when set 1ms
+     ✓ does not assess production readiness 1ms
+     ✓ exists and mentions every phase id from status.json 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  14:02:14
+   Duration  1.49s (transform 263ms, setup 452ms, import 80ms, tests 74ms, environment 1ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch2-accepted-progress-status.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/progress-status.test.ts > docs/progress/status.json > allows 'verified' only with integration/e2e/isolated evidence
+AssertionError: phase sprint-2-batch-2 evidence must match /integration|e2e|isolated/i: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/progress-status.test.ts:76:9
+     74|         p.evidence.some((e) => VERIFIED_EVIDENCE.test(e)),
+     75|         `phase ${p.id} evidence must match ${VERIFIED_EVIDENCE}`,
+     76|       ).toBe(true);
+       |         ^
+     77|     }
+     78|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

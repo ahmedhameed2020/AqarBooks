@@ -1,0 +1,49 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  x  1 tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (59.6s)
+
+
+  1) tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('row').filter({ hasText: 'FA-26206274' })
+    Expected: "DISPOSED"
+    Received: ""
+    Timeout:  40000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 40000ms
+      - waiting for getByRole('row').filter({ hasText: 'FA-26206274' })
+        75 × locator resolved to <tr class="group transition-colors hover:bg-slate-50/90 opacity-60 bg-slate-50/40">…</tr>
+           - unexpected value "null"
+
+
+      166 |     await page.getByRole("dialog").getByRole("button", { name: /^Confirm Disposal$/i }).click();
+      167 |
+    > 168 |     await expect(page.getByRole("row").filter({ hasText: f.assetCode })).toHaveAttribute(
+          |                                                                          ^
+      169 |       "data-status", "DISPOSED", { timeout: 40_000 },
+      170 |     );
+      171 |
+        at D:\Web\AqarBooks\tests\e2e\asset-disposal.spec.ts:168:74
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-round4\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-round4\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-round4\asset-disposal-artifacts\asset-disposal-disposal-is-32777-cceeds-and-closes-the-asset\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\asset-disposal.spec.ts:117:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset 
+

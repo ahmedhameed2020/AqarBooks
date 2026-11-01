@@ -1,10 +1,11 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { createGateFixture, sql } from "./helpers/gate-release";
 
 function runSql(query: string): Promise<string> {
-  return new Promise((resolve, reject) => execFile("docker", ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c", query],
+  return new Promise((resolve, reject) => execFile("docker", ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA", "-c", query],
     { timeout: 30_000 }, (error, stdout, stderr) => error ? reject(new Error(stderr)) : resolve(stdout)));
 }
 async function waitFor(query: string, expected: string) {

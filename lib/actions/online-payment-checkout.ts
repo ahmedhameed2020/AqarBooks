@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fawryAdapter } from "@/lib/payments/providers/fawry";
 import { selectCheckoutProviderCredentials } from "@/lib/payments/resolve-credentials";
+import { FAWRY_INITIATION_DISABLED, isFawryInitiationAllowed } from "@/lib/payments/fawry-initiation-policy";
 // paymobAdapter intentionally NOT imported here -- see Task 3's status
 // note. Wiring it in requires an explicit follow-up task, not just adding
 // an import here.
@@ -32,6 +33,12 @@ export async function createOnlinePaymentCheckoutAction(input: unknown) {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) {
     return { error: "INVALID_INPUT" as const };
+  }
+
+  // Deny before auth/data/credentials/RPC, including attempts to replay a
+  // previous reference. The database proposal also protects direct clients.
+  if (!isFawryInitiationAllowed()) {
+    return { error: FAWRY_INITIATION_DISABLED };
   }
 
   // getPortalMemberContext() returns a discriminated union

@@ -1,0 +1,48 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+ERROR:  TEST_AUDIT_FAILURE
+CONTEXT:  PL/pgSQL function tmp_block_audit() line 1 at RAISE
+SQL statement "INSERT INTO public.financial_audit_logs (
+    organization_id,
+    property_id,
+    actor_user_id,
+    action,
+    entity_type,
+    entity_id,
+    request_id,
+    occurred_at,
+    ip_address,
+    user_agent,
+    metadata,
+    previous_hash,
+    event_hash
+  ) VALUES (
+    p_organization_id,
+    p_resort_id,
+    v_actor_user_id,
+    p_action,
+    p_entity_type,
+    p_entity_id,
+    p_request_id,
+    v_occurred_at,
+    p_ip_address,
+    p_user_agent,
+    v_final_metadata,
+    v_prev_hash,
+    v_event_hash
+  )
+  RETURNING id"
+PL/pgSQL function append_financial_audit_event(uuid,text,text,uuid,uuid,text,inet,text,jsonb) line 64 at SQL statement
+SQL statement "SELECT public.append_financial_audit_event(
+      NEW.organization_id, 'PROJECT_UPDATED', 'PROJECT', NULL, NEW.id, NULL, NULL, NULL,
+      jsonb_build_object('project_id', NEW.id, 'changed_fields', to_jsonb(v_changed),
+                         'has_postings', public.project_has_postings(OLD.id))
+    )"
+PL/pgSQL function audit_project_update() line 16 at PERFORM
+DROP TRIGGER
+DROP FUNCTION
+K name after audit failure: K

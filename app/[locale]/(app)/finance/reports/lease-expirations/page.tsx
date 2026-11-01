@@ -64,7 +64,7 @@ export default async function LeaseExpirationsPage({
   // Fetch all active/draft leases with unit and member info
   const { data: leasesData, error: leasesError } = await supabase
     .from("unit_leases")
-    .select("id, unit_id, tenant_member_id, starts_on, ends_on, rent_amount, rent_frequency, status, units(code, unit_type, resorts(name)), members(id, full_name, phone_number, email)")
+    .select("id, unit_id, tenant_member_id, starts_on, ends_on, rent_amount, rent_frequency, status, units(code, unit_type, properties(name)), members(id, full_name, email, member_phones(phone_number, is_primary))")
     .eq("organization_id", organization.id)
     .order("ends_on", { ascending: true });
 
@@ -75,8 +75,8 @@ export default async function LeaseExpirationsPage({
   const now = new Date().getTime();
 
   const rows: ExpiringLeaseRow[] = (leasesData || []).map((l) => {
-    const unit = l.units as unknown as { code?: string; unit_type?: string; resorts?: { name?: string } | null } | null;
-    const member = l.members as unknown as { full_name?: string; phone_number?: string; email?: string } | null;
+    const unit = l.units as unknown as { code?: string; unit_type?: string; properties?: { name?: string } | null } | null;
+    const member = l.members as unknown as { full_name?: string; email?: string; member_phones?: { phone_number?: string; is_primary?: boolean }[] } | null;
 
     const endsOn = l.ends_on ? new Date(l.ends_on).getTime() : now + 180 * 24 * 60 * 60 * 1000;
     const daysRemaining = Math.floor((endsOn - now) / (1000 * 60 * 60 * 24));
@@ -89,9 +89,9 @@ export default async function LeaseExpirationsPage({
       leaseId: l.id,
       unitCode: unit?.code || "—",
       unitType: unit?.unit_type || "APARTMENT",
-      resortName: unit?.resorts?.name || (isAr ? "المنتجع الرئيسي" : "Main Resort"),
+      resortName: unit?.properties?.name || (isAr ? "المنتجع الرئيسي" : "Main Resort"),
       tenantName: member?.full_name || (isAr ? "مستأجر مسجل" : "Registered Tenant"),
-      tenantPhone: member?.phone_number || "",
+      tenantPhone: (member?.member_phones ?? []).find((p) => p.is_primary)?.phone_number ?? (member?.member_phones ?? [])[0]?.phone_number ?? "",
       tenantEmail: member?.email || "",
       startDate: l.starts_on || "2025-01-01",
       endDate: l.ends_on || "2026-12-31",

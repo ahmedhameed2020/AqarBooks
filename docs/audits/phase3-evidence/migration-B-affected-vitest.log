@@ -1,0 +1,44 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/security-function-grants.integration.test.ts
+◇ injected env (6) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+ ❯ tests/security-function-grants.integration.test.ts (4 tests | 1 failed) 3776ms
+     × authenticated-executable SECURITY DEFINER set matches the approved baseline exactly 18ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/security-function-grants.integration.test.ts > Security invariant — function EXECUTE grants > authenticated-executable SECURITY DEFINER set matches the approved baseline exactly
+AssertionError: NEW functions became authenticated-executable and are not in the approved baseline. This is how the migration-4 regression happened. Confirm each is intended, then add it to the allowlist in the same commit as its migration: apply_payment_credit, record_advance_payment, reverse_credit_application, set_default_customer_advance_account: expected [ 'apply_payment_credit', …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "apply_payment_credit",
++   "record_advance_payment",
++   "reverse_credit_application",
++   "set_default_customer_advance_account",
++ ]
+
+ ❯ tests/security-function-grants.integration.test.ts:350:7
+    348|         `This is how the migration-4 regression happened. Confirm each…
+    349|         `to the allowlist in the same commit as its migration: ${added…
+    350|     ).toEqual([]);
+       |       ^
+    351|
+    352|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 21 passed (22)
+      Tests  1 failed | 315 passed (316)
+   Start at  18:06:16
+   Duration  332.54s (transform 1.09s, setup 1.11s, import 11.44s, tests 311.14s, environment 7ms)
+

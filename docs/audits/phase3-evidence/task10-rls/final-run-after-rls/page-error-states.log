@@ -1,0 +1,9 @@
+◇ injected env (6) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+[1/2] tests\e2e\page-error-states.spec.ts:61:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers
+[2/2] tests\e2e\page-error-states.spec.ts:87:5 › owner portal: units, home and statement show the error, not 'no units' / zeros; Retry recovers
+  2 passed (42.2s)

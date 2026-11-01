@@ -1,0 +1,14 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  ok 1 tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register (55.2s)
+  -  2 tests\e2e\reports-suite-flow.spec.ts:203:8 › Financial & Real Estate Reports Suite E2E Flow › DEFERRED (Batch 1B excluded): fixed-asset schedule shows the NBV table
+
+  1 skipped
+  1 passed (1.0m)
+

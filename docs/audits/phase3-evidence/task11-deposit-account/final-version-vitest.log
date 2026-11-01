@@ -1,0 +1,6 @@
+PASS  tests/pgtap.integration.test.ts  |  files: 1 passed (1)  |  tests: 18 passed (18)
+PASS  tests/onboarding.integration.test.ts  |  files: 1 passed (1)  |  tests: 2 passed (2)
+PASS  tests/deposit-account-validation.integration.test.ts  |  files: 1 passed (1)  |  tests: 21 passed (21)
+PASS  tests/security-function-grants.integration.test.ts  |  files: 1 passed (1)  |  tests: 4 passed (4)
+PASS  tests/migration-directory-guard.test.ts  |  files: 1 passed (1)  |  tests: 105 passed (105)
+PASS  tests/treasury-link-and-cheque.integration.test.ts  |  files: 1 passed (1)  |  tests: 18 passed (18)

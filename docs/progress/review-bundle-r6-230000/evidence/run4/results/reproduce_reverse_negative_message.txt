@@ -1,0 +1,22 @@
+==== Existing Q1 fixture: release committed, reversal of capitalisation must be refused
+                  id                  | status | reversed_entry_id 
+--------------------------------------+--------+-------------------
+ c80f6b57-7440-479d-a21a-eb4a56c674de | POSTED | 
+(1 row)
+
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/reproduce_reverse_negative_message.sql:6: ERROR:  PROJECT_WIP_NEGATIVE: الحركة تجعل رصيد WIP سالبًا (قبل 400.0000, بعد -600.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+RESET
+                  id                  | status | reversed_entry_id 
+--------------------------------------+--------+-------------------
+ c80f6b57-7440-479d-a21a-eb4a56c674de | POSTED | 
+(1 row)
+

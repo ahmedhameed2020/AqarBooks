@@ -1,0 +1,376 @@
+23:04:13 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:04:29 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:04:38 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:04:59 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:05:10 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:05:28 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:05:38 brave_cerf psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:05:55 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:06:13 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:06:25 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:06:32 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:06:45 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:07:05 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:07:21 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:07:29 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 2
+23:07:40 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 10
+23:07:54 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 69
+23:08:14 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:08:24 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:08:34 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:08:41 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:08:53 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:09:02 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:09:09 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 18 101
+23:09:16 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 100 101
+23:09:25 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:09:32 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:09:40 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:09:48 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:09:55 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:03 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:10 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:16 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:22 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:30 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:37 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:43 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:10:50 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:11:01 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:11:19 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:11:35 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 171 104
+23:11:48 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:11:58 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 183 113
+23:12:07 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 200 138
+23:12:15 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 143
+23:12:21 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:12:29 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:12:35 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:12:42 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:12:48 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:12:54 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:13:02 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:13:09 brave_cerf "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:13:16 brave_cerf Error response from daemon: container 13787d5dd8fef0c98d8631bfe8e620a41dae83ab12a5a35ccc00f069d7373f68 is not running
+23:13:36 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:13:42 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:13:47 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:13:53 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:13:58 gifted_herschel "$user", public NULL 0 0
+23:14:03 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:10 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:15 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:14:21 gifted_herschel psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:14:27 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:33 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:39 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:45 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:52 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:14:57 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:15:04 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:15:10 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:15:30 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 2
+23:15:40 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 17
+23:15:59 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 54
+23:16:18 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 97
+23:16:26 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:16:35 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:16:42 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:16:48 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:16:58 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:17:05 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:17:16 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 31 101
+23:17:43 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 120 101
+23:17:50 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:17:57 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:03 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:10 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:16 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:21 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:28 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:36 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:46 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:18:56 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:19:03 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:19:11 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:19:17 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:19:33 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 171 104
+23:19:50 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:19:57 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 186 116
+23:20:03 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 202 141
+23:20:09 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:14 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:19 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:25 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:29 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:35 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:39 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:44 gifted_herschel "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:20:50 gifted_herschel Error response from daemon: container b5ce411be72a3435d3ae57e3c084f580179a5e6ec5ce73d746838013527c684b is not running
+23:21:07 vibrant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:21:13 vibrant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:21:20 vibrant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:21:25 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:21:30 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:21:35 vibrant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:21:41 vibrant_elbakyan psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:21:45 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:21:50 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:21:55 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:22:01 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:22:07 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:22:13 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:22:21 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:22:27 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 2
+23:22:32 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 5
+23:22:38 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 64
+23:22:43 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:22:49 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:22:54 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:22:59 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:23:04 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 13 101
+23:23:09 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 103 101
+23:23:15 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:24 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:34 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:40 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:46 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:52 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:23:57 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:03 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:11 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:20 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:26 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:32 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:40 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:45 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:24:51 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:24:56 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 183 113
+23:25:02 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 197 131
+23:25:08 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 143
+23:25:14 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:19 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:25 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:30 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:39 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:44 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:50 vibrant_elbakyan "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:25:56 vibrant_elbakyan Error response from daemon: container 6a1732c2f5b44bd0bdde070b7ff2f1f2d81cd4ae370537e0a171136ec3dc74c6 is not running
+23:26:52 awesome_lichterman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:26:59 awesome_lichterman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:27:07 awesome_lichterman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:27:15 awesome_lichterman "$user", public NULL 0 0
+23:27:24 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:27:31 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:27:36 awesome_lichterman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:27:42 awesome_lichterman psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:27:49 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:27:55 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:02 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:08 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:16 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:24 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:35 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:28:50 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 2
+23:28:58 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 3
+23:29:07 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 37
+23:29:18 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 90
+23:29:26 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:29:31 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:29:38 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:29:44 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:29:51 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:29:58 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:30:04 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 17 101
+23:30:11 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 82 101
+23:30:18 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:30:37 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:30:54 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:31:02 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:31:21 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:31:37 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:31:48 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:31:56 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:03 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:11 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:18 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:25 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:31 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:32:43 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:32:55 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 183 113
+23:33:03 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 202 141
+23:33:12 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:33:25 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:33:33 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:33:41 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:33:49 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:33:57 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:34:08 awesome_lichterman "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:34:49 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:34:56 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:35:06 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:35:14 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:35:22 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:35:30 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:35:38 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:35:45 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:35:56 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:36:07 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:36:16 thirsty_wright psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:36:23 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:36:33 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:36:45 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:37:03 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:37:10 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:37:17 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:37:25 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:37:37 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 1
+23:37:44 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 3
+23:38:01 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 45
+23:38:12 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 89
+23:38:20 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:38:28 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:38:37 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:38:44 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:38:51 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:39:00 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:39:09 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 34 101
+23:39:18 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 116 101
+23:39:25 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:39:32 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:39:40 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:39:47 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:39:55 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:05 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:12 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:20 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:29 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:39 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:47 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:53 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:40:59 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:41:05 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:41:11 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:41:17 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 183 113
+23:41:25 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 199 133
+23:41:31 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:41:37 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:41:42 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:41:48 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:41:55 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:42:01 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:42:08 thirsty_wright "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:42:16 thirsty_wright OCI runtime exec failed: exec failed: unable to start container process: error executing setns process: exit status 1; runc init error(s): nsexec-1[73925]: failed to open /proc/42300/ns/ipc: No such file or directory; nsexec-0[73924]: failed to sync with stage-1: next state (got 0 of 4 bytes)
+23:42:41 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:42:47 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:42:54 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:43:03 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:43:09 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  role "postgres" does not exist
+23:43:15 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:43:23 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:43:29 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:43:40 naughty_wilson psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:44:10 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:44:29 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:44:47 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:45:08 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:45:34 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:45:53 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:46:24 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:47:09 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 3
+23:47:40 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 29
+23:48:03 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 92
+23:48:26 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:48:53 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:49:19 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:49:26 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:49:32 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:49:40 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:49:51 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 35 101
+23:49:58 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 104 101
+23:50:06 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:12 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:20 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:26 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:37 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:44 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:51 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:50:58 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:08 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:17 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:24 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:30 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:37 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:43 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:52 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+23:51:59 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 171 104
+23:52:06 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 177 107
+23:52:16 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 186 116
+23:52:27 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 202 141
+23:52:34 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:52:43 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:52:55 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:53:04 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:53:14 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:53:23 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:53:30 naughty_wilson "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+23:53:38 naughty_wilson Error response from daemon: container 803644adeb165a618017e780a80afc69fb43b92dc4ea1b01d8da2102f48bf62f is not running
+23:54:01 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:54:08 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:54:14 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:54:19 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+23:54:24 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:54:30 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:54:36 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:54:42 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:54:47 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:54:53 serene_rosalind psql: error: connection to server on socket "/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is shutting down
+23:54:59 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:06 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:12 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:18 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:24 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:29 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:35 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:41 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:48 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 0
+23:55:58 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 3
+23:56:24 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 21
+23:56:50 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 73
+23:57:04 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:57:25 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:57:53 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:58:09 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:58:26 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:58:50 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 0 101
+23:59:13 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 27 101
+23:59:37 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 120 101
+00:00:01 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:00:18 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:00:42 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:01:06 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:01:25 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:01:36 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:01:42 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:01:53 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:03 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:12 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:21 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:31 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:40 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:45 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:02:53 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 167 101
+00:03:00 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 171 104
+00:03:07 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 181 111
+00:03:13 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 191 121
+00:03:21 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 202 141
+00:03:28 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:03:35 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:03:40 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:03:45 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:03:50 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:03:55 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:04:01 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:04:07 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:04:13 serene_rosalind "\$user", public, extensions {"search_path=\"\\$user\", public, extensions"} 203 144
+00:04:19 serene_rosalind Error response from daemon: container 78c52f0aafa17f94cc9541962eac4238ea8f58148aea0c506c85f4bace92cb44 is not running

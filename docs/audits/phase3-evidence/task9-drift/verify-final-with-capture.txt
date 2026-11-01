@@ -1,0 +1,7 @@
+ledger 82 / files 82 → MATCH
+db diff observation 1: clean [catalog: live and shadow catalogs identical]
+db diff observation 2: clean [catalog: live and shadow catalogs identical]
+db diff (public): CLEAN -- 2 observations: 2 clean, 0 differing, 0 tool errors; all outputs kept in D:\Web\AqarBooks\docs\audits\phase3-evidence\task9-drift\verify-outputs\aqarbooks-verify-2026-10-14T07-03-52-540Z; catalog captures in D:\Web\AqarBooks\docs\audits\phase3-evidence\task9-drift\verify-outputs\aqarbooks-verify-capture-1791961137800
+(node:8372) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+exit 0

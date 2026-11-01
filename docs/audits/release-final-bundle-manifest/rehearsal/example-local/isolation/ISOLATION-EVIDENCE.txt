@@ -1,0 +1,25 @@
+Network isolation of the TEST container (G0 Final Safety Gate). Nothing restored, no data, no production contact.
+
+NEW objects (only these were created):
+  network  g0_isolated_test_net   (docker network create --internal; Internal=true; no gateway; containers=1)
+  container g0_iso_test           (image public.ecr.aws/supabase/postgres:17.6.1.165, same image as the existing DB containers;
+                                   NO published ports; attached only to g0_isolated_test_net; IP 172.24.0.2; empty cluster, no restore)
+
+Inside g0_iso_test (tests from iso.sh, output in iso-output.txt):
+  routes:            only eth0 (172.24.0.0/16) -- no default route
+  DNS names:         example.com, one.one.one.one, dns.google: not resolved
+  DNS over UDP 53:   1.1.1.1 and 8.8.8.8: no answer
+  DNS over TCP 53:   8.8.8.8: blocked
+  TCP to Internet:   1.1.1.1:443, 8.8.8.8:443, 93.184.216.34:80: blocked
+  TCP to host/gateway: host.docker.internal:5432, 172.17.0.1:5432, 172.17.0.1:54322: blocked
+  TCP to other projects' containers (172.22.0.6:5432, 172.19.0.12:5432): blocked
+  POSITIVE CONTROL:  own address 172.24.0.2:5432 -> OPEN (the same method connects when it should)
+
+Other projects (before/after snapshots in before-*.txt / after-*.txt):
+  containers: the only addition is g0_iso_test. No container stopped, started, restarted by this work.
+  inspect (state, StartedAt, image, IP) of every pre-existing container: identical, EXCEPT
+     supabase_vector_aqarbooks: already in a restart loop BEFORE this work (RestartCount 261 at the end); its StartedAt
+     changes because of that loop, not because of this work. Recorded as a pre-existing condition for the owner.
+  networks: the only addition is g0_isolated_test_net. No shared network changed.
+  published ports of AqarBooks containers: unchanged (54321, 54322, 54323, 54324, 54327, 55321, 55322).
+  Trakova: no container, network, or image with this name exists on this Docker engine (searched containers by name).

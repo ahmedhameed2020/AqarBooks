@@ -1,0 +1,20 @@
+Done testing
+File Name                                             Modified             Size
+code/bi1-working-tree.diff                     2026-10-30 19:24:50        66042
+evidence/dashboard-ar.png                      2026-10-30 19:24:52       208678
+evidence/dashboard-en.png                      2026-10-30 19:24:50       224551
+logs/browser-bi1.txt                           2026-10-30 19:28:56          601
+logs/build-r6.txt                              2026-10-30 19:28:56          420
+logs/diff-check.txt                            2026-10-30 19:24:52          293
+logs/eslint-bi1.txt                            2026-10-30 19:28:56          700
+logs/patch-check.txt                           2026-10-30 19:24:52           28
+logs/red-before-fix.txt                        2026-10-30 19:28:56          956
+logs/typescript.txt                            2026-10-30 15:15:10           12
+logs/vitest-bi1.txt                            2026-10-30 19:28:56          457
+tests/dashboard-bi1.spec.ts                    2026-10-30 19:24:50         2380
+tests/insights-card.test.tsx                   2026-10-30 19:24:50         2216
+tests/platform-dashboard.test.tsx              2026-10-30 19:24:50         2538
+tests/tenant-dashboard-access.test.tsx         2026-10-30 19:24:48        13669
+independent-review.md                          2026-10-30 19:28:56         2042
+README.md                                      2026-10-30 19:28:56         4941
+review-bundle-r6-bi1.zip: OK

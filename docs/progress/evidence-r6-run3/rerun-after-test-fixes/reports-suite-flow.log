@@ -1,0 +1,47 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register (31.0s)
+
+
+  1) tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('text=صافي القيمة الدفترية (NBV)').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('text=صافي القيمة الدفترية (NBV)').first()
+
+
+      147 |     await page.waitForLoadState("domcontentloaded");
+      148 |     await expect(page.locator("h1")).toContainText("سجل الأصول الثابتة");
+    > 149 |     await expect(page.locator("text=صافي القيمة الدفترية (NBV)").first()).toBeVisible();
+          |                                                                           ^
+      150 |
+      151 |     // 13. Test Audit Trail Page
+      152 |     await page.goto(`${baseURL}/ar/finance/reports/audit-trail`);
+        at D:\Web\AqarBooks\tests\e2e\reports-suite-flow.spec.ts:149:75
+
+    Error Context: docs\progress\evidence-r6-run3\rerun-after-test-fixes\reports-suite-flow-artifacts\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\rerun-after-test-fixes\reports-suite-flow-artifacts\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\rerun-after-test-fixes\reports-suite-flow-artifacts\reports-suite-flow-Financi-6cfb3-VAT-Return-and-PDC-Register\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\reports-suite-flow.spec.ts:15:7 › Financial & Real Estate Reports Suite E2E Flow › Verify Reports Hub, Rent Roll, Owner Statements, VAT Return, and PDC Register 
+

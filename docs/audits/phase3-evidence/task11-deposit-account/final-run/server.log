@@ -1,0 +1,95 @@
+production build → http://localhost:3100  (Supabase http://127.0.0.1:55321)
+(node:8792) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▲ Next.js 16.3.0
+- Local:         http://localhost:3100
+- Network:       http://172.19.176.1:3100
+✓ Ready in 594ms
+✓ Running next.config.ts took 2.5s
+Using secrets defined in .dev.vars
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+[customer-advances] rejected: APPLICATION_BEFORE_DUE 22023
+[customer-advances] rejected: APPLICATION_BEFORE_DUE 22023
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '419306128'
+}
+[data-load] members/[id]: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: members/[id]: units_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at L (D:\Web\AqarBooks\.next\server\chunks\ssr\_07pa7it._.js:1:4677) {
+  source: 'members/[id]: units_with_financials',
+  code: '42501',
+  digest: '476637815'
+}
+[data-load] portal/units: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/units: units_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at i (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__1komlj5._.js:1:1205) {
+  source: 'portal/units: units_with_financials',
+  code: '42501',
+  digest: '3318112198'
+}
+[data-load] portal/home: members_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/home: members_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at l (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0n3r7m1._.js:1:4468) {
+  source: 'portal/home: members_with_financials',
+  code: '42501',
+  digest: '2989602740'
+}
+[data-load] portal/statement: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/statement: units_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at j (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__1q9hfjo._.js:1:1391) {
+  source: 'portal/statement: units_with_financials',
+  code: '42501',
+  digest: '1931058512'
+}
+[data-load] portal/payments: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/payments: units_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at j (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__140hvva._.js:1:1457) {
+  source: 'portal/payments: units_with_financials',
+  code: '42501',
+  digest: '1928842067'
+}
+[data-load] portal/units: units_with_financials failed: 42501
+⨯ Error [DataLoadError]: data load failed: portal/units: units_with_financials (42501)
+    at <unknown> (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__0rryjzr._.js:1:10403)
+    at i (D:\Web\AqarBooks\.next\server\chunks\ssr\[root-of-the-server]__1komlj5._.js:1:1205) {
+  source: 'portal/units: units_with_financials',
+  code: '42501',
+  digest: '3318112198'
+}

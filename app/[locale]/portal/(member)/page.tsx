@@ -12,8 +12,9 @@ import {
   type DashboardUnit,
   type MonthPoint,
 } from "./portal-dashboard-client";
+import { assertRead } from "@/lib/supabase/assert-read";
 
-type AllocationRow = { due_id: string; amount: number; reversed_at: string | null };
+type AllocationRow = { due_id: string; amount: number };
 type PaymentRow = { amount: number; payment_date: string };
 type UnitRow = {
   id: string;
@@ -41,10 +42,10 @@ export default async function PortalDashboardPage({
 
   const [
     { data: orgDisplay },
-    { data: summaryData },
-    { data: openDuesData },
-    { data: unitsData },
-    { data: paymentsData },
+    { data: summaryData, error: summaryError },
+    { data: openDuesData, error: openDuesError },
+    { data: unitsData, error: unitsError },
+    { data: paymentsData, error: paymentsError },
     commandCenter,
   ] = await Promise.all([
     supabase.rpc("get_own_organization_display").maybeSingle(),
@@ -74,6 +75,12 @@ export default async function PortalDashboardPage({
     }),
   ]);
 
+  // a failed read must not become a dashboard of zeros (statement timeouts on the *_with_financials views, 2026-10-12)
+  assertRead(summaryError, "portal/home: members_with_financials");
+  assertRead(openDuesError, "portal/home: dues");
+  assertRead(unitsError, "portal/home: units_with_financials");
+  assertRead(paymentsError, "portal/home: payments");
+
   const rawDues = (openDuesData ?? []) as unknown as DueDbRow[];
 
   // Same outstanding rule the dues page applies: a part-settled charge must
@@ -82,14 +89,13 @@ export default async function PortalDashboardPage({
   const paidByDue = new Map<string, number>();
   if (rawDues.length > 0) {
     const { data: allocationData } = await supabase
-      .from("payment_allocations")
-      .select("due_id, amount, reversed_at")
+      .from("effective_payment_allocations")
+      .select("due_id, amount")
       .in(
         "due_id",
         rawDues.map((d) => d.id),
       );
     for (const a of (allocationData ?? []) as unknown as AllocationRow[]) {
-      if (a.reversed_at) continue;
       paidByDue.set(a.due_id, (paidByDue.get(a.due_id) ?? 0) + Number(a.amount));
     }
   }

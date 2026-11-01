@@ -1,0 +1,56 @@
+==== CANCELLED WIP CREDIT 800: valid release 600 must use posted balance 1000 only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+                 cap                  
+--------------------------------------
+ fd69e8aa-fc9a-4b9e-90ed-bf911153ad1d
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+  status  | reversed_entry_id | has_reversal_entry 
+----------+-------------------+--------------------
+ REVERSED |                   | f
+(1 row)
+
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+ all_status_floor_net 
+----------------------
+             200.0000
+(1 row)
+
+CREATE TABLE
+GRANT
+SET
+DO
+RESET
+psql:/tmp/cancelled_credit_release_regression.sql:39: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_ACCEPTED: release_id=2982c261-9b2f-486d-bbe7-fee490db8880
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+                  id                  | status |  debit   |  credit  |  net   | wip_credit_lines | cost_debit_lines 
+--------------------------------------+--------+----------+----------+--------+------------------+------------------
+ 2982c261-9b2f-486d-bbe7-fee490db8880 | POSTED | 600.0000 | 600.0000 | 0.0000 |                1 |                1
+(1 row)
+
+DO
+==== FORCE DEFERRED WIP FLOOR GUARDS BEFORE ROLLBACK
+psql:/tmp/cancelled_credit_release_regression.sql:78: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_PASS: accepted release gives cap=1000 rel=600 wip=400 ledger=400; entry POSTED and balanced 600/600
+SET CONSTRAINTS
+DO
+psql:/tmp/cancelled_credit_release_regression.sql:81: NOTICE:  ASSERT_IMMEDIATE_CONSTRAINTS_PASS: deferred WIP floor guards accepted the final state
+ROLLBACK

@@ -1,0 +1,19 @@
+$ tests/fiscal-calendar-transition.test.ts
+label=batch2-fiscal-calendar-transition
+exit=0
+elapsed_ms=2396
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ✓ tests/fiscal-calendar-transition.test.ts (18 tests | 6 todo) 22ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed | 6 todo (18)
+   Start at  13:34:56
+   Duration  789ms (transform 143ms, setup 236ms, import 102ms, tests 22ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch2-fiscal-calendar-transition.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.

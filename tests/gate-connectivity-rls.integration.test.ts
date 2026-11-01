@@ -1,3 +1,4 @@
+import { isolatedDbContainer } from "./helpers/isolated-target";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
@@ -170,7 +171,7 @@ describe.sequential("gate connectivity incident runtime RLS gate", () => {
     gateId = gates.data!.find((gate) => gate.code.startsWith("GC1-"))!.id;
     otherGateId = gates.data!.find((gate) => gate.code.startsWith("GC2-"))!.id;
 
-    execFileSync("docker", ["exec", "supabase_db_aqarbooks", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c",
+    execFileSync("docker", ["exec", isolatedDbContainer(), "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c",
       `insert into public.gate_completion_policy(organization_id,enabled,updated_by) values('${orgId}',true,'${guard.id}')`], { stdio: "pipe" });
     const device = await admin.from("gate_devices").insert({
       organization_id: orgId,

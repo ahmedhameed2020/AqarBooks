@@ -1,0 +1,2980 @@
+diff --git a/app/[locale]/(app)/admin/finance/periods/page.tsx b/app/[locale]/(app)/admin/finance/periods/page.tsx
+index e37d950b..aa15a8d8 100644
+--- a/app/[locale]/(app)/admin/finance/periods/page.tsx
++++ b/app/[locale]/(app)/admin/finance/periods/page.tsx
+@@ -8,6 +8,7 @@ import { CreateFiscalYearForm } from "./create-fiscal-year-form";
+ import { PeriodsClient, type FiscalYearItem, type FiscalPeriodItem, type PendingDuesSummary } from "./periods-client";
+ import { getCurrencyLabel } from "@/lib/currency";
+ import { denyIfMissingPermission } from "@/lib/auth/page-guard";
++import { hasPermission } from "@/lib/auth/authorize";
+ 
+ export const dynamic = "force-dynamic";
+ export const revalidate = 0;
+@@ -45,6 +46,7 @@ export default async function FiscalPeriodsPage({
+   if (denied) return denied;
+ 
+   const supabase = await createClient();
++  const canClose = await hasPermission(organization.id, "finance.years.close");
+ 
+   const [
+     { data: years },
+@@ -105,6 +107,7 @@ export default async function FiscalPeriodsPage({
+         initialYears={initialYears}
+         initialPeriods={initialPeriods}
+         pendingDues={pending}
++        canClose={canClose}
+       />
+ 
+       {/* CREATE FISCAL YEAR FORM */}
+diff --git a/app/[locale]/(app)/admin/finance/periods/periods-client.tsx b/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
+index f2d68394..543abaae 100644
+--- a/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
++++ b/app/[locale]/(app)/admin/finance/periods/periods-client.tsx
+@@ -15,8 +15,10 @@ import {
+ } from "@/components/ui/dialog";
+ import { useToast } from "@/components/ui/toast";
+ import { setFiscalPeriodStatusAction, recognizePendingDuesAction } from "@/lib/actions/accounting";
++import { financeErrorMessage } from "@/lib/actions/error-messages";
+ import { generateFinancialStatementPdf } from "@/lib/reports/financial-statements-pdf";
+ import { exportFinancialStatementToExcel } from "@/lib/reports/financial-excel-export";
++import { YearEndClosingDialog } from "./year-end-closing-dialog";
+ import {
+   Calendar,
+   Clock,
+@@ -24,16 +26,10 @@ import {
+   Lock,
+   Unlock,
+   AlertTriangle,
+-  Layers,
+-  Sparkles,
+   RefreshCw,
+   FileSpreadsheet,
+   FileText,
+-  Plus,
+-  ArrowRightLeft,
+-  ShieldCheck,
+   Zap,
+-  TrendingUp,
+   FolderLock,
+ } from "lucide-react";
+ 
+@@ -55,6 +51,14 @@ export interface FiscalYearItem {
+   status: string;
+ }
+ 
++// Preset reasons offered for CLOSED/LOCKED changes. OPEN never starts from a preset.
++const PRESET_STATUS_REASONS = [
++  "إغلاق دوري للفترة",
++  "Periodic closure",
++  "إقفال نهائي للفترة المحاسبية ومراجعة الميزان",
++  "Final period lockdown",
++];
++
+ export interface PendingDuesSummary {
+   pending_count: number;
+   pending_total: number;
+@@ -71,6 +75,7 @@ export function PeriodsClient({
+   initialYears,
+   initialPeriods,
+   pendingDues,
++  canClose,
+ }: {
+   organizationId: string;
+   organizationName: string;
+@@ -80,6 +85,7 @@ export function PeriodsClient({
+   initialYears: FiscalYearItem[];
+   initialPeriods: FiscalPeriodItem[];
+   pendingDues?: PendingDuesSummary | null;
++  canClose: boolean;
+ }) {
+   const isAr = locale === "ar";
+   const { toast } = useToast();
+@@ -94,9 +100,7 @@ export function PeriodsClient({
+   const [targetStatus, setTargetStatus] = useState<"PLANNED" | "OPEN" | "CLOSED" | "LOCKED">("OPEN");
+   const [statusReason, setStatusReason] = useState("");
+ 
+-  // Year-End Closing Wizard Modal
+   const [closingYear, setClosingYear] = useState<FiscalYearItem | null>(null);
+-  const [closingStep, setClosingStep] = useState<1 | 2 | 3>(1);
+ 
+   // Statistics
+   const openCount = periods.filter((p) => p.status === "OPEN").length;
+@@ -108,13 +112,20 @@ export function PeriodsClient({
+     return years.filter((y) => y.id === selectedYearId);
+   }, [years, selectedYearId]);
+ 
++  // Reopening (target OPEN) always needs a reason typed by the user, so no preset text is offered for it.
++  const isReopenTarget = targetStatus === "OPEN";
++  const reasonMissing = isReopenTarget && !statusReason.trim();
++
+   // Handle Quick Status Change
+   const handleStatusChange = (period: FiscalPeriodItem, newStatus: "PLANNED" | "OPEN" | "CLOSED" | "LOCKED") => {
++    const owningYear = years.find((y) => y.id === period.fiscal_year_id);
++    // A closed fiscal year is never reopened from this screen (the database guard is authoritative).
++    if (newStatus === "OPEN" && owningYear?.status === "CLOSED") return;
+     setStatusModalPeriod(period);
+     setTargetStatus(newStatus);
+     setStatusReason(
+       newStatus === "OPEN"
+-        ? isAr ? "فتح الفترة لقبول القيود والاعتراف بالإيرادات" : "Open period for entry posting"
++        ? ""
+         : newStatus === "LOCKED"
+         ? isAr ? "إقفال نهائي للفترة المحاسبية ومراجعة الميزان" : "Final period lockdown"
+         : isAr ? "إغلاق دوري للفترة" : "Periodic closure"
+@@ -124,10 +135,16 @@ export function PeriodsClient({
+   const handleConfirmStatusChange = () => {
+     if (!statusModalPeriod) return;
+ 
++    const trimmedReason = statusReason.trim();
++    // Guard: a reopen never runs without a reason (the inline message is already shown).
++    if (isReopenTarget && !trimmedReason) return;
++    const owningYear = years.find((y) => y.id === statusModalPeriod.fiscal_year_id);
++    if (isReopenTarget && owningYear?.status === "CLOSED") return;
++
+     const formData = new FormData();
+     formData.append("fiscalPeriodId", statusModalPeriod.id);
+     formData.append("status", targetStatus);
+-    formData.append("reason", statusReason.trim() || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
++    formData.append("reason", trimmedReason || (isAr ? "تحديث يدوي من لوحة التحكم" : "Manual update"));
+ 
+     startTransition(async () => {
+       const res = await setFiscalPeriodStatusAction({ ok: true }, formData);
+@@ -304,8 +321,8 @@ export function PeriodsClient({
+             </h1>
+             <p className="text-xs text-slate-500 max-w-2xl font-medium">
+               {isAr
+-                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، فحص قيود الإقفال ونقل الأرصدة الافتتاحية مع حماية قيود دفتر الأستاذ."
+-                : "Manage monthly accounting periods, lock/open cycles, review closing journals, and rollover opening balances."}
++                ? "إدارة الفترات الشهرية، فتح وإغلاق الشهور المالية، ومراجعة قيد إقفال السنة مع حماية قيود دفتر الأستاذ."
++                : "Manage monthly accounting periods, lock/open cycles, and review the year-end closing entry with ledger protection."}
+             </p>
+           </div>
+ 
+@@ -433,6 +450,7 @@ export function PeriodsClient({
+       <div className="space-y-6">
+         {filteredYears.map((year) => {
+           const yearPeriods = periods.filter((p) => p.fiscal_year_id === year.id);
++          const yearClosed = year.status === "CLOSED";
+ 
+           return (
+             <div
+@@ -462,23 +480,33 @@ export function PeriodsClient({
+ 
+                 {/* YEAR ACTIONS */}
+                 <div className="flex items-center gap-2">
+-                  <Button
+-                    onClick={() => {
+-                      setClosingYear(year);
+-                      setClosingStep(1);
+-                    }}
+-                    variant="outline"
+-                    size="sm"
+-                    className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
+-                  >
+-                    <FolderLock className="size-3.5" />
+-                    <span>{isAr ? "مساعد الإقفال السنوي وترحيل الأرصدة" : "Year-End Closing Wizard"}</span>
+-                  </Button>
++                  {canClose && !yearClosed && (
++                    <Button
++                      onClick={() => setClosingYear(year)}
++                      variant="outline"
++                      size="sm"
++                      className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-400"
++                      data-testid={`open-year-closing-${year.name}`}
++                    >
++                      <FolderLock className="size-3.5" />
++                      <span>{isAr ? "إقفال السنة المالية" : "Close Fiscal Year"}</span>
++                    </Button>
++                  )}
+                 </div>
+               </div>
+ 
+               {/* MONTHLY GRID TILES */}
+               <div className="p-5">
++                {yearClosed && (
++                  <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
++                    <Lock className="size-4 shrink-0 mt-0.5 text-slate-500" />
++                    <span>
++                      {isAr
++                        ? "هذه السنة المالية مغلقة. لا يمكن إعادة فتح فتراتها من هذه الشاشة، وقاعدة البيانات تمنع ذلك."
++                        : "This fiscal year is closed. Its periods cannot be reopened from this screen; the database enforces this."}
++                    </span>
++                  </div>
++                )}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                   {yearPeriods.map((period) => (
+                     <div
+@@ -531,15 +559,17 @@ export function PeriodsClient({
+                           </>
+                         ) : period.status === "CLOSED" ? (
+                           <>
+-                            <Button
+-                              onClick={() => handleStatusChange(period, "OPEN")}
+-                              variant="outline"
+-                              size="sm"
+-                              className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
+-                            >
+-                              <Unlock className="size-3 me-1" />
+-                              <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
+-                            </Button>
++                            {!yearClosed && (
++                              <Button
++                                onClick={() => handleStatusChange(period, "OPEN")}
++                                variant="outline"
++                                size="sm"
++                                className="h-7 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 flex-1 border-emerald-200"
++                              >
++                                <Unlock className="size-3 me-1" />
++                                <span>{isAr ? "إعادة فتح" : "Reopen"}</span>
++                              </Button>
++                            )}
+                             <Button
+                               onClick={() => handleStatusChange(period, "LOCKED")}
+                               variant="ghost"
+@@ -550,25 +580,29 @@ export function PeriodsClient({
+                             </Button>
+                           </>
+                         ) : period.status === "LOCKED" ? (
+-                          <Button
+-                            onClick={() => handleStatusChange(period, "OPEN")}
+-                            variant="outline"
+-                            size="sm"
+-                            className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
+-                          >
+-                            <Unlock className="size-3 me-1" />
+-                            <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
+-                          </Button>
++                          !yearClosed && (
++                            <Button
++                              onClick={() => handleStatusChange(period, "OPEN")}
++                              variant="outline"
++                              size="sm"
++                              className="h-7 text-[11px] font-bold text-rose-600 hover:bg-rose-50 w-full border-rose-200"
++                            >
++                              <Unlock className="size-3 me-1" />
++                              <span>{isAr ? "فك الإقفال النهائي" : "Unlock Period"}</span>
++                            </Button>
++                          )
+                         ) : (
+-                          <Button
+-                            onClick={() => handleStatusChange(period, "OPEN")}
+-                            variant="outline"
+-                            size="sm"
+-                            className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
+-                          >
+-                            <Unlock className="size-3 me-1" />
+-                            <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
+-                          </Button>
++                          !yearClosed && (
++                            <Button
++                              onClick={() => handleStatusChange(period, "OPEN")}
++                              variant="outline"
++                              size="sm"
++                              className="h-7 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full border-blue-200"
++                            >
++                              <Unlock className="size-3 me-1" />
++                              <span>{isAr ? "فتح الفترة الآن" : "Open Period"}</span>
++                            </Button>
++                          )
+                         )}
+                       </div>
+                     </div>
+@@ -602,7 +636,12 @@ export function PeriodsClient({
+               <Label className="text-xs font-bold">{isAr ? "الحالة الجديدة المستهدفة" : "Target Status"}</Label>
+               <select
+                 value={targetStatus}
+-                onChange={(e) => setTargetStatus(e.target.value as FiscalPeriodItem["status"])}
++                onChange={(e) => {
++                  const next = e.target.value as FiscalPeriodItem["status"];
++                  setTargetStatus(next);
++                  // Drop a preset close/lock text when switching to OPEN, so the reason is typed explicitly.
++                  if (next === "OPEN") setStatusReason((r) => (PRESET_STATUS_REASONS.includes(r) ? "" : r));
++                }}
+                 className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+               >
+                 <option value="OPEN">{isAr ? "مفتوحة للقيود (OPEN)" : "Open"}</option>
+@@ -619,9 +658,16 @@ export function PeriodsClient({
+                 required
+                 value={statusReason}
+                 onChange={(e) => setStatusReason(e.target.value)}
++                aria-invalid={reasonMissing}
++                aria-describedby={reasonMissing ? "period-status-reason-error" : undefined}
+                 placeholder={isAr ? "مثال: مراجعة القيود الشهرية واعتماد الميزان" : "Reason for audit log"}
+                 className="text-xs h-9 bg-slate-50 dark:bg-slate-800"
+               />
++              {reasonMissing && (
++                <p id="period-status-reason-error" role="alert" className="text-[11px] font-bold text-rose-600">
++                  {financeErrorMessage("reason_required", isAr)}
++                </p>
++              )}
+             </div>
+ 
+             <DialogFooter className="pt-3 flex items-center justify-between">
+@@ -647,128 +693,15 @@ export function PeriodsClient({
+         </DialogContent>
+       </Dialog>
+ 
+-      {/* ──────────────────────────────────────────────────────────────────────────
+-          YEAR-END CLOSING & OPENING BALANCES ROLLOVER WIZARD
+-          ────────────────────────────────────────────────────────────────────────── */}
+-      <Dialog open={Boolean(closingYear)} onOpenChange={(open) => !open && setClosingYear(null)}>
+-        <DialogContent className="max-w-xl rounded-3xl p-6">
+-          <DialogHeader>
+-            <DialogTitle className="text-base font-black text-slate-950 dark:text-white flex items-center gap-2">
+-              <FolderLock className="size-5 text-indigo-600" />
+-              <span>{isAr ? `مساعد الإقفال المحاسبي للسنة: ${closingYear?.name}` : `Year-End Closing Wizard: ${closingYear?.name}`}</span>
+-            </DialogTitle>
+-            <DialogDescription className="text-xs text-slate-500 mt-1">
+-              {isAr
+-                ? "إجراءات إقفال السنة المالية، التحقق من توازن الأرصدة، وترحيل الأرصدة الافتتاحية للسنة التالية."
+-                : "Step-by-step fiscal year closing, trial balance audit, and opening balance rollover."}
+-            </DialogDescription>
+-          </DialogHeader>
+-
+-          <div className="space-y-4 pt-3">
+-            {/* STEP PROGRESS */}
+-            <div className="grid grid-cols-1 gap-2 pb-2 sm:grid-cols-3">
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 1 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>1. {isAr ? "فحص الفترات والقيود" : "Audit Periods"}</span>
+-              </div>
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 2 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>2. {isAr ? "قيد إقفال الأرباح/الخسائر" : "P&L Closing Entry"}</span>
+-              </div>
+-              <div className={`p-2.5 rounded-xl text-center border text-xs font-bold ${closingStep === 3 ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
+-                <span>3. {isAr ? "ترحيل الأرصدة الافتتاحية" : "Rollover Balances"}</span>
+-              </div>
+-            </div>
+-
+-            {closingStep === 1 && (
+-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
+-                <div className="flex items-center gap-2 text-emerald-600 font-bold">
+-                  <ShieldCheck className="size-4" />
+-                  <span>{isAr ? "اكتمال الفحص المحاسبي الأولي" : "Audit Check Completed"}</span>
+-                </div>
+-                <p className="text-slate-600 dark:text-slate-300">
+-                  {isAr
+-                    ? `تم فحص جميع شهور السنة المالية «${closingYear?.name}». سيتم التأكد من ترحيل كافة القيود اليومية وفحص مطابقة الإيرادات والمصروفات مع ميزان المراجعة.`
+-                    : `Audited all periods for ${closingYear?.name}. Verifying all journal entries.`}
+-                </p>
+-              </div>
+-            )}
+-
+-            {closingStep === 2 && (
+-              <div className="space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-4 border border-slate-200/80 text-xs">
+-                <div className="flex items-center gap-2 text-indigo-600 font-bold">
+-                  <ArrowRightLeft className="size-4" />
+-                  <span>{isAr ? "توليد قيد إقفال حسابات النتيجة (الأرباح المبقاة)" : "Closing Revenue & Expense Accounts"}</span>
+-                </div>
+-                <p className="text-slate-600 dark:text-slate-300">
+-                  {isAr
+-                    ? "يقوم النظام آلياً بتصفير حسابات الإيرادات والمصروفات ونقل صافي الربح/الخسارة إلى حساب (الأرباح المحتجزة / Retained Earnings) في حقوق الملكية."
+-                    : "Automatically clears temporary revenue and expense accounts into Retained Earnings."}
+-                </p>
+-              </div>
+-            )}
+-
+-            {closingStep === 3 && (
+-              <div className="space-y-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 p-4 border border-emerald-200 text-xs">
+-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
+-                  <CheckCircle2 className="size-4" />
+-                  <span>{isAr ? "جاهز لترحيل الأرصدة الافتتاحية للسنة الجديدة" : "Ready for Opening Balance Rollover"}</span>
+-                </div>
+-                <p className="text-emerald-800 dark:text-emerald-300">
+-                  {isAr
+-                    ? "سيتم نقل أرصدة الأصول والالتزامات وحقوق الملكية المنتهية كأرصدة افتتاحية معتمدة في بداية السنة المالية القادمة."
+-                    : "Assets, liabilities, and equity balances will be carried forward as opening balances."}
+-                </p>
+-              </div>
+-            )}
+-
+-            <DialogFooter className="pt-3 flex items-center justify-between">
+-              {closingStep > 1 ? (
+-                <Button
+-                  variant="outline"
+-                  size="sm"
+-                  onClick={() => setClosingStep((s) => (s - 1) as 1 | 2 | 3)}
+-                  className="text-xs font-bold h-9"
+-                >
+-                  {isAr ? "السابق" : "Back"}
+-                </Button>
+-              ) : (
+-                <Button
+-                  variant="outline"
+-                  size="sm"
+-                  onClick={() => setClosingYear(null)}
+-                  className="text-xs font-bold h-9"
+-                >
+-                  {isAr ? "إلغاء" : "Cancel"}
+-                </Button>
+-              )}
+-
+-              {closingStep < 3 ? (
+-                <Button
+-                  onClick={() => setClosingStep((s) => (s + 1) as 1 | 2 | 3)}
+-                  size="sm"
+-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold h-9 px-5"
+-                >
+-                  {isAr ? "المتابعة للخطوة التالية" : "Next Step"}
+-                </Button>
+-              ) : (
+-                <Button
+-                  onClick={() => {
+-                    toast({
+-                      type: "info",
+-                      title: isAr ? "إقفال السنة غير متاح في نسخة MVP" : "Year-end closing unavailable in MVP",
+-                      description: isAr ? "هذا المعالج للعرض فقط؛ لم يتم تنفيذ محرك الإقفال أو ترحيل الأرصدة." : "This wizard is display-only; no closing engine or opening-balance rollover has been executed.",
+-                    });
+-                  }}
+-                  size="sm"
+-                  variant="outline"
+-                  className="text-amber-700 border-amber-300 text-xs font-bold h-9 px-5"
+-                >
+-                  {isAr ? "غير متاح في MVP" : "Unavailable in MVP"}
+-                </Button>
+-              )}
+-            </DialogFooter>
+-          </div>
+-        </DialogContent>
+-      </Dialog>
++      <YearEndClosingDialog
++        open={Boolean(closingYear)}
++        onOpenChange={(open) => !open && setClosingYear(null)}
++        organizationId={organizationId}
++        year={closingYear}
++        locale={locale}
++        currencyLabel={currencyLabel}
++        onClosed={(yearId) => setYears((current) => current.map((item) => item.id === yearId ? { ...item, status: "CLOSED" } : item))}
++      />
+     </div>
+   );
+ }
+diff --git a/lib/actions/error-messages.ts b/lib/actions/error-messages.ts
+index dd814d7e..bf6d081d 100644
+--- a/lib/actions/error-messages.ts
++++ b/lib/actions/error-messages.ts
+@@ -29,3 +29,167 @@ export function formErrorMessage(code: string, isAr: boolean): string {
+   const entry = ERROR_MESSAGES[code] ?? GENERIC_FALLBACK;
+   return isAr ? entry.ar : entry.en;
+ }
++
++// Finance dialogs and banking screens. Server actions return short codes
++// (lowercase or uppercase, depending on the action). Codes are mapped to
++// actionable messages; anything else -- including raw database text -- becomes
++// the generic message, so SQL, schema names, and internal codes never reach
++// the accountant. Callers must still show a failure as a failure: never map a
++// failed read to empty data.
++const FINANCE_ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
++  invalid_input: {
++    ar: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
++    en: "Check the values you entered and try again.",
++  },
++  INVALID_INPUT: {
++    ar: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
++    en: "Check the values you entered and try again.",
++  },
++  RECEIVABLE_ACCOUNT_REQUIRED: {
++    ar: "اختر حساب الذمم المدينة أولًا.",
++    en: "Choose a receivable account first.",
++  },
++  DEPOSIT_ACCOUNT_INVALID: {
++    ar: "حساب الإيداع المختار غير صالح أو غير مفعّل. اختر حسابًا آخر.",
++    en: "The selected deposit account is invalid or inactive. Choose another account.",
++  },
++  reason_required: {
++    ar: "اكتب سببًا للإلغاء قبل المتابعة.",
++    en: "Enter a reason before continuing.",
++  },
++  ALREADY_REVERSED: {
++    ar: "تم إلغاء هذا السند مسبقًا.",
++    en: "This receipt has already been voided.",
++  },
++  state_unchanged: {
++    ar: "لم تتغير حالة العنصر. حدّث الصفحة وحاول مرة أخرى.",
++    en: "The item's status did not change. Refresh the page and try again.",
++  },
++  STALE_VERIFICATION: {
++    ar: "تغيّرت البيانات منذ آخر تحميل. حدّث الصفحة وحاول مرة أخرى.",
++    en: "The data changed since it was loaded. Refresh the page and try again.",
++  },
++  rate_limited: {
++    ar: "محاولات كثيرة في وقت قصير. انتظر قليلًا ثم حاول مرة أخرى.",
++    en: "Too many attempts in a short time. Wait a moment and try again.",
++  },
++  self_approval: {
++    ar: "لا يمكنك اعتماد عملية قمت بإعدادها بنفسك.",
++    en: "You cannot approve an action you prepared yourself.",
++  },
++  ORGANIZATION_INACTIVE: {
++    ar: "المنظمة غير مفعّلة حاليًا.",
++    en: "This organization is currently inactive.",
++  },
++  unauthenticated: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  not_authenticated: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  NOT_AUTHENTICATED: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  forbidden: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  unauthorized: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  NOT_AUTHORIZED: {
++    ar: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
++    en: "You do not have permission to do this.",
++  },
++  not_found: {
++    ar: "تعذر العثور على العنصر المطلوب.",
++    en: "The requested item could not be found.",
++  },
++  NOT_FOUND: {
++    ar: "تعذر العثور على العنصر المطلوب.",
++    en: "The requested item could not be found.",
++  },
++  query_failed: {
++    ar: "تعذر تحميل البيانات، يرجى المحاولة مرة أخرى.",
++    en: "The data could not be loaded. Please try again.",
++  },
++  PERIOD_NOT_CLOSED: {
++    ar: "أغلق أو اقفل جميع فترات السنة أولًا، ثم أعد الفحص.",
++    en: "Close or lock every period in the year first, then run the checks again.",
++  },
++  UNREVIEWED_ENTRIES_EXIST: {
++    ar: "توجد قيود مسودة أو قيد المراجعة داخل السنة. راجعها قبل الإقفال.",
++    en: "Draft or under-review entries exist in the year. Review them before closing.",
++  },
++  RE_ACCOUNT_REQUIRED: {
++    ar: "حدّد حساب الأرباح المبقاة قبل إقفال السنة.",
++    en: "Designate a retained-earnings account before closing the year.",
++  },
++  RE_ACCOUNT_INVALID: {
++    ar: "حساب الأرباح المبقاة غير صالح. اختر حساب حقوق ملكية نشطًا وغير تجميعي.",
++    en: "The retained-earnings account is invalid. Choose an active, non-group equity account.",
++  },
++  ENTRIES_UNBALANCED: {
++    ar: "قيود السنة غير متوازنة. راجع ميزان المراجعة قبل الإقفال.",
++    en: "The year's entries are unbalanced. Review the trial balance before closing.",
++  },
++  NOTHING_TO_CLOSE: {
++    ar: "لا توجد أرصدة إيرادات أو مصروفات تحتاج إلى إقفال.",
++    en: "There are no revenue or expense balances to close.",
++  },
++  ALREADY_CLOSED: {
++    ar: "هذه السنة مقفلة بالفعل. حدّث الصفحة لعرض حالتها الحالية.",
++    en: "This fiscal year is already closed. Refresh the page to see its current state.",
++  },
++  FORBIDDEN_CLOSE_PERMISSION: {
++    ar: "ليست لديك صلاحية إقفال السنة المالية.",
++    en: "You do not have permission to close the fiscal year.",
++  },
++  FISCAL_YEAR_NOT_FOUND: {
++    ar: "تعذر العثور على السنة المالية المطلوبة.",
++    en: "The requested fiscal year could not be found.",
++  },
++  OPERATION_KEY_REUSED: {
++    ar: "تعذر تأكيد العملية. أعد فتح المعالج وأنشئ محاولة إقفال جديدة.",
++    en: "The operation could not be confirmed. Reopen the wizard and start a new closing attempt.",
++  },
++  COST_CENTER_REQUIRED: {
++    ar: "توجد حسابات تتطلب مركز تكلفة. راجع أسطر القيود قبل الإقفال.",
++    en: "Some accounts require a cost centre. Review the entry lines before closing.",
++  },
++  COST_CENTRE_INVALID: {
++    ar: "مركز تكلفة في القيود غير موجود أو غير نشط. صححه قبل الإقفال.",
++    en: "A cost centre in the entries is missing or inactive. Correct it before closing.",
++  },
++  INCOMPLETE_BALANCE_DATA: {
++    ar: "تعذر قراءة جميع أرصدة السنة. أعد الفحص قبل المتابعة.",
++    en: "Not all year balances could be read. Run the checks again before continuing.",
++  },
++  CONFIRMATION_MISMATCH: {
++    ar: "اكتب عبارة تأكيد الإقفال كما هي تمامًا.",
++    en: "Type the closing confirmation phrase exactly as shown.",
++  },
++  ORG_NOT_ACTIVE: {
++    ar: "المؤسسة غير نشطة، لذلك لا يمكن إقفال السنة.",
++    en: "The organization is inactive, so the year cannot be closed.",
++  },
++  AUTHENTICATION_REQUIRED: {
++    ar: "يجب تسجيل الدخول لإتمام هذا الإجراء.",
++    en: "You need to sign in to do this.",
++  },
++  INVALID_CLOSE_RESULT: {
++    ar: "لم تُرجع قاعدة البيانات نتيجة إقفال صالحة. تحقق من حالة السنة قبل إعادة المحاولة.",
++    en: "The database did not return a valid closing result. Check the year's state before retrying.",
++  },
++};
++
++export function financeErrorMessage(code: string | null | undefined, isAr: boolean): string {
++  const entry = code && Object.prototype.hasOwnProperty.call(FINANCE_ERROR_MESSAGES, code)
++    ? FINANCE_ERROR_MESSAGES[code]
++    : GENERIC_FALLBACK;
++  return isAr ? entry.ar : entry.en;
++}
+diff --git a/lib/auth/authorize.ts b/lib/auth/authorize.ts
+index fa220e10..a7fb3139 100644
+--- a/lib/auth/authorize.ts
++++ b/lib/auth/authorize.ts
+@@ -120,26 +120,26 @@ export async function proveTenantPermission(
+ 
+   const validRoleIds = validOrgRoles.map((r) => r.id);
+ 
+-  // 4. Verify permission is granted through that tenant-scoped role
+-  const { data: grants, error: grantErr } = await adminClient
+-    .from("role_permissions")
+-    .select("permission_id")
+-    .in("role_id", validRoleIds);
++  // 4. Resolve only the requested permission, then prove a valid role grants it.
++  // Avoid sending every granted permission ID in one lookup for heavily privileged roles.
++  const { data: permission, error: permErr } = await adminClient
++    .from("permissions")
++    .select("id")
++    .eq("key", permissionKey)
++    .maybeSingle();
+ 
+-  if (grantErr || !grants || grants.length === 0) {
++  if (permErr || !permission) {
+     return { ok: false, error: "forbidden" };
+   }
+ 
+-  const permissionIds = grants.map((g) => g.permission_id);
+-
+-  const { data: permMatch, error: permErr } = await adminClient
+-    .from("permissions")
+-    .select("id")
+-    .in("id", permissionIds)
+-    .eq("key", permissionKey)
++  const { data: grant, error: grantErr } = await adminClient
++    .from("role_permissions")
++    .select("role_id")
++    .eq("permission_id", permission.id)
++    .in("role_id", validRoleIds)
+     .maybeSingle();
+ 
+-  if (permErr || !permMatch) {
++  if (grantErr || !grant) {
+     return { ok: false, error: "forbidden" };
+   }
+ 
+diff --git a/lib/supabase/types.ts b/lib/supabase/types.ts
+index 9c119399..ab6eb9ba 100644
+--- a/lib/supabase/types.ts
++++ b/lib/supabase/types.ts
+@@ -288,6 +288,8 @@ export type Database = {
+           security_deposit_liability_account_id: string | null;
+           commission_expense_account_id: string | null;
+           commission_payable_account_id: string | null;
++          receivable_account_id: string | null;
++          customer_advance_account_id: string | null;
+           created_at: string;
+           updated_at: string;
+         };
+@@ -423,6 +425,7 @@ export type Database = {
+           is_active: boolean;
+           is_used: boolean;
+           is_cash_equivalent: boolean;
++          is_retained_earnings: boolean;
+           cash_flow_section: "OPERATING" | "INVESTING" | "FINANCING" | null;
+         };
+         Insert: {
+@@ -497,7 +500,7 @@ export type Database = {
+           entry_number: number | null;
+           entry_date: string;
+           description: string;
+-          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER";
++          source_type: "JOURNAL_VOUCHER" | "RECEIPT_VOUCHER" | "PAYMENT_VOUCHER" | "YEAR_END_CLOSING";
+           source_id: string | null;
+           status: "DRAFT" | "UNDER_REVIEW" | "POSTED" | "REVERSED";
+           idempotency_key: string | null;
+@@ -526,7 +529,15 @@ export type Database = {
+         };
+         Insert: never;
+         Update: never;
+-        Relationships: [];
++        Relationships: [
++          {
++            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey";
++            columns: ["journal_entry_id"];
++            isOneToOne: false;
++            referencedRelation: "journal_entries";
++            referencedColumns: ["id"];
++          },
++        ];
+       };
+       zones: {
+         Row: { id: string; organization_id: string; property_id: string; name_ar: string; name_en: string };
+@@ -2768,8 +2779,10 @@ export type Database = {
+           reversed_at: string | null;
+           reversed_by: string | null;
+           reversal_reason: string | null;
+-
+-                   };
++          advance_amount: number;
++          advance_account_id: string | null;
++          request_hash: string | null;
++        };
+         Insert: never;
+         Update: never;
+         Relationships: [];
+@@ -2782,6 +2795,14 @@ export type Database = {
+           amount: number;
+           reversed_at: string | null;
+           reversed_by: string | null;
++          applied_on: string;
++          reversed_on: string | null;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++          journal_entry_id: string | null;
++          reversal_journal_entry_id: string | null;
++          credit_account_id: string | null;
++          created_at: string;
++          created_by: string | null;
+         };
+         Insert: never;
+         Update: never;
+@@ -3398,8 +3419,118 @@ export type Database = {
+         };
+         Relationships: [];
+       };
++      /** allocations that count NOW: not reversed, receipt POSTED (migration 20261017100000) */
++      effective_payment_allocations: {
++        Row: {
++          id: string;
++          payment_id: string;
++          organization_id: string;
++          property_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++          journal_entry_id: string | null;
++          credit_account_id: string | null;
++          created_at: string;
++        };
++        Relationships: [];
++      };
++      payment_credit_balances: {
++        Row: {
++          payment_id: string;
++          organization_id: string;
++          property_id: string;
++          member_id: string | null;
++          unit_id: string | null;
++          payment_date: string;
++          advance_amount: number;
++          advance_account_id: string | null;
++          applied_amount: number;
++          remaining_amount: number;
++          is_stranded: boolean;
++        };
++        Relationships: [];
++      };
+     };
+     Functions: {
++      close_fiscal_year: {
++        Args: {
++          p_organization_id: string;
++          p_fiscal_year_id: string;
++          p_retained_earnings_account_id: string;
++          p_reason: string;
++          p_operation_key: string;
++        };
++        Returns: {
++          ok: boolean;
++          error_code?: string;
++          already_closed?: boolean;
++          closing_entry_id?: string;
++          line_count?: number;
++          net_income?: string | number;
++        };
++      };
++      payment_allocations_as_of: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: {
++          allocation_id: string;
++          payment_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          kind: "RECEIPT" | "CREDIT_APPLICATION";
++        }[];
++      };
++      payment_credit_balances_as_of: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: {
++          payment_id: string;
++          member_id: string | null;
++          unit_id: string | null;
++          advance_account_id: string | null;
++          advance_amount: number;
++          remaining_amount: number;
++        }[];
++      };
++      customer_advance_account_configured: { Args: { p_organization_id: string; p_property_id: string }; Returns: boolean };
++      list_deposit_accounts: {
++        Args: { p_organization_id: string; p_resort_id?: string | null };
++        Returns: { account_id: string; code: string; name_ar: string; name_en: string; source: string }[];
++      };
++      own_statement_dues: {
++        Args: { p_org: string; p_as_of: string };
++        Returns: { due_id: string; unit_id: string; unit_code: string | null; amount: number; issue_date: string; due_date: string; description: string | null; status: string; settled_amount: number }[];
++      };
++      own_due_settlement_lines: {
++        Args: { p_org: string };
++        Returns: { allocation_id: string; due_id: string; amount: number; applied_on: string; reversed_on: string | null }[];
++      };
++      own_statement_receipts: {
++        Args: { p_org: string };
++        Returns: {
++          payment_id: string;
++          unit_id: string | null;
++          receipt_no: string | null;
++          receipt_number: number | null;
++          payment_date: string;
++          amount: number;
++          advance_amount: number;
++          status: string;
++          reversed_on: string | null;
++        }[];
++      };
++      own_credit_application_lines: {
++        Args: { p_org: string };
++        Returns: {
++          allocation_id: string;
++          payment_id: string;
++          due_id: string;
++          amount: number;
++          applied_on: string;
++          reversed_on: string | null;
++        }[];
++      };
+       gate_completion_enabled: { Args: { p_organization_id: string }; Returns: boolean };
+       release_gate_device: { Args: { p_device_id: string; p_credential: string }; Returns: undefined };
+       export_gate_current_visitors: {
+@@ -4533,6 +4664,57 @@ export type Database = {
+         };
+         Returns: string;
+       };
++      get_default_receivable_account: {
++        Args: { p_organization_id: string; p_property_id: string };
++        Returns: string | null;
++      };
++      set_default_receivable_account: {
++        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
++        Returns: undefined;
++      };
++      set_default_customer_advance_account: {
++        Args: { p_organization_id: string; p_property_id: string; p_account_id: string };
++        Returns: undefined;
++      };
++      record_advance_payment: {
++        Args: {
++          p_organization_id: string;
++          p_resort_id: string;
++          p_member_id: string;
++          p_unit_id: string;
++          p_amount: number;
++          p_method: string;
++          p_payment_date: string;
++          p_deposit_account_id: string;
++          p_fiscal_period_id: string;
++          p_allocations: { due_id: string; amount: number }[];
++          p_idempotency_key: string;
++          p_cashier_session_id?: string | null;
++        };
++        Returns: Record<string, unknown>;
++      };
++      apply_payment_credit: {
++        Args: {
++          p_organization_id: string;
++          p_payment_id: string;
++          p_allocations: { due_id: string; amount: number }[];
++          p_application_date: string;
++          p_fiscal_period_id: string;
++          p_idempotency_key: string;
++        };
++        Returns: Record<string, unknown>;
++      };
++      reverse_credit_application: {
++        Args: {
++          p_organization_id: string;
++          p_allocation_id: string;
++          p_reason: string;
++          p_reversal_date: string;
++          p_fiscal_period_id: string;
++          p_idempotency_key: string;
++        };
++        Returns: Record<string, unknown>;
++      };
+       record_payment: {
+         Args: {
+           p_organization_id: string;
+@@ -4832,6 +5014,31 @@ export type Database = {
+           balance: number;
+         }[];
+       };
++      get_audit_actor_names: {
++        Args: { p_organization_id: string; p_actor_ids: string[] };
++        Returns: { id: string; full_name: string | null }[];
++      };
++      get_trial_balance_with_opening: {
++        Args: { p_organization_id: string; p_start_date: string; p_end_date: string };
++        Returns: {
++          account_id: string | null;
++          code: string;
++          name_ar: string;
++          name_en: string;
++          category: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
++          normal_balance: "DEBIT" | "CREDIT";
++          opening_debit: number;
++          opening_credit: number;
++          period_debit: number;
++          period_credit: number;
++          closing_debit: number;
++          closing_credit: number;
++          opening_balance: number;
++          closing_balance: number;
++          is_synthetic: boolean;
++          fiscal_year_known: boolean;
++        }[];
++      };
+       void_payment: {
+         Args: {
+           p_organization_id: string;
+@@ -4843,7 +5050,7 @@ export type Database = {
+         Returns: Record<string, unknown>;
+       };
+       replace_role_permissions_atomic: {
+-        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[] };
++        Args: { p_organization_id: string; p_role_id: string; p_permission_ids: string[]; p_actor_user_id: string };
+         Returns: undefined;
+       };
+       verify_financial_audit_chain: {
+diff --git a/tests/platform-tenant-authorization.test.ts b/tests/platform-tenant-authorization.test.ts
+index 42805b67..f323fe8d 100644
+--- a/tests/platform-tenant-authorization.test.ts
++++ b/tests/platform-tenant-authorization.test.ts
+@@ -53,7 +53,7 @@ let mockOwnerCheckTargetAssignmentError: { message: string } | null = null;
+ // Admin-client RPC fixture: records calls so tests can assert the atomic
+ // role-permission replacement, and lets tests force an error response.
+ let mockAdminRpcCalls: Array<{ fnName: string; args: Record<string, unknown> }> = [];
+-let mockAdminRpcError: { message: string } | null = null;
++let mockAdminRpcError: { message: string; code?: string } | null = null;
+ 
+ // Mock dependencies
+ vi.mock("@/lib/auth/session", () => ({
+@@ -323,11 +323,20 @@ vi.mock("@/lib/supabase/admin", () => ({
+               if (mockRolePermissionsSelectError && mockRolePermissionsTargetOnly && val === roleNewId) {
+                 return Promise.resolve({ data: null, error: mockRolePermissionsSelectError });
+               }
+-              if (field === "role_id") {
+-                const matched = mockRolePermissions.filter((rp) => !rp.role_id || rp.role_id === val);
+-                return Promise.resolve({ data: matched, error: null });
+-              }
+-              return Promise.resolve({ data: mockRolePermissions, error: null });
++              const matched = mockRolePermissions.filter((rp) => {
++                if (rp.role_id && field === "role_id") return rp.role_id === val;
++                if (field === "permission_id") return rp.permission_id === val;
++                return true;
++              });
++              return {
++                in: vi.fn().mockImplementation((nextField: string, vals: string[]) => {
++                  const nextMatches = matched.filter((rp) => nextField !== "role_id" || !rp.role_id || vals.includes(rp.role_id));
++                  return {
++                    maybeSingle: vi.fn().mockResolvedValue({ data: nextMatches[0] || null, error: null }),
++                  };
++                }),
++                then: (resolve: unknown) => resolve({ data: matched, error: null }),
++              };
+             }),
+           };
+           return chain;
+@@ -346,11 +355,21 @@ vi.mock("@/lib/supabase/admin", () => ({
+       if (table === "permissions") {
+         queryBuilder.select.mockImplementation(() => {
+           if (mockPermissionsSelectError && !mockPermissionsTargetOnly) {
++            const errorResult = { data: null, error: mockPermissionsSelectError };
+             return {
+-              in: vi.fn().mockResolvedValue({ data: null, error: mockPermissionsSelectError }),
++              in: vi.fn().mockResolvedValue(errorResult),
++              eq: vi.fn().mockReturnValue({
++                maybeSingle: vi.fn().mockResolvedValue(errorResult),
++              }),
+             };
+           }
+           return {
++            eq: vi.fn().mockImplementation((field: string, value: string) => ({
++              maybeSingle: vi.fn().mockImplementation(() => {
++                const found = mockPermissions.find((p) => (p as Record<string, unknown>)[field] === value);
++                return Promise.resolve({ data: found || null, error: null });
++              }),
++            })),
+             in: vi.fn().mockImplementation((field: string, vals: string[]) => {
+               if (mockPermissionsSelectError && mockPermissionsTargetOnly && vals.some((v) => v !== permUsersId && v !== permRolesId)) {
+                 return Promise.resolve({ data: null, error: mockPermissionsSelectError });
+@@ -515,6 +534,30 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
+       if (!proof.ok) expect(proof.error).toBe("forbidden");
+     });
+ 
++    it("resolves a heavily granted role without an oversized permission-ID lookup", async () => {
++      mockRolePermissions = Array.from({ length: 102 }, (_, index) => ({
++        role_id: roleAdminId,
++        permission_id: index === 101 ? permUsersId : `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
++      }));
++      mockPermissionsSelectError = { message: "upstream rejected the permission-ID list" };
++      mockPermissionsTargetOnly = true;
++
++      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
++      expect(proof).toEqual({ ok: true, userId: callerUserId });
++    });
++
++    it("rejects a permission held only by another role", async () => {
++      mockRolePermissions = [{ role_id: roleNewId, permission_id: permUsersId }];
++      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
++      expect(proof).toEqual({ ok: false, error: "forbidden" });
++    });
++
++    it("fails closed when the requested permission lookup errors", async () => {
++      mockPermissionsSelectError = { message: "upstream unavailable" };
++      const proof = await proveTenantPermission(orgId, "tenant.users.manage", callerUserId);
++      expect(proof).toEqual({ ok: false, error: "forbidden" });
++    });
++
+     it("SEC-01: does NOT short-circuit or grant access via PLATFORM_SUPER_ADMIN role key", async () => {
+       mockRoles = [
+         { id: roleNewId, key: "PLATFORM_SUPER_ADMIN", organization_id: orgId, is_system: false },
+@@ -727,6 +770,33 @@ describe("Platform and Tenant Authorization Containment (W0-SEC)", () => {
+       expect(res).toEqual({ ok: false, error: "cannot_modify_system_role" });
+     });
+ 
++    it("Rollout: the database call carries the acting user, and an authorized update goes to the 4-argument signature only", async () => {
++      mockRoles = [
++        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
++        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
++      ];
++      const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
++      expect(res).toEqual({ ok: true });
++      const calls = mockAdminRpcCalls.filter((c) => c.fnName === "replace_role_permissions_atomic");
++      expect(calls).toHaveLength(1);
++      expect(Object.keys(calls[0].args).sort()).toEqual(["p_actor_user_id", "p_organization_id", "p_permission_ids", "p_role_id"]);
++      expect(typeof calls[0].args.p_actor_user_id).toBe("string");
++      expect(calls[0].args.p_actor_user_id).toBeTruthy();
++    });
++
++    it.each(["PGRST202", "42883"])("Rollout: if the 4-argument function is not installed yet (%s) the action fails closed and never retries another signature", async (code) => {
++      mockRoles = [
++        { id: roleAdminId, key: "TENANT_ADMIN", organization_id: orgId, is_system: false },
++        { id: roleNewId, key: "CUSTOM_ROLE", organization_id: orgId, is_system: false },
++      ];
++      mockAdminRpcError = { message: "Could not find the function public.replace_role_permissions_atomic", code };
++      const res = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
++      expect(res).toEqual({ ok: false, error: "role_service_upgrading" });
++      const calls = mockAdminRpcCalls.filter((c) => c.fnName === "replace_role_permissions_atomic");
++      expect(calls).toHaveLength(1);
++      expect(calls[0].args).toHaveProperty("p_actor_user_id");
++    });
++
+     it("SEC-04: denyIfDemo blocks role creation and permission updates", async () => {
+       mockIsDemo = true;
+       const resUpdate = await updateRolePermissionsAction(orgId, roleNewId, [permRolesId]);
+diff --git a/app/[locale]/(app)/admin/finance/periods/year-end-closing-dialog.tsx b/app/[locale]/(app)/admin/finance/periods/year-end-closing-dialog.tsx
+new file mode 100644
+index 0000000..cb7503e
+--- /dev/null
++++ b/app/[locale]/(app)/admin/finance/periods/year-end-closing-dialog.tsx
+@@ -0,0 +1,292 @@
++"use client";
++
++import { useEffect, useState } from "react";
++import { useRouter } from "next/navigation";
++import {
++  AlertCircle,
++  ArrowLeft,
++  ArrowRight,
++  Check,
++  CheckCircle2,
++  FileCheck2,
++  FolderLock,
++  LoaderCircle,
++  ShieldCheck,
++} from "lucide-react";
++import { Badge } from "@/components/ui/badge";
++import { Button } from "@/components/ui/button";
++import {
++  Dialog,
++  DialogBody,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++} from "@/components/ui/dialog";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Textarea } from "@/components/ui/textarea";
++import {
++  closeFiscalYearAction,
++  getFiscalYearClosingPreviewAction,
++} from "@/lib/actions/fiscal-year-closing";
++import { financeErrorMessage } from "@/lib/actions/error-messages";
++import {
++  CLOSING_CONFIRMATION,
++  closingConfirmationMatches,
++  type FiscalYearClosingPreview,
++  type FiscalYearClosingResult,
++} from "@/lib/finance/fiscal-year-closing-journey";
++import { useOperationSubmit } from "@/lib/finance/use-operation-submit";
++
++type Stage = "precheck" | "preview" | "confirm" | "result";
++
++function amount(value: string, locale: string): string {
++  return Number(value).toLocaleString(locale === "ar" ? "ar-EG" : "en-US", {
++    minimumFractionDigits: 4,
++    maximumFractionDigits: 4,
++  });
++}
++
++export function YearEndClosingDialog({
++  open,
++  onOpenChange,
++  organizationId,
++  year,
++  locale,
++  currencyLabel,
++  onClosed,
++}: {
++  open: boolean;
++  onOpenChange: (open: boolean) => void;
++  organizationId: string;
++  year: { id: string; name: string } | null;
++  locale: string;
++  currencyLabel: string;
++  onClosed: (yearId: string) => void;
++}) {
++  const isAr = locale === "ar";
++  const router = useRouter();
++  const { pending, run, reset } = useOperationSubmit();
++  const [stage, setStage] = useState<Stage>("precheck");
++  const [preview, setPreview] = useState<FiscalYearClosingPreview | null>(null);
++  const [result, setResult] = useState<FiscalYearClosingResult | null>(null);
++  const [reason, setReason] = useState("");
++  const [confirmation, setConfirmation] = useState("");
++  const [error, setError] = useState<string | null>(null);
++  const [checking, setChecking] = useState(false);
++  const confirmationValid = closingConfirmationMatches(confirmation, locale);
++
++  useEffect(() => {
++    if (!open) return;
++    setStage("precheck");
++    setPreview(null);
++    setResult(null);
++    setReason("");
++    setConfirmation("");
++    setError(null);
++    reset();
++  }, [open, year?.id, reset]);
++
++  if (!year) return null;
++
++  const close = (next: boolean) => {
++    if (!next && !pending && !checking) onOpenChange(false);
++  };
++
++  async function runPrecheck() {
++    if (!year || checking) return;
++    setChecking(true);
++    setError(null);
++    try {
++      const response = await getFiscalYearClosingPreviewAction({
++        organizationId,
++        fiscalYearId: year.id,
++        locale: isAr ? "ar" : "en",
++      });
++      if (!response.ok) {
++        setError(financeErrorMessage(response.error, isAr));
++        return;
++      }
++      setPreview(response.preview);
++      setStage("preview");
++    } catch {
++      setError(financeErrorMessage("query_failed", isAr));
++    } finally {
++      setChecking(false);
++    }
++  }
++
++  async function submitClosing(event: React.FormEvent) {
++    event.preventDefault();
++    if (!preview || !reason.trim() || !confirmationValid || pending) return;
++    setError(null);
++    const input = {
++      organizationId,
++      fiscalYearId: year!.id,
++      retainedEarningsAccountId: preview.retainedEarningsAccountId,
++      reason: reason.trim(),
++      confirmation,
++      locale: isAr ? "ar" as const : "en" as const,
++    };
++    const response = await run(input, (operationKey) =>
++      closeFiscalYearAction({ ...input, operationKey }),
++    );
++    if (!response) return;
++    if (!response.ok) {
++      setError(financeErrorMessage(response.error, isAr));
++      return;
++    }
++    setResult(response.result);
++    setStage("result");
++    if (!response.result.alreadyClosed) onClosed(year!.id);
++    router.refresh();
++  }
++
++  const steps = [
++    { id: "precheck", label: isAr ? "الفحص المسبق" : "Precheck" },
++    { id: "preview", label: isAr ? "معاينة القيد" : "Entry preview" },
++    { id: "confirm", label: isAr ? "التأكيد" : "Confirmation" },
++    { id: "result", label: isAr ? "النتيجة" : "Result" },
++  ] as const;
++  const stageIndex = steps.findIndex((step) => step.id === stage);
++
++  return (
++    <Dialog open={open} onOpenChange={close}>
++      <DialogContent className="max-w-3xl" data-testid="year-end-closing-dialog">
++        <DialogHeader>
++          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600/10 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-400">
++            <FolderLock className="size-5" />
++          </div>
++          <div className="space-y-1">
++            <DialogTitle>{isAr ? `إقفال السنة المالية ${year.name}` : `Close fiscal year ${year.name}`}</DialogTitle>
++            <DialogDescription>
++              {isAr
++                ? "راجع الفحوص والقيد المقترح قبل التنفيذ. تعيد قاعدة البيانات التحقق من كل الشروط عند الإقفال."
++                : "Review the checks and proposed entry before posting. The database revalidates every condition at closing."}
++            </DialogDescription>
++          </div>
++        </DialogHeader>
++
++        <DialogBody className="space-y-5">
++          <ol className="grid grid-cols-4 gap-1.5" aria-label={isAr ? "مراحل إقفال السنة" : "Year-end closing stages"}>
++            {steps.map((step, index) => (
++              <li
++                key={step.id}
++                className={`rounded-lg border px-1.5 py-2 text-center text-[10px] font-bold sm:text-xs ${
++                  index <= stageIndex
++                    ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
++                    : "border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-900"
++                }`}
++                aria-current={step.id === stage ? "step" : undefined}
++              >
++                <span className="me-1 font-mono">{index + 1}</span>{step.label}
++              </li>
++            ))}
++          </ol>
++
++          {error && (
++            <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
++              <AlertCircle className="mt-0.5 size-4 shrink-0" />
++              <span>{error}</span>
++            </div>
++          )}
++
++          {stage === "precheck" && (
++            <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-slate-900/60">
++              <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-slate-100">
++                <ShieldCheck className="size-5 text-indigo-600" />
++                {isAr ? "فحص حقيقي قبل أي كتابة" : "Real checks before any write"}
++              </div>
++              <ul className="space-y-2.5 text-xs leading-6 text-slate-600 dark:text-slate-300">
++                <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-emerald-600" />{isAr ? "جميع فترات السنة مغلقة أو مقفلة." : "Every period in the year is closed or locked."}</li>
++                <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-emerald-600" />{isAr ? "لا توجد قيود مسودة أو قيد المراجعة داخل السنة." : "No draft or under-review entries exist in the year."}</li>
++                <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-emerald-600" />{isAr ? "حساب الأرباح المبقاة محدد ودفتر السنة متوازن." : "Retained earnings is designated and the year's ledger balances."}</li>
++              </ul>
++              <p className="border-t border-slate-200 pt-3 text-[11px] leading-5 text-slate-500 dark:border-slate-800 dark:text-slate-400">
++                {isAr ? "هذه العملية لا ترحّل أرصدة افتتاحية إلى سنة أخرى." : "This operation does not roll opening balances into another year."}
++              </p>
++            </section>
++          )}
++
++          {stage === "preview" && preview && (
++            <section className="space-y-4" data-testid="closing-entry-preview">
++              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
++                <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800"><p className="text-[10px] font-bold text-slate-500">{isAr ? "الفترات المستوفاة" : "Eligible periods"}</p><p className="mt-1 font-mono text-lg font-black">{preview.periodCount}</p></div>
++                <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800"><p className="text-[10px] font-bold text-slate-500">{isAr ? "أسطر الدفتر المفحوصة" : "Ledger lines checked"}</p><p className="mt-1 font-mono text-lg font-black">{preview.postedLineCount}</p></div>
++                <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800"><p className="text-[10px] font-bold text-slate-500">{isAr ? "أسطر قيد الإقفال" : "Closing lines"}</p><p className="mt-1 font-mono text-lg font-black">{preview.lines.length}</p></div>
++                <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900 dark:bg-indigo-950/30"><p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300">{isAr ? "صافي الربح / (الخسارة)" : "Net income / (loss)"}</p><p className="mt-1 font-mono text-sm font-black text-indigo-800 dark:text-indigo-200">{amount(preview.netIncome, locale)}</p></div>
++              </div>
++
++              <div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
++                <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
++                <span>{isAr ? `حساب الأرباح المبقاة: ${preview.retainedEarningsAccountLabel}` : `Retained earnings: ${preview.retainedEarningsAccountLabel}`}</span>
++              </div>
++
++              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
++                <table className="w-full min-w-[560px] text-start text-xs">
++                  <thead className="bg-slate-50 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
++                    <tr><th className="p-3 text-start">{isAr ? "الحساب" : "Account"}</th><th className="p-3 text-start">{isAr ? "البند" : "Purpose"}</th><th className="p-3 text-end">{isAr ? "مدين" : "Debit"}</th><th className="p-3 text-end">{isAr ? "دائن" : "Credit"}</th></tr>
++                  </thead>
++                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
++                    {preview.lines.map((line, index) => (
++                      <tr key={`${line.accountId}-${line.costCentreId ?? "none"}-${index}`}>
++                        <td className="p-3"><span className="font-mono font-bold">{line.accountCode}</span><span className="mt-0.5 block text-[11px] text-slate-500">{line.accountName}</span></td>
++                        <td className="p-3"><Badge variant="outline" className="text-[10px]">{line.reason === "RETAINED_EARNINGS" ? (isAr ? "الأرباح المبقاة" : "Retained earnings") : (isAr ? "إقفال حساب نتيجة" : "Close temporary account")}</Badge></td>
++                        <td className="p-3 text-end font-mono">{amount(line.debit, locale)}</td>
++                        <td className="p-3 text-end font-mono">{amount(line.credit, locale)}</td>
++                      </tr>
++                    ))}
++                    <tr className="bg-slate-50/80 font-black dark:bg-slate-900/70"><td className="p-3" colSpan={2}>{isAr ? "الإجمالي المتوازن" : "Balanced total"}</td><td className="p-3 text-end font-mono">{amount(preview.totalDebit, locale)}</td><td className="p-3 text-end font-mono">{amount(preview.totalCredit, locale)}</td></tr>
++                  </tbody>
++                </table>
++              </div>
++              <p className="text-[11px] leading-5 text-slate-500">{isAr ? `المبالغ بعملة ${currencyLabel}. هذه معاينة فقط؛ لم يُكتب أي قيد بعد.` : `Amounts in ${currencyLabel}. This is a preview only; no entry has been written.`}</p>
++            </section>
++          )}
++
++          {stage === "confirm" && preview && (
++            <form id="year-end-closing-form" onSubmit={submitClosing} className="space-y-4" data-testid="closing-confirmation-form">
++              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
++                {isAr
++                  ? `سينشئ النظام قيد إقفال مرحّلًا من ${preview.lines.length} أسطر ويغلق سنة ${year.name}. لا يمكن التراجع عن الإقفال من هذه الشاشة.`
++                  : `The system will create a posted closing entry with ${preview.lines.length} lines and close ${year.name}. This screen cannot undo the closing.`}
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="closing-reason">{isAr ? "سبب الإقفال (يظهر في سجل التدقيق)" : "Closing reason (recorded in the audit log)"}</Label>
++                <Textarea id="closing-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} required placeholder={isAr ? "مثال: اعتماد نتائج السنة ومراجعة ميزان المراجعة" : "Example: Annual results approved and trial balance reviewed"} />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="closing-confirmation">{isAr ? <>اكتب <span className="font-mono font-black">إقفال السنة</span> للتأكيد</> : <>Type <span className="font-mono font-black">CLOSE YEAR</span> to confirm</>}</Label>
++                <Input id="closing-confirmation" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" required aria-invalid={confirmation.length > 0 && !confirmationValid} placeholder={CLOSING_CONFIRMATION[isAr ? "ar" : "en"]} />
++                {confirmation.length > 0 && !confirmationValid && <p role="alert" className="text-xs font-semibold text-rose-600">{isAr ? "عبارة التأكيد غير مطابقة." : "The confirmation phrase does not match."}</p>}
++              </div>
++            </form>
++          )}
++
++          {stage === "result" && result && (
++            <section className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 dark:border-emerald-900/60 dark:bg-emerald-950/20" data-testid="closing-result">
++              <div className="flex items-center gap-3 text-emerald-800 dark:text-emerald-300"><span className="flex size-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50"><FileCheck2 className="size-5" /></span><div><h3 className="font-black">{result.alreadyClosed ? (isAr ? "الإقفال مسجل مسبقًا" : "Closing already recorded") : (isAr ? "تم إقفال السنة بنجاح" : "Fiscal year closed successfully")}</h3><p className="mt-1 text-xs">{isAr ? "هذه هي النتيجة المحفوظة التي أعادتها قاعدة البيانات." : "This is the persisted result returned by the database."}</p></div></div>
++              <dl className="grid gap-3 border-t border-emerald-200 pt-4 text-xs dark:border-emerald-900/60 sm:grid-cols-3">
++                <div className="sm:col-span-3"><dt className="font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "معرّف قيد الإقفال" : "Closing entry ID"}</dt><dd className="mt-1 break-all rounded-lg bg-white/70 p-2 font-mono dark:bg-slate-950/40" data-testid="closing-entry-id">{result.closingEntryId}</dd></div>
++                <div><dt className="font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "عدد الأسطر" : "Line count"}</dt><dd className="mt-1 font-mono text-lg font-black">{result.lineCount}</dd></div>
++                <div><dt className="font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "صافي الربح / (الخسارة)" : "Net income / (loss)"}</dt><dd className="mt-1 font-mono text-lg font-black">{amount(result.netIncome, locale)}</dd></div>
++                <div><dt className="font-bold text-emerald-700 dark:text-emerald-400">{isAr ? "إعادة محاولة لإقفال سابق" : "Replay of previous close"}</dt><dd className="mt-1 font-mono text-lg font-black">{result.alreadyClosed ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")}</dd></div>
++              </dl>
++            </section>
++          )}
++        </DialogBody>
++
++        <DialogFooter>
++          {stage === "precheck" && <Button variant="outline" onClick={() => onOpenChange(false)} disabled={checking}>{isAr ? "إلغاء" : "Cancel"}</Button>}
++          {(stage === "preview" || stage === "confirm") && <Button variant="outline" onClick={() => { setError(null); setStage(stage === "preview" ? "precheck" : "preview"); }} disabled={pending}>{isAr ? <><ArrowRight className="size-4" />السابق</> : <><ArrowLeft className="size-4" />Back</>}</Button>}
++          {stage === "precheck" && <Button onClick={runPrecheck} disabled={checking} className="bg-indigo-600 text-white hover:bg-indigo-700" data-testid="run-closing-precheck">{checking ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}{checking ? (isAr ? "جارٍ الفحص…" : "Checking…") : (isAr ? "تشغيل الفحص والمعاينة" : "Run checks and preview")}</Button>}
++          {stage === "preview" && <Button onClick={() => { setError(null); setStage("confirm"); }} className="bg-indigo-600 text-white hover:bg-indigo-700" data-testid="continue-closing">{isAr ? "مراجعة التأكيد" : "Review confirmation"}{isAr ? <ArrowLeft className="size-4" /> : <ArrowRight className="size-4" />}</Button>}
++          {stage === "confirm" && <Button type="submit" form="year-end-closing-form" disabled={pending || !reason.trim() || !confirmationValid} className="bg-rose-600 text-white hover:bg-rose-700" data-testid="confirm-year-closing">{pending ? <LoaderCircle className="size-4 animate-spin" /> : <FolderLock className="size-4" />}{pending ? (isAr ? "جارٍ إقفال السنة…" : "Closing year…") : (isAr ? "تنفيذ إقفال السنة" : "Close fiscal year")}</Button>}
++          {stage === "result" && <Button onClick={() => onOpenChange(false)} className="bg-emerald-600 text-white hover:bg-emerald-700" data-testid="finish-year-closing">{isAr ? "إنهاء" : "Done"}</Button>}
++        </DialogFooter>
++      </DialogContent>
++    </Dialog>
++  );
++}
+diff --git a/lib/actions/fiscal-year-closing.ts b/lib/actions/fiscal-year-closing.ts
+new file mode 100644
+index 0000000..fa0e2bc
+--- /dev/null
++++ b/lib/actions/fiscal-year-closing.ts
+@@ -0,0 +1,322 @@
++"use server";
++
++import { revalidatePath } from "next/cache";
++import { z } from "zod";
++import { proveTenantPermission } from "@/lib/auth/authorize";
++import { createClient } from "@/lib/supabase/server";
++import {
++  calculateYearEndClosing,
++  formatMoney,
++  parseMoney,
++  type AccountBalance,
++} from "@/lib/accounting/fiscal-year-closing";
++import {
++  closingConfirmationMatches,
++  type CloseFiscalYearActionResult,
++  type ClosingActionFailure,
++  type ClosingPreviewActionResult,
++  type ClosingPreviewLine,
++} from "@/lib/finance/fiscal-year-closing-journey";
++
++const PERIODS_PATH = "/[locale]/admin/finance/periods";
++const LEDGER_PAGE_SIZE = 1000;
++
++const previewSchema = z.object({
++  organizationId: z.string().uuid(),
++  fiscalYearId: z.string().uuid(),
++  locale: z.enum(["ar", "en"]),
++});
++
++const closeSchema = previewSchema.extend({
++  retainedEarningsAccountId: z.string().uuid(),
++  reason: z.string().trim().min(1).max(500),
++  confirmation: z.string().min(1).max(30),
++  operationKey: z.string().trim().min(1).max(200),
++});
++
++const CALCULATION_ERRORS = {
++  RETAINED_EARNINGS_ACCOUNT_REQUIRED: "RE_ACCOUNT_REQUIRED",
++  RETAINED_EARNINGS_ACCOUNT_INVALID: "RE_ACCOUNT_INVALID",
++  INCOMPLETE_BALANCE_DATA: "INCOMPLETE_BALANCE_DATA",
++  INPUT_NOT_BALANCED: "ENTRIES_UNBALANCED",
++  COST_CENTER_REQUIRED: "COST_CENTER_REQUIRED",
++  COST_CENTRE_INVALID: "COST_CENTRE_INVALID",
++} as const;
++
++const KNOWN_DATABASE_ERRORS = [
++  "FORBIDDEN_CLOSE_PERMISSION",
++  "AUTHENTICATION_REQUIRED",
++  "INVALID_INPUT",
++  "ORG_NOT_ACTIVE",
++  "FISCAL_YEAR_NOT_FOUND",
++  "OPERATION_KEY_REUSED",
++  "ALREADY_CLOSED",
++  "PERIOD_NOT_CLOSED",
++  "UNREVIEWED_ENTRIES_EXIST",
++  "RE_ACCOUNT_REQUIRED",
++  "RE_ACCOUNT_INVALID",
++  "COST_CENTER_REQUIRED",
++  "COST_CENTRE_INVALID",
++  "ENTRIES_UNBALANCED",
++  "NOTHING_TO_CLOSE",
++] as const;
++
++function failure(error: string): ClosingActionFailure {
++  return { ok: false, error };
++}
++
++function databaseErrorCode(message: string | undefined): string {
++  return KNOWN_DATABASE_ERRORS.find((code) => message?.includes(code)) ?? "query_failed";
++}
++
++/** PostgREST numeric values can arrive as numbers. The SQL close remains authoritative. */
++function databaseMoney(value: number | string): string | null {
++  if (typeof value === "string") {
++    const parsed = parseMoney(value);
++    return parsed === null ? null : formatMoney(parsed);
++  }
++  return Number.isFinite(value) ? value.toFixed(4) : null;
++}
++
++export async function getFiscalYearClosingPreviewAction(input: {
++  organizationId: string;
++  fiscalYearId: string;
++  locale: "ar" | "en";
++}): Promise<ClosingPreviewActionResult> {
++  const parsed = previewSchema.safeParse(input);
++  if (!parsed.success) return failure("INVALID_INPUT");
++
++  const authProof = await proveTenantPermission(parsed.data.organizationId, "finance.years.close");
++  if (!authProof.ok) {
++    return failure(authProof.error === "unauthorized" ? "unauthorized" : "FORBIDDEN_CLOSE_PERMISSION");
++  }
++
++  const supabase = await createClient();
++  const [{ data: year, error: yearError }, { data: periods, error: periodsError }] = await Promise.all([
++    supabase
++      .from("fiscal_years")
++      .select("id, name, start_date, end_date, status")
++      .eq("id", parsed.data.fiscalYearId)
++      .eq("organization_id", parsed.data.organizationId)
++      .maybeSingle(),
++    supabase
++      .from("fiscal_periods")
++      .select("id, status")
++      .eq("fiscal_year_id", parsed.data.fiscalYearId)
++      .eq("organization_id", parsed.data.organizationId),
++  ]);
++
++  if (yearError || periodsError) return failure("query_failed");
++  if (!year) return failure("FISCAL_YEAR_NOT_FOUND");
++  if (year.status === "CLOSED") return failure("ALREADY_CLOSED");
++  if (!periods?.length || periods.some((period) => period.status !== "CLOSED" && period.status !== "LOCKED")) {
++    return failure("PERIOD_NOT_CLOSED");
++  }
++
++  const unreviewed = await supabase
++    .from("journal_entries")
++    .select("id", { count: "exact", head: true })
++    .eq("organization_id", parsed.data.organizationId)
++    .gte("entry_date", year.start_date)
++    .lte("entry_date", year.end_date)
++    .in("status", ["DRAFT", "UNDER_REVIEW"]);
++  if (unreviewed.error || unreviewed.count === null) return failure("query_failed");
++  if (unreviewed.count > 0) return failure("UNREVIEWED_ENTRIES_EXIST");
++
++  const { data: retained, error: retainedError } = await supabase
++    .from("chart_of_accounts")
++    .select("id, code, name_ar, name_en, requires_cost_center")
++    .eq("organization_id", parsed.data.organizationId)
++    .eq("is_retained_earnings", true)
++    .maybeSingle();
++  if (retainedError) return failure("query_failed");
++  if (!retained) return failure("RE_ACCOUNT_REQUIRED");
++
++  const ledgerLines: {
++    account_id: string;
++    debit: number;
++    credit: number;
++    cost_center_id: string | null;
++  }[] = [];
++  let expectedLineCount: number | null = null;
++
++  // Paginate until the exact count is reached. A partial preview is never shown.
++  for (let from = 0; expectedLineCount === null || from < expectedLineCount; from += LEDGER_PAGE_SIZE) {
++    const page = await supabase
++      .from("journal_entry_lines")
++      .select("account_id, debit, credit, cost_center_id, journal_entries!inner(id)", { count: "exact" })
++      .eq("journal_entries.organization_id", parsed.data.organizationId)
++      .gte("journal_entries.entry_date", year.start_date)
++      .lte("journal_entries.entry_date", year.end_date)
++      .in("journal_entries.status", ["POSTED", "REVERSED"])
++      .order("journal_entry_id")
++      .order("line_number")
++      .range(from, from + LEDGER_PAGE_SIZE - 1);
++    if (page.error || page.count === null) return failure("query_failed");
++    if (expectedLineCount !== null && page.count !== expectedLineCount) return failure("STALE_VERIFICATION");
++    expectedLineCount = page.count;
++    for (const line of page.data ?? []) {
++      ledgerLines.push({
++        account_id: line.account_id,
++        debit: line.debit,
++        credit: line.credit,
++        cost_center_id: line.cost_center_id,
++      });
++    }
++    if ((page.data?.length ?? 0) === 0 && ledgerLines.length < expectedLineCount) {
++      return failure("INCOMPLETE_BALANCE_DATA");
++    }
++  }
++  if (ledgerLines.length !== expectedLineCount) return failure("INCOMPLETE_BALANCE_DATA");
++
++  const accountIds = [...new Set([...ledgerLines.map((line) => line.account_id), retained.id])];
++  const accounts = new Map<string, {
++    id: string;
++    code: string;
++    name_ar: string;
++    name_en: string;
++    category: AccountBalance["category"];
++    requires_cost_center: boolean;
++  }>();
++  for (let from = 0; from < accountIds.length; from += 200) {
++    const { data, error } = await supabase
++      .from("chart_of_accounts")
++      .select("id, code, name_ar, name_en, category, requires_cost_center")
++      .eq("organization_id", parsed.data.organizationId)
++      .in("id", accountIds.slice(from, from + 200));
++    if (error) return failure("query_failed");
++    for (const account of data ?? []) accounts.set(account.id, account);
++  }
++  if (accounts.size !== accountIds.length) return failure("INCOMPLETE_BALANCE_DATA");
++
++  const balances: AccountBalance[] = [];
++  for (const line of ledgerLines) {
++    const account = accounts.get(line.account_id);
++    const debit = databaseMoney(line.debit);
++    const credit = databaseMoney(line.credit);
++    if (!account || debit === null || credit === null) return failure("INCOMPLETE_BALANCE_DATA");
++    balances.push({
++      accountId: line.account_id,
++      category: account.category,
++      debit,
++      credit,
++      costCentreId: line.cost_center_id,
++      requiresCostCenter: account.requires_cost_center,
++    });
++  }
++  // The pure calculator requires the retained-earnings account in its input;
++  // a neutral zero row represents a designated account with no ledger lines.
++  if (!balances.some((balance) => balance.accountId === retained.id)) {
++    const account = accounts.get(retained.id)!;
++    balances.push({
++      accountId: retained.id,
++      category: account.category,
++      debit: "0.0000",
++      credit: "0.0000",
++      requiresCostCenter: retained.requires_cost_center,
++    });
++  }
++
++  const calculation = calculateYearEndClosing({
++    balances,
++    retainedEarningsAccountId: retained.id,
++    retainedEarningsRequiresCostCenter: retained.requires_cost_center,
++  });
++  if (!calculation.ok) return failure(CALCULATION_ERRORS[calculation.error]);
++  if (calculation.nothingToClose) return failure("NOTHING_TO_CLOSE");
++
++  const centreIds = [...new Set(calculation.lines.flatMap((line) => line.costCentreId ? [line.costCentreId] : []))];
++  for (let from = 0; from < centreIds.length; from += 200) {
++    const ids = centreIds.slice(from, from + 200);
++    const { data, error } = await supabase
++      .from("cost_centers")
++      .select("id")
++      .eq("organization_id", parsed.data.organizationId)
++      .eq("is_active", true)
++      .in("id", ids);
++    if (error) return failure("query_failed");
++    if ((data?.length ?? 0) !== ids.length) return failure("COST_CENTRE_INVALID");
++  }
++
++  const lines: ClosingPreviewLine[] = calculation.lines.map((line) => {
++    const account = accounts.get(line.accountId)!;
++    return {
++      accountId: line.accountId,
++      accountCode: account.code,
++      accountName: parsed.data.locale === "ar" ? account.name_ar || account.name_en : account.name_en || account.name_ar,
++      debit: line.debit,
++      credit: line.credit,
++      reason: line.reason,
++      ...(line.costCentreId ? { costCentreId: line.costCentreId } : {}),
++    };
++  });
++
++  return {
++    ok: true,
++    preview: {
++      fiscalYearId: year.id,
++      fiscalYearName: year.name,
++      retainedEarningsAccountId: retained.id,
++      retainedEarningsAccountLabel: `${retained.code} — ${parsed.data.locale === "ar" ? retained.name_ar || retained.name_en : retained.name_en || retained.name_ar}`,
++      periodCount: periods.length,
++      postedLineCount: ledgerLines.length,
++      lines,
++      netIncome: calculation.netIncome,
++      totalDebit: calculation.totalDebit,
++      totalCredit: calculation.totalCredit,
++    },
++  };
++}
++
++export async function closeFiscalYearAction(input: {
++  organizationId: string;
++  fiscalYearId: string;
++  retainedEarningsAccountId: string;
++  reason: string;
++  confirmation: string;
++  locale: "ar" | "en";
++  operationKey: string;
++}): Promise<CloseFiscalYearActionResult> {
++  const parsed = closeSchema.safeParse(input);
++  if (!parsed.success) return failure("INVALID_INPUT");
++  if (!closingConfirmationMatches(parsed.data.confirmation, parsed.data.locale)) {
++    return failure("CONFIRMATION_MISMATCH");
++  }
++
++  const authProof = await proveTenantPermission(parsed.data.organizationId, "finance.years.close");
++  if (!authProof.ok) {
++    return failure(authProof.error === "unauthorized" ? "unauthorized" : "FORBIDDEN_CLOSE_PERMISSION");
++  }
++
++  const supabase = await createClient();
++  const { data, error } = await supabase.rpc("close_fiscal_year", {
++    p_organization_id: parsed.data.organizationId,
++    p_fiscal_year_id: parsed.data.fiscalYearId,
++    p_retained_earnings_account_id: parsed.data.retainedEarningsAccountId,
++    p_reason: parsed.data.reason,
++    p_operation_key: parsed.data.operationKey,
++  });
++  if (error) return failure(databaseErrorCode(error.message));
++  if (!data || data.ok !== true) return failure(databaseErrorCode(data?.error_code));
++  if (
++    typeof data.closing_entry_id !== "string" ||
++    typeof data.line_count !== "number" ||
++    data.already_closed !== true && data.already_closed !== false
++  ) {
++    return failure("INVALID_CLOSE_RESULT");
++  }
++  const netIncome = databaseMoney(data.net_income ?? "");
++  if (netIncome === null) return failure("INVALID_CLOSE_RESULT");
++
++  revalidatePath(PERIODS_PATH, "page");
++  revalidatePath("/[locale]/finance/journals", "page");
++  return {
++    ok: true,
++    result: {
++      alreadyClosed: data.already_closed,
++      closingEntryId: data.closing_entry_id,
++      lineCount: data.line_count,
++      netIncome,
++    },
++  };
++}
+diff --git a/lib/finance/fiscal-year-closing-journey.ts b/lib/finance/fiscal-year-closing-journey.ts
+new file mode 100644
+index 0000000..bdf6081
+--- /dev/null
++++ b/lib/finance/fiscal-year-closing-journey.ts
+@@ -0,0 +1,49 @@
++export const CLOSING_CONFIRMATION = {
++  ar: "إقفال السنة",
++  en: "CLOSE YEAR",
++} as const;
++
++export type ClosingLocale = keyof typeof CLOSING_CONFIRMATION;
++
++export function closingConfirmationMatches(confirmation: string, locale: string): boolean {
++  const expected = CLOSING_CONFIRMATION[locale === "ar" ? "ar" : "en"];
++  return confirmation === expected;
++}
++
++export type ClosingPreviewLine = {
++  accountId: string;
++  accountCode: string;
++  accountName: string;
++  debit: string;
++  credit: string;
++  reason: "CLOSE_TEMPORARY" | "RETAINED_EARNINGS";
++  costCentreId?: string;
++};
++
++export type FiscalYearClosingPreview = {
++  fiscalYearId: string;
++  fiscalYearName: string;
++  retainedEarningsAccountId: string;
++  retainedEarningsAccountLabel: string;
++  periodCount: number;
++  postedLineCount: number;
++  lines: ClosingPreviewLine[];
++  netIncome: string;
++  totalDebit: string;
++  totalCredit: string;
++};
++
++export type FiscalYearClosingResult = {
++  alreadyClosed: boolean;
++  closingEntryId: string;
++  lineCount: number;
++  netIncome: string;
++};
++
++export type ClosingActionFailure = { ok: false; error: string };
++export type ClosingPreviewActionResult =
++  | { ok: true; preview: FiscalYearClosingPreview }
++  | ClosingActionFailure;
++export type CloseFiscalYearActionResult =
++  | { ok: true; result: FiscalYearClosingResult }
++  | ClosingActionFailure;
+diff --git a/tests/year-closing-wizard-honesty.test.ts b/tests/year-closing-wizard-honesty.test.ts
+new file mode 100644
+index 0000000..bdc11ef
+--- /dev/null
++++ b/tests/year-closing-wizard-honesty.test.ts
+@@ -0,0 +1,95 @@
++import { describe, expect, it } from "vitest";
++import { existsSync, readFileSync } from "node:fs";
++import { join } from "node:path";
++
++// Sprint 2 / Batch 3: the closing journey must run real checks, show the exact
++// proposed entry, require typed confirmation, and render the database result.
++const read = (path: string) => {
++  const absolute = join(process.cwd(), path);
++  return existsSync(absolute) ? readFileSync(absolute, "utf8") : "";
++};
++
++const periods = read("app/[locale]/(app)/admin/finance/periods/periods-client.tsx");
++const dialog = read("app/[locale]/(app)/admin/finance/periods/year-end-closing-dialog.tsx");
++const actions = read("lib/actions/fiscal-year-closing.ts");
++const errors = read("lib/actions/error-messages.ts");
++
++describe("Batch 3 year-end closing journey", () => {
++  it("replaces the display-only wizard with the connected closing dialog", () => {
++    expect(periods).toContain("YearEndClosingDialog");
++    expect(periods).not.toContain("إقفال السنة المالية غير متاح بعد");
++    expect(periods).not.toContain("Fiscal year closing is not available yet");
++    expect(periods).not.toContain("لم يُجرَ أي فحص بعد");
++    expect(periods).not.toContain("No checks have been run yet");
++  });
++
++  it("has precheck, preview, typed confirmation, and result stages", () => {
++    expect(dialog).toContain('"precheck"');
++    expect(dialog).toContain('"preview"');
++    expect(dialog).toContain('"confirm"');
++    expect(dialog).toContain('"result"');
++    expect(dialog).toContain("getFiscalYearClosingPreviewAction");
++    expect(dialog).toContain("closeFiscalYearAction");
++    expect(dialog).toContain("closingConfirmationMatches");
++  });
++
++  it("requires a reason and the exact locale-specific confirmation before submit", () => {
++    expect(dialog).toContain("reason.trim()");
++    expect(dialog).toContain("closingConfirmationMatches(confirmation, locale)");
++    expect(dialog).toMatch(/disabled=\{[^}]*confirmationValid[^}]*\}/s);
++    expect(dialog).toContain("إقفال السنة");
++    expect(dialog).toContain("CLOSE YEAR");
++  });
++
++  it("uses one idempotency key for retries and blocks double submission", () => {
++    expect(dialog).toContain("useOperationSubmit");
++    expect(dialog).toContain("operationKey");
++    expect(actions).toContain("p_operation_key: parsed.data.operationKey");
++  });
++
++  it("runs the existing database closing function under strict tenant permission", () => {
++    expect(actions).toContain('rpc("close_fiscal_year"');
++    expect(actions).toContain('proveTenantPermission(parsed.data.organizationId, "finance.years.close")');
++    expect(actions).not.toContain("createAdminClient");
++    expect(actions).toContain("revalidatePath");
++  });
++
++  it("builds the preview from actual ledger data without calling the write function", () => {
++    expect(actions).toContain("getFiscalYearClosingPreviewAction");
++    expect(actions).toContain("calculateYearEndClosing");
++    expect(actions).toContain("journal_entry_lines");
++    expect(actions).toContain("UNREVIEWED_ENTRIES_EXIST");
++    expect(actions).toContain("PERIOD_NOT_CLOSED");
++    const preview = actions.slice(actions.indexOf("getFiscalYearClosingPreviewAction"), actions.indexOf("closeFiscalYearAction"));
++    expect(preview).not.toContain('rpc("close_fiscal_year"');
++  });
++
++  it("shows the persisted result and does not claim opening-balance rollover", () => {
++    expect(dialog).toContain("closingEntryId");
++    expect(dialog).toContain("lineCount");
++    expect(dialog).toContain("netIncome");
++    expect(dialog).toContain("alreadyClosed");
++    expect(dialog).not.toContain("جاهز لترحيل الأرصدة الافتتاحية");
++    expect(dialog).not.toContain("Ready for Opening Balance Rollover");
++  });
++
++  it("maps closing failures to safe actionable Arabic and English messages", () => {
++    for (const code of [
++      "PERIOD_NOT_CLOSED",
++      "UNREVIEWED_ENTRIES_EXIST",
++      "RE_ACCOUNT_REQUIRED",
++      "RE_ACCOUNT_INVALID",
++      "ENTRIES_UNBALANCED",
++      "NOTHING_TO_CLOSE",
++      "ALREADY_CLOSED",
++      "FORBIDDEN_CLOSE_PERMISSION",
++    ]) {
++      expect(errors, code).toContain(`${code}: {`);
++    }
++  });
++
++  it("leaves individual period status changes intact", () => {
++    expect(periods).toMatch(/handleStatusChange\(period, "CLOSED"\)/);
++    expect(periods).toContain("setFiscalPeriodStatusAction");
++  });
++});
+diff --git a/tests/e2e/year-end-closing-journey.spec.ts b/tests/e2e/year-end-closing-journey.spec.ts
+new file mode 100644
+index 0000000..9edd394
+--- /dev/null
++++ b/tests/e2e/year-end-closing-journey.spec.ts
+@@ -0,0 +1,205 @@
++import { randomUUID } from "node:crypto";
++import { mkdirSync, writeFileSync } from "node:fs";
++import { join } from "node:path";
++import type { Page } from "@playwright/test";
++import { test, expect } from "./helpers/local-only";
++import {
++  adminClient,
++  createJourneyFixture,
++  PASSWORD,
++  signedInClient,
++  type JourneyFixture,
++} from "./helpers/accounting-fixture";
++
++const OUT = join(process.cwd(), "docs/progress/evidence-r6-run10/results");
++let fx: JourneyFixture;
++let yearId = "";
++
++async function signIn(page: Page, email: string) {
++  await page.goto("/en/login");
++  await page.locator("#email").fill(email);
++  await page.locator("#password").fill(PASSWORD);
++  await page.getByRole("button", { name: /Sign In/i }).click();
++  await page.waitForURL(/\/dashboard/, { timeout: 60_000 });
++}
++
++async function openPreview(page: Page, locale: "ar" | "en") {
++  await page.goto(`/${locale}/admin/finance/periods`);
++  await page.getByTestId("open-year-closing-2026").click();
++  const dialog = page.getByTestId("year-end-closing-dialog");
++  await expect(dialog).toBeVisible();
++  await dialog.getByTestId("run-closing-precheck").click();
++  await expect(dialog.getByTestId("closing-entry-preview")).toBeVisible({ timeout: 60_000 });
++  return dialog;
++}
++
++test.beforeAll(async () => {
++  test.setTimeout(240_000);
++  mkdirSync(OUT, { recursive: true });
++  fx = await createJourneyFixture("yearclose", { approveReceivable: false });
++  const admin = adminClient();
++  const owner = await signedInClient(fx.owner.email);
++
++  const designation = await owner.rpc("designate_retained_earnings_account", {
++    p_organization_id: fx.orgId,
++    p_account_id: fx.accounts["3100"],
++  });
++  expect(designation.error, designation.error?.message).toBeNull();
++  expect(designation.data).toMatchObject({ ok: true });
++
++  const year = await admin
++    .from("fiscal_years")
++    .select("id")
++    .eq("organization_id", fx.orgId)
++    .eq("name", "2026")
++    .single();
++  expect(year.error, year.error?.message).toBeNull();
++  yearId = year.data!.id as string;
++
++  const period = await admin
++    .from("fiscal_periods")
++    .select("id")
++    .eq("organization_id", fx.orgId)
++    .eq("fiscal_year_id", yearId)
++    .lte("start_date", "2026-03-15")
++    .gte("end_date", "2026-03-15")
++    .single();
++  expect(period.error, period.error?.message).toBeNull();
++
++  const created = await owner.rpc("create_journal_entry", {
++    p_organization_id: fx.orgId,
++    p_resort_id: null,
++    p_fiscal_period_id: period.data!.id,
++    p_entry_date: "2026-03-15",
++    p_description: "Batch 3 closing fixture: cash 100 / revenue 100",
++    p_source_type: "JOURNAL_VOUCHER",
++    p_lines: [
++      { account_id: fx.accounts["1110"], debit: 100, credit: 0 },
++      { account_id: fx.accounts["4100"], debit: 0, credit: 100 },
++    ],
++    p_idempotency_key: randomUUID(),
++  });
++  expect(created.error, created.error?.message).toBeNull();
++  expect((await owner.rpc("submit_journal_entry_for_review", { p_journal_entry_id: created.data as string })).error).toBeNull();
++  expect((await owner.rpc("post_journal_entry", { p_journal_entry_id: created.data as string })).error).toBeNull();
++
++  const periods = await admin
++    .from("fiscal_periods")
++    .select("id")
++    .eq("organization_id", fx.orgId)
++    .eq("fiscal_year_id", yearId);
++  expect(periods.error, periods.error?.message).toBeNull();
++  for (const item of periods.data ?? []) {
++    const closed = await owner.rpc("set_fiscal_period_status", {
++      p_fiscal_period_id: item.id,
++      p_status: "CLOSED",
++      p_reason: "Batch 3 isolated closing fixture",
++    });
++    expect(closed.error, closed.error?.message).toBeNull();
++  }
++});
++
++test("Batch 3 closes a real year through Arabic and English UI and persists one balanced result", async ({ page }) => {
++  const pageErrors: string[] = [];
++  page.on("pageerror", (error) => pageErrors.push(error.message));
++  await signIn(page, fx.owner.email);
++
++  await page.goto("/ar/admin/finance/periods");
++  await page.getByTestId("open-year-closing-2026").click();
++  let dialog = page.getByTestId("year-end-closing-dialog");
++  await expect(dialog).toBeVisible();
++  await expect(dialog).toContainText("فحص حقيقي قبل أي كتابة");
++  await page.screenshot({ path: join(OUT, "batch3-closing-ar-precheck.png"), fullPage: true });
++  await dialog.getByTestId("run-closing-precheck").click();
++  await expect(dialog.getByTestId("closing-entry-preview")).toBeVisible({ timeout: 60_000 });
++  await expect(dialog).toContainText("4100");
++  await expect(dialog).toContainText("3100");
++  await expect(dialog.getByTestId("closing-entry-preview").locator("tbody tr")).toHaveCount(3);
++  await page.screenshot({ path: join(OUT, "batch3-closing-ar-preview.png"), fullPage: true });
++  await page.keyboard.press("Escape");
++  await expect(page.getByTestId("year-end-closing-dialog")).toHaveCount(0);
++
++  dialog = await openPreview(page, "en");
++  await expect(dialog).toContainText("Balanced total");
++  await expect(dialog).toContainText("100.0000");
++  await page.screenshot({ path: join(OUT, "batch3-closing-en-preview.png"), fullPage: true });
++  await dialog.getByTestId("continue-closing").click();
++  await page.getByLabel("Closing reason (recorded in the audit log)").fill("Annual result reviewed in isolated r6 fixture");
++  await page.getByLabel(/Type .*CLOSE YEAR.* to confirm/).fill("CLOSE");
++  const confirm = page.getByTestId("confirm-year-closing");
++  await expect(confirm).toBeDisabled();
++
++  await page.setViewportSize({ width: 390, height: 844 });
++  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
++  await page.screenshot({ path: join(OUT, "batch3-closing-en-confirm-mobile.png"), fullPage: true });
++  await page.getByLabel(/Type .*CLOSE YEAR.* to confirm/).fill("CLOSE YEAR");
++  await expect(confirm).toBeEnabled();
++  await page.setViewportSize({ width: 1440, height: 1000 });
++  await confirm.click();
++
++  await expect(page.getByTestId("closing-result")).toBeVisible({ timeout: 60_000 });
++  await expect(page.getByTestId("closing-result")).toContainText("Fiscal year closed successfully");
++  await expect(page.getByTestId("closing-result")).toContainText("100.0000");
++  await page.screenshot({ path: join(OUT, "batch3-closing-en-result.png"), fullPage: true });
++  const closingEntryId = await page.getByTestId("closing-entry-id").innerText();
++
++  const admin = adminClient();
++  const storedYear = await admin.from("fiscal_years").select("status").eq("id", yearId).eq("organization_id", fx.orgId).single();
++  expect(storedYear.data?.status).toBe("CLOSED");
++
++  const closings = await admin
++    .from("fiscal_year_closings")
++    .select("closing_entry_id, line_count, net_income, reason")
++    .eq("organization_id", fx.orgId)
++    .eq("fiscal_year_id", yearId);
++  expect(closings.error, closings.error?.message).toBeNull();
++  expect(closings.data).toHaveLength(1);
++  expect(closings.data![0]).toMatchObject({
++    closing_entry_id: closingEntryId,
++    line_count: 2,
++    reason: "Annual result reviewed in isolated r6 fixture",
++  });
++  expect(Number(closings.data![0].net_income)).toBe(100);
++
++  const entry = await admin
++    .from("journal_entries")
++    .select("id, source_type, status, entry_date")
++    .eq("id", closingEntryId)
++    .eq("organization_id", fx.orgId)
++    .single();
++  expect(entry.data).toMatchObject({ source_type: "YEAR_END_CLOSING", status: "POSTED", entry_date: "2026-12-31" });
++
++  const lines = await admin
++    .from("journal_entry_lines")
++    .select("account_id, debit, credit")
++    .eq("journal_entry_id", closingEntryId)
++    .order("line_number");
++  expect(lines.error, lines.error?.message).toBeNull();
++  expect(lines.data).toHaveLength(2);
++  expect(lines.data).toEqual([
++    { account_id: fx.accounts["4100"], debit: 100, credit: 0 },
++    { account_id: fx.accounts["3100"], debit: 0, credit: 100 },
++  ]);
++
++  const audit = await admin
++    .from("financial_audit_logs")
++    .select("id")
++    .eq("organization_id", fx.orgId)
++    .eq("action", "FISCAL_YEAR_CLOSED")
++    .eq("entity_id", yearId);
++  expect(audit.error, audit.error?.message).toBeNull();
++  expect(audit.data).toHaveLength(1);
++  expect(pageErrors).toEqual([]);
++
++  writeFileSync(join(OUT, "batch3-closing-e2e-database.json"), JSON.stringify({
++    organizationId: fx.orgId,
++    fiscalYearId: yearId,
++    closingEntryId,
++    yearStatus: storedYear.data?.status,
++    closing: closings.data![0],
++    entry: entry.data,
++    lines: lines.data,
++    fiscalYearClosedAuditCount: audit.data?.length,
++    pageErrors,
++  }, null, 2));
++});
+diff --git a/tests/batch3-auth-debug.integration.test.ts b/tests/batch3-auth-debug.integration.test.ts
+new file mode 100644
+index 0000000..b1cc762
+--- /dev/null
++++ b/tests/batch3-auth-debug.integration.test.ts
+@@ -0,0 +1,24 @@
++import { describe, expect, it } from "vitest";
++import { adminClient, loadLatestJourneyFixture } from "./e2e/helpers/accounting-fixture";
++
++describe("Tenant permission proof query regression", () => {
++  it("resolves finance.years.close by key before checking the owner role grant", async () => {
++    const fx = await loadLatestJourneyFixture("pv-yearclose-");
++    const admin = adminClient();
++    const membership = await admin.from("organization_memberships").select("status").eq("organization_id", fx.orgId).eq("user_id", fx.owner.id).maybeSingle();
++    expect(membership, "active membership").toMatchObject({ data: { status: "active" }, error: null });
++    const assignments = await admin.from("user_role_assignments").select("role_id").eq("organization_id", fx.orgId).eq("user_id", fx.owner.id);
++    expect(assignments.error).toBeNull();
++    expect(assignments.data).toHaveLength(1);
++    const roles = await admin.from("roles").select("id, organization_id, is_system, key").in("id", assignments.data!.map((row) => row.role_id));
++    expect(roles.error).toBeNull();
++    expect(roles.data).toHaveLength(1);
++    expect(roles.data![0].key).toBe("TENANT_OWNER");
++    const permission = await admin.from("permissions").select("id").eq("key", "finance.years.close").maybeSingle();
++    expect(permission, "close permission key lookup").toMatchObject({ error: null });
++    expect(permission.data?.id).toBeTruthy();
++    const grant = await admin.from("role_permissions").select("role_id").eq("permission_id", permission.data!.id).in("role_id", roles.data!.map((row) => row.id)).maybeSingle();
++    expect(grant, "matching tenant role grant").toMatchObject({ error: null });
++    expect(grant.data?.role_id).toBe(roles.data![0].id);
++  }, 60_000);
++});
+diff --git a/working files/r6-runners/run-r6-e2e-managed.mjs b/working files/r6-runners/run-r6-e2e-managed.mjs
+new file mode 100644
+index 0000000..eb0f906
+--- /dev/null
++++ b/working files/r6-runners/run-r6-e2e-managed.mjs	
+@@ -0,0 +1,73 @@
++// Run one Playwright spec against a temporary r6-only Next server, then stop that server.
++import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync, openSync, closeSync } from "node:fs";
++import { spawn, spawnSync } from "node:child_process";
++import { join } from "node:path";
++
++const REPO = "D:/Web/AqarBooks";
++const SECRETS = "C:/Users/Lenovo/AppData/Local/Temp/g0-r6";
++const OUT = join(REPO, "docs/progress/evidence-r6-run10/results");
++const spec = process.argv[2];
++const label = process.argv[3] ?? "run";
++if (!spec || !/^tests\/e2e\/[A-Za-z0-9_-]+\.spec\.ts$/.test(spec)) throw new Error("Expected one tests/e2e/*.spec.ts file");
++mkdirSync(OUT, { recursive: true });
++const keysFile = readdirSync(SECRETS).find((f) => f.startsWith("key"));
++if (!keysFile) throw new Error("r6 key file not found");
++const kv = {};
++for (const line of readFileSync(join(SECRETS, keysFile), "utf8").split(/\r?\n/)) {
++  const m = line.match(/^\s*([A-Z_]+)\s*=\s*"?([^"]*)"?\s*$/);
++  if (m) kv[m[1]] = m[2];
++}
++const explicit = {
++  ISOLATED_CONTRACT: "r6",
++  R6_DB_CONTAINER: "g0r6-db",
++  R6_API_CONTAINER: "g0r6-kong",
++  NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:58461",
++  NEXT_PUBLIC_SUPABASE_ANON_KEY: kv.ANON_KEY,
++  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: kv.ANON_KEY,
++  SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
++  NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
++  LOCAL_DB_CONTAINER: "g0r6-db",
++  LOCAL_SUPABASE_API_PORTS: "58461",
++  PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3176",
++  ProgramData: "C:\\ProgramData",
++};
++const envNames = existsSync(join(REPO, ".env.local"))
++  ? readFileSync(join(REPO, ".env.local"), "utf8").split(/\r?\n/).map((l) => l.split("=")[0].trim()).filter((n) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n))
++  : [];
++const env = { ...process.env };
++for (const n of envNames) env[n] = explicit[n] ?? "";
++Object.assign(env, explicit);
++for (const n of ["SUPABASE_WORKDIR", "SUPABASE_URL", "DATABASE_URL", "SUPABASE_DB_URL", "RESEND_API_KEY", "FAWRY_MERCHANT_CODE", "FAWRY_SECURE_KEY"]) env[n] = env[n] ?? "";
++env.PATH = "C:\\Users\\Lenovo\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;" + (env.PATH ?? "");
++
++const serverLog = join(OUT, `${label}-server.txt`);
++const fd = openSync(serverLog, "w");
++const server = spawn(process.execPath, [join(REPO, "node_modules/next/dist/bin/next"), "start", "-p", "3176"], {
++  cwd: REPO, env, stdio: ["ignore", fd, fd], detached: false,
++});
++let result = 1;
++const started = Date.now();
++try {
++  let ready = false;
++  for (let i = 0; i < 60; i++) {
++    if (server.exitCode !== null) throw new Error(`Next server exited early: ${server.exitCode}`);
++    try {
++      const response = await fetch("http://127.0.0.1:3176/en/login", { signal: AbortSignal.timeout(3000) });
++      if (response.status < 500) { ready = true; break; }
++    } catch {}
++    await new Promise((resolve) => setTimeout(resolve, 2000));
++  }
++  if (!ready) throw new Error("Next server did not become ready on r6 port 3176");
++  const r = spawnSync(process.execPath, [join(REPO, "node_modules/@playwright/test/cli.js"), "test", spec, "--reporter=list", `--output=${join(OUT, `${label}-artifacts`)}`], {
++    cwd: REPO, env, encoding: "utf8", timeout: 300000, maxBuffer: 64 * 1024 * 1024,
++  });
++  result = r.status ?? 1;
++  writeFileSync(join(OUT, `${label}.txt`), `$ ${spec}\nlabel=${label}\nexit=${result}\nelapsed_ms=${Date.now() - started}\n\n${r.stdout ?? ""}${r.stderr ?? ""}`);
++} catch (error) {
++  writeFileSync(join(OUT, `${label}.txt`), `$ ${spec}\nlabel=${label}\nexit=1\n\n${error?.stack ?? error}`);
++} finally {
++  if (server.exitCode === null) spawnSync("taskkill.exe", ["/PID", String(server.pid), "/T", "/F"], { stdio: "ignore" });
++  closeSync(fd);
++}
++console.log(`exit=${result} elapsed_ms=${Date.now() - started} log=${join(OUT, `${label}.txt`)}`);
++process.exitCode = result;
+diff --git a/working files/r6-runners/app-r6.mjs b/working files/r6-runners/app-r6.mjs
+new file mode 100644
+index 0000000..33d8c73
+--- /dev/null
++++ b/working files/r6-runners/app-r6.mjs	
+@@ -0,0 +1,81 @@
++// Builds and serves the Next app against the r6 stack ONLY. Secret values are read from the r6 secret folder and never printed.
++import { readFileSync, readdirSync, existsSync } from "node:fs";
++import { spawn, spawnSync } from "node:child_process";
++import { join } from "node:path";
++
++const REPO = "D:/Web/AqarBooks";
++const SECRETS = "C:/Users/Lenovo/AppData/Local/Temp/g0-r6";
++const keysFile = readdirSync(SECRETS).find((f) => f.startsWith("key"));
++const kv = {};
++for (const line of readFileSync(join(SECRETS, keysFile), "utf8").split(/\r?\n/)) {
++  const m = line.match(/^\s*([A-Z_]+)\s*=\s*"?([^"]*)"?\s*$/);
++  if (m) kv[m[1]] = m[2];
++}
++const url = "http://127.0.0.1:58461";
++const explicit = {
++  ISOLATED_CONTRACT: "r6",
++  R6_DB_CONTAINER: "g0r6-db",
++  R6_API_CONTAINER: "g0r6-kong",
++  NEXT_PUBLIC_SUPABASE_URL: url,
++  NEXT_PUBLIC_SUPABASE_ANON_KEY: kv.ANON_KEY,
++  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: kv.ANON_KEY,
++  SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
++  NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: kv.SERVICE_ROLE_KEY,
++  LOCAL_DB_CONTAINER: "g0r6-db",
++  LOCAL_SUPABASE_API_PORTS: "58461",
++};
++const envNames = existsSync(join(REPO, ".env.local"))
++  ? readFileSync(join(REPO, ".env.local"), "utf8").split(/\r?\n/).map((l) => l.split("=")[0].trim()).filter((n) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n))
++  : [];
++const env = { ...process.env };
++for (const n of envNames) env[n] = explicit[n] ?? "";
++Object.assign(env, explicit);
++for (const n of ["SUPABASE_WORKDIR", "SUPABASE_URL", "DATABASE_URL", "SUPABASE_DB_URL", "RESEND_API_KEY", "FAWRY_MERCHANT_CODE", "FAWRY_SECURE_KEY"]) env[n] = env[n] ?? "";
++
++const mode = process.argv[2];
++const next = join(REPO, "node_modules/next/dist/bin/next");
++if (mode === "build") {
++  const r = spawnSync(process.execPath, [next, "build", ...process.argv.slice(3)], { cwd: REPO, env, stdio: "inherit", timeout: 3_000_000 });
++  console.log("build exit", r.status);
++  process.exit(r.status ?? 1);
++} else if (mode === "start") {
++  const child = spawn(process.execPath, [next, "start", "-p", "3100"], { cwd: REPO, env, stdio: "ignore", detached: true });
++  child.unref();
++  console.log("started pid", child.pid);
++}
++if (mode === "pw") {
++  const specs = ["asset-disposal", "einvoice-flow", "enterprise-suite-pillars", "finance-screens-show-their-data", "fixed-assets", "projects-wip", "reports-suite-flow", "supplier-invoice-fx"];
++  const pwEnv = { ...env, PLAYWRIGHT_BASE_URL: "http://localhost:3100" };
++  let failures = 0;
++  for (const s of specs) {
++    const r = spawnSync(process.execPath, [join(REPO, "node_modules/@playwright/test/cli.js"), "test", `tests/e2e/${s}.spec.ts`, "--reporter=list"], {
++      cwd: REPO, env: pwEnv, encoding: "utf8", timeout: 1_500_000, maxBuffer: 256 * 1024 * 1024,
++      stdio: ["ignore", "pipe", "pipe"],
++    });
++    readFileSync; // no-op
++    const { writeFileSync } = await import("node:fs");
++    writeFileSync(join("C:/Users/Lenovo/AppData/Local/Temp/g0-r6-run", `pw2_${s}.txt`), (r.stdout ?? "") + (r.stderr ?? ""));
++    console.log(s, "exit", r.status);
++    if (r.status !== 0) failures++;
++  }
++  process.exitCode = failures ? 1 : 0;
++}
++if (mode === "pw1") {
++  const s = process.argv[3];
++  const r = spawnSync(process.execPath, [join(REPO, "node_modules/@playwright/test/cli.js"), "test", `tests/e2e/${s}.spec.ts`, "--reporter=list"], {
++    cwd: REPO, env: { ...env, PLAYWRIGHT_BASE_URL: "http://localhost:3100" }, encoding: "utf8", timeout: 1_500_000, maxBuffer: 256 * 1024 * 1024,
++  });
++  console.log("exit", r.status);
++  console.log((r.stdout ?? "").slice(-3000));
++  console.log((r.stderr ?? "").slice(-3000));
++}
++if (mode === "pwo") {
++  const [, , , spec, outDir] = process.argv;
++  const r = spawnSync(process.execPath, [join(REPO, "node_modules/@playwright/test/cli.js"), "test", `tests/e2e/${spec}.spec.ts`, "--reporter=list", `--output=${outDir}`], {
++    cwd: REPO, env: { ...env, PLAYWRIGHT_BASE_URL: "http://localhost:3100" }, encoding: "utf8", timeout: 1_500_000, maxBuffer: 256 * 1024 * 1024,
++  });
++  console.log("exit", r.status);
++  console.log((r.stdout ?? "") + (r.stderr ?? ""));
++  process.exitCode = r.status ?? 1;
++}
++if (mode === "selftest-fail") { const r = spawnSync(process.execPath, ["-e", "process.exit(3)"]); console.log("child exit", r.status); process.exitCode = r.status ?? 1; }
+diff --git a/docs/progress/ROADMAP.md b/docs/progress/ROADMAP.md
+new file mode 100644
+index 0000000..e01d839
+--- /dev/null
++++ b/docs/progress/ROADMAP.md
+@@ -0,0 +1,155 @@
++# خارطة طريق AqarBooks - تقدم الإقفال المالي
++
++**الغرض:** تتبع حالة مراحل العمل على الإقفال المالي للسنة وتجربة المستخدم المالية، استناداً إلى التقارير المسجلة فقط.
++
++المصدر المهيكل لهذه الحالات هو `docs/progress/status.json`، والاختبار `tests/progress-status.test.ts` يتحقق من صحته.
++
++> **تنبيه:** هذه الحالات ليست مؤشر جاهزية للإنتاج. لم يتم تقييم جاهزية الإنتاج (`production_readiness: not_assessed`).
++
++## جدول المراحل
++
++| المعرف | المرحلة | الحالة |
++|---|---|---|
++| `ux-sprint-1` | السبرينت 1 لتجربة المستخدم (المالية) | code_complete |
++| `sprint-2-batch-0` | السبرينت 2 - الدفعة 0 (صدق معالج الإقفال) | code_complete |
++| `sprint-2-batch-1a` | السبرينت 2 - الدفعة 1A (حساب الإقفال النقي) | code_complete |
++| `sprint-2-batch-1b` | السبرينت 2 - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير) | verified (على r6 فقط؛ مراجعة مقبولة) |
++| `sprint-2-batch-2` | السبرينت 2 - الدفعة 2 (رموز أخطاء الترحيل) | verified (على r6 فقط؛ مراجعة مقبولة) |
++| `sprint-2-batch-3` | السبرينت 2 - الدفعة 3 (واجهة رحلة الإقفال) | code_complete (على r6؛ بانتظار قبول المراجعة) |
++| `bi-1` | BI-1 - صدق مؤشرات لوحات المعلومات | verified (على r6 فقط) |
++| `g0-local-rehearsal` | بوابة G0 للتدريب المحلي | code_complete (محلي فقط) |
++| `production` | الإنتاج | not_started |
++
++## تفاصيل المراحل
++
++### ux-sprint-1 - السبرينت 1 لتجربة المستخدم (المالية)
++
++- **الحالة:** code_complete
++- **الاختبارات:** ثمانية ملفات وحدة (`finance-error-message`، `bank-reconciliation-ux`، `receipt-void-ux`، `bank-reconciliation-currency`، `bank-reconciliation-rtl`، `treasury-error-codes`، `db-error-code`، `einvoice-receivable-account`) - 113/113 ناجحة في تشغيل مجمّع، و tsc بخروج 0.
++- **العوائق:**
++  - لا يوجد تحقق في المتصفح ولا Playwright
++  - لا يوجد تحقق تكامل
++  - نص العربية لم يراجعه مترجم
++  - ملكية تعيين أخطاء الخزينة في `receivables.ts` غير محسومة
++  - نص إنجليزي في الفرع العربي من `statement-forms.tsx` لم يُصحح
++- **آخر تحديث:** 2026-10-23
++- **الأدلة:** تقرير تشغيل الاختبارات المجمّع، وملفات الاختبار المذكورة في `status.json`
++- **النسبة المئوية:** غير معرّفة
++
++### sprint-2-batch-0 - الدفعة 0 (صدق معالج الإقفال)
++
++- **الحالة:** code_complete
++- **الاختبارات:** `tests/year-closing-wizard-honesty.test.ts` - 6/6 ناجحة
++- **العوائق:** لا توجد عوائق في الكود. زر الإقفال لكل فترة ما زال بدون فحوصات مسبقة (مقصود في هذه الدفعة).
++- **آخر تحديث:** 2026-10-23
++- **الأدلة:** `tests/year-closing-wizard-honesty.test.ts`
++- **النسبة المئوية:** غير معرّفة
++
++### sprint-2-batch-1a - الدفعة 1A (حساب الإقفال النقي)
++
++- **الحالة:** code_complete
++- **الاختبارات:** `tests/fiscal-year-closing.test.ts` - 38/38 ناجحة؛ اختبار المعالج - 44 إجمالاً مع الدفعة 0
++- **العوائق:** لا يوجد جانب قاعدة بيانات بعد.
++- **آخر تحديث:** 2026-10-23
++- **الأدلة:** `lib/accounting/fiscal-year-closing.ts`، `tests/fiscal-year-closing.test.ts`، `tests/year-closing-wizard-honesty.test.ts`
++- **النسبة المئوية:** غير معرّفة
++
++### sprint-2-batch-1b - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير)
++
++- **الحالة:** verified؛ أُغلقت مراجعة Batch 1B بقبول المالك النصي «قبول» في 2026-10-31 12:27 للحزمة حتى 240000. الإغلاق محلي على r6 وليس اعتماد إنتاج.
++- **آخر تحديث:** 2026-10-31
++- **المصدر المهيكل والأدلة:** `docs/progress/status.json`، و`docs/progress/evidence-r6-run10/`، و`docs/progress/handover-batch-1b.md`، و`docs/progress/review-signoff-batch-1b.md`.
++- **النسبة المئوية:** غير معرّفة؛ الجدول يصف البنود الفعلية ولا يقيس جاهزية الإنتاج.
++
++| المهمة | الحالة | المتبقي الفعلي | صاحب العائق | تقدير الوقت للخطوات المحلية المتبقية | أثره على التسليم والشغل المستقل |
++|---|---|---|---|---|---|
++| حماية المشاريع وWIP والعكس والقيود اليدوية، عبر الترحيلات 120000–230000 | مكتملة | لا شيء في النطاق المنفذ؛ 130000 و140000 و160000 و170000 مستبدلة بإصدارات لاحقة | — | 0 | ضمن حزمة المراجعة؛ ليس اعتمادًا لبيئة أخرى |
++| تصنيف المسودة الملغاة واتساق حارس الصافي | مكتملة | لا شيء؛ أُعيد اختبار الإلغاء المدين على r6: `floor_net` من `100` إلى `-200`، ورفضته القيود المؤجلة قبل ROLLBACK، ثم بقي الصافي والحارس والدفتر `100` والحالة DRAFT | — | 0 | الدليل `evidence-r6-run9/results/cancelled_debit_status_guard_recheck.txt`؛ لا إصلاح أو SQL جديد ولا إعادة للواجهة |
++| مراجعة SQL المحلية للترحيلات المتأثرة | مكتملة | اكتملت مراجعة 230000 و240000 وفرقهما وخطتي تراجعهما. في 240000 أُغلقت ملاحظة Required بتمييز الحساب غير النقدي المستقل في الاختبارين؛ لا ملاحظة Critical أو Required مفتوحة | — | 0 | التقريران `review-230000-sql.md` و`review-240000-sql.md`؛ قبل المالك الحزمة في `review-signoff-batch-1b.md`، دون ادعاء مراجعة DBA مستقلة أو جاهزية إنتاج |
++| تغطية ترتيب تحديث متعدد الأسطر لمشروعين خارج T4/T5 | مكتملة | لا شيء؛ الترتيبان نجحا، والصافي النهائي `400/400` رغم المرور بسالب مؤقت في كل اتجاه | — | 0 | أُدرج الاختبار والدليل في الحزمة النهائية |
++| التسليم الأولي للدفعة للمراجعة | مكتملة ومقبولة | لا شيء في نطاق مراجعة Batch 1B؛ قبل المالك الحزمة حتى 240000 برسالة «قبول» في 2026-10-31 12:27 | — | 0 | الحزمة `review-bundle-r6-240000.zip` محفوظة دون تغيير، والقبول موثق في `review-signoff-batch-1b.md`؛ الدفعة `verified` محليًا فقط |
++| اعتماد الترحيلات وملاحظات التراجع والسلوك القائم | مكتملة | قُبلت نتيجة مراجعة الحزمة 120000–230000 بتأكيد المالك النصي «قبول» في 2026-10-31، بما فيها ملاحظات التراجع والسلوك القائم؛ أُغلق REL-02 | قرار مبلّغ 2026-10-31 | 0 | القرار موثق في `docs/progress/review-signoff-120000-230000.md`؛ ليس اعتماد إنتاج |
++| تغطية UPDATE/DELETE لأدوار `authenticated` و`anon` | مكتملة بقرار نطاق | لا فتح للكتابة؛ تبقى الأدوار بلا سياسات UPDATE/DELETE كما هي، وأي توسعة مستقبلية تحتاج اعتمادًا جديدًا | قرار المالك 2026-10-30 | 0 | ليس عائقًا لإغلاق Batch 1B ولا يتطلب اختبارات أو SQL جديدًا |
++| سياسة الرصيد السالب الموجود وفئات حساب حصيلة الاستبعاد | مكتملة على r6 | أُغلق REL-03: النقدية/البنوك فقط للحصيلة الموجبة، مع رفض حساب الأصل ومجمع الإهلاك والحساب التجميعي/غير النشط/طالب مركز التكلفة؛ لا ذمم آجلة أو مقايضة. لا بند محلي متبقٍ في هذا القرار | — | 0 | الترحيل 240000 والأدلة في `docs/progress/evidence-r6-run10/`؛ التكامل 8/8، وPlaywright ‏1/1، وTypeScript والبناء ناجحان؛ ليس اعتماد إنتاج |
++| طيار الضرائب `sandbox-pilot.manual` | محجوبة | قواعد ضريبية معتمدة ثم إعادة الطيار؛ 6 تأكيدات ما زالت غير متحققة | المالك/المختص الضريبي | لا تقدير محلي قبل القواعد | قرار خارجي لا يوقف الشغل المستقل |
++| اختبار Fawry | محجوبة | مفاتيح Fawry ثم تشغيل الاختبار | المالك/مزود Fawry | لا تقدير محلي قبل المفاتيح | عائق خارجي لا يوقف الشغل المستقل |
++| تقارير الأصول وCAM وCAPEX/OPEX | مؤجلة | لا عمل ضمن Batch 1B؛ الروابط مخفية والاختبارات `test.fixme` متخطاة وليست ناجحة | قرار مالك معتمد مسبقًا | 0 في هذه الدفعة | التأجيل لا يوقف المراجعة أو الشغل المستقل |
++
++### sprint-2-batch-2 - الدفعة 2 (رموز أخطاء الترحيل)
++
++- **الحالة:** verified على r6 فقط؛ قبل المالك إغلاق المراجعة برسالة «قبول» في 2026-10-31 13:55. القبول موثق في `docs/progress/review-signoff-batch-2.md`، ولم تبدأ Batch 3.
++- **النطاق:** `FISCAL_PERIOD_NOT_OPEN` كرمز ثابت في كل مسارات الترحيل (يدوي، مستحقات، مدفوعات، عكس، بنكي) مع اختبارات تكامل.
++- **الفرق:** الاقتراح forward-only ‏`20261031125000_fiscal_period_not_open_stable.sql` غيّر سطرين حيين فقط في الترحيل اليدوي والعكس؛ لم يغيّر الأقفال أو الصلاحيات أو دلالة `ENTRY_IN_CLOSED_PERIOD`. خطة التراجع مستقلة ولم تُطبق.
++- **الاختبارات:** RED قبل الإصلاح: فشل اليدوي والعكس ونجحت المستحقات والمدفوعات والمصروف البنكي (2 فاشلة/3 ناجحة، 19.403 ثانية). GREEN بعد 250000 على r6: 5/5 ناجحة، 10.980 ثانية. فحص التقويم: 12 ناجحة و6 `todo` معلنة، 2.396 ثانية؛ TypeScript بخروج 0. لم تُعد اختبارات Batch 1B أو مجموعة الواجهة الكاملة.
++- **آخر تحديث:** 2026-10-31
++- **الأدلة:** `docs/progress/review-signoff-batch-2.md` و`docs/progress/evidence-r6-run10/results/batch2-period-code-red-r6.txt` و`batch2-period-code-green-r6.txt` و`batch2-250000-live.diff`، والمصدر المهيكل `docs/progress/status.json`.
++- **النسبة المئوية:** غير معرّفة
++
++| المهمة | الحالة | المتبقي الفعلي | صاحب العائق | تقدير الوقت للخطوات المحلية المتبقية | أثره على التسليم والشغل المستقل |
++|---|---|---|---|---|---|
++| إثبات عيب الرمز في المسارات الخمسة | مكتملة | لا شيء؛ RED أثبت العيب في اليدوي والعكس فقط | — | 0 | مسارات المستحقات والمدفوعات والبنك لم تحتج إصلاحًا |
++| SQL لتوحيد الرمز وخطة التراجع | مكتملة | لا شيء محلي؛ طُبق 250000 على r6 والفرق الحي سطران فقط | — | 0 | ضمن النطاق المقبول؛ لم يُطبق خارج r6 |
++| إعادة التكامل والفحوص المتأثرة | مكتملة | لا شيء؛ GREEN ‏5/5، والتقويم وTypeScript ناجحان | — | 0 | لا إعادة لمجموعة الواجهة أو Batch 1B |
++| مراجعة وقبول Batch 2 | مكتملة ومقبولة | لا شيء؛ قبل المالك SQL والفرق وخطة التراجع والنتيجة في 2026-10-31 13:55 | — | 0 | الدفعة `verified` محليًا فقط، والقبول موثق في `review-signoff-batch-2.md` |
++
++قرارات الضرائب ومفاتيح Fawry الخارجية لم تتغير، وهي خارج نطاق Batch 2 ولا توقف العمل المستقل. لا يوجد قرار خارجي جديد مرتبط بهذا الإغلاق.
++
++### sprint-2-batch-3 - الدفعة 3 (واجهة رحلة الإقفال)
++
++- **الحالة:** code_complete على r6؛ التنفيذ والفحوص المحلية مكتملة، وقبول مراجعة المالك ما زال معلقًا. ليست `verified` وليست اعتماد إنتاج.
++- **النطاق:** فحص مسبق، ومعاينة للقيد من القيود المرحّلة والمعكوسة، وتأكيد بكتابة النص، وشاشة نتيجة من القاعدة؛ لا ترحيل أرصدة افتتاحية ولا SQL إقفال جديد.
++- **الإصلاح الإضافي:** `proveTenantPermission` يحل الصلاحية المطلوبة بمفتاحها ثم يتحقق من منحها لدور مؤسسي صالح؛ بقيت العضوية النشطة ونطاق المؤسسة ومنع `PLATFORM_SUPER_ADMIN` والفشل المغلق دون تغيير.
++- **الاختبارات:** RED الأولي 8 فاشلة/1 ناجحة؛ عقد الرحلة بعد الإصلاح 9/9، والتفويض 53/53، واستعلام الصلاحية على r6 ‏1/1، وTypeScript بلا أخطاء. بناء Webpack على r6 خرج 0 وولّد 225/225 صفحة؛ محاولات Turbopack تعثرت في عامل CSS، وسجلت ولم تُحسب نجاحًا. Playwright ‏1/1 نجح، وأثبت سنة CLOSED وقيد YEAR_END_CLOSING مرحّلًا من سطرين متوازنين بقيمة 100 وحدث تدقيق واحد وصفر أخطاء صفحة.
++- **آخر تحديث:** 2026-10-31
++- **الأدلة:** `docs/progress/evidence-r6-run10/results/` و`docs/progress/status.json`؛ اللقطات العربية والإنجليزية والموبايل رُوجعت فعليًا.
++- **النسبة المئوية:** غير معرّفة
++
++| المهمة | الحالة | المتبقي الفعلي | صاحب العائق | تقدير الوقت للخطوات المحلية المتبقية | أثره على التسليم والشغل المستقل |
++|---|---|---|---|---|---|
++| رحلة الفحص والمعاينة والتأكيد والنتيجة | مكتملة | لا شيء محلي في النطاق؛ أُنجزت المعاينة والتنفيذ عبر RPC الحالي وidempotency | — | 0 | جاهزة لمراجعة Batch 3 فقط |
++| إصلاح إثبات صلاحية الإقفال واختبارات الانحدار | مكتملة | لا شيء؛ 53/53 و1/1 على r6، مع بقاء الفشل المغلق ومنع تجاوز المؤسسة | — | 0 | أُغلق عائق `FORBIDDEN_CLOSE_PERMISSION` دون إضعاف التفويض |
++| TypeScript والبناء واختبار المتصفح والمراجعة البصرية | مكتملة | لا شيء؛ TypeScript ناجح، وبناء Webpack خرج 0، وE2E ‏1/1 مع تحقق القاعدة واللقطات | — | 0 | فشل Turbopack البيئي موثق؛ لم تُعد مجموعة الواجهة الكاملة |
++| مراجعة وقبول Batch 3 | جارية | مراجعة الفرق الكامل والأدلة ثم قرار قبول أو إرجاع بعيب مثبت | المالك/المراجع | لا خطوة محلية مقدرة قبل المراجعة | أقرب نقطة تسليم هي الآن؛ القبول لا يعني نشرًا أو جاهزية إنتاج |
++
++قرارات الضرائب ومفاتيح Fawry الخارجية لم تتغير، وهي خارج نطاق Batch 3 ولا توقف الشغل المستقل.
++
++### bi-1 - صدق مؤشرات لوحات المعلومات
++
++- **الحالة:** verified على r6 فقط؛ أُغلق BI-1 بعد مراجعة نهائية مستقلة دون ملاحظات متبقية داخل النطاق.
++- **النطاق المغلق:** دلالة الاستحقاق للإيرادات والمصروفات، الفترة الحالية وأخطاء تحميلها، هدف التحصيل 90%، صدق بطاقة الرؤى ولوحة المنصة، وحدود الأشهر UTC.
++- **الاختبارات:** 45/45 في Vitest عبر 7 ملفات؛ Playwright ‏1/1 بالعربية والإنجليزية على r6؛ TypeScript وبناء r6 ناجحان، مع توليد 225/225 صفحة.
++- **العوائق:** لا عائق داخل BI-1. لم تُشغّل مجموعة الواجهة الكاملة، وتحذيرات `unused-vars` الستة موثقة؛ ذلك ليس تقييمًا لجاهزية الإنتاج.
++- **آخر تحديث:** 2026-10-30
++- **الأدلة:** `docs/progress/review-bundle-r6-bi1.zip` وبصمتها وسجل التحقق؛ تضم الحزمة الفرق النهائي والاختبارات واللقطتين وتقرير المراجعة المستقلة.
++- **النسبة المئوية:** غير معرّفة
++
++### g0-local-rehearsal - بوابة G0 للتدريب المحلي
++
++- **الحالة:** code_complete (للنطاق المحلي فقط)
++- **العوائق:**
++  - الموافقة المشروطة المسجلة في `APPROVAL-RECORD.md` تغطي النطاق المحلي فقط
++  - محجوبة للإنتاج: هوية الإنتاج وأي إجراء على الإنتاج يحتاجان موافقة منفصلة
++- **آخر تحديث:** 2026-10-23
++- **الأدلة:** `APPROVAL-RECORD.md`
++- **النسبة المئوية:** غير معرّفة
++
++### production - الإنتاج
++
++- **الحالة:** not_started
++- **العوائق:** موافقة المالك مطلوبة؛ الإنتاج غير متصل؛ موافقة G0 تغطي النطاق المحلي فقط.
++- **آخر تحديث:** 2026-10-23
++- **النسبة المئوية:** غير معرّفة
++
++## مفتاح الحالات
++
++| الحالة | المعنى |
++|---|---|
++| `not_started` | لم يبدأ العمل بعد. |
++| `in_progress` | العمل جارٍ، والكود أو المخرجات لم تكتمل بعد. |
++| `code_complete` | الكود واختبارات الوحدة موجودة وناجحة. لا يعني ذلك التحقق من التكامل أو المتصفح. |
++| `verified` | تم تشغيل فحص تكامل أو e2e ونجح على بيئة معزولة، مع دليل موثق. |
++| `blocked` | لا يمكن المتابعة بسبب عائق محدد مذكور في القائمة. |
++
++## ملاحظة عن الحالات
++
++الحالات في هذه الخارطة لا تعني أن النظام جاهز للإنتاج، ولا تمثل درجة جاهزية. هي تصف ما أثبتته التقارير المسجلة لكل مرحلة فقط. النسب المئوية غير معرّفة لأن المراحل لا تحتوي على مجموعات محددة من العناصر الفرعية.
+diff --git a/docs/progress/status.json b/docs/progress/status.json
+new file mode 100644
+index 0000000..49d0826
+--- /dev/null
++++ b/docs/progress/status.json
+@@ -0,0 +1,417 @@
++{
++  "schema_version": 1,
++  "generated_note": "Hand-maintained from the session reports listed in each phase's evidence. Statuses describe only what those reports established. This file is not a production readiness score.",
++  "production_readiness": "not_assessed",
++  "production_readiness_note": "Production readiness has not been assessed. No percentage or score in this file measures it.",
++  "phases": [
++    {
++      "id": "ux-sprint-1",
++      "name_ar": "السبرينت 1 لتجربة المستخدم (المالية)",
++      "name_en": "UX Sprint 1 (finance UX)",
++      "status": "code_complete",
++      "tests": [
++        {
++          "file": "tests/finance-error-message.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/bank-reconciliation-ux.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/receipt-void-ux.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/bank-reconciliation-currency.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/bank-reconciliation-rtl.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/treasury-error-codes.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/db-error-code.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        },
++        {
++          "file": "tests/einvoice-receivable-account.test.ts",
++          "result_text": "Part of combined run: 113/113 passing (reported)"
++        }
++      ],
++      "blockers": [
++        "No browser verification",
++        "No Playwright run",
++        "No integration verification",
++        "Arabic copy not reviewed by a translator",
++        "Ownership of treasury error mapping in receivables.ts is not settled",
++        "English string in the Arabic branch of statement-forms.tsx not fixed"
++      ],
++      "last_updated": "2026-10-23",
++      "evidence": [
++        "Combined unit test run: 113/113 passing, tsc exit 0 (session report)",
++        "tests/finance-error-message.test.ts",
++        "tests/bank-reconciliation-ux.test.ts",
++        "tests/receipt-void-ux.test.ts",
++        "tests/bank-reconciliation-currency.test.ts",
++        "tests/bank-reconciliation-rtl.test.ts",
++        "tests/treasury-error-codes.test.ts",
++        "tests/db-error-code.test.ts",
++        "tests/einvoice-receivable-account.test.ts"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "sprint-2-batch-0",
++      "name_ar": "السبرينت 2 - الدفعة 0 (صدق معالج الإقفال)",
++      "name_en": "Sprint 2 Batch 0 (closing wizard honesty)",
++      "status": "code_complete",
++      "tests": [
++        {
++          "file": "tests/year-closing-wizard-honesty.test.ts",
++          "result_text": "6/6 passing"
++        }
++      ],
++      "blockers": [
++        "None in code",
++        "Per-period close button still has no pre-checks (by design in this batch)"
++      ],
++      "last_updated": "2026-10-23",
++      "evidence": [
++        "tests/year-closing-wizard-honesty.test.ts"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "sprint-2-batch-1a",
++      "name_ar": "السبرينت 2 - الدفعة 1A (حساب الإقفال النقي)",
++      "name_en": "Sprint 2 Batch 1A (pure closing calculation)",
++      "status": "code_complete",
++      "tests": [
++        {
++          "file": "tests/fiscal-year-closing.test.ts",
++          "result_text": "38/38 passing"
++        },
++        {
++          "file": "tests/year-closing-wizard-honesty.test.ts",
++          "result_text": "6/6 passing; 44 total with fiscal-year-closing (reported)"
++        }
++      ],
++      "blockers": [
++        "No database side yet"
++      ],
++      "last_updated": "2026-10-23",
++      "evidence": [
++        "lib/accounting/fiscal-year-closing.ts",
++        "tests/fiscal-year-closing.test.ts",
++        "tests/year-closing-wizard-honesty.test.ts"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "sprint-2-batch-1b",
++      "name_ar": "السبرينت 2 - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير)",
++      "name_en": "Sprint 2 Batch 1B (closing SQL, guards, permission, reports)",
++      "status": "verified",
++      "tests": [
++        {
++          "file": "tests/projects-wip.spec.ts",
++          "result_text": "8/8 passing on r6 after proposal 200000; the cancelled-draft case failed before the fix with released=900.00 instead of 600.00."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_after_210000.txt",
++          "result_text": "PASS on r6 after proposal 210000: status-only cancelled draft remains excluded; capitalised=1000, released=600, wip_balance=400, ledger=400. Transaction rolled back."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run5/results/cancelled_draft_floor_after.txt",
++          "result_text": "PASS on r6 after proposal 210000: cancelling a DRAFT WIP debit by status alone leaves guard net=100 and ledger=100; the pre-fix run reproduced net=-200 with ledger=100."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run7/results/cancelled_credit_release_immediate_after.txt",
++          "result_text": "PASS on r6 after proposal 220000: cancelled credit is excluded from the enforceable floor; valid release=600 and SET CONSTRAINTS ALL IMMEDIATE pass with WIP=400 and ledger=400."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run8/results/guard_tests_after_220000.log",
++          "result_text": "PASS on r6 after proposal 220000: non-negative to negative refused without writing; old negative improves -500 to -400; both release/reversal race orders pass; cancelled debit status-neutral net remains 100."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run9/results/cancelled_debit_status_guard_recheck.txt",
++          "result_text": "PASS on focused r6 recheck after proposal 230000: floor_net printed 100 before and -200 after attempted status-only debit cancellation; SET CONSTRAINTS ALL IMMEDIATE refused it before ROLLBACK; after rollback net=100, floor_net=100, ledger=100 and status=DRAFT. No SQL change was needed."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run9/results/status_guard_regression_after_230000.log",
++          "result_text": "PASS on r6 after proposal 230000: valid cancelled-credit release and deferred constraints pass; genuine posted reversals retain classification; both release/reversal race orders remain balanced and consistent."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run6/results/two_project_multiline_update_ordering.txt",
++          "result_text": "PASS on r6: both two-project update orders finish at A=400 and B=400 despite a temporary -600 in either direction. Test rows rolled back; setup rows cleaned up."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run6/results/cancelled_debit_release_regression.txt",
++          "result_text": "PASS on r6: with a cancelled WIP debit draft, release=1500 is refused against posted balance=1000 without writing; valid release=600 gives cap=1000, released=600, WIP=400, ledger=400. Transaction rolled back."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run5/results/posted_reversal_after.txt",
++          "result_text": "PASS on r6: reversed release gives 1000/0/1000; reversing the capitalisation then gives 0/0/0, with ledger agreement. Transaction rolled back."
++        },
++        {
++          "file": "tests/reports-suite-flow.spec.ts",
++          "result_text": "passing; 1 skipped (fixed-asset check, DEFERRED)"
++        },
++        {
++          "file": "tests/reports-lease-expirations.spec.ts",
++          "result_text": "1/1 passing"
++        },
++        {
++          "file": "tests/reports-lease-read-failure.spec.ts",
++          "result_text": "1/1 passing (read error shown, no rows)"
++        },
++        {
++          "file": "tests/reports-unbuilt-sections.spec.ts",
++          "result_text": "2 skipped: CAM and CAPEX/OPEX DEFERRED (test.fixme, never passed)"
++        },
++        {
++          "file": "tests/accounting-journey.spec.ts",
++          "result_text": "15/15 passing (manual journal path under option A)"
++        },
++        {
++          "file": "tests/vitest (20 files)",
++          "result_text": "4 re-run passing; 15 first-run results kept; sandbox-pilot.manual 3/9 (tax rules blocked, decision 0008)"
++        },
++        {
++          "file": "docs/progress/evidence-r6-run4/results/verify_reverse_negative_message.txt",
++          "result_text": "PASS on r6: refused reversal kept the original entry POSTED; proposal 190000 now labels 400 as the balance before the movement and -600 as the projected net, not a persisted balance."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run4/results/retry_valid_missing_attempt.txt",
++          "result_text": "PASS on r6: S1 rolled back on deadlock; its retry waited 3.907 s under a concurrent project lock, then committed. Both entries POSTED; PA=750, PB=800; 0 unbalanced retry entries."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run4/results/retry_seed.txt",
++          "result_text": "SETUP FAILED: a fixed UUID already existed in accumulated r6 data. Diagnosed as fixture collision, not a product regression; no data deleted. The atomic random-UUID fixture and subsequent deadlock/retry run passed."
++        },
++        {
++          "file": "tests/progress-status.test.ts",
++          "result_text": "7/7 passing after the Batch 1B 240000 handoff tracker update; runner elapsed 10.861 s, Vitest duration 2.48 s, exit 0 (docs/progress/evidence-r6-run10/results/batch1b-240000-progress-status.txt)."
++        },
++        {
++          "file": "tests/fixed-asset-disposal.integration.test.ts",
++          "result_text": "RED before REL-03: non-cash proceeds account accepted; final focused review on r6 after proposal 240000: 8/8 passing in 16.152 s. The corrected fixture uses independent ASSET account 1230 with is_cash_equivalent=false; refusal writes no entry and leaves the asset ACTIVE (rel03-review-integration.txt)."
++        },
++        {
++          "file": "tests/e2e/asset-disposal.spec.ts",
++          "result_text": "Final focused review on r6: 1/1 passing in 62.277 s; independent non-cash ASSET account 1230 is absent, cash is available and disposal balances (rel03-review-e2e-optimized.txt). The earlier review run timed out during context close after its assertions; its trace is retained."
++        }
++      ],
++      "blockers": [
++        "External, does not stop independent work: sandbox-pilot.manual 6 assertions remain unverified until approved tax rules exist (decision 0008 unsigned).",
++        "External, does not stop independent work: owner-portal-online-payment-fawry not run (Fawry keys absent).",
++        "Deferred by explicit owner decision (2026-10-29, decisions/2026-10-29-report-deferrals.md): asset report, CAM, CAPEX/OPEX. Links hidden; tests test.fixme (skipped, not passed).",
++        "REL-03 closed on r6 on 2026-10-31: WIP legacy negative balances may improve only; positive disposal proceeds are limited to active non-group same-organization ASSET cash/bank accounts with is_cash_equivalent=true; asset, accumulated-depreciation and cost-centre-required accounts are rejected; receivables and in-kind disposal are excluded; zero-proceeds account remains required but is not used. Proposal 240000 applied only to r6; local review review-240000-sql.md closed the test-isolation finding without SQL changes; integration 8/8, Playwright 1/1, TypeScript and the earlier build passed. No independent human sign-off or production approval is implied.",
++        "Decided by owner on 2026-10-30: authenticated and anon remain without journal_entry_lines UPDATE/DELETE policies; no expansion is required to close Batch 1B. Any future expansion requires separate approval and focused tests.",
++        "Local multi-line update ordering is complete: both two-project orders passed at final net 400/400. No remaining local test task blocks review handoff.",
++        "REL-02 accepted and closed on 2026-10-31 based on the owner's explicit message 'قبول' reporting the SQL/DBA review outcome for proposals 120000-230000, including rollback notes and existing behavior. Recorded in docs/progress/review-signoff-120000-230000.md; no separate independent report was attached and no production approval is implied.",
++        "Batch 1B review accepted and closed on 2026-10-31 at 12:27 based on the owner's explicit message 'قبول' for review closure only. Accepted archive: docs/progress/review-bundle-r6-240000.zip, SHA-256 6c70aac3f9be4622bf13fb52409cd9957f94eb0094cc7636eaa742c986897753; recorded in review-signoff-batch-1b.md. The archive remains unchanged as the reviewed pre-signoff snapshot. Not applied outside r6; no production approval or readiness claim."
++      ],
++      "last_updated": "2026-10-31",
++      "evidence": [
++        "docs/progress/review-bundle-r6-240000.zip",
++        "docs/progress/review-bundle-r6-240000/manifest.txt",
++        "docs/progress/review-signoff-batch-1b.md",
++        "docs/progress/review-bundle-r6-230000.zip",
++        "docs/progress/review-bundle-r6-230000/manifest.txt",
++        "docs/progress/ROADMAP.md",
++        "docs/progress/review-230000-sql.md",
++        "docs/progress/review-240000-sql.md",
++        "docs/progress/review-signoff-120000-230000.md",
++        "docs/progress/disposal-proceeds-account-recommendation.md",
++        "docs/progress/proposals/20261029240000_disposal_proceeds_cash_only.sql",
++        "docs/progress/evidence-r6-run10/results/rel03-review-integration.txt",
++        "docs/progress/evidence-r6-run10/",
++        "docs/progress/evidence-r6-run9/",
++        "docs/progress/evidence-r6-run8/",
++        "docs/progress/evidence-r6-run7/",
++        "docs/progress/proposals/20261029220000_project_wip_floor_ignore_cancelled_drafts.sql",
++        "docs/progress/proposals/20261029230000_project_status_cancellation_floor.sql",
++        "docs/progress/evidence-r6-run6/",
++        "docs/progress/evidence-r6-run5/",
++        "docs/progress/evidence-r6-run4/",
++        "docs/progress/decisions/"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "sprint-2-batch-2",
++      "name_ar": "السبرينت 2 - الدفعة 2 (رموز أخطاء الترحيل)",
++      "name_en": "Sprint 2 Batch 2 (posting error codes)",
++      "status": "verified",
++      "tests": [
++        {
++          "file": "tests/fiscal-period-not-open.integration.test.ts",
++          "result_text": "RED on r6 before proposal 250000: 2 failed (manual posting and reversal lacked FISCAL_PERIOD_NOT_OPEN) and 3 passed (dues, payments, bank expense), elapsed 19.403 s. GREEN on r6 after proposal 250000: 5/5 passing, exit 0, elapsed 10.980 s; refused operations preserved the pre-attempt counts and manual/original entry states."
++        },
++        {
++          "file": "tests/fiscal-calendar-transition.test.ts",
++          "result_text": "12 passed, 6 declared todo, exit 0, elapsed 2.396 s. The todo entries were not executed or counted as passes."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run10/results/batch2-typescript-result.txt",
++          "result_text": "node node_modules/typescript/bin/tsc --noEmit exited 0 with no diagnostics."
++        }
++      ],
++      "blockers": [
++        "None within Batch 2. The owner explicitly accepted review closure with 'قبول' on 2026-10-31 at 13:55; recorded in docs/progress/review-signoff-batch-2.md. Verified on r6 only; Batch 3 has not started.",
++        "The live before/after diff contains exactly two changed raise statements in post_journal_entry_internal and reverse_journal_entry. Existing FOR SHARE locks, grants, and ENTRY_IN_CLOSED_PERIOD semantics are unchanged.",
++        "Full UI and Batch 1B suites were intentionally not rerun; this was a focused Batch 2 change. No deployment, commit, push, or connection to development/production occurred.",
++        "External tax-rule and Fawry-key decisions remain outside Batch 2 and do not block independent work."
++      ],
++      "last_updated": "2026-10-31",
++      "evidence": [
++        "tests/fiscal-period-not-open.integration.test.ts",
++        "docs/progress/review-signoff-batch-2.md",
++        "docs/progress/proposals/20261031125000_fiscal_period_not_open_stable.sql",
++        "docs/progress/proposals/20261031125000_fiscal_period_not_open_stable_rollback.sql (not applied)",
++        "docs/progress/evidence-r6-run10/results/batch2-250000-live.diff",
++        "docs/progress/evidence-r6-run10/results/batch2-period-code-red-r6.txt",
++        "docs/progress/evidence-r6-run10/results/batch2-period-code-green-r6.txt",
++        "docs/progress/evidence-r6-run10/results/batch2-fiscal-calendar-transition.txt",
++        "docs/progress/evidence-r6-run10/results/batch2-typescript-result.txt",
++        "docs/progress/evidence-r6-run10/results/batch2-250000-apply-r6-retry.txt"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "sprint-2-batch-3",
++      "name_ar": "السبرينت 2 - الدفعة 3 (واجهة رحلة الإقفال)",
++      "name_en": "Sprint 2 Batch 3 (closing journey UI)",
++      "status": "code_complete",
++      "tests": [
++        {
++          "file": "tests/year-closing-wizard-honesty.test.ts",
++          "result_text": "Initial RED: 8 failed and 1 passed of 9 in 9.778 s. GREEN after implementation: 9/9 passing; after the authorization fix: 9/9 passing, runner elapsed 3.723 s."
++        },
++        {
++          "file": "tests/platform-tenant-authorization.test.ts",
++          "result_text": "53/53 passing after the bounded permission lookup fix, including a 102-grant regression, wrong-role denial, PLATFORM_SUPER_ADMIN denial, and fail-closed errors; runner elapsed 7.159 s."
++        },
++        {
++          "file": "tests/batch3-auth-debug.integration.test.ts",
++          "result_text": "1/1 passing on isolated r6: finance.years.close resolved by key and matched to the fixture owner's valid tenant role; runner elapsed 8.894 s."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run10/results/batch3-typescript-after-auth-fix.txt",
++          "result_text": "node node_modules/typescript/bin/tsc --noEmit exited 0 with no diagnostics; tool wall time 73.323 s."
++        },
++        {
++          "file": "docs/progress/evidence-r6-run10/results/batch3-build-webpack-final-retry.txt",
++          "result_text": "Next.js r6 Webpack build exited 0 in 197.237 s after cache warm-up; TypeScript and 225/225 static pages passed. Earlier Turbopack attempts failed in the CSS Node worker and timed-out Webpack attempts are retained, not counted as passes."
++        },
++        {
++          "file": "tests/e2e/year-end-closing-journey.spec.ts",
++          "result_text": "1/1 passing on isolated r6; Playwright 38.5 s, managed runner 49.872 s. Verified CLOSED year, one posted YEAR_END_CLOSING entry, two balanced lines, net income 100, one FISCAL_YEAR_CLOSED audit row, typed-phrase rejection, Arabic/English/mobile views, and zero page errors."
++        }
++      ],
++      "blockers": [
++        "Owner/reviewer acceptance of the complete Batch 3 diff and evidence remains pending; code_complete is not verified or production approval.",
++        "Turbopack build remains blocked by its local CSS Node pooled-process error; the scoped Webpack build passed and all failed/timed-out attempts are preserved in evidence.",
++        "External tax-rule and Fawry-key decisions remain outside Batch 3 and do not block independent work.",
++        "No development or production connection, deployment, commit, or push occurred. Closed fixture organizations were not deleted."
++      ],
++      "last_updated": "2026-10-31",
++      "evidence": [
++        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-red.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-after-auth-fix.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-tenant-auth-regression.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-auth-fixed.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-typescript-after-auth-fix.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-build-webpack-final-retry.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-e2e-final.txt",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-e2e-database.json",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-ar-precheck.png",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-ar-preview.png",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-en-preview.png",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-en-result.png",
++        "docs/progress/evidence-r6-run10/results/batch3-closing-en-confirm-mobile.png"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported. Local code completion is not production readiness."
++    },
++    {
++      "id": "bi-1",
++      "name_ar": "BI-1 - صدق مؤشرات لوحات المعلومات",
++      "name_en": "BI-1 (dashboard indicator honesty)",
++      "status": "verified",
++      "tests": [
++        {
++          "file": "tests/tenant-dashboard-access.test.tsx + tests/insights-card.test.tsx + tests/platform-dashboard.test.tsx + focused related suites",
++          "result_text": "7 files, 45/45 passing after fixes; 9 RED failures reproduced before remediation."
++        },
++        {
++          "file": "tests/e2e/dashboard-bi1.spec.ts",
++          "result_text": "1/1 passing on isolated r6 in English and Arabic; zero unhandled page errors asserted."
++        },
++        {
++          "file": "docs/progress/review-bundle-r6-bi1/logs/build-r6.txt (inside ZIP)",
++          "result_text": "r6 build passed; 225/225 pages generated; TypeScript passed; build exit 0."
++        }
++      ],
++      "blockers": [
++        "None within BI-1 scope after independent final review.",
++        "Full UI suite was not run; six documented unused-vars warnings remain outside the closure gate.",
++        "This local verified status is not a production readiness assessment or deployment approval."
++      ],
++      "last_updated": "2026-10-30",
++      "evidence": [
++        "docs/progress/review-bundle-r6-bi1.zip",
++        "docs/progress/review-bundle-r6-bi1.zip.sha256",
++        "docs/progress/review-bundle-r6-bi1.verify.txt",
++        "Independent final review inside the ZIP: PASS; no BLOCKER, IMPORTANT or MINOR findings within BI-1.",
++        "Isolated r6 E2E evidence and final English/Arabic screenshots inside the ZIP."
++      ],
++      "percent_defined": null,
++      "percent_note": "Single scoped BI item; no percentage is reported and production readiness remains unassessed."
++    },
++    {
++      "id": "g0-local-rehearsal",
++      "name_ar": "بوابة G0 للتدريب المحلي",
++      "name_en": "Local rehearsal gate G0",
++      "status": "code_complete",
++      "tests": [],
++      "blockers": [
++        "Covers the LOCAL scope only (conditional approval recorded in APPROVAL-RECORD.md)",
++        "Blocked for production: production identity and any production action need separate approval"
++      ],
++      "last_updated": "2026-10-23",
++      "evidence": [
++        "APPROVAL-RECORD.md (session report: G0 conditional local approval)"
++      ],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    },
++    {
++      "id": "production",
++      "name_ar": "الإنتاج",
++      "name_en": "Production",
++      "status": "not_started",
++      "tests": [],
++      "blockers": [
++        "Owner approval required",
++        "Production is not connected",
++        "G0 approval covers local scope only"
++      ],
++      "last_updated": "2026-10-23",
++      "evidence": [],
++      "percent_defined": null,
++      "percent_note": "No defined set of sub-items; no percentage is reported."
++    }
++  ]
++}
+diff --git a/docs/progress/handoff-batch-3-kimi-code.md b/docs/progress/handoff-batch-3-kimi-code.md
+new file mode 100644
+index 0000000..b40bc82
+--- /dev/null
++++ b/docs/progress/handoff-batch-3-kimi-code.md
+@@ -0,0 +1,114 @@
++# AqarBooks — Batch 3 Handoff for Kimi Code
++
++**Date:** 2026-10-31  
++**Workspace:** `D:\Web\AqarBooks`  
++**Scope:** Sprint 2, Batch 3 — fiscal year closing journey UI  
++**State:** **CODE COMPLETE ON r6 — OWNER REVIEW ACCEPTANCE PENDING**
++
++## 1. Fixed constraints
++
++- Work remained inside `D:\Web\AqarBooks` and against the isolated `g0r6-*` stack.
++- No development or production connection, deployment, commit, push, or publication occurred.
++- No subagents were used.
++- Accepted Batch 1B and Batch 2 behavior was not reopened; no new closing SQL or migration was written.
++- No other batch was started. Unrelated working-tree changes were not cleaned, reverted, or committed.
++
++## 2. Delivered behavior
++
++The former display-only wizard is now a connected four-stage journey:
++
++1. **Precheck:** fiscal periods, unreviewed entries, retained-earnings designation, and ledger availability.
++2. **Preview:** actual `POSTED` and `REVERSED` lines, existing BigInt closing calculation, 1,000-row pagination, and failure instead of a truncated preview.
++3. **Confirmation:** non-empty reason plus exact Arabic `إقفال السنة` or English `CLOSE YEAR` phrase in both UI and server validation.
++4. **Result:** persisted `closingEntryId`, `lineCount`, `netIncome`, and `alreadyClosed` only.
++
++Execution uses the existing `close_fiscal_year` RPC and `useOperationSubmit`; retries retain the operation key. The UI does not claim opening-balance rollover. Existing per-period status actions remain intact.
++
++## 3. Authorization blocker fixed
++
++`proveTenantPermission` previously loaded every granted permission ID and sent the full list to `permissions`. On r6, the owner fixture had more than 100 grants and that lookup failed with `An invalid response was received from the upstream server`, producing `FORBIDDEN_CLOSE_PERMISSION`.
++
++The fixed proof now:
++
++1. Resolves only the requested permission by `key`.
++2. Checks `role_permissions` for that permission ID and the already validated role IDs.
++3. Preserves active-membership enforcement, tenant-scoped assignments, organization/global-template role rules, categorical `PLATFORM_SUPER_ADMIN` exclusion, and fail-closed errors.
++
++The temporary diagnosis was converted into a durable r6 query regression. Unit coverage includes 102 grants, wrong-role denial, missing permission, lookup failure, and platform-role denial.
++
++## 4. Files in the scoped review
++
++### Application
++
++- `app/[locale]/(app)/admin/finance/periods/page.tsx`
++- `app/[locale]/(app)/admin/finance/periods/periods-client.tsx`
++- `app/[locale]/(app)/admin/finance/periods/year-end-closing-dialog.tsx` — new
++- `lib/actions/fiscal-year-closing.ts` — new
++- `lib/actions/error-messages.ts`
++- `lib/auth/authorize.ts`
++- `lib/finance/fiscal-year-closing-journey.ts` — new
++- `lib/supabase/types.ts`
++
++### Tests and local runners
++
++- `tests/year-closing-wizard-honesty.test.ts`
++- `tests/e2e/year-end-closing-journey.spec.ts` — new
++- `tests/batch3-auth-debug.integration.test.ts` — durable authorization regression
++- `tests/platform-tenant-authorization.test.ts`
++- `working files/r6-runners/run-r6-e2e-managed.mjs` — local managed server on port 3176
++- `working files/r6-runners/app-r6.mjs` — forwards optional build arguments; no deployment path used
++
++### Tracker and report
++
++- `docs/progress/ROADMAP.md`
++- `docs/progress/status.json`
++- `docs/progress/handoff-batch-3-kimi-code.md`
++
++## 5. Final verification results
++
++| Check | Result | Actual time | Evidence |
++|---|---|---:|---|
++| Initial closing contract RED | 8 failed, 1 passed of 9; expected pre-implementation failure | 9.778 s | `batch3-closing-journey-red.txt` |
++| Closing contract after implementation | 9/9 passed | runner 5.531 s | `batch3-closing-journey-green.txt` |
++| Closing contract after auth fix | 9/9 passed | runner 3.723 s | `batch3-closing-journey-after-auth-fix.txt` |
++| Tenant authorization regression | 53/53 passed | runner 7.159 s | `batch3-tenant-auth-regression.txt` |
++| r6 permission query regression | 1/1 passed | runner 8.894 s | `batch3-auth-fixed.txt` |
++| TypeScript | Exit 0; no diagnostics | 73.323 s | `batch3-typescript-after-auth-fix.txt` |
++| Final r6 Webpack build | Exit 0; TypeScript and 225/225 static pages passed | 197.237 s | `batch3-build-webpack-final-retry.txt` |
++| Real Playwright journey | 1/1 passed | Playwright 38.5 s; runner 49.872 s | `batch3-closing-journey-e2e-final.txt` |
++| Progress tracker contract | 7/7 passed | runner 3.686 s | `batch3-progress-status.txt` |
++
++All evidence paths above are under `docs/progress/evidence-r6-run10/results/`.
++
++Turbopack attempts failed in the CSS Node pooled-process launcher with `program not found`. Two diagnostic Webpack attempts reached the tool timeout, and the final warm-cache Webpack attempt passed. Failed and timed-out logs remain in the evidence directory; none is represented as a pass.
++
++## 6. Database and browser assertions
++
++The real E2E created an isolated fixture, posted balanced 2026 activity, designated retained earnings, closed the periods, rejected an incorrect confirmation phrase, completed the English close, and checked Arabic, English, and mobile views.
++
++Persisted result:
++
++- Fiscal year: `CLOSED`.
++- Closing entry: `YEAR_END_CLOSING`, `POSTED`, dated `2026-12-31`.
++- Two lines: debit 100 and credit 100.
++- Net income: `100`.
++- `FISCAL_YEAR_CLOSED` audit count: `1`.
++- Unhandled browser page errors: `0`.
++
++Evidence: `batch3-closing-e2e-database.json`. The closed fixture organization was intentionally not deleted.
++
++## 7. Visual review
++
++The generated screenshots were opened and visually reviewed. The four stages, balanced preview, typed-phrase error, and persisted result were readable in Arabic and English; the mobile confirmation was usable without horizontal page overflow asserted by the test.
++
++- `batch3-closing-ar-precheck.png`
++- `batch3-closing-ar-preview.png`
++- `batch3-closing-en-preview.png`
++- `batch3-closing-en-confirm-mobile.png`
++- `batch3-closing-en-result.png`
++
++## 8. Tracker and remaining decision
++
++`ROADMAP.md` and `status.json` now report Batch 3 as `code_complete` on r6. They do not mark it `verified`; that status requires explicit owner review acceptance. The only remaining Batch 3 step is review of the complete scoped diff and evidence, followed by acceptance or a specific proven defect.
++
++This is not a production-readiness assessment or approval to deploy. External tax-rule and Fawry-key decisions remain outside Batch 3 and do not block independent work.

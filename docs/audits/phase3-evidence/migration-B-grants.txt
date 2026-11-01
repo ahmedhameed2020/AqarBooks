@@ -1,0 +1,14 @@
+# Migration B - function ACLs (exploded proacl)
+apply_payment_credit | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+assert_posting_period | postgres:EXECUTE, service_role:EXECUTE
+credit_request_hash | postgres:EXECUTE, service_role:EXECUTE
+normalize_credit_allocations | postgres:EXECUTE, service_role:EXECUTE
+post_advance_payment_internal | postgres:EXECUTE, service_role:EXECUTE
+recompute_due_payment_status | postgres:EXECUTE, service_role:EXECUTE
+record_advance_payment | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+reverse_credit_application | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+set_default_customer_advance_account | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+void_payment | postgres:EXECUTE, authenticated:EXECUTE, service_role:EXECUTE
+
+# has_function_privilege(authenticated|anon, internal)
+f | f

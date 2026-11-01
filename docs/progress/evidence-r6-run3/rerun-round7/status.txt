@@ -1,0 +1,4 @@
+fixed-assets runner_exit=1  1 failed  3 passed (1.9m) 
+asset-disposal runner_exit=0  1 passed (24.6s) 
+projects-wip runner_exit=1  1 failed  2 passed (1.3m) 
+DONE

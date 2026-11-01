@@ -1,0 +1,19 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+(node:36916) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_inbucket_aqarbooks_hw supabase_realtime_aqarbooks_hw supabase_imgproxy_aqarbooks_hw supabase_pg_meta_aqarbooks_hw supabase_studio_aqarbooks_hw supabase_edge_runtime_aqarbooks_hw supabase_analytics_aqarbooks_hw supabase_vector_aqarbooks_hw supabase_pooler_aqarbooks_hw]
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+
+ Test Files  36 passed (36)
+      Tests  557 passed (557)
+   Start at  23:47:28
+   Duration  439.08s (transform 1.06s, setup 1.30s, import 12.68s, tests 414.56s, environment 10ms)
+
+done

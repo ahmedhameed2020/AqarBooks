@@ -1,0 +1,45 @@
+Running 20 tests using 1 worker
+  x   1 tests\e2e\accounting-duplicates.spec.ts:65:5 › D1 a second opening balance for the same client and unit is refused and changes nothing (2.3m)
+  -   2 tests\e2e\accounting-duplicates.spec.ts:80:5 › D2 issuing the identical due twice creates only one
+  -   3 tests\e2e\accounting-duplicates.spec.ts:107:5 › D3 a rapid double click on 'Record Receipt' creates exactly one receipt
+  -   4 tests\e2e\accounting-duplicates.spec.ts:130:5 › D4 a reversed receipt cannot be reversed twice
+  -   5 tests\e2e\accounting-duplicates.spec.ts:149:5 › D5 replaying a payment call with the same idempotency key returns the same payment and posts nothing new
+  ok  6 tests\e2e\accounting-journey.spec.ts:73:5 › S1 opening balance 10,000 dated before the report period (22.8s)
+  ok  7 tests\e2e\accounting-journey.spec.ts:94:5 › S2 new due 2,000 inside the period (21.0s)
+  ok  8 tests\e2e\accounting-journey.spec.ts:140:5 › S3 receipt #1: 1,500 on 2026-02-10 (29.4s)
+  ok  9 tests\e2e\accounting-journey.spec.ts:150:5 › S4 receipt #2: 500 on 2026-02-12 (23.8s)
+  ok 10 tests\e2e\accounting-journey.spec.ts:160:5 › S5 reverse receipt #2 in full (16.5s)
+  ok 11 tests\e2e\accounting-journey.spec.ts:181:5 › V1 dues list: remaining 10,500 = opening due 10,000 + new due 500 (13.0s)
+  ok 12 tests\e2e\accounting-journey.spec.ts:199:5 › V2 receipts: #1 posted 1,500, #2 reversed 500 and still visible; collections KPI 1,500 (20.1s)
+  ok 13 tests\e2e\accounting-journey.spec.ts:212:5 › V3 owner statement: collected 1,500, outstanding 10,500 (17.2s)
+  ok 14 tests\e2e\accounting-journey.spec.ts:224:5 › V4 general ledger shows the reversed original AND its mirror: 1130 closes at 10,500, 1110 at 1,500 (29.4s)
+  ok 15 tests\e2e\accounting-journey.spec.ts:242:5 › V5 trial balance 2026: opening + movement = closing, balanced in all three, prior balance carried in (13.9s)
+  ok 16 tests\e2e\accounting-journey.spec.ts:263:5 › V5b trial balance for a period that starts mid-year: balance-sheet accounts carry, income accounts open year-to-date (10.4s)
+  ok 17 tests\e2e\accounting-journey.spec.ts:275:5 › V5c trial balance starting in a fiscal year the organization has not defined: earlier result on an explicit unclosed line (12.1s)
+  ok 18 tests\e2e\accounting-journey.spec.ts:292:5 › V6 income statement, balance sheet, cash flow and aging agree with the ledger (28.5s)
+  ok 19 tests\e2e\accounting-journey.spec.ts:323:5 › V7 ledger integrity: balanced entries, reversal mirrors the original, sub-ledger = ledger, audit chain intact (175ms)
+  ok 20 tests\e2e\accounting-journey.spec.ts:384:5 › V8 audit trail screen: the auditor sees the journey's events; the accountant sees the financial chain only (25.7s)
+  1) tests\e2e\accounting-duplicates.spec.ts:65:5 › D1 a second opening balance for the same client and unit is refused and changes nothing 
+    Test timeout of 120000ms exceeded.
+    Error: locator.fill: Test timeout of 120000ms exceeded.
+    Call log:
+      - waiting for locator('[data-slot="dialog-content"][data-open]').locator('#ob-amount')
+      53 |   await page.getByRole("button", { name: /Opening balance/i }).click();
+      54 |   const dialog = dialogScope(page);
+    > 55 |   await dialog.locator("#ob-amount").fill("5000");
+         |                                      ^
+      56 |   await dialog.locator("#ob-date").fill("2025-12-31");
+      57 |   return dialog;
+      58 | }
+        at openingDialog (D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:55:38)
+        at D:\Web\AqarBooks\tests\e2e\accounting-duplicates.spec.ts:73:12
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-duplicates-D1-a-e672b-refused-and-changes-nothing\error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-duplicates-D1-a-e672b-refused-and-changes-nothing\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-duplicates-D1-a-e672b-refused-and-changes-nothing\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    tests\e2e\accounting-duplicates.spec.ts:65:5 › D1 a second opening balance for the same client and unit is refused and changes nothing 
+  4 did not run
+  15 passed (7.4m)

@@ -1,0 +1,15 @@
+exit=0 elapsed_ms=62277 log=D:\Web\AqarBooks\docs\progress\evidence-r6-run10\results\rel03-review-e2e-optimized.txt
+om .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 tests\e2e\asset-disposal.spec.ts:121:5 › disposal is refused until the accounts are designated, then succeeds and closes the asset (47.4s)
+
+  1 passed (55.1s)
+(node:20872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42620) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

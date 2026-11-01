@@ -1,0 +1,47 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  1 tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register (23.9s)
+
+
+  1) tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('text=إنشاء فاتورة إلكترونية جديدة')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('text=إنشاء فاتورة إلكترونية جديدة')
+
+
+      171 |     await page.waitForLoadState("domcontentloaded");
+      172 |     await expect(page.locator("h1")).toContainText("الفوترة والإقرارات الضريبية الإلكترونية");
+    > 173 |     await expect(page.locator("text=إنشاء فاتورة إلكترونية جديدة")).toBeVisible();
+          |                                                                     ^
+      174 |
+      175 |     // 8. Open Create E-Invoice Modal
+      176 |     await page.click("text=إنشاء فاتورة إلكترونية جديدة");
+        at D:\Web\AqarBooks\tests\e2e\einvoice-flow.spec.ts:173:69
+
+    Error Context: docs\progress\evidence-r6-run3\einvoice-flow\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run3\einvoice-flow\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run3\einvoice-flow\einvoice-flow-E-Invoicing--622a9-lation-and-Stamped-Register\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\einvoice-flow.spec.ts:14:7 › E-Invoicing & Statutory Tax Compliance E2E Flow › Verify E-Invoice Creation Modal, Tax Calculation, and Stamped Register 
+

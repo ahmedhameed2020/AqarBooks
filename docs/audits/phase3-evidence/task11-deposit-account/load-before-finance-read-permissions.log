@@ -1,0 +1,35 @@
+== load snapshot before finance-read-permissions rerun Sat Oct 17 12:45:10 AST 2026
+-- other test/node processes:
+
+ProcessId cmd                                                                                                          
+--------- ---                                                                                                          
+    14108 C:\WINDOWS\system32\cmd.exe /d /s /c "npx ^"@playwright/mcp@latest^""                                        
+    21888 "C:\Program Files\nodejs\\node.exe"  "C:\Program Files\nodejs\\node_modules\npm\bin\npx-cli.js" "@playwrig...
+    16064 C:\WINDOWS\system32\cmd.exe /d /s /c playwright-mcp                                                          
+    19424 "node"   "C:\Users\Lenovo\AppData\Local\npm-cache\_npx\9833c18b2d85bc59\node_modules\.bin\\..\@playwright\...
+    17480 C:\WINDOWS\system32\cmd.exe /d /s /c "npx ^"@playwright/mcp@latest^""                                        
+    11984 "C:\Program Files\nodejs\\node.exe"  "C:\Program Files\nodejs\\node_modules\npm\bin\npx-cli.js" "@playwrig...
+    19164 C:\WINDOWS\system32\cmd.exe /d /s /c playwright-mcp                                                          
+     9592 "node"   "C:\Users\Lenovo\AppData\Local\npm-cache\_npx\9833c18b2d85bc59\node_modules\.bin\\..\@playwright\...
+    23120 "C:\Program Files\Git\bin\bash.exe" -c "source /c/Users/Lenovo/.claude/shell-snapshots/snapshot-bash-17922...
+    11056 "C:\Program Files\Git\bin\..\usr\bin\bash.exe" -c "source /c/Users/Lenovo/.claude/shell-snapshots/snapshot...
+     7248 "C:\Program Files\Git\bin\..\usr\bin\bash.exe" -c "source /c/Users/Lenovo/.claude/shell-snapshots/snapshot...
+    25840 "C:\Program Files\Git\bin\..\usr\bin\bash.exe" -c "source /c/Users/Lenovo/.claude/shell-snapshots/snapshot...
+     4968 C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -Command "Get-CimInstance Win32_Proce...
+
+
+
+-- host CPU % x4:
+24
+37
+31
+60
+-- docker stats (top by CPU):
+supabase_inbucket_aqarbooks 9.73%
+supabase_db_aqarbooks 9.68%
+supabase_analytics_harrik 4.99%
+supabase_analytics_EduEdara 3.67%
+supabase_analytics_aqarbooks 3.37%
+supabase_pg_meta_harrik 1.44%
+-- db raw CPU probe (5M-row generate_series):
+Time: 1596.333 ms (00:01.596)

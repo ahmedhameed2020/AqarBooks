@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
+import { createOpenFiscalYear } from "./helpers/fiscal-calendar";
 
 config({ path: ".env.local" });
 
@@ -25,6 +26,9 @@ describe("record_online_payment concurrent replay", () => {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   let orgId: string;
   let transactionId: string;
+  let ownerUserId: string | undefined;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const OWNER_PASSWORD = "P4Conc_Local_P@ssw0rd_2026!";
   const runSuffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
   beforeAll(async () => {
@@ -38,41 +42,30 @@ describe("record_online_payment concurrent replay", () => {
     expect(orgErr).toBeNull();
     orgId = org!.id;
 
-    // NOTE / deviation from the plan's literal snippet: the plan called for
-    // create_fiscal_year / set_fiscal_period_status RPCs here, "the same
-    // pattern already used by tests/pgtap.integration.test.ts". Verified
-    // live that this does NOT work under a plain service-role client:
-    // create_fiscal_year checks has_permission(auth.uid(), ...), and
-    // auth.uid() is null for a service-role JWT (no `sub` claim), so the
-    // RPC raises 42501 "not authorized" every time. pgtap.integration.test.ts
-    // never actually surfaces this because its RPC error goes unchecked and
-    // its real assertions are gated behind `if (period)`, which is falsy
-    // when the RPC failed -- that test silently no-ops instead of exercising
-    // the path it claims to. The repo's actual proven pattern for
-    // service-role fixture provisioning (tests/fixtures.ts, used by every
-    // other integration test in this suite) inserts directly into
-    // fiscal_years/fiscal_periods with status: 'OPEN', bypassing the
-    // RPC-level permission check the way a service-role client legitimately
-    // can (RLS/function auth checks don't apply to a service-role client's
-    // own direct table writes). Using that pattern here instead.
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: fiscalYear, error: yearErr } = await admin
-      .from("fiscal_years")
-      .insert({ organization_id: orgId, name: "2026", start_date: "2026-01-01", end_date: "2026-12-31", status: "OPEN" })
-      .select("id")
-      .single();
-    expect(yearErr).toBeNull();
-
-    const { error: periodErr } = await admin.from("fiscal_periods").insert({
-      organization_id: orgId,
-      fiscal_year_id: fiscalYear!.id,
-      period_number: 1,
-      name: "2026 — Full Year",
-      start_date: "2026-01-01",
-      end_date: "2026-12-31",
-      status: "OPEN",
+    // Fiscal calendar through the product RPCs. create_fiscal_year and set_fiscal_period_status check
+    // has_permission(auth.uid(), ...), and a service-role client has no auth.uid() (42501), so the calendar
+    // is created by a signed-in TENANT_OWNER session. Direct writes to fiscal_years/fiscal_periods are
+    // refused by the status guard, so the service-role insert used before is no longer an option.
+    const { error: cloneErr } = await admin.rpc("clone_tenant_role_templates", { p_organization_id: orgId });
+    expect(cloneErr).toBeNull();
+    const ownerEmail = `p4-conc-owner-${runSuffix}@aqarbooks-test.local`;
+    const { data: ownerUser, error: ownerUserErr } = await admin.auth.admin.createUser({
+      email: ownerEmail, password: OWNER_PASSWORD, email_confirm: true,
     });
-    expect(periodErr).toBeNull();
+    expect(ownerUserErr).toBeNull();
+    ownerUserId = ownerUser!.user!.id;
+    const { data: ownerRole } = await admin.from("roles")
+      .select("id").eq("organization_id", orgId).eq("key", "TENANT_OWNER").single();
+    expect((await admin.from("organization_memberships").insert({ organization_id: orgId, user_id: ownerUserId, status: "active" })).error).toBeNull();
+    expect((await admin.from("user_role_assignments").insert({ user_id: ownerUserId, role_id: ownerRole!.id, organization_id: orgId })).error).toBeNull();
+    const ownerClient = createClient(url, anonKey, { auth: { persistSession: false } });
+    expect((await ownerClient.auth.signInWithPassword({ email: ownerEmail, password: OWNER_PASSWORD })).error).toBeNull();
+
+    await createOpenFiscalYear(admin, ownerClient, {
+      orgId, name: "2026", startDate: "2026-01-01", endDate: "2026-12-31",
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
 
     // Remaining fixtures -- resort, chart_of_accounts ASSET (clearing)
     // account, receivable account, organization_finance_settings row,
@@ -272,6 +265,11 @@ describe("record_online_payment concurrent replay", () => {
       // back to a direct status update, which the service-role client
       // can always do since it bypasses RLS.
       await admin.from("organizations").update({ status: "ARCHIVED" }).eq("id", orgId);
+    }
+    if (ownerUserId) {
+      await admin.from("user_role_assignments").delete().eq("user_id", ownerUserId);
+      await admin.from("organization_memberships").delete().eq("user_id", ownerUserId);
+      await admin.auth.admin.deleteUser(ownerUserId);
     }
   });
 });

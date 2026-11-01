@@ -1,0 +1,6 @@
+FAIL  tests/treasury-link-and-cheque.integration.test.ts  |  files: 1 failed (1)  |  tests: 18 skipped (18)
+       FAIL  tests/treasury-link-and-cheque.integration.test.ts [ tests/treasury-link-and-cheque.integration.test.ts ]
+      Error: Refusing to run (isolation check "same-database"): the newest auth user in supabase_db_aqarbooks_clean is not found through the API at 127.0.0.1:55321 (HTTP 0): API and SQL are different databases. Run through the
+FAIL  tests/deposit-account-validation.integration.test.ts  |  files: 1 failed (1)  |  tests: 21 skipped (21)
+       FAIL  tests/deposit-account-validation.integration.test.ts [ tests/deposit-account-validation.integration.test.ts ]
+      Error: Refusing to run (isolation check "same-database"): the newest auth user in supabase_db_aqarbooks_clean is not found through the API at 127.0.0.1:55321 (HTTP 0): API and SQL are different databases. Run through the

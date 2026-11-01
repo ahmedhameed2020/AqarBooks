@@ -1,0 +1,4 @@
+started_at=2026-10-30T00:46:47+03:00
+finished_at=2026-10-30T01:02:42+03:00
+elapsed_seconds=955
+elapsed=15 دقيقة و55 ثانية

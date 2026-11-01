@@ -1,0 +1,173 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/customer-advances-review2.integration.test.ts (12 tests | 8 failed) 24211ms
+     × after staff voids it today: owner and staff agree on EVERY date; the receipt is there on the days before the void and gone from the void date 608ms
+     × an allocation dated BEFORE the due was issued is refused without a trace; on the issue date itself it succeeds 1632ms
+     × a due covered on a later date by a receipt that is voided afterwards cannot be paid twice at an earlier receipt date 2148ms
+     × setup: due X 300 (issued 09-01); a synthetic POSTED receipt WITHOUT an entry holds a 300 allocation on it — the readers say 0 paid, due_outstanding says 0 owed 2449ms
+     × record_advance_payment allocates against what the readers say is owed (300), and the status follows the readers 453ms
+     × apply and reverse keep the status equal to the readers; the amount shown by the readers is the amount the functions use 418ms
+     × voiding the receipt recomputes the status by the same rule: back to OVERDUE (the legacy status-only sum would have said PAID) 13ms
+     × across the organization: no due's stored status disagrees with the readers for the dues these functions touched 493ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 1. the owner's historical figures keep a receipt that is voided later, up to the day of the void > after staff voids it today: owner and staff agree on EVERY date; the receipt is there on the days before the void and gone from the void date
+AssertionError: credit on 2026-09-03: expected [ Array(1) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    "4eeb9039-2c00-4316-a792-1ddbf703d222:700",
+-   "df7f0834-9cb2-4bff-87b1-e444e1dd5970:50",
+  ]
+
+ ❯ tests/customer-advances-review2.integration.test.ts:109:47
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 2. record_advance_payment: allocation dates at receipt time > an allocation dated BEFORE the due was issued is refused without a trace; on the issue date itself it succeeds
+AssertionError: expected a refusal matching /PAYMENT_BEFORE_DUE/: expected null not to be null
+ ❯ refused tests/customer-advances-review2.integration.test.ts:35:65
+     33|   const before = await snap(orgId);
+     34|   const r = await call();
+     35|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     36|   expect(err(r)).toMatch(pattern);
+     37|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-review2.integration.test.ts:155:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 2. record_advance_payment: allocation dates at receipt time > a due covered on a later date by a receipt that is voided afterwards cannot be paid twice at an earlier receipt date
+AssertionError: expected a refusal matching /ALLOCATION_EXCEEDS_REMAINING_ON_DATE/: expected null not to be null
+ ❯ refused tests/customer-advances-review2.integration.test.ts:35:65
+     33|   const before = await snap(orgId);
+     34|   const r = await call();
+     35|   expect(r.error, `expected a refusal matching ${pattern}`).not.toBeNu…
+       |                                                                 ^
+     36|   expect(err(r)).toMatch(pattern);
+     37|   expect(await snap(orgId), "a refused call left a trace").toBe(before…
+ ❯ tests/customer-advances-review2.integration.test.ts:165:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 3. a POSTED receipt without a valid journal entry: the new functions agree with the approved readers > setup: due X 300 (issued 09-01); a synthetic POSTED receipt WITHOUT an entry holds a 300 allocation on it — the readers say 0 paid, due_outstanding says 0 owed
+AssertionError: expected 'ISSUED' to be 'OVERDUE' // Object.is equality
+
+Expected: "OVERDUE"
+Received: "ISSUED"
+
+ ❯ tests/customer-advances-review2.integration.test.ts:185:23
+    183|     expect(readerPaid(X)).toBe(0);
+    184|     expect(Number(q(`select public.due_outstanding('${X}')::text`))).t…
+    185|     expect(status(X)).toBe("OVERDUE");                                …
+       |                       ^
+    186|   });
+    187|   it("record_advance_payment allocates against what the readers say is…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 3. a POSTED receipt without a valid journal entry: the new functions agree with the approved readers > record_advance_payment allocates against what the readers say is owed (300), and the status follows the readers
+AssertionError: ALLOCATION_EXCEEDS_REMAINING: المبلغ (100.0000) أكبر من المتبقي (0.0000) على الاستحقاق 9ccf1914-d889-4229-bc85-56b842dfc9df: expected { code: '22023', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "22023",
+  "details": null,
+  "hint": null,
+  "message": "ALLOCATION_EXCEEDS_REMAINING: المبلغ (100.0000) أكبر من المتبقي (0.0000) على الاستحقاق 9ccf1914-d889-4229-bc85-56b842dfc9df",
+}
+
+ ❯ ok tests/customer-advances-review2.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19|
+ ❯ tests/customer-advances-review2.integration.test.ts:189:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 3. a POSTED receipt without a valid journal entry: the new functions agree with the approved readers > apply and reverse keep the status equal to the readers; the amount shown by the readers is the amount the functions use
+AssertionError: invalid input syntax for type uuid: "": expected { code: '22P02', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "22P02",
+  "details": null,
+  "hint": null,
+  "message": "invalid input syntax for type uuid: \"\"",
+}
+
+ ❯ ok tests/customer-advances-review2.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19|
+ ❯ tests/customer-advances-review2.integration.test.ts:196:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 3. a POSTED receipt without a valid journal entry: the new functions agree with the approved readers > voiding the receipt recomputes the status by the same rule: back to OVERDUE (the legacy status-only sum would have said PAID)
+AssertionError: invalid input syntax for type uuid: "": expected { code: '22P02', details: null, …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "code": "22P02",
+  "details": null,
+  "hint": null,
+  "message": "invalid input syntax for type uuid: \"\"",
+}
+
+ ❯ ok tests/customer-advances-review2.integration.test.ts:17:92
+     15| type Client = Awaited<ReturnType<typeof signedInClient>>;
+     16| type Rpc = { data: unknown; error: { code?: string; message: string } …
+     17| const ok = <T = Record<string, unknown>>(r: Rpc): T => { expect(r.erro…
+       |                                                                                            ^
+     18| const err = (r: Rpc) => `${r.error?.code ?? ""}:${r.error?.message ?? …
+     19|
+ ❯ tests/customer-advances-review2.integration.test.ts:204:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/customer-advances-review2.integration.test.ts > 3. a POSTED receipt without a valid journal entry: the new functions agree with the approved readers > across the organization: no due's stored status disagrees with the readers for the dues these functions touched
+AssertionError: expected '1' to be '0' // Object.is equality
+
+Expected: "0"
+Received: "1"
+
+ ❯ tests/customer-advances-review2.integration.test.ts:217:19
+    215|                            when coalesce((select sum(e.amount) from pu…
+    216|                            when d.due_date < current_date then 'OVERDU…
+    217|     expect(wrong).toBe("0");
+       |                   ^
+    218|   });
+    219| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 4 passed (12)
+   Start at  21:52:52
+   Duration  24.98s (transform 190ms, setup 163ms, import 186ms, tests 24.21s, environment 0ms)
+

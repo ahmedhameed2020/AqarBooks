@@ -1,0 +1,49 @@
+exit 1
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 8 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 1 tests\e2e\projects-wip.spec.ts:102:5 › a project without accounts cannot capitalise, and once set the cost flows to WIP then to cost of sales (28.7s)
+  ok 2 tests\e2e\projects-wip.spec.ts:245:5 › a member without finance.accounts.manage sees the projects but no controls (13.7s)
+  ok 3 tests\e2e\projects-wip.spec.ts:282:5 › a project form that names another organization is refused and writes nothing (11.3s)
+  ok 4 tests\e2e\projects-wip.spec.ts:327:5 › a duplicate project code is refused, and the existing project is left unchanged (14.0s)
+  ok 5 tests\e2e\projects-wip.spec.ts:369:5 › an explicit edit by a manager changes the name, budget and accounts of a project without postings (15.5s)
+  ok 6 tests\e2e\projects-wip.spec.ts:415:5 › a project with posted entries refuses a locked change, and a name change still goes through (12.0s)
+  ok 7 tests\e2e\projects-wip.spec.ts:480:5 › a member without the accounts permission sees no edit control and cannot change a project (8.9s)
+  x  8 tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report (1.3s)
+
+
+  1) tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report 
+
+    TypeError: Cannot read properties of null (reading 'id')
+
+      554 |
+      555 |     const { data: draft, error: draftErr } = await admin.from("journal_entries").insert({
+    > 556 |       organization_id: f.orgId, fiscal_period_id: period!.id as string, entry_date: "2026-03-08",
+          |                                                           ^
+      557 |       description: "draft cancelled by status alone", source_type: "JOURNAL_VOUCHER", status: "DRAFT",
+      558 |     }).select("id").single();
+      559 |     expect(draftErr, `draft insert failed: ${draftErr?.message}`).toBeNull();
+        at D:\Web\AqarBooks\tests\e2e\projects-wip.spec.ts:556:59
+
+    Error Context: docs\progress\evidence-r6-run5\ui-before-actual\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run5\ui-before-actual\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run5\ui-before-actual\projects-wip-a-draft-cance-5d24c-ased-cost-in-the-WIP-report\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\projects-wip.spec.ts:521:5 › a draft cancelled by status alone does not appear as released cost in the WIP report 
+  7 passed (1.8m)
+(node:36020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+

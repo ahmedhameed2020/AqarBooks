@@ -220,6 +220,11 @@ export function OwnerStatementClient({
 
   return (
     <div className="space-y-6 pb-12">
+      <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-semibold text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200" data-testid="owner-advance-note">
+        {isAr
+          ? "ملاحظة: الدفعات المقدمة غير المطبَّقة على مطالبات لا تُحتسب إيرادًا محصّلًا ولا تدخل في التوزيعات حتى تُطبَّق على مطالبة."
+          : "Note: advance payments not yet applied to a charge are not counted as collected revenue and do not enter distributions until they are applied."}
+      </p>
       {/* HEADER WITH BREADCRUMB */}
       <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

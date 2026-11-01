@@ -1,0 +1,77 @@
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+Running 2 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+  x  1 tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen (3.0m)
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  x  2 tests\e2e\fixed-assets.spec.ts:189:5 › a reader sees the register without the controls, and someone with neither permission is told so (28.6s)
+
+
+  1) tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+
+    Test timeout of 180000ms exceeded.
+
+    Error: locator.fill: Test ended.
+    Call log:
+      - waiting for locator('#asset-code')
+
+
+      128 |     // because the rounding edge is the integration test's job, not this one's.
+      129 |     const code = `FA-${String(Date.now()).slice(-8)}`;
+    > 130 |     await page.locator("#asset-code").fill(code);
+          |                                       ^
+      131 |     await page.locator("#asset-ar").fill("مبنى الاختبار");
+      132 |     await page.locator("#asset-en").fill("Test Building");
+      133 |     await page.locator("#asset-cost").fill("12000");
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:130:39
+
+    Error Context: test-results\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\fixed-assets-an-asset-is-r-a1c38--book-value-drops-on-screen\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests\e2e\fixed-assets.spec.ts:189:5 › a reader sees the register without the controls, and someone with neither permission is told so 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/don't have permission to view the fixed asset register/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/don't have permission to view the fixed asset register/i)
+
+
+      218 |     await expect(
+      219 |       denyPage.getByText(/don't have permission to view the fixed asset register/i),
+    > 220 |     ).toBeVisible();
+          |       ^
+      221 |     await expect(denyPage.locator("[data-asset]")).toHaveCount(0);
+      222 |     await denyCtx.close();
+      223 |   } finally {
+        at D:\Web\AqarBooks\tests\e2e\fixed-assets.spec.ts:220:7
+
+    Error Context: test-results\fixed-assets-a-reader-sees-5e967-ither-permission-is-told-so\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\fixed-assets-a-reader-sees-5e967-ither-permission-is-told-so\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\fixed-assets-a-reader-sees-5e967-ither-permission-is-told-so\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests\e2e\fixed-assets.spec.ts:112:5 › an asset is registered, a period is posted, and the book value drops on screen 
+    tests\e2e\fixed-assets.spec.ts:189:5 › a reader sees the register without the controls, and someone with neither permission is told so 

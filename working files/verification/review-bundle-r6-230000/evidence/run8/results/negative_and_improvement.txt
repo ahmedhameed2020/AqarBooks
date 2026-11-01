@@ -1,0 +1,35 @@
+==== SETUP: isolated positive project M=1000 and pre-existing negative project N=-500
+BEGIN
+INSERT 0 2
+INSERT 0 3
+SET
+INSERT 0 6
+COMMIT
+SET
+ positive_baseline | negative_baseline 
+-------------------+-------------------
+         1000.0000 |         -500.0000
+(1 row)
+
+==== NONNEGATIVE 1000 -> -500: credit 1500 must be refused atomically
+BEGIN
+INSERT 0 1
+INSERT 0 2
+psql:/tmp/negative_and_improvement.sql:31: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 1000.0000, الصافي المتوقع بعد الحركة -500.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+ROLLBACK
+psql:/tmp/negative_and_improvement.sql:40: NOTICE:  ASSERT_NONNEGATIVE_TO_NEGATIVE_REFUSED_PASS: net remains 1000 and rejected entry wrote nothing
+DO
+==== PRE-EXISTING NEGATIVE -500 -> -400: debit 100 must be accepted
+BEGIN
+INSERT 0 1
+INSERT 0 2
+COMMIT
+psql:/tmp/negative_and_improvement.sql:57: NOTICE:  ASSERT_NEGATIVE_IMPROVEMENT_ACCEPTED_PASS: old negative improved from -500 to -400
+DO
+BEGIN
+DELETE 4
+DELETE 2
+COMMIT

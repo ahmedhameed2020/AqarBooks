@@ -1,0 +1,52 @@
+$ tests/e2e/year-end-closing-journey.spec.ts
+label=batch3-closing-journey-e2e-r6
+exit=1
+elapsed_ms=164613
+
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+  x  1 tests\e2e\year-end-closing-journey.spec.ts:102:5 › Batch 3 closes a real year through Arabic and English UI and persists one balanced result (1.9m)
+
+
+  1) tests\e2e\year-end-closing-journey.spec.ts:102:5 › Batch 3 closes a real year through Arabic and English UI and persists one balanced result 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByTestId('year-end-closing-dialog').getByTestId('closing-entry-preview')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByTestId('year-end-closing-dialog').getByTestId('closing-entry-preview')
+
+
+      112 |   await page.screenshot({ path: join(OUT, "batch3-closing-ar-precheck.png"), fullPage: true });
+      113 |   await dialog.getByTestId("run-closing-precheck").click();
+    > 114 |   await expect(dialog.getByTestId("closing-entry-preview")).toBeVisible({ timeout: 60_000 });
+          |                                                             ^
+      115 |   await expect(dialog).toContainText("4100");
+      116 |   await expect(dialog).toContainText("3100");
+      117 |   await expect(dialog.getByTestId("closing-entry-preview").locator("tbody tr")).toHaveCount(3);
+        at D:\Web\AqarBooks\tests\e2e\year-end-closing-journey.spec.ts:114:61
+
+    Error Context: docs\progress\evidence-r6-run10\results\batch3-closing-journey-e2e-r6-artifacts\year-end-closing-journey-B-62c9a-ersists-one-balanced-result\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\progress\evidence-r6-run10\results\batch3-closing-journey-e2e-r6-artifacts\year-end-closing-journey-B-62c9a-ersists-one-balanced-result\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\progress\evidence-r6-run10\results\batch3-closing-journey-e2e-r6-artifacts\year-end-closing-journey-B-62c9a-ersists-one-balanced-result\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\e2e\year-end-closing-journey.spec.ts:102:5 › Batch 3 closes a real year through Arabic and English UI and persists one balanced result 
+(node:32616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

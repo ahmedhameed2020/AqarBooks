@@ -1,0 +1,12 @@
+exit 0
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env.local // tip: ⌘ suppress logs { quiet: true }
+
+Running 1 test using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok 1 tests\e2e\reports-lease-read-failure.spec.ts:43:5 › lease expirations shows the read error instead of partial or empty rows when the data read fails (15.4s)
+
+  1 passed (20.0s)
+

@@ -68,7 +68,7 @@ export default async function AgingPage({
       .select("id, unit_id, amount, due_date, status")
       .eq("organization_id", organization.id)
       .in("status", [...AGING_ELIGIBLE_STATUSES]),
-    supabase.from("payment_allocations").select("due_id, amount, payment_id"),
+    supabase.from("effective_payment_allocations").select("due_id, amount, payment_id"),
     supabase.from("payments").select("id").eq("organization_id", organization.id).eq("status", "POSTED"),
     supabase.from("units").select("id, code").eq("organization_id", organization.id),
   ]);

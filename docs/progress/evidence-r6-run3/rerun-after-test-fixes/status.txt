@@ -1,0 +1,6 @@
+asset-disposal runner_exit=1  1 failed 
+einvoice-flow runner_exit=1  1 failed 
+fixed-assets runner_exit=1  1 failed  1 passed (1.6m) 
+projects-wip runner_exit=1  1 failed  1 passed (1.1m) 
+reports-suite-flow runner_exit=1  1 failed 
+DONE

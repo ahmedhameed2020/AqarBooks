@@ -1,0 +1,51 @@
+
+> aqarbooks@0.1.0 demo:e2e
+> node scripts/demo-local/e2e.mjs tests/e2e/accounting-journey.spec.ts tests/e2e/accounting-void-permission.spec.ts tests/e2e/portal-journey.spec.ts tests/e2e/portal-visitor-gate-journey.spec.ts tests/e2e/portal-refusals.spec.ts tests/e2e/negative-probes/client-url-attempt.spec.ts
+
+◇ injected env (6) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 38 tests using 1 worker
+
+◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+  ok  1 tests\e2e\accounting-journey.spec.ts:73:5 › S1 opening balance 10,000 dated before the report period (16.2s)
+  ok  2 tests\e2e\accounting-journey.spec.ts:94:5 › S2 new due 2,000 inside the period (11.5s)
+  ok  3 tests\e2e\accounting-journey.spec.ts:139:5 › S3 receipt #1: 1,500 on 2026-02-10 (16.1s)
+  ok  4 tests\e2e\accounting-journey.spec.ts:149:5 › S4 receipt #2: 500 on 2026-02-12 (15.5s)
+  ok  5 tests\e2e\accounting-journey.spec.ts:159:5 › S5 reverse receipt #2 in full (11.5s)
+  ok  6 tests\e2e\accounting-journey.spec.ts:180:5 › V1 dues list: remaining 10,500 = opening due 10,000 + new due 500 (6.3s)
+  ok  7 tests\e2e\accounting-journey.spec.ts:198:5 › V2 receipts: #1 posted 1,500, #2 reversed 500 and still visible; collections KPI 1,500 (7.3s)
+  ok  8 tests\e2e\accounting-journey.spec.ts:211:5 › V3 owner statement: collected 1,500, outstanding 10,500 (4.8s)
+  ok  9 tests\e2e\accounting-journey.spec.ts:223:5 › V4 general ledger shows the reversed original AND its mirror: 1130 closes at 10,500, 1110 at 1,500 (11.8s)
+  ok 10 tests\e2e\accounting-journey.spec.ts:241:5 › V5 trial balance 2026: opening + movement = closing, balanced in all three, prior balance carried in (6.2s)
+  ok 11 tests\e2e\accounting-journey.spec.ts:262:5 › V5b trial balance for a period that starts mid-year: balance-sheet accounts carry, income accounts open year-to-date (5.5s)
+  ok 12 tests\e2e\accounting-journey.spec.ts:274:5 › V5c trial balance starting in a fiscal year the organization has not defined: earlier result on an explicit unclosed line (11.2s)
+  ok 13 tests\e2e\accounting-journey.spec.ts:291:5 › V6 income statement, balance sheet, cash flow and aging agree with the ledger (27.8s)
+  ok 14 tests\e2e\accounting-journey.spec.ts:322:5 › V7 ledger integrity: balanced entries, reversal mirrors the original, sub-ledger = ledger, audit chain intact (166ms)
+  ok 15 tests\e2e\accounting-journey.spec.ts:383:5 › V8 audit trail screen: the auditor sees the journey's events; the accountant sees the financial chain only (16.3s)
+  ok 16 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (87ms)
+  ok 17 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (8.2s)
+  ok 18 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (8.6s)
+  ok 19 tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous (1.3s)
+  -  20 tests\e2e\negative-probes\client-url-attempt.spec.ts:11:5 › builds a client for a URL that differs from the verified target
+  ok 21 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (7.8s)
+  ok 22 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (12.4s)
+  ok 23 tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's (12.8s)
+  ok 24 tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit (20.7s)
+  ok 25 tests\e2e\portal-journey.spec.ts:97:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note (14.7s)
+  ok 26 tests\e2e\portal-journey.spec.ts:122:5 › J6 the owner follows the status and sees only the member-visible note (16.1s)
+  ok 27 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (36.8s)
+  ok 28 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (1.1m)
+  ok 29 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (49.1s)
+  ok 30 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3) (24.1s)
+  ok 31 tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (7.3s)
+  ok 32 tests\e2e\portal-visitor-gate-journey.spec.ts:82:5 › V1 the manager creates a one-time enrollment code; the guard redeems it on the field device (22.9s)
+  ok 33 tests\e2e\portal-visitor-gate-journey.spec.ts:108:5 › with the guard's enrolled device › V2 owner creates a SINGLE_USE pass (QR shown once, only its hash is stored); the guard admits, lets out, then refuses a second use (49.7s)
+  ok 34 tests\e2e\portal-visitor-gate-journey.spec.ts:134:5 › with the guard's enrolled device › V3 a MULTI_USE pass admits repeatedly but never twice in a row without an exit (55.9s)
+  ok 35 tests\e2e\portal-visitor-gate-journey.spec.ts:150:5 › with the guard's enrolled device › V4 the owner revokes a pass in the portal; the guard is then refused; another owner cannot revoke it (27.5s)
+  ok 36 tests\e2e\portal-visitor-gate-journey.spec.ts:171:5 › with the guard's enrolled device › V5 expired and not-yet-valid passes are refused; a tampered or foreign QR is refused as an invalid pass (47.0s)
+  ok 37 tests\e2e\portal-visitor-gate-journey.spec.ts:206:5 › with the guard's enrolled device › V6 a pass of another organization is refused at this organization's gate and writes nothing to its ledger (1.2s)
+  ok 38 tests\e2e\portal-visitor-gate-journey.spec.ts:226:5 › with the guard's enrolled device › V6b organization B's enrolled device scanning A's genuine pass is a generic DENY / INVALID_PASS recorded in B only (2.3s)
+
+  1 skipped
+  37 passed (12.2m)
+done

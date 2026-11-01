@@ -1,0 +1,15 @@
+--- live
++++ shadow
+@@ -158 +157,0 @@
+-rel|zz_guard_probe|r|postgres|rls=true|force=false|opts=|persist=p|part=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+@@ -1953,2 +1951,0 @@
+-col|zz_guard_probe|0001|id|integer|notnull=true|default=|identity=|generated=|coll=|acl=
+-col|zz_guard_probe|0002|note|text|notnull=false|default=|identity=|generated=|coll=|acl=
+@@ -3095 +3091,0 @@
+-con|zz_guard_probe|zz_guard_probe_pkey|p|PRIMARY KEY (id)|validated=true|deferrable=false|deferred=false
+@@ -3576 +3571,0 @@
+-idx|zz_guard_probe|zz_guard_probe_pkey|CREATE UNIQUE INDEX zz_guard_probe_pkey ON public.zz_guard_probe USING btree (id)|valid=true|unique=true
+@@ -3786 +3780,0 @@
+-policy|zz_guard_probe|zz_guard_probe_sel|cmd=r|permissive=true|roles=authenticated|using=(id > 0)|check=
+@@ -4497 +4490,0 @@
+-fn|zz_guard_probe_fn()|kind=f|secdef=true|vol=v|leakproof=false|parallel=u|strict=false|owner=postgres|config=|acl={=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres}|def=CREATE OR REPLACE FUNCTION public.zz_guard_probe_fn() RETURNS integer LANGUAGE sql SECURITY DEFINER AS $function$ select 1 $function$ 

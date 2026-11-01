@@ -1,0 +1,93 @@
+{
+  "R1-maintenance request-page": "404 This page could not be found.",
+  "R1-visitor pass-page": "",
+  "R1-dues-page": "AqarBooks PORTAL Gate Release O Owner a2 Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Pa",
+  "R1-payments-page": "AqarBooks PORTAL Gate Release O Owner a2 Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Pa",
+  "R1-api": {
+    "createRequest": "42501:UNIT_NOT_AUTHORIZED",
+    "createPass": "42501:UNIT_NOT_AUTHORIZED",
+    "cancelOthersRequest": "42501:REQUEST_NOT_AUTHORIZED",
+    "revokeOthersPass": "42501:VISITOR_INVITATION_NOT_AUTHORIZED"
+  },
+  "R2-api": {
+    "createRequestInA": "42501:UNIT_NOT_AUTHORIZED",
+    "createPassInA": "42501:UNIT_NOT_AUTHORIZED"
+  },
+  "R3-owner-url /en/operations/maintenance": {
+    "finalUrl": "/en/operations/maintenance",
+    "staffDataVisible": false,
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action العربية ⌘K"
+  },
+  "R3-owner-url /en/operations/maintenance/9a86fed8-53d0-4ccb-8379-35bc3ae050d9": {
+    "finalUrl": "/en/operations/maintenance/9a86fed8-53d0-4ccb-8379-35bc3ae050d9",
+    "staffDataVisible": false,
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action العربية ⌘K"
+  },
+  "R3-owner-url /en/operations/gate": {
+    "finalUrl": "/en/operations/gate",
+    "staffDataVisible": false,
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action العربية ⌘K"
+  },
+  "R3-owner-url /en/operations/visitors": {
+    "finalUrl": "/en/operations/visitors",
+    "staffDataVisible": false,
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action العربية ⌘K"
+  },
+  "R3-owner-url /en/finance/dues": {
+    "finalUrl": "/en/finance/dues",
+    "staffDataVisible": false,
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action العربية ⌘K"
+  },
+  "R3-owner-api": {
+    "staffUpdate": "42501:FORBIDDEN_MAINTENANCE_MANAGE",
+    "gateScan": "42501:GATE_SCAN_NOT_AUTHORIZED"
+  },
+  "R3-staff-api": {
+    "createRequestAsStaff": "42501:NOT_AUTHENTICATED",
+    "createPassAsGuard": "42501:NOT_AUTHENTICATED"
+  },
+  "R3-anon-scan": "42501:permission denied for function process_visitor_gate_scan",
+  "R3-guard-finance": {
+    "finalUrl": "/en/finance/dues",
+    "snippet": "AqarBooks ERP Smart Real Estate Accounting Live Cloud Sync Search accounts, units, reports... ⌘K Quick Action 1 العربية ⌘K Dashboard PROPERT"
+  },
+  "R4-api": {
+    "createRequest": "42501:NOT_AUTHENTICATED",
+    "createPass": "42501:NOT_AUTHENTICATED"
+  },
+  "R4-portal-maintenance-page": {
+    "finalUrl": "/ar/portal/login?reason=not_a_member",
+    "snippet": "بوابة الملاك والمستثمرين لا حاجة لكلمة مرور. نرسل رمزًا من ٦ أرقام إلى بريدك المسجل. تم تسجيل دخولك، لكن هذا البريد غير مسجّل كمالك الرمز صحيح والحساب سليم — لكن لا توجد وحدات مرتبطة بهذا البريد في أي",
+    "showsOwnRequest": false
+  },
+  "R4-G3-entry-after-suspension": {
+    "fresh": {
+      "error": null,
+      "decision": "DENY",
+      "reason": "OWNER_SUSPENDED"
+    },
+    "alreadyInsideReentry": {
+      "error": null,
+      "decision": "DENY",
+      "reason": "OWNER_SUSPENDED"
+    }
+  },
+  "R4-G3-exit-after-suspension": {
+    "error": null,
+    "decision": "ALLOW",
+    "reason": "VALID_EXIT"
+  },
+  "R4-G3-after-reactivation": {
+    "error": null,
+    "decision": "ALLOW",
+    "reason": "VALID_ENTRY"
+  },
+  "R5-api": {
+    "createRequest": "42501:ORGANIZATION_INACTIVE",
+    "createPass": "42501:ORGANIZATION_INACTIVE",
+    "staffUpdate": "42501:ORGANIZATION_INACTIVE"
+  },
+  "R5-scan": {
+    "error": "42501:DEVICE_BINDING_NOT_AUTHORIZED"
+  }
+}

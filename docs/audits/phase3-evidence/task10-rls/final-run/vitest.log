@@ -1,0 +1,102 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/membership-status-access.integration.test.ts (17 tests | 6 failed) 94201ms
+     × an active, permitted member reads their organization's rows (and only theirs) 8162ms
+     × invited sees no financial/property rows in any affected table or view 8222ms
+     × suspended sees no financial/property rows in any affected table or view 8222ms
+     × stranger sees no financial/property rows in any affected table or view 8385ms
+     × an active member of ANOTHER organization sees none of org A's rows 8275ms
+     × activation through the real updateUserStatusAction grants access immediately; suspension removes it 8199ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active, permitted member reads their organization's rows (and only theirs)
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:114:51
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > invited sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > suspended sees no financial/property rows in any affected table or view
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > stranger sees no financial/property rows in any affected table or view
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:120:53
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > direct table and view reads > an active member of ANOTHER organization sees none of org A's rows
+TypeError: Cannot read properties of null (reading 'every')
+ ❯ tests/membership-status-access.integration.test.ts:125:18
+    123|   it("an active member of ANOTHER organization sees none of org A's ro…
+    124|     const { data } = await u.staffB.client.from("chart_of_accounts").s…
+    125|     expect(data!.every((r) => r.organization_id === orgB)).toBe(true);
+       |                  ^
+    126|     for (const t of ["fiscal_years", "journal_entry_lines", "members",…
+    127|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/membership-status-access.integration.test.ts > invitation path is preserved > activation through the real updateUserStatusAction grants access immediately; suspension removes it
+AssertionError: chart_of_accounts: : expected { message: '' } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "message": "",
+}
+
+ ❯ countRows tests/membership-status-access.integration.test.ts:105:48
+    103| const countRows = async (c: SupabaseClient, table: string) => {
+    104|   const { count, error } = await c.from(table).select("*", { count: "e…
+    105|   expect(error, `${table}: ${error?.message}`).toBeNull();
+       |                                                ^
+    106|   return count ?? 0;
+    107| };
+ ❯ tests/membership-status-access.integration.test.ts:175:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  1 failed | 21 passed | 1 skipped (23)
+      Tests  6 failed | 406 passed | 40 skipped (452)
+   Start at  11:29:03
+   Duration  327.79s (transform 6.50s, setup 3.10s, import 157.46s, tests 1444.37s, environment 20ms)
+

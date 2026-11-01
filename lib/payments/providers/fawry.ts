@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getPaymentsEnv } from "../env";
+import { assertFawryInitiationAllowed } from "../fawry-initiation-policy";
 import type {
   PaymentProviderAdapter,
   CreateCheckoutInput,
@@ -140,6 +141,9 @@ export const fawryAdapter: PaymentProviderAdapter = {
   providerId: "FAWRY",
 
   async createCheckout(input: CreateCheckoutInput, credentials: ProviderCredentials): Promise<CreateCheckoutResult> {
+    // No credential access or provider request in V1, even for legacy callers
+    // or a staging-looking URL. Signature verification/settlement stays intact.
+    assertFawryInitiationAllowed();
     // NEXT_PUBLIC_APP_URL is OUR application's own base URL (used to build
     // returnUrl) -- not a provider credential, and unrelated to which
     // tenant/provider is in use, so it keeps coming from getPaymentsEnv()

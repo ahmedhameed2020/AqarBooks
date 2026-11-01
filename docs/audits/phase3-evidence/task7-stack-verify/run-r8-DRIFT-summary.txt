@@ -1,0 +1,9 @@
+ledger 81 / files 81 → MATCH
+db diff: DRIFT drop trigger if exists "access_event_hardware" on "public"."access_events";
+--- statement counts of the DRIFT report (full 272 KB output not kept) ---
+   1152 alter table 
+    193 drop policy 
+     91 drop trigger if
+     11 drop function if
+      6 create or replace
+      1 set check 

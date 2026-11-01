@@ -1,0 +1,118 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+stdout | tests/sandbox-pilot.manual.test.ts
+◇ injected env (6) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+
+ ❯ tests/sandbox-pilot.manual.test.ts (9 tests | 6 failed) 4177ms
+     × ٤) الجاهزية تعود فارغة 113ms
+     × ٥) التفعيل بإقرار صريح للفجوة 99ms
+     × ٦) رسوم إدارة ⇒ خاضعة 14%، والمستحق والقيد والقرار معًا 162ms
+     × ٦ب) إيجار سكني ⇒ معفى بلا نسبة، والمستند يتبع نوع العميل 165ms
+     × ٦ج) تاريخ خارج نطاق القواعد ⇒ لا مستحق ولا قيد 153ms
+     × ٧) الحالة النهائية للطيار — التغطية وسجل التدقيق 64ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٤) الجاهزية تعود فارغة
+AssertionError: expected 2 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2
+
+ ❯ tests/sandbox-pilot.manual.test.ts:193:51
+    191|       p_organization_id: orgId,
+    192|     });
+    193|     expect((gaps as unknown as unknown[]).length).toBe(0);
+       |                                                   ^
+    194|     step("٤", "الجاهزية مكتملة — القواعد المعتمدة سارية للطبيعتين");
+    195|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٥) التفعيل بإقرار صريح للفجوة
+AssertionError: expected 'TAX_ENFORCEMENT_NOT_READY: RULE_MISSI…' to match /TAX_HISTORICAL_GAP_UNACKNOWLEDGED/
+
+- Expected:
+/TAX_HISTORICAL_GAP_UNACKNOWLEDGED/
+
++ Received:
+"TAX_ENFORCEMENT_NOT_READY: RULE_MISSING: لا قاعدة سارية اليوم لطبيعة: MANAGEMENT_FEE | RULE_MISSING: لا قاعدة سارية اليوم لطبيعة: RESIDENTIAL_RENT"
+
+ ❯ tests/sandbox-pilot.manual.test.ts:217:28
+    215|       p_organization_id: orgId, p_enabled: true,
+    216|     });
+    217|     expect(noAck!.message).toMatch(/TAX_HISTORICAL_GAP_UNACKNOWLEDGED/…
+       |                            ^
+    218|
+    219|     const { error } = await owner.client.rpc("set_tax_enforcement", {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٦) رسوم إدارة ⇒ خاضعة 14%، والمستحق والقيد والقرار معًا
+TypeError: Cannot read properties of null (reading 'tax_decision_snapshot')
+ ❯ tests/sandbox-pilot.manual.test.ts:244:21
+    242|     const { data: d } = await admin.from("tax_decisions")
+    243|       .select("tax_decision_snapshot, transaction_date").eq("source_id…
+    244|     const snap = d!.tax_decision_snapshot as Record<string, unknown>;
+       |                     ^
+    245|     expect(snap.tax_treatment).toBe("TAXABLE");
+    246|     expect(Number(snap.vat_rate)).toBe(14);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٦ب) إيجار سكني ⇒ معفى بلا نسبة، والمستند يتبع نوع العميل
+TypeError: Cannot read properties of null (reading 'tax_decision_snapshot')
+ ❯ tests/sandbox-pilot.manual.test.ts:257:21
+    255|     const { data: d } = await admin.from("tax_decisions")
+    256|       .select("tax_decision_snapshot").eq("source_id", dueId).single();
+    257|     const snap = d!.tax_decision_snapshot as Record<string, unknown>;
+       |                     ^
+    258|     // الحكم الأهم في المصفوفة: الإعفاء يُسقط الضريبة لا المستند.
+    259|     expect(snap.tax_treatment).toBe("EXEMPT");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٦ج) تاريخ خارج نطاق القواعد ⇒ لا مستحق ولا قيد
+AssertionError: expected null not to be null
+ ❯ tests/sandbox-pilot.manual.test.ts:273:23
+    271|
+    272|     const { error } = await makeDue(feeTypeId, "2025-05-01", 700, "SAN…
+    273|     expect(error).not.toBeNull();
+       |                       ^
+    274|     expect(error!.message).toMatch(/TAX_REVIEW_REQUIRED/);
+    275|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/sandbox-pilot.manual.test.ts > طيار الإنفاذ الضريبي — مؤسسة sandbox واحدة > ٧) الحالة النهائية للطيار — التغطية وسجل التدقيق
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/sandbox-pilot.manual.test.ts:293:35
+    291|       enforcement_enabled: boolean;
+    292|     }[])[0];
+    293|     expect(c.enforcement_enabled).toBe(true);
+       |                                   ^
+    294|     expect(Number(c.dues_with_decision)).toBe(2);
+    295|     expect(Number(c.dues_without_decision), "المستحق السابق للتفعيل يب…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed | 82 passed (83)
+      Tests  6 failed | 778 passed (784)
+   Start at  21:13:08
+   Duration  66.41s (transform 16.91s, setup 6.73s, import 31.58s, tests 133.86s, environment 59ms)
+

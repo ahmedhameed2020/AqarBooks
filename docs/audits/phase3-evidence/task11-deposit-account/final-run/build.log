@@ -1,0 +1,193 @@
+build → next build  (Supabase http://127.0.0.1:55321)
+▲ Next.js 16.3.0 (Turbopack)
+- Environments: .env.local, .env.production
+✓ Running next.config.ts took 4.4s
+Using secrets defined in .dev.vars
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 26.9s
+  Running TypeScript ...
+  Finished TypeScript in 119s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/225) ...
+  Generating static pages using 7 workers (56/225) 
+  Generating static pages using 7 workers (112/225) 
+  Generating static pages using 7 workers (168/225) 
+✓ Generating static pages using 7 workers (225/225) in 6.4s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /.well-known/apple-app-site-association
+├ ƒ /.well-known/assetlinks.json
+├   /[locale]
+│ ├ ● /ar
+│ └ ● /en
+├ ƒ /[locale]/account
+├ ƒ /[locale]/admin
+├ ƒ /[locale]/admin/ai-governance
+├ ƒ /[locale]/admin/finance/accounting-accounts
+├ ƒ /[locale]/admin/finance/periods
+├ ƒ /[locale]/admin/resorts
+├ ƒ /[locale]/admin/roles
+├ ƒ /[locale]/admin/users
+├ ƒ /[locale]/auth/forgot-password
+├ ƒ /[locale]/auth/register
+├   /[locale]/auth/reset-password
+│ ├ ● /ar/auth/reset-password
+│ └ ● /en/auth/reset-password
+├ ƒ /[locale]/auth/verify-email
+├   /[locale]/contact
+│ ├ ● /ar/contact
+│ └ ● /en/contact
+├ ƒ /[locale]/dashboard
+├   /[locale]/demo
+│ ├ ● /ar/demo
+│ └ ● /en/demo
+├   /[locale]/demo/request
+│ ├ ● /ar/demo/request
+│ └ ● /en/demo/request
+├ ƒ /[locale]/finance/accounts
+├ ƒ /[locale]/finance/assets
+├ ƒ /[locale]/finance/banks
+├ ƒ /[locale]/finance/banks/reconciliation
+├ ƒ /[locale]/finance/banks/reconciliation/[statementId]
+├ ƒ /[locale]/finance/budgets
+├ ƒ /[locale]/finance/cashier
+├ ƒ /[locale]/finance/commissions
+├ ƒ /[locale]/finance/credit-notes
+├ ƒ /[locale]/finance/dues
+├ ƒ /[locale]/finance/dunning
+├ ƒ /[locale]/finance/einvoice
+├ ƒ /[locale]/finance/einvoice-items
+├ ƒ /[locale]/finance/exchange-rates
+├ ƒ /[locale]/finance/expenses
+├ ƒ /[locale]/finance/journals
+├ ƒ /[locale]/finance/journals/[id]
+├ ƒ /[locale]/finance/journals/new
+├ ƒ /[locale]/finance/payment-providers
+├ ƒ /[locale]/finance/payments
+├ ƒ /[locale]/finance/projects
+├ ƒ /[locale]/finance/reports
+├ ƒ /[locale]/finance/reports/aging
+├ ƒ /[locale]/finance/reports/ap-aging
+├ ƒ /[locale]/finance/reports/audit-trail
+├ ƒ /[locale]/finance/reports/balance-sheet
+├ ƒ /[locale]/finance/reports/budget-vs-actual
+├ ƒ /[locale]/finance/reports/cam-allocation
+├ ƒ /[locale]/finance/reports/capex-opex
+├ ƒ /[locale]/finance/reports/cash-flow
+├ ƒ /[locale]/finance/reports/cash-flow-forecast
+├ ƒ /[locale]/finance/reports/fixed-assets
+├ ƒ /[locale]/finance/reports/general-ledger
+├ ƒ /[locale]/finance/reports/income-statement
+├ ƒ /[locale]/finance/reports/lease-expirations
+├ ƒ /[locale]/finance/reports/owner-statement
+├ ƒ /[locale]/finance/reports/pdc
+├ ƒ /[locale]/finance/reports/property-pnl
+├ ƒ /[locale]/finance/reports/rent-roll
+├ ƒ /[locale]/finance/reports/trial-balance
+├ ƒ /[locale]/finance/reports/vat-return
+├ ƒ /[locale]/finance/service-charges
+├ ƒ /[locale]/finance/service-charges/[levyId]
+├ ƒ /[locale]/finance/suppliers
+├ ƒ /[locale]/finance/tax-mapping
+├ ƒ /[locale]/import
+├ ƒ /[locale]/login
+├ ƒ /[locale]/members
+├ ƒ /[locale]/members/[memberId]
+├ ƒ /[locale]/notifications
+├ ƒ /[locale]/onboarding
+├ ƒ /[locale]/operations
+├ ƒ /[locale]/operations/access-events
+├ ƒ /[locale]/operations/amenities
+├ ƒ /[locale]/operations/gate
+├ ƒ /[locale]/operations/gate/occupancy
+├ ƒ /[locale]/operations/gates
+├ ƒ /[locale]/operations/gates/completion-policy
+├ ƒ /[locale]/operations/gates/long-stay-policy
+├ ƒ /[locale]/operations/maintenance
+├ ƒ /[locale]/operations/maintenance/[requestId]
+├ ƒ /[locale]/operations/maintenance/work-orders
+├ ƒ /[locale]/operations/maintenance/work-orders/[workOrderId]
+├ ƒ /[locale]/operations/vehicles
+├ ƒ /[locale]/operations/visitors
+├ ƒ /[locale]/operations/visitors/[invitationId]
+├ ƒ /[locale]/platform
+├ ƒ /[locale]/platform/audit
+├ ƒ /[locale]/platform/leads
+├ ƒ /[locale]/platform/organizations
+├ ƒ /[locale]/platform/organizations/[id]
+├ ƒ /[locale]/portal
+├ ƒ /[locale]/portal/accept-invite
+├ ƒ /[locale]/portal/amenities
+├ ƒ /[locale]/portal/documents
+├ ƒ /[locale]/portal/dues
+├ ƒ /[locale]/portal/leases
+├ ƒ /[locale]/portal/leases/[leaseId]/renewal
+├ ƒ /[locale]/portal/login
+├ ƒ /[locale]/portal/maintenance
+├ ƒ /[locale]/portal/maintenance/[requestId]
+├ ƒ /[locale]/portal/maintenance/new
+├ ƒ /[locale]/portal/notifications
+├ ƒ /[locale]/portal/payments
+├ ƒ /[locale]/portal/payments/return
+├ ƒ /[locale]/portal/profile
+├ ƒ /[locale]/portal/statement
+├ ƒ /[locale]/portal/units
+├ ƒ /[locale]/portal/units/[unitId]/timeline
+├ ƒ /[locale]/portal/vehicles
+├ ƒ /[locale]/portal/vehicles/[vehicleId]
+├ ƒ /[locale]/portal/vehicles/new
+├ ƒ /[locale]/portal/visitors
+├ ƒ /[locale]/portal/visitors/[invitationId]
+├ ƒ /[locale]/portal/visitors/new
+├   /[locale]/pricing
+│ ├ ● /ar/pricing
+│ └ ● /en/pricing
+├   /[locale]/privacy
+│ ├ ● /ar/privacy
+│ └ ● /en/privacy
+├ ƒ /[locale]/property
+├ ƒ /[locale]/property/[unitId]
+├   /[locale]/terms
+│ ├ ● /ar/terms
+│ └ ● /en/terms
+├ ƒ /activate/[token]
+├ ƒ /api/ai/ask-aqarbooks
+├ ƒ /api/ai/extract-invoice
+├ ƒ /api/ai/financial-insights
+├ ƒ /api/ai/import-map
+├ ƒ /api/ai/journal-propose
+├ ƒ /api/ai/reconcile-match
+├ ƒ /api/ai/smart-dunning
+├ ƒ /api/cron/alert-digest
+├ ƒ /api/cron/gate-hardware
+├ ƒ /api/cron/gate-notifications
+├ ƒ /api/cron/lease-expiry
+├ ƒ /api/cron/lease-rent
+├ ƒ /api/cron/payment-events
+├ ƒ /api/portal-activation/complete
+├ ƒ /api/portal-activation/inspect
+├ ƒ /api/webhooks/fawry
+├ ○ /apple-icon.png
+├ ƒ /auth/callback
+├ ○ /gate-scanner.webmanifest
+├ ƒ /i/[slug]
+├ ○ /icon.png
+├ ○ /icon.svg
+└ ○ /robots.txt
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

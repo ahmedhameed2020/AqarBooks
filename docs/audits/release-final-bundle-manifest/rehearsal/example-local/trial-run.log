@@ -1,0 +1,178 @@
+TRIAL RUN on TEST data (isolated stack container, scratch DB rh_trial); generator sha256 56f68e5d5218f1f7b2652a19c2188135d1712742a4f63d9659fdb39ca2c81fad; load-verify sha256 ee5d1f71f43a5716e9991d926d91d9b5585970135204eab3eb0c458f959544d0; started Sat Oct 17 16:18:02 AST 2026
+== pass 1 (candidate) and pass 2 (reviewed = candidate, trial only)
+# none: every column and table is reviewed
+== export
+export-exit=0
+== fresh trial database
+base-exit=0
+schema-exit=0
+== load
+load-exit=0
+== load-verify
+verify-exit=0
+psql:load-verify.psql:36: NOTICE:  V0: 242 row(s) had their reference to an unexported schema set to NULL
+psql:load-verify.psql:43: NOTICE:  V0: payment_provider_settings: 121 row(s), none enabled
+psql:load-verify.psql:60: NOTICE:  V1: 143 tables, every row count matches
+psql:load-verify.psql:88: NOTICE:  V2: 506 foreign keys checked, no orphan row
+psql:load-verify.psql:112: NOTICE:  V3: 2 owned sequences checked, none behind
+ lease_renewal_requests.lease_renewal_requests_successor_consistent
+(1 row)
+
+LOAD-VERIFY PASSED
+
+== FIDELITY (source vs restored, KEEP columns checksum; redacted columns differ)
+payments                     source   1759  restored   1759  KEEP-columns checksum EQUAL
+dues                         source   1650  restored   1650  KEEP-columns checksum EQUAL
+journal_entry_lines          source   9269  restored   9269  KEEP-columns checksum EQUAL
+journal_entries              source   4486  restored   4486  KEEP-columns checksum EQUAL
+chart_of_accounts            source  22204  restored  22204  KEEP-columns checksum EQUAL
+cashboxes                    source    217  restored    217  KEEP-columns checksum EQUAL
+bank_accounts                source    103  restored    103  KEEP-columns checksum EQUAL
+organization_memberships     source   3647  restored   3647  KEEP-columns checksum EQUAL
+role_permissions             source 508216  restored 508216  KEEP-columns checksum EQUAL
+financial_audit_logs         source   1708  restored   1708  KEEP-columns checksum EQUAL
+notifications                source   8303  restored   8303  KEEP-columns checksum EQUAL
+access_events                source   1419  restored   1419  KEEP-columns checksum EQUAL
+payment_allocations          source   1555  restored   1555  KEEP-columns checksum EQUAL
+members rows 1557: full_name unchanged 0, phone unchanged 0, email unchanged 0 (all must be 0)
+DIFFERENT KEEP tables: []
+fidelity-exit=0
+
+== NEGATIVE CONTROLS of load-verify (each in a rolled-back transaction on the scratch DB)
+[orphan: delete a parent organization row] exit=3 | psql:load-verify.psql:60: WARNING:  V1 COUNT MISMATCH organizations: expected 1488, loaded 1487 psql:load-verify.psql:60: ERROR:  V1: 1 table(s) with a different row count 
+[count: delete three notifications] exit=3 | psql:load-verify.psql:60: WARNING:  V1 COUNT MISMATCH notifications: expected 8303, loaded 8300 psql:load-verify.psql:60: ERROR:  V1: 1 table(s) with a different row count 
+[sequence: move an owned sequence behind its column] exit=0 | 
+[control: no mutation] exit=0 | 
+[orphan only (counts unchanged): point a unit at a missing organization] exit=3 | psql:load-verify.psql:88: WARNING:  V2 ORPHANS: units (units_organization_id_fkey) -> organizations: 1 row(s) psql:load-verify.psql:88: ERROR:  V2: 1 foreign key(s) with orphan rows (of 506 checked) 
+[sequence only: column id above the sequence] exit=3 | psql:negctl.sql:3: ERROR:  column "id" can only be updated to DEFAULT 
+[control: no mutation] exit=0 | 
+[sequence behind (probe table with an identity sequence, inside the rolled-back transaction)] exit=3 | psql:load-verify.psql:112: WARNING:  V3 SEQUENCE BEHIND: rh_seq_probe_id_seq (last_value <NULL>) < max(rh_seq_probe.id) = 500 psql:load-verify.psql:112: ERROR:  V3: 1 sequence(s) behind their column (of 3 checked) 
+[sequence in step (probe table, sequence moved above the max)] exit=0 | 
+
+== SENTINEL PLANT in the scratch DB, then export of that DB, then search
+sensitive columns: 88 in 59 tables
+columns planted: 75 of 88 | tables not plantable: 9
+  NOT PLANTED credit_notes -- ERROR:  new row for relation "credit_notes" violates check constraint "credit_note_amounts_add_up"
+  NOT PLANTED gate_access_reconciliations -- ERROR:  new row for relation "gate_access_reconciliations" violates check constraint "gate_access_reconciliations_check"
+  NOT PLANTED gate_device_enrollments -- ERROR:  invalid input syntax for type timestamp with time zone: "00:15:00"
+  NOT PLANTED input_tax_decisions -- ERROR:  new row for relation "input_tax_decisions" violates check constraint "input_tax_account_only_when_recoverable"
+  NOT PLANTED journal_entry_lines -- ERROR:  new row for relation "journal_entry_lines" violates check constraint "journal_entry_lines_check2"
+  NOT PLANTED maintenance_request_updates -- ERROR:  new row for relation "maintenance_request_updates" violates check constraint "maintenance_request_updates_actor_check"
+  NOT PLANTED online_payment_transactions -- ERROR:  new row for relation "online_payment_transactions" violates check constraint "online_payment_transactions_currency_check"
+  NOT PLANTED visitor_invitations -- ERROR:  new row for relation "visitor_invitations" violates check constraint "visitor_invitations_window_check"
+  NOT PLANTED work_order_costs -- ERROR:  new row for relation "work_order_costs" violates check constraint "work_order_costs_currency_check"
+export-of-planted-db-exit=0
+147
+sentinel values planted (distinct): 88
+files in the EXPORT of the planted database that contain any planted value: NONE
+generic markers (SENTINEL- / leak.example) in the export: NONE
+control: the planted database itself holds them: 1 sentinel members; 224 gate_devices with a hash
+control 2: the SAME needles are found in a deliberately UNredacted copy of one table: 1
+
+== SCAN of the export of the sentinel-planted database (scan-export.ps1, final version)
+info: 6815 64-hex digest token(s) in 147 files (SHA-256 columns / placeholders; review the rule report if this number is unexpected)
+CLEAN: 147 files scanned, no pattern matched
+scan-exit=0
+
+######## FOLLOW-UP (tools v3: JSONSAFE rule, ledger load, replication-role reset) -- TEST data only ########
+== generator v3 sha256: 
+5aa79f58df358595bf73c165a88291ea25d3f6de201bf7852d5f9d9986dfd313
+== load-verify sha256: 
+32d905f72de774aea10a45f9e721ea2bad42e15fcb850a217bc732029fb3b234
+== scan-export sha256: 
+f422595e9970cfabbff8f2a91831263a2def27892b58d06964d4f5c97bf3461e
+== chain on test data: export-exit=0 base-exit=0 schema-exit=0 load-exit=0 verify-exit=0 (LOAD-VERIFY PASSED); notices in load-verify-notices.txt
+== JSON scrub unit test (crafted values, 9 cases incl. escaped quotes, nested, arrays, scalar string, Arabic, 41-char token): all expected (display_name/phone/email/names/Arabic/long token -> "redacted"; uuid, ISO date/timestamp, snake_case token, numbers, booleans, null kept)
+== JSON columns source vs restored (json-columns-review.txt):
+JSON columns review (16 json/jsonb columns of the public schema) -- rule used by the generator, rows, and source-vs-restored comparison on TEST data
+structure = keys, numbers, booleans, nulls, array shapes with every string replaced by "S" (must be EQUAL); strings = whether any string value changed
+
+credit_notes.decision_snapshot | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+due_schedules.amount_by_unit_type | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+due_schedules.scope | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+einvoice_submission_attempts.request_summary | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+einvoice_submission_attempts.response_summary | rule BLOB | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+financial_audit_logs.metadata | rule JSONSAFE | rows source 1708 / restored 1708 | structure EQUAL | strings changed (redacted) | restored rows holding "redacted": 345
+input_tax_decisions.decision_snapshot | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+member_saved_filters.query | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+onboarding_request_events.metadata | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+online_payment_events.redacted_payload | rule BLOB | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+online_payment_transactions.provider_payload | rule BLOB | rows source 1 / restored 1 | structure REPLACED by {} (intended for BLOB) | strings changed (redacted) | restored rows holding "redacted": 0
+payment_credit_requests.result | rule JSONSAFE | rows source 2076 / restored 2076 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+plan_entitlements.value | rule JSONSAFE | rows source 57 / restored 57 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+platform_audit_logs.safe_change_summary | rule JSONSAFE | rows source 58276 / restored 58276 | structure EQUAL | strings changed (redacted) | restored rows holding "redacted": 45861
+property_import_logs.failures | rule JSONSAFE | rows source 8 / restored 8 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+tax_decisions.tax_decision_snapshot | rule JSONSAFE | rows source 0 / restored 0 | structure EQUAL | strings unchanged | restored rows holding "redacted": 0
+
+columns with 0 rows in the test data cannot be shown by data; they are covered by the rule (and the crafted-value unit test in trial-run.log): credit_notes.decision_snapshot, due_schedules.amount_by_unit_type, due_schedules.scope, einvoice_submission_attempts.request_summary, einvoice_submission_attempts.response_summary, input_tax_decisions.decision_snapshot, member_saved_filters.query, onboarding_request_events.metadata, online_payment_events.redacted_payload, tax_decisions.tax_decision_snapshot
+DIFFERENT structure count: 0
+
+== JSON sentinels planted in rh_trial (platform_audit_logs.safe_change_summary, financial_audit_logs.metadata, property_import_logs.failures): export-run.psql exit 0, 147 files, planted values found in export files: 0; positive control: unredacted copy holds them in 3 lines
+== negative controls for V5/V6 (each breaks one thing, expects exit 3, then restores; the final clean run exits 0):
+== control V5a: a ledger row missing
+  exit=3  psql:load-verify.psql:141: ERROR:  V5: ledger differs: 1 missing, 0 extra, 0 with a different name
+== control V5b: an extra ledger row
+  exit=3  psql:load-verify.psql:141: ERROR:  V5: ledger differs: 0 missing, 1 extra, 0 with a different name
+== control V5c: a ledger row with a different name
+  exit=3  psql:load-verify.psql:141: ERROR:  V5: ledger differs: 0 missing, 0 extra, 1 with a different name
+== control V6a: session_replication_role stored for the database
+  exit=3  psql:load-verify.psql:154: ERROR:  V6: session_replication_role is replica after reset (expected origin)
+== control V6b: a user trigger disabled
+  exit=3  psql:load-verify.psql:154: ERROR:  V6: 1 user trigger(s) are disabled
+== clean control (everything restored)
+  exit=0  
+COPY 3
+LOAD-VERIFY PASSED
+ledger rows 87
+origin
+
+== generator control: reviewed rule JSONSAFE on members.full_name (text) -> 1 unreviewed item, export-run exit 3, 0 data files
+== SCAN of the final export (scan-export.ps1):
+info: 6809 64-hex digest token(s) in 147 files (SHA-256 columns / placeholders; review the rule report if this number is unexpected)
+CLEAN: 147 files scanned, no pattern matched
+scan-exit=0
+
+######## FOLLOW-UP v4: JSON per-path ALLOWLIST (JSONALLOW + JSONKEEP) replaces the v3 JSONSAFE token exception -- TEST data only; the v3 section above is SUPERSEDED for JSON ########
+generator sha256: 
+bdeb387d12ecf5d91982af2b7406d747556acb0690bb9b02dbeedd3f755beb5f
+load-verify sha256: 
+32d905f72de774aea10a45f9e721ea2bad42e15fcb850a217bc732029fb3b234
+scan-export sha256: 
+f422595e9970cfabbff8f2a91831263a2def27892b58d06964d4f5c97bf3461e
+== chain on test data with the allowlist: export-exit=0 base-exit=0 schema-exit=0 load-exit=0 verify-exit=0 (LOAD-VERIFY PASSED; V0 242/240, V5 87 migrations, V6 origin)
+== trap test: see json-trap-test.txt
+== row-by-row JSON check: see json-columns-review.txt (total violations 0)
+== generator gating controls:
+== invalid kind (NUMBER)
+   export-exit=3  files=0  # 1 unreviewed item(s): export and load are BLOCKED until each is revi
+JSONKEEP financial_audit_logs.metadata amount NUMBER -- invalid path or kind (kind = KEEP|NUM|BOOL|UUID|TS|ENUM:a,b,c; path = key, [].key or .)
+   stale JSONKEEP lines: 0
+== invalid path (dotted a.b)
+   export-exit=3  files=0  # 1 unreviewed item(s): export and load are BLOCKED until each is revi
+JSONKEEP financial_audit_logs.metadata a.b NUM -- invalid path or kind (kind = KEEP|NUM|BOOL|UUID|TS|ENUM:a,b,c; path = key, [].key or .)
+   stale JSONKEEP lines: 0
+== allowlist line on a text column
+   export-exit=3  files=0  # 1 unreviewed item(s): export and load are BLOCKED until each is revi
+JSONKEEP members.full_name x KEEP -- the column exists but its reviewed rule is not JSONALLOW (json/jsonb columns only)
+   stale JSONKEEP lines: 0
+== allowlist line on a column that no longer exists (information only, export must still pass)
+   export-exit=3  files=0  # none: every column and table is reviewed
+   stale JSONKEEP lines: 1
+== old rule JSONSAFE on a json column
+   export-exit=3  files=0  # 16 unreviewed item(s): export and load are BLOCKED until each is rev
+COLUMN financial_audit_logs.metadata (jsonb) -- reviewed rule JSONSAFE cannot apply to type jsonb
+JSONKEEP financial_audit_logs.metadata amount NUM -- the column exists but its reviewed rule is not JSONALLOW (json/jsonb columns only)
+   stale JSONKEEP lines: 0
+== JSONALLOW on a text column
+   export-exit=3  files=0  # 1 unreviewed item(s): export and load are BLOCKED until each is revi
+COLUMN members.full_name (text) -- reviewed rule JSONALLOW cannot apply to type text
+   stale JSONKEEP lines: 0
+   (case 4 rerun with a data/ folder: see line below)
+# none: every column and table is reviewed
+1
+export-exit=0 files=147
+
+== SCAN of the final export (scan-export.ps1):
+info: 6809 64-hex digest token(s) in 147 files (SHA-256 columns / placeholders; review the rule report if this number is unexpected)
+CLEAN: 147 files scanned, no pattern matched
+scan-exit=0

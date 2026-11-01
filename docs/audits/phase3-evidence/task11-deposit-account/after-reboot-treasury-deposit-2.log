@@ -1,0 +1,4 @@
+FAIL  tests/treasury-link-and-cheque.integration.test.ts  |  files: 1 failed (1)  |  tests: 1 failed | 17 passed (18)
+       FAIL  tests/treasury-link-and-cheque.integration.test.ts > 4. audit of the cash-like flag: actual changes only, no new write permission > no write permission was widened: collector / cashier / auditor still change nothi
+      AssertionError: expected 't' to be 'f' // Object.is equality
+PASS  tests/deposit-account-validation.integration.test.ts  |  files: 1 passed (1)  |  tests: 21 passed (21)

@@ -129,6 +129,37 @@ export async function disposeAsset(
   const d = parsed.data;
 
   const supabase = await createClient();
+  if (d.proceeds > 0) {
+    const { data: asset, error: assetError } = await supabase
+      .from("fixed_assets")
+      .select("organization_id, asset_account_id, accumulated_depreciation_account_id")
+      .eq("id", d.assetId)
+      .maybeSingle();
+    if (assetError) return { ok: false, error: assetError.message };
+
+    if (asset) {
+      const { data: proceedsAccount, error: accountError } = await supabase
+        .from("chart_of_accounts")
+        .select("id")
+        .eq("id", d.proceedsAccountId)
+        .eq("organization_id", asset.organization_id)
+        .eq("category", "ASSET")
+        .eq("is_group", false)
+        .eq("is_active", true)
+        .eq("is_cash_equivalent", true)
+        .eq("requires_cost_center", false)
+        .maybeSingle();
+      if (accountError) return { ok: false, error: accountError.message };
+      if (
+        !proceedsAccount ||
+        d.proceedsAccountId === asset.asset_account_id ||
+        d.proceedsAccountId === asset.accumulated_depreciation_account_id
+      ) {
+        return { ok: false, error: "DISPOSAL_PROCEEDS_ACCOUNT_INVALID" };
+      }
+    }
+  }
+
   const { error } = await supabase.rpc("dispose_fixed_asset", {
     p_asset_id: d.assetId,
     p_disposal_date: d.disposalDate,

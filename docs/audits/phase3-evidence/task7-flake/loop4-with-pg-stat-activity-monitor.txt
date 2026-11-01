@@ -1,0 +1,7 @@
+D1 run 1:   1 passed (26.6s) 
+D1 run 2:   1 passed (33.7s) 
+D1 run 3:   1 passed (26.8s) 
+D1 run 4:   1 passed (25.4s) 
+D1 run 5:   1 passed (24.6s) 
+D1 run 6:   1 passed (25.2s) 
+DONE

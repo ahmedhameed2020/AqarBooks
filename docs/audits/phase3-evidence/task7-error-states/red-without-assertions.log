@@ -1,0 +1,23 @@
+Running 1 test using 1 worker
+  x  1 tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers (1.8m)
+  1) tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers 
+    Error: expect(locator).toBeVisible() failed
+    Locator: getByTestId('data-load-error')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByTestId('data-load-error')
+      58 |     revokeViews();
+      59 |     await page.goto(`/en/members/${fx.member.id}`);
+    > 60 |     await expect(page.getByTestId("data-load-error")).toBeVisible({ timeout: 60_000 });
+         |                                                       ^
+      61 |     await expect(page.getByTestId("data-load-error")).toContainText(/could not be loaded/i);
+      62 |     const body = await page.locator("body").innerText();
+      63 |     expect(body, "no partial or zero figures behind the error").not.toMatch(/Units owned/i);
+        at D:\Web\AqarBooks\tests\e2e\page-error-states.spec.ts:60:55
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\page-error-states-staff-me-916ef-nits-owned-0-Retry-recovers\error-context.md
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\page-error-states-staff-me-916ef-nits-owned-0-Retry-recovers\error-context.md
+  1 failed
+    tests\e2e\page-error-states.spec.ts:51:5 › staff member page: a failed read shows an error with Retry, never 'Units owned 0'; Retry recovers 

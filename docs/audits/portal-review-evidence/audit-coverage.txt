@@ -1,0 +1,61 @@
+Output format is unaligned.
+=== orgs with gate traffic (latest 1) and orgs with maintenance traffic (latest 1)
+SELECT 2
+gate 1ea82eb7-1bc5-42a2-8f9e-d219fa7edb90
+maintenance 135f6ca5-acc8-4580-afbe-27e4171368f9
+=== platform_audit_logs actions in those orgs
+gate | coa.created | 2
+gate | gate_device.enrolled | 1
+gate | gate_device.enrollment_created | 1
+gate | visitor_gate.entry_allowed | 3
+gate | visitor_gate.exit_allowed | 2
+gate | visitor_invitation.created | 5
+gate | visitor_invitation.revoked | 1
+maintenance | coa.created | 2
+maintenance | maintenance_request.created | 1
+maintenance | visitor_gate.entry_allowed | 1
+=== financial_audit_logs actions in those orgs
+=== domain ledgers
+access_events | gate | ALLOW:VALID_ENTRY | 3
+access_events | gate | ALLOW:VALID_EXIT | 2
+access_events | gate | DENY:ALREADY_INSIDE | 1
+access_events | gate | DENY:EXPIRED | 1
+access_events | gate | DENY:INVALID_PASS | 2
+access_events | gate | DENY:NOT_INSIDE | 1
+access_events | gate | DENY:NOT_YET_VALID | 1
+access_events | gate | DENY:PASS_ALREADY_USED | 2
+access_events | gate | DENY:REVOKED | 1
+access_events | maintenance | ALLOW:VALID_ENTRY | 1
+maintenance_request_updates | maintenance | 1 rows, with actor_user_id 1, actor_member_id 1
+notifications | gate | DUE_CREATED | 3
+notifications | gate | INVITATION_REVOKED | 1
+notifications | gate | PAYMENT_CONFIRMED | 1
+notifications | gate | VISITOR_ENTERED | 3
+notifications | gate | VISITOR_EXITED | 2
+notifications | gate | VISITOR_INVITATION_CREATED | 5
+notifications | maintenance | DUE_CREATED | 3
+notifications | maintenance | MAINTENANCE_UPDATE | 1
+notifications | maintenance | PAYMENT_CONFIRMED | 1
+notifications | maintenance | REQUEST_RECEIVED | 1
+notifications | maintenance | VISITOR_ENTERED | 1
+notifications | maintenance | VISITOR_INVITATION_CREATED | 1
+gate_devices | gate | 1
+gate_devices | maintenance | 2
+=== are audit tables append-only / who can write
+access_events | rls=true
+financial_audit_logs | rls=true
+maintenance_request_updates | rls=true
+platform_audit_logs | rls=true
+trigger | access_events | access_event_hardware
+trigger | access_events | trg_notify_access_event_allowed
+trigger | maintenance_request_updates | trg_notify_maintenance_request_update
+platform_audit | coa.created | 2
+platform_audit | maintenance_request.created | 1
+platform_audit | maintenance_request.status_changed | 2
+
+maintenance_update | SUBMITTED>TRIAGED STAFF_ONLY | by_user=true by_member=false
+maintenance_update | TRIAGED>IN_PROGRESS MEMBER_VISIBLE | by_user=true by_member=false
+notification | DUE_CREATED | recipients(member=3,staff=3)
+notification | MAINTENANCE_UPDATE | recipients(member=2,staff=2)
+notification | PAYMENT_CONFIRMED | recipients(member=1,staff=1)
+notification | REQUEST_RECEIVED | recipients(member=1,staff=1)

@@ -1,0 +1,29 @@
+✖ 628 problems (0 errors, 628 warnings)
+ Test Files  11 passed (11)
+      Tests  248 passed (248)
+   Start at  20:53:40
+   Duration  22.13s (transform 3.33s, setup 1.81s, import 5.04s, tests 75.07s, environment 8ms)
+  ok  1 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (ar) (36.0s)
+  ok  2 tests\e2e\customer-advances-ui-screens.spec.ts:37:7 › advance receipt UI (en) (33.7s)
+  ok  3 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (ar) (32.1s)
+  ok  4 tests\e2e\customer-advances-ui-screens.spec.ts:92:7 › apply, reverse and the portal statement (en) (38.5s)
+  ok  5 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (ar) (17.8s)
+  ok  6 tests\e2e\customer-advances-ui-screens.spec.ts:143:7 › portal statement position by end date (en) (20.5s)
+  ok  7 tests\e2e\customer-advances.spec.ts:105:7 › B1–B7: advances on the staff screens and the owner's portal › B1 — an advance receipt with
+  ok  8 tests\e2e\customer-advances.spec.ts:147:7 › B1–B7: advances on the staff screens and the owner's portal › B2 — applying credit from th
+  ok  9 tests\e2e\customer-advances.spec.ts:182:7 › B1–B7: advances on the staff screens and the owner's portal › B3 — reversing only the 600 
+  ok 10 tests\e2e\customer-advances.spec.ts:223:7 › B1–B7: advances on the staff screens and the owner's portal › B4 — the portal statement wi
+  ok 11 tests\e2e\customer-advances.spec.ts:251:7 › B1–B7: advances on the staff screens and the owner's portal › B5 — the same numbers in the
+  ok 12 tests\e2e\customer-advances.spec.ts:298:7 › B1–B7: advances on the staff screens and the owner's portal › B6 — the cashier records an 
+  ok 13 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application s
+  ok 14 tests\e2e\customer-advances.spec.ts:327:9 › B1–B7: advances on the staff screens and the owner's portal › B7 — a refused application s
+  ok 15 tests\e2e\customer-advances.spec.ts:352:5 › B7 — no approved advance account: the screen says why and the database agrees (14.6s)
+  ok 16 tests\e2e\customer-advances.spec.ts:372:5 › B8 — after the unit changes hands the new owner sees nothing of the old owner's credit; the or
+  ok 17 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (9.9s)
+  ok 18 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (10.8s)
+  ok 19 tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's (13.8s)
+  ok 20 tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit (22.3s)
+  ok 21 tests\e2e\portal-journey.spec.ts:97:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only n
+  ok 22 tests\e2e\portal-journey.spec.ts:122:5 › J6 the owner follows the status and sees only the member-visible note (14.1s)
+  22 passed (9.5m)
+[exited with code 0]

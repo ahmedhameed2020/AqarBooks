@@ -1,0 +1,106 @@
+Running 39 tests using 1 worker
+  ok  1 tests\e2e\accounting-bank-reconciliation.spec.ts:87:5 › B1 due 2,000 issued on 2026-03-01 (28.6s)
+  x   2 tests\e2e\accounting-bank-reconciliation.spec.ts:104:5 › B2 bank transfer 2,000 on 2026-03-10, created in the receipt dialog, into the bank GL account (2.4m)
+  -   3 tests\e2e\accounting-bank-reconciliation.spec.ts:143:5 › B3 create the statement (closing 1,985.00) and import only the deposit line
+  -   4 tests\e2e\accounting-bank-reconciliation.spec.ts:168:5 › B4 auto-match links the deposit to the receipt's journal line; an unexplained difference of -15 blocks finalizing
+  -   5 tests\e2e\accounting-bank-reconciliation.spec.ts:195:5 › B5 a second auto-match changes nothing; one journal line cannot back two statement lines
+  -   6 tests\e2e\accounting-bank-reconciliation.spec.ts:221:5 › B5b importing the fee line makes the arithmetic zero but does not book the expense: books 2,000 vs bank 1,985
+  -   7 tests\e2e\accounting-bank-reconciliation.spec.ts:240:5 › B6 the fee is booked through the journal UI: accountant creates + submits, the owner posts; 1120 becomes 1,985
+  -   8 tests\e2e\accounting-bank-reconciliation.spec.ts:278:5 › B7 auto-match links the fee line to the fee entry; book = bank = 1,985; nothing unmatched; finalize reconciles
+  -   9 tests\e2e\accounting-bank-reconciliation.spec.ts:314:5 › B8 the books agree: 1120 = 1,985, bank charges 15, receivables 0, revenue 2,000, balanced; trial balance closes 1120 at 1,985
+  ok 10 tests\e2e\accounting-journey.spec.ts:73:5 › S1 opening balance 10,000 dated before the report period (47.3s)
+  ok 11 tests\e2e\accounting-journey.spec.ts:94:5 › S2 new due 2,000 inside the period (26.7s)
+  x  12 tests\e2e\accounting-journey.spec.ts:139:5 › S3 receipt #1: 1,500 on 2026-02-10 (2.3m)
+  -  13 tests\e2e\accounting-journey.spec.ts:149:5 › S4 receipt #2: 500 on 2026-02-12
+  -  14 tests\e2e\accounting-journey.spec.ts:159:5 › S5 reverse receipt #2 in full
+  -  15 tests\e2e\accounting-journey.spec.ts:180:5 › V1 dues list: remaining 10,500 = opening due 10,000 + new due 500
+  -  16 tests\e2e\accounting-journey.spec.ts:198:5 › V2 receipts: #1 posted 1,500, #2 reversed 500 and still visible; collections KPI 1,500
+  -  17 tests\e2e\accounting-journey.spec.ts:211:5 › V3 owner statement: collected 1,500, outstanding 10,500
+  -  18 tests\e2e\accounting-journey.spec.ts:223:5 › V4 general ledger shows the reversed original AND its mirror: 1130 closes at 10,500, 1110 at 1,500
+  -  19 tests\e2e\accounting-journey.spec.ts:241:5 › V5 trial balance 2026: opening + movement = closing, balanced in all three, prior balance carried in
+  -  20 tests\e2e\accounting-journey.spec.ts:262:5 › V5b trial balance for a period that starts mid-year: balance-sheet accounts carry, income accounts open year-to-date
+  -  21 tests\e2e\accounting-journey.spec.ts:274:5 › V5c trial balance starting in a fiscal year the organization has not defined: earlier result on an explicit unclosed line
+  -  22 tests\e2e\accounting-journey.spec.ts:291:5 › V6 income statement, balance sheet, cash flow and aging agree with the ledger
+  -  23 tests\e2e\accounting-journey.spec.ts:322:5 › V7 ledger integrity: balanced entries, reversal mirrors the original, sub-ledger = ledger, audit chain intact
+  -  24 tests\e2e\accounting-journey.spec.ts:383:5 › V8 audit trail screen: the auditor sees the journey's events; the accountant sees the financial chain only
+  ok 25 tests\e2e\accounting-void-permission.spec.ts:90:5 › W1 only the owner and finance-manager templates hold finance.payments.void; the accountant template does not (533ms)
+  ok 26 tests\e2e\accounting-void-permission.spec.ts:103:5 › W2 a shipped-ACCOUNTANT user sees no Reverse control and the database refuses; nothing changes (18.9s)
+  ok 27 tests\e2e\accounting-void-permission.spec.ts:119:5 › W3 an explicitly authorized user reverses in the UI; a finance manager can through the RPC (36.1s)
+  ok 28 tests\e2e\accounting-void-permission.spec.ts:139:5 › W4 refused for the auditor, another organization's void-capable user, and anonymous (4.3s)
+  ok 29 tests\e2e\portal-journey.spec.ts:40:5 › J1 owner 1 signs in to the portal (email code) and lands on the dashboard (13.7s)
+  ok 30 tests\e2e\portal-journey.spec.ts:47:5 › J2 the owner sees only their own unit (17.2s)
+  x  31 tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's (17.3s)
+  -  32 tests\e2e\portal-journey.spec.ts:71:5 › J4 owner 1 submits a maintenance request for their unit
+  -  33 tests\e2e\portal-journey.spec.ts:97:5 › J5 the property manager triages and starts the request, with one member-visible and one staff-only note
+  -  34 tests\e2e\portal-journey.spec.ts:122:5 › J6 the owner follows the status and sees only the member-visible note
+  ok 35 tests\e2e\portal-refusals.spec.ts:64:5 › R1 another owner of the same organization: pages show nothing of owner 1; API refuses creation for, and reads of, owner 1's unit (27.4s)
+  ok 36 tests\e2e\portal-refusals.spec.ts:104:5 › R2 an owner of ANOTHER organization (same unit code R-101): nothing of A is visible or creatable (36.0s)
+  ok 37 tests\e2e\portal-refusals.spec.ts:139:5 › R3 an owner cannot use staff surfaces; staff cannot use owner-only functions (23.4s)
+  ok 38 tests\e2e\portal-refusals.spec.ts:175:5 › R4 a suspended owner account: portal creation is refused; passes issued earlier by that owner stop admitting (G3) (16.7s)
+  ok 39 tests\e2e\portal-refusals.spec.ts:241:5 › R5 an inactive organization: nothing can be created or changed, and the gate admits nobody (5.2s)
+  1) tests\e2e\accounting-bank-reconciliation.spec.ts:104:5 › B2 bank transfer 2,000 on 2026-03-10, created in the receipt dialog, into the bank GL account 
+    Test timeout of 120000ms exceeded.
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+      - waiting for locator('[data-slot="dialog-content"][data-open]').getByRole('combobox').nth(4)
+      58 | }
+      59 | async function choose(page: Page, scope: ReturnType<Page["locator"]>, index: number, option: RegExp | string) {
+    > 60 |   await scope.getByRole("combobox").nth(index).click();
+         |                                                ^
+      61 |   await page.getByRole("option", { name: option }).first().click();
+      62 | }
+      63 | const text = async (page: Page) => {
+        at choose (D:\Web\AqarBooks\tests\e2e\accounting-bank-reconciliation.spec.ts:60:48)
+        at D:\Web\AqarBooks\tests\e2e\accounting-bank-reconciliation.spec.ts:113:9
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-bank-reconcilia-8f14c-og-into-the-bank-GL-account\error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-bank-reconcilia-8f14c-og-into-the-bank-GL-account\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-bank-reconcilia-8f14c-og-into-the-bank-GL-account\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  2) tests\e2e\accounting-journey.spec.ts:139:5 › S3 receipt #1: 1,500 on 2026-02-10 ───────────────
+    Test timeout of 120000ms exceeded.
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+      - waiting for locator('[data-slot="dialog-content"][data-open]').getByRole('combobox').nth(4)
+      51 | /** open a Base UI Select (role=combobox) inside the dialog and choose an option by its visible text */
+      52 | async function choose(page: Page, scope: ReturnType<Page["getByRole"]>, comboboxIndex: number, optionName: RegExp | string) {
+    > 53 |   await scope.getByRole("combobox").nth(comboboxIndex).click();
+         |                                                        ^
+      54 |   await page.getByRole("option", { name: optionName }).first().click();
+      55 | }
+      56 |
+        at choose (D:\Web\AqarBooks\tests\e2e\accounting-journey.spec.ts:53:56)
+        at recordReceipt (D:\Web\AqarBooks\tests\e2e\accounting-journey.spec.ts:133:9)
+        at D:\Web\AqarBooks\tests\e2e\accounting-journey.spec.ts:141:18
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-journey-S3-receipt-1-1-500-on-2026-02-10\error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-journey-S3-receipt-1-1-500-on-2026-02-10\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\accounting-journey-S3-receipt-1-1-500-on-2026-02-10\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  3) tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's 
+    Error: expect(received).toMatch(expected)
+    Expected pattern: /3,?500/
+    Received string:  "AqarBooks PORTAL Gate Release R Release host Verified owner account OVERVIEW Dashboard Finance & unit activity FINANCE Account Statement Movements & running balance Dues & Payment Open charges Receipts Payment receipts PORTFOLIO Units & Properties Assets & ownership Leases & Renewals Terms & renewal status Documents Files & reports SERVICES Maintenance Requests & updates Visitors Invites & QR passes Vehicles Unit vehicle records Amenities Facilities & bookings Notifications Unit activity alerts ACCOUNT My Profile Details & password Sign out Account Statement Every charge raised against you and every receipt posted from you, in chronological order with the running balance after each movement. Export Excel Print statement Position to date: net = open dues minus the available credit. Applying credit to a charge, or reversing it, does not change the net. Arrears 4,500.00 Past due and not yet settled Available credit 0.00 Advances not applied yet Net 4,500.00 Owed by you Opening balance 0.00 From inception Total charges 4,500.00 Debited during the period Total paid 0.00 Posted receipts in the period Closing balance 4,500.00 Outstanding balance due From To Search description, reference, or unit All(2) Charges(2) Payments(0) Newest first Showing 2 movements Account statement for Release host — All activity Date Type Description Unit Reference Debit Credit Balance 2026-03-01 Charge Charge 1500 R-101 — 1,500.00 — 4,500.00 2026-02-01 Charge Charge 3000 R-101 — 3,000.00 — 3,000.00 Period total 4,500.00 0.00 4,500.00"
+      64 |   expect(text).not.toContain("Charge 7777"); // owner 2, same organization
+      65 |   expect(text).not.toContain("Charge 9999"); // organization B
+    > 66 |   expect(text).toMatch(/3,?500/); // 3,000 + 1,500 - 1,000
+         |                ^
+      67 | });
+      68 |
+      69 | let requestId = "";
+        at D:\Web\AqarBooks\tests\e2e\portal-journey.spec.ts:66:16
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J3-the-owne-69d00-movements-and-nobody-else-s\error-context.md
+    Error Context: C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J3-the-owne-69d00-movements-and-nobody-else-s\error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J3-the-owne-69d00-movements-and-nobody-else-s\trace.zip
+    Usage:
+        npx playwright show-trace C:\Users\Lenovo\AppData\Local\Temp\aqarbooks-pw-results\portal-journey-J3-the-owne-69d00-movements-and-nobody-else-s\trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  3 failed
+    tests\e2e\accounting-bank-reconciliation.spec.ts:104:5 › B2 bank transfer 2,000 on 2026-03-10, created in the receipt dialog, into the bank GL account 
+    tests\e2e\accounting-journey.spec.ts:139:5 › S3 receipt #1: 1,500 on 2026-02-10 ────────────────
+    tests\e2e\portal-journey.spec.ts:57:5 › J3 the owner's statement shows their movements and nobody else's 
+  22 did not run
+  14 passed (11.9m)

@@ -1,0 +1,15 @@
+D1 run 1:   1 failed  | server-denials-so-far=0
+D1 run 2:   1 failed  | server-denials-so-far=0
+D1 run 3:   1 failed  | server-denials-so-far=0
+D1 run 4:   1 failed  | server-denials-so-far=0
+D1 run 5:   1 failed  | server-denials-so-far=0
+D1 run 6:   1 failed  | server-denials-so-far=0
+D1 run 7:   1 passed (36.1s)  | server-denials-so-far=0
+D1 run 8:   1 passed (29.0s)  | server-denials-so-far=0
+D1 run 9:   1 failed  | server-denials-so-far=0
+D1 run 10:   1 failed  | server-denials-so-far=0
+D1 run 11:   1 passed (33.2s)  | server-denials-so-far=0
+D1 run 12:   1 passed (28.7s)  | server-denials-so-far=0
+D1 run 13:   1 passed (29.7s)  | server-denials-so-far=0
+D1 run 14:   1 passed (27.4s)  | server-denials-so-far=0
+DONE

@@ -1,0 +1,8 @@
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+psql:/tmp/rg2_wait.sql:3: ERROR:  PROJECT_RELEASE_EXCEEDS_WIP: التحرير (600) يتجاوز رصيد الأعمال تحت التنفيذ (0.0000)
+CONTEXT:  PL/pgSQL function release_project_wip(uuid,numeric,date,text) line 32 at RAISE

@@ -1,0 +1,5 @@
+==== Q1 committed DRAFT credit 600 on W14 (balance 1000 -> net 400)
+ after draft: W14 balance=1000.0000
+==== Q2 UPDATE the committed draft line credit 600 -> 1500 (net would be 1000-1500 = -500)
+ after update: W14 balance=1000.0000 (pending counted)
+ W14 net incl drafts=-500.0000

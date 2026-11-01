@@ -1,0 +1,12 @@
+Batch 1B r6 240000 review bundle verification
+verified_utc=2026-10-31T09:24:20.828192+00:00
+archive=review-bundle-r6-240000.zip
+sha256=6c70aac3f9be4622bf13fb52409cd9957f94eb0094cc7636eaa742c986897753
+payload_files=282
+archive_entries=283
+crc=PASS
+archive_file_set=PASS
+manifest_sha256_after_extract=PASS
+manifest_lf_only=PASS
+human_signoff=PENDING
+production_approval=NOT_GRANTED

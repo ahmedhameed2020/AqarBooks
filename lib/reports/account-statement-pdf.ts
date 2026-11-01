@@ -18,8 +18,8 @@ import { escapeHtml } from "@/lib/reports/html-escape";
 export interface StatementLine {
   /** ISO date the movement is dated. */
   date: string;
-  /** CHARGE increases what the account owes; PAYMENT reduces it. */
-  kind: "CHARGE" | "PAYMENT";
+  /** CHARGE increases what the account owes; PAYMENT reduces it; PAYMENT_REVERSAL (a voided receipt, dated at the reversal entry) increases it again. */
+  kind: "CHARGE" | "PAYMENT" | "PAYMENT_REVERSAL";
   description: string;
   unitCode: string | null;
   reference: string | null;
@@ -69,7 +69,7 @@ export function generateAccountStatementPdf(data: StatementData, locale: string)
 
   let running = openingBalance;
   const rows = ordered.map((line) => {
-    const signed = line.kind === "CHARGE" ? line.amount : -line.amount;
+    const signed = line.kind === "PAYMENT" ? -line.amount : line.amount;
     running += signed;
     return { ...line, balanceAfter: running };
   });
@@ -77,9 +77,14 @@ export function generateAccountStatementPdf(data: StatementData, locale: string)
   const totalCharges = ordered
     .filter((l) => l.kind === "CHARGE")
     .reduce((s, l) => s + l.amount, 0);
-  const totalPayments = ordered
+  const totalReceipts = ordered
     .filter((l) => l.kind === "PAYMENT")
     .reduce((s, l) => s + l.amount, 0);
+  const totalReversals = ordered
+    .filter((l) => l.kind === "PAYMENT_REVERSAL")
+    .reduce((s, l) => s + l.amount, 0);
+  // net paid: receipts minus the receipts that were voided. Debit column = charges + reversals, credit column = receipts.
+  const totalPayments = totalReceipts - totalReversals;
   const closingBalance = openingBalance + totalCharges - totalPayments;
 
   const safeOrg = escapeHtml(organizationName);
@@ -100,7 +105,7 @@ export function generateAccountStatementPdf(data: StatementData, locale: string)
       (r) => `      <tr>
         <td>${escapeHtml(r.date)}</td>
         <td>${escapeHtml(r.description)}${r.unitCode ? ` <span class="muted">· ${escapeHtml(r.unitCode)}</span>` : ""}${r.reference ? ` <span class="muted">· ${escapeHtml(r.reference)}</span>` : ""}</td>
-        <td class="num">${r.kind === "CHARGE" ? fmt(r.amount) : ""}</td>
+        <td class="num">${r.kind === "CHARGE" || r.kind === "PAYMENT_REVERSAL" ? fmt(r.amount) : ""}</td>
         <td class="num">${r.kind === "PAYMENT" ? fmt(r.amount) : ""}</td>
         <td class="num strong">${fmt(r.balanceAfter)}</td>
       </tr>`,
@@ -288,8 +293,8 @@ ${rowsHtml}
     <tfoot>
       <tr>
         <td colspan="2">${isAr ? "الرصيد المستحق في نهاية المدة" : "Balance due at period end"}</td>
-        <td class="num">${fmt(totalCharges)}</td>
-        <td class="num">${fmt(totalPayments)}</td>
+        <td class="num">${fmt(totalCharges + totalReversals)}</td>
+        <td class="num">${fmt(totalReceipts)}</td>
         <td class="num">${fmt(closingBalance)}</td>
       </tr>
     </tfoot>

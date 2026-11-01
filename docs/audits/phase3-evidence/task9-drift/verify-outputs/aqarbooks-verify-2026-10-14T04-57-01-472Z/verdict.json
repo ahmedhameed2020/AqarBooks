@@ -1,0 +1,15 @@
+{
+  "verdict": "DRIFT_REPRODUCED",
+  "exit": 1,
+  "reason": "two consecutive observations reported the same difference (the tool repeated its report; not an independent proof)",
+  "decidedBy": 2,
+  "tally": {
+    "clean": 0,
+    "differing": 2,
+    "error": 0
+  },
+  "observations": [
+    "differs",
+    "differs"
+  ]
+}

@@ -1,0 +1,59 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ❯ tests/rls-set-based-policies-equivalence.integration.test.ts (4 tests | 2 failed) 48ms
+     × no principal sees, can update, or can insert anything different through the new policies 29ms
+     × the five policies keep their command, permissive flag and roles, no longer call a per-row permission helper, and the owner routes are untouched 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rls-set-based-policies-equivalence.integration.test.ts > RLS: set-based permission policies are equivalent to the per-row ones (migration 20261017100900) > no principal sees, can update, or can insert anything different through the new policies
+AssertionError: select-differs: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "platform_admin|dues|only_new=0|only_old=51",
++   "staff:CASHIER|coa|only_new=0|only_old=25",
++   "staff:COLLECTOR|coa|only_new=0|only_old=3",
++   "staff:FRA_READER|coa|only_new=0|only_old=4",
++   "staff:MSA_READER|coa|only_new=0|only_old=1",
++ ]
+
+ ❯ tests/rls-set-based-policies-equivalence.integration.test.ts:175:124
+    173|
+    174|   it("no principal sees, can update, or can insert anything different …
+    175|     for (const bad of ["select-differs", "update-differs", "insert-dif…
+       |                                                                                                                            ^
+    176|   });
+    177|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/rls-set-based-policies-equivalence.integration.test.ts > RLS: set-based permission policies are equivalent to the per-row ones (migration 20261017100900) > the five policies keep their command, permissive flag and roles, no longer call a per-row permission helper, and the owner routes are untouched
+AssertionError: chart_of_accounts_manage: expected 'per_row_helper=true' to be 'per_row_helper=false' // Object.is equality
+
+Expected: "per_row_helper=false"
+Received: "per_row_helper=true"
+
+ ❯ tests/rls-set-based-policies-equivalence.integration.test.ts:213:26
+    211|       expect(p[2], p[0]).toBe("permissive=true");
+    212|       expect(p[3], p[0]).toBe("roles=PUBLIC");
+    213|       expect(p[4], p[0]).toBe("per_row_helper=false");
+       |                          ^
+    214|     }
+    215|     expect(of("untouched")[0]).toContain("work_order_cost_member_can_r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  17:27:22
+   Duration  137.44s (transform 414ms, setup 445ms, import 135.88s, tests 48ms, environment 0ms)
+

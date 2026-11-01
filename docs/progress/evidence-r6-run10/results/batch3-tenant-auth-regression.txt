@@ -1,0 +1,61 @@
+$ tests/platform-tenant-authorization.test.ts
+label=batch3-tenant-auth-regression
+exit=0
+elapsed_ms=7154
+
+
+ RUN  v4.1.10 D:/Web/AqarBooks
+
+ ✓ tests/platform-tenant-authorization.test.ts (53 tests) 824ms
+
+ Test Files  1 passed (1)
+      Tests  53 passed (53)
+   Start at  16:20:19
+   Duration  3.37s (transform 625ms, setup 476ms, import 1.01s, tests 824ms, environment 0ms)
+
+JSON report written to D:/Web/AqarBooks/docs/progress/evidence-r6-run10/results/batch3-tenant-auth-regression.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > getRolePermissionKeys: fails closed when role_permissions lookup errors
+[SEC-FAIL-CLOSED] Failed to query role_permissions for role: 8c9768df-063c-4341-a8b7-cd878c32084f database connection timeout
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > getRolePermissionKeys: fails closed when permissions lookup errors
+[SEC-FAIL-CLOSED] Failed to query permissions for role: 8c9768df-063c-4341-a8b7-cd878c32084f disk read error
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > getRolePermissionKeys: fails closed when permission row count is inconsistent
+[SEC-FAIL-CLOSED] Inconsistent permissions count for role: 8c9768df-063c-4341-a8b7-cd878c32084f { expected: 2, received: 1 }
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > changeUserRoleAction: denies role assignment when target role permission lookup fails (fail-closed)
+[SEC-FAIL-CLOSED] Failed to query role_permissions for role: a05ebdf9-8641-4281-bb2a-1d33a730737a query timeout
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > inviteUserAction: stops provisioning and fails closed when membership check errors
+[SEC-FAIL-CLOSED] Failed to check existing membership: network partition
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > inviteMemberAction: stops provisioning and fails closed when membership check errors
+[SEC-FAIL-CLOSED] Failed to check existing membership: database offline
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Authorization & Partial Write Compensation (Amendment 4) > createRoleAction: compensates by deleting created role and returns failure when role_permissions insert fails
+[SEC-COMPENSATION] Failed to insert role permissions, compensating by deleting created role: {
+  roleId: '92cf89b3-0bb3-456a-92dd-a9a657695e52',
+  error: 'foreign key constraint violation'
+}
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > changeUserRoleAction: fails closed when deleting existing role assignment fails; new role is NOT inserted
+[SEC-FAIL-CLOSED] Failed to delete existing role assignments: deadlock detected
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > removeUserAction: does NOT attempt membership deletion when role assignment deletion fails
+[SEC-FAIL-CLOSED] Failed to delete role assignments before removing user: foreign key constraint violation
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > changeUserRoleAction: denies demotion when isLastTenantOwner query fails
+[SEC-FAIL-CLOSED] Failed to query target owner assignment: database timeout
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > updateUserStatusAction: denies suspension when isLastTenantOwner query fails
+[SEC-FAIL-CLOSED] Failed to query owner roles: connection dropped
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > removeUserAction: denies removal when isLastTenantOwner query fails
+[SEC-FAIL-CLOSED] Failed to query owner roles: disk read error
+
+stderr | tests/platform-tenant-authorization.test.ts > Platform and Tenant Authorization Containment (W0-SEC) > Fail-Closed Role Deletion, Last-Owner & Invite Compensation (Amendment 5) > inviteUserAction: aborts provisioning and compensates when role-replacement delete fails
+[SEC-FAIL-CLOSED] Failed to clear previous role assignments on invite: write conflict
+

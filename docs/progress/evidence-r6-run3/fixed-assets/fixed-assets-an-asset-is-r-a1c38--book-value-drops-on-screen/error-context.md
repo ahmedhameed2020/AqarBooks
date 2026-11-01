@@ -1,0 +1,353 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: fixed-assets.spec.ts >> an asset is registered, a period is posted, and the book value drops on screen
+- Location: tests\e2e\fixed-assets.spec.ts:112:5
+
+# Error details
+
+```
+Test timeout of 180000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - link "AqarBooks ERP Smart Real Estate Accounting" [ref=f1e5] [cursor=pointer]:
+          - /url: /en
+          - generic [ref=f1e8]:
+            - generic [ref=f1e9]:
+              - generic [ref=f1e10]: AqarBooks
+              - generic [ref=f1e11]: ERP
+            - generic [ref=f1e12]: Smart Real Estate Accounting
+        - generic [ref=f1e13]: Live Cloud Sync
+      - button "Search accounts, units, reports... ⌘K" [ref=f1e17] [cursor=pointer]:
+        - generic [ref=f1e18]: Search accounts, units, reports...
+        - generic [ref=f1e23]: ⌘K
+      - generic [ref=f1e24]:
+        - button "Quick Action" [ref=f1e26]
+        - button "Notifications" [ref=f1e29] [cursor=pointer]
+        - link "العربية" [ref=f1e33] [cursor=pointer]:
+          - /url: /ar/finance/assets
+    - generic [ref=f1e38]:
+      - complementary [ref=f1e39]:
+        - generic [ref=f1e40]:
+          - button "Collapse Sidebar" [ref=f1e43] [cursor=pointer]
+          - generic [ref=f1e47]:
+            - textbox "Search..." [ref=f1e48]
+            - generic: ⌘K
+        - navigation [ref=f1e49]:
+          - generic [ref=f1e54]:
+            - link "Dashboard" [ref=f1e56] [cursor=pointer]:
+              - /url: /en/dashboard
+            - button "Pin to top" [ref=f1e64]
+          - generic [ref=f1e67]:
+            - button "Properties & Operations" [ref=f1e68] [cursor=pointer]
+            - generic [ref=f1e73]:
+              - generic [ref=f1e75]:
+                - link "Entities & Resorts" [ref=f1e77] [cursor=pointer]:
+                  - /url: /en/admin/resorts
+                - button "Pin to top" [ref=f1e83]
+              - generic [ref=f1e86]:
+                - generic [ref=f1e87]:
+                  - link "Units Management" [ref=f1e89] [cursor=pointer]:
+                    - /url: /en/property
+                  - button "Pin to top" [ref=f1e96]
+                  - button "Expand" [ref=f1e99] [cursor=pointer]
+                - generic [ref=f1e102]:
+                  - link "All Units" [ref=f1e103] [cursor=pointer]:
+                    - /url: /en/property
+                  - link "Rent Roll Schedule" [ref=f1e106] [cursor=pointer]:
+                    - /url: /en/finance/reports/rent-roll
+                  - link "Lease Expirations" [ref=f1e109] [cursor=pointer]:
+                    - /url: /en/finance/reports/lease-expirations
+                  - link "Bulk Import" [ref=f1e112] [cursor=pointer]:
+                    - /url: /en/import
+              - generic [ref=f1e115]:
+                - generic [ref=f1e116]:
+                  - link "Members & Owners" [ref=f1e118] [cursor=pointer]:
+                    - /url: /en/members
+                  - button "Pin to top" [ref=f1e126]
+                  - button "Expand" [ref=f1e129] [cursor=pointer]
+                - generic [ref=f1e132]:
+                  - link "Members Directory" [ref=f1e133] [cursor=pointer]:
+                    - /url: /en/members
+                  - link "Owner Statements" [ref=f1e136] [cursor=pointer]:
+                    - /url: /en/finance/reports/owner-statement
+              - generic [ref=f1e139]:
+                - generic [ref=f1e140]:
+                  - link "Maintenance Operations" [ref=f1e142] [cursor=pointer]:
+                    - /url: /en/operations/maintenance
+                  - button "Pin to top" [ref=f1e147]
+                  - button "Expand" [ref=f1e150] [cursor=pointer]
+                - generic [ref=f1e153]:
+                  - link "Maintenance Requests" [ref=f1e154] [cursor=pointer]:
+                    - /url: /en/operations/maintenance
+                  - link "Work Orders" [ref=f1e157] [cursor=pointer]:
+                    - /url: /en/operations/maintenance/work-orders
+              - generic [ref=f1e161]:
+                - link "Operations Dashboard" [ref=f1e163] [cursor=pointer]:
+                  - /url: /en/operations
+                - button "Pin to top" [ref=f1e168]
+              - generic [ref=f1e171]:
+                - generic [ref=f1e172]:
+                  - link "Access / Visitors" [ref=f1e174] [cursor=pointer]:
+                    - /url: /en/operations/visitors
+                  - button "Pin to top" [ref=f1e180]
+                  - button "Expand" [ref=f1e183] [cursor=pointer]
+                - generic [ref=f1e186]:
+                  - link "Visitor Passes" [ref=f1e187] [cursor=pointer]:
+                    - /url: /en/operations/visitors
+                  - link "Gate Scanner" [ref=f1e190] [cursor=pointer]:
+                    - /url: /en/operations/gate
+                  - link "Gate Management" [ref=f1e193] [cursor=pointer]:
+                    - /url: /en/operations/gates
+                  - link "Access Event Ledger" [ref=f1e196] [cursor=pointer]:
+                    - /url: /en/operations/access-events
+              - generic [ref=f1e200]:
+                - link "Live Visitor Occupancy" [ref=f1e202] [cursor=pointer]:
+                  - /url: /en/operations/gate/occupancy
+                - button "Pin to top" [ref=f1e208]
+              - generic [ref=f1e212]:
+                - link "Vehicle Registry" [ref=f1e214] [cursor=pointer]:
+                  - /url: /en/operations/vehicles
+                - button "Pin to top" [ref=f1e220]
+              - generic [ref=f1e224]:
+                - link "Amenities & Bookings" [ref=f1e226] [cursor=pointer]:
+                  - /url: /en/operations/amenities
+                - button "Pin to top" [ref=f1e231]
+          - generic [ref=f1e234]:
+            - button "Finance & Accounting" [ref=f1e235] [cursor=pointer]
+            - generic [ref=f1e240]:
+              - generic [ref=f1e241]:
+                - generic [ref=f1e242]:
+                  - link "Chart of Accounts" [ref=f1e244] [cursor=pointer]:
+                    - /url: /en/finance/accounts
+                  - button "Pin to top" [ref=f1e251]
+                  - button "Collapse" [ref=f1e254] [cursor=pointer]
+                - generic [ref=f1e259]:
+                  - link "Accounts Tree" [ref=f1e260] [cursor=pointer]:
+                    - /url: /en/finance/accounts
+                  - link "Journal Entries" [ref=f1e263] [cursor=pointer]:
+                    - /url: /en/finance/journals
+                  - link "Fiscal Periods" [ref=f1e266] [cursor=pointer]:
+                    - /url: /en/admin/finance/periods
+                  - link "Fiscal Budgets" [ref=f1e269] [cursor=pointer]:
+                    - /url: /en/finance/budgets
+                  - link "Fixed Assets" [ref=f1e272] [cursor=pointer]:
+                    - /url: /en/finance/assets
+                  - link "Projects & WIP" [ref=f1e275] [cursor=pointer]:
+                    - /url: /en/finance/projects
+                  - link "Exchange Rates" [ref=f1e278] [cursor=pointer]:
+                    - /url: /en/finance/exchange-rates
+                  - link "Designated Accounts" [ref=f1e281] [cursor=pointer]:
+                    - /url: /en/admin/finance/accounting-accounts
+                  - link "General Ledger" [ref=f1e284] [cursor=pointer]:
+                    - /url: /en/finance/reports/general-ledger
+              - generic [ref=f1e287]:
+                - generic [ref=f1e288]:
+                  - link "Receivables & Billing" [ref=f1e290] [cursor=pointer]:
+                    - /url: /en/finance/dues
+                  - button "Pin to top" [ref=f1e296]
+                  - button "Expand" [ref=f1e299] [cursor=pointer]
+                - generic [ref=f1e302]:
+                  - link "Dues & Invoices" [ref=f1e303] [cursor=pointer]:
+                    - /url: /en/finance/dues
+                  - link "Receipt Vouchers" [ref=f1e306] [cursor=pointer]:
+                    - /url: /en/finance/payments
+                  - link "Service Charges" [ref=f1e309] [cursor=pointer]:
+                    - /url: /en/finance/service-charges
+                  - link "Collections" [ref=f1e312] [cursor=pointer]:
+                    - /url: /en/finance/dunning
+                  - link "CAM Allocation" [ref=f1e315] [cursor=pointer]:
+                    - /url: /en/finance/reports/cam-allocation
+                  - link "AR Aging" [ref=f1e318] [cursor=pointer]:
+                    - /url: /en/finance/reports/aging
+              - generic [ref=f1e321]:
+                - generic [ref=f1e322]:
+                  - link "Treasury & Banking" [ref=f1e324] [cursor=pointer]:
+                    - /url: /en/finance/cashier
+                  - button "Pin to top" [ref=f1e330]
+                  - button "Expand" [ref=f1e333] [cursor=pointer]
+                - generic [ref=f1e336]:
+                  - link "Cashier" [ref=f1e337] [cursor=pointer]:
+                    - /url: /en/finance/cashier
+                  - link "Bank Accounts" [ref=f1e340] [cursor=pointer]:
+                    - /url: /en/finance/banks
+                  - link "PDC Register" [ref=f1e343] [cursor=pointer]:
+                    - /url: /en/finance/reports/pdc
+                  - link "Cash Runway Forecast" [ref=f1e346] [cursor=pointer]:
+                    - /url: /en/finance/reports/cash-flow-forecast
+                  - link "Bank Reconciliation" [ref=f1e349] [cursor=pointer]:
+                    - /url: /en/finance/banks/reconciliation
+              - generic [ref=f1e352]:
+                - generic [ref=f1e353]:
+                  - link "Purchasing & Payables" [ref=f1e355] [cursor=pointer]:
+                    - /url: /en/finance/suppliers
+                  - button "Pin to top" [ref=f1e363]
+                  - button "Expand" [ref=f1e366] [cursor=pointer]
+                - generic [ref=f1e369]:
+                  - link "Vendors & Suppliers" [ref=f1e370] [cursor=pointer]:
+                    - /url: /en/finance/suppliers
+                  - link "Expense Vouchers" [ref=f1e373] [cursor=pointer]:
+                    - /url: /en/finance/expenses
+                  - link "AP Aging" [ref=f1e376] [cursor=pointer]:
+                    - /url: /en/finance/reports/ap-aging
+                  - link "CAPEX vs OPEX" [ref=f1e379] [cursor=pointer]:
+                    - /url: /en/finance/reports/capex-opex
+                  - link "Broker Commissions" [ref=f1e382] [cursor=pointer]:
+                    - /url: /en/finance/commissions
+          - generic [ref=f1e385]:
+            - button "Financial Reports" [ref=f1e386] [cursor=pointer]
+            - generic [ref=f1e392]:
+              - generic [ref=f1e393]:
+                - link "Reports Hub (19 Reports)" [ref=f1e395] [cursor=pointer]:
+                  - /url: /en/finance/reports
+                - button "Pin to top" [ref=f1e400]
+                - button "Expand" [ref=f1e403] [cursor=pointer]
+              - generic [ref=f1e406]:
+                - link "Trial Balance" [ref=f1e407] [cursor=pointer]:
+                  - /url: /en/finance/reports/trial-balance
+                - link "Income Statement" [ref=f1e410] [cursor=pointer]:
+                  - /url: /en/finance/reports/income-statement
+                - link "Balance Sheet" [ref=f1e413] [cursor=pointer]:
+                  - /url: /en/finance/reports/balance-sheet
+                - link "Cash Flow Statement" [ref=f1e416] [cursor=pointer]:
+                  - /url: /en/finance/reports/cash-flow
+                - link "Property-Level P&L" [ref=f1e419] [cursor=pointer]:
+                  - /url: /en/finance/reports/property-pnl
+                - link "Fixed Assets & NBV" [ref=f1e422] [cursor=pointer]:
+                  - /url: /en/finance/reports/fixed-assets
+                - link "Budget vs Actual" [ref=f1e425] [cursor=pointer]:
+                  - /url: /en/finance/reports/budget-vs-actual
+                - link "Audit Trail & Logs" [ref=f1e428] [cursor=pointer]:
+                  - /url: /en/finance/reports/audit-trail
+          - generic [ref=f1e431]:
+            - button "Tax & Compliance" [ref=f1e432] [cursor=pointer]
+            - generic [ref=f1e438]:
+              - generic [ref=f1e439]:
+                - link "E-Invoicing & VAT" [ref=f1e441] [cursor=pointer]:
+                  - /url: /en/finance/einvoice
+                - button "Pin to top" [ref=f1e446]
+                - button "Expand" [ref=f1e449] [cursor=pointer]
+              - generic [ref=f1e452]:
+                - link "Tax Invoices Log" [ref=f1e453] [cursor=pointer]:
+                  - /url: /en/finance/einvoice
+                - link "VAT Return Statement" [ref=f1e456] [cursor=pointer]:
+                  - /url: /en/finance/reports/vat-return
+                - link "Tax Mapping" [ref=f1e459] [cursor=pointer]:
+                  - /url: /en/finance/tax-mapping
+                - link "GS1 / EGS Item Codes" [ref=f1e462] [cursor=pointer]:
+                  - /url: /en/finance/einvoice-items
+          - generic [ref=f1e465]:
+            - button "Settings & Account" [ref=f1e466] [cursor=pointer]
+            - generic [ref=f1e472]:
+              - generic [ref=f1e473]:
+                - link "My Account & Security" [ref=f1e475] [cursor=pointer]:
+                  - /url: /en/account
+                - button "Pin to top" [ref=f1e481]
+                - button "Expand" [ref=f1e484] [cursor=pointer]
+              - generic [ref=f1e487]:
+                - link "Profile & Password" [ref=f1e488] [cursor=pointer]:
+                  - /url: /en/account
+                - link "Notification Center" [ref=f1e491] [cursor=pointer]:
+                  - /url: /en/notifications
+                - link "Organization Profile" [ref=f1e494] [cursor=pointer]:
+                  - /url: /en/admin
+                - link "Team & Users" [ref=f1e497] [cursor=pointer]:
+                  - /url: /en/admin/users
+                - link "Roles & Permissions" [ref=f1e500] [cursor=pointer]:
+                  - /url: /en/admin/roles
+                - link "AI Governance & Pilot" [ref=f1e503] [cursor=pointer]:
+                  - /url: /en/admin/ai-governance
+                - link "Payment Gateways" [ref=f1e506] [cursor=pointer]:
+                  - /url: /en/finance/payment-providers
+        - generic [ref=f1e510]:
+          - link "E E2E FA UI 1793220813468 e2e-fa-owner-1793220813856@aqarbooks-test.local Tenant Owner • E2E FA UI 1793220813468" [ref=f1e511] [cursor=pointer]:
+            - /url: /en/account
+            - generic [ref=f1e512]: E
+            - generic [ref=f1e515]:
+              - paragraph [ref=f1e517]: E2E FA UI 1793220813468
+              - paragraph [ref=f1e518]: e2e-fa-owner-1793220813856@aqarbooks-test.local
+              - generic [ref=f1e519]:
+                - generic [ref=f1e520]: Tenant Owner
+                - generic [ref=f1e521]: • E2E FA UI 1793220813468
+          - generic [ref=f1e522]:
+            - link "Account" [ref=f1e523] [cursor=pointer]:
+              - /url: /en/account
+            - button "Sign Out" [ref=f1e529] [cursor=pointer]
+      - main [ref=f1e533]:
+        - generic [ref=f1e534]:
+          - generic [ref=f1e536]:
+            - generic [ref=f1e537]:
+              - heading "Fixed Assets & Depreciation" [level=1] [ref=f1e538]
+              - generic [ref=f1e539]: Straight-Line
+            - paragraph [ref=f1e540]: Fixed assets register, automated straight-line depreciation, journal postings, and disposal tracking.
+          - generic [ref=f1e541]:
+            - generic [ref=f1e542]:
+              - generic [ref=f1e543]:
+                - generic [ref=f1e544]: Total Acquisition Cost
+                - generic [ref=f1e552]:
+                  - generic [ref=f1e553]: "0.00"
+                  - generic [ref=f1e554]: EGP
+                - paragraph [ref=f1e555]: 0 total assets
+              - generic [ref=f1e556]:
+                - generic [ref=f1e557]: Accumulated Depreciation
+                - generic [ref=f1e563]:
+                  - generic [ref=f1e564]: "0.00"
+                  - generic [ref=f1e565]: EGP
+                - generic [ref=f1e566]: 0.0%
+              - generic [ref=f1e569]:
+                - generic [ref=f1e570]: Net Book Value
+                - generic [ref=f1e577]:
+                  - generic [ref=f1e578]: "0.00"
+                  - generic [ref=f1e579]: EGP
+                - paragraph [ref=f1e580]: Current asset balance
+              - generic [ref=f1e581]:
+                - generic [ref=f1e582]: Asset Status
+                - generic [ref=f1e589]:
+                  - generic [ref=f1e590]:
+                    - text: "0"
+                    - generic [ref=f1e591]: Active
+                  - generic [ref=f1e593]:
+                    - text: "0"
+                    - generic [ref=f1e594]: Disposed
+            - generic [ref=f1e595]:
+              - textbox "Search by asset code or name..." [ref=f1e597]
+              - generic [ref=f1e598]:
+                - combobox [ref=f1e599]:
+                  - option "All Statuses" [selected]
+                  - option "Active"
+                  - option "Disposed"
+                - button "Print / PDF" [disabled]
+                - button "Export Excel" [disabled]
+                - button "New Asset" [ref=f1e600] [cursor=pointer]
+            - table [ref=f1e604]:
+              - rowgroup [ref=f1e605]:
+                - row [ref=f1e606]:
+                  - columnheader "Code" [ref=f1e607]
+                  - columnheader "Asset" [ref=f1e608]
+                  - columnheader "Acquired" [ref=f1e609]
+                  - columnheader "Cost" [ref=f1e610]
+                  - columnheader "Accumulated" [ref=f1e611]
+                  - columnheader "Book Value" [ref=f1e612]
+                  - columnheader "Status" [ref=f1e613]
+                  - columnheader "Actions" [ref=f1e614]
+              - rowgroup [ref=f1e616]:
+                - row [ref=f1e617]:
+                  - cell [ref=f1e618]:
+                    - paragraph [ref=f1e623]: No fixed assets found
+                    - paragraph [ref=f1e624]: Click 'New Asset' to record a fixed asset
+  - alert [ref=f1e625]
+  - generic:
+    - region "Notifications"
+```

@@ -1,0 +1,58 @@
+==== CANCELLED WIP CREDIT 800: valid release 600 must use posted balance 1000 only
+BEGIN
+INSERT 0 1
+SET
+                              set_config                               
+-----------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}
+(1 row)
+
+                 cap                  
+--------------------------------------
+ d10c3088-d099-4c8b-a039-b9247eba090f
+(1 row)
+
+RESET
+INSERT 0 1
+INSERT 0 2
+UPDATE 1
+  status  | reversed_entry_id | has_reversal_entry 
+----------+-------------------+--------------------
+ REVERSED |                   | f
+(1 row)
+
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 |   0.0000 |   1000.0000
+(1 row)
+
+ all_status_floor_net 
+----------------------
+             200.0000
+(1 row)
+
+CREATE TABLE
+GRANT
+SET
+DO
+psql:/tmp/cancelled_credit_release_regression.sql:39: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_ACCEPTED: release_id=4f2d55f3-8150-4103-8a73-3bb2b1cfaadc
+RESET
+ capitalised | released | wip_balance 
+-------------+----------+-------------
+   1000.0000 | 600.0000 |    400.0000
+(1 row)
+
+                  id                  | status |  debit   |  credit  |  net   | wip_credit_lines | cost_debit_lines 
+--------------------------------------+--------+----------+----------+--------+------------------+------------------
+ 4f2d55f3-8150-4103-8a73-3bb2b1cfaadc | POSTED | 600.0000 | 600.0000 | 0.0000 |                1 |                1
+(1 row)
+
+DO
+==== FORCE DEFERRED WIP FLOOR GUARDS BEFORE ROLLBACK
+psql:/tmp/cancelled_credit_release_regression.sql:78: NOTICE:  ASSERT_CANCELLED_CREDIT_RELEASE_PASS: accepted release gives cap=1000 rel=600 wip=400 ledger=400; entry POSTED and balanced 600/600
+psql:/tmp/cancelled_credit_release_regression.sql:80: ERROR:  PROJECT_WIP_NEGATIVE: الحركة المرفوضة كانت ستجعل رصيد WIP سالبًا (الرصيد قبل الحركة 0, الصافي المتوقع بعد الحركة -400.0000)
+CONTEXT:  PL/pgSQL function check_project_wip_floor(uuid) line 13 at RAISE
+SQL statement "SELECT public.check_project_wip_floor(NEW.project_id)"
+PL/pgSQL function guard_project_floor_at_commit() line 4 at PERFORM
+psql:/tmp/cancelled_credit_release_regression.sql:81: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK

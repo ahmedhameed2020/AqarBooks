@@ -1,0 +1,52 @@
+0046fd16a2f14ac44abd7a08234bc8969fbdfcbf97a23c827cc367f936521f67|supabase_pg_meta_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgres-meta:v0.98.0
+0443b686e94d128447a9689b21faadfc7212590b836fac7d916dcbab3480d6c5|supabase_rest_aqarbooks_clean|Up 4 hours|public.ecr.aws/supabase/postgrest:v16.1
+079cc011a67323676f54eafd1028eff80bb68031fc492026967c34acab0e8963|supabase_edge_runtime_EduEdara|Exited (255) 3 weeks ago|public.ecr.aws/supabase/edge-runtime:v1.74.3
+0c8479b9360d48cba24f523257be397cef4efe2ec5ea28079cc1b38baaa32c22|supabase_db_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgres:17.6.1.166
+10ac2c91f7cae3e3e45137f566134e3ef9874d72494c1bce23758c42948b9c51|supabase_analytics_harrik|Exited (137) 20 hours ago|public.ecr.aws/supabase/logflare:1.50.4
+1b6c94bba1581ff4e68ad4d314f66fc82da3d9daf2e58910f864cef571e24be8|intelligent_hamilton|Exited (0) 7 weeks ago|public.ecr.aws/supabase/postgres:17.6.1.166
+1d42db8c792368ca68af08d929d12b825287ce13157fdd71c62ecca7c49e2211|supabase_analytics_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/logflare:1.50.4
+203ab5395e739afaf86edba701b6fd0157ea7b070a2a5b904818b6a0cc522b07|supabase_rest_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgrest:v16.1
+207834f1c318bf06d15c7261abf7ce6ecb2447e4711c5e089b22940feb86e372|supabase_kong_aqarbooks_clean|Up 4 hours (healthy)|public.ecr.aws/supabase/kong:2.8.1
+228adb32d45648e5dd6f8c46d7f42ce32bc5c1ce2e6689fe6d073e47eb7c4f28|supabase_auth_aqarbooks_clean|Up 4 hours (healthy)|public.ecr.aws/supabase/gotrue:v2.196.0
+23fce6d4d158a054f9ca885875ee5dd569f030d736ec0d26bd0da9ae51347a34|supabase_kong_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/kong:2.8.1
+252c4e177a33e308ae04f05f2be0402af5f88fa6a7a17fa0b80f00f4bfda9a49|supabase_storage_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/storage-api:v1.70.3
+2ac2ec5ca6e6316bc409c4b60b034dbcdcd61295adf9530a03f8c2e12d823556|supabase_storage_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/storage-api:v1.70.3
+2c1b66efca9920c354724e78b60bb8f46d764dd8bca85f755f08517b5f9332bb|supabase_realtime_EduEdara|Exited (143) 20 hours ago|public.ecr.aws/supabase/realtime:v2.129.3
+2c2b7f1fb147acf99742dbd59d660b590df899828778b14e0e002e8f77529c11|supabase_studio_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/studio:2026.08.17-sha-0c1da8f
+2f5b678ade15d7973ac485d9d15ff15bb644d608a2c31a2d3eac8074b322acd8|supabase_auth_Al-Kadi|Exited (0) 5 weeks ago|public.ecr.aws/supabase/gotrue:v2.195.0
+32e579e5e1fd6ea772b6d4b249f711eacf58ce0aa1f4bdf3f7315362bcae7812|supabase_kong_Al-Kadi|Exited (0) 5 weeks ago|public.ecr.aws/supabase/kong:2.8.1
+39ba98afa39e08addee7cc91148948f9a1d4afda20c9b7eb04e24c9ac618d599|supabase_analytics_EduEdara|Exited (137) 20 hours ago|public.ecr.aws/supabase/logflare:1.50.4
+4a76e5ac2c1f2e92ea382e1f8c7cd3c50bfbc4fc9cec3010951370127d3fc614|supabase_db_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/postgres:17.6.1.165
+4dcc10b6ce9a6dc3dadf84e853ba6e3b20a196a3671339dbbeaf0a8d636f29ac|supabase_edge_runtime_harrik|Exited (137) 5 weeks ago|public.ecr.aws/supabase/edge-runtime:v1.74.3
+4efade9f957e462b44794e1f921d116957b43d8089b953a170b3cdb092139320|supabase_auth_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/gotrue:v2.196.0
+5a55216a7e3d0e0c984faddd02d2bd5a9621c3f945ff757aea3109bcd35fa8c6|supabase_studio_harrik|Exited (143) 20 hours ago|public.ecr.aws/supabase/studio:2026.08.17-sha-0c1da8f
+5fc9180925676d69fbb976ce223ca79d53c22460c111f6cf308769880e1c72a8|supabase_storage_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/storage-api:v1.69.0
+624657e5122962df567fb331a514bf158d64099c4bc6529d39f590690125e829|supabase_pg_meta_Al-Kadi|Exited (0) 5 weeks ago|public.ecr.aws/supabase/postgres-meta:v0.98.0
+6822824d6dc43f16c5b8f138e76c90416a2c04374aaf064efaabdfa4edd94e3f|supabase_vector_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/vector:0.53.0-alpine
+73a8a9e1a38016073682c83cb24c011f769db3c759d8cd964bfb02030359e282|supabase_vector_aqarbooks|Restarting (0) 6 seconds ago|public.ecr.aws/supabase/vector:0.53.0-alpine
+7a7dfed63ff5a32b50dc5167048f48682716fdfceb51dd8188764e0cef975025|supabase_storage_Al-Kadi|Exited (0) 5 weeks ago|public.ecr.aws/supabase/storage-api:v1.71.0
+7cc3f4812056e585d3ac6c75d5b494f3ec699448ae0a61f424dba676f37e1839|supabase_db_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgres:17.6.1.165
+7cea9986a46a6beda76510716dc6bd537fe84623f8ab6dd637f0fc977710dcb8|supabase_pg_meta_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/postgres-meta:v0.98.0
+80fd49963e8ca7217ee3d47d5d51b0e8ab7f854f538f74f658d06789abb9bdf5|supabase_inbucket_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/mailpit:v1.30.2
+83c337d28ff75890421455019b03ad543f115af073bcef2026d83f1c90b352b4|supabase_vector_Al-Kadi|Exited (143) 5 weeks ago|public.ecr.aws/supabase/vector:0.53.0-alpine
+8d4427fa8553c9419ee5f0eca35a6907e7b05902e32692c8694e28ff9335ffd1|supabase_rest_Al-Kadi|Exited (255) 5 weeks ago|public.ecr.aws/supabase/postgrest:v14.5
+9326ed3d0b970ee5c098f5509e2290ff1d8a6b028008d7752762797ea2fd745a|supabase_rest_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgrest:v16.1
+9420ec819fa1be0712246beaf82256d10223f6209401c45b5636730b8bc82961|supabase_inbucket_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/mailpit:v1.30.2
+98806c64dd23e19d1b076bf820de97c3ed2ded4ab5e6370b1acb561593634f15|supabase_auth_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/gotrue:v2.196.0
+9e295c5406c3d8057ee752912b741dfdbeba417e54aa163caa03b7d646e05d54|supabase_kong_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/kong:2.8.1
+a56c46084f2e3efb94a16a1751d8025a926971e66ed10d4d6a822b86b4d2e20c|supabase_studio_EduEdara|Exited (143) 20 hours ago|public.ecr.aws/supabase/studio:2026.08.17-sha-0c1da8f
+a81be4c5a74290115577747ed1a93351b6d5a7d9dbde7e17e43a0c2cfab1c59e|supabase_kong_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/kong:2.8.1
+b8ec06cbae4daf9f378eb254fe314ec9595f6e266fe7f65a13500f25540bccf8|supabase_realtime_harrik|Exited (143) 20 hours ago|public.ecr.aws/supabase/realtime:v2.129.3
+c5168cad1e8c6f24ba710e4d9e75db005e81162f783023a2e19d612241aaade1|supabase_inbucket_Al-Kadi|Exited (0) 5 weeks ago|public.ecr.aws/supabase/mailpit:v1.30.2
+cd133b90a80b20fa73bba9d00e8cfd201b96a6934a21436dfaabb85f9ff13b37|supabase_storage_aqarbooks_clean|Up 4 hours (healthy)|public.ecr.aws/supabase/storage-api:v1.70.3
+cd9c16b02298e59313b56252af46faa0252ab93057519fe2ef27e9fd9c6d7e35|supabase_rest_aqarbooks|Up 4 hours|public.ecr.aws/supabase/postgrest:v14.15
+d049100fd7abc557586bdff4a50f1322050f1e5b21211d5c7be51fbfa45dd616|supabase_inbucket_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/mailpit:v1.30.2
+d50f27e10790719a83a5ff2ab4ac7e5a41892dccd3085ce0ee219a4598ebc639|supabase_auth_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/gotrue:v2.195.0
+d6139598e20116388de9123ecec2335ac64058e23a7e5729092bd86392ec5538|supabase_realtime_Al-Kadi|Exited (143) 5 weeks ago|public.ecr.aws/supabase/realtime:v2.129.3
+d8462ebc69e80c45438297da37c71491b53e7b094c55ec964467394f7db0f70b|supabase_pg_meta_EduEdara|Exited (0) 20 hours ago|public.ecr.aws/supabase/postgres-meta:v0.98.0
+daefc4d27051718858a43eade27186cfb9535f4c411575d44d6118bfd4d3cb4a|supabase_edge_runtime_aqarbooks|Exited (255) 5 weeks ago|public.ecr.aws/supabase/edge-runtime:v1.74.3
+ddb9c78ecdcf2268ba306a1ca019d4e7fc18e183b9dffcab912780d01a00fb33|supabase_realtime_aqarbooks|Up 4 hours (healthy)|public.ecr.aws/supabase/realtime:v2.129.3
+e1eda84d1723922bcf8b69044b259d8ac6152d6c2d66d02bdf2fce910ab749ce|supabase_db_aqarbooks_clean|Up 4 hours (healthy)|public.ecr.aws/supabase/postgres:17.6.1.165
+e4de806aa0f06205fe6f0041e1ffc8b5aad88938a68d4779eb081e71567d4429|supabase_vector_harrik|Exited (0) 20 hours ago|public.ecr.aws/supabase/vector:0.53.0-alpine
+ea8e2772cd5f05ee86415a384715c1b935680d2c93e94bf7617520be67c6da6e|supabase_edge_runtime_Al-Kadi|Exited (15) 7 weeks ago|public.ecr.aws/supabase/edge-runtime:v1.74.3
+ffe89384d88a477552e0ecaa444ee2fde0de7ae1ff5686a7ad307f15f1466761|supabase_analytics_Al-Kadi|Exited (137) 5 weeks ago|public.ecr.aws/supabase/logflare:1.50.4
