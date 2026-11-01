@@ -39,22 +39,58 @@ jobs:
 
       - run: npm ci
 
-      # No env: block here on purpose.
+      # Build-time environment.
       #
-      # NEXT_PUBLIC_* are inlined into the bundle at build time and come from
-      # the committed .env.production -- they are public by design (RLS, not
-      # obscurity, enforces access) and live in git precisely so no build
-      # machine needs per-machine setup. Duplicating them into GitHub secrets
-      # would fork the source of truth.
+      # Next.js looks variables up in this order (repo docs,
+      # node_modules/next/dist/docs/.../environment-variables.md):
+      #   process.env > .env.<NODE_ENV>.local > .env.local > .env.<NODE_ENV> > .env
+      # so an explicit `env:` here wins over every committed file, and a local
+      # `.env.local` wins over `.env.production` when building on a machine.
+      #
+      # This repository tracks .env.production with the PUBLIC Supabase URL and
+      # anon key (public by design; RLS enforces access). Two rules keep the
+      # deploy honest:
+      #   1. The expected production project ref MUST be declared in the
+      #      `production` environment as PRODUCTION_SUPABASE_PROJECT_REF.
+      #   2. The built bundle MUST inline exactly that project; otherwise the
+      #      deploy stops before shipping.
+      # 2026-11-01 incident: a local OpenNext build without explicit env inlined
+      # the development project and every sign-in failed. The gate below exists
+      # so that class of deploy cannot leave CI.
       #
       # SUPABASE_SERVICE_ROLE_KEY is deliberately ABSENT. If it were present at
       # build time, OpenNext would inline it into .open-next/cloudflare/
-      # next-env.mjs and ship it inside the worker script in plaintext. Instead
-      # it is stored as an encrypted Cloudflare secret and read from
-      # process.env at request time -- see the lazy resolve() in
-      # lib/env/server.ts, which exists for exactly this reason.
+      # next-env.mjs and ship it inside the worker script in plaintext. It is an
+      # encrypted Cloudflare secret read at request time instead.
+      - name: Validate expected production project
+        env:
+          EXPECTED_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPECTED_REF:-}" ]; then
+            echo "PRODUCTION_SUPABASE_PROJECT_REF is not declared in the production environment."
+            echo "Refusing to build: without an explicit production project ref the bundle could point at another project."
+            exit 1
+          fi
+          if ! printf '%s' "$EXPECTED_REF" | grep -Eq '^[a-z0-9]{16,}$'; then
+            echo "PRODUCTION_SUPABASE_PROJECT_REF is not a plausible Supabase project ref."
+            exit 1
+          fi
+          URL_HOST=$(grep -m1 '^NEXT_PUBLIC_SUPABASE_URL=' .env.production | cut -d= -f2- | tr -d '"' | sed -E 's|https?://||' | cut -d/ -f1)
+          URL_REF=${URL_HOST%%.supabase.co}
+          if [ "$URL_REF" != "$EXPECTED_REF" ]; then
+            echo "The committed .env.production points at a different project than the declared production ref."
+            echo "Committed: ${URL_REF}  Declared: ${EXPECTED_REF}"
+            exit 1
+          fi
+          echo "expected production project: ${EXPECTED_REF} (public identifier)"
+          echo "EXPECTED_SUPABASE_URL=https://${EXPECTED_REF}.supabase.co" >> "$GITHUB_ENV"
+
       - name: Build
         run: npx opennextjs-cloudflare build
+
+      - name: Verify build env
+        run: node scripts/verify-build-env.mjs "$EXPECTED_SUPABASE_URL"
 
       # --keep-vars stops the deploy from clearing runtime vars/bindings that
       # were set outside this config (including the secret above).

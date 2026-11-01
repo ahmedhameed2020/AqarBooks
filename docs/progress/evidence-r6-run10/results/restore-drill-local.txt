@@ -1,8 +1,13 @@
-Restore drill (local, schema-only, scratch database) — 2026-11-01
-source: g0r6-db public schema
-dump: pg_dump -s -n public --no-owner --no-privileges (37,620 lines)
-target: bare scratch database preflight_restore (no auth/extensions schemas)
-result: 305 ERROR statements (auth.uid() unresolved; FKs to auth.users)
-objects: source 145 tables + 6 views | restored 143 tables + 6 views
-missing tables: gate_device_enrollments, gate_devices
-conclusion: FAILED drill — a bare Postgres target cannot absorb this schema; restore needs a Supabase-provisioned project (auth/extensions) or a full-cluster dump.
+Restore drill v2 (full database dump, Supabase-consistent target) — 2026-11-01
+source: g0r6-db/postgres (full dump, schema+data, 3.7 MB, pg_dump -Fc)
+target: scratch database preflight_restore on the same Supabase cluster (auth/extensions/roles available)
+restore: pg_restore --no-owner --no-privileges -> 0 errors
+
+object parity (source | restored):
+  tables=145|145 views=6|6 functions=640|640 policies=204|204 triggers=138|138 indexes=484|484 foreign_keys=509|509 auth.uid=yes|yes
+row parity (source | restored):
+  organizations 236|236; journal_entries 342|342; journal_entry_lines 703|703; chart_of_accounts 1976|1976; fiscal_years 194|194; members 133|133; units 133|133
+functional: auth.uid() null=true; is_org_member(zero,zero)=false; constraints catalogue_items_gs1_shape + fad_once_per_period present (2)
+
+conclusion: PASS for a Supabase-consistent target. The earlier failure (305 errors) was caused by restoring the public schema into a bare database without auth/extensions.
+scope limit: this proves the procedure on the local cluster image; a production drill still needs the production snapshot + credentials.

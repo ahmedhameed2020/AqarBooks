@@ -1,13 +1,16 @@
 // Verifies that the CURRENT .next build was produced with the expected public
-// Supabase URL. NEXT_PUBLIC_* values are inlined at build time, so a build made
-// with the wrong .env silently points the app at another project.
-// Usage: node scripts/verify-build-env.mjs <expectedUrlSubstring>
+// Supabase project. NEXT_PUBLIC_* values are inlined at build time, so a build
+// made with the wrong env silently points the app at another project.
+// Usage: node scripts/verify-build-env.mjs <expectedUrl>
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { checkBundleEnv } from "./lib/build-env-check.mjs";
 
-const expected = process.argv[2] ?? process.env.EXPECTED_SUPABASE_URL;
+const args = process.argv.slice(2);
+const allowLocal = args.includes("--allow-local");
+const expected = args.find((a) => !a.startsWith("--")) ?? process.env.EXPECTED_SUPABASE_URL;
 if (!expected) {
-  console.error("usage: node scripts/verify-build-env.mjs <expectedUrlSubstring>");
+  console.error("usage: node scripts/verify-build-env.mjs [--allow-local] <expectedUrl>");
   process.exit(2);
 }
 
@@ -20,26 +23,7 @@ try {
   process.exit(2);
 }
 
-let matches = 0;
-const otherUrls = new Set();
-for (const rel of files) {
-  const body = readFileSync(join(dir, rel), "utf8");
-  if (body.includes(expected)) matches++;
-  for (const m of body.matchAll(/https?:\/\/[a-z0-9.-]+/g)) {
-    if (!m[0].includes(expected.replace(/^https?:\/\//, ""))) otherUrls.add(new URL(m[0]).host);
-  }
-}
-
-// Project refs look like <20 lowercase chars>.supabase.co. Domain literals
-// (supabase.com), the placeholder fallback, and the expected host are not leaks.
-const PROJECT_HOST = /^[a-z0-9]{16,}\.supabase\.(co|in)$/;
-const expectedHost = expected.replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
-const foreignSupabase = [...otherUrls].filter(
-  (h) => PROJECT_HOST.test(h) && h !== expectedHost,
-);
-console.log(JSON.stringify({ expected, chunksWithExpectedUrl: matches, foreignSupabaseHosts: foreignSupabase }, null, 2));
-if (matches === 0 || foreignSupabase.length > 0) {
-  console.error("BUILD ENV MISMATCH: the bundle does not match the expected project (or also references another one)");
-  process.exit(1);
-}
-console.log("build env OK");
+const chunks = files.map((rel) => ({ path: rel, body: readFileSync(join(dir, rel), "utf8") }));
+const result = checkBundleEnv({ chunks, expectedUrl: expected, requireProduction: !allowLocal });
+console.log(JSON.stringify({ expected, allowLocal, chunks: files.length, ...result }, null, 2));
+process.exitCode = result.ok ? 0 : 1;

@@ -87,3 +87,26 @@
 | تطبيق الترحيلات | المالك + ops | staging ناجح + نسخة كاملة |
 | النشر العام | المالك | فحوص staging + خطة تراجع معتمدة |
 | تشغيل الحمل | المالك | نافذة + بيانات معزولة |
+
+---
+
+## ملحق 2026-11-01 — نتائج Unblock
+
+### ترتيب متغيرات Next.js (موثق)
+`process.env` > `.env.<NODE_ENV>.local` > `.env.local` > `.env.<NODE_ENV>` > `.env`
+(المصدر: `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`). env الصريح يتقدم دائمًا؛ و`.env.local` المحلي يتقدم على `.env.production` — سبب حادثة الحقن.
+بوابة CI الجديدة: `PRODUCTION_SUPABASE_PROJECT_REF` إلزامي في بيئة `production`، ويجب أن يطابق `.env.production`، ثم `verify-build-env` بعد البناء قبل النشر.
+
+### مراجعة الترحيلات المعلّقة (إلزامية قبل التطبيق)
+- مانيفست 94 ترحيلًا: `node scripts/migration-manifest.mjs` (‏version + sha256) — `migration-manifest.txt`.
+- على المنفّذ بمفاتيح الإنتاج: `supabase migration list --linked` أو `select version from supabase_migrations.schema_migrations order by 1;` ومقارنة المعلّق بالمانيفست.
+- لا يُطبَّق ترحيل خارج المانيفست أو تغيّرت بصمته.
+- **خطة الفشل:** توقف فوري؛ لا forward-fix بلا مراجعة؛ استعادة النسخة الكاملة إن كان الترحيل غير قابل للتراجع؛ توثيق الجذر قبل إعادة المحاولة.
+
+### تمرين الاستعادة (محلي، 2026-11-01)
+نسخة كاملة schema+data (3.7MB) → `pg_restore` إلى قاعدة مؤقتة على نفس عنقود Supabase: **0 أخطاء**، تطابق تام (145 جدولًا، 640 دالة، 204 سياسة، 138 محفزًا، 509 FK) وصفوف الجداول المفتاحية؛ `auth.uid()` يعمل؛ القيدان الحاسمان موجودان.
+الدرس: استعادة `public` وحدها إلى قاعدة bare تفشل (305 أخطاء) — الهدف يجب أن يكون Supabase-consistent.
+يبقى للإنتاج: نسخة إنتاجية فعلية + تمرين إنتاجي.
+
+### المراقبة
+الإشارات والعتبات ووجهة التنبيه والمناوب وإثبات وصول تنبيه حقيقي: `docs/progress/monitoring-setup.md` — **لم يُثبت بعد**.
