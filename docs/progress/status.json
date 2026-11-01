@@ -44,14 +44,12 @@
         }
       ],
       "blockers": [
-        "No browser verification",
-        "No Playwright run",
-        "No integration verification",
-        "Arabic copy not reviewed by a translator",
-        "Ownership of treasury error mapping in receivables.ts is not settled",
-        "English string in the Arabic branch of statement-forms.tsx not fixed"
+        "Browser/Playwright coverage now exists across the finance screens (core + wave 2 suites, 48/48 runnable green on r6).",
+        "Arabic copy: automated review completed 2026-11-01 (docs/progress/arabic-copy-review.md); professional translator sign-off still pending (launch item 6).",
+        "Ownership of treasury error mapping in receivables.ts is still not settled (owner decision needed).",
+        "Fixed 2026-11-01: the English string in the Arabic branch of statement-forms.tsx now maps through financeErrorMessage."
       ],
-      "last_updated": "2026-10-23",
+      "last_updated": "2026-11-01",
       "evidence": [
         "Combined unit test run: 113/113 passing, tsc exit 0 (session report)",
         "tests/finance-error-message.test.ts",
@@ -61,7 +59,9 @@
         "tests/bank-reconciliation-rtl.test.ts",
         "tests/treasury-error-codes.test.ts",
         "tests/db-error-code.test.ts",
-        "tests/einvoice-receivable-account.test.ts"
+        "tests/einvoice-receivable-account.test.ts",
+        "docs/progress/arabic-copy-review.md",
+        "tests/e2e/finance-screens-show-their-data.spec.ts"
       ],
       "percent_defined": null,
       "percent_note": "No defined set of sub-items; no percentage is reported."
@@ -70,20 +70,23 @@
       "id": "sprint-2-batch-0",
       "name_ar": "السبرينت 2 - الدفعة 0 (صدق معالج الإقفال)",
       "name_en": "Sprint 2 Batch 0 (closing wizard honesty)",
-      "status": "code_complete",
+      "status": "verified",
       "tests": [
         {
           "file": "tests/year-closing-wizard-honesty.test.ts",
-          "result_text": "6/6 passing"
+          "result_text": "9/9 passing on 2026-11-01 (re-run); superseded by the connected Batch 3 journey, which is verified end to end."
         }
       ],
       "blockers": [
-        "None in code",
-        "Per-period close button still has no pre-checks (by design in this batch)"
+        "None in code. The display-only wizard this batch made honest was replaced by the connected Batch 3 journey (verified on r6).",
+        "Per-period close button still has no pre-checks (by design; year-end closing owns the checks).",
+        "Verified on r6 only; not a production approval."
       ],
-      "last_updated": "2026-10-23",
+      "last_updated": "2026-11-01",
       "evidence": [
-        "tests/year-closing-wizard-honesty.test.ts"
+        "tests/year-closing-wizard-honesty.test.ts",
+        "tests/e2e/year-end-closing-journey.spec.ts",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-journey-e2e-final.txt"
       ],
       "percent_defined": null,
       "percent_note": "No defined set of sub-items; no percentage is reported."
@@ -92,25 +95,24 @@
       "id": "sprint-2-batch-1a",
       "name_ar": "السبرينت 2 - الدفعة 1A (حساب الإقفال النقي)",
       "name_en": "Sprint 2 Batch 1A (pure closing calculation)",
-      "status": "code_complete",
+      "status": "verified",
       "tests": [
         {
           "file": "tests/fiscal-year-closing.test.ts",
-          "result_text": "38/38 passing"
-        },
-        {
-          "file": "tests/year-closing-wizard-honesty.test.ts",
-          "result_text": "6/6 passing; 44 total with fiscal-year-closing (reported)"
+          "result_text": "38/38 passing on 2026-11-01 (re-run); the calculator now backs the Batch 3 closing preview, proven end to end."
         }
       ],
       "blockers": [
-        "No database side yet"
+        "No database side by design: the pure calculator is consumed by the Batch 3 preview/close journey (verified on r6).",
+        "Verified on r6 only; not a production approval."
       ],
-      "last_updated": "2026-10-23",
+      "last_updated": "2026-11-01",
       "evidence": [
         "lib/accounting/fiscal-year-closing.ts",
         "tests/fiscal-year-closing.test.ts",
-        "tests/year-closing-wizard-honesty.test.ts"
+        "tests/year-closing-wizard-honesty.test.ts",
+        "tests/e2e/year-end-closing-journey.spec.ts",
+        "docs/progress/evidence-r6-run10/results/batch3-closing-e2e-database.json"
       ],
       "percent_defined": null,
       "percent_note": "No defined set of sub-items; no percentage is reported."
