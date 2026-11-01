@@ -1,0 +1,7 @@
+Load smoke (preliminary, NOT the acceptance run of load-test-plan.md)
+date: 2026-11-01
+target: http://127.0.0.1:3100 (r6 build, next start)
+routes: /en, /en/login, /ar, /en/demo (public)
+concurrency: 20, duration: 25s
+result: {"requests":1638,"errors":0,"errorRate":0,"p50":242,"p95":631,"p99":1346,"max":1926}
+note: unauthenticated pages only; no seeded production-scale data. Full L1-L6 scenarios remain pending.
