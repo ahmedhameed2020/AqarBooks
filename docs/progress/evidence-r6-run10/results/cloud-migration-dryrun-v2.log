@@ -1,0 +1,74 @@
+psql:<stdin>:132: NOTICE:  policy "Finance auditors can read financial audit logs" for relation "public.financial_audit_logs" does not exist, skipping
+20261009120000_phase1_financial_report_authz.sql rc=0
+20261009130000_phase1_1_membership_roles_audit.sql rc=0
+psql:<stdin>:59: NOTICE:  policy "chart_of_accounts_select_permission" for relation "public.chart_of_accounts" does not exist, skipping
+psql:<stdin>:63: NOTICE:  policy "fiscal_years_select_permission" for relation "public.fiscal_years" does not exist, skipping
+psql:<stdin>:67: NOTICE:  policy "fiscal_periods_select_permission" for relation "public.fiscal_periods" does not exist, skipping
+psql:<stdin>:71: NOTICE:  policy "cost_centers_select_permission" for relation "public.cost_centers" does not exist, skipping
+psql:<stdin>:75: NOTICE:  policy "budgets_select_permission" for relation "public.budgets" does not exist, skipping
+psql:<stdin>:79: NOTICE:  policy "banks_select_permission" for relation "public.banks" does not exist, skipping
+psql:<stdin>:83: NOTICE:  policy "bank_accounts_select_permission" for relation "public.bank_accounts" does not exist, skipping
+psql:<stdin>:87: NOTICE:  policy "cashboxes_select_permission" for relation "public.cashboxes" does not exist, skipping
+psql:<stdin>:91: NOTICE:  policy "cash_transactions_select_permission" for relation "public.cash_transactions" does not exist, skipping
+psql:<stdin>:95: NOTICE:  policy "cheques_select_permission" for relation "public.cheques" does not exist, skipping
+psql:<stdin>:99: NOTICE:  policy "due_types_select_permission" for relation "public.due_types" does not exist, skipping
+psql:<stdin>:103: NOTICE:  policy "expense_categories_select_permission" for relation "public.expense_categories" does not exist, skipping
+psql:<stdin>:107: NOTICE:  policy "projects_select_permission" for relation "public.projects" does not exist, skipping
+psql:<stdin>:111: NOTICE:  policy "cashier_sessions_select_permission" for relation "public.cashier_sessions" does not exist, skipping
+psql:<stdin>:115: NOTICE:  policy "journal_entry_lines_select_permission" for relation "public.journal_entry_lines" does not exist, skipping
+psql:<stdin>:119: NOTICE:  policy "cheque_status_history_select_permission" for relation "public.cheque_status_history" does not exist, skipping
+20261009140000_phase1_2_finance_read_permissions.sql rc=0
+psql:<stdin>:561: NOTICE:  policy "platform_audit_logs_select_org_auditor" for relation "public.platform_audit_logs" does not exist, skipping
+20261010120000_phase2_ledger_reversals_and_trial_balance_opening.sql rc=0
+psql:<stdin>:34: NOTICE:  trigger "trg_validate_receivable_account_setting" for relation "public.organization_finance_settings" does not exist, skipping
+20261011100000_phase2b_receivable_account_setting.sql rc=0
+20261011100100_phase2b_default_receivable_account_rpcs.sql rc=0
+20261012100000_phase2c_bank_reconciliation_unhandled_lines.sql rc=0
+20261013100000_phase2d_dues_require_open_period.sql rc=0
+psql:<stdin>:40: NOTICE:  trigger "trg_guard_bank_statement_line_resolution" for relation "public.bank_statement_lines" does not exist, skipping
+psql:<stdin>:41: NOTICE:  function public.guard_bank_statement_line_resolution() does not exist, skipping
+psql:<stdin>:42: NOTICE:  function public.explain_bank_statement_line(uuid,text) does not exist, skipping
+psql:<stdin>:43: NOTICE:  function public.unexplain_bank_statement_line(uuid) does not exist, skipping
+psql:<stdin>:44: NOTICE:  constraint "bank_statement_lines_resolution_coherent" of relation "bank_statement_lines" does not exist, skipping
+psql:<stdin>:49: NOTICE:  column "resolution" of relation "bank_statement_lines" does not exist, skipping
+psql:<stdin>:49: NOTICE:  column "resolution_reason" of relation "bank_statement_lines" does not exist, skipping
+psql:<stdin>:49: NOTICE:  column "resolved_by" of relation "bank_statement_lines" does not exist, skipping
+psql:<stdin>:49: NOTICE:  column "resolved_at" of relation "bank_statement_lines" does not exist, skipping
+20261014100000_phase2e_bank_reconciliation_strict_upgrade.sql rc=0
+20261015100000_phase2f_notifications_amenity_source_type.sql rc=0
+20261015100100_phase2f_notifications_amenity_types.sql rc=0
+20261015100200_phase2f_visitor_gate_scan_foreign_pass.sql rc=0
+20261016100000_phase2g_owner_suspended_pass_denial.sql rc=0
+psql:<stdin>:39: NOTICE:  trigger "trg_validate_customer_advance_account_setting" for relation "public.organization_finance_settings" does not exist, skipping
+psql:<stdin>:82: NOTICE:  trigger "trg_payments_guard_advance_columns" for relation "public.payments" does not exist, skipping
+psql:<stdin>:140: NOTICE:  trigger "trg_payment_allocations_before_insert" for relation "public.payment_allocations" does not exist, skipping
+psql:<stdin>:168: NOTICE:  trigger "trg_payment_allocations_guard_update" for relation "public.payment_allocations" does not exist, skipping
+psql:<stdin>:197: NOTICE:  trigger "trg_payments_fill_allocation_reversal_dates" for relation "public.payments" does not exist, skipping
+psql:<stdin>:236: NOTICE:  trigger "trg_payment_allocations_reversal_consistency" for relation "public.payment_allocations" does not exist, skipping
+20261017100000_phase3a_customer_advances_schema.sql rc=0
+20261017100100_phase3b_customer_advances_functions.sql rc=0
+20261017100200_phase3c_customer_advances_integrity.sql rc=0
+20261017100300_phase3d_customer_advances_review2.sql rc=0
+20261017100400_phase3e_customer_advances_trusted_backend.sql rc=0
+20261017100500_phase3f_portal_statement_history.sql rc=0
+20261017100600_phase3g_advance_account_configured.sql rc=0
+20261017100700_phase3h_owner_statement_settlement.sql rc=0
+20261017100800_phase3i_view_lateral_aggregates.sql rc=0
+20261017100900_rls_set_based_permission_policies.sql rc=0
+20261017101000_rls_admin_check_once.sql rc=0
+20261017101100_rls_journal_entries_and_lines.sql rc=0
+20261017101200_rls_fiscal_years.sql rc=0
+psql:<stdin>:71: NOTICE:  trigger "trg_cashboxes_validate_gl_account" for relation "public.cashboxes" does not exist, skipping
+psql:<stdin>:75: NOTICE:  trigger "trg_bank_accounts_validate_gl_account" for relation "public.bank_accounts" does not exist, skipping
+psql:<stdin>:222: NOTICE:  trigger "trg_coa_cash_equivalent_audit" for relation "public.chart_of_accounts" does not exist, skipping
+20261018100000_deposit_account_cash_or_bank.sql rc=0
+20261019100000_fiscal_year_closing_core.sql rc=0
+psql:<stdin>:155: NOTICE:  trigger "trg_fiscal_periods_status_guard" for relation "public.fiscal_periods" does not exist, skipping
+psql:<stdin>:160: NOTICE:  trigger "trg_fiscal_years_status_guard" for relation "public.fiscal_years" does not exist, skipping
+20261019100100_fiscal_year_close_guards.sql rc=0
+20261019100200_fiscal_year_close_permission_and_reports.sql rc=0
+20261019100300_fiscal_calendar_truncate_revoke.sql rc=0
+psql:<stdin>:170: NOTICE:  trigger "trg_journal_entries_draft_period_guard" for relation "public.journal_entries" does not exist, skipping
+20261019100400_fiscal_calendar_draft_and_open_transition.sql rc=0
+20261019100500_fiscal_year_opened_audit.sql rc=0
+20261101090000_platform_admin_membership_guard.sql rc=0

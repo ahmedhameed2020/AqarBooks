@@ -1,0 +1,51 @@
+=== auth_schema.sql
+ set_config 
+------------
+ 
+(1 row)
+
+psql:<stdin>:1292: ERROR:  function public.handle_new_user() does not exist
+--- rc=0
+=== public_schema.sql
+ set_config 
+------------
+ 
+(1 row)
+
+psql:<stdin>:27456: ERROR:  schema "vault" does not exist
+psql:<stdin>:27466: ERROR:  schema "vault" does not exist
+--- rc=0
+=== public_data.sql
+ set_config 
+------------
+ 
+(1 row)
+
+ setval 
+--------
+  10001
+(1 row)
+
+ setval 
+--------
+     43
+(1 row)
+
+ setval 
+--------
+    124
+(1 row)
+
+--- rc=0
+=== auth_data.sql
+ set_config 
+------------
+ 
+(1 row)
+
+ setval 
+--------
+   6818
+(1 row)
+
+--- rc=0
