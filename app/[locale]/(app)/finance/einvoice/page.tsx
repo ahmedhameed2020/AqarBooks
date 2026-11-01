@@ -22,6 +22,11 @@ export const revalidate = 0;
 
 const OFFERED: Jurisdiction[] = supportedJurisdictions();
 
+const JURISDICTION_LABELS: Record<string, { ar: string; en: string }> = {
+  EG_ETA: { ar: "مصر — مصلحة الضرائب (ETA)", en: "Egypt — ETA" },
+  SA_ZATCA: { ar: "السعودية — الزكاة والضريبة (ZATCA)", en: "Saudi Arabia — ZATCA" },
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -251,7 +256,66 @@ export default async function EInvoicePage({
         dueTypes={dueTypes}
         receivableAccounts={receivableAccounts}
         periods={periods}
-        profilesSlot={null}
+        profilesSlot={
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                {isAr ? "إعدادات بوابات الربط الضريبي" : "Tax Gateway Settings"}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {isAr
+                  ? "بيانات الممول لكل ولاية. لا يُعلن أي اتصال قبل تحقق فعلي من الهيئة."
+                  : "Filer details per jurisdiction. No connection is claimed before a real authority verification."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {OFFERED.map((jurisdictionCode) => {
+                const profile = profiles.find((p) => p.jurisdiction === jurisdictionCode);
+                const state = profile?.enabled
+                  ? isAr
+                    ? "✓ الإرسال اللحظي مفعّل"
+                    : "Active & Auto-filing"
+                  : profile?.verified_at
+                    ? isAr
+                      ? "مُتحقق منه — جاهز للتفعيل"
+                      : "Verified — ready"
+                    : isAr
+                      ? "بانتظار إعداد الربط"
+                      : "Setup needed";
+                const label = JURISDICTION_LABELS[jurisdictionCode] ?? { ar: jurisdictionCode, en: jurisdictionCode };
+                return (
+                  <div
+                    key={jurisdictionCode}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-black text-slate-950 dark:text-white">{isAr ? label.ar : label.en}</h3>
+                      <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">{state}</span>
+                    </div>
+                    <ProfileForm
+                      key={`${jurisdictionCode}-${profile?.updated_at ?? "new"}`}
+                      organizationId={organization.id}
+                      jurisdiction={jurisdictionCode}
+                      environment={profile?.environment === "PRODUCTION" ? "PRODUCTION" : "SANDBOX"}
+                      taxpayerId={profile?.taxpayer_id ?? null}
+                      branchCode={profile?.branch_code ?? null}
+                      activityCode={profile?.activity_code ?? null}
+                      locale={locale}
+                    />
+                    {profile && (
+                      <FilingToggle
+                        profileId={profile.id}
+                        enabled={profile.enabled}
+                        canEnable={Boolean(profile.verified_at)}
+                        locale={locale}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        }
       />
     </div>
   );

@@ -800,6 +800,8 @@ export function EInvoiceClient({
         </div>
       </div>
 
+      {profilesSlot}
+
       {/* ──────────────────────────────────────────────────────────────────────────
           MODULE NAVIGATION TABS (FULL-WIDTH CLEAN SEGMENTED CONTROL)
           ────────────────────────────────────────────────────────────────────────── */}
