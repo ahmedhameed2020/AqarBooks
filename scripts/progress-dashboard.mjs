@@ -135,7 +135,7 @@ const html = `<!DOCTYPE html>
   .ring small{display:block;font-size:10px;font-weight:600;color:var(--muted)}
   .ring-label b{display:block;font-size:15px}
   .ring-label span{font-size:12px;color:var(--muted)}
-  .dash{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted)}
+  .dash{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
   .bar{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden;margin:8px 0 4px}
   .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0d9488,#2563eb);
     animation:grow 1.1s cubic-bezier(.2,.7,.3,1) both}
@@ -145,8 +145,8 @@ const html = `<!DOCTYPE html>
   @keyframes grow{from{width:0!important}to{}}
   h2{font-size:18px;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
   h2::before{content:"";width:6px;height:22px;border-radius:4px;background:linear-gradient(#0d9488,#2563eb)}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{padding:10px 12px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top}
+  table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  th,td{padding:10px 12px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
   th{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
   tr:last-child td{border-bottom:none}
   .rows .row{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
