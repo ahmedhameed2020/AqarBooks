@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "progress:dashboard": "node scripts/progress-dashboard.mjs",
     "demo:stack-up": "node scripts/demo-local/stack.mjs up",
     "demo:stack-migrate": "node scripts/demo-local/stack.mjs migrate",
     "demo:stack-verify": "node scripts/demo-local/stack.mjs verify",

@@ -57,8 +57,6 @@
   tr:last-child td{border-bottom:none}
   .rows .row{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
   .rows .row:last-child{border-bottom:none}
-  .row b{font-size:13px}
-  .row span{font-size:12px;color:var(--muted)}
   .chip{font-size:11px;font-weight:800;border-radius:999px;padding:2px 10px;white-space:nowrap}
   .chip.g{background:var(--green-bg);color:var(--green)} .chip.a{background:var(--amber-bg);color:var(--amber)}
   .chip.r{background:var(--red-bg);color:var(--red)} .chip.b{background:var(--blue-bg);color:var(--blue)}
@@ -81,7 +79,7 @@
         <div class="sub">إقفال السنة المالية · جودة الواجهة · جاهزية الإطلاق — حالة موثقة بالأدلة، محليًا على r6 فقط</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge onDark">آخر تحديث: 2026-11-01</span>
+        <span class="badge onDark">آخر تحديث: 2026-11-01 07:21</span>
         <span class="badge onDark">لا نشر · لا push</span>
       </div>
     </div>
@@ -93,7 +91,7 @@
           <div class="ring-label">
             <b>مراحل المشروع</b>
             <span>4 verified · 4 code_complete · 1 not_started</span>
-            <div class="dash">الدفعات المالية: 1B، 2، 3، BI-1 مقبولة على r6</div>
+            <div class="dash">الدفعات المالية المقبولة على r6: 1B، 2، 3، BI-1</div>
           </div>
         </div>
       </div>
@@ -112,7 +110,7 @@
           <div class="ring" style="--p:11;--ringColor:#d97706"><div>2/19<small>مكتمل</small></div></div>
           <div class="ring-label">
             <b>بوابة الإطلاق</b>
-            <span>2 ✅ · 2 ⚠️ جزئي · 15 ❌</span>
+            <span>2 ✅ · 3 ⚠️ جزئي · 14 ❌</span>
             <div class="dash">الإنتاج غير متصل · الجاهزية غير مقيّمة</div>
           </div>
         </div>
@@ -126,19 +124,19 @@
     </div>
   </header>
 
-  <h2>الدفعات المالية</h2>
+  <h2>المراحل</h2>
   <div class="card">
     <table>
-      <thead><tr><th>الدفعة</th><th>النطاق</th><th>الحالة</th><th>الدليل</th></tr></thead>
-      <tbody>
-        <tr><td>Batch 1B</td><td>SQL الإقفال والحراسات والصلاحيات</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-1b.md</code></td></tr>
-        <tr><td>Batch 2</td><td>رموز أخطاء الترحيل الثابتة</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-2.md</code></td></tr>
-        <tr><td>Batch 3</td><td>رحلة إقفال السنة (واجهة)</td><td><span class="chip g">verified</span></td><td><code>review-signoff-batch-3.md</code></td></tr>
-        <tr><td>BI-1</td><td>صدق مؤشرات لوحات المعلومات</td><td><span class="chip g">verified</span></td><td>مراجعة مستقلة داخل الحزمة</td></tr>
-        <tr><td>Batch 0 / 1A / UX-1</td><td>صدق المعالج · الحاسبة النقية · تجربة المالية</td><td><span class="chip b">code_complete</span></td><td><code>status.json</code></td></tr>
-        <tr><td>G0</td><td>بوابة التدريب المحلي</td><td><span class="chip b">code_complete</span></td><td><code>APPROVAL-RECORD.md</code></td></tr>
-        <tr><td>الإنتاج</td><td>نشر وتشغيل</td><td><span class="chip r">not_started</span></td><td>—</td></tr>
-      </tbody>
+      <thead><tr><th>المرحلة</th><th>الحالة</th><th>المصدر</th></tr></thead>
+      <tbody><tr><td>السبرينت 1 لتجربة المستخدم (المالية)</td><td><span class="chip b">code_complete</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>السبرينت 2 - الدفعة 0 (صدق معالج الإقفال)</td><td><span class="chip b">code_complete</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>السبرينت 2 - الدفعة 1A (حساب الإقفال النقي)</td><td><span class="chip b">code_complete</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>السبرينت 2 - الدفعة 1B (SQL الإقفال والحراسات والصلاحيات والتقارير)</td><td><span class="chip g">verified</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>السبرينت 2 - الدفعة 2 (رموز أخطاء الترحيل)</td><td><span class="chip g">verified</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>السبرينت 2 - الدفعة 3 (واجهة رحلة الإقفال)</td><td><span class="chip g">verified</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>BI-1 - صدق مؤشرات لوحات المعلومات</td><td><span class="chip g">verified</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>بوابة G0 للتدريب المحلي</td><td><span class="chip b">code_complete</span></td><td><code>docs/progress/status.json</code></td></tr>
+<tr><td>الإنتاج</td><td><span class="chip r">not_started</span></td><td><code>docs/progress/status.json</code></td></tr></tbody>
     </table>
   </div>
 
@@ -147,17 +145,17 @@
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 1 — النواة المالية</b><span class="chip g">20/20</span></div>
       <div class="bar green"><i style="width:100%"></i></div>
-      <div class="dash">37 اختبارًا · أُعيد تشغيل الست المتعثرة بعد الإصلاحات</div>
+      <div class="dash">81 اختبارًا · أُعيد تشغيل الست المتعثرة بعد الإصلاحات</div>
     </div>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>الموجة 2 — الباقي القابل للتشغيل</b><span class="chip a">21/28</span></div>
       <div class="bar amber"><i style="width:75%"></i></div>
-      <div class="dash">7 متبقية: 4 تحتاج إعادة كتابة spec · 3 بيئة/fixture</div>
+      <div class="dash">4 تحتاج إعادة كتابة spec · 3 بيئة/fixture</div>
     </div>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>المحجوبة خارجيًا</b><span class="chip b">6</span></div>
       <div class="bar"><i style="width:0;background:#94a3b8"></i></div>
-      <div class="dash">Fawry ×3 · الضرائب · المؤجلات · بوابة الإنتاج</div>
+      <div class="dash"><span dir="ltr">owner-portal-online-payment-fawry</span> · <span dir="ltr">fawry-production-foundation</span> · <span dir="ltr">payment-provider-settings</span> · <span dir="ltr">tax-mapping-review</span> · <span dir="ltr">reports-unbuilt-sections</span> · <span dir="ltr">release-a-production-gate</span></div>
     </div>
     <div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>الإصلاحات المنتجية المثبتة</b><span class="chip g">2 + 2</span></div>
@@ -168,55 +166,39 @@
 
   <h2>بوابة الإطلاق — 19 بندًا</h2>
   <div class="grid two">
-    <div class="card">
+<div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 1 · قرارات خارجية</b><span class="chip r">0/3</span></div>
-      <ul class="clean">
-        <li>قواعد ضريبية معتمدة <span class="chip r">❌</span></li>
-        <li>مفاتيح Fawry + اختبار الدفع <span class="chip r">❌</span></li>
-        <li>قرار البنود المؤجلة <span class="chip r">❌</span></li>
-      </ul>
+      <ul class="clean"><li>قواعد ضريبية معتمدة وموقعة <span class="chip r">❌</span></li>
+<li>مفاتيح Fawry وتشغيل اختبار الدفع <span class="chip r">❌</span></li>
+<li>قرار بشأن البنود المؤجلة (تقارير الأصول / CAM / CAPEX-OPEX) <span class="chip r">❌</span></li></ul>
     </div>
-    <div class="card">
+<div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 2 · اكتمال النطاق</b><span class="chip a">2/4</span></div>
-      <ul class="clean">
-        <li>قبول Batch 3 <span class="chip g">✅</span></li>
-        <li>مجموعة الواجهة الكاملة <span class="chip a">⚠️ 41/48</span></li>
-        <li>مراجعة عربية بمترجم <span class="chip r">❌</span></li>
-        <li>مراجعة أمنية مستقلة للقرار <span class="chip g">✅</span></li>
-      </ul>
+      <ul class="clean"><li>قبول Batch 3 وتحويلها إلى verified <span class="chip g">✅</span></li>
+<li>مجموعة الواجهة الكاملة تُعاد بعد الدمج النهائي <span class="chip a">⚠️</span></li>
+<li>مراجعة النصوص العربية بمترجم محترف <span class="chip r">❌</span></li>
+<li>مراجعة أمنية مستقلة لقرار إغلاق الكتابة لأدوار authenticated/anon <span class="chip g">✅</span></li></ul>
     </div>
-    <div class="card">
+<div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 3 · جاهزية الإنتاج</b><span class="chip r">0/3</span></div>
-      <ul class="clean">
-        <li>تقييم جاهزية إنتاج مستقل <span class="chip r">❌</span></li>
-        <li>مراجعة أمنية شاملة <span class="chip a">⚠️ جزئي</span></li>
-        <li>اختبار حمل وأداء <span class="chip r">❌</span></li>
-      </ul>
+      <ul class="clean"><li>تقييم جاهزية إنتاج مستقل يحل محل not_assessed <span class="chip r">❌</span></li>
+<li>مراجعة أمنية مستقلة (صلاحيات، RLS، أسرار، مسارات Server Actions) <span class="chip a">⚠️</span></li>
+<li>اختبار حمل وأداء على بيانات بحجم حقيقي <span class="chip r">❌</span></li></ul>
     </div>
-    <div class="card">
+<div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 4 · بيئة الإنتاج</b><span class="chip r">0/6</span></div>
-      <ul class="clean">
-        <li>إنتاج متصل ونشر وترحيلات</li>
-        <li>نسخ احتياطي واستعادة مختبرة</li>
-        <li>مراقبة وتنبيهات + rollback</li>
-        <li>موافقة مالك على الاتصال بالإنتاج</li>
-      </ul>
+      <ul class="clean"><li>بيئة إنتاج متصلة وهوية إنتاج <span class="chip r">❌</span></li>
+<li>نشر أول نسخة إنتاج وتطبيق ترحيلات قاعدة البيانات عليها <span class="chip r">❌</span></li>
+<li>نسخ احتياطي واستعادة مخططة ومختبرة <span class="chip r">❌</span></li>
+<li>مراقبة وتنبيهات (أخطاء Server Actions، أداء RPC، مساحة القاعدة) <span class="chip r">❌</span></li>
+<li>خطة تراجع (rollback) موثقة لأول إصدار إنتاج <span class="chip r">❌</span></li>
+<li>موافقة مالك صريحة على الاتصال بالإنتاج (خارج موافقة G0 المحلية) <span class="chip r">❌</span></li></ul>
     </div>
-    <div class="card">
+<div class="card">
       <div class="row" style="display:flex;justify-content:space-between"><b>البوابة 5 · تسويق بصدق</b><span class="chip r">0/3</span></div>
-      <ul class="clean">
-        <li>مواد تصف الميزات المثبتة فقط</li>
-        <li>جولة يدوية على الإنتاج</li>
-        <li>خطة دعم وقناة بلاغ</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="row" style="display:flex;justify-content:space-between"><b>الأعمال المتبقية الآن</b><span class="chip a">4+3</span></div>
-      <ul class="clean">
-        <li>إعادة كتابة 4 specs (dunning · exchange-rates · einvoice-items · einvoice-settings)</li>
-        <li>3 عوائق بيئة/ fixture (invite email · صلاحية البوابة · تعليق smoke)</li>
-        <li>F1: تحويل المقترح إلى ترحيل إنتاجي (أو تراجع)</li>
-      </ul>
+      <ul class="clean"><li>مواد التسويق تصف الميزات المثبتة فقط <span class="chip a">⚠️</span></li>
+<li>جولة يدوية على الإنتاج بصلاحية محاسب حقيقي قبل الحملة <span class="chip r">❌</span></li>
+<li>خطة دعم مستخدمين وقناة بلاغ أخطاء <span class="chip r">❌</span></li></ul>
     </div>
   </div>
 
@@ -224,18 +206,16 @@
   <div class="card">
     <table>
       <thead><tr><th>الالتزام</th><th>المحتوى</th></tr></thead>
-      <tbody>
-        <tr><td><code>daa7b34</code></td><td>الشجرة المتراكمة · قبول Batch 3 · مقترح F1 · Trail Code</td></tr>
-        <tr><td><code>17819bc</code></td><td>أدلة الموجة الثانية · إصلاحا المُشغّل (R6_ANON_KEY · حد 1200s)</td></tr>
-        <tr><td><code>86b92e3</code></td><td>تحديث قائمة الإطلاق</td></tr>
-        <tr><td><code>21a7d09</code></td><td>إصلاح responsive + chart gates + تقرير التدقيق</td></tr>
-        <tr><td><code>5b17d44</code></td><td>تحسينات صدق dunning/rates + تصنيف انحراف الواجهات</td></tr>
-      </tbody>
+      <tbody><tr><td><code>36e1556</code></td><td>Progress dashboard (RTL HTML) + launch checklist status refresh (Batch 3 accepted, wave 2 21/28)</td></tr>
+<tr><td><code>5b17d44</code></td><td>Triage round 2: restore honesty/empty-state copy (dunning, rates); fix exchange/items spec assertions; document UI-drift specs needing rewrite</td></tr>
+<tr><td><code>21a7d09</code></td><td>Focused triage: fix marketing/RTL responsive overflow (xl breakpoint, wrap); update chart-gate test expectations to current product; triage report for remaining 7</td></tr>
+<tr><td><code>86b92e3</code></td><td>Launch checklist: record full UI suite coverage (core 20/20, wave 2 19/28 green + 9 triage)</td></tr>
+<tr><td><code>17819bc</code></td><td>Wave 2 UI baseline on r6: 19/28 green; runner fixes (R6_ANON_KEY, 20-min cap); evidence and triage report</td></tr></tbody>
     </table>
   </div>
 
   <footer>
-    مُولَّد يدويًا من <code>docs/progress/status.json</code> · <code>launch-checklist.md</code> · تقارير الأدلة — محلي على r6 فقط، وليس تقييم جاهزية إنتاج.
+    مولّد آليًا من <code>docs/progress/status.json</code> · <code>launch-checklist.md</code> · ملخصات الأدلة · git log — محلي على r6 فقط، وليس تقييم جاهزية إنتاج.
   </footer>
 </div>
 </body>

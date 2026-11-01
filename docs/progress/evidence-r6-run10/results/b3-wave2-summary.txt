@@ -38,3 +38,6 @@ gate-supervision -> exit=0 3 passed
 portal-journey -> exit=0 6 passed 
 portal-refusals -> exit=0 5 passed 
 portal-visitor-gate-journey -> exit=0 7 passed 
+customer-advances -> exit=0 10 passed
+responsive-overflow -> exit=0 18 passed
+chart-of-accounts-permission-gate -> exit=0 4 passed
