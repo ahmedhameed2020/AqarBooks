@@ -151,3 +151,11 @@
 - بعد كل نسخة: `cloud-backup-offsite.sh` يُنشئ أرشيفًا مشفرًا (AES-256/PBKDF2) في `~/OneDrive/AqarBooks-Backups`، يتحقق من فكّه ومطابقة البصمات، ويحتفظ بآخر 7.
 - نُفّذ الآن: `backup-20261101T183554Z.tar.gz.enc` (11MB) وفكّه طابق `SHA256SUMS.txt`.
 - مفتاح التشفير في `~/.aqar-secrets/backup-passphrase` (ACL للمالك) — فقدانه يعني فقدان الأرشيفات.
+
+### تحديث SMTP — 2026-11-02
+
+- مفتاح Resend جديد (صيغة `re_*`، 36 حرفًا) محفوظ في `~/.aqar-secrets/resend-api-key` (ACL للمالك، خارج Git).
+- **SMTP AUTH مباشر:** `235 Authentication successful` عبر `smtp.resend.com:465` (المستخدم `resend`).
+- **تحديث Supabase:** `PATCH /config/auth` بـ`smtp_pass` فقط → **200**. بقية الإعدادات دون تغيير (`disable_signup=true`, `autoconfirm=true`, `min_len=8`, `email_limit=30`).
+- **تصحيح استنتاج سابق:** الإدارة تعيد `smtp_pass` كقيمة مشفّرة ثابتة الطول (64 hex) وليست المفتاح نفسه؛ لذلك اختبار `535`/`400` السابق كان على نص مشفّر ولا يثبت بطلان المفتاح القديم.
+- **غير محسوم:** حالة اعتماد النطاق (المفتاح من نوع إرسال فقط ⇒ `/domains` يعيد 401). سجلات DNS موجودة: `resend._domainkey` و`send` CNAME/MX. الإثبات النهائي يتطلب إرسالًا فعليًا إلى عنوان معتمد.
