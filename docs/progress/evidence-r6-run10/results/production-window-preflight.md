@@ -159,3 +159,11 @@
 - **تحديث Supabase:** `PATCH /config/auth` بـ`smtp_pass` فقط → **200**. بقية الإعدادات دون تغيير (`disable_signup=true`, `autoconfirm=true`, `min_len=8`, `email_limit=30`).
 - **تصحيح استنتاج سابق:** الإدارة تعيد `smtp_pass` كقيمة مشفّرة ثابتة الطول (64 hex) وليست المفتاح نفسه؛ لذلك اختبار `535`/`400` السابق كان على نص مشفّر ولا يثبت بطلان المفتاح القديم.
 - **غير محسوم:** حالة اعتماد النطاق (المفتاح من نوع إرسال فقط ⇒ `/domains` يعيد 401). سجلات DNS موجودة: `resend._domainkey` و`send` CNAME/MX. الإثبات النهائي يتطلب إرسالًا فعليًا إلى عنوان معتمد.
+
+### SMTP Delivery — PASS (2026-11-02)
+
+- رسالة استعادة كلمة المرور: `recover` 200 + `user_recovery_requested` في تدقيق Auth (18:36:55Z).
+- رسالة الدعوة: `invite` 200 + `user_invited` (18:37:07Z) إلى `ahmedhameed2020+aqar-invite@gmail.com`.
+- **المالك أكد وصول الرسالتين** إلى `ahmedhameed2020@gmail.com`.
+- فحص بنيوي للروابط: `site_url` و`uri_allow_list` يشملان `https://aqarbooks.com/auth/callback`، وصفحات reset ‏200 وcallback ‏307؛ لم يُستهلك أي رمز ولم تُطبَع.
+- أثر جانبي مقصود: هوية دعوة تجريبية غير مؤكدة `+aqar-invite` (بلا أدوار/منظمات) — تُترك حتى قرار تنظيف منفصل.
