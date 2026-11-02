@@ -6,7 +6,7 @@
 //     baseUrl  path  concurrency  seconds
 //
 // Prints count, error rate, p50, p95, p99. No writes, GET only.
-const [baseUrl, path = "/en", concurrencyArg = "10", secondsArg = "15"] = process.argv.slice(2);
+const [baseUrl, path = "/en", concurrencyArg = "10", secondsArg = "15", rpsArg = "0"] = process.argv.slice(2);
 if (!baseUrl) {
   console.error("usage: node scripts/load/http-load.mjs <baseUrl> [path] [concurrency] [seconds]");
   process.exit(2);
@@ -19,6 +19,8 @@ if (!loopback && process.env.ALLOW_REMOTE_LOAD !== "1") {
 }
 const concurrency = Number(concurrencyArg);
 const seconds = Number(secondsArg);
+const targetRps = Number(rpsArg);
+const intervalMs = targetRps > 0 ? (concurrency * 1000) / targetRps : 0;
 
 const latencies = [];
 let errors = 0;
@@ -37,6 +39,10 @@ async function worker() {
     }
     latencies.push(performance.now() - started);
     requests++;
+    if (intervalMs > 0) {
+      const wait = intervalMs - (performance.now() - started);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    }
   }
 }
 
